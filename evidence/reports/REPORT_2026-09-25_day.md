@@ -1,0 +1,137 @@
+# Evidence lane report: 2026-09-25
+
+Branch `evid/evidence-records` @ `a316b94e`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
+
+## P53: N = 53 (pooled primary rows inadmissible on P5 at 38c04411)
+
+- adjudicated: **53 of 53**; not yet: 0 (none)
+- rulings (of 53 adjudicated): CANDIDATE_REJECTED 1, SERVED_CONFIRMED 52
+- entry population, lane ruling (of 53): ESTABLISHED 49, NOT_ESTABLISHED 1, PARTLY 3
+- analysis set as the source states it (of 47 drafted from extractions): ITT_STATED 19, NOT_STATED 15, OTHER_SET_STATED 13
+- rows carrying a recorded label defect (number unchanged): 7
+
+  - P53-01 SERVED_CONFIRMED / entry ESTABLISHED: PLUS: critically ill ICU patients (abstract) and adults only (registry exclusion age <18) = the question's population. Served counts 530/2433 vs 530/2413 are printed in the abstract. The abstract reports a risk difference, not an HR; the served row is counts, 
+  - P53-05 SERVED_CONFIRMED / entry PARTLY: RECOVERY dexamethasone: hospitalised patients with suspected or confirmed SARS-CoV-2. Entry is ESTABLISHED for COVID hospitalisation but PARTLY for 'adults': the held full text removed the age floor during recruitment. Comparator is usual care, which the quest
+  - P53-11 SERVED_CONFIRMED / entry ESTABLISHED: Hokusai-VTE: acute VTE after initial heparin. Served HR 0.89 (0.70-1.13) printed. The registry names the primary efficacy analysis set as mITT, so the served ITT label is imprecise.
+  - P53-22 SERVED_CONFIRMED / entry ESTABLISHED: ROCKET AF: non-valvular AF at increased stroke risk; the registry minimum age is 18 (ELIGIBILITY AGE/SEX line). Served HR 0.88 (0.74-1.03) is the ITT result as printed. TYPED LABEL DEFECT: the served analysis_set reads 'per-protocol' although the number is the
+  - P53-23 CANDIDATE_REJECTED / entry ESTABLISHED: RE-LY, dabigatran 150 mg vs warfarin, stroke or systemic embolism. The outcome declares HR (estimand and served estimand both HR). The served row is the abstract's RELATIVE RISK 0.66 (0.53-0.82). The registry, for the same primary endpoint and contrast in the 
+  - P53-32 SERVED_CONFIRMED / entry NOT_ESTABLISHED: L. casei DN114001 in patients over 55 (UK multicentre). The held abstracts never state antibiotic receipt as an ENTRY criterion; it is implied only by the outcome's name. The full text is not open access and was not acquired. Served counts 106/549 vs 103/577 p
+  - P53-48 SERVED_CONFIRMED / entry PARTLY: RALES: 1663 patients with severe HF, EF <=35%, on ACE inhibitor and loop diuretic. Served RR 0.70 (0.60-0.82) printed as relative risk of death. No registry (1999, pre-registration era; documented search found none). Analysis set NOT STATED.
+  - P53-49 SERVED_CONFIRMED / entry ESTABLISHED: EMPHASIS-HF: NYHA II, EF <=35%, registry minimum age 55. Served HR 0.76 (0.62-0.93) is printed in the abstract and equals the registry's cut-off analysis HR 0.761 (0.622-0.932), 171 vs 213. The complete-DB counts (205 vs 253) carry no HR, so the extractor's 'l
+  - P53-50 SERVED_CONFIRMED / entry PARTLY: JUPITER >=70. ENTRY REVISED NOT_ESTABLISHED -> PARTLY after second adjudication: the subgroup consists of randomised participants who meet the question's clinical criteria (>=70, no CVD), so the population is established; what fails is that the age cut-point w
+  - P53-53 SERVED_CONFIRMED / entry ESTABLISHED: RECOVERY tocilizumab: hypoxic hospitalised COVID-19 with CRP >=75. 'This report is limited to adult patients' establishes adults (children are in a separate ongoing assessment). Served 0.85 (0.76-0.94) is the printed RATE ratio, ITT. Comparator is usual care, 
+
+## U23: N = 23 (served rows lane UA found with no locatable source)
+
+- adjudicated: **23 of 23**; not yet: 0 (none)
+- rulings (of 23 adjudicated): CANDIDATE_REJECTED 3, SERVED_CONFIRMED 20
+- entry population, lane ruling (of 23): ESTABLISHED 23
+- analysis set as the source states it (of 15 drafted from extractions): ITT_STATED 4, NOT_STATED 7, OTHER_SET_STATED 4
+- rows carrying a recorded label defect (number unchanged): 5
+
+  - UA-002 SERVED_CONFIRMED / entry ESTABLISHED: COPPS-2: served counts 61/180 vs 75/180 are printed. The extraction failed verification only on a non-core treatment span, so the adjudication cites the core spans directly. TIMEPOINT NOTE: the served window is 'in-hospital / index-admission', but the held tex
+  - UA-008 SERVED_CONFIRMED / entry ESTABLISHED: CAPE COD: adults in ICU for severe CAP. Served counts 25/400 vs 47/395 printed. TIMEPOINT: day 28, served under '30-day or in-hospital' (within the declared window). 795 of 800 randomised analysed (near-ITT; label imprecise).
+  - UA-027 SERVED_CONFIRMED / entry ESTABLISHED: Wade 2010 (PMC OA): adults 18-80 with primary insomnia. The served row is the 65-80 subgroup: arm means -19.1 vs -1.7 (SD 47.3/47.8, n 137/144), which differ from the paper's ADJUSTED difference -15.6 (-25.3 to -6.0). Raw arm means are a legitimate input and t
+  - UA-032 CANDIDATE_REJECTED / entry ESTABLISHED: The served row pools CT.gov observed in-trial arm means (-16.5 vs -5.8) with n = 407/204, the full-analysis-set totals. The registry states that the number analysed is those with available data, and the class-level denominators for the in-trial period are 373/
+  - UA-033 CANDIDATE_REJECTED / entry ESTABLISHED: Same defect as STEP 3 (UA-032). The served row pools observed in-trial means (-15.6 vs -2.8) with n = 1306/655 (FAS), while the registry's class-level denominators for those means are 1212/577 (participants with available data). The declared estimand is treatm
+  - UA-042 CANDIDATE_REJECTED / entry ESTABLISHED: The served 'All-cause mortality' row carries HR 0.85 (0.53-1.36). The abstract gives that HR for the PRIMARY COMPOSITE (cardiovascular death or HF hospitalisation), not for all-cause death. The registry record of the same trial (NCT01115855) reports a separate
+  - UA-044 SERVED_CONFIRMED / entry ESTABLISHED: COVACTA: adults with severe COVID-19 pneumonia. Served SAE counts 103/295 vs 55/143 printed. LABEL DEFECT: served 'modified intention-to-treat'; the source set is the SAFETY population (by first agent received). Number unchanged.
+  - UA-045 SERVED_CONFIRMED / entry ESTABLISHED: EMPACTA (PMC OA): hospitalised adults >=18 with COVID-19 pneumonia. Served SAE counts 38/250 vs 25/127 printed. LABEL DEFECT: served 'modified intention-to-treat'; the source set is the SAFETY population (by actual agent). Number unchanged.
+
+## S16: N = 16 (served rows that DO carry a located source (UA's other 23, less 2 main-lane and 5 evid2 rows))
+
+- adjudicated: **16 of 16**; not yet: 0 (none)
+- rulings (of 16 adjudicated): SERVED_CONFIRMED 16
+- entry population, lane ruling (of 16): ESTABLISHED 15, PARTLY 1
+- analysis set as the source states it (of 16 drafted from extractions): ITT_STATED 10, NOT_STATED 1, OTHER_SET_STATED 5
+- rows carrying a recorded label defect (number unchanged): 0
+
+  - S16-10 SERVED_CONFIRMED / entry PARTLY: Served number printed in the bound span (verified); VITAL major CV events HR 0.92 (0.80-1.06). Entry PARTLY: a usual-risk primary-prevention population (men >=50, women >=55), not selected for elevated cardiovascular risk.
+
+## M: N = 15 (served effect rows on current main outside P53/U23/S16, added 2026-09-25 from the census)
+
+- adjudicated: **15 of 15**; not yet: 0 (none)
+- rulings (of 15 adjudicated): CANDIDATE_REJECTED 1, SERVED_CONFIRMED 14
+- entry population, lane ruling (of 15): ESTABLISHED 15
+- analysis set as the source states it (of 15 drafted from extractions): ITT_STATED 1, NOT_STATED 4, OTHER_SET_STATED 10
+- rows carrying a recorded label defect (number unchanged): 0
+
+  - M-02 CANDIDATE_REJECTED / entry ESTABLISHED: Blum 2015 (prednisone in CAP) hyperglycaemia: the served row is the printed OR 1.96 (1.31-2.93), but the outcome's estimand and served estimand are RR. The source prints the arm counts and the randomised arm sizes, so the declared scale is available as counts.
+
+## Queued for Mahmood's signature (derived, NOT landed)
+
+- M-02: corticosteroids-cap-mortality / Hyperglycaemia / PMID 25608756 (Blum 2015): OR 1.96 (1.31-2.93) -- an odds ratio on an RR-declared outcome -> counts 76/392 vs 43/393 (RR 1.77, derived)
+- P53-23: noac-vs-warfarin-af-stroke / Stroke or systemic embolism / PMID 19717844 (RE-LY, dabigatran 150 mg): RR 0.66 (0.53-0.82) -- abstract relative risk on an HR-declared outcome -> HR 0.65 (0.52-0.81) -- registry Cox analysis, randomised set
+- UA-032: semaglutide-obesity-weight / Percent change in body weight / PMID 33625476 (STEP 3): MD from -16.5 (SD 10.1, n=407) vs -5.8 (SD 7.7, n=204), labelled treatment-policy -> A: MD -10.27 (-11.97 to -8.57) treatment-policy; or B: same means with n=373/189 relabelled observed-case
+- UA-033: semaglutide-obesity-weight / Percent change in body weight / PMID 33567185 (STEP 1): MD from -15.6 (SD 10.1, n=1306) vs -2.8 (SD 6.5, n=655), labelled treatment-policy -> A: MD -12.44 (-13.37 to -11.51) treatment-policy; or B: same means with n=1212/577 relabelled observed-case
+- UA-042: spironolactone-hfref-mortality / All-cause mortality / PMID 28824029 (J-EMPHASIS-HF): HR 0.85 (0.53-1.36) -- the primary composite, mis-attributed -> HR 1.77 (0.81-3.87) -- registry all-cause mortality analysis
+
+Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
+
+## Extraction pipeline
+
+- codex extractions verified against held bytes: 106 of 107; failing (candidates, not claims): UA-002
+
+## Second, cross-family adjudication (codex / OpenAI family)
+
+- rulings second-adjudicated: 76 of 107 (the highest-stakes: rejected candidates, entry rulings short of ESTABLISHED, confirmations that overrule a candidate or rest on a derivation)
+- quotes verbatim in held bytes: 75 of 76
+- number: AGREE 65, CANNOT_TELL 1, DISAGREE 9; entry: AGREE 69, DISAGREE 6
+- each disagreement was tested against the source; resolutions: P53-01: confirmation restricted to the counts; scale-label defect recorded; P53-04: LoDoCo2's ANZCTR registration (acquired) states minimum age 35 years; entry stays ESTABLISHED; P53-05: scale-label defect recorded; pooling-scale question queued; P53-11: the number is the source number; the served ITT label is contradicted; P53-18: entry ESTABLISHED; source-type wording corrected; P53-19: the served counts are the only reading consistent with the printed rates and allocation, but that reading rests on two unstated assumptions; recorded as the basis, the number is not changed; P53-24: "exact" withdrawn; approximate derivation recorded; P53-48: entry PARTLY (age floor not stated); P53-49: queued in evidence/OPEN_QUESTIONS.md; P53-50: entry PARTLY; P53-53: scale-label defect recorded; pooling-scale question queued; UA-002: arm sizes are printed directly (derivation withdrawn); timepoint label defect recorded; UA-008: the served follow-up '14 days' is the tapering duration; the outcome is day 28, which the outcome's '30-day or in-hospital' window labels loosely; UA-027: the question does not restrict age; an age subgroup of an adult-insomnia population is inside it -> ESTABLISHED; UA-039: the registry design module (now rendered, append-only) records QUADRUPLE masking; entry stays ESTABLISHED
+
+## Uniform sweeps (mechanical, all adjudicated rows; `evidence/sweeps/entry_age_and_analysis_set.json`)
+
+- adult age floor, of 86 rows whose question says 'adults': stated 84, not stated 1, floor explicitly removed 1
+- served 'intention-to-treat' label, of 75 rows carrying it: supported by a span 35, contradicted by a span 23, unsupported (no span states a set) 13 -- labels only; no number moves
+
+- retest (exploratory, U23 rows outside the pre-registered 20): bound numbers AGREE 15, DISAGREE 1, NOT_COMPARABLE 1, RETEST_MISSING 0 of 17; verdict agree 17, entry agree 17
+- retest (exploratory, S16): bound numbers AGREE 15, DISAGREE 1, NOT_COMPARABLE 0, RETEST_MISSING 0 of 16; verdict agree 16, entry agree 16
+
+## Served endpoint-definition citations (U23; `evidence/CITATION_CORRECTIONS.md`, queued, not landed)
+
+- labels by eye: WRONG_ENDPOINT 6, RIGHT_ENDPOINT 5, OUTCOME_NAME_ONLY 7, NOTE_NOT_A_SPAN 4, STALE_DISCLOSURE_NOTE 1
+- agreement with lane WS: 23 of 23 (WS flagged exactly the 6 the lane labels WRONG_ENDPOINT; WS audited all 46 served rows, lane read these 23); blind codex second opinion: 22 of 23
+
+- S16 endpoint-definition citations, by eye (of 16): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 9, RIGHT_ENDPOINT 5, WRONG_ENDPOINT 1; second opinion: 16 of 16 (blind, cross-family, recorded contract)
+- M endpoint-definition citations, by eye (of 15): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 7, WRONG_ENDPOINT 4, WRONG_VALUE_RIGHT_SPAN 3; second opinion: 14 of 15 (blind Claude subagent given only outcome name + cited value/source/span; SAME family as the lane, so blind but not decorrelated; evidence/sweeps/compat_endpoint_citation_m_blind_claude.json). Disagreement M-11: the lane said WRONG_ENDPOINT, the blind reader WRONG_VALUE_RIGHT_SPAN because the span continues 'Safety end points included bleeding events', which names the served outcome (any bleeding). Blind reader adopted after reading the span; M-06 (major bleeding, same span) stays WRONG_ENDPOINT because generic 'bleeding events' does not name major bleeding, and both readers agree.
+- M served follow-up citations (of 15): NO_VALUE ; LANE_BOUND_IN_HELD 7, ECHO_OF_OUTCOME_TIMEPOINT ; LANE_BOUND_IN_HELD 8; the lane's own follow-up spans by eye: FOLLOW_UP_BOUND 7, WINDOW_IS_IN_HOSPITAL 1, SPAN_WRONG_DIMENSION 2, ON_TREATMENT_WINDOW 5; served age: SERVED_NOT_STATED_BUT_HELD_STATES_FLOOR 15
+- served analysis-set label corrections listed row by row in `evidence/LABEL_CORRECTIONS.md`: 36 (queued, not landed)
+
+## Second adjudication of the M rows (Claude, adversarial; SAME family as the lane, so not decorrelated)
+
+- quotes: 66 of 66 (checked by the lane against the full packets, independently of the reviewer's own check); number {'AGREE': 15}; entry {'AGREE': 14, 'DISAGREE': 1}
+- reconciled against the source: M-14 entry: reviewer right: baseline HF mix is required by the question and not stated -> PARTLY (amended); M-14 pooled: HR is the CANVAS Program integrated estimate (2 trials, both doses); one row in the served outcome, so no double count there; recorded as pooling_note; M-03/M-04 vs M-02 scale rule: reviewer right that the reasons read inconsistently; rule made explicit in DECISIONS.md (pool-breaking scale = number defect; k=1 true-scale row = label defect). M-03/M-04 get a queued scale-label open question; rulings unchanged; M-01 ANZCTR: reviewer right: packet lacked the cited registry record; companion added (already held for P53-04), age span 'Minimum age 35 Years ... Maximum age 82 Years' bound
+
+## Extractor test-retest (pre-registered, `evidence/PREREG_extractor_agreement.md`)
+
+- bound numbers, of 20: AGREE 17, DISAGREE 1, NOT_COMPARABLE 2, RETEST_MISSING 0
+- verdict agreement 19 of 20; entry-reading agreement 17 of 20; retest spans verifying 18 of 20
+- rows whose packet gained sources between passes (named, not pooled with noise): P53-02, P53-03, P53-04, P53-18, P53-45, P53-47, UA-032
+- the one number disagreement (P53-08, RE-COVER) is a timepoint choice between two published windows (6-month treatment vs day-224 incl. off-drug follow-up), the same one ruled for P53-07 -- not extractor noise
+
+## Gap evidence from newly held full texts (`evidence/gaps/`)
+
+- rows gap-extracted or hand-bound: 53; analysis-set span verified 41 of 53, not found 12
+- hand bindings (the lane's, where the extractor returned NOT_FOUND with the text in its packet, or no extraction ran): P53-04, UA-009
+
+## Open questions for Mahmood: 11 (`evidence/OPEN_QUESTIONS.md`)
+
+- M-03: Scale label. The outcome declares RR; the served row (k=1) is the printed HR 0.80 (0.67-0.95), labelled HR on the row, and the pooled output says HR, so the number is faithful. The registry (NCT00089791, full analysis set = all randomised) prints the counts 238/3902 vs 293/3906 (denosumab vs placebo
+- M-04: Scale label. The outcome declares RR; the served row (k=1) is the printed HR 0.60 (0.37-0.97), labelled HR on the row, and the pooled output says HR, so the number is faithful. The registry (NCT00089791, full analysis set = all randomised) prints the counts 26/3902 vs 43/3906 (denosumab vs placebo),
+- M-05: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment (': From first intake of study drug to last intake of study drug + 6 days washout | POPULATION: Treated set (TS)'). The number is faithful. The choice is to r
+- M-06: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('iteria from above. | TIME FRAME: From first intake of study drug to last intake of study drug + 6 days washout'). The number is faithful. The choice is to r
+- M-08: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('Participants With Clinically Relevant Bleeding, Treatment-emergent (Time Window: Until 2 Days After Last Dose)'). The number is faithful. The choice is to r
+- M-10: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('iteria from above. | TIME FRAME: From first intake of study drug to last intake of study drug + 6 days washout'). The number is faithful. The choice is to r
+- M-11: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('iteria from above. | TIME FRAME: From first intake of study drug to last intake of study drug + 6 days washout'). The number is faithful. The choice is to r
+- P53-05:  SCALE: RECOVERY reports a Cox-model mortality rate ratio; the page pools it with risk ratios/odds ratios from other trials. Whether a rate ratio may be pooled on a risk-ratio scale is a method decision for Mahmood; no number is changed here.
+- P53-49: TIMEPOINT (raised by the second adjudication, accepted as open): the outcome declares 'trial end / longest randomised follow-up'. The served HR 0.76 is the cut-off analysis (to 25 May 2010; 171 vs 213). The registry also reports complete double-blind-phase counts to 18 March 2011 (205 of 1367 vs 253
+- P53-53:  SCALE: RECOVERY reports a Cox-model mortality rate ratio; the page pools it with risk ratios/odds ratios from other trials. Whether a rate ratio may be pooled on a risk-ratio scale is a method decision for Mahmood; no number is changed here.
+- S16-13: TIMEPOINT (EMPA-KIDNEY): the served HR 0.72 (0.64-0.82) is the published interventional-period result (median 2.0 years). The registry reports the same composite through post-trial follow-up (up to 1869 days) as HR 0.79 (0.72-0.87). The outcome declares 'trial end / longest trial-reported follow-up'
+
+## Limits (stated so a clean count cannot imply more than it measured)
+
+- Rulings are this lane's (Anthropic family); the extractor was codex (OpenAI family). A second, cross-family adjudication covers only the highest-stakes subset (above); the remaining SERVED_CONFIRMED rulings rest on one adjudicator plus the mechanical span and number gates.
+- 'Entry ESTABLISHED' means the trial's own text states an entry population inside the question. It is evidence for Mahmood's D04, not an admission; no route that admits a row exists or was created.
+- Most held sources are abstracts or registry records; open-access full text was held or acquired for a minority. 'Analysis set NOT STATED' usually means 'not in an abstract', not 'not in the paper'.
+- M-02..M-15 were extracted by Claude subagents after the codex budget ran out (M-01 by codex): extractor and adjudicator are the same family for those rows, so their rulings rest on the byte-level span and number gates plus a same-family adversarial review, not a cross-family one.
+- Sources held LOCAL-ONLY (not redistributable): 14; URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.

@@ -81,9 +81,10 @@ def main(p):
     d["served_row_at_adjudication"] = V.served_row(packet)
     d["pinned_spans"] = pinned
     d.setdefault("by", "Claude Opus 5.5 (evidence lane evid/evidence-records)")
-    d.setdefault("when_utc", datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z")
+    d.setdefault("when_utc", datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
     os.makedirs(os.path.join(ROOT, "evidence/adjudication"), exist_ok=True)
-    json.dump(d, open(os.path.join(ROOT, f"evidence/adjudication/{d['key']}.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+    json.dump(d, open(os.path.join(ROOT, f"evidence/adjudication/{d['key']}.json"), "w", encoding="utf-8", newline="\n"),
+              indent=1, ensure_ascii=False)
     print("WRITTEN", d["key"], d["ruling"], f"{len(pinned)} spans pinned"); return 0
 
 
