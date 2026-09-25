@@ -47,9 +47,12 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
   live defect with no served consequence today. **V1: say whether it is fixed in V1.**
 - **Retrospective protocol amendments.** 11 of 32 protocols carry a RETROSPECTIVE amendment: a rule written after registration and
   labelled as such on the page. Those rules are disclosed, not pre-registered.
-- **DELIVER retrospective clarification.** The release plan names one. This lane did not find it on main or on any lane branch as of
-  29f0a719: the dapagliflozin-HFpEF protocol, whose pivotal trial is DELIVER, carries no RETROSPECTIVE amendment. **V1: the release
-  captain states where it is recorded, and this line quotes it; otherwise the line is removed.**
+- **The "DELIVER" retrospective clarification is misidentified.** The signing plan (nr, 9460d047) asks for a protocol-scope
+  ruling on "DELIVER's registry wording" ("Chronic Heart Failure With Preserved Systolic Function" vs the protocol term "preserved
+  ejection fraction"), listed as DELIVER NCT03030235. On the served page NCT03030235 is **PRESERVED-HF** (PMID 34711976); DELIVER is
+  NCT03619213. The wording question is real: the population check's literal substring test misses it. The trial is not DELIVER.
+  **V1: state the ruling under the right trial, whether it was made, and that it is a retrospective clarification, not a
+  pre-registered rule; otherwise remove the line.**
 - **Verifier PASS is not "admissible".** On the served GLP-1 bundle, HARMONY Outcomes fails the family-eligibility predicate and is
   still in the k = 8 pool with verdict PASS. The admissible-only pool (k = 7, 0.866 [0.814-0.922]) is not on the page. The checklist
   requires four separate verdicts (byte integrity, arithmetic, admissibility, publication eligibility); **neither verifier emits them
