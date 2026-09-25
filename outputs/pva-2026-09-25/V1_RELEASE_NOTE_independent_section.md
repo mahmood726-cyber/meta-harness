@@ -29,7 +29,7 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
 | The witness accepted one group of a grouped number (`033` of `10,033` / `10<U+2008>033`) | c6205f0d (EVID2-C6) | 8 of 8 edge cases through the real check (left, middle and right groups refused; whole numbers kept) |
 | Witness role not anchored to the protocol | 54a09dc1 (T6) | both refusal limbs are killed when disabled (mutation test) |
 | Held files could have their fetch provenance rewritten | 0a2a7a4b | a re-fetch of identical bytes keeps the first ledger entry |
-| The evidence lane's renderer deleted text after a literal `<` (113 of 359 renders) | 8db26154 | failing-first test; all pinned spans still verify |
+| The evidence lane's renderer deleted text after a literal `<` (**65** of 359 renders; the first record's 113 included 48 renders where the first fix leaked markup, corrected in the lane's own record) | 8db26154, f849e524 | failing-first test; all pinned spans still verify |
 | Every page must name the program that checks it, its sha256 and its limits | 41f3e2d0, 752e9c1f | a page naming a stale verifier fails CI (it fired on a lane branch on 25 Sep) |
 | **"All the tabs are empty"** (reported by Mahmood): the verifier box and certificate sat above every tab | c23a7e91 | on the LIVE site, **2,304 of 2,304** browser checks (32 pages x 1280 and 375 px x 12 tabs x 3 click scenarios); a layout test on every page plus 5 plants |
 
