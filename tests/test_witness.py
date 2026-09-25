@@ -25,7 +25,7 @@ def W(doc, text, nth=0, file="doc_p.txt"):
     return {"file": file, "start": at, "end": at + len(text), "text": text}
 
 
-def job(tmp_path, out, served, docs, registry=False):
+def job(tmp_path, out, served, docs, registry=False, **row_extra):
     j = tmp_path / "HE-x"
     j.mkdir()
     rows = []
@@ -33,7 +33,7 @@ def job(tmp_path, out, served, docs, registry=False):
         (j / name).write_bytes(text.encode("utf-8"))
         rows.append({"file": name, "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "origin": name})
     (j / "row.json").write_text(json.dumps({"held_key": "x/1", "served": served, "documents": rows,
-                                            "registry_results": [{"nct": "NCT0"}] if registry else []}), encoding="utf-8")
+                                            "registry_results": [{"nct": "NCT0"}] if registry else [], **row_extra}), encoding="utf-8")
     (j / "out.json").write_text(json.dumps(out), encoding="utf-8")
     return cw.check_job(str(j))
 
@@ -155,3 +155,41 @@ def test_a_typographic_thousands_separator_is_one_token_and_a_plain_space_is_not
     assert cw.token_value("10 033") is None          # ten and thirty-three, never joined
     assert cw.token_value("1\u20080330") is None     # a separator must start a group of exactly three
     assert cw.token_value("10,033") == 10033 and cw.token_value("twenty") == 20
+
+
+TERMS = {"intervention_terms": ["drugx"], "comparator_terms": ["placebo"]}
+
+
+def test_role_is_anchored_to_the_protocol_when_terms_exist(tmp_path):
+    rec = job(tmp_path, prose_out(), SERVED_P, {"doc_p.txt": PROSE}, **TERMS)
+    assert rec["state"] == "WITNESSED" and not [f for f in rec["flags"] if f.startswith("ROLE_")]
+
+
+def test_a_consistently_reversed_object_is_refused(tmp_path):
+    """The F4 lane's reproduction: placebo declared 'intervention' AND the tuple reversed to match. T5 alone passed it."""
+    out = prose_out()
+    for a in out["arms"]:
+        a["role"] = {"intervention": "comparator", "comparator": "intervention"}[a["role"]]
+    reversed_served = {"ai": 9, "n1i": 98, "ci": 9, "n2i": 100}
+    rec = job(tmp_path, out, reversed_served, {"doc_p.txt": PROSE}, **TERMS)
+    assert rec["state"] == "INCOMPLETE" and sum("ARM_ROLE_MISMATCH" in r for r in rec["reasons"]) == 2
+
+
+def test_without_protocol_terms_the_role_is_flagged_unanchored_never_silently_passed(tmp_path):
+    rec = job(tmp_path, prose_out(), SERVED_P, {"doc_p.txt": PROSE})
+    assert any(f.startswith("ROLE_UNANCHORED") for f in rec["flags"])
+
+
+def test_a_named_absence_arm_is_the_comparator_and_an_unknown_name_is_fixed_by_its_partner(tmp_path):
+    out = prose_out()
+    out["arms"][1]["arm_name"] = "no-drugx"
+    out["arms"][1]["arm_name_witness"] = None
+    rec = job(tmp_path, out, SERVED_P, {"doc_p.txt": PROSE}, **TERMS)
+    assert not any("ARM_ROLE" in r for r in rec["reasons"])
+    out = prose_out()
+    out["arms"][0]["arm_name"], out["arms"][0]["arm_name_witness"] = "study drug", None   # neither vocabulary
+    for a in out["arms"]:
+        a["role"] = {"intervention": "comparator", "comparator": "intervention"}[a["role"]]
+    (tmp_path / "b").mkdir()
+    rec = job(tmp_path / "b", out, {"ai": 9, "n1i": 98, "ci": 9, "n2i": 100}, {"doc_p.txt": PROSE}, **TERMS)
+    assert any("ARM_ROLE_MISMATCH arm 0" in r for r in rec["reasons"])

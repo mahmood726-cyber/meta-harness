@@ -65,3 +65,22 @@ outcome. A or C changes the pooled SAE estimate, which must be recomputed by the
 ```
 
 sha256 of the block above: `3522dc53556c3c7b07fec92f2927ea1da8c11598b4877e60f92f9cb6bed33be4`
+
+## Q2a (addendum to Q2)
+
+```
+ADDENDUM TO Q2 (Q2 above is unchanged; its sha256 still binds it) -- derived by evid2, NOT landed
+COVACTA's full text (PMC7953459, free to read, not open access; held local-only, sha256 909fd806e081...) establishes
+the cause Q2 left open -- the ASSESSMENT WINDOW:
+  "In the safety population, adverse events were reported in 77.3% of 295 patients in the tocilizumab group and in
+  81.1% of 143 patients in the placebo group through day 28 ( Table 3 ); serious adverse events were reported in 34.9%
+  and 38.5%, respectively." Table 3 (Safety Population): "Any serious adverse event ... Patients with >=1 event 103
+  (34.9) 55 (38.5)". The paper also states: "The primary analysis was performed at day 28, and the final trial visit
+  occurred at day 60."
+So: served 103/295 vs 55/143 = serious adverse events through DAY 28 (publication); registry 116/295 vs 64/143 =
+through DAY 60 (registry timeFrame "60 days"). Same safety population and denominators; both are correct for their
+window. Q2's options stand; under A the served window changes from 28 to 60 days and must be stated; under B the row
+should carry its window (28 days). Nothing here is applied.
+```
+
+sha256 of the block above: `5ed6bca548d662c73f435a9eb7f1c7ff2baa33c05385da417c11b4348cd0cae8`

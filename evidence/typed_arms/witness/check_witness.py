@@ -33,6 +33,68 @@ def token_value(t):
     return WORDS.get(t.lower())
 
 
+_TA = None
+
+
+def _typed_arms():
+    """check_typed_arms.py's G6 vocabulary (i_terms, side, CONTROL), so both gates share one definition of a control arm."""
+    global _TA
+    if _TA is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("check_typed_arms", os.path.join(HERE, "..", "scripts", "check_typed_arms.py"))
+        _TA = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_TA)
+    return _TA
+
+
+def _served_i_line(row_id):
+    p = os.path.join(HERE, "..", "population.json")
+    if not row_id or not os.path.exists(p):
+        return None
+    pop = json.load(open(p, encoding="utf-8"))
+    rows = pop["rows"] if isinstance(pop, dict) else pop
+    return next((r.get("intervention_i_line") for r in rows if r.get("row_id") == row_id), None)
+
+
+def role_anchor(rec, row, arms):
+    """T6: the DECLARED role must agree with the protocol, not only with the object. Reported by the F4 lane
+    (2026-09-25): T5 proves number -> groupId -> title, and the tuple comparison is keyed by the object's own role, so a
+    consistently reversed object -- placebo declared 'intervention', tuple reversed to match -- was WITNESSED.
+    Protocol side of an arm name: control vocabulary (incl. a named absence 'no-X') -> comparator; the topic's
+    intervention terms -> intervention; the topic's comparator terms -> comparator. Terms: the packet's
+    intervention_terms/comparator_terms (held packets), else the served row's review I-line (population.json).
+    A declared role on the other side is ARM_ROLE_MISMATCH (refused). No terms -> ROLE_UNANCHORED; a name on neither
+    side -> ROLE_UNMATCHED: both flagged, never a silent pass."""
+    ta = _typed_arms()
+    i_terms = {t.lower() for t in (row.get("intervention_terms") or []) if t}
+    c_terms = {t.lower() for t in (row.get("comparator_terms") or []) if t}
+    i_terms |= ta.i_terms(" ".join(i_terms)) if i_terms else ta.i_terms(_served_i_line(row.get("row_id")))
+    if not i_terms:
+        rec["flags"].append("ROLE_UNANCHORED: no protocol terms for this row; the declared role was not checked")
+        return
+    sides = []
+    for a in arms:
+        name = str(a.get("arm_name") or "").lower()
+        sides.append("comparator" if ta.CONTROL.search(name) else "intervention" if ta.side(name, i_terms)
+                     else "comparator" if ta.side(name, c_terms) else None)
+    for i, (a, side) in enumerate(zip(arms, sides)):
+        role = a.get("role")
+        if side is None:
+            # a two-arm row whose OTHER arm is anchored fixes this arm's role by elimination; otherwise flag it
+            other = sides[1 - i] if len(arms) == 2 else None
+            if other and role in ("intervention", "comparator") and other == role:
+                rec["reasons"].append(f"ARM_ROLE_MISMATCH arm {i}: declared {role!r}, but the other arm is the protocol's "
+                                      f"{other}, so this one cannot be")
+            elif not other:
+                rec["flags"].append(f"ROLE_UNMATCHED arm {i}: {a.get('arm_name')!r} matches neither the protocol's "
+                                    f"intervention nor its comparator vocabulary, and nor does the other arm")
+        elif role in ("intervention", "comparator") and side != role:
+            rec["reasons"].append(f"ARM_ROLE_MISMATCH arm {i}: declared {role!r} but {a.get('arm_name')!r} is the protocol's "
+                                  f"{side}; role must come from the protocol, not from the object")
+    if len(arms) == 2 and sides[0] and sides[0] == sides[1]:
+        rec["flags"].append(f"ROLE_AMBIGUOUS: both arm names read as the protocol's {sides[0]}")
+
+
 def check_job(job):
     row = json.load(open(os.path.join(job, "row.json"), encoding="utf-8"))
     docs = {d["file"]: d for d in row["documents"] if d.get("file")}
@@ -171,6 +233,7 @@ def check_job(job):
         rec["arms"].append(out)
     if len(arms) != 2:
         rec["reasons"].append(f"{len(arms)} arms (need 2)")
+    role_anchor(rec, row, arms)
     if rec["registry_results"] and o.get("ownership_source") != "REGISTRY_GROUPS":
         rec["flags"].append("REGISTRY_NOT_USED: the entry's registry record has posted results; the extractor used prose -- "
                             "its notes must say the outcome is absent from the registry results (read by eye)")
