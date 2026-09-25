@@ -979,6 +979,23 @@ def pool_measure_guard(inputs, rows_by_pmid, declared_scale):
     return {"measures": measures, "refusals": problems, "refused": bool(problems)}
 
 
+def pool_guarded(inputs, rows_by_pmid, declared_scale):
+    """The ONLY route by which a verdict may reach pool() (release-captain finding, 2026-09-25: a pooling contract computed the log
+    BEFORE pool_measure_guard could veto it). The guard runs first; a refused pool is never computed -- not computed and discarded,
+    NOT COMPUTED. Returns (result or None, guard). tests/test_pool_guarded.py fails on any call to pool() outside this function and
+    _plant_expected_pool, and runs every refusing plant with pool() replaced by a sentinel that raises if it is ever reached."""
+    mg = pool_measure_guard(inputs, rows_by_pmid, declared_scale)
+    if mg["refused"]:
+        return None, mg
+    return pool(inputs), mg
+
+
+def _plant_expected_pool(inputs):
+    """Only a --corrupt limb's model of a CONSISTENT PRODUCER recomputing the pool it would declare after the planted edit. Never a
+    verdict: the verifier's own comparison still goes through pool_guarded."""
+    return pool(inputs)
+
+
 # LEADER's primary clause, as held, and two re-orientations of it -- the fixtures of the OC --corrupt limbs (in memory only)
 _OC_LEADER_HELD = ("fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) "
                    "(hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97")
@@ -1377,7 +1394,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                         "ci_low": _oc_recip(t["ci_high"]), "ci_high": _oc_recip(t["ci_low"])}
                 br["effect"]["normalisation"] = norm
                 pin.update(effect=norm["estimate"], ci_low=norm["ci_low"], ci_high=norm["ci_high"])
-                bundle["pooled_reference"]["expected"] = pool(bundle["pooled_reference"]["inputs"])
+                bundle["pooled_reference"]["expected"] = _plant_expected_pool(bundle["pooled_reference"]["inputs"])
             elif limb == "estimator_swap":                  # the hazard ratio relabelled an odds ratio (label AND estimator field)
                 _oc_set_tuple(t, br, t["effect"], t["ci_low"], t["ci_high"], scale="OR")
                 est = br["analysis_identity"]["estimator"]
@@ -1415,7 +1432,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                     regd_["estimators_permitted"] = ["HR", "RR"]
             elif limb == "pool_input_reciprocal":           # the row stays canonical; its POOL INPUT is the reciprocal
                 pin.update(effect=_oc_recip(t["effect"]), ci_low=_oc_recip(t["ci_high"]), ci_high=_oc_recip(t["ci_low"]))
-                bundle["pooled_reference"]["expected"] = pool(bundle["pooled_reference"]["inputs"])
+                bundle["pooled_reference"]["expected"] = _plant_expected_pool(bundle["pooled_reference"]["inputs"])
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
@@ -1736,11 +1753,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
     exp = bundle["pooled_reference"]["expected"]
     # pool() takes log(effect) of whatever it is given: the measure is identified and single, and every input is its row's tuple in the
     # pooled orientation, BEFORE any log is taken (lane OC); a refused pool is not computed at all
-    mg = pool_measure_guard(inputs, report.get("ordered_contrasts") or {}, bundle["pooled_reference"].get("scale"))
+    got, mg = pool_guarded(inputs, report.get("ordered_contrasts") or {}, bundle["pooled_reference"].get("scale"))
     report["pool_measure_guard"] = mg
     for code, why in mg["refusals"]:
         failures.append(f"{code} {why}")
-    got = pool(inputs) if not mg["refused"] else None
     deltas = {k: abs(got[k] - exp[k]) for k in ("estimate", "ci_low", "ci_high", "tau2")} if got else {}
     pool_ok = bool(got) and all(d < 1e-9 for d in deltas.values())
     adm = [i for i in inputs if any(r["pmid"] == i["id"].replace("PMID ", "") and r["final"] == "ADMISSIBLE" for r in report["rows"])]
@@ -1755,7 +1771,8 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         1 for r in report["rows"] if r["final"] == "MIGRATION_STATE_UNBOUND_LEGACY")  # by construction never in admissible set
     report["pool"] = {"k_declared": len(inputs), "recomputed": got, "declared": exp, "abs_deltas": deltas, "reproduced_to_1e-9": pool_ok,
                       "t_crit_recomputed": got["t_crit"] if got else None, "admissible_rows": len(adm),
-                      "admissible_only_pool_for_information": pool(adm) if got and len(adm) >= 2 and len(adm) != len(inputs) else None,
+                      "admissible_only_pool_for_information": (pool_guarded(adm, report.get("ordered_contrasts") or {}, bundle["pooled_reference"].get("scale"))[0]
+                                                               if got and len(adm) >= 2 and len(adm) != len(inputs) else None),
                       "refused_before_logs": [c for c, _ in mg["refusals"]] or None,
                       "note": "the declared pool is the page's; admissible_only_pool is a verifier sensitivity, not a replacement result"}
     if got and not pool_ok:
