@@ -12,6 +12,10 @@ happens on the SERVED bytes of V1 after deploy, and only that result counts.
 | B-3 | A(b)(c), B2 | On main's verifier, 5 of 15 named mutations are NOT caught: mixed tuple (LEADER point + SUSTAIN-6 CI), contradictory estimand, malformed estimand, span.text replaced, REWIND arm swap. Cause: the verifier recomputes from review.json and never compares the BUNDLE's own effect / analysis_identity / span.text copies (PVA-D11 widened). | P6 on main | oc's verifier closes 3 of the 5; span.text and a null analysis_set remain open on oc too |
 | B-4 | A(a)/B1 + page naming | On oc's head the GLP-1 page names verify_bundle d1ba9320 while b60f6b31 is served; CI is red on exactly this (and on 31/32 reproduce). | P3; CI run on 6fadca05 | V1 must rebuild the pages after the LAST verifier change, then re-certify |
 | B-5 | §F | The "§F audit contract" (regex_layer/OWNERSHIP.md) is not published on any branch. | -- | publish it, or state in the release note that §F is not part of V1's acceptance |
+| B-6 | A(e), B3, D(1) | The PRODUCER marks a planted row INADMISSIBLE for the intended reasons (P3/P9/P11/P15) and STILL POOLS it (numeric prefix: pooled 0.855993 -> 0.854643); its only problem is the plant's own integrity mismatch, so with consistent digests there is none. The publication gate on main/oc reads no admission (check_admission_enforced exists only on enforcement-gate). HARMONY is the live instance. | producer_probe.py on oc 812840f2 | generate pooling inputs from admissible rows only (D1), or bring the enforcement gate into V1; either way a planted row must leave the pool |
+
+## Update on oc's handoff head 812840f2 (V1-READY)
+- B-4 closed there (the GLP-1 page names the served verifier); P4 no served number moved; P6 13 of 15 caught, mostly at verdict level; still NOT caught: null analysis_set, span.text replaced. B-1, B-2, B-5, B-6 open.
 
 ## Caught today, and how
 - At ROW level only (the verdict stays PASS; the damaged row turns INADMISSIBLE with the intended predicate): SUSTAIN-6 non-target span

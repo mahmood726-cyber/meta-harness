@@ -280,12 +280,23 @@ class Audit:
 
     VERDICT_KEYS = ("byte_integrity", "arithmetic_consistency", "scientific_admissibility", "publication_eligibility")
 
+    FOUR_STEMS = {"byte_integrity": ("integrity",), "arithmetic_consistency": ("arithmetic",),
+                  "scientific_admissibility": ("admissib",), "publication_eligibility": ("publication", "publish")}
+
     def four(self, r: dict) -> dict:
+        """The four verdicts of checklist B4, recognised by meaning (key stem), wherever the report puts them: top level, a
+        `verdicts` object, or a `verdict` that is itself an object. A plain string `verdict` is ONE verdict, not four."""
         found = {}
-        for k in self.VERDICT_KEYS:
-            for container in (r, r.get("verdicts") or {}):
-                if isinstance(container, dict) and k in container:
-                    found[k] = container[k] if not isinstance(container[k], dict) else container[k].get("verdict", container[k])
+        containers = [r]
+        for k in ("verdicts", "verdict"):
+            if isinstance(r.get(k), dict):
+                containers.append(r[k])
+        for c in containers:
+            for key, val in c.items():
+                lk = key.lower()
+                for canon, stems in self.FOUR_STEMS.items():
+                    if canon not in found and any(st in lk for st in stems):
+                        found[canon] = val.get("verdict", val) if isinstance(val, dict) else val
         return found
 
     def p5(self):

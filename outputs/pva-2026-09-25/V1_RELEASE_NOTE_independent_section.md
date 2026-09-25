@@ -42,6 +42,7 @@ with no served-bytes result is deleted, not guessed.***
   pool (k=7, 0.866 [0.814, 0.922]) is computed "for information" and is not on the page. Checklist C names this
   exactly. V1 separates the four verdicts (byte integrity, arithmetic, admissibility, publication eligibility) only
   if P5b passes. **V1: fill from P5b.**
+- **That a row the system refuses is kept out of the pool.** Run on planted inputs, the producer records the damaged row INADMISSIBLE for the right reason and still pools it, and the published estimate moves (measured: 0.855993 -> 0.854643 for one truncated CI). No gate on main reads admission at pooling. HARMONY is the served instance. Checklist D(1) and B3 are met only if V1 generates pooling inputs from admissible rows or carries the enforcement gate. **V1: fill from producer_probe.py on the V1 commit.**
 - **That the bundle's own copies of the evidence are checked.** A pooled row's `span.text` in `BUNDLE.json` can be
   replaced with a sentence that is not in the abstract and the verifier still passes (PVA-D11, measured on main and on
   the ordered-contrast branch). On main's verifier the same holds for the row's `effect` and `analysis_identity` copies.
