@@ -265,3 +265,9 @@ def test_no_private_workspace_content_in_tracked_evidence_files():
     bad = [f for f in files if f.endswith((".json", ".md", ".txt", ".py")) and
            pat.search(open(os.path.join(root, f), encoding="utf-8", errors="replace").read())]
     assert bad == [], bad
+
+
+def test_a_leading_en_dash_is_a_minus_but_a_range_dash_is_not():
+    assert V.canon("\u20135.7") == -5.7
+    assert V.num_tokens("difference, \u201312.0 to \u20138.6") >= {"-12.0", "-8.6"}
+    assert V.num_tokens("95% CI 0.65\u20131.84") >= {"0.65", "1.84"} and "-1.84" not in V.num_tokens("95% CI 0.65\u20131.84")

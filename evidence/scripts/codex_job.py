@@ -30,8 +30,15 @@ def obj(props):
 
 SPAN = obj({"ref": S, "span": S})
 GAP_FIELD = {"anyOf": [obj({"ref": S, "span": S, "scope": S}), S]}
+VERDICT3 = {"type": "string", "enum": ["AGREE", "DISAGREE", "CANNOT_TELL"]}
+QUOTES = {"type": "array", "items": obj({"ref": S, "span": S})}
 SCHEMAS = {
-    "citation": obj({"key": S, "verdict": {"type": "string", "enum": ["RIGHT_ENDPOINT", "WRONG_ENDPOINT", "OUTCOME_NAME_ONLY",
+    "second": obj({"key": S,
+                   "number": obj({"verdict": VERDICT3, "why": S, "quotes": QUOTES}),
+                   "entry": obj({"verdict": VERDICT3, "your_ruling": {"type": "string", "enum": ["ESTABLISHED", "PARTLY", "NOT_ESTABLISHED"]},
+                                 "why": S, "quotes": QUOTES}),
+                   "missed": S}),
+    "citation":obj({"key": S, "verdict": {"type": "string", "enum": ["RIGHT_ENDPOINT", "WRONG_ENDPOINT", "OUTCOME_NAME_ONLY",
                                                                        "NOTE_NOT_A_SPAN", "CANNOT_TELL"]},
                      "why": S, "quote": NS}),
     "gap":obj({"key": S, "analysis_set": GAP_FIELD, "follow_up": GAP_FIELD, "entry_age": GAP_FIELD,
