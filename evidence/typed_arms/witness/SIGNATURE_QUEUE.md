@@ -84,3 +84,6 @@ should carry its window (28 days). Nothing here is applied.
 ```
 
 sha256 of the block above: `5ed6bca548d662c73f435a9eb7f1c7ff2baa33c05385da417c11b4348cd0cae8`
+
+## Status (25 Sep 2026)
+Decided by Dispatch under Mahmood's delegation: Q1 A, Q2/Q2a B, Q3 A, local-only texts stay local. See `DECISIONS_2026-09-25.md`. Q1 and Q3 go to the signing list as derived notices D-Q1 and D-Q3.
