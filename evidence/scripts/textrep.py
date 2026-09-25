@@ -21,7 +21,7 @@ def _ws(s):
 # A TAG is '<' followed by a letter or '/', or an HTML comment. Abstracts mix real tags with a literal '<'
 # ('P<0.001', 'weight <70 kg'); the earlier '<[^>]+>' treated that '<' as a tag opening and deleted everything up to
 # the next '>' -- it ate FLOW's whole MACE result sentence. Only real tag syntax may be stripped.
-TAG = re.compile(r"<!--.*?-->|</?[A-Za-z][A-Za-z0-9:_-]*(?:\s[^<>]*)?/?>", re.S)
+TAG = re.compile(r"<!--.*?-->|<\?.*?\?>|<![A-Za-z\[][^<>]*>|</?[A-Za-z][A-Za-z0-9:_-]*(?:\s[^<>]*)?/?>", re.S)
 
 
 def _strip(s):

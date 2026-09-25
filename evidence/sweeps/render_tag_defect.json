@@ -1,12 +1,12 @@
 {
  "defect": "textrep._strip and the held_local HTML branch used '<[^>]+>' as the tag pattern, so a literal '<' in prose (e.g. 'P<0.001', 'eGFR <30') opened a fake tag that deleted every character up to the next '>'",
- "fix": "TAG = '<!--...-->' or '</?' + letter...: only real tag syntax is stripped (2026-09-25)",
+ "fix": "TAG strips only real markup: '<' + letter or '/', comments, <?...?> processing instructions, <!DOCTYPE/[CDATA ...>; a literal '<' in prose is kept (2026-09-25)",
  "found_by": "binding FLOW's MACE result: the held NEJM abstract rendered without its 'major cardiovascular events ... hazard ratio, 0.82' sentence although the raw bytes carry it",
  "population": {
   "N": 359,
   "denominator": "every source referenced by a packet + every held europepmc_core.json / .xml (renders snapshotted before the fix)"
  },
- "changed": 113,
+ "changed": 65,
  "changed_renders": [
   {
    "ref": "evidence/held/10471456/europepmc_core.json",
@@ -39,11 +39,6 @@
    "chars_after": 2561
   },
   {
-   "ref": "evidence/held/20712869/PMC2933606.xml",
-   "chars_before": 65479,
-   "chars_after": 68333
-  },
-  {
    "ref": "evidence/held/20712869/europepmc_core.json",
    "chars_before": 1999,
    "chars_after": 2535
@@ -54,19 +49,9 @@
    "chars_after": 1776
   },
   {
-   "ref": "evidence/held/21115589/PMC2993045.xml",
-   "chars_before": 39374,
-   "chars_after": 41051
-  },
-  {
    "ref": "evidence/held/21128814/europepmc_core.json",
    "chars_before": 1807,
    "chars_after": 2259
-  },
-  {
-   "ref": "evidence/held/21165295/PMC2995234.xml",
-   "chars_before": 27306,
-   "chars_after": 33270
   },
   {
    "ref": "evidence/held/21830957/europepmc_core.json",
@@ -94,11 +79,6 @@
    "chars_after": 2324
   },
   {
-   "ref": "evidence/held/24053656/PMC3850944.xml",
-   "chars_before": 34496,
-   "chars_after": 35926
-  },
-  {
    "ref": "evidence/held/24053656/europepmc_core.json",
    "chars_before": 1597,
    "chars_after": 2012
@@ -119,11 +99,6 @@
    "chars_after": 2172
   },
   {
-   "ref": "evidence/held/24974155/PMC4083867.xml",
-   "chars_before": 34286,
-   "chars_after": 36071
-  },
-  {
    "ref": "evidence/held/25172965/europepmc_core.json",
    "chars_before": 2991,
    "chars_after": 3095
@@ -132,11 +107,6 @@
    "ref": "evidence/held/25176015/europepmc_core.json",
    "chars_before": 1421,
    "chars_after": 2134
-  },
-  {
-   "ref": "evidence/held/25176939/PMC4359359.xml",
-   "chars_before": 46833,
-   "chars_after": 48593
   },
   {
    "ref": "evidence/held/25176939/europepmc_core.json",
@@ -159,11 +129,6 @@
    "chars_after": 2204
   },
   {
-   "ref": "evidence/held/26819227/PMC4872285.xml",
-   "chars_before": 30511,
-   "chars_after": 31863
-  },
-  {
    "ref": "evidence/held/26819227/europepmc_core.json",
    "chars_before": 1308,
    "chars_after": 2205
@@ -179,39 +144,14 @@
    "chars_after": 2574
   },
   {
-   "ref": "evidence/held/28456509/PMC5446563.xml",
-   "chars_before": 69539,
-   "chars_after": 71513
-  },
-  {
-   "ref": "evidence/held/28483296/PMC6891225.xml",
-   "chars_before": 1223,
-   "chars_after": 1352
-  },
-  {
-   "ref": "evidence/held/28617807/PMC5472276.xml",
-   "chars_before": 35093,
-   "chars_after": 36132
-  },
-  {
    "ref": "evidence/held/28824029/europepmc_core.json",
    "chars_before": 1713,
    "chars_after": 1738
   },
   {
-   "ref": "evidence/held/28893244/PMC5594521.xml",
-   "chars_before": 50107,
-   "chars_after": 51867
-  },
-  {
    "ref": "evidence/held/28910237/europepmc_core.json",
    "chars_before": 1704,
    "chars_after": 2180
-  },
-  {
-   "ref": "evidence/held/29526832/PMC6075881.xml",
-   "chars_before": 33545,
-   "chars_after": 37318
   },
   {
    "ref": "evidence/held/29526832/europepmc_core.json",
@@ -244,11 +184,6 @@
    "chars_after": 3184
   },
   {
-   "ref": "evidence/held/30868176/PMC6509073.xml",
-   "chars_before": 42986,
-   "chars_after": 44668
-  },
-  {
    "ref": "evidence/held/30882238/europepmc_core.json",
    "chars_before": 2236,
    "chars_after": 2352
@@ -274,29 +209,9 @@
    "chars_after": 2310
   },
   {
-   "ref": "evidence/held/31540339/PMC6780068.xml",
-   "chars_before": 15958,
-   "chars_after": 16446
-  },
-  {
-   "ref": "evidence/held/32678530/PMC7383595.xml",
-   "chars_before": 36445,
-   "chars_after": 38499
-  },
-  {
    "ref": "evidence/held/32678530/europepmc_core.json",
    "chars_before": 1424,
    "chars_after": 2109
-  },
-  {
-   "ref": "evidence/held/32720823/PMC7388125.xml",
-   "chars_before": 20475,
-   "chars_after": 21373
-  },
-  {
-   "ref": "evidence/held/32860034/PMC7700755.xml",
-   "chars_before": 21745,
-   "chars_after": 23691
   },
   {
    "ref": "evidence/held/32860034/europepmc_core.json",
@@ -324,19 +239,9 @@
    "chars_after": 2329
   },
   {
-   "ref": "evidence/held/33026243/PMC7717477.xml",
-   "chars_before": 38217,
-   "chars_after": 40808
-  },
-  {
    "ref": "evidence/held/33026243/europepmc_core.json",
    "chars_before": 2606,
    "chars_after": 2769
-  },
-  {
-   "ref": "evidence/held/33332779/PMC7781101.xml",
-   "chars_before": 38406,
-   "chars_after": 41883
   },
   {
    "ref": "evidence/held/33567185/europepmc_core.json",
@@ -349,24 +254,9 @@
    "chars_after": 2787
   },
   {
-   "ref": "evidence/held/33933206/PMC8084355.xml",
-   "chars_before": 147397,
-   "chars_after": 148926
-  },
-  {
    "ref": "evidence/held/33933206/europepmc_core.json",
    "chars_before": 1636,
    "chars_after": 2470
-  },
-  {
-   "ref": "evidence/held/34129237/PMC8364727.xml",
-   "chars_before": 17895,
-   "chars_after": 18940
-  },
-  {
-   "ref": "evidence/held/36331190/PMC7614055.xml",
-   "chars_before": 31972,
-   "chars_after": 34538
   },
   {
    "ref": "evidence/held/36331190/europepmc_core.json",
@@ -374,29 +264,9 @@
    "chars_after": 2501
   },
   {
-   "ref": "evidence/held/36802845/PMC10111466.xml",
-   "chars_before": 36138,
-   "chars_after": 38434
-  },
-  {
-   "ref": "evidence/held/37012015/PMC10083753.xml",
-   "chars_before": 41422,
-   "chars_after": 44785
-  },
-  {
-   "ref": "evidence/held/37025256/PMC10072270.xml",
-   "chars_before": 41743,
-   "chars_after": 43209
-  },
-  {
    "ref": "evidence/held/37952131/europepmc_core.json",
    "chars_before": 1925,
    "chars_after": 2121
-  },
-  {
-   "ref": "evidence/held/38505729/PMC10950412.xml",
-   "chars_before": 28141,
-   "chars_after": 31717
   },
   {
    "ref": "evidence/held/38505729/europepmc_core.json",
@@ -409,19 +279,9 @@
    "chars_after": 2655
   },
   {
-   "ref": "evidence/held/39548016/PMC11681405.xml",
-   "chars_before": 37230,
-   "chars_after": 38013
-  },
-  {
    "ref": "evidence/held/39555823/europepmc_core.json",
    "chars_before": 2177,
    "chars_after": 2256
-  },
-  {
-   "ref": "evidence/held/39968782/PMC12132757.xml",
-   "chars_before": 42911,
-   "chars_after": 44667
   },
   {
    "ref": "evidence/held/39968782/europepmc_core.json",
@@ -434,24 +294,9 @@
    "chars_after": 3091
   },
   {
-   "ref": "evidence/held/40239057/PMC12246709.xml",
-   "chars_before": 36700,
-   "chars_after": 39216
-  },
-  {
-   "ref": "evidence/held/40375260/PMC12082972.xml",
-   "chars_before": 50711,
-   "chars_after": 52411
-  },
-  {
    "ref": "evidence/held/40375260/europepmc_core.json",
    "chars_before": 1297,
    "chars_after": 1988
-  },
-  {
-   "ref": "evidence/held/40465275/PMC12138801.xml",
-   "chars_before": 56650,
-   "chars_after": 58061
   },
   {
    "ref": "evidence/held/40465275/europepmc_core.json",
@@ -459,19 +304,9 @@
    "chars_after": 3483
   },
   {
-   "ref": "evidence/held/40952180/PMC12719846.xml",
-   "chars_before": 24236,
-   "chars_after": 25286
-  },
-  {
    "ref": "evidence/held/40952180/europepmc_core.json",
    "chars_before": 1404,
    "chars_after": 2112
-  },
-  {
-   "ref": "evidence/held/41170566/PMC12704667.xml",
-   "chars_before": 27043,
-   "chars_after": 31647
   },
   {
    "ref": "evidence/held/42132185/europepmc_core.json",
@@ -491,89 +326,16 @@
   {
    "ref": "evidence/held/registry/ACTRN12614000093684.html",
    "chars_before": 24738,
-   "chars_after": 24806
-  },
-  {
-   "ref": "evidence/held_local/16769748/PMC1482338.html",
-   "chars_before": 31135,
-   "chars_after": 31151
-  },
-  {
-   "ref": "evidence/held_local/18026577/PMC2658588.html",
-   "chars_before": 32146,
-   "chars_after": 32162
-  },
-  {
-   "ref": "evidence/held_local/20404379/PMC2946369.html",
-   "chars_before": 39779,
-   "chars_after": 39795
-  },
-  {
-   "ref": "evidence/held_local/27295427/PMC4985288.html",
-   "chars_before": 60732,
-   "chars_after": 60748
+   "chars_after": 24684
   },
   {
    "ref": "evidence/held_local/28824029/jstage_circj_82_1.html",
    "chars_before": 62498,
-   "chars_after": 68076
-  },
-  {
-   "ref": "evidence/held_local/28910237/PMC9792409.html",
-   "chars_before": 48361,
-   "chars_after": 48377
-  },
-  {
-   "ref": "evidence/held_local/30415637/PMC6392053.html",
-   "chars_before": 47038,
-   "chars_after": 47054
-  },
-  {
-   "ref": "evidence/held_local/30418475/PMC6583576.html",
-   "chars_before": 65108,
-   "chars_after": 65124
-  },
-  {
-   "ref": "evidence/held_local/31665733/PMC6889917.html",
-   "chars_before": 64155,
-   "chars_after": 64171
-  },
-  {
-   "ref": "evidence/held_local/33190147/PMC7667577.html",
-   "chars_before": 75699,
-   "chars_after": 75715
-  },
-  {
-   "ref": "evidence/held_local/33625476/PMC7905697.html",
-   "chars_before": 66303,
-   "chars_after": 66319
-  },
-  {
-   "ref": "evidence/held_local/34375394/PMC8356144.html",
-   "chars_before": 57881,
-   "chars_after": 57897
-  },
-  {
-   "ref": "evidence/held_local/35727573/PMC9214631.html",
-   "chars_before": 43806,
-   "chars_after": 43822
-  },
-  {
-   "ref": "evidence/held_local/38046395/PMC10692563.html",
-   "chars_before": 38032,
-   "chars_after": 38048
-  },
-  {
-   "ref": "evidence/held_local/40159390/PMC11955906.html",
-   "chars_before": 75835,
-   "chars_after": 75851
-  },
-  {
-   "ref": "evidence/held_local/42132185/PMC13542352.html",
-   "chars_before": 37968,
-   "chars_after": 37984
+   "chars_after": 68060
   }
  ],
  "pinned_spans_after_fix": "all verbatim (lane gate: 0 refusals) -- the fix only restores deleted text",
- "consequence": "packets rebuilt; every 'not stated in held sources' reading is re-checked against the restored text (evidence/sweeps/render_fix_recheck.json)"
+ "consequence": "packets rebuilt; every 'not stated in held sources' reading is re-checked against the restored text (evidence/sweeps/render_fix_recheck.json)",
+ "correction_of_record": "the first version of this record said 113 of 359: the first fix stopped stripping <?xml?>/<!DOCTYPE>/processing instructions, so markup leaked into 48 renders; fixed the same hour, and 65 is the count of renders that were missing text",
+ "not_changed_by_design": "20 cache/*/ft_*.txt files hold raw XML and render as plain text (unchanged before and after; spans are bound against that form)"
 }

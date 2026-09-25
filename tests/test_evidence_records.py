@@ -360,3 +360,6 @@ def test_render_keeps_a_literal_less_than_sign():
     out = textrep._strip(s)
     assert "(P<0.001), the risk of major cardiovascular events 18% lower (hazard ratio, 0.82)." in out
     assert "weight <70 kg" in out and "<h4>" not in out and "Conclusions" in out and "<sup>" not in out
+    # markup that is not an element must still go: XML declaration, processing instructions, DOCTYPE, comments
+    mk = textrep._strip('<?xml version="1.0"?><!DOCTYPE article PUBLIC "x"><?cloudpmc-path a/b.jpg?><!-- c -->Text p<0.05.')
+    assert mk == "Text p<0.05."
