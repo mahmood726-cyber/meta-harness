@@ -89,7 +89,7 @@ In Windows PowerShell, once:
 ```
 git clone --filter=blob:none --no-checkout --branch {args.branch} https://github.com/mahmood726-cyber/meta-harness.git {args.clone}
 cd {args.clone}
-git sparse-checkout set --no-cone '/*' '!/*/' '/harness/' '/scripts/' '/tests/' '/registry/' '/topics/' '/protocols/' '/docs/result_changes.json' '/docs/reviews/*/review.json' '/docs/reviews/*/index.html' '/cache/spironolactone-hfref-mortality/records.json'
+git sparse-checkout set --no-cone '/*' '!/*/' '/harness/' '/scripts/' '/tests/' '/registry/' '/topics/' '/protocols/' '/docs/result_changes.json' '/docs/reviews/*/review.json' '/docs/reviews/*/index.html' '/cache/spironolactone-hfref-mortality/records.json' '/signatures/'
 git checkout {args.branch}
 git switch -c {args.push_branch}
 python -m pip install -r requirements.txt

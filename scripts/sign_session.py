@@ -170,7 +170,7 @@ def main(argv=None) -> int:
         return 0
     git("add", LEDGER)
     if (ROOT / "signatures").exists():
-        git("add", "signatures")
+        git("add", "--sparse", "signatures")  # a sparse clone may not list signatures/ in its patterns
     git("-c", f"user.name={args.by}", "commit", "-q", "-m",
         f"Countersignatures by {args.by}: {len(done['notice'])} notices, {len(done['bundle'])} bundle, "
         f"{len(done['ruling'])} rulings (scripts/sign_session.py)")

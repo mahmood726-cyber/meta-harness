@@ -5,7 +5,8 @@
 
 Items, each clearly labelled by kind:
   notice  a result-change notice to countersign (from the signing list: plain before -> after, the exact digest and
-          judgement the sign command checks). Notices in decisions["hold"] are NOT in the plan; notices in
+          judgement the sign command checks). Notices in decisions["hold"] or decisions["exclude"] (e.g. those
+          the V1 fix removes or changes) are NOT in the plan; notices in
           decisions["ruling"] are, labelled as rulings, and are only signed if he accepts the ruling.
   bundle  the GLP-1 MACE FLOW/ELIXA/FREEDOM-CVO admission request (evidence/glp1_adjudication/SIGNATURE_REQUEST.md
           at --glp1-ref): the bound files, their sha256 and the bundle sha256, recomputed here from committed bytes
@@ -86,10 +87,14 @@ def main(argv=None) -> int:
     audit = {r["audit_id"]: r for r in json.loads((ROOT / "registry/notice_adjudication.json")
                                                    .read_text(encoding="utf-8"))["notices"]}
     dec = json.loads(Path(args.decisions).read_text(encoding="utf-8"))
-    hold, ruling = dec.get("hold") or {}, dec.get("ruling") or {}
+    hold, ruling, exclude = dec.get("hold") or {}, dec.get("ruling") or {}, dec.get("exclude") or {}
+    known = {r["audit_id"] for r in sl}
+    if (set(hold) | set(ruling) | set(exclude)) - known:
+        raise SystemExit(f"refused: decisions name notices not on the signing list: "
+                         f"{sorted((set(hold) | set(ruling) | set(exclude)) - known)}")
     items = []
     for r in sl:
-        if r["state"] != "OPEN" or r["audit_id"] in hold:
+        if r["state"] != "OPEN" or r["audit_id"] in hold or r["audit_id"] in exclude:
             continue
         cmd = r["command"]
         items.append({"kind": "notice", "id": r["audit_id"],
@@ -104,11 +109,11 @@ def main(argv=None) -> int:
     if args.rulings:
         for q in json.loads(Path(args.rulings).read_text(encoding="utf-8")):
             items.append(dict(q, kind="ruling", record_path="signatures/RULINGS.json"))
-    plan = {"held_not_in_session": hold, "items": items}
+    plan = {"held_not_in_session": hold, "excluded_not_in_session": exclude, "items": items}
     Path(args.out).write_bytes((json.dumps(plan, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
     counts = {k: sum(i["kind"] == k for i in items) for k in ("notice", "bundle", "ruling")}
     print(f"plan: {counts['notice']} notices, {counts['bundle']} bundle, {counts['ruling']} rulings; "
-          f"{len(hold)} held (not in the session) -> {args.out}")
+          f"{len(hold)} held and {len(exclude)} excluded (not in the session) -> {args.out}")
     return 0
 
 
