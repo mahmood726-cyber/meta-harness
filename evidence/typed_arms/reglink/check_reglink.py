@@ -31,7 +31,10 @@ def num(x):
 
 def check_job(job):
     rows = json.load(open(os.path.join(job, "rows.json"), encoding="utf-8"))
-    raw = open(os.path.join(job, rows["registry_file"]), "rb").read()
+    p = os.path.join(job, rows["registry_file"])
+    if not os.path.exists(p):   # a committed extraction: the registry record lives once, in ../registry/
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "registry", f"{rows['nct']}.json")
+    raw = open(p, "rb").read()
     if hashlib.sha256(raw).hexdigest() != rows["registry_sha256"]:
         return {"nct": rows["nct"], "error": "registry bytes differ from the packet's sha256"}
     reg = json.loads(raw)

@@ -56,3 +56,10 @@ def test_a_copied_number_the_pointer_does_not_hold_refuses_the_candidate(tmp_pat
 
 def test_a_different_outcome_is_never_compared(tmp_path):
     assert job(tmp_path, reading(same=False))["outcome_candidates"][0]["state"] == "DIFFERENT_OUTCOME"
+
+
+def test_committed_registry_links_reproduce_from_repo_bytes(tmp_path):
+    ta = os.path.join(HERE, "..", "evidence", "typed_arms")
+    out = tmp_path / "links.json"
+    cr.main(os.path.join(ta, "reglink", "extractions"), str(out))
+    assert json.load(open(out, encoding="utf-8")) == json.load(open(os.path.join(ta, "reglink", "REGISTRY_LINKS.json"), encoding="utf-8"))
