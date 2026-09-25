@@ -91,6 +91,27 @@ sys.exit(0 if fired else 1)
 '''
 
 
+AUDIT_ALL = """#!/usr/bin/env python3
+\"\"\"Run the archived certificate auditor on EVERY archived review page (site/reviews/*/CERTIFICATE.json), with this
+archive's site/ as the root for the pinned code. Exit 0 iff every page prints RESULT REPRODUCED. Standard library only.\"\"\"
+import subprocess, sys
+from pathlib import Path
+here = Path(__file__).resolve().parent
+aud = here / "site" / "scripts" / "audit_certificate_stdlib.py"
+pages = sorted(p.parent for p in (here / "site" / "reviews").glob("*/CERTIFICATE.json"))
+bad = []
+for d in pages:
+    p = subprocess.run([sys.executable, str(aud), "CERTIFICATE.json", str(here / "site")], cwd=d, capture_output=True,
+                       text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
+    res = next((l for l in p.stdout.splitlines() if l.startswith("RESULT")), "no RESULT line")
+    print(f"{d.name}: {res}")
+    if not res.startswith("RESULT REPRODUCED"):
+        bad.append(d.name)
+print(f"PAGES REPRODUCED: {len(pages) - len(bad)} of {len(pages)}")
+sys.exit(1 if bad or not pages else 0)
+"""
+
+
 def _git(*args: str) -> bytes:
     r = subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, stdin=subprocess.DEVNULL)
     if r.returncode != 0:
@@ -224,6 +245,153 @@ def build(slug: str, commit: str, out_root: Path) -> Path:
     return zpath
 
 
+def build_release(commit: str, out_root: Path, primary: str = "glp1-ra-mace-t2d", label: str = "v1",
+                  acceptance: Path | None = None) -> Path:
+    """The WHOLE release at one commit (decision D11): every review page's served directory, the union of pinned modules,
+    both verifiers, the primary review's full bundle replay set, and SITE_SHA256SUMS over EVERY served file (sha256 + blob)."""
+    commit = _git("rev-parse", commit + "^{commit}").decode().strip()
+    c12 = commit[:12]
+    name = f"meta-harness-{label}-{c12}"
+    served: dict[str, str] = {}
+    for ln in _git("ls-tree", "-r", commit, "docs").decode("utf-8").splitlines():
+        meta, _, path = ln.partition("\t")
+        mode, kind, obj = meta.split()
+        if kind == "blob":
+            served[path[len("docs/"):]] = obj
+    pages = sorted({p.split("/")[1] for p in served if p.startswith("reviews/") and p.endswith("/CERTIFICATE.json")})
+    if not pages:
+        raise SystemExit(f"REFUSED: no served review pages at {c12}")
+    why: dict[str, set] = {}
+    for slug in pages:
+        for p in served:
+            if p.startswith(f"reviews/{slug}/"):
+                why.setdefault(p, set()).add("review_directory")
+        cert = json.loads(_show(commit, f"docs/reviews/{slug}/CERTIFICATE.json"))
+        for p, v in cert.get("analysis_code_blobs", {}).items():
+            if v != "NOT_PRESENT":
+                if served.get(p) != v:
+                    raise SystemExit(f"REFUSED: docs/{p} at {c12} is blob {served.get(p)}; {slug}'s certificate pins {v}")
+                why.setdefault(p, set()).add("pinned_module")
+    if f"reviews/{primary}/BUNDLE.json" in served:
+        for p, w in _served_paths(json.loads(_show(commit, f"docs/reviews/{primary}/BUNDLE.json"))).items():
+            why.setdefault(p, set()).update(f"{primary}:{x}" for x in w)
+    for v in VERIFIERS:
+        why.setdefault(v, set()).add("named_verifier")
+    missing = sorted(p for p in why if p not in served)
+    if missing:
+        raise SystemExit(f"REFUSED: {len(missing)} advertised paths are not served at {c12}: {missing[:5]}")
+    files = {p: _show(commit, "docs/" + p) for p in sorted(why)}
+    for p, b in files.items():            # the bytes read must hash to the blob git records -- a short read refuses
+        if hashlib.sha1(b"blob %d\0" % len(b) + b).hexdigest() != served[p]:
+            raise SystemExit(f"REFUSED: docs/{p}: bytes read do not hash to blob {served[p]}")
+    site_sums = []
+    for p in sorted(served):
+        data = files[p] if p in files else _show(commit, "docs/" + p)
+        if p not in files and hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest() != served[p]:
+            raise SystemExit(f"REFUSED: docs/{p}: bytes read do not hash to blob {served[p]}")
+        site_sums.append(f"{_sha(data)}  {served[p]}  {p}\n")
+    if len(site_sums) != len(served):
+        raise SystemExit(f"REFUSED: SITE_SHA256SUMS has {len(site_sums)} lines for {len(served)} served files")
+    subject, record = _attestation(commit)
+    page_release = {slug: json.loads(files[f"reviews/{slug}/CERTIFICATE.json"]).get("release_sha256") for slug in pages}
+    pcert = json.loads(files[f"reviews/{primary}/CERTIFICATE.json"])
+    pman = json.loads(files[f"reviews/{primary}/manifest.json"])
+    release = {
+        "archive": name, "label": label, "slug": primary, "commit": commit,
+        "release_sha256": pcert.get("release_sha256"), "review_sha256": pcert.get("review_sha256"),
+        "html_sha256": pman.get("html_sha256"), "page_release_sha256": page_release,
+        "tree": _git("rev-parse", commit + "^{tree}").decode().strip(), "site_root": SITE_ROOT,
+        "pages": pages, "n_pages": len(pages), "n_served_files_at_commit": len(served),
+        "production_record": {"subject": subject, "file": "production_record.json" if record else None,
+                              "state": ("COPIED" if record else "NOT_FOUND_ON_production-records_AT_BUILD_TIME")},
+        "acceptance": {"file": "ACCEPTANCE.json" if acceptance else None,
+                       "state": "INCLUDED" if acceptance else "NOT_INCLUDED"},
+        "definition": ("every review page's served directory, every module any page's certificate pins, both named "
+                       f"verifiers, and the served paths {primary}'s BUNDLE.json advertises -- read from the commit above; "
+                       "SITE_SHA256SUMS lists sha256 + git blob of EVERY served file at the commit, archived or not"),
+        "files": [{"path": "site/" + p, "served_path": p, "bytes": len(files[p]), "sha256": _sha(files[p]),
+                   "git_blob": served[p], "why": sorted(why[p])} for p in sorted(files)],
+    }
+    members: dict[str, bytes] = {f"site/{p}": b for p, b in files.items()}
+    members["RELEASE.json"] = (json.dumps(release, indent=1, ensure_ascii=False) + "\n").encode("utf-8")
+    members["README.md"] = _readme_release(release).encode("utf-8")
+    members["SITE_SHA256SUMS"] = "".join(site_sums).encode("utf-8")
+    members["check_sha256sums.py"] = CHECK_SUMS.encode("utf-8")
+    members["plant_control.py"] = PLANT_CONTROL.encode("utf-8")
+    members["audit_all_pages.py"] = AUDIT_ALL.encode("utf-8")
+    if record:
+        members["production_record.json"] = record
+    if acceptance:
+        members["ACCEPTANCE.json"] = Path(acceptance).read_bytes()
+    members["SHA256SUMS"] = "".join(f"{_sha(members[m])}  {m}\n" for m in sorted(members)).encode("utf-8")
+    dest = out_root / label / c12
+    dest.mkdir(parents=True, exist_ok=True)
+    zpath = dest / f"{name}.zip"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+        for m in sorted(members):
+            info = zipfile.ZipInfo(f"{name}/{m}", date_time=FIXED_TIME)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, members[m])
+    zpath.write_bytes(buf.getvalue())
+    (dest / "README.md").write_bytes(members["README.md"])
+    (dest / "RELEASE.json").write_bytes(members["RELEASE.json"])
+    (dest / "SHA256SUMS").write_bytes(f"{_sha(buf.getvalue())}  {zpath.name}\n".encode("ascii"))
+    print(f"wrote {zpath} ({len(buf.getvalue()):,} bytes; {len(files)} archived files of {len(served)} served; "
+          f"{len(pages)} pages) sha256 {_sha(buf.getvalue())}")
+    return zpath
+
+
+def _readme_release(r: dict) -> str:
+    name, c, site, label = r["archive"], r["commit"], r["site_root"], r["label"]
+    rel = f"releases/{label}/{c[:12]}/"
+    return "\n".join([
+        f"# Frozen release archive: meta-harness {label.upper()} at {c[:12]}",
+        "",
+        f"This archive freezes the bytes the whole site served at commit `{c}` (tree `{r['tree']}`): {r['n_pages']} review "
+        f"pages, {len(r['files'])} archived files, and a hash list of all {r['n_served_files_at_commit']} served files.",
+        f"- production record: {r['production_record']['subject'] or 'none on production-records when this was built'}",
+        f"- acceptance record: {r['acceptance']['state']}"
+        + (" (`ACCEPTANCE.json`: the page-verifier lane's hostile audit of THESE served bytes against release checklist 18)"
+           if r["acceptance"]["file"] else ""),
+        "",
+        "## Get it",
+        f"- Download `{site}{rel}{name}.zip`; its sha256 is in `{site}{rel}SHA256SUMS` and in the repository at "
+        f"`docs/{rel}SHA256SUMS`. Take the digest from a second channel if you can.",
+        f"- `sha256sum {name}.zip` (Windows: `certutil -hashfile {name}.zip SHA256`), then "
+        f"`python -m zipfile -e {name}.zip .` and `cd {name}`.",
+        "",
+        "## Replay from this archive alone (no network, Python 3.9+ standard library, no git)",
+        "```",
+        "python check_sha256sums.py      # every file in this archive matches SHA256SUMS",
+        "python audit_all_pages.py       # the archived certificate auditor on every page: must print N of N",
+        f"python site/scripts/verify_bundle.py --root site --slug {r['slug']}",
+        "python plant_control.py         # damages a copy of site/ and must see the verifier NOT pass",
+        "```",
+        "- `SITE_SHA256SUMS` (`sha256  git-blob  served-path`) covers EVERY served file at the commit, including those not "
+        "archived: fetch any of them from the site and compare, or run `git rev-parse <commit>:docs/<path>` in any clone.",
+        "- `verify_bundle.py --corrupt` is NOT a must-fail control: its verdict stays PASS and it reports the rows that stop "
+        "being ADMISSIBLE. `--anchor live` without network prints PASS with no live fetch made; read each anchor's `fetched=`.",
+        "",
+        "## What needs a clone, and what the network allows",
+        "- Regenerating a page from its inputs needs the repository at the commit (~1.9 GB checkout): "
+        f"`git clone --filter=blob:none https://github.com/mahmood726-cyber/meta-harness.git`, `git checkout {c}`, then "
+        "`python scripts/build_topic.py <slug> --now 2026-09-11` (each page's execution record names its command).",
+        "- Full network: everything, plus `verify_bundle.py --url " + site + " --slug <slug>` against the live site and "
+        "`--anchor live`.",
+        "- github.com / github.io reachable, raw.githubusercontent.com blocked: download this archive from the Pages URL, "
+        "clone over git, every offline check, `--url` (it reads github.io, not raw). Not: anything fetched from raw.",
+        "- No DNS / no network: only the offline checks above, on an archive carried in by hand whose sha256 you obtained "
+        "out of band. Not: download, clone, `--url`, `--anchor live`, or establishing what the live site serves today.",
+        "",
+        "## What a PASS here does not establish",
+        "- that the live site serves these bytes today (only a fetch, or the production record, says what was served);",
+        "- anything a verifier prints under `NOT checked:`; the scientific validity of any pooled estimate;",
+        "- anything listed in the release note's 'what this release does not prove' section.",
+        "",
+    ])
+
 def _readme(r: dict) -> str:
     slug, name, c = r["slug"], r["archive"], r["commit"]
     site = r["site_root"]
@@ -333,10 +501,12 @@ def check(zpath: Path) -> int:
                     [sys.executable, "site/scripts/audit_certificate_stdlib.py",
                      f"site/reviews/{rel['slug']}/CERTIFICATE.json", "site"], **kw)),
                 ("plant_control.py", subprocess.run([sys.executable, "plant_control.py"], **kw))]
+        if (root / "audit_all_pages.py").is_file():
+            runs.append(("audit_all_pages.py", subprocess.run([sys.executable, "audit_all_pages.py"], **kw)))
         bad = 0
         for label, p in runs:
             lines = p.stdout.splitlines()
-            last = next((ln for ln in lines if ln.startswith(("bundle schema", "RESULT", "CONTROL"))
+            last = next((ln for ln in lines if ln.startswith(("bundle schema", "RESULT", "CONTROL", "PAGES REPRODUCED"))
                          or ln.endswith("match SHA256SUMS")), (lines or [""])[-1])
             print(f"rc={p.returncode} {label}\n    {last}")
             bad += p.returncode != 0
@@ -350,11 +520,20 @@ def main(argv=None) -> int:
     b.add_argument("--slug", required=True)
     b.add_argument("--commit", required=True)
     b.add_argument("--out", default=str(ROOT / "docs" / "releases"))
+    r = sub.add_parser("build-release")
+    r.add_argument("--commit", required=True)
+    r.add_argument("--label", default="v1")
+    r.add_argument("--primary", default="glp1-ra-mace-t2d")
+    r.add_argument("--acceptance", help="the served-bytes acceptance scorecard.json to include verbatim")
+    r.add_argument("--out", default=str(ROOT / "docs" / "releases"))
     c = sub.add_parser("check")
     c.add_argument("zip")
     a = ap.parse_args(argv)
     if a.cmd == "build":
         build(a.slug, a.commit, Path(a.out))
+        return 0
+    if a.cmd == "build-release":
+        build_release(a.commit, Path(a.out), a.primary, a.label, Path(a.acceptance) if a.acceptance else None)
         return 0
     return check(Path(a.zip))
 

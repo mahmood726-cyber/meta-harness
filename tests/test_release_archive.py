@@ -115,3 +115,68 @@ def test_plant_a_damaged_archive_fails_its_own_checks(rel_json, tmp_path):
     except vb.Refusal:
         verdict = "REFUSED"
     assert verdict != "PASS"
+
+
+# ------------------------------------------------------------------------------------------------ the whole-release archive (D11)
+def _load_archiver():
+    spec = importlib.util.spec_from_file_location("_release_archive", ROOT / "scripts" / "release_archive.py")
+    ra = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ra)
+    return ra
+
+
+@pytest.fixture(scope="module")
+def whole_release(tmp_path_factory):
+    ra = _load_archiver()
+    out = tmp_path_factory.mktemp("rel")
+    zpath = ra.build_release("HEAD", out, label="test")
+    dest = tmp_path_factory.mktemp("unpacked")
+    with zipfile.ZipFile(zpath) as f:
+        f.extractall(dest)
+    rel = json.loads((zpath.parent / "RELEASE.json").read_text(encoding="utf-8"))
+    return ra, zpath, rel, dest / rel["archive"]
+
+
+def test_whole_release_lists_every_served_file_and_archives_every_page(whole_release):
+    ra, zpath, rel, root = whole_release
+    served = subprocess.run(["git", "-C", str(ROOT), "ls-tree", "-r", "--name-only", rel["commit"], "docs"],
+                            capture_output=True, text=True, stdin=subprocess.DEVNULL).stdout.split()
+    lines = (root / "SITE_SHA256SUMS").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == len(served) == rel["n_served_files_at_commit"] > 1000     # the denominator, from git, not from us
+    assert sorted(ln.split("  ")[2] for ln in lines) == sorted(p[len("docs/"):] for p in served)
+    pages = sorted({p.split("/")[2] for p in served if p.endswith("/CERTIFICATE.json") and p.startswith("docs/reviews/")})
+    assert rel["pages"] == pages and len(pages) >= 32
+    for slug in pages:
+        for f in ("CERTIFICATE.json", "review.json", "manifest.json", "index.html"):
+            assert (root / "site" / "reviews" / slug / f).is_file(), (slug, f)
+
+
+def test_whole_release_replays_offline_every_page(whole_release):
+    ra, zpath, rel, root = whole_release
+    assert ra.check(zpath) == 0
+    p = subprocess.run([sys.executable, "audit_all_pages.py"], cwd=root, capture_output=True, text=True, encoding="utf-8",
+                       stdin=subprocess.DEVNULL)
+    assert p.returncode == 0 and f"PAGES REPRODUCED: {rel['n_pages']} of {rel['n_pages']}" in p.stdout, p.stdout[-1500:]
+
+
+def test_plant_a_damaged_page_in_the_whole_release_is_named(whole_release, tmp_path):
+    ra, zpath, rel, root = whole_release
+    import shutil
+    copy = tmp_path / "copy"
+    shutil.copytree(root, copy)
+    victim = next(s for s in rel["pages"] if s != rel["slug"])
+    rv = copy / "site" / "reviews" / victim / "review.json"
+    doc = json.loads(rv.read_text(encoding="utf-8"))
+    o = next(o for o in doc["outcomes"] if (o.get("result") or {}).get("estimate") is not None)
+    o["result"]["estimate"] = o["result"]["estimate"] * 1.01        # a value change, not whitespace
+    rv.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    p = subprocess.run([sys.executable, "audit_all_pages.py"], cwd=copy, capture_output=True, text=True, encoding="utf-8",
+                       stdin=subprocess.DEVNULL)
+    n = rel["n_pages"]
+    assert p.returncode == 1 and f"PAGES REPRODUCED: {n - 1} of {n}" in p.stdout, p.stdout[-1500:]
+    assert any(ln.startswith(victim + ":") and "REPRODUCED" not in ln.split(":", 1)[1].split("[")[0] or
+               (ln.startswith(victim + ":") and not ln.split(":", 1)[1].strip().startswith("RESULT REPRODUCED"))
+               for ln in p.stdout.splitlines()), p.stdout[-1500:]
+    sums = subprocess.run([sys.executable, "check_sha256sums.py"], cwd=copy, capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL)
+    assert sums.returncode == 1 and "FAILED" in sums.stdout

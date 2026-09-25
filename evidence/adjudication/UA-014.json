@@ -34,6 +34,10 @@
   "gap_entry_age": {
    "ref": "evidence/held/registry/NCT02418585.json",
    "span": "At the time of signing the informed consent form (ICF), participant must be a man or woman 18 (or older if the minimum legal age of consent in the country in which the study is taking place is greater than \\[\\>\\]18) to 64 years of age, inclusive"
+  },
+  "treatment_strategy": {
+   "ref": "cache/esketamine-trd-madrs/records.json#/records/19",
+   "span": "Confirmed nonresponders were randomly assigned to treatment with esketamine nasal spray (56 or 84 mg twice weekly) and an antidepressant or antidepressant and placebo nasal spray."
   }
  },
  "entry_population": {
@@ -42,7 +46,7 @@
  },
  "typed_estimand": {
   "analysis_set": "observed cases at Day 28 within the FAS (denominators = participants with Day-28 data)",
-  "treatment_strategy": "intranasal esketamine + new oral AD vs intranasal placebo + new oral AD",
+  "treatment_strategy": "bound",
   "follow_up": "Day 28 induction endpoint"
  },
  "gap_scope": {
@@ -98,8 +102,8 @@
     "validity_critical": false
    }
   },
-  "endpoint_event_time": "DAY28_CHANGE_FROM_BASELINE",
   "analysis_set_literal": "observed-case Day-28 full analysis set",
+  "endpoint_event_time": "DAY28_CHANGE_FROM_BASELINE",
   "study_effect": {
    "effect_estimate": -4.399999999999999,
    "standard_error": 1.8518477366144228,
@@ -228,8 +232,28 @@
    "offsets": [
     302
    ]
+  },
+  "evidence/treatment_strategy": {
+   "ref": "cache/esketamine-trd-madrs/records.json#/records/19",
+   "sha256": "fcee0007db60a5ed4de902437861ebe8b7340481d274eb703aef4eb8c9f806a4",
+   "offsets": [
+    962
+   ]
   }
  },
  "by": "Claude Opus 5.5 (evidence lane evid/evidence-records)",
- "when_utc": "2026-09-24T22:18:28Z"
+ "when_utc": "2026-09-24T22:18:28Z",
+ "amendments": [
+  {
+   "when_utc": "2026-09-25T10:06:50Z",
+   "prompted_by": "source location 2026-09-25, rounds 1-2",
+   "what": "treatment_strategy: unbound with a named reason (INFERRED_ONLY)"
+  },
+  {
+   "when_utc": "2026-09-25T10:38:38Z",
+   "prompted_by": "adversarial review of the 2026-09-25 bindings (Claude subagent), reconciled against held bytes by the lane",
+   "what": "treatment_strategy re-bound to the regimen AS RANDOMISED, the lane's definition (EXTRACTION_BRIEF.md); today's round-1 locator brief had used the ICH E9 intercurrent-event sense. The intercurrent-event span (or the INFERRED_ONLY note) is kept separately as intercurrent_event_strategy / intercurrent_event_note."
+  }
+ ],
+ "intercurrent_event_note": "INFERRED_ONLY: TRANSFORM-2's posted SAP (NCT02418585 SAP_001.pdf, s2.1.2 + Table 1) sets the Day-28 window at day 25 to end of the double-blind phase and ends the phase at completion/withdrawal, so an observed-case Day-28 value is an on-treatment assessment and withdrawals before day 25 are simply missing -- but no sentence states how the observed-case analysis handles discontinuation. The SAP's stated estimand (hypothetical, MMRM) is not the served number. Located 2026-09-25 by source-location round 2; not bound because it is an inference."
 }
