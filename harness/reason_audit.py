@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from . import absence, extract
+from .markup import strip_markup
 
 REASON_TRUE = "REASON_TRUE"
 REASON_FALSE_VALUE_HELD = "REASON_FALSE_VALUE_HELD"
@@ -30,7 +31,6 @@ _DESIGN_CODES = _VALUE_PRESENT_CODES | {
     absence.TIMEPOINT_MISMATCH,
     absence.POPULATION_MISMATCH,
 }
-_TAG = re.compile(r"<[^>]+>")
 _NCT_OR_PMID = re.compile(r"\b(NCT\d{8}|\d{6,9})\b", re.I)
 _COUNT_WITH_PERCENT = re.compile(
     r"\b\d[\d,]*\s*(?:patients?|participants?|subjects?|events?|cases?)?\s*[\(\[]\s*"
@@ -87,7 +87,7 @@ def canonical_trial_id(value: Any) -> str:
 def _plain(text: str) -> str:
     text = (text or "").replace("\r\n", "\n").replace("\r", "\n")
     if "<" in text:
-        text = _TAG.sub(" ", text)
+        text = strip_markup(text)                    # V1.1: a literal P<0.001 is text, not a tag
     return norm_space(text)
 
 

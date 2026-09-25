@@ -24,6 +24,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from .markup import strip_markup
 
 ISRCTN_API = "https://www.isrctn.com/api/query/format/who"
 ISRCTN_RECORD = "https://www.isrctn.com/{trial_id}"
@@ -58,7 +59,7 @@ def _get_text(url: str, timeout: int = 30) -> str:
 
 
 def _clean_text(value: object) -> str:
-    text = re.sub(r"<[^>]+>", " ", str(value or ""))
+    text = strip_markup(str(value or ""))             # V1.1: a literal P<0.001 is text, not a tag
     return " ".join(html.unescape(text).replace("\xa0", " ").split())
 
 

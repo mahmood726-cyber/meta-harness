@@ -15,6 +15,7 @@ import re
 import time
 import urllib.parse
 import urllib.request
+from .markup import strip_markup
 
 EPMC_REFERENCES = "https://www.ebi.ac.uk/europepmc/webservices/rest/MED/{pmid}/references"
 EPMC_SEARCH = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
@@ -30,7 +31,6 @@ RAN_ERROR = "RAN_ERROR"
 
 _PMID_RE = re.compile(r"^\d+$")
 _DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
-_TAG_RE = re.compile(r"<[^>]+>")
 _RESOLUTION_CACHE: dict[tuple[str, str], dict[str, str] | None] = {}
 
 
@@ -46,7 +46,7 @@ def _get_json(url: str, params: dict[str, object] | None = None, timeout: int = 
 
 
 def _clean_text(value: object) -> str:
-    text = _TAG_RE.sub(" ", str(value or ""))
+    text = strip_markup(str(value or ""))            # V1.1: a literal P<0.001 is text, not a tag
     return " ".join(html.unescape(text).replace("\xa0", " ").split())
 
 

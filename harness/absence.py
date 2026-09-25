@@ -17,12 +17,12 @@ reserve the strong claim for the first only:
 """
 import re
 from . import estmeasure, extract, lexicon
+from .markup import strip_markup
 
 _EFFECT = re.compile(r"\b(?:RR|OR|HR|IRR|rate ratio|risk ratio|hazard ratio|odds ratio|relative risk)\b"
                      r"[^.]{0,40}?\d+\.\d+", re.I)
 _ARMS = re.compile(r"\b\d+\s*/\s*\d{2,}\b|\b\d+\s+of\s+\d{2,}\b|"
                    r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten)\s+of\s+\d{2,}\b", re.I)
-_TAG = re.compile(r"<[^>]+>")
 _COUNT_WITH_PERCENT = re.compile(
     r"\b\d+\s*(?:/|of)\s*\d{2,}\b[^.]{0,40}?\b\d+(?:\.\d+)?\s*%"
     r"|\b\d+(?:\.\d+)?\s*%[^.]{0,40}?\b\d+\s*/\s*\d{2,}\b"
@@ -85,7 +85,7 @@ def _strip_markup(text):
     numbers (id="FN3", DOIs) that caused a footnote to match. The abstract path is plain text (no-op)."""
     if not text or "<" not in text:
         return text
-    return re.sub(r"\s+", " ", _TAG.sub(" ", text))
+    return re.sub(r"\s+", " ", strip_markup(text))   # V1.1: a literal P<0.001 is text, not a tag
 
 
 def _outcome_number_present(text, keywords):

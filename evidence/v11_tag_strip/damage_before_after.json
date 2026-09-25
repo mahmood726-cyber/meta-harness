@@ -1,0 +1,455 @@
+{
+ "rules": "Tag-stripping damage in held source text, before vs after the V1.1 fix (lane OC).\n\nUniverse: every text field the harness can strip that is held in the committed caches -- cache/<slug>/records.json record abstracts,\n(also cache/<slug>/ft_<pid>.txt, the held full texts the declared-absent classifier reads),\nfulltext_by_pmid full texts, and comparator_fulltext -- for all topic caches present (38) and for the 32 served topics.\nTwo damage definitions, both reported, because they give different counts and neither should be quoted without its rule:\n  TOKEN  (primary, independent): a word or number that the stdlib html.parser keeps as TEXT (it reads '<0.001' as data) is missing\n         from the stripped output. The reference is a different implementation from both strippers.\n  CHARS  (the main lane's figure): the stripped output has fewer non-space characters than the reference-free strict stripper's.\nBEFORE = `<[^>]+>` (the old regex at every source site); AFTER = harness.markup.strip_markup.\nusage: python evidence/v11_tag_strip/measure_damage.py <live_slugs.txt> <out.json>",
+ "results": {
+  "all_caches|abstract": {
+   "fields": 3139,
+   "with_lt": 891,
+   "token_before": 81,
+   "token_after": 0,
+   "chars_before": 84,
+   "chars_after": 0,
+   "token_after_markup_only": 0,
+   "topics_before": 26,
+   "topics_after": 0
+  },
+  "all_caches|comparator_fulltext": {
+   "fields": 32,
+   "with_lt": 30,
+   "token_before": 19,
+   "token_after": 0,
+   "chars_before": 19,
+   "chars_after": 0,
+   "token_after_markup_only": 0,
+   "topics_before": 19,
+   "topics_after": 0
+  },
+  "all_caches|ft_file": {
+   "fields": 61,
+   "with_lt": 61,
+   "token_before": 0,
+   "token_after": 0,
+   "chars_before": 0,
+   "chars_after": 0,
+   "token_after_markup_only": 8,
+   "topics_before": 0,
+   "topics_after": 0
+  },
+  "all_caches|fulltext": {
+   "fields": 101,
+   "with_lt": 85,
+   "token_before": 58,
+   "token_after": 0,
+   "chars_before": 58,
+   "chars_after": 0,
+   "token_after_markup_only": 0,
+   "topics_before": 3,
+   "topics_after": 0
+  },
+  "served_topics|abstract": {
+   "fields": 2540,
+   "with_lt": 729,
+   "token_before": 55,
+   "token_after": 0,
+   "chars_before": 58,
+   "chars_after": 0,
+   "token_after_markup_only": 0,
+   "topics_before": 21,
+   "topics_after": 0
+  },
+  "served_topics|comparator_fulltext": {
+   "fields": 27,
+   "with_lt": 25,
+   "token_before": 16,
+   "token_after": 0,
+   "chars_before": 16,
+   "chars_after": 0,
+   "token_after_markup_only": 0,
+   "topics_before": 16,
+   "topics_after": 0
+  },
+  "served_topics|ft_file": {
+   "fields": 61,
+   "with_lt": 61,
+   "token_before": 0,
+   "token_after": 0,
+   "chars_before": 0,
+   "chars_after": 0,
+   "token_after_markup_only": 8,
+   "topics_before": 0,
+   "topics_after": 0
+  },
+  "served_topics|fulltext": {
+   "fields": 101,
+   "with_lt": 85,
+   "token_before": 58,
+   "token_after": 0,
+   "chars_before": 58,
+   "chars_after": 0,
+   "token_after_markup_only": 0,
+   "topics_before": 3,
+   "topics_after": 0
+  }
+ },
+ "examples": [
+  {
+   "slug": "azithromycin-copd-exacerbation",
+   "kind": "abstract",
+   "id": "41299471",
+   "lost_tokens": [
+    "0.0001",
+    "0.44",
+    "0.21",
+    "0.92",
+    "0.03",
+    "increased",
+    "proportion",
+    "who",
+    "remained",
+    "free",
+    "during",
+    "1.33"
+   ],
+   "context": "k of having one exacerbation (RR 0.64; 95% CI: 0.52-0.78; P < 0.0001), severe exacerbations (RR 0.44; 95% CI: 0.21-0.92; P = 0.03), and increased the proportion of patients who remained exacerbation-free during treatment"
+  },
+  {
+   "slug": "azithromycin-copd-exacerbation",
+   "kind": "abstract",
+   "id": "41031167",
+   "lost_tokens": [
+    "0.001",
+    "each",
+    "following",
+    "initial",
+    "0.89",
+    "0.81",
+    "0.98",
+    "0.020",
+    "also",
+    "risk",
+    "proportion",
+    "lasting"
+   ],
+   "context": ".69-0.88), and antibiotics (HR: 0.75; 95% CI: 0.67-0.85) (p < 0.001 each). The incidence of an antibiotic prescription following an initial EPs 7630 prescription was significantly lower compared to acetylcysteine (HR: 0."
+  },
+  {
+   "slug": "azithromycin-copd-exacerbation",
+   "kind": "abstract",
+   "id": "36979719",
+   "lost_tokens": [
+    "70",
+    "Cough",
+    "Sputum",
+    "Assessment",
+    "Questionnaire",
+    "CASA",
+    "Q",
+    "or",
+    "critical",
+    "stress",
+    "c"
+   ],
+   "context": "in will be provided to those patients who obtain a score of <70 on the Cough and Sputum Assessment Questionnaire (CASA-Q) or a critical stress score of σc > 39 on a rheological assessment of sputum, depending upon their "
+  },
+  {
+   "slug": "colchicine-postop-af",
+   "kind": "abstract",
+   "id": "42318173",
+   "lost_tokens": [
+    "vs",
+    "0.0001",
+    "0"
+   ],
+   "context": "hood (REML). Subgroup analyses examined treatment duration (< 2 weeks vs. > 2 weeks) and surgery type. Heterogeneity was assessed with I2, and stability of outcomes was assessed using leave-one-out (LOO) analyses. RESULT"
+  },
+  {
+   "slug": "colchicine-postop-af",
+   "kind": "abstract",
+   "id": "42132185",
+   "lost_tokens": [
+    "70",
+    "kg",
+    "70",
+    "kg",
+    "14",
+    "days",
+    "primary",
+    "outcome",
+    "atrial",
+    "fibrillation",
+    "Secondary"
+   ],
+   "context": "ollowed by a weight-based maintenance dose (0.5 mg daily if <70 kg; 1 mg daily if ≥70 kg) for 14 days. The primary outcome was incidence of postoperative atrial fibrillation (POAF). Secondary outcomes included early (≤48"
+  },
+  {
+   "slug": "colchicine-recurrent-pericarditis",
+   "kind": "abstract",
+   "id": "38837516",
+   "lost_tokens": [
+    "70",
+    "kg"
+   ],
+   "context": " followed by 0.5 mg every 12 h for 8 weeks (reduced dose if <70 kg, >75 years old, or glomerular filtration rate <50 ml/min/1.73 m2). The primary efficacy endpoint is the time-averaged proportional change in NT-proBNP co"
+  },
+  {
+   "slug": "colchicine-secondary-cv-prevention",
+   "kind": "abstract",
+   "id": "41214504",
+   "lost_tokens": [
+    "0.0001",
+    "interleukin",
+    "pathway",
+    "0.97",
+    "In",
+    "contrast",
+    "reduction",
+    "found",
+    "broad",
+    "spectrum",
+    "immunomodulator",
+    "group"
+   ],
+   "context": "P3 inflammasome inhibitors (RR = 0.75; 95% CI: 0.65,0.86; P < 0.0001) and interleukin-pathway inhibitors (RR = 0.86; 95% CI: 0.75,0.97; P = 0.02). In contrast, no significant reduction in MACE incidence was found in the "
+  },
+  {
+   "slug": "colchicine-secondary-cv-prevention",
+   "kind": "abstract",
+   "id": "36176989",
+   "lost_tokens": [
+    "0.01",
+    "I",
+    "2",
+    "70",
+    "0.01",
+    "0.48",
+    "0.30",
+    "0.76",
+    "0.52",
+    "I",
+    "2",
+    "0"
+   ],
+   "context": "k of MACE (RR: 0.65; 95% CI: 0.38-0.77, p for heterogeneity < 0.01; I2 = 70%; p < 0.01), stroke (RR: 0.48; 95% CI: 0.30-0.76; p heterogeneity = 0.52; I2 = 0%; p < 0.01), MI by 40% (RR: 0.60; 95% CI: 0.43-0.83; p for hete"
+  },
+  {
+   "slug": "colchicine-secondary-cv-prevention",
+   "kind": "comparator_fulltext",
+   "id": "comparator",
+   "lost_tokens": [
+    "median",
+    "analyzed",
+    "regression",
+    "variables",
+    "regression",
+    "find",
+    "correlations",
+    "variables",
+    "find",
+    "out",
+    "influencing",
+    "Statistical"
+   ],
+   "context": "h of follow-up in three subgroups: ≤ 1 month, > 1 month and < 1 year, and ≥ 1 year (median follow-up time). In addition, we analyzed a study on the preoperative treatment of PCI with colchicine, A meta-regression analysi"
+  },
+  {
+   "slug": "corticosteroids-cap-mortality",
+   "kind": "abstract",
+   "id": "41888370",
+   "lost_tokens": [
+    "0.001",
+    "remarkably",
+    "higher",
+    "mean",
+    "44.3",
+    "7.6",
+    "33.1",
+    "10.5",
+    "kcal",
+    "kg",
+    "0.01",
+    "some"
+   ],
+   "context": "han the placebo group (2.7 ± 0.8 days vs. 3.8 ± 1.0 days, P < 0.001). The probiotic group had remarkably higher mean calorie (44.3 ± 7.6 vs. 33.1 ± 10.5 kcal/kg daily, P = 0.01) and some micronutrient intake (P < 0.05). "
+  },
+  {
+   "slug": "corticosteroids-cap-mortality",
+   "kind": "abstract",
+   "id": "41029298",
+   "lost_tokens": [
+    "any",
+    "increase",
+    "8.2",
+    "18.5",
+    "0.40",
+    "0.23",
+    "0.69",
+    "0.001",
+    "whole",
+    "When",
+    "stratifying",
+    "resulted"
+   ],
+   "context": "on was associated with a lower mortality compared to either < 5% reduction or any increase in CRP levels by day 3 (8.2% versus 18.5%; OR 0.40; 95%CI 0.23-0.69; p = 0.001) in the whole cohort. When stratifying for baselin"
+  },
+  {
+   "slug": "corticosteroids-cap-mortality",
+   "kind": "comparator_fulltext",
+   "id": "comparator",
+   "lost_tokens": [
+    "0.8"
+   ],
+   "context": "ta-analyses using the following posterior probabilities: OR < 1; OR > 1; OR < 0.9; OR > 1.11; OR < 0.8; OR > 1.25.  Table S2  presents more details on the methods used to perform the Bayesian analysis. Lastly, for short-"
+  },
+  {
+   "slug": "corticosteroids-covid19-mortality",
+   "kind": "ft_file",
+   "id": "ft_32678530.txt",
+   "reference_tokens_missing_after": [
+    "xref",
+    "rid",
+    "t",
+    "fn",
+    "ref",
+    "table",
+    "fn",
+    "xref"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "kind": "ft_file",
+   "id": "ft_34541475.txt",
+   "reference_tokens_missing_after": [
+    "italic",
+    "toggle",
+    "italic"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "kind": "ft_file",
+   "id": "ft_39529939.txt",
+   "reference_tokens_missing_after": [
+    "ext",
+    "xmlns",
+    "xlink",
+    "http",
+    "w",
+    "xlink",
+    "xlink",
+    "href",
+    "ext",
+    "uri",
+    "ext"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "kind": "ft_file",
+   "id": "ft_40548185.txt",
+   "reference_tokens_missing_after": [
+    "styled",
+    "content",
+    "style",
+    "fixed",
+    "toggle",
+    "styled",
+    "content",
+    "styled",
+    "content",
+    "style",
+    "fixed",
+    "toggle"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "sglt2-primary-prevention-hf",
+   "kind": "ft_file",
+   "id": "ft_33464703.txt",
+   "reference_tokens_missing_after": [
+    "styled",
+    "style",
+    "case",
+    "toggle",
+    "styled",
+    "styled",
+    "style",
+    "case",
+    "toggle",
+    "styled"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "tocilizumab-covid19-mortality",
+   "kind": "ft_file",
+   "id": "ft_33085857.txt",
+   "reference_tokens_missing_after": [
+    "xref",
+    "rid",
+    "t",
+    "fn",
+    "ref",
+    "table",
+    "fn",
+    "xref",
+    "xref",
+    "rid",
+    "t",
+    "fn"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "tocilizumab-covid19-mortality",
+   "kind": "ft_file",
+   "id": "ft_33332779.txt",
+   "reference_tokens_missing_after": [
+    "xref",
+    "rid",
+    "t",
+    "fn",
+    "ref",
+    "table",
+    "fn",
+    "xref",
+    "xref",
+    "rid",
+    "t",
+    "fn"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  },
+  {
+   "slug": "tocilizumab-covid19-mortality",
+   "kind": "ft_file",
+   "id": "ft_33631066.txt",
+   "reference_tokens_missing_after": [
+    "xref",
+    "rid",
+    "t",
+    "fn",
+    "ref",
+    "type",
+    "table",
+    "fn",
+    "xref",
+    "xref",
+    "rid",
+    "t"
+   ],
+   "of_which_prose": [],
+   "classification": "markup-only (reference parser quirk)"
+  }
+ ]
+}

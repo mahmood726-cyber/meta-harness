@@ -33,6 +33,7 @@ import re
 from typing import Any
 
 from . import extract
+from .markup import strip_markup
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -97,7 +98,7 @@ def resolve_document(ref: str | None, pid: str | None = None) -> dict[str, Any] 
 
 # ----------------------------------------------------------------------------- spans
 def _plain(s: str) -> str:
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s or "")).strip()
+    return re.sub(r"\s+", " ", strip_markup(s)).strip()   # V1.1: a literal P<0.001 is text, not a tag
 
 
 def _sentences(prose: str) -> list[str]:
@@ -191,7 +192,7 @@ def prose_of(doc: dict[str, Any]) -> str:
     text = re.sub(r"<article-id[^>]*>.*?</article-id>", " ", text, flags=re.S)
     # citation markers (<xref>10</xref>) are not prose: left in place they glue sentences together
     text = re.sub(r"<xref[^>]*>.*?</xref>", " ", text, flags=re.S)
-    return re.sub(r"<[^>]+>", " ", text)
+    return strip_markup(text)
 
 
 # ----------------------------------------------------------------------------- tuple location
