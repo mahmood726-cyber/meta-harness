@@ -82,3 +82,14 @@ it can only ADD candidates.
 - **2b**: paged to every registration.
 - A fetch that fails (non-200, empty or non-JSON body, a JSON error body) is recorded FETCH_FAILED, never as zero, and a
   fact whose search has a failed step is not UNRESOLVED by that step.
+
+## Amendment C -- 2026-09-25, written BEFORE running what it describes
+**What is added.** Step 2 searched a registry only "where an identifier is known", and 2b looked only at
+ClinicalTrials.gov. Many of the 12 trials whose registry parent is UNRESOLVED are European; the UK registry ISRCTN
+records each trial's result publications. Added, for every UNRESOLVED `registry_parent`:
+- **2c** ISRCTN API, two fixed queries built mechanically from the trial's own Europe PMC record: (i) the first five
+  content words of its title; (ii) its first author's surname. Every hit's full record is kept (LOCAL-ONLY, sha256).
+**What counts.** A registration recovers the fact ONLY if its own record names the trial's publication: the PMID, the
+DOI, or the exact article title in its publication/results fields -- a span of the registry record, re-found. A record
+that merely resembles the trial (same product, country, dates) is recorded as a CANDIDATE and never counted: matching
+is inference, which this policy excludes.
