@@ -74,8 +74,12 @@ def main():
     for r in J("evidence/inputs/src.json")["rows"]:
         work.append(entry("U23", r["ua_id"], r["page"], r["trial_id"], r["outcome"],
                           extra={"primary_cause": r["primary_cause"], "cause_subtype": r.get("cause_subtype")}))
+    s16 = os.path.join(ROOT, "evidence/inputs/s16.json")
+    if os.path.exists(s16):
+        for i, r in enumerate(J("evidence/inputs/s16.json")["rows"], 1):
+            work.append(entry("S16", f"S16-{i:02d}", r["slug"], r["trial"], r["outcome"]))
     unserved = [w["key"] for w in work if len(w["served"]) != 1]
-    json.dump({"population": {"P53": {"N": 53}, "U23": {"N": 23}}, "served_row_not_exactly_one": unserved,
+    json.dump({"population": {"P53": {"N": 53}, "U23": {"N": 23}, "S16": {"N": 16}}, "served_row_not_exactly_one": unserved,
                "rows": work}, open(os.path.join(ROOT, "evidence/worklist.json"), "w", encoding="utf-8"), indent=1)
     print(f"rows {len(work)}; served-row count != 1 for {len(unserved)}: {unserved}")
     nf = [w["key"] for w in work if not any("ft_" in h["path"] or h["path"].endswith(".xml") for h in w["held"])]

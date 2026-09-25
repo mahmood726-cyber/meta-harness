@@ -35,6 +35,12 @@ def set_reading(span):
     return "OTHER_SET_STATED"
 
 
+def _ar(rec):
+    """absent_reason is a per-field dict in the first extractions and one string in the recorded (strict-schema) ones."""
+    ar = rec.get("absent_reason")
+    return ar if isinstance(ar, dict) else {f: ar for f in ("analysis_set", "treatment_strategy", "follow_up")} if ar else {}
+
+
 def main(keys):
     for k in keys:
         rec = json.load(open(os.path.join(ROOT, f"evidence/extractions/raw/{k}.json"), encoding="utf-8"))
@@ -56,9 +62,9 @@ def main(keys):
              "typed_estimand": {
                  "analysis_set": {"served_label": V.served_row(pk).get("analysis_set"),
                                   "source_reading": set_reading((ev.get("analysis_set") or {}).get("span")),
-                                  "absent_reason": (rec.get("absent_reason") or {}).get("analysis_set")},
-                 "treatment_strategy": "bound" if "treatment_strategy" in ev else (rec.get("absent_reason") or {}).get("treatment_strategy"),
-                 "follow_up": "bound" if "follow_up" in ev else (rec.get("absent_reason") or {}).get("follow_up")},
+                                  "absent_reason": _ar(rec).get("analysis_set")},
+                 "treatment_strategy": "bound" if "treatment_strategy" in ev else _ar(rec).get("treatment_strategy"),
+                 "follow_up": "bound" if "follow_up" in ev else _ar(rec).get("follow_up")},
              "entry_population": {"extractor_reading": ep.get("value"), "extractor_why": ep.get("why"), "lane_ruling": None},
              "extractor_mismatch_note": rec.get("served_mismatch"),
              "set_aside_reason": rec.get("set_aside_reason")}
