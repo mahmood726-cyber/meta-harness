@@ -1,6 +1,6 @@
 # M2: hand-extracted rows bound to held bytes, or set aside (2026-09-20)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from M2-hand-row-binding-2026-09-20; stale dependencies: harness/page.py, harness/result_changes.py
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from M2-hand-row-binding-2026-09-20; stale dependencies: harness/hand_binding.py, harness/page.py, harness/result_changes.py
 
 Lane `m2/bind-hand-rows` on `8b1fb37d`. Every hand-extracted number (verified_effects / verified_arms, any override
 route) is bound by `harness/hand_binding.py` to the held document its entry names -- the tuple located verbatim, the
