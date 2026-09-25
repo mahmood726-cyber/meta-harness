@@ -151,6 +151,11 @@ def main():
                 "PROTOCOL CLASS BOUNDARY (decides the strand)": RULES["agents"],
                 "PROTOCOL: primary strand is CONVENTIONAL_GLP1RA, ANY_DELIVERY rendered alongside": RULES["named_trials"],
             },
+            "approval_caveat": {
+                "state": "PROTOCOL TEXT SETTLES IT; STRAND-PAIR APPROVAL NOT EVIDENCED BEYOND THE PROTOCOL REGISTRATION",
+                "what": "the class-boundary decision document lists the glp1 strand pair under 'Proposed strand pairs (to Mahmood for approval before implementation)' (the SGLT2 pair in the same document is marked decided). The registered protocol (b10c53d3, under Mahmood's authority) does name the strands and place ITCA 650 on ANY_DELIVERY, so the call follows the protocol text; if Mahmood has NOT approved the glp1 strand pair, FREEDOM-CVO's delivery-route question reverts to UNRESOLVED and nothing else in this decision changes.",
+                "witness": W("outputs/handover/lanes/DECISION_CLASS_BOUNDARY_STRANDS.md", "## Proposed strand pairs (to Mahmood for approval before implementation)", "FREEDOM-CVO |"),
+                "witness_scope": "the heading and the glp1 row it governs are one contiguous span in the rendered document"},
             "why": "The protocol's pre-specified agent list places 'ITCA 650 continuous subcutaneous delivery on the GLP1RA_ANY_DELIVERY strand', and names CONVENTIONAL_GLP1RA as the primary strand with ANY_DELIVERY rendered alongside. The delivery-route question is therefore answered by the protocol's own text: an osmotic-pump exenatide is NOT a conventional GLP-1 RA for the primary analysis. The protocol does not define 'conventional' beyond this placement; the placement itself is explicit, so no guess is needed and the call is not UNRESOLVED.",
         },
         bound_result={
