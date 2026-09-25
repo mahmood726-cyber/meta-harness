@@ -11,7 +11,7 @@ Items, each clearly labelled by kind:
   bundle  the GLP-1 MACE FLOW/ELIXA/FREEDOM-CVO admission request (evidence/glp1_adjudication/SIGNATURE_REQUEST.md
           at --glp1-ref): the bound files, their sha256 and the bundle sha256, recomputed here from committed bytes
           exactly as make_signature_request.py computes it; the session recomputes it again before recording.
-  ruling  a protocol-scope ruling (e.g. DELIVER's registry wording) from --rulings: a question, what "yes" and "no"
+  ruling  a protocol-scope ruling (e.g. PRESERVED-HF's registry wording) from --rulings: a question, what "yes" and "no"
           each change; recorded as his decision, never as a notice signature.
 """
 from __future__ import annotations
@@ -75,45 +75,92 @@ def glp1_item(ref: str) -> dict:
             "record_path": "signatures/GLP1_MACE_FLOW_ELIXA.json"}
 
 
+def notice_item(r: dict, audit: dict, section: str, label: str) -> dict:
+    row = audit[r["audit_id"]]
+    tag = (f"RE-ISSUED (replaces {row['supersedes_audit_id']})" if row.get("supersedes_audit_id")
+           else ("RE-ISSUED" if r["audit_id"].startswith("V1-") else "AS-IS"))
+    return {"kind": "notice", "section": section, "id": r["audit_id"], "status": tag, "label": label,
+            "plain": v1_final_list.plain(row), "slug": r["slug"], "outcome": r["outcome"],
+            "ledger_index": r["ledger_index"], "expect_digest": r["rendered_block_sha256"],
+            "judgement": r["judgement_id"], "printed_command": r["command"]}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--signing-json", required=True)
     ap.add_argument("--decisions", required=True)
+    ap.add_argument("--config", required=True, help="session_config.json: GLP-1 intent, evid2 notices, PRESERVED-HF")
     ap.add_argument("--out", required=True)
     ap.add_argument("--glp1-ref", default="origin/main")
-    ap.add_argument("--rulings")
+    ap.add_argument("--withdrawn", default="", help="comma-separated audit ids withdrawn in the candidate (info only)")
     args = ap.parse_args(argv)
     sl = json.loads(Path(args.signing_json).read_text(encoding="utf-8"))["rows"]
     audit = {r["audit_id"]: r for r in json.loads((ROOT / "registry/notice_adjudication.json")
                                                    .read_text(encoding="utf-8"))["notices"]}
+    cfg = json.loads(Path(args.config).read_text(encoding="utf-8"))
     dec = json.loads(Path(args.decisions).read_text(encoding="utf-8"))
     hold, ruling, exclude = dec.get("hold") or {}, dec.get("ruling") or {}, dec.get("exclude") or {}
     known = {r["audit_id"] for r in sl}
     if (set(hold) | set(ruling) | set(exclude)) - known:
         raise SystemExit(f"refused: decisions name notices not on the signing list: "
                          f"{sorted((set(hold) | set(ruling) | set(exclude)) - known)}")
-    items = []
-    for r in sl:
-        if r["state"] != "OPEN" or r["audit_id"] in hold or r["audit_id"] in exclude:
-            continue
-        cmd = r["command"]
-        items.append({"kind": "notice", "id": r["audit_id"],
-                      "label": ("RULING, then sign if you accept: " + ruling[r["audit_id"]]) if r["audit_id"] in ruling
-                      else "Countersign this result-change notice",
-                      "plain": v1_final_list.plain(audit[r["audit_id"]]),
-                      "slug": r["slug"], "outcome": r["outcome"], "ledger_index": r["ledger_index"],
-                      "expect_digest": r["rendered_block_sha256"], "judgement": r["judgement_id"],
-                      "printed_command": cmd})
-    items.sort(key=lambda i: i["id"] in ruling)  # plain notices first, then those that hinge on a ruling
-    items.append(glp1_item(args.glp1_ref))
-    if args.rulings:
-        for q in json.loads(Path(args.rulings).read_text(encoding="utf-8")):
-            items.append(dict(q, kind="ruling", record_path="signatures/RULINGS.json"))
-    plan = {"held_not_in_session": hold, "excluded_not_in_session": exclude, "items": items}
+    open_rows = [r for r in sl if r["state"] == "OPEN" and r["audit_id"] not in hold and r["audit_id"] not in exclude]
+    by_outcome = {(r["slug"], r["outcome"]): r for r in open_rows}
+    items: list[dict] = []
+    # 1. GLP-1 k=10 primary, previous k=8 on the same page; intent as relayed; the ELIXA dispute in its line
+    g = glp1_item(args.glp1_ref)
+    g.update(section="1 GLP-1", label=cfg["glp1"]["label"], intent=cfg["glp1"]["intent"])
+    g["lines"] = [g["lines"][0], g["lines"][1],
+                  "The page shows the previous k=8 result beside the new k=10 primary.",
+                  "ELIXA: " + cfg["glp1"]["elixa_dispute"],
+                  f"Your approval in chat, as relayed: \"{cfg['glp1']['intent']['quote']}\" (recorded as intent; "
+                  "this item asks you to sign it)."] + g["lines"][2:]
+    items.append(g)
+    # 2. the re-derived notices: as-is first, then re-issued; ruling-dependent last; withdrawn shown as information
+    special = {(e["slug"], e["outcome"]) for e in cfg["evid2_notices"]}
+    ph = cfg["preserved_hf"]
+    special.add((ph["consequence"]["slug"], ph["consequence"]["outcome"]))
+    sec2 = [notice_item(r, audit, "2 re-derived notices",
+                        ("RULING, then sign if you accept: " + ruling[r["audit_id"]]) if r["audit_id"] in ruling
+                        else "Countersign this result-change notice")
+            for r in open_rows if (r["slug"], r["outcome"]) not in special]
+    sec2.sort(key=lambda i: (i["id"] in ruling, i["status"] != "AS-IS"))
+    items += sec2
+    for w in [x for x in args.withdrawn.split(",") if x]:
+        items.append({"kind": "info", "section": "2 re-derived notices", "id": w,
+                      "label": f"{w} is WITHDRAWN in the candidate: its change no longer happens, so there is nothing "
+                               "to sign", "lines": [f"{w} was: {audit[w]['before']} -> {audit[w]['after']}"
+                                                    if w in audit else f"{w}: withdrawn"]})
+    # 3. evid2's derived notices, matched by (review, outcome) in the candidate's signing list
+    for e in cfg["evid2_notices"]:
+        r = by_outcome.get((e["slug"], e["outcome"]))
+        if r:
+            it = notice_item(r, audit, "3 evid2", e["label"])
+            it["plain"] += f"\n- Expected by evid2: {e['expected']}\n- Decision record: {e['decision_record']}"
+            if e.get("overlaps"):
+                it["plain"] += f"\n- Note: {e['overlaps']}"
+            items.append(it)
+        else:
+            items.append({"kind": "info", "section": "3 evid2", "id": e["id"],
+                          "label": e["label"] + " -- NOT IN THIS CANDIDATE: no notice exists yet, nothing to sign",
+                          "lines": [f"Expected: {e['expected']}", f"Decision record: {e['decision_record']}"]})
+    # 4. PRESERVED-HF: the wording ruling (intent as relayed), then its consequence
+    items.append({"kind": "ruling", "section": "4 PRESERVED-HF", "id": ph["id"], "label": ph["label"],
+                  "question": ph["question"], "if_yes": ph["if_yes"], "if_no": ph["if_no"],
+                  "prior_intent": ph["prior_intent"], "record_path": "signatures/RULINGS.json"})
+    r = by_outcome.get((ph["consequence"]["slug"], ph["consequence"]["outcome"]))
+    if r:
+        items.append(notice_item(r, audit, "4 PRESERVED-HF", "PRESERVED-HF consequence: sign only if you did NOT "
+                                 "accept the ruling above (if you accepted it, this change should not happen -- say n)"))
+    else:
+        items.append({"kind": "info", "section": "4 PRESERVED-HF", "id": "PRESERVED-HF-consequence",
+                      "label": "PRESERVED-HF consequence: the candidate has no notice on dapagliflozin HFpEF adverse "
+                               "events -- PRESERVED-HF is readmitted and that change no longer happens",
+                      "lines": ["Nothing to sign."]})
+    plan = {"held_not_in_session": hold, "excluded_not_in_session": exclude, "withdrawn": args.withdrawn, "items": items}
     Path(args.out).write_bytes((json.dumps(plan, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
-    counts = {k: sum(i["kind"] == k for i in items) for k in ("notice", "bundle", "ruling")}
-    print(f"plan: {counts['notice']} notices, {counts['bundle']} bundle, {counts['ruling']} rulings; "
-          f"{len(hold)} held and {len(exclude)} excluded (not in the session) -> {args.out}")
+    counts = {k: sum(i["kind"] == k for i in items) for k in ("notice", "bundle", "ruling", "info")}
+    print(f"plan: {counts}; {len(hold)} held and {len(exclude)} excluded (not in the session) -> {args.out}")
     return 0
 
 

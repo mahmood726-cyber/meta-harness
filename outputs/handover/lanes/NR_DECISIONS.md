@@ -93,7 +93,7 @@ nowhere in the repository; this file is its record.
     - The labels were recorded before a blind second read (`b2-binding/lane_classes.json`, sha256 346c8d4b…).
     - A Claude subagent agreed on 70 of 78 labels and 75 of 78 buckets. It is the same model family as the lane:
       codex NR-C02 on the same packet hit its usage limit.
-    - Seven cases were executed on `harness.trial_family.screen_family` with only the blamed field changed: DELIVER,
+    - Seven cases were executed on `harness.trial_family.screen_family` with only the blamed field changed: PRESERVED-HF (NCT03030235, recorded at first as DELIVER -- see E16),
       CARMELINA, TRANSFORM, a probiotics trial, ROCKET AF, PLATO and PARADIGM-HF. All 7 became ELIGIBLE. The control,
       which re-derives contrasts and changes nothing, stayed NOT_PROVEN (`b2-binding/screen_plants.txt`).
   - **What this means for signing.** For 12 notices every departure is a misread by both readers: N08, N09, N15,
@@ -136,6 +136,27 @@ nowhere in the repository; this file is its record.
   - **`scripts/verify_notice_signatures.py`** checks a pushed signing branch from committed bytes and never
     writes. Its verdicts are VALID, STALE (superseded hash or judgement: redo, never re-point), REFUSED (the gate,
     the anchor guard, or a delegated basis) and MISSING.
+
+- **E16. PRESERVED-HF, not DELIVER; relayed intents; the sitting's order.**
+  - **Correction.** The registry condition "Chronic Heart Failure With Preserved Systolic Function" belongs to
+    NCT03030235, which the page names **PRESERVED-HF** (PMID 34711976). DELIVER is NCT03619213. I labelled it
+    DELIVER in the B2 plants, the handover, the report and the first session plan. Forward documents are corrected.
+    Evidence files stay as they were recorded (`b2-binding/screen_plants.*`, the codex log, `TEST_RUN_*`), with
+    this note as their correction. Mahmood's ruling was on the wording and stands, now attributed to PRESERVED-HF.
+  - **Relayed intents, recorded as intent and never as signatures:**
+    - the GLP-1 k=10 primary with the k=8 previous result on the same page ("ten trials please with old k on same
+      page");
+    - the PRESERVED-HF wording ruling.
+    Both were relayed by the user on 25 Sep. Each is presented in the sitting for Mahmood's own y.
+  - **The sitting's order, as instructed:**
+    1. GLP-1 (the ELIXA prespecification dispute stated in its line);
+    2. the re-derived notices (as-is, then re-issued, withdrawn as information);
+    3. evid2 D-Q1 (EMPA-KIDNEY DKA 5 vs 1) and D-Q3 (COVID STEROID out of the SAE pool);
+    4. the PRESERVED-HF ruling and its consequence.
+    `session/session_config.json` carries these; `scripts/sign_session_plan.py` builds the plan from it and from
+    the candidate's signing list.
+  - **To be checked against the candidate, not assumed:** "35 as-is, 5 re-issued, N29 withdrawn" is the expected
+    shape of the candidate's notices. `rederive_notices.py` will count SAME, CHANGED and GONE against it.
 
 ## Measured facts (2026-09-25)
 - Anchors: all 78 intact at `1fa77f2c`. Against served main `c9d665e0`: 53 broken (26 review.json, 24 index.html,

@@ -59,7 +59,7 @@ It fails in three ways:
 |---|---|---|---|
 | N17, N18, N19 | CARMELINA NCT01897532 | Diabetes Mellitus, Type 2 | type 2 diabetes |
 | N20, N21 | NCT02422186, NCT03434041 | Depressive Disorder, Treatment-Resistant | treatment-resistant depression |
-| N09 | DELIVER NCT03030235 | Chronic Heart Failure With Preserved Systolic Function | preserved ejection fraction |
+| N09 | PRESERVED-HF NCT03030235 (PMID 34711976; not DELIVER, which is NCT03619213) | Chronic Heart Failure With Preserved Systolic Function | preserved ejection fraction |
 | N29, N30 | NCT03334604, NCT05607056 | Antibiotic-associated Diarrhea | antibiotic-associated diarr* |
 
 ### D3: protocol data. This is Mahmood's scientific call, not code

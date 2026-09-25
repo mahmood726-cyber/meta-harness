@@ -1,7 +1,8 @@
 # Mahmood: sign everything in one sitting
 
-**On your laptop, in the clone `C:\mh-sign`, in Windows PowerShell.** It takes about 30 to 45 minutes. You can stop
-at any time: what you've signed so far is kept.
+**On your laptop, in the clone lane NR names for the candidate, in Windows PowerShell.** Until the V1 candidate
+lands, that clone is `C:\mh-sign` on branch `sign/mahmood-2026-09-25`. Once it lands, lane NR sends the V1 clone
+and branch names; the command is the same. You can stop at any time, and what you've signed so far is kept.
 
 ## 1. Set up the clone (once)
 ```
@@ -19,48 +20,38 @@ python scripts/sign_session.py --plan registry/sign_session_plan.json --by "Mahm
 ```
 - It asks you **once**, in your own words, how these items reached you and what you read. That is recorded as
   `how_it_reached_the_reviewer`. At any item, press Enter to reuse it or type something new.
-- Each item is shown with its plain before → after. Answer **y** to sign it, **n** to skip it, **r** to read the
-  full notice, or **q** to stop. **Nothing is signed without your y.**
-- Each signature runs the guarded sign command. It refuses, writing nothing, if the item's hash or version anchor
+- Each item shows its plain before → after. Answer **y** to sign, **n** to skip, **r** to read the full notice, or
+  **q** to stop. **Nothing is signed without your y.** Information items only need Enter.
+- Each signature goes through the guarded sign command. It refuses, writing nothing, if the hash or version anchor
   has moved. A signature is only confirmed once it is found in the ledger bytes.
 - At the end it commits once and shows the verifier's count. It pushes only after one final **y**, and it proves the
   push landed.
 
-## 3. What is in the sitting (23 items, in this order)
-- **19 result-change notices:**
-  - 17 unchanged by the V1 fix: N02, N03, N04, N05, N07, N10, N11, N12, N16, N22, N24, N31, N33, N34, N36, N37, N41.
-  - Then 2 that hinge on your ruling about registry coding: **N08** (the saline control is registered as an active
-    drug) and **N23** (the FCM arm is registered as plain "iron"). Sign them only if you accept that reading.
-- **1 bundle: the GLP-1 MACE request.** FLOW and ELIXA enter the primary pool: HR 0.856 → 0.861, still significant,
-  with more heterogeneity. FREEDOM-CVO enters only the any-delivery strand. **Bundle sha256 `170c6922…`.** It is
-  recomputed from the committed bytes before your signature is recorded, and a stale bundle refuses.
-- **3 rulings (protocol scope), each a yes/no:**
-  - **DELIVER first:** does "Chronic Heart Failure With Preserved Systolic Function" name this review's population?
-  - The esketamine trials' "Depressive Disorder, Treatment-Resistant".
-  - Omarigliptin in the DPP-4 review.
-  Each ruling shows exactly what yes and no change.
+## 3. What is in the sitting, in this order
+1. **GLP-1 MACE primary, k = 10 (FLOW + ELIXA), with the previous k = 8 result on the same page.**
+   - HR 0.856 → 0.861, still significant, with more heterogeneity.
+   - You approved this in chat ("ten trials please with old k on same page"). That is recorded as your intent; this
+     item asks you to sign it.
+   - **The ELIXA dispute is stated in its line:** the FDA statistical review calls its 3-point MACE prespecified,
+     the FDA summary review calls it a sensitivity analysis, and the registry lists it as neither.
+   - Bundle sha256 `170c6922…` is recomputed before your signature is recorded.
+2. **The re-derived result-change notices,** from the candidate: those **as-is** first, then those **re-issued**
+   (each says which notice it replaces), then any that hinge on a registry-coding ruling. Withdrawn notices
+   (e.g. **N29**) are shown as information only, because there is nothing to sign.
+3. **evid2's two derived notices:**
+   - **EMPA-KIDNEY diabetic ketoacidosis, 5 vs 1** (the registry's diabetic-only count; it was 6 vs 1).
+   - **COVID STEROID removed from the serious-adverse-events pool** (its count is a composite of serious adverse
+     reactions at day 14).
+   If the candidate doesn't carry one of them yet, it is shown as information only and cannot be signed.
+4. **PRESERVED-HF: the wording ruling, then its consequence.**
+   - The ruling: does "Chronic Heart Failure With Preserved Systolic Function" (PRESERVED-HF, NCT03030235, PMID
+     34711976) mean "preserved ejection fraction" here? Your ruling on this wording was relayed. Lane NR first
+     mislabelled it DELIVER, which is a different trial (NCT03619213); the ruling stands and is attributed to
+     PRESERVED-HF. You confirm it here.
+   - Then its consequence on dapagliflozin HFpEF adverse events.
 
-**Not in the sitting:**
-- **4 held** for wording: N06, N27, N28, N38.
-- **18 the V1 fix removes or changes.** They are not signable now; if the candidate lands they are regenerated and
-  re-judged.
-
-If the V1 candidate lands before you sit down, lane NR regenerates the plan on the V1 sign branch. You then run the
-same command, with the clone and branch names that plan gives.
+**Not in the sitting:** the notices held for wording (N06, N27, N28, N38), until they are re-worded and re-judged.
 
 ## 4. Afterwards
 Say "pushed". Lane NR re-verifies every signature from the pushed bytes, counting VALID, STALE, REFUSED and MISSING,
 and hands the valid set to the main lane.
-
-*Tested end to end on 25 Sep in a throwaway clone with a TEST identity (never yours), pushing to a local repository,
-never to GitHub.*
-- **Signing:** 16 notices signed and confirmed VALID by the verifier on the pushed bytes. A planted stale hash on
-  N41 was refused.
-- **Records:** the GLP-1 bundle was recomputed and recorded; the rulings were recorded as answered; the typed words
-  were recorded per notice.
-- **Push:** proven by sha and ledger bytes.
-- **Refusals:** the script refused a TEST run under your name, a TEST push to GitHub, a TEST identity outside test
-  mode, and the wrong branch.
-- **Bug found and fixed:** a sparse clone refused `signatures/` until `/signatures/` was added.
-
-See `TEST_RUN_*`.

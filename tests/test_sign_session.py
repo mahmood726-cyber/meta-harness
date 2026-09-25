@@ -28,20 +28,23 @@ def test_the_wrong_branch_refuses(monkeypatch):
         sign_session.main(["--plan", str(PLAN), "--by", "Mahmood", "--push-branch", "sign/mahmood"])
 
 
-def test_the_committed_plan_is_the_reviewed_one():
+def test_the_committed_plan_runs_in_the_ordered_sections():
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
-    kinds = [i["kind"] for i in plan["items"]]
-    assert kinds.count("notice") == 19 and kinds.count("bundle") == 1 and kinds.count("ruling") == 3
-    assert [i["id"] for i in plan["items"] if i["kind"] == "ruling"][0] == "R-DELIVER"
+    secs = [i["section"] for i in plan["items"]]
+    assert secs == sorted(secs, key=lambda x: x[0])  # 1 GLP-1, 2 re-derived, 3 evid2, 4 PRESERVED-HF
+    assert plan["items"][0]["kind"] == "bundle" and plan["items"][0]["bundle_sha256"].startswith("170c6922")
+    assert plan["items"][0]["intent"]["quote"] == "ten trials please with old k on same page"
+    assert any("prespecified" in line for line in plan["items"][0]["lines"])  # the ELIXA dispute is stated
+    ph = [i for i in plan["items"] if i["section"].startswith("4")]
+    assert ph[0]["kind"] == "ruling" and ph[0]["id"] == "R-PRESERVED-HF" and "NCT03030235" in ph[0]["question"]
+    assert "DELIVER" not in json.dumps([i for i in plan["items"] if i["id"] == "R-PRESERVED-HF"]).replace(
+        "not DELIVER, which is NCT03619213", "").replace("first mislabelled DELIVER", "")
     assert set(plan["held_not_in_session"]) == {"N06", "N27", "N28", "N38"}
-    assert len(plan["excluded_not_in_session"]) == 18
     audit = {r["audit_id"]: r for r in json.loads((ROOT / "registry/notice_adjudication.json").read_text(encoding="utf-8"))["notices"]}
     for i in plan["items"]:
         if i["kind"] == "notice":  # every command is bound to the current judgement
             assert i["judgement"] == audit[i["id"]]["judgements"][-1]["judgement_id"]
             assert i["expect_digest"] == audit[i["id"]]["judgements"][-1]["rendered_block_sha256"]
-    bundle = next(i for i in plan["items"] if i["kind"] == "bundle")
-    assert bundle["bundle_sha256"].startswith("170c6922")
 
 
 def test_the_plan_builder_refuses_decisions_that_name_unknown_notices(tmp_path):
@@ -50,4 +53,5 @@ def test_the_plan_builder_refuses_decisions_that_name_unknown_notices(tmp_path):
     dec = tmp_path / "dec.json"
     dec.write_text(json.dumps({"hold": {"N99": "x"}}))
     with pytest.raises(SystemExit, match="not on the signing list"):
-        sign_session_plan.main(["--signing-json", str(sl), "--decisions", str(dec), "--out", str(tmp_path / "p.json")])
+        sign_session_plan.main(["--signing-json", str(sl), "--decisions", str(dec), "--out", str(tmp_path / "p.json"),
+                                "--config", str(ROOT / "outputs/handover/lanes/nr-2026-09-25/session/session_config.json")])

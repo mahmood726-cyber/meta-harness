@@ -104,16 +104,28 @@ def main(argv=None) -> int:
     default_basis = ""
     while not default_basis:
         default_basis = input("First, in your own words: how did these items reach you, and what did you read?\n> ").strip()
-    done = {"notice": [], "bundle": [], "ruling": [], "skipped": [], "refused": []}
+    done = {"notice": [], "bundle": [], "ruling": [], "skipped": [], "refused": [], "info": []}
+    section = None
     for k, it in enumerate(items, 1):
-        print("\n" + "=" * 78 + f"\n[{k}/{len(items)}] {it['kind'].upper()} {it['id']}: {it['label']}\n")
+        if it.get("section") and it["section"] != section:
+            section = it["section"]
+            print("\n" + "#" * 78 + f"\n# SECTION {section}\n" + "#" * 78)
+        status = f" [{it['status']}]" if it.get("status") else ""
+        print("\n" + "=" * 78 + f"\n[{k}/{len(items)}] {it['kind'].upper()} {it['id']}{status}: {it['label']}\n")
         print(it.get("plain") or "\n".join("- " + line for line in it.get("lines", [])) or it.get("question", ""))
+        if it["kind"] == "info":
+            input("  (information only -- nothing to sign; press Enter to continue) ")
+            done["info"].append(it["id"])
+            continue
         if it["kind"] == "notice":
             print(f"- Hash: {it['expect_digest']}\n- Version anchor: judgement {it['judgement']}")
         elif it["kind"] == "bundle":
             print(f"- Bundle sha256: {it['bundle_sha256']}")
         else:
             print(f"- If yes: {it['if_yes']}\n- If no: {it['if_no']}")
+            if it.get("prior_intent"):
+                print(f"- Already relayed as your intent: {it['prior_intent']['decision']} "
+                      f"({it['prior_intent']['how_it_reached']}). Confirm it here.")
         while True:
             a = ask("\nSign/accept this item? [y]es / [n]o, skip / [r]ead full / [q]uit: ", ("y", "n", "r", "q"))
             if a == "r" and it["kind"] == "notice":
@@ -151,18 +163,21 @@ def main(argv=None) -> int:
             when = now()
             record(it["record_path"], {"SIGNED-BY": args.by, "BUNDLE": bundle, "DATE": when,
                                        "line": f"SIGNED-BY: {args.by}  BUNDLE: {bundle}  DATE: {when[:10]}",
-                                       "request_commit": it["source_commit"], "how_it_reached_the_reviewer": basis})
+                                       "request_commit": it["source_commit"], "how_it_reached_the_reviewer": basis,
+                                       "what_is_signed": it.get("label"), "prior_intent": it.get("intent")})
             done["bundle"].append(it["id"])
             print(f"  RECORDED: {it['record_path']}")
         else:
             decision = ask(f"  Your ruling on {it['id']}: accept (y) or decline (n)? ", ("y", "n"))
             record(it["record_path"], {"ruling": it["id"], "question": it["question"],
                                        "decision": "ACCEPTED" if decision == "y" else "DECLINED", "by": args.by,
-                                       "when_utc": now(), "how_it_reached_the_reviewer": basis})
+                                       "when_utc": now(), "how_it_reached_the_reviewer": basis,
+                                       "prior_intent": it.get("prior_intent")})
             done["ruling"].append(it["id"])
             print(f"  RECORDED: {'ACCEPTED' if decision == 'y' else 'DECLINED'}")
     print("\n" + "=" * 78)
     print(f"Signed notices: {len(done['notice'])}; bundle: {len(done['bundle'])}; rulings: {len(done['ruling'])}; "
+          f"information items read: {len(done['info'])}; "
           f"skipped: {len(done['skipped'])}; refused by a guard: {len(done['refused'])} {done['refused']}")
     changed = git("status", "--porcelain")
     if not changed:
