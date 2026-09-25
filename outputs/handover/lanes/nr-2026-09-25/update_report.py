@@ -5,7 +5,8 @@ from pathlib import Path
 B = Path("outputs/handover/lanes/nr-2026-09-25")
 report = (B / "REPORT_2026-09-25.md").read_text(encoding="utf-8")
 final = (B / "FINAL_SIGNING_LIST.md").read_text(encoding="utf-8")
-head = report[:report.index("## Signing list for Mahmood (41 OPEN")]
+cut = [m for m in ("## 6. Afternoon", "## Signing list for Mahmood (41 OPEN") if m in report]
+head = report[:report.index(cut[0])]  # idempotent: rebuild from the part before the afternoon section
 
 afternoon = """## 6. Afternoon: signature check, the P5 defect and its fix, and the final list
 **Signatures: 0 of 41.** Mahmood said "I have signed", so I checked rather than assumed. No signature on any of the
