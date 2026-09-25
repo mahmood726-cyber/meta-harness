@@ -140,8 +140,10 @@ def direction(before: dict, after: dict, scale: str | None, higher_favourable: b
     return "TOWARD_NULL"
 
 
-def build(served: str, proposed: str) -> tuple[list[dict], list[dict]]:
-    audit = json.loads(_show(proposed, "registry/notice_adjudication.json"))
+def build(served: str, proposed: str, audit_ref: str = "HEAD") -> tuple[list[dict], list[dict]]:
+    # the audit is read from the COMMITTED tree (HEAD), not from --proposed: a release candidate carries its
+    # pages and ledger but not this lane's registry, which is added on the sign branch cut from it
+    audit = json.loads(_show(audit_ref, "registry/notice_adjudication.json"))
     ledger = json.loads(_show(proposed, "docs/result_changes.json"))["notices"]
     chains = {(c["slug"], c["outcome"]): c for c in result_changes.chain_integrity(ledger)}
     cache: dict[tuple[str, str], dict] = {}
