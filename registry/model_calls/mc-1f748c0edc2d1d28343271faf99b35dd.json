@@ -1,0 +1,159 @@
+{
+ "caller": {
+  "file": "scripts/model_source_pilot.py",
+  "line": "cmd_run",
+  "purpose": "site_label_ol4 proposals, batch scope_identity.py:_AMENDMENT_RE#3 (3 items)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0d6e3-0970-7f33-94f6-a6e776375c6c",
+   "tokens used": "4,580"
+  },
+  "lane_log": "registry/model_calls/lane_log/rai.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 1814,
+  "stderr_sha256": "3e8dd80e924e331437c1882501271d163ba422c1cc49f3a5e31a0e79132d34e1",
+  "stdout_bytes": 138,
+  "stdout_sha256": "3b6bde571b8c183024357b1633bc028d9227e23bd6d41f2bc99401f2354fe08f",
+  "tokens_used": 4580,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "23f30079f894ceafd4e53092393a720fe4e579f348fec2a21d9781b9286cd241"
+ },
+ "input_digests": [
+  {
+   "ref": "protocols/colchicine-postop-af.md line 45",
+   "sha256": "cacd57af7975cf1b2bec7574db41fc5543bd1e60891c02f7bc783f58c77189bb",
+   "what": "held text quoted by the item"
+  },
+  {
+   "ref": "protocols/colchicine-postop-af.md line 55",
+   "sha256": "cdbd2a9638f5e01df231fc1a303dd6dbf9c6153614f3e56609345acdae421169",
+   "what": "held text quoted by the item"
+  },
+  {
+   "ref": "protocols/noac-vs-warfarin-af-stroke.md line 98",
+   "sha256": "dacc8c5c30dc40e70d5b73be968093b9d2fef9a5ee519beb8f5103a007542cc0",
+   "what": "held text quoted by the item"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "a98c5ca2976c175601b03221c150b0f165075ca589e0cf7950809522a49e5d81",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "items": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string"
+       },
+       "quote": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "states": {
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "item",
+       "states",
+       "quote"
+      ],
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "items"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "WW91IGFyZSBsYWJlbGxpbmcgc2hvcnQgdGV4dHMgZnJvbSB0cmlhbCByZXBvcnRzIGZvciBhIHRlc3Qgb2YgYSB0ZXh0IHBhcnNlci4gRG8gbm90IHJ1biBhbnkKY29tbWFuZHMgb3IgcmVhZCBhbnkgZmlsZXMuIFVzZSBvbmx5IHRoZSB0ZXh0IGdpdmVuIGhlcmUuIERvIG5vdCBjYWxjdWxhdGUsIHJvdW5kLCBjb252ZXJ0IG9yIGluZmVyIGFueXRoaW5nLgoKV0hBVCBUTyBMT09LIEZPUjogdGhlIGxpbmUgb3BlbnMgYSBkYXRlZCBwcm90b2NvbCBhbWVuZG1lbnQgc2VjdGlvbgoKRm9yIEVBQ0ggc2VudGVuY2UgYW5zd2VyICJzdGF0ZXMiOiB0cnVlIG9ubHkgaWYgdGhlIHNlbnRlbmNlIGl0c2VsZiBzdGF0ZXMgdGhpcy4KSWYgaXQgZG9lcywgZ2l2ZSAicXVvdGUiOiB0aGUgd29yZHMgb2YgdGhlIHRleHQgdGhhdCBzdGF0ZSBpdCwgY29waWVkIEVYQUNUTFkuIElmIGl0IGRvZXMgbm90LCBnaXZlICJxdW90ZSI6IG51bGwuCkFuc3dlciBldmVyeSBzZW50ZW5jZSwgdXNpbmcgaXRzICJpdGVtIiBrZXkgZXhhY3RseS4gUmV0dXJuIG9ubHkgdGhlIEpTT04gb2JqZWN0LgoKPT09IFNFTlRFTkNFIGl0ZW09UjEgPT09CmFtZW5kbWVudCBjaGFuZ2VzIHNjcmVlbmluZyBvbmx5IGFuZCBkb2VzIG5vdCBtYWtlIGRvc2UvdGltaW5nLWFtYmlndW91cyBvcgoKPT09IFNFTlRFTkNFIGl0ZW09UjIgPT09CkJvdGggcmVhZGluZ3Mgd2VyZSBkaXNjbG9zZWQgaW4gdGhlIGhhbmRvZmYgd2hlbiB0aGlzIGFtZW5kbWVudCB3YXMgd3JpdHRlbjogc3RyaWN0IGNvbnRyYWN0IGs9MSAobm8gcG9vbGVkIHJlc3VsdCkgdmVyc3VzIGNvbXBhdGliaWxpdHktYXhpcyBrPTQuIFRob3NlIHdlcmUgdGhlIGhhbmRvZmYgZXhwZWN0YXRpb25zLCBub3QgdmVyaWZpZWQgcmVzdWx0cyBvZiB0aGUgaW50ZWdyYXRlZCBidWlsZC4gVGhlIGhlbGQgYmFzZSBpbmNsdWRlcyBvcGVuLWxhYmVsIEVORC1BRiAoUE1JRCAyNzUwMjg1NyksIHdoaWNoIGZhaWxzIHRoZSB1bmNoYW5nZWQgZGVzaWduL21hc2tpbmcgcnVsZTsgd2l0aCB0aGF0IHJ1bGUgZW5mb3JjZWQsIHRoZSBpbnRlZ3JhdGVkIGJ1aWxkIG1lYXN1cmVzIHN0cmljdCBrPTAgdmVyc3VzIGNvbXBhdGliaWxpdHktYXhpcyBrPTMuIEJvdGggbXVzdCBiZSByZW5kZXJlZCwgd2l0aCB0aGUgc3RyaWN0IHJlYWRpbmcgYXMgYSBzZW5zaXRpdml0eSByb3csIHNvIHRoaXMgcmV0cm9zcGVjdGl2ZSBjaG9pY2UgcmVtYWlucyB2aXNpYmxlLiBObyBlYXJsaWVyIHByb3RvY29sIHNlbnRlbmNlIGlzIHdpdGhkcmF3biBieSB0aGlzIGFtZW5kbWVudC4KCj09PSBTRU5URU5DRSBpdGVtPVIzID09PQpET0FDLXZzLXdhcmZhcmluIGFsbG9jYXRpb24uIFRoaXMgYW1lbmRtZW50IGNoYW5nZXMgc2NyZWVuaW5nIG9ubHk7IGl0IGRvZXMgbm90Cg==",
+  "bytes": 1393,
+  "sha256": "43290ea3ea8f1dee0ba186d62b4e11d01ee4608833b975594621038fd32d1116"
+ },
+ "record_id": "mc-1f748c0edc2d1d28343271faf99b35dd",
+ "request_utc": "2026-09-25T04:46:38Z",
+ "response": {
+  "b64": "eyJpdGVtcyI6W3siaXRlbSI6IlIxIiwic3RhdGVzIjpmYWxzZSwicXVvdGUiOm51bGx9LHsiaXRlbSI6IlIyIiwic3RhdGVzIjpmYWxzZSwicXVvdGUiOm51bGx9LHsiaXRlbSI6IlIzIiwic3RhdGVzIjpmYWxzZSwicXVvdGUiOm51bGx9XX0=",
+  "bytes": 137,
+  "sha256": "b6c11304dc287f5e88a55ad8c8ae7926b2f905e44537b0b66ffd650179f678ad"
+ },
+ "response_utc": "2026-09-25T04:46:43Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 from regex_layer import site_measure as m  # noqa: E402
 from regex_layer.site_detects import DETECTS  # noqa: E402
 
-QUEUES = [ROOT / "registry" / "model_proposals" / f"{t}.json" for t in ("site_label_v2", "site_label_ol", "site_label_ol2", "site_label_deep", "site_label_deep2")]
+QUEUES = [ROOT / "registry" / "model_proposals" / f"{t}.json" for t in ("site_label_v2", "site_label_ol", "site_label_ol2", "site_label_ol3", "site_label_ol4", "site_label_ol5", "site_label_deep", "site_label_deep2", "site_label_deep3", "site_label_deep4")]
 
 
 def main() -> int:

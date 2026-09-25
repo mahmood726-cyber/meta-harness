@@ -202,3 +202,124 @@ KNOWN_DEFECTS.update({
         "placebo-controlled' sets no AND masking. Latent: the 3 held protocols spelling it unhyphenated say 'double "
         "blinding is not required', where None is right." + _OL2,
 })
+
+# ---- other-lane files, batch 3 (harness/reason_audit.py, consumer_consistency.py, membership.py) -------------------
+KNOWN_DEFECTS.update({
+    "reason_audit.py:_ASSIGNED-accept-1":
+        "RX-OL31 (found 2026-09-25 by this plant): the count must sit directly before '(were) assigned', so the common "
+        "'4745 patients were randomly assigned to colchicine' gives no per-arm denominator. Reachable and consequential: "
+        "74 held abstract sentences use '<N> <noun> were assigned to', and allowing the noun changes "
+        "_assignment_denominators for 43 held records (e.g. colchicine-postop-af 37640035: (None, None) -> (1608, 1601)), "
+        "so _normalised_value falls back to a bare fraction or None there (measured 2026-09-25 with a scratch-patched "
+        "pattern); effect on a served reason-audit row not measured." + _OL2,
+    "consumer_consistency.py:_PUBLISHED_EFFECT_IN_SOURCE-accept-2":
+        "RX-OL32 (found 2026-09-25 by this plant): the effect must be named in words (hazard / odds / risk / rate ratio, "
+        "relative risk), so an abbreviated 'OR 0.34, 95% CI ...' / 'HR, 1.02; 95% CI ...' is not a published effect. "
+        "Reachable and consequential: 3 of the 39 held reconstructed rows carry such a span and are not flagged "
+        "EXTRACTED_RECONSTRUCTION_WHILE_PUBLISHED_EXISTS -- probiotics-aad-prevention PMID 18026577 (the same outcome's "
+        "published OR 0.34, 95% CI 0.125 to 0.944) and two dpp4-mace-t2d PMID 30418475 rows (whose HR is the primary "
+        "outcome's, not theirs)." + _OL2,
+    "reason_audit.py:_EXPLICIT_FRACTION-refuse-1":
+        "RX-OL33 (found 2026-09-25 by this plant): 'N/M' also matches a blood-pressure threshold ('125/75 mmHg'), so with "
+        "any group word the sentence reads as carrying a numeric outcome. Reachable: 1 held abstract sentence fires only "
+        "on a mm Hg reading next to a group word; effect not measured." + _OL2,
+    "consumer_consistency.py:search:6ecd1e4cdd-accept-1":
+        "RX-OL34 (found 2026-09-25 by this plant): the count must sit directly before '(were) assigned', so '2366 "
+        "patients were assigned to colchicine ...' gives no denominator (the RX-OL31 miss in a second parser). Latent: "
+        "both held abstracts with a two-arm event-count sentence already yield denominators." + _OL2,
+    "consumer_consistency.py:search:5994968a29-accept-1":
+        "RX-OL35 (found 2026-09-25 by this plant): 'to the' is required before both arms, so '2366 were assigned to "
+        "colchicine and 2379 to placebo' gives no denominator. Latent: as RX-OL34." + _OL2,
+    "membership.py:_NEGATIVE_PARITY_RE-refuse-1":
+        "RX-OL36 (found 2026-09-25 by this plant): the cue ignores negation, so 'SELECT was not excluded' makes a pooled "
+        "SELECT a parity conflict (fails closed; the RX-OL25 miss in a second checker). Latent: 0 held parity reasons "
+        "negate a cue." + _OL2,
+    "reason_audit.py:_NCT_OR_PMID-refuse-1":
+        "RX-OL37 (found 2026-09-25 by this plant): any 6-9 digit run bounded by non-word characters is taken as a PMID, "
+        "so 'ChiCTR-IOR-17012345' canonicalises to '17012345' (and a EudraCT number to its middle block). Latent: 0 held "
+        "trial ids / labels name another registry." + _OL2,
+})
+
+# ---- other-lane files, batch 4 (arm_object, design_key, trial_family, claimgraph, compat_direction, page) ------------
+KNOWN_DEFECTS.update({
+    "arm_object.py:_WEEK-accept-2":
+        "RX-OL38 (found 2026-09-25 by this plant): '(\\d{1,3})[-\\s]?week\\b' has no plural, so 'at 12 weeks' / 'over 52 "
+        "weeks' is not a timepoint. Reachable and consequential: 210 held records state their timepoint only as 'N weeks' "
+        "and get timepoint NOT_DERIVABLE from arm_object._timepoint (measured 2026-09-25); effect on a served row not "
+        "measured." + _OL2,
+    "design_key.py:_ALT_RE-accept-2":
+        "RX-OL39 (found 2026-09-25 by this plant): after the estimate only '(' or ',' may precede '95% CI', so the NEJM "
+        "form 'hazard ratio, 0.60; 95% CI, 0.37 to 0.97' (and a bare '(0.70 to 0.90)') is not a published estimate. "
+        "Reachable and consequential: 28 held pooled rows' sources state an effect+CI in that form and their design key "
+        "gets no published_alternative (so _correlation_for_trial / decision_for_trial see none) -- e.g. "
+        "denosumab-vertebral-fracture PMID 19671655, doac-vte-recurrence PMID 22449293 (measured 2026-09-25)." + _OL2,
+    "arm_object.py:search:1543b331b8-accept-1":
+        "RX-OL40 (found 2026-09-25 by this plant): the semaglutide dose must be one of 2.4 / 1.0 / 1.7 / 25 / 50 mg, so "
+        "0.5, 7, 7.2 or 14 mg gives no dose (or a later listed dose replaces the first). Reachable and consequential: 22 "
+        "held semaglutide+placebo records (e.g. SUSTAIN-6 27633186 'semaglutide (0.5 mg', 42207966 'semaglutide 7.2 mg') "
+        "get a missing or different contrast dose; effect on a served row not measured." + _OL2,
+    "trial_family.py:REGISTRY-accept-5":
+        "RX-OL41 (found 2026-09-25 by this plant): only NCT / EudraCT / ISRCTN / jRCT / ACTRN numbers are registry ids, "
+        "so ChiCTR, IRCT, CTRI (and UMIN, DRKS, PACTR) ids are dropped from registry_ids(). Reachable and consequential: "
+        "40 held (record, id) pairs, none of whose records carries a listed id (e.g. corticosteroids-cap-mortality "
+        "35598005 'ChiCTR2100045056', colchicine-postop-af 42132185 'IRCT20200328046886N6'), so family keying by "
+        "registry id cannot see them." + _OL2,
+    "trial_family.py:REGISTRY-accept-6":
+        "RX-OL41 (found 2026-09-25 by this plant): an IRCT id is not a registry id (see accept-5)." + _OL2,
+    "arm_object.py:_DOSE-accept-3":
+        "RX-OL42 (found 2026-09-25 by this plant): the unit group ends in '\\b', and '%' followed by a space or end has no "
+        "word boundary, so the '%' unit can never match ('0.9% sodium chloride'). Latent in effect: a working '%' would "
+        "also pick lab values such as 'HbA1c 7.5%' as the first dose, so the fix is a requirement decision, not a "
+        "one-character change." + _OL2,
+    "claimgraph.py:search:0a97f189e1-accept-1":
+        "RX-OL43 (found 2026-09-25 by this plant): 'valid\\s+RCT\\b' has no plural, so 'N valid RCTs = ours' is not a "
+        "named count. Latent: 0 held parity reasons use the plural." + _OL2,
+    "compat_direction.py:_HETERO_RE-refuse-1":
+        "RX-OL44 (found 2026-09-25 by this plant): the word list ignores negation, so 'did not differ' / 'no "
+        "heterogeneity' (and 'mixed-effects') read as a heterogeneity assertion. Latent: 0 held review fields fire only "
+        "that way." + _OL2,
+    "page.py:search:2a82269e03-refuse-1":
+        "RX-OL45 (found 2026-09-25 by this plant): naming an estimand ('risk ratio (RR)', 'hazard ratio') counts as the "
+        "protocol carrying results, which would retract a genuine prospective-registration claim. Latent: 0 of the 32 "
+        "held reviews' protocols are flagged by estimand naming alone." + _OL2,
+    "page.py:search:e9a52114b2-accept-2":
+        "RX-OL46 (found 2026-09-25 by this plant): this surface's list omits '\\bHR\\b' / '\\bRR\\b' that the "
+        "Reproducibility-row check (page.py:search:2a82269e03) has, so a protocol quoting 'HR 0.87' is prospective on one "
+        "surface and not on the other. Latent: the two surfaces agree on all 32 held protocols." + _OL2,
+})
+
+# ---- other-lane files, batch 5 (harms, source_hierarchy, claim, ctgov_results, verify, screen_entry, fda, propositions)
+KNOWN_DEFECTS.update({
+    "harms.py:_EFFECT_OR_COMPARISON-refuse-1":
+        "RX-OL47 (found 2026-09-25 by this plant): under re.I 'OR' matches the conjunction 'or', and any number within 90 "
+        "characters follows, so '... or glipizide 5 mg/day' reads as a reported effect (the RX-OL19 miss, looser). "
+        "Reachable: 1513 held abstract sentences fire only through a conjunction 'or'; a harm whose terms match such a "
+        "sentence is marked reported with a numeric signal. Effect on a served harm row not measured." + _OL2,
+    "source_hierarchy.py:_EFFECT_CANDIDATE-accept-2":
+        "RX-OL48 (found 2026-09-25 by this plant): only a two-digit level ('95%') may precede 'CI', so a non-inferiority "
+        "'97.5% CI' result is not an effect candidate. Reachable: 4 held abstract sentences (ENGAGE AF-TIMI 48's "
+        "edoxaban hazard ratios, the HFNC vs CPAP adjusted HR); effect on source ranking not measured." + _OL2,
+    "claim.py:_ASSERT_SIG-refuse-1":
+        "RX-OL49 (found 2026-09-25 by this plant): the negation guard looks only at the two words immediately before, so "
+        "'we did not find any statistically significant benefit' asserts significance. Reachable: that sentence is on "
+        "the held omega3-cardiovascular-events page; masked today -- it is in none of the surfaces the census checks, "
+        "so 0 contradictions either way (measured 2026-09-25)." + _OL2,
+    "ctgov_results.py:search:193897396a-accept-2":
+        "RX-OL50 (found 2026-09-25 by this plant): the event noun must follow 'number of' directly, so 'Number of "
+        "All-cause Hospitalizations (First and Recurrent)' is not an event-count title. Reachable phrasing: one held "
+        "CT.gov outcome title; it matters only when that row's paramType is COUNT_OF_PARTICIPANTS -- not measured." + _OL2,
+    "verify.py:search:a74619243b-refuse-1":
+        "RX-OL51 (found 2026-09-25 by this plant): _digits_in formats int(v), so a decimal value is looked up truncated "
+        "and a count may match the integer part of another decimal: mean 12.4 is 'verified' by 'mean 12.9' (or 'HR "
+        "0.12'). Latent: 0 of the 123 held rows rendered 'verified' depend on it (measured 2026-09-25 by re-verifying "
+        "each with the value required as its own number)." + _OL2,
+    "screen_entry.py:_CONTROL-refuse-1":
+        "RX-OL52 (found 2026-09-25 by this plant): 'control' anywhere marks a control arm, so an active 'Intensive glucose "
+        "control' arm is dropped from the active set. Latent: 0 held record interventions." + _OL2,
+    "fda.py:_SECTION_RE-refuse-2":
+        "RX-OL53 (found 2026-09-25 by this plant): any '14' + whitespace opens a section, so '14 patients were enrolled' "
+        "in section-14 prose starts a new section. Latent: no FDA label text is held." + _OL2,
+    "propositions.py:search:3d174448cd-accept-1":
+        "RX-OL54 (found 2026-09-25 by this plant): the count must be digits, so 'we pool four trials' gives no pooled "
+        "count. Latent: the 1 held parity reason with this phrase uses a digit." + _OL2,
+})

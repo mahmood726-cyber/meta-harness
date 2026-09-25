@@ -100,10 +100,15 @@ def _pattern_text(site: str, arg: ast.expr) -> str:
     is_escape = (isinstance(arg, ast.Call) and isinstance(arg.func, ast.Attribute) and arg.func.attr == "escape"
                  and getattr(arg.func.value, "id", "") == "re" and len(arg.args) == 1 and not arg.keywords
                  and isinstance(arg.args[0], ast.Name))
-    if not isinstance(arg, ast.JoinedStr) and not is_escape:
-        return ast.literal_eval(arg)
     from regex_layer.specs import INLINE_SPECS
     bind = (INLINE_SPECS.get(site) or {}).get("bind")
+    if not isinstance(arg, ast.JoinedStr) and not is_escape:
+        try:
+            return ast.literal_eval(arg)
+        except ValueError:
+            if not bind:
+                raise KeyError(f"{site}: a dynamic pattern needs a 'bind' in its spec") from None
+            return _restricted_eval(site, arg, bind)
     if not bind:
         raise KeyError(f"{site}: a dynamic pattern needs a 'bind' in its spec")
     if is_escape:
@@ -117,9 +122,58 @@ def _pattern_text(site: str, arg: ast.expr) -> str:
         elif (isinstance(v, ast.FormattedValue) and isinstance(v.value, ast.Name) and v.conversion == -1
               and v.format_spec is None and v.value.id in bind):
             out.append(str(bind[v.value.id]))
+        elif (isinstance(v, ast.FormattedValue) and v.conversion == -1 and v.format_spec is None
+              and isinstance(v.value, ast.Call) and getattr(v.value.func, "id", "") in ("int", "str")
+              and len(v.value.args) == 1 and not v.value.keywords and isinstance(v.value.args[0], ast.Name)
+              and v.value.args[0].id in bind):
+            # {int(v)} / {str(v)}: verify._digits_in formats the value it is checking for
+            conv = int if v.value.func.id == "int" else str
+            out.append(str(conv(bind[v.value.args[0].id])))
+        elif (isinstance(v, ast.FormattedValue) and v.conversion == -1 and v.format_spec is None
+              and _escaped_name(v.value) in bind):
+            # {re.escape(name)} / {re.escape(str(name))}: membership.parity_conflicts' per-identity word match
+            out.append(re.escape(str(bind[_escaped_name(v.value)])))
         else:
             raise KeyError(f"{site}: unsupported f-string placeholder {ast.unparse(v)}")
     return "".join(out)
+
+
+_SAFE_NODES = (ast.Expression, ast.BinOp, ast.Add, ast.Call, ast.Attribute, ast.Name, ast.Load, ast.Constant)
+_SAFE_FUNCS = {"map", "str"}
+_SAFE_METHODS = {"escape", "join", "split"}
+
+
+def _restricted_eval(site: str, arg: ast.expr, bind: dict) -> str:
+    """A pattern BUILT from string pieces (honest_ratchet: r"\\b" + r"\\s+".join(map(re.escape, phrase.split())) + r"\\b"),
+    evaluated with the spec's bind: only string concatenation, str / map, and re.escape / str.join / str.split are
+    allowed, and every free name must be bound or be re / map / str -- anything else is refused, never run."""
+    tree = ast.Expression(arg)
+    for node in ast.walk(tree):
+        if not isinstance(node, _SAFE_NODES):
+            raise KeyError(f"{site}: unsupported construct {type(node).__name__} in a built pattern")
+        if isinstance(node, ast.Name) and node.id not in bind and node.id not in _SAFE_FUNCS | {"re"}:
+            raise KeyError(f"{site}: unbound name {node.id} in a built pattern")
+        if isinstance(node, ast.Attribute) and node.attr not in _SAFE_METHODS:
+            raise KeyError(f"{site}: unsupported method .{node.attr} in a built pattern")
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id not in _SAFE_FUNCS:
+            raise KeyError(f"{site}: unsupported call {node.func.id}() in a built pattern")
+    code = compile(ast.fix_missing_locations(tree), f"<{site}>", "eval")
+    value = eval(code, {"__builtins__": {}, "re": re, "map": map, "str": str}, dict(bind))  # noqa: S307 - whitelisted above
+    if not isinstance(value, str):
+        raise KeyError(f"{site}: a built pattern must evaluate to a string")
+    return value
+
+
+def _escaped_name(node: ast.expr) -> str | None:
+    """The variable name inside re.escape(name) or re.escape(str(name)); None for anything else."""
+    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "escape"
+            and getattr(node.func.value, "id", "") == "re" and len(node.args) == 1 and not node.keywords):
+        return None
+    inner = node.args[0]
+    if (isinstance(inner, ast.Call) and getattr(inner.func, "id", "") == "str" and len(inner.args) == 1
+            and not inner.keywords):
+        inner = inner.args[0]
+    return inner.id if isinstance(inner, ast.Name) else None
 
 
 def _view(site: str, text: str) -> str:
