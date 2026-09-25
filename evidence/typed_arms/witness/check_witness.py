@@ -25,6 +25,11 @@ def token_value(t):
     t = (t or "").strip()
     if re.fullmatch(r"\d{1,3}(?:,\d{3})+|\d+", t):
         return int(t.replace(",", ""))
+    # a typographic thousands separator (U+2008 punctuation space, U+202F narrow no-break space) -- The Lancet prints
+    # "10<U+2008>033". Only these two: neither is turned into a plain space by the normaliser, and neither ever
+    # separates two different numbers. A plain space never counts (it would join "10 033" = ten and thirty-three).
+    if re.fullmatch(r"\d{1,3}(?:[\u2008\u202f]\d{3})+", t):
+        return int(re.sub(r"[\u2008\u202f]", "", t))
     return WORDS.get(t.lower())
 
 

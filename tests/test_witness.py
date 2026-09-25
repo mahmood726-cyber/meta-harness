@@ -148,3 +148,10 @@ def test_group_ids_are_resolved_inside_their_own_outcome_measure(tmp_path):
     (tmp_path / "HE-x").rename(tmp_path / "old")
     rec = job(tmp_path, out, served, {"doc_registry_NCT0.json": reg}, registry=True)
     assert rec["state"] == "INCOMPLETE" and any(r.startswith("T5") for r in rec["reasons"])
+
+
+def test_a_typographic_thousands_separator_is_one_token_and_a_plain_space_is_not():
+    assert cw.token_value("10\u2008033") == 10033 and cw.token_value("10\u202f033") == 10033
+    assert cw.token_value("10 033") is None          # ten and thirty-three, never joined
+    assert cw.token_value("1\u20080330") is None     # a separator must start a group of exactly three
+    assert cw.token_value("10,033") == 10033 and cw.token_value("twenty") == 20
