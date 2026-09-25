@@ -49,12 +49,11 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
   pre-fix). **V1: state it is not fixed in V1 unless that branch lands by the freeze.**
 - **Retrospective protocol amendments.** 11 of 32 protocols carry a RETROSPECTIVE amendment: a rule written after registration and
   labelled as such on the page. Those rules are disclosed, not pre-registered.
-- **The "DELIVER" retrospective clarification is misidentified.** The signing plan (nr, 9460d047) asks for a protocol-scope
-  ruling on "DELIVER's registry wording" ("Chronic Heart Failure With Preserved Systolic Function" vs the protocol term "preserved
-  ejection fraction"), listed as DELIVER NCT03030235. On the served page NCT03030235 is **PRESERVED-HF** (PMID 34711976); DELIVER is
-  NCT03619213. The wording question is real: the population check's literal substring test misses it. The trial is not DELIVER.
-  **V1: state the ruling under the right trial, whether it was made, and that it is a retrospective clarification, not a
-  pre-registered rule; otherwise remove the line.**
+- **The retrospective clarification on HFpEF wording (named "DELIVER" in the release plan) concerns PRESERVED-HF.** The ruling asks
+  whether the registry condition "Chronic Heart Failure With Preserved Systolic Function" names the review's population ("preserved
+  ejection fraction"). The trial is PRESERVED-HF (NCT03030235, PMID 34711976), not DELIVER (NCT03619213). The signing plan was relabelled
+  (nr 8a8c2e50) after this lane's finding. A yes adds a population term after registration, so it is a retrospective clarification, not a
+  pre-registered rule. **V1: state whether it was ruled, and how.**
 - **Verifier PASS is not "admissible".** On the served GLP-1 bundle, HARMONY Outcomes fails the family-eligibility predicate and is
   still in the k = 8 pool with verdict PASS. The admissible-only pool (k = 7, 0.866 [0.814-0.922]) is not on the page. The checklist
   requires four separate verdicts (byte integrity, arithmetic, admissibility, publication eligibility); **neither verifier emits them
@@ -74,8 +73,9 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
 - ordered-contrast and estimator checks P10/P11 and the pool guard (oc 88f07c74 .. 23642e0d);
 - rai's R1+R4 pinned landing re-certification (409d98c4); it predates the tabs fix and must be regenerated, not merged as generated files;
 - the 41 result-change notices: **0 of 41 signed**; the notice anchors and the P5 check patch (nr) are on branches;
-- the GLP-1 FLOW + ELIXA admission (k 8 -> 10, 0.856 -> 0.861): queued for Mahmood's signature, not landed; this lane reproduced its
-  before -> after exactly;
+- the GLP-1 FLOW + ELIXA admission (k 8 -> 10, 0.856 -> 0.861): Mahmood's chat approval is recorded as intent, not as a signature; it
+  is queued for his signature, not landed; this lane reproduced its before -> after exactly; ELIXA's 3-point MACE is 'prespecified
+  secondary' in one FDA review and a 'sensitivity analysis' in another;
 - the four separate verdicts (checklist B4) and the admission gate at pooling (checklist D1, B3).
 
 ## 4. What we do not claim
