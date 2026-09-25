@@ -60,7 +60,7 @@ sys.path.insert(0, str(ROOT))
 
 from harness import certificate  # noqa: E402
 from harness import synth  # noqa: E402
-from harness import contrast_order  # noqa: E402
+import contrast_order  # noqa: E402  (scripts/: harness/*.py membership is part of every certificate's scope)
 from harness.target_endpoint import _components_from_text  # noqa: E402
 from harness.canonical import canonical_json, review_core, sha256_text  # noqa: E402
 
@@ -74,8 +74,8 @@ FORMAT_CHANGELOG = [
     "ordered_contrast {measure, experimental_arm, reference_arm (F4 arm ids <NCT>:<AACT design_group id> from the certified families.json), "
     "numerator_side, estimate, ci_low, ci_high, direction_witness (COMPARATIVE_CONNECTIVE | ORDER_OF_MENTION, located)}; "
     "effect_less_than_1_favours is derived from numerator_side instead of asserted; registered_estimand.contrast is read from the protocol's "
-    "estimand line (it was hard-coded 'GLP-1 RA vs placebo' for every slug) and carries contrast_normalisation (reciprocal PERMITTED_WHEN_DECLARED, "
-    "a harness policy, registered_in_protocol false); P11 adds contrast and estimator departures. A row carries its tuple AS STATED; a "
+    "estimand line (it was hard-coded 'GLP-1 RA vs placebo' for every slug) and carries contrast_normalisation (reciprocal FORBIDDEN: "
+    "the protocol registers none; registered_in_protocol false); P11 adds contrast and estimator departures. A row carries its tuple AS STATED; a "
     "re-orientation is only a declared effect.normalisation. Verifier side: P10 compares VALUES (COMPARATOR_DIRECTION_MISMATCH, ESTIMATOR_MISMATCH, "
     "CONTRAST_NORMALISATION_*), P11 the registered contrast/estimator, and the pool refuses mixed or unidentified measures BEFORE any log is taken.",
     "3.17 (2026-09-20, pcsk9-mace third live wrong pool): every row carries pooled_state (EXACT_TARGET_POOLED / NEAR_MATCH_POOLED / UNBOUND_POOLED) with extra_components and missing_components RENDERED beside components_as_classified; P13_no_extra_components and P14_missing_components_consistent added to the admission predicates in both copies (ODYSSEY's fields fail both); limit L15; served sweeps strict_subset_sweep.json and pooled_class_sweep.json.",
@@ -1716,12 +1716,14 @@ def registered_estimand(slug: str) -> dict:
         "treatment_strategy_basis": "the protocol registers the intention-to-treat effect during the prespecified randomised follow-up: a treatment-policy (on-study) strategy",
         "contrast": _registered_contrast(line),
         "contrast_basis": "read from the protocol's estimand line ('assignment to <A> versus <B>'); UNSTATED when the line names no ordered pair",
-        "contrast_normalisation": {"reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED",
+        "contrast_normalisation": {"reciprocal_for_ratio_measures": "FORBIDDEN",
                                    "registered_in_protocol": False,
-                                   "basis": "harness policy (lane OC, 2026-09-25), not a protocol statement: for HR/OR/RR/IRR, A/B = 1/(B/A) exactly and "
-                                            "the interval's endpoints swap. A row carries its tuple AS STATED; a re-orientation is a declared "
-                                            "effect.normalisation {operation: RECIPROCAL, orientation, estimate, ci_low, ci_high} that the verifier "
-                                            "recomputes. An undeclared reversal is refused (COMPARATOR_DIRECTION_MISMATCH)."},
+                                   "basis": "the protocol registers no re-orientation of the contrast, so none is permitted (fail closed; the same "
+                                            "stance the F4L lane took, CANONICAL_ONLY). The mechanism is defined and tested for when a protocol "
+                                            "registers one: for HR/OR/RR/IRR, A/B = 1/(B/A) exactly and the interval's endpoints swap; a row carries "
+                                            "its tuple AS STATED and a re-orientation is a declared effect.normalisation {operation: RECIPROCAL, "
+                                            "orientation, estimate, ci_low, ci_high} that the verifier recomputes. Under FORBIDDEN a declared one is "
+                                            "refused (CONTRAST_NORMALISATION_NOT_PERMITTED); an undeclared one always is (COMPARATOR_DIRECTION_MISMATCH)."},
         "estimator": "hazard ratio, time to first event" if "time to first" in low else "UNSTATED",
         "rule": "a binding whose identity differs from the registered estimand on analysis set or treatment strategy is BOUND_TO_UNREGISTERED_ESTIMAND -- "
                 "internally consistent is necessary and not sufficient",

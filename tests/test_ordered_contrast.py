@@ -7,7 +7,7 @@ was given. 0.87 served as liraglutide/placebo from a source that states placebo/
 
 Layout of this file:
   1. a phrasing battery with KNOWN answers (synthetic clauses; a control must have an answer no corpus edit can move), run against
-     BOTH implementations -- the verifier's stdlib copy and the producer's harness/contrast_order.py;
+     BOTH implementations -- the verifier's stdlib copy and the producer's scripts/contrast_order.py;
   2. the served corpus: all 8 GLP-1 rows order, the two implementations agree row by row, canonical PASS (the positive control that
      keeps the fix from becoming reject-everything);
   3. every OC --corrupt limb through the real verifier, refused FOR ITS OWN CODE, no other row moved, restore -> PASS;
@@ -27,7 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import verify_bundle as vb          # noqa: E402  test-side: the functions under test; the verifier itself imports nothing
-from harness import contrast_order as co   # noqa: E402
+import contrast_order as co                # noqa: E402  scripts/contrast_order.py, the producer's implementation
 
 SLUG = "glp1-ra-mace-t2d"
 VERIFIER = os.path.join(ROOT, "scripts", "verify_bundle.py")
@@ -155,7 +155,7 @@ def test_producer_and_verifier_implementations_agree_on_every_served_clause(base
         assert served["value"] == co.contrast_value(typed) and "placebo" in served["value"]
         assert served["effect_less_than_1_favours"] == "the experimental arm"
     reg = bundle["registered_estimand"]
-    assert reg["contrast"] == "GLP-1 RA vs placebo" and reg["contrast_normalisation"]["reciprocal_for_ratio_measures"] == "PERMITTED_WHEN_DECLARED"
+    assert reg["contrast"] == "GLP-1 RA vs placebo" and reg["contrast_normalisation"]["reciprocal_for_ratio_measures"] == "FORBIDDEN"
     assert reg["contrast_normalisation"]["registered_in_protocol"] is False          # a harness policy, stated as one
 
 
@@ -169,9 +169,10 @@ LIMBS = {
     "pool_input_reciprocal": ("FAIL", "ADMISSIBLE", ["POOL_INPUT_DISAGREES_WITH_ROW"]),
     "contrast_reverse_declared_forbidden": ("FAIL", "INADMISSIBLE", ["CONTRAST_NORMALISATION_NOT_PERMITTED"]),
     "contrast_reverse_declared_permitted": ("PASS", "ADMISSIBLE", []),
-    # the served bundle's own policy (PERMITTED_WHEN_DECLARED since this lane's producer change): a declared reciprocal INTO the
-    # registered orientation passes; one AWAY from it (LEADER 0.87 -> 1.149 pooled as placebo/liraglutide) is refused at P11
-    "contrast_reverse_declared": ("PASS", "ADMISSIBLE", []),
+    # the served bundle's own policy: the protocol registers no re-orientation, so the producer emits FORBIDDEN (fail closed) and
+    # even a correctly declared reciprocal is refused; under an in-memory PERMITTED policy (above) the same limb passes, and a
+    # reciprocal AWAY from registration (LEADER 0.87 -> 1.149 pooled as placebo/liraglutide) is refused at P11 whatever the policy
+    "contrast_reverse_declared": ("FAIL", "INADMISSIBLE", ["CONTRAST_NORMALISATION_NOT_PERMITTED"]),
     "contrast_reverse_declared_away": ("FAIL", "INADMISSIBLE", ["BOUND_TO_UNREGISTERED_ESTIMAND"]),
 }
 
@@ -246,7 +247,10 @@ def _bundle_plants():
         i = next(x for x in b["pooled_reference"]["inputs"] if x["id"] == f"PMID {LEADER}")
         i.update(effect=round(1 / 0.87, 4), ci_low=round(1 / 0.97, 4), ci_high=round(1 / 0.78, 4))
         b["pooled_reference"]["expected"] = {k: v for k, v in vb.pool(b["pooled_reference"]["inputs"]).items()}
+    def effect_copy(b):                                    # the F4 lane's warning: the bundle copy edited, review.json untouched
+        row(b)["effect"]["estimate"] = 0.99
     return {"served_contrast_reverse": (served_reverse, "COMPARATOR_DIRECTION_MISMATCH"),
+            "served_effect_copy_edited": (effect_copy, "ROW_EFFECT_COPIES_DISAGREE"),
             "served_estimator_swap": (estimator_swap, "ESTIMATOR_MISMATCH"),
             "served_measure_unidentified": (unidentified, "POOL_MEASURE_UNIDENTIFIED"),
             "served_pool_input_reciprocal": (pool_reciprocal, "POOL_INPUT_DISAGREES_WITH_ROW")}
@@ -337,3 +341,30 @@ def test_producer_refuses_the_relabelled_estimator_and_admits_the_untouched_rows
     assert p11["state"] == "FAIL" and any(d[0] == "estimator" for d in p11["departures"]) and r["admission"]["final"] == "INADMISSIBLE"
     untouched = [p for p in producer_planted if p not in (LEADER, "40162642", "30291013")]   # HARMONY is refused at baseline (P5)
     assert len(untouched) == 5 and all(producer_planted[p]["admission"]["final"] == "ADMISSIBLE" for p in untouched)
+
+
+def test_a_contrast_refusal_the_bundle_already_discloses_is_reported_not_a_second_defect(served_copy):
+    """F4 lane's constraint: admission is computed and disclosed; it must not by itself refuse publication. The same contrast defect
+    as served_contrast_reverse, but the bundle RECORDS the row INADMISSIBLE: the verifier refuses the row (it is never admitted) and
+    lists the code under disclosed_refusals, and the verdict does not fail on a refusal nobody hid."""
+    root, bundle = served_copy
+    b = copy.deepcopy(bundle)
+    r = next(x for x in b["verification_rows"] if x["trial"]["id"] == f"PMID {LEADER}")
+    r["analysis_identity"]["comparator_direction"]["value"] = "placebo vs liraglutide"
+    r["analysis_identity"]["comparator_direction"].pop("ordered_contrast", None)
+    r["admission"]["final"] = "INADMISSIBLE"
+    for k in ("P10_estimand_evidence", "P11_registered_estimand"):
+        if k in r["admission"]["predicates"]:
+            r["admission"]["predicates"][k]["state"] = "FAIL"
+    target = os.path.join(root, "reviews", SLUG, "BUNDLE.json")
+    try:
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(b, f, ensure_ascii=False, indent=1)
+        rep = _run(root=root)
+    finally:
+        with open(target, "w", encoding="utf-8") as f:
+            json.dump(bundle, f, ensure_ascii=False, indent=1)
+    row = next(x for x in rep["rows"] if x["pmid"] == LEADER)
+    assert row["final"] == "INADMISSIBLE" and row["agrees_with_bundle"] is True
+    assert any(d.startswith("COMPARATOR_DIRECTION_MISMATCH") for d in rep["disclosed_refusals"])
+    assert not any(f.startswith("COMPARATOR_DIRECTION_MISMATCH") for f in rep["failures"]), rep["failures"]

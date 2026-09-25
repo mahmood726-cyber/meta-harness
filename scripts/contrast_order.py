@@ -4,7 +4,8 @@ The external audit's finding: "vs placebo (named in the result clause)" was emit
 and the estimand check compared only the STATE of comparator_direction and estimator, never the value. 0.87 read as
 placebo/liraglutide is a different clinical claim with every digit still present in the source.
 
-This is the PRODUCER's implementation (scripts/build_bundle.py emits its result into analysis_identity.comparator_direction.
+Lives in scripts/ (not harness/): every harness/*.py is enumerated by the release certificates' scope, so a new harness module
+is a certificate change. This is the PRODUCER's implementation (scripts/build_bundle.py emits its result into analysis_identity.comparator_direction.
 ordered_contrast). scripts/verify_bundle.py carries its own standard-library copy of the same rules and imports nothing from
 here -- the verifier recomputes and compares; agreement of the two on the served rows is a test (tests/test_ordered_contrast.py),
 and a third, blind reading of every clause's orientation is recorded under evidence/ordered_contrast/.

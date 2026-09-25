@@ -2,7 +2,7 @@
  "schema_version": 3,
  "format_revision": "3.18",
  "format_changelog": [
-  "3.18 (2026-09-25, lane OC, external audit: ordered contrast and estimator VALUE-checked, not state-checked): analysis_identity.comparator_direction.value is the ORDERED contrast ('<numerator arm> vs <reference arm>') recomputed from the tuple's own clause, with ordered_contrast {measure, experimental_arm, reference_arm (F4 arm ids <NCT>:<AACT design_group id> from the certified families.json), numerator_side, estimate, ci_low, ci_high, direction_witness (COMPARATIVE_CONNECTIVE | ORDER_OF_MENTION, located)}; effect_less_than_1_favours is derived from numerator_side instead of asserted; registered_estimand.contrast is read from the protocol's estimand line (it was hard-coded 'GLP-1 RA vs placebo' for every slug) and carries contrast_normalisation (reciprocal PERMITTED_WHEN_DECLARED, a harness policy, registered_in_protocol false); P11 adds contrast and estimator departures. A row carries its tuple AS STATED; a re-orientation is only a declared effect.normalisation. Verifier side: P10 compares VALUES (COMPARATOR_DIRECTION_MISMATCH, ESTIMATOR_MISMATCH, CONTRAST_NORMALISATION_*), P11 the registered contrast/estimator, and the pool refuses mixed or unidentified measures BEFORE any log is taken.",
+  "3.18 (2026-09-25, lane OC, external audit: ordered contrast and estimator VALUE-checked, not state-checked): analysis_identity.comparator_direction.value is the ORDERED contrast ('<numerator arm> vs <reference arm>') recomputed from the tuple's own clause, with ordered_contrast {measure, experimental_arm, reference_arm (F4 arm ids <NCT>:<AACT design_group id> from the certified families.json), numerator_side, estimate, ci_low, ci_high, direction_witness (COMPARATIVE_CONNECTIVE | ORDER_OF_MENTION, located)}; effect_less_than_1_favours is derived from numerator_side instead of asserted; registered_estimand.contrast is read from the protocol's estimand line (it was hard-coded 'GLP-1 RA vs placebo' for every slug) and carries contrast_normalisation (reciprocal FORBIDDEN: the protocol registers none; registered_in_protocol false); P11 adds contrast and estimator departures. A row carries its tuple AS STATED; a re-orientation is only a declared effect.normalisation. Verifier side: P10 compares VALUES (COMPARATOR_DIRECTION_MISMATCH, ESTIMATOR_MISMATCH, CONTRAST_NORMALISATION_*), P11 the registered contrast/estimator, and the pool refuses mixed or unidentified measures BEFORE any log is taken.",
   "3.17 (2026-09-20, pcsk9-mace third live wrong pool): every row carries pooled_state (EXACT_TARGET_POOLED / NEAR_MATCH_POOLED / UNBOUND_POOLED) with extra_components and missing_components RENDERED beside components_as_classified; P13_no_extra_components and P14_missing_components_consistent added to the admission predicates in both copies (ODYSSEY's fields fail both); limit L15; served sweeps strict_subset_sweep.json and pooled_class_sweep.json.",
   "3.16 (2026-09-20): exclusion statements are also read from the DOCUMENT NEIGHBOURHOOD of the located span (+/-400 code points in the representation where P2 located it), so a footnote or a sentence outside both of the row's spans still cuts; P9 reports exclusion_scope_searched. Row-span and definition-span scope (3.15) was measured relational, not sentence-scoped, on E1-E10; this closes the remaining hole named in the 3.15 report (the scope was the row's spans, not the document).",
   "3.15 (2026-09-20, panel exclusion fixtures E1-E10): exclusion is read RELATIONALLY across the whole span, not the clause -- an exclusion statement in the next sentence or a footnote after the result ('X and Y were not included in / excluded from the primary analysis', 'neither X nor Y contributed') cuts those components from the target claim and is reported in exclusion_statements; a cue inside a parenthetical is scoped to the parenthetical and a qualifier on a component ('nonfatal MI (excluding silent infarction)') excludes nothing; a POPULATION exclusion ('patients with a prior stroke were excluded from enrolment') cuts nothing. Pre-fix on 3.14: E5 and E8 admitted, E9 refused.",
@@ -1689,8 +1689,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "84ac6a0a091edecc283bd03009ad3e1d87c5834dc6957a1b1f49a10ab0ccec63",
-   "bytes": 111548,
+   "sha256": "b60f6b312f6dd017d73ea3a61732ea1998c315e40fcb2bd66e18e6be290599d8",
+   "bytes": 112380,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -4357,9 +4357,9 @@
   "contrast": "GLP-1 RA vs placebo",
   "contrast_basis": "read from the protocol's estimand line ('assignment to <A> versus <B>'); UNSTATED when the line names no ordered pair",
   "contrast_normalisation": {
-   "reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED",
+   "reciprocal_for_ratio_measures": "FORBIDDEN",
    "registered_in_protocol": false,
-   "basis": "harness policy (lane OC, 2026-09-25), not a protocol statement: for HR/OR/RR/IRR, A/B = 1/(B/A) exactly and the interval's endpoints swap. A row carries its tuple AS STATED; a re-orientation is a declared effect.normalisation {operation: RECIPROCAL, orientation, estimate, ci_low, ci_high} that the verifier recomputes. An undeclared reversal is refused (COMPARATOR_DIRECTION_MISMATCH)."
+   "basis": "the protocol registers no re-orientation of the contrast, so none is permitted (fail closed; the same stance the F4L lane took, CANONICAL_ONLY). The mechanism is defined and tested for when a protocol registers one: for HR/OR/RR/IRR, A/B = 1/(B/A) exactly and the interval's endpoints swap; a row carries its tuple AS STATED and a re-orientation is a declared effect.normalisation {operation: RECIPROCAL, orientation, estimate, ci_low, ci_high} that the verifier recomputes. Under FORBIDDEN a declared one is refused (CONTRAST_NORMALISATION_NOT_PERMITTED); an undeclared one always is (COMPARATOR_DIRECTION_MISMATCH)."
   },
   "estimator": "hazard ratio, time to first event",
   "rule": "a binding whose identity differs from the registered estimand on analysis set or treatment strategy is BOUND_TO_UNREGISTERED_ESTIMAND -- internally consistent is necessary and not sufficient"
@@ -10818,8 +10818,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "84ac6a0a091edecc283bd03009ad3e1d87c5834dc6957a1b1f49a10ab0ccec63",
-  "bytes": 111548,
+  "sha256": "b60f6b312f6dd017d73ea3a61732ea1998c315e40fcb2bd66e18e6be290599d8",
+  "bytes": 112380,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

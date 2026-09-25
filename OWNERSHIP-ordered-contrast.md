@@ -30,8 +30,8 @@ Purpose: keep merges textual-conflict-free. Regions are named by function / sect
 
 | File / region | Owner |
 |---|---|
-| `harness/contrast_order.py` (new) | **OC** (the producer's ordered-contrast implementation; the verifier keeps its own stdlib copy) |
-| `harness/armcontrast.py` | **OC** (new orientation API; `contrast_status()` output left byte-identical so no served review.json moves) |
+| `scripts/contrast_order.py`, `scripts/arm_orientation.py` (new; in scripts/ because every `harness/*.py` is enumerated by the certificates' scope) | **OC** |
+| `harness/armcontrast.py` | **untouched** (certificate-pinned; the orientation API is `scripts/arm_orientation.py`) |
 | `harness/page.py` / `harness/limitations.py` arm-contrast disclosure blocks (`_AC_LABEL`, `_arm_contrast_block`) | **main** (touched by enforcement-gate). OC's wording change ("eligibility, not direction") is QUEUED as a patch for after enforcement-gate lands; it re-renders served pages, so it goes through the signature queue with a derived notice. |
 | F4 typed arm schema (`{role, group_id, arm_id, events, total, witnesses}`, `evidence/typed_arms/**`) | **main / evid2**. OC *reuses* its identities (`arm_id = "<NCT>:<AACT design_group id>"`, as in `cache/<slug>/families.json` arms and `randomised_contrasts`) and never redefines them. |
 

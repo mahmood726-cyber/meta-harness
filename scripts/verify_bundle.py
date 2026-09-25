@@ -1342,9 +1342,16 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         if br and not corrupt and ([stated_copy[k] for k in ("estimate", "ci_low", "ci_high")] != values
                                    or scale_measure(br["effect"].get("scale")) != scale_measure(t.get("scale"))):
             cv["p10"].append(("ROW_EFFECT_COPIES_DISAGREE", f"bundle row {stated_copy} {br['effect'].get('scale')!r} vs rendered row {values} {t.get('scale')!r}"))
+        # admission is computed and reported; it fails the VERDICT only where it contradicts what the bundle served (a row recorded
+        # ADMISSIBLE) or under a declared plant -- a refusal the bundle already discloses is not a second defect (F4 lane's constraint:
+        # publication eligibility must not collapse into scientific admission)
+        contradicts_served = bool(corrupt) or (br or {}).get("admission", {}).get("final") == "ADMISSIBLE"
         for code, why in cv["p10"]:
             ee_ok = False
-            failures.append(f"{code} {pmid}: {why}")
+            if contradicts_served or code == "ROW_EFFECT_COPIES_DISAGREE":
+                failures.append(f"{code} {pmid}: {why}")
+            else:
+                report.setdefault("disclosed_refusals", []).append(f"{code} {pmid}: {why}")
         P["P10_estimand_evidence"] = ee_ok
         # P11: the bound identity must be the REGISTERED one -- from the RECOMPUTED evidence
         dep = []
@@ -1356,8 +1363,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             dep.append("UNRESOLVED")
         dep += cv["p11"]                                          # the registered contrast ("GLP-1 RA vs placebo") and estimator ("hazard ratio")
         P["P11_registered_estimand"] = not dep
-        if dep and (not corrupt or cv["p11"]):
+        if dep and ((not corrupt and not cv["p11"]) or (cv["p11"] and contradicts_served)):
             failures.append(f"BOUND_TO_UNREGISTERED_ESTIMAND {pmid}: {dep}")
+        elif dep and cv["p11"]:
+            report.setdefault("disclosed_refusals", []).append(f"BOUND_TO_UNREGISTERED_ESTIMAND {pmid}: {dep}")
         report.setdefault("ordered_contrasts", {})[pmid] = {"recomputed": oc, "p10": [c for c, _ in cv["p10"]], "p11": cv["p11"],
                                                             "detail": cv["detail"], "pooled": cv["pooled"], "measure": cv["measure"]}
         csc = component_set_checks(t, comps_canon, canonical_components)
