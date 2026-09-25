@@ -1,6 +1,6 @@
 # Evidence lane report: 2026-09-25
 
-Branch `evid/evidence-records` @ `f15c525e`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
+Branch `evid/evidence-records` @ `0c27fcb4`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
 
 ## P53: N = 53 (pooled primary rows inadmissible on P5 at 38c04411)
 
@@ -108,6 +108,7 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
   - UA-005 analysis_set: BLOCKED: as UA-004 (same CORP report): the only open-access copy is the University of Milan repository PDF (AIR, air.unimi.it/bitstream/2434/635125), behind a Cloudflare bot check, not bypassed; the Annals full text is paywalled (403); no P
   - UA-008 analysis_set: BLOCKED: CAPE COD's NEJM report (the only source that could name the population) is paywalled/bot-checked; Unpaywall lists no open copy. The trial's own abstract says 'Data from 795 patients were analyzed' of 800 randomised (matching the se
 
+- replacement endpoint citations proposed for the 14 wrong citations (U23 WRONG_ENDPOINT 6 + S16 1 + M WRONG_ENDPOINT 4 + M WRONG_VALUE_RIGHT_SPAN 3): DEFINES_OUTCOME 8, NAMES_OUTCOME 5, NO_DEFINITIONAL_SPAN_HELD 1 -- verified spans, queued in `evidence/CITATION_CORRECTIONS.md`, not landed
 - served analysis-set label corrections listed row by row in `evidence/LABEL_CORRECTIONS.md`: 34 (queued, not landed)
 
 ## Second adjudication of the M rows (Claude, adversarial; SAME family as the lane, so not decorrelated)
@@ -147,4 +148,4 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
 - 'Entry ESTABLISHED' means the trial's own text states an entry population inside the question. It is evidence for Mahmood's D04, not an admission; no route that admits a row exists or was created.
 - Most held sources are abstracts or registry records; open-access full text was held or acquired for a minority. 'Analysis set NOT STATED' usually means 'not in an abstract', not 'not in the paper'.
 - M-02..M-15 were extracted by Claude subagents after the codex budget ran out (M-01 by codex): extractor and adjudicator are the same family for those rows, so their rulings rest on the byte-level span and number gates plus a same-family adversarial review, not a cross-family one.
-- Sources held LOCAL-ONLY (not redistributable): 23; URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.
+- Sources held LOCAL-ONLY (not redistributable): 25; URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.
