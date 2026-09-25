@@ -13,11 +13,10 @@ The served row's `compat_dimensions.endpoint_definition.span` cites a DIFFERENT 
 
 - **S16-14** (EMPA-KIDNEY, Lower-limb amputation): the served endpoint citation is the trial's primary kidney/CV composite, not amputation. Eye label committed before a blind codex verdict (agree 16 of 16 on S16); lane WS flagged the same row.
 
-### M rows (15; lane eye labels, no blind second opinion: codex budget exhausted) -- queued, not landed
-Field: compat_dimensions.endpoint_definition. Wrong endpoint cited, 5 of 15:
+### M rows (15; lane eye labels, blind same-family second read agrees 14 of 15, M-11 relabelled) -- queued, not landed
+Field: compat_dimensions.endpoint_definition. Wrong endpoint cited, 4 of 15:
 - **M-01** LoDoCo2, Non-cardiovascular death: cites the primary MACE composite.
 - **M-06** RE-COVER, Major bleeding: cites the primary outcome (recurrent VTE and related deaths).
-- **M-11** RE-COVER, Any bleeding: cites the same primary VTE outcome.
 - **M-13** ARISTOTLE, Major bleeding: cites the primary stroke/systemic-embolism outcome.
 - **M-14** CANVAS Program, Lower-limb amputation: cites the primary CV composite.
-Served value wrong, span right, 2 of 15: **M-03** FREEDOM nonvertebral fracture and **M-04** FREEDOM hip fracture. The value reads 'primary end point was new vertebral fracture'; the same span says 'Secondary end points included nonvertebral and hip fractures'.
+Served value wrong, span right, 3 of 15: **M-03** FREEDOM nonvertebral fracture and **M-04** FREEDOM hip fracture, plus **M-11** RE-COVER any bleeding (value: the primary VTE outcome; the span continues 'Safety end points included bleeding events'). The value reads 'primary end point was new vertebral fracture'; the same span says 'Secondary end points included nonvertebral and hip fractures'.

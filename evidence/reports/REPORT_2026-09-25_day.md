@@ -1,6 +1,6 @@
 # Evidence lane report: 2026-09-25
 
-Branch `evid/evidence-records` @ `03c58d54`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
+Branch `evid/evidence-records` @ `a316b94e`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
 
 ## P53: N = 53 (pooled primary rows inadmissible on P5 at 38c04411)
 
@@ -93,7 +93,7 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
 - agreement with lane WS: 23 of 23 (WS flagged exactly the 6 the lane labels WRONG_ENDPOINT; WS audited all 46 served rows, lane read these 23); blind codex second opinion: 22 of 23
 
 - S16 endpoint-definition citations, by eye (of 16): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 9, RIGHT_ENDPOINT 5, WRONG_ENDPOINT 1; second opinion: 16 of 16 (blind, cross-family, recorded contract)
-- M endpoint-definition citations, by eye (of 15): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 7, WRONG_ENDPOINT 5, WRONG_VALUE_RIGHT_SPAN 2; no blind second opinion
+- M endpoint-definition citations, by eye (of 15): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 7, WRONG_ENDPOINT 4, WRONG_VALUE_RIGHT_SPAN 3; second opinion: 14 of 15 (blind Claude subagent given only outcome name + cited value/source/span; SAME family as the lane, so blind but not decorrelated; evidence/sweeps/compat_endpoint_citation_m_blind_claude.json). Disagreement M-11: the lane said WRONG_ENDPOINT, the blind reader WRONG_VALUE_RIGHT_SPAN because the span continues 'Safety end points included bleeding events', which names the served outcome (any bleeding). Blind reader adopted after reading the span; M-06 (major bleeding, same span) stays WRONG_ENDPOINT because generic 'bleeding events' does not name major bleeding, and both readers agree.
 - M served follow-up citations (of 15): NO_VALUE ; LANE_BOUND_IN_HELD 7, ECHO_OF_OUTCOME_TIMEPOINT ; LANE_BOUND_IN_HELD 8; the lane's own follow-up spans by eye: FOLLOW_UP_BOUND 7, WINDOW_IS_IN_HOSPITAL 1, SPAN_WRONG_DIMENSION 2, ON_TREATMENT_WINDOW 5; served age: SERVED_NOT_STATED_BUT_HELD_STATES_FLOOR 15
 - served analysis-set label corrections listed row by row in `evidence/LABEL_CORRECTIONS.md`: 36 (queued, not landed)
 
