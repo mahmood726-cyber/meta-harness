@@ -253,6 +253,15 @@ EYE_LABELLED = [
     ("FAS included all unique randomized participants who were grouped according to the treatment assigned at randomization.", "ITT_STATED"),
     ("For the primary endpoint the Full Analysis Set was used. This included all patients who were randomized to study treatment.", "ITT_STATED"),
     ("TIME FRAME: From randomization up until the first occurrence of the primary renal composite endpoint | POPULATION: Full analysis set", "OTHER_SET_STATED"),
+    # source-location spans, 2026-09-25 -- labelled by eye BEFORE the reader was run on them
+    ("All patients who have been randomized to study treatment will be included in the full analysis set (FAS) irrespective of their protocol adherence and continued participation in the study.", "ITT_STATED"),
+    ("The ITT population will consist of all randomized subjects (i.e. subjects having a randomization number on the Demographics electronic case report form ( eCRF)).", "ITT_STATED"),
+    ("among all those participants allocated at randomization to receive aspirin (or, respectively, omega -3 FA) daily versus all those allocated to receive matching placebo (i.e. “intention -to-treat” analyses).", "ITT_STATED"),
+    ("The statistical analyses will follow the intention-to-treat principle and will be based primarily on the full analysis set consisting of all randomized patients considered valid for analysis.", "OTHER_SET_STATED"),
+    ("Following the intention-to-treat principle, all patients receiving at least one dose of study medication will be included in the analysis with group allocation as randomized;", "OTHER_SET_STATED"),
+    ("Amputation events occurring at any time point prior to final follow-up, for all randomised participants regardless of whether the participant remained on the study drug, were captured", "ITT_STATED"),
+    # COLCOT SAP: the ITT definition is preceded by an exclusion of erroneously randomised subjects from ALL populations
+    ("Subjects who were not eligible for randomization but who have been erroneously randomized into the study will be excluded from all analysis populations. The ITT population will consist of all randomized subjects", "OTHER_SET_STATED"),
 ]
 
 
@@ -317,3 +326,21 @@ def test_find_span_returns_verbatim_render_substring(tmp_path, monkeypatch):
     s = find_span.locate("x", 'the "full analysis set" (all randomised patients), 2011-2014')
     assert s is not None and s in held and "\u2013" in s and "\u00a0" in s
     assert find_span.locate("x", "the full analysis set included everyone") is None
+
+
+def test_recorded_set_readings_are_current():
+    """A ruling's recorded source_reading must equal what the CURRENT reader says of its bound span, so a reader fix
+    cannot leave stale readings behind in the lane's rows (P53 rulings are Evidence lane two's since 2026-09-24; their
+    stale readings are handed over, not edited here)."""
+    import glob
+    from draft_from_extraction import set_reading
+    stale = []
+    for p in glob.glob(os.path.join(V.ROOT, "evidence", "adjudication", "*.json")):
+        a = json.load(open(p, encoding="utf-8"))
+        te = (a.get("typed_estimand") or {}).get("analysis_set")
+        sp = ((a.get("evidence") or {}).get("analysis_set") or {}).get("span")
+        if a["key"].startswith("P53") or not sp or not isinstance(te, dict) or not te.get("source_reading"):
+            continue
+        if te["source_reading"] != set_reading(sp):
+            stale.append((a["key"], te["source_reading"], set_reading(sp)))
+    assert stale == []

@@ -55,3 +55,11 @@ evid2 now owns the 34 count rows (typed per-arm observations) and the 53 P5 popu
 - **Served analysis-set labels:** 23 P53 rows are served as 'intention-to-treat' but the held source contradicts the label or does not state a set. They are listed row by row, with the bound span, in `evidence/LABEL_CORRECTIONS.md` (derived by `evidence/scripts/label_corrections.py`). They are labels only, and no number moves. They are yours to adopt or re-rule. evid has not changed any P53 ruling since the handoff.
 - **Staleness gate:** `evidence/scripts/stale_check.py` (now condition 4 of `check_all.py`) says whether main has changed a served row since it was ruled on. All 53 P53 rulings match current main as of this addendum.
 - **Scale rule:** the M-02 vs M-03/M-04 rule in `evidence/DECISIONS.md` ('Served scale != declared estimand') also bears on the P53-05 and P53-53 scale-label defects recorded earlier.
+
+## Addendum 2026-09-25 (evid, midday): stale recorded set readings in P53 rulings
+5 P53 rulings record an analysis-set reading made at drafting time that the current reader (fixed since on eye-labelled fixtures) no longer gives. evid did not edit them. The sweep and LABEL_CORRECTIONS already use the current reading. evid refreshed its own 6 and added `test_recorded_set_readings_are_current`, which skips P53; drop that skip when you've refreshed these.
+  - P53-09: recorded ITT_STATED, current reader OTHER_SET_STATED
+  - P53-10: recorded ITT_STATED, current reader OTHER_SET_STATED
+  - P53-12: recorded ITT_STATED, current reader OTHER_SET_STATED
+  - P53-40: recorded OTHER_SET_STATED, current reader ITT_STATED
+  - P53-42: recorded ITT_STATED, current reader OTHER_SET_STATED
