@@ -66,3 +66,9 @@ The reference set is **the 10 known eligible trials** of the served review, read
 screening commit exists. For each: found by the search (which source), survived deduplication, deterministic screen
 decision and rule, AI proposal. Also: every other trial the deterministic screen includes (with reasons), and the
 counts screened out by rule id. Recall is reported as `n of 10`; no precision claim beyond the counts.
+
+## Amendment 1 -- 2026-09-25, after the search ran (disclosed as such)
+`search.py` parsed only `PubmedArticle` elements, so 14 of the 4,368 PubMed hits -- all `PubmedBookArticle` records
+(drug-class reviews, textbook chapters, HTA reports) -- were retrieved but not parsed. No query changes: `retain_books.py`
+re-fetches exactly those 14 PMIDs and parses them as book records (title, abstract, publication type "Book"), and they
+join `records_pubmed` so that every hit is retained. They are not trial reports; the deterministic screen decides them.
