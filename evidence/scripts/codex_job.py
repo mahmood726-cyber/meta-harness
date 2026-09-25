@@ -33,6 +33,7 @@ GAP_FIELD = {"anyOf": [obj({"ref": S, "span": S, "scope": S}), S]}
 VERDICT3 = {"type": "string", "enum": ["AGREE", "DISAGREE", "CANNOT_TELL"]}
 QUOTES = {"type": "array", "items": obj({"ref": S, "span": S})}
 SCHEMAS = {
+    "setread": obj({"key": S, "reading": {"type": "string", "enum": ["ITT_STATED", "OTHER_SET_STATED", "NOT_STATED"]}, "why": S}),
     "second": obj({"key": S,
                    "number": obj({"verdict": VERDICT3, "why": S, "quotes": QUOTES}),
                    "entry": obj({"verdict": VERDICT3, "your_ruling": {"type": "string", "enum": ["ESTABLISHED", "PARTLY", "NOT_ESTABLISHED"]},

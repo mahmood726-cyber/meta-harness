@@ -244,6 +244,11 @@ EYE_LABELLED = [
     ("The efficacy objectives were evaluated in all randomized patients using analysis of time from randomization to the first event.", "ITT_STATED"),
     # 'mITT' matched inside 'comMITTee' (case-insensitive, no word boundary) and flipped PLATO to CONTRADICTED
     ("Intention To Treat (ITT) analysis of whole population. Events were adjudicated by an endpoint committee. | POPULATION: The population was the full analysis set, which included all randomized patients", "ITT_STATED"),
+    # third eye pass (S16 spans), 2026-09-25
+    ("All the patients who underwent randomization were included in the primary and exploratory analyses,", "ITT_STATED"),
+    ("FAS included all unique randomized participants who were grouped according to the treatment assigned at randomization.", "ITT_STATED"),
+    ("For the primary endpoint the Full Analysis Set was used. This included all patients who were randomized to study treatment.", "ITT_STATED"),
+    ("TIME FRAME: From randomization up until the first occurrence of the primary renal composite endpoint | POPULATION: Full analysis set", "OTHER_SET_STATED"),
 ]
 
 
