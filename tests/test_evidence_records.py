@@ -296,3 +296,13 @@ def test_held_file_is_written_once(tmp_path, monkeypatch, capsys):
     A.store("1/core.json", b"CHANGED", "u", led, "k")
     assert "REFUSED" in capsys.readouterr().out
     assert (tmp_path / "1" / "core.json").read_bytes() == b"first" and led["1/core.json"]["sha256"] == first["sha256"]
+
+
+def test_stale_check_names_a_changed_served_row():
+    """Plant: main changes a served CI bound (or moves the row to another trial) after the ruling. The unchanged
+    control must read clean first, else a red plant proves nothing."""
+    import stale_check as S
+    then = {"effect": 0.82, "ci_low": 0.70, "ci_high": 0.96, "scale": "HR"}
+    assert S.diff(then, dict(then, id="PMID 1"), "PMID 1") == {}
+    assert S.diff(then, dict(then, ci_high=0.97, id="PMID 1"), "PMID 1") == {"ci_high": [0.96, 0.97]}
+    assert "id" in S.diff(then, dict(then, id="PMID 2"), "PMID 1")
