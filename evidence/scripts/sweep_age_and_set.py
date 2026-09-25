@@ -52,17 +52,24 @@ def main():
                 row["age"], row["age_override"] = EYE_OVERRIDES[k]
             c["age_" + row["age"]] += 1
         served = V.served_row(pk).get("analysis_set") or ""
-        span = ((a.get("evidence") or {}).get("analysis_set") or {}).get("span")
+        ev_ = a.get("evidence") or {}
+        span = (ev_.get("gap_analysis_set") or ev_.get("analysis_set") or {}).get("span")   # full-text gap span first
         if re.search(r"intention|ITT", served, re.I) and not re.search(r"modified|mITT", served, re.I):
             r = set_reading(span)
             row["served_itt_label"] = {"ITT_STATED": "SUPPORTED", "OTHER_SET_STATED": "CONTRADICTED", "NOT_STATED": "UNSUPPORTED"}[r]
+            src = (a.get("gap_scope") or {}).get("analysis_set_source") if ev_.get("gap_analysis_set") else None
+            if src and src != "OWN_REPORT" and row["served_itt_label"] == "SUPPORTED":
+                row["served_itt_label"] = ("SUPPORTED_BY_OTHER_REPORT" if src.startswith("SAME_TRIAL") else "SUPPORTED") + ("_PLANNED" if src.endswith("PLANNED") else "")
             c["itt_" + row["served_itt_label"]] += 1
         out[k] = row
     n_adult = c["age_STATED"] + c["age_NOT_STATED"] + c["age_FLOOR_REMOVED"]
     n_itt = sum(v for k, v in c.items() if k.startswith("itt_"))
     summ = {"age": {"N": n_adult, "denominator": "adjudicated rows whose question says 'adults'", "STATED": c["age_STATED"], "NOT_STATED": c["age_NOT_STATED"], "FLOOR_REMOVED": c["age_FLOOR_REMOVED"]},
             "served_itt_label": {"N": n_itt, "denominator": "adjudicated rows whose served analysis_set says intention-to-treat (not modified)",
-                                 "SUPPORTED": c["itt_SUPPORTED"], "CONTRADICTED": c["itt_CONTRADICTED"], "UNSUPPORTED": c["itt_UNSUPPORTED"]}}
+                                 "SUPPORTED": c["itt_SUPPORTED"], "SUPPORTED_PLANNED": c["itt_SUPPORTED_PLANNED"],
+                                 "SUPPORTED_BY_OTHER_REPORT": c["itt_SUPPORTED_BY_OTHER_REPORT"],
+                                 "SUPPORTED_BY_OTHER_REPORT_PLANNED": c["itt_SUPPORTED_BY_OTHER_REPORT_PLANNED"],
+                                 "CONTRADICTED": c["itt_CONTRADICTED"], "UNSUPPORTED": c["itt_UNSUPPORTED"]}}
     json.dump({"summary": summ, "rows": out}, open(os.path.join(ROOT, "evidence/sweeps/entry_age_and_analysis_set.json"), "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     print(json.dumps(summ, indent=1))
     print("age not STATED:", {k: v["age"] for k, v in out.items() if v.get("age") not in (None, "STATED")})

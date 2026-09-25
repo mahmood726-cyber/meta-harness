@@ -42,8 +42,26 @@ def main():
         pk = {"key": w["key"], "slug": w["slug"], "question": rev.get("question"), "trial": w["trial"],
               "served_outcome": {k: o.get(k) for k in ("name", "estimand", "population", "timepoint", "served_estimand")},
               "served_row": s["row"], "json_ref": s["json_ref"], "sources": sources(w)}
-        json.dump(pk, open(os.path.join(od, f"{w['key']}.json"), "w", encoding="utf-8"), indent=1)
+        # the FULL packet (with local-only full texts) goes outside the repo, for model prompts; the COMMITTED packet
+        # carries a local-only source as a reference + sha256 only -- its text is not ours to redistribute (an earlier
+        # version committed it; see evidence/DECISIONS.md, 2026-09-24)
+        os.makedirs(LOCAL, exist_ok=True)
+        json.dump(pk, open(os.path.join(LOCAL, f"{w['key']}.json"), "w", encoding="utf-8"), indent=1)
+        pub = dict(pk, sources=[{"ref": s_["ref"], "local_only": True, "text": None,
+                                 "sha256_of_held_file": textrep_sha(s_["ref"]),
+                                 "note": "LOCAL-ONLY source (not open access): text withheld from the committed packet; "
+                                         "re-fetch from evidence/LOCAL_ACQUISITIONS.json and check the sha256"}
+                                if s_["ref"].startswith("evidence/held_local/") else s_ for s_ in pk["sources"]])
+        json.dump(pub, open(os.path.join(od, f"{w['key']}.json"), "w", encoding="utf-8"), indent=1)
     print("packets", len(wl["rows"]))
+
+
+LOCAL = r"C:\mh-lanes\evid-codex\packets_full"
+
+
+def textrep_sha(ref):
+    import hashlib
+    return hashlib.sha256(open(os.path.join(ROOT, ref), "rb").read()).hexdigest()
 
 
 if __name__ == "__main__":

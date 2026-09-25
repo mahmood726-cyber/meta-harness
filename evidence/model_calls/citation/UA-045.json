@@ -1,0 +1,156 @@
+{
+ "schema": "model_call_record/1",
+ "state": "RAN_OK",
+ "model": {
+  "id_requested": "gpt-6-astra",
+  "id_reported": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "params": {
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "project_doc_max_bytes": 0,
+  "output_schema": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "verdict": {
+     "type": "string",
+     "enum": [
+      "RIGHT_ENDPOINT",
+      "WRONG_ENDPOINT",
+      "OUTCOME_NAME_ONLY",
+      "NOTE_NOT_A_SPAN",
+      "CANNOT_TELL"
+     ]
+    },
+    "why": {
+     "type": "string"
+    },
+    "quote": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "key",
+    "verdict",
+    "why",
+    "quote"
+   ]
+  },
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "client": {
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4",
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ]
+ },
+ "request_utc": "2026-09-24T22:34:47Z",
+ "response_utc": "2026-09-24T22:34:58Z",
+ "caller": {
+  "file": "evidence/scripts/codex_job.py",
+  "line": 82,
+  "purpose": "evidence lane citation job for row UA-045 (brief evidence/CITATION_BRIEF.md)",
+  "lane": "evid/evidence-records",
+  "kind": "citation",
+  "key": "UA-045"
+ },
+ "input_digests": [
+  {
+   "ref": "evidence/CITATION_BRIEF.md",
+   "sha256": "9c9811a88bbc7c1c3ce0ce8187dde0164a4620c18b0f19941a65ef54e4377dda",
+   "what": "task brief"
+  },
+  {
+   "ref": "evidence/packets/UA-045.json",
+   "sha256": "828b4de41ca9a256722c0986014c76cfc1e86f97d598f4fa4556025964969a39",
+   "what": "the row's held sources, rendered"
+  },
+  {
+   "ref": "served-row citation extract (evidence/sweeps/compat_endpoint_citation_u23.json row)",
+   "sha256": "55997b79748204a19bbc4e2cf824610905254733ed8b68a08c97fca731b093b6",
+   "what": "the served citation and outcome to judge"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "ef3fbc1c7165f55976c2066c398c8add61bf2d69275abaeab9aa4c58aeed0a0a",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "prompt": {
+  "sha256": "65c97bdba1e0ff50755d51142efab01068cd98e1c209a4754b0bd11bcbc00484",
+  "bytes": 175076,
+  "b64": null,
+  "note": "prompt bytes withheld (may contain local-only full text); full record kept locally"
+ },
+ "response": {
+  "b64": "eyJrZXkiOiJVQS0wNDUiLCJ2ZXJkaWN0IjoiV1JPTkdfRU5EUE9JTlQiLCJ3aHkiOiJUaGUgY2l0YXRpb24gZGVmaW5lcyB0aGUgcHJpbWFyeSBjb21wb3NpdGUgb2YgbWVjaGFuaWNhbCB2ZW50aWxhdGlvbiBvciBkZWF0aCBieSBkYXkgMjgsIHdoZXJlYXMgdGhlIHNlcnZlZCBvdXRjb21lIGlzIHNlcmlvdXMgYWR2ZXJzZSBldmVudHMuIiwicXVvdGUiOiJUaGUgcHJpbWFyeSBvdXRjb21lIHdhcyBtZWNoYW5pY2FsIHZlbnRpbGF0aW9uIG9yIGRlYXRoIGJ5IGRheSAyOC4ifQ==",
+  "sha256": "beef399017709448b0ac0445a4f05ebc6001b6ce776fa227b658d41389b7bd73",
+  "bytes": 271
+ },
+ "client_evidence": {
+  "header": {
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "approval": "never",
+   "sandbox": "read-only",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "session id": "01a0d58e-a011-7671-9562-448bbc7b0344",
+   "tokens used": "61,904",
+   "client banner": "v0.153.4"
+  },
+  "stdout_sha256": "79c0ac64b50472416494c86b4aabeb7724efbe4a976994f2b9731e5f38371a1e",
+  "stdout_bytes": 272,
+  "stderr_sha256": "b61b981ded8f1c204566f47be7c3d147255b4fef8052dfabd955dffc275cc2ed",
+  "stderr_bytes": 175629,
+  "note": "raw client streams are hashed, not stored: they carry a local path (workdir) and echo the prompt; the header's model/provider/effort/session are copied above"
+ },
+ "record_id": "mc-12196c37f967396812e853bda03226cf"
+}

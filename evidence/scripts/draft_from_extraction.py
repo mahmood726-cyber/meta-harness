@@ -9,14 +9,29 @@ import json, os, re, sys
 sys.path.insert(0, os.path.dirname(__file__))
 import verify_records as V
 ROOT = V.ROOT
-ITT = re.compile(r"intention[- ]to[- ]treat|all randomi[sz]ed (participants|patients|subjects)", re.I)
+ITT = re.compile(r"intent(?:ion)?[-‐‑–\s]to[-‐‑–\s]treat|\bITT\b|all randomi[sz]ed (participants|patients|subjects)"
+                 r"|among (the|all)? ?[\d,  ]+ randomi[sz]ed (participants|patients|subjects)|randomi[sz]ed set", re.I)
+RESTRICT = re.compile(r"at least (one|1) (dose|tablet|capsule|injection|infusion)|who (took|received) (at least|any)|≥ ?1"
+                      r"|available|who (had|have)|modified|\bmITT\b|treated set|excluded from the analysis|with the exception"
+                      r"|non-missing|but the following|exclusions?\b", re.I)
+SET_WORDS = re.compile(r"analysis set|population|analy[sz]ed|analys[ie]s|per[- ]protocol|modified|\bmITT\b|available|\bFAS\b|treated set"
+                       r"|at least (one|1)|excluded|data from|allocated treatment|intent|\bITT\b|randomi[sz]ed set", re.I)
 
 
 def set_reading(span):
+    """Clause by clause: a clause naming ITT/all-randomised with no restriction IN THAT CLAUSE states ITT (so
+    'ITT analysis of 214 ... and per-protocol analysis of 172' is ITT, but 'ITT ... on the available participants' is
+    not). A span with no analysis-set vocabulary at all (a bare denominator line) states NO set."""
     if not span:
         return "NOT_STATED"
-    if ITT.search(span) and not re.search(r"at least (one|1) dose|≥ ?1|available|who (had|have)|per[- ]protocol|modified", span, re.I):
+    clauses = re.split(r";|\band\b(?= (?:a )?per[- ]protocol)|\. ", span)
+    # a restriction anywhere restricts the set a following label sentence names ('...non-missing endpoint. Intent-to-
+    # treat population.'); only a restriction confined to a separate per-protocol clause leaves an ITT clause standing
+    restricted = any(RESTRICT.search(c) and not re.search(r"per[- ]protocol", c, re.I) for c in clauses)
+    if not restricted and any(ITT.search(c) for c in clauses):
         return "ITT_STATED"
+    if not SET_WORDS.search(span):
+        return "NOT_STATED"
     return "OTHER_SET_STATED"
 
 

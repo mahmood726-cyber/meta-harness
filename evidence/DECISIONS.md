@@ -1,0 +1,12 @@
+# Lane decisions
+
+| date (UTC) | decision | who | basis |
+|---|---|---|---|
+| 2026-09-24 ~21:10 | Purge 15 leaked codex transcripts from the history of the public branch `evid/evidence-records` (filter-branch; force-push with lease on this branch only) | Mahmood answered the lane's question: the recommended option | a data leak of private workspace content; main never contained it |
+| 2026-09-24 ~22:20 | Stop this lane's work on the 53 P5 populations and the count rows; hand off to Evidence lane two (`evidence/handover/EVID2_HANDOFF.md`) | owner instruction relayed by the main lane | avoid duplication |
+| 2026-09-24 ~22:20 | Codex runs only in minimal job trees (`LANE_CONTEXT.md`, `-s workspace-write`, `-C <job dir>`); transcripts never enter the repo; every call is logged in `evidence/CODEX_CALLS.jsonl` with counts of private-file mentions | decided by the lane under delegated authority, 2026-09-24 | the main lane's hygiene report, plus this lane's leak |
+| 2026-09-24 ~22:20 | The separate landing clone was deleted (2.3 GB; C: had 1.5 GB free); landings run from the worktree | decided by the lane under delegated authority, 2026-09-24 | disk |
+| 2026-09-24 ~23:00 | Committed packets stop carrying the text of local-only (not open-access) full texts: 11 packets had embedded it (one on main since 94652932); the text is removed at the tip on the branch and, on landing, on main; main's history is NOT rewritten | decided by the lane under delegated authority, 2026-09-24 | publisher text, not private data; the repo already carries comparable cache/*/ft_*.txt files; rewriting main would disrupt every lane |
+| 2026-09-24 ~23:00 | Every model call now goes through the repository's recorded contract (reproducible_ai.model_call_live.call: --ignore-user-config, project_doc_max_bytes=0, read-only, empty dir with LANE_CONTEXT.md, strict schema); the committed record withholds prompt bytes (sha256 kept) because prompts may contain local-only text | decided by the lane under delegated authority, 2026-09-24 | main's model-inventory test refused the lane's own runner (CI red on 894f33f0), rightly |
+
+From 2026-09-24 the lane asks no questions: every decision is taken on its own recommended default and recorded here as "decided by the lane under delegated authority, <date>". The one exception is any change to a served number, which is queued for Mahmood's hash-bound signature and never landed.

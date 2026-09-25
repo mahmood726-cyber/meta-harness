@@ -193,3 +193,75 @@ def test_no_control_characters_in_the_lane_scripts():
 def test_a_space_thousands_separator_is_one_number():
     assert V.canon("10 036") == 10036.0 and V.canon("10\u2009036") == 10036.0
     assert V.canon("0.44 0.73") is None      # two numbers are not one
+
+
+def test_analysis_set_reader_recognises_itt_spellings_and_restrictions():
+    """The sweep miscounted two ITT statements as contradicting ITT: one used a Unicode hyphen, one said 'intent-to-treat'."""
+    from draft_from_extraction import set_reading
+    for s in ("Analyses were performed according to the intention\u2010to\u2010treat principle.",
+              "based on the intent-to-treat approach", "All analyses followed the ITT principle."):
+        assert set_reading(s) == "ITT_STATED", s
+    for s in ("ITT analysis was performed on the available participants.",
+              "all randomized patients treated with at least 1 dose of study drug using the intention-to-treat principle",
+              "The primary analysis was conducted using a modified intention\u2010to\u2010treat approach."):
+        assert set_reading(s) == "OTHER_SET_STATED", s
+    assert set_reading(None) == "NOT_STATED"
+
+
+def test_gap_source_scope_is_derived_not_remembered():
+    """A post-hoc tagging step was once wiped by the next run of the checker; the scope is now a pure function."""
+    from gap_check import source_scope
+    assert source_scope("evidence/held_local/12345/PMC1.html", "ITT was used.", "12345") == "OWN_REPORT"
+    assert source_scope("evidence/held/999/PMC2.xml", "ITT was used.", "12345") == "SAME_TRIAL_OTHER_REPORT"
+    assert source_scope("evidence/held/999/PMC2.xml", "Analyses will be conducted on an ITT basis.", "12345") == "SAME_TRIAL_OTHER_REPORT_PLANNED"
+    assert source_scope("evidence/held/registry/NCT1.json", "FAS", "12345") == "OWN_REPORT"
+
+
+def test_a_took_at_least_one_tablet_restriction_is_not_plain_itt():
+    from draft_from_extraction import set_reading
+    s = "the primary analyses for efficacy will be based on time to first event ... in all randomized patients who took at least 1 tablet of their assigned trial medication"
+    assert set_reading(s) == "OTHER_SET_STATED"
+
+
+# The lane's EYE LABELS for real spans (read 2026-09-24, before this reader was rewritten). Fixture, not tuning:
+# any future reader change must keep these; a new eye-labelled case is added, never an old one edited to fit.
+EYE_LABELLED = [
+    ("We performed intention-to-treat (ITT) analysis of data from 214 patients and per-protocol (PP) analysis of data from 172 patients.", "ITT_STATED"),
+    ("Among the 152 randomized patients, AF occurred in 26 patients (17%), including 16% of patients in the colchicine group", "ITT_STATED"),
+    ("RESULT OUTCOME 2 DENOM Participants: Eplerenone=111; Placebo=110", "NOT_STATED"),
+    ("Intention-to-treat (ITT) analysis was performed on the available participants.", "OTHER_SET_STATED"),
+    ("The primary analysis was conducted using a modified intention\u2010to\u2010treat approach.", "OTHER_SET_STATED"),
+    ("POPULATION: (mITT) modified Intent To Treat Analysis Set", "OTHER_SET_STATED"),
+    ("Analyses were based on allocated treatment and included data from 246 children.", "OTHER_SET_STATED"),
+    ("There were 532 patients who were excluded from the analysis (486 patients subsequently refused to provide consent", "OTHER_SET_STATED"),
+    ("Outcomes were analyzed in all randomized patients treated with at least 1 dose of study drug (treated set) using the intention-to-treat principle.", "OTHER_SET_STATED"),
+    ("All analyses were performed according to the intention-to-treat principle.", "ITT_STATED"),
+    ("POPULATION: Randomized set - The randomized set includes all randomized subjects in the treatment groups to which they were randomized", "ITT_STATED"),
+    # second eye pass (the SUPPORTED spans), 2026-09-24
+    ("All randomized participants with a non-missing primary endpoint (n/N: 59/2609; 71/2635, in apixaban, enoxaparin/warfarin, respectively). Intent-to-treat population.", "OTHER_SET_STATED"),
+    ("Full Analysis Set (FAS) included all randomized patients but the following two exclusions: 6 patients who did not qualify for randomization", "OTHER_SET_STATED"),
+    ("All analyses were done on an intention-to-treat basis. For each binary outcome, we calculated risk ratios and 95% CIs", "ITT_STATED"),
+    ("The efficacy objectives were evaluated in all randomized patients using analysis of time from randomization to the first event.", "ITT_STATED"),
+    # 'mITT' matched inside 'comMITTee' (case-insensitive, no word boundary) and flipped PLATO to CONTRADICTED
+    ("Intention To Treat (ITT) analysis of whole population. Events were adjudicated by an endpoint committee. | POPULATION: The population was the full analysis set, which included all randomized patients", "ITT_STATED"),
+]
+
+
+def test_analysis_set_reader_matches_the_lanes_eye_labels():
+    from draft_from_extraction import set_reading
+    wrong = [(s[:60], want, set_reading(s)) for s, want in EYE_LABELLED if set_reading(s) != want]
+    assert wrong == []
+
+
+def test_no_private_workspace_content_in_tracked_evidence_files():
+    """Codex transcripts once leaked the owner's private project index and submission workbook into this public
+    repo (its startup instructions read them). No tracked file under evidence/ may carry that content or a
+    local absolute path to it; transcripts (*.log) are never tracked."""
+    import subprocess, re as _re
+    root = os.path.join(os.path.dirname(__file__), "..")
+    files = subprocess.run(["git", "ls-files", "evidence"], cwd=root, capture_output=True, text=True).stdout.split()
+    assert not [f for f in files if f.endswith(".log")]
+    pat = _re.compile(r"rewrite-workbook|YOUR REWRITE|ProjectIndex[\/]INDEX\.md|C:\\Users\\mahmo|F:\\E156")
+    bad = [f for f in files if f.endswith((".json", ".md", ".txt", ".py")) and
+           pat.search(open(os.path.join(root, f), encoding="utf-8", errors="replace").read())]
+    assert bad == [], bad
