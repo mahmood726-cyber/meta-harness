@@ -306,3 +306,14 @@ def test_stale_check_names_a_changed_served_row():
     assert S.diff(then, dict(then, id="PMID 1"), "PMID 1") == {}
     assert S.diff(then, dict(then, ci_high=0.97, id="PMID 1"), "PMID 1") == {"ci_high": [0.96, 0.97]}
     assert "id" in S.diff(then, dict(then, id="PMID 2"), "PMID 1")
+
+
+def test_find_span_returns_verbatim_render_substring(tmp_path, monkeypatch):
+    """A web copy with plain hyphen/space/quote must map back to the held bytes' own characters (en dash, NBSP,
+    curly quote), and a quote the source does not contain must come back None (plant: a paraphrase)."""
+    import find_span, textrep
+    held = "Methods.\nAnalyses were done in the \u201cfull analysis set\u201d (all randomised\u00a0patients), 2011\u20132014."
+    monkeypatch.setattr(textrep, "render", lambda ref: held)
+    s = find_span.locate("x", 'the "full analysis set" (all randomised patients), 2011-2014')
+    assert s is not None and s in held and "\u2013" in s and "\u00a0" in s
+    assert find_span.locate("x", "the full analysis set included everyone") is None
