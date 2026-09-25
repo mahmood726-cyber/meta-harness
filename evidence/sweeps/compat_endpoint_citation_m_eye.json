@@ -3,12 +3,12 @@
  "note": "lane eye labels; codex unavailable (budget), no blind second opinion on these",
  "labels": {
   "M-01": "WRONG_ENDPOINT",
+  "M-06": "WRONG_ENDPOINT",
+  "M-11": "WRONG_ENDPOINT",
   "M-13": "WRONG_ENDPOINT",
   "M-14": "WRONG_ENDPOINT",
-  "M-06": "BROADER_ENDPOINT (cites 'bleeding events' for major bleeding)",
-  "M-03": "RIGHT_ENDPOINT (names nonvertebral and hip fractures)",
-  "M-04": "RIGHT_ENDPOINT (names nonvertebral and hip fractures)",
-  "M-11": "RIGHT_ENDPOINT (bleeding events ~ any bleeding)",
+  "M-03": "WRONG_VALUE_RIGHT_SPAN",
+  "M-04": "WRONG_VALUE_RIGHT_SPAN",
   "M-02": "NOTE_NOT_A_SPAN",
   "M-05": "OUTCOME_NAME_ONLY",
   "M-07": "OUTCOME_NAME_ONLY",
@@ -17,5 +17,15 @@
   "M-10": "OUTCOME_NAME_ONLY",
   "M-12": "OUTCOME_NAME_ONLY",
   "M-15": "OUTCOME_NAME_ONLY"
- }
+ },
+ "question": "Does the served row's compat_dimensions.endpoint_definition citation define the SERVED outcome's endpoint? (same question and field as compat_endpoint_citation_u23.json / _s16_eye.json)",
+ "population": {
+  "N": 15,
+  "denominator": "M rows (served rows added to the worklist 2026-09-25)"
+ },
+ "label_notes": {
+  "WRONG_VALUE_RIGHT_SPAN": "the served value is 'primary end point was new vertebral fracture' (FREEDOM's primary); the cited span continues 'Secondary end points included nonvertebral and hip fractures', which names the served endpoint, but the served value does not",
+  "M-06/M-11": "both cite RE-COVER's primary outcome (recurrent VTE and related deaths) for a bleeding row"
+ },
+ "correction_of_record": "the first version of this file (commit 4f00b75b) labelled M-06 BROADER_ENDPOINT, M-11/M-03/M-04 RIGHT_ENDPOINT: it was labelled from the served row's source_span (the RESULT sentence), not from compat_dimensions.endpoint_definition, the field this sweep audits. Relabelled from the right field; the pre-context-reset eye labels for M-06/M-11 (WRONG_ENDPOINT) were correct."
 }
