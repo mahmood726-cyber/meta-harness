@@ -1,12 +1,12 @@
 """Morning report, every number computed from the adjudication files and the verification ledger (none typed by
-hand). Usage: python report.py OUT.md [--since COMMIT]"""
+hand). Usage: python report.py OUT.md [--since COMMIT] [--notes NOTES.md]"""
 import json, os, sys, glob, collections, subprocess, datetime
 sys.path.insert(0, os.path.dirname(__file__))
 import textrep
 ROOT = textrep.ROOT
 
 
-def main(out, since=None):
+def main(out, since=None, notes=None):
     wl = json.load(open(os.path.join(ROOT, "evidence/worklist.json"), encoding="utf-8"))["rows"]
     ver = json.load(open(os.path.join(ROOT, "evidence/extractions/verification.json"), encoding="utf-8"))
     adj = {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8"))
@@ -139,9 +139,18 @@ def main(out, since=None):
           f"{sum(1 for v in json.load(open(os.path.join(ROOT, 'evidence/LOCAL_ACQUISITIONS.json'), encoding='utf-8')).values() if isinstance(v, dict) and v.get('sha256'))}"
           "; URL and sha256 in "
           "evidence/LOCAL_ACQUISITIONS.json.", ""]
+    if notes:   # blockers / next are judgement, not counts: kept apart and labelled as the lane's own words
+        L[4:4] = ["## Blockers and next (the lane's notes, hand-written; not computed)", "",
+                  open(notes, encoding="utf-8").read().strip(), ""]
+    if since:   # derived from git, never typed: this branch's own commits (first parent: merged-in main/evid2 commits are not this lane's)
+        log = subprocess.run(["git", "log", "--first-parent", "--no-merges", "--reverse", "--format=%h %s", f"{since}..HEAD"],
+                             cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip().splitlines()
+        L[4:4] = [f"## What changed since `{since}` ({len(log)} commits, from git)", ""] + [f"- {l}" for l in log] + [""]
     open(out, "w", encoding="utf-8", newline="\n").write("\n".join(L))
     print("\n".join(L))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    a = sys.argv[1:]
+    opt = lambda f: a[a.index(f) + 1] if f in a else None
+    main(a[0], since=opt("--since"), notes=opt("--notes"))
