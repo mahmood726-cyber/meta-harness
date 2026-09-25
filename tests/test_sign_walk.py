@@ -153,10 +153,10 @@ def test_changed_held_source_refuses_before_command(monkeypatch, capsys):
     monkeypatch.setattr(Path, "read_bytes", read)
     assert walk.main(["--notice", "N20"]) == 1
     output = capsys.readouterr()
-    assert not output.out and "audit source changed" in output.err
+    assert not output.out and "STALE" in output.err  # decision B: a page that no longer serves the judged result
 
 
-def test_already_signed_synthetic_notice_offers_no_signing_command():
+def test_already_signed_synthetic_notice_offers_no_signing_command(monkeypatch):
     # Entirely fictional input in RAM, separate from every clinical notice.
     notice = {
         "slug": "synthetic-signed", "outcome": "Synthetic outcome", "when_utc": "2000-01-01T00:00:00Z",
@@ -174,6 +174,10 @@ def test_already_signed_synthetic_notice_offers_no_signing_command():
                departing_trials=[], recovery_evidence=[])
     audit = {"notices": [row], "decision_groups": []}
     chains = [{"slug": notice["slug"], "outcome": notice["outcome"], "indices": [0], "ok": True, "problems": []}]
+    # Fictional notice: no page exists, so the decision-B guard is replaced by a fictional judgement in RAM only.
+    judgement = {"judgement_id": "TEST-J", "judged_utc": "2000-01-01T00:00:00Z", "served_commit": "0" * 40,
+                 "proposed_commit": "0" * 40, "anchors": [], "before_after": "synthetic", "defects": []}
+    monkeypatch.setattr(walk.notice_anchor, "guard", lambda *a, **k: (judgement, []))
     output = walk.present(audit, [notice], chains, {"TEST": 0}, 1)
     assert "Walk position 1 of 1 audited notices" in output
     assert "Valid for this block." in output

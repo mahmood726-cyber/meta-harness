@@ -15,6 +15,11 @@ exact bytes rendered.
 The signature names sha256 of the rendered block (harness.result_changes.rendered_sha256); the gate recomputes it
 from the served review object, so a signature covers the words and numbers the reviewer saw and nothing else.
 There is no state for 'agreed in advance'.
+A notice audited in registry/notice_adjudication.json (decision B) signs only against its current commit-pinned
+judgement: `sign` then REQUIRES --expect-digest and --judgement, refuses if any anchor of that judgement is DETACHED
+(unverifiable) or the notice is STALE (this tree no longer serves the judged after, membership, rendering or page
+block; scripts/notice_anchor.guard), and records the judgement_id in the signature, so the signature names the
+version that was judged as well as the bytes that were read.
 Both commands accept --notice-index N (zero-based ledger array index), with the slug and outcome selector
 checked against that exact notice. Without it, the substring selector must match exactly one notice.
 """
@@ -30,8 +35,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness import page, result_changes  # noqa: E402
+from scripts import notice_anchor  # noqa: E402
 
 PATH = ROOT / "docs" / "result_changes.json"
+AUDIT = ROOT / "registry" / "notice_adjudication.json"
+
+
+def _judgement_for(n):
+    """The audited row for this notice, or None if the notice was never audited (e.g. the 13 signed at M2)."""
+    if not AUDIT.exists():
+        return None
+    audit = json.loads(AUDIT.read_text(encoding="utf-8"))
+    rows = [r for r in audit.get("notices") or [] if all(r.get(k) == n.get(k) for k in ("slug", "outcome", "when_utc"))]
+    if len(rows) > 1:
+        sys.exit("refused: the notice matches more than one audited row")
+    return rows[0] if rows else None
 
 
 def _notice(slug: str, outcome_sub: str, notice_index: int | None = None):
@@ -85,6 +103,19 @@ def sign(args):
     expected = getattr(args, "expect_digest", None)
     if expected is not None and expected != sha:
         sys.exit(f"refused: rendered digest mismatch; expected {expected}; actual {sha}; nothing written")
+    row = _judgement_for(n)
+    judgement_id = None
+    if row is not None:
+        if expected is None or not getattr(args, "judgement", None):
+            sys.exit("refused: this notice is audited (decision B); sign names --expect-digest AND --judgement; nothing written")
+        try:
+            judgement, _ = notice_anchor.guard(ROOT, row, n, block, sha)
+        except notice_anchor.AnchorRefused as error:
+            sys.exit(f"refused: {error}; nothing written")
+        if args.judgement != judgement["judgement_id"]:
+            sys.exit(f"refused: --judgement {args.judgement} is not this notice's current judgement "
+                     f"{judgement['judgement_id']}; nothing written")
+        judgement_id = judgement["judgement_id"]
     ann = _annotated(n)
     if args.batch and ann.get("conclusion_changed"):
         sys.exit(f"refused: this notice withdraws a conclusion ({ann['conclusion_changed']}); a batch signature does not cover it")
@@ -95,6 +126,8 @@ def sign(args):
         sys.exit("refused: --basis is empty; a signature whose basis is not recorded is an override wearing a signature")
     if args.batch:
         sig["batch_id"] = args.batch
+    if judgement_id:
+        sig["judgement_id"] = judgement_id
     n["reviewer_countersignature"] = sig
     json.dump(data, open(PATH, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     open(PATH, "a", encoding="utf-8").write("\n")
@@ -114,6 +147,7 @@ def main(argv=None) -> int:
     g.add_argument("--batch"); g.add_argument("--when")
     g.add_argument("--notice-index", type=int, help="exact zero-based index in the ledger; slug/outcome must also match")
     g.add_argument("--expect-digest", help="sha256 of the rendered block the reviewer saw; mismatch refuses without writing")
+    g.add_argument("--judgement", help="judgement_id the walker presented (registry/notice_adjudication.json); required for audited notices")
     g.set_defaults(fn=sign)
     args = ap.parse_args(argv)
     args.fn(args)

@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness import result_changes  # noqa: E402
 from scripts import countersign_result_change as countersign  # noqa: E402
+from scripts import notice_anchor  # noqa: E402
 
 AUDIT = ROOT / "registry" / "notice_adjudication.json"
 
@@ -68,7 +69,12 @@ def load_walk() -> tuple[dict, list[dict], list[dict], dict[str, int]]:
             f"{chain['slug']} / {chain['outcome']}: {', '.join(chain['problems'])}"
             for chain in chains if not chain["ok"]))
     mapping = {}
-    source_paths = set()
+    # Decision B: every anchor names the version judged; a working-tree anchor refuses outright.
+    for ref in audit["source_digests"]:
+        notice_anchor.parse(ref)
+    if audit["source_digests"] != notice_anchor.source_digest_map(audit):
+        raise ValueError("source_digests are not exactly the anchors of the current judgements; "
+                         "anchors change only by appending a judgement (scripts/notice_rejudge.py)")
     for row in audit["notices"]:
         matches = [i for i, notice in enumerate(notices)
                    if all(notice[k] == row[k] for k in ("slug", "outcome", "when_utc"))]
@@ -83,7 +89,6 @@ def load_walk() -> tuple[dict, list[dict], list[dict], dict[str, int]]:
         if set(result_changes.REQUIRED) - set(live):
             raise ValueError(f"{row['audit_id']}: incomplete notice")
         mapping[row["audit_id"]] = index
-        source_paths.update(row["page_evidence"][key] for key in ("review_path", "html_path"))
     # A new unaudited OPEN notice cannot silently disappear from this walk.
     for index, notice in enumerate(notices):
         state = (notice.get("reviewer_countersignature") or {}).get("state", "OPEN")
@@ -91,14 +96,13 @@ def load_walk() -> tuple[dict, list[dict], list[dict], dict[str, int]]:
             raise ValueError(f"ledger index {index}: unrecognised signature state")
         if state == "OPEN" and index not in mapping.values():
             raise ValueError(f"ledger index {index}: OPEN notice has no adjudication in registry/notice_adjudication.json; refresh audit")
-    # Also retain the evidence underpinning n41's explicitly named source conflict.
-    source_paths.update(conflict["cache_path"] for conflict in audit.get("specific_conflicts", {}).values())
-    for relative in sorted(source_paths):
-        path = (ROOT / relative).resolve()
-        if not path.is_relative_to(ROOT.resolve()):
-            raise ValueError("audit source path escapes repository")
-        if hashlib.sha256(path.read_bytes()).hexdigest() != audit["source_digests"][relative]:
-            raise ValueError(f"audit source changed: {relative}; refresh registry/notice_adjudication.json")
+    # Decision B, for every audited notice: each pinned anchor verifies (else DETACHED), and this tree still serves
+    # what was judged -- the after tuple, the pooled membership, the signing digest and the rendered block in the
+    # page (else STALE). Either refuses the whole walk; only an appended re-judgement clears it, never a digest edit.
+    for row in audit["notices"]:
+        notice = notices[mapping[row["audit_id"]]]
+        _, block, sha = countersign._block_and_sha(notice)
+        notice_anchor.guard(ROOT, row, notice, block, sha)
     ordered_notices(audit)  # Validate the complete queue before presenting a command.
     return audit, notices, chains, mapping
 
@@ -143,8 +147,16 @@ def present(audit: dict, notices: list[dict], chains: list[dict], mapping: dict[
     chain = next(c for c in chains if (c["slug"], c["outcome"]) == (notice["slug"], notice["outcome"]))
     chain_position = chain["indices"].index(index) + 1
     _, block, sha = countersign._block_and_sha(notice)
+    judgement, drifted = notice_anchor.guard(ROOT, row, notice, block, sha)
     lines = [f"Walk position {position} of {len(ordered)} audited notices (fixed order; no automatic advance).",
              f"{row['audit_id']}: {notice['slug']} / {notice['outcome']}",
+             f"Judged version (decision B): judgement {judgement['judgement_id']} on {judgement['judged_utc']} -- "
+             f"served page git:{judgement['served_commit'][:12]}, page carrying the notice "
+             f"git:{judgement['proposed_commit'][:12]}; {len(judgement['anchors'])} of {len(judgement['anchors'])} "
+             "commit-pinned anchors verified; this tree still serves the judged after, pooled membership and "
+             "rendered block. Before -> after as judged: " + judgement["before_after"],
+             ("Rebuilt since judgement (disclosed; the checks above still hold): " + "; ".join(drifted)) if drifted
+             else "No judged file differs in this tree.",
              f"Ledger index {index} (zero-based); recorded {notice['when_utc']}.",
              f"Outcome chain: notice {chain_position} of {len(chain['indices'])} notices for this exact (slug, outcome)."]
     for offset, prior_index in enumerate(chain["indices"][:chain_position - 1], 1):
@@ -180,6 +192,9 @@ def present(audit: dict, notices: list[dict], chains: list[dict], mapping: dict[
             lines.append(f"Shared argument is presented at {group['members'][0]}; to read it here, explicitly rerun "
                          f"python scripts/sign_walk.py --notice {row['audit_id']} --show-group-reason. "
                          "No prior reading is assumed or recorded.")
+    for defect in judgement.get("defects") or []:
+        lines.append(f"RE-JUDGEMENT DEFECT ({judgement['judgement_id']}; the lane's finding, not Mahmood's decision): "
+                     + defect)
     lines += ["HARNESS-TEAM ADJUDICATION (recommendation, not Mahmood's decision): " + row["recommendation_reason"],
               "HARNESS-TEAM RECOMMENDATION: " + row["recommendation"],
               "Departing-trial adjudication and held evidence (harness-team audit):"]
@@ -212,6 +227,7 @@ def present(audit: dict, notices: list[dict], chains: list[dict], mapping: dict[
                   "in PowerShell. --basis prompts him to describe what he actually read:",
                   "python scripts/countersign_result_change.py sign " + _ps(notice["slug"]) + " " + _ps(notice["outcome"])
                   + f" --notice-index {index} --expect-digest {sha} --by 'Mahmood'"
+                  + f" --judgement {judgement['judgement_id']}"
                   + " --basis (Read-Host 'Describe how this notice reached you and what you read')"]
     lines += [d01(), "STOP. No signature or progress state was written. Another notice requires another explicit invocation."]
     return "\n\n".join(lines)
