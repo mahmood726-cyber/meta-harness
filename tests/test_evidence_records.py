@@ -262,6 +262,8 @@ EYE_LABELLED = [
     ("Amputation events occurring at any time point prior to final follow-up, for all randomised participants regardless of whether the participant remained on the study drug, were captured", "ITT_STATED"),
     # COLCOT SAP: the ITT definition is preceded by an exclusion of erroneously randomised subjects from ALL populations
     ("Subjects who were not eligible for randomization but who have been erroneously randomized into the study will be excluded from all analysis populations. The ITT population will consist of all randomized subjects", "OTHER_SET_STATED"),
+    # CLEAR (NEJM 2025, repository PDF; the text layer hyphenates 'evalu- ated'): analysed as randomised = ITT
+    ("For the primary analysis, patients were evalu- ated according to the groups to which they were randomly assigned.", "ITT_STATED"),
 ]
 
 

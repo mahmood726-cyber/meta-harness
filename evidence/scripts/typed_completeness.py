@@ -25,8 +25,13 @@ def main():
         rows[w["key"]] = {f: ("RULING_SPAN" if ev.get(f) else
                               "GAP_VERIFIED" if isinstance(g.get(f), dict) and g[f].get("state") == "VERIFIED" else
                               (a.get("unbound_reasons") or {}).get(f) or "UNBOUND") for f in FIELDS}
+    # an unbound field carries a coded reason in the ruling's unbound_reasons: "<CODE>: <what was searched / why>".
+    # CODES: BLOCKED (the only source stating it is paywalled / bot-checked; not bypassed), NOT_STATED (no authentic
+    # source found states it), STATED_FOR_OTHER_ESTIMATE (a source states it, but for a different analysis than the
+    # served number), INFERRED_ONLY (derivable by combining statements, never stated; not bound). No code = UNBOUND.
+    codes = ("BLOCKED", "NOT_STATED", "STATED_FOR_OTHER_ESTIMATE", "INFERRED_ONLY")
     c = {f: collections.Counter("BOUND" if v[f] in ("RULING_SPAN", "GAP_VERIFIED") else
-                                "NOT_STATED_IN_ANY_AUTHENTIC_SOURCE_FOUND" if str(v[f]).startswith("NOT_STATED") else "UNBOUND"
+                                next((k for k in codes if str(v[f]).startswith(k + ":")), "UNBOUND_NO_REASON")
                                 for v in rows.values()) for f in FIELDS}
     out = {"population": {"N_scope": n_scope, "set_aside": set_aside, "N": len(rows),
                           "denominator": "U23+S16+M rows bound (not set aside)"},

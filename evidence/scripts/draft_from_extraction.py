@@ -14,7 +14,8 @@ ITT = re.compile(r"intent(?:ion)?\s?[-‐‑–\s]\s?to\s?[-‐‑–\s]\s?treat
                  r"|among (the|all)? ?[\d,  ]+ randomi[sz]ed (participants|patients|subjects)|randomi[sz]ed set"
                  r"|all (unique )?randomi[sz]ed (participants|patients|subjects)"
                  r"|all (the )?(patients|participants|subjects) who (underwent randomi[sz]ation|were randomi[sz]ed|have been randomi[sz]ed)"
-                 r"|all those (participants|patients|subjects) allocated at randomi[sz]ation", re.I)
+                 r"|all those (participants|patients|subjects) allocated at randomi[sz]ation"
+                 r"|according to the groups? to which they were (randomly assigned|randomi[sz]ed)", re.I)
 RESTRICT = re.compile(r"at least (one|1) (dose|tablet|capsule|injection|infusion)|who (took|received) (at least|any)|≥ ?1"
                       r"|available|who (had|have)(?! been randomi[sz]ed)|modified|\bmITT\b|treated set|excluded from the analysis|with the exception"
                       r"|non-missing|but the following|exclusions?\b|with valid informed consent|complete[- ]case"
