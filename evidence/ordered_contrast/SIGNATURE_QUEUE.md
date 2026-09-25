@@ -39,7 +39,7 @@ label), and `harness/pipeline.py` checks compatibility only **after** pooling (`
 files are certificate-pinned, so any change is a re-release of every page.
 
 **Measured exposure on the SERVED surface** (all 32 live `review.json`, fetched from Pages, not the repo; census script
-`measure_census.py`, output `served_measure_census_2026-09-25.json` sha256 `6601498e472cc23736ac1e19468d7fba0838d140b1bfcceb7af7856fd61bb196`):
+`measure_census.py`, output `served_measure_census_2026-09-25.json` sha256 `e45b02bd89319bc6a299471f17b26a1f67ffa1347a91d37de5cb3879d985a891` (of the committed LF bytes; the first draft of this line bound the CRLF working copy, 6601498e..., which is not what git stores)):
 97 outcomes, 51 pooled, 0 fetch errors.
 
 | pooled measure mix | pools |
