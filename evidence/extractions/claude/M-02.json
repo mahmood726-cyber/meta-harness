@@ -1,0 +1,31 @@
+{
+  "key": "M-02",
+  "verdict": "BOUND",
+  "set_aside_reason": null,
+  "fields": {
+    "population": {"ref": "cache/corticosteroids-cap-mortality/records.json#/records/83", "span": "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"},
+    "endpoint": {"ref": "cache/corticosteroids-cap-mortality/records.json#/records/83", "span": "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment"},
+    "estimate": {"ref": "cache/corticosteroids-cap-mortality/records.json#/records/83", "span": "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."},
+    "ci": {"ref": "cache/corticosteroids-cap-mortality/records.json#/records/83", "span": "OR 1·96, 95% CI 1·31-2·93, p=0·0010"},
+    "analysis_set": null,
+    "treatment_strategy": {"ref": "cache/corticosteroids-cap-mortality/records.json#/records/83", "span": "Patients were randomly assigned (1:1 ratio) to receive either prednisone 50 mg daily for 7 days or placebo."},
+    "follow_up": {"ref": "cache/corticosteroids-cap-mortality/records.json#/records/83", "span": "in-hospital hyperglycaemia needing insulin treatment"}
+  },
+  "absent_reason": {
+    "analysis_set": "No source states the analysis set for the hyperglycaemia estimate. The only analysis-set statement ('analysed by intention to treat') is attached to the primary endpoint (time to clinical stability), so it is not bound here."
+  },
+  "bound_values": {
+    "scale": "OR", "estimate": "1·96", "ci_low": "1·31", "ci_high": "2·93", "ci_level": "95%",
+    "events_t": "76", "n_t": null, "events_c": "43", "n_c": null,
+    "mean_t": null, "sd_t": null, "mean_c": null, "sd_c": null
+  },
+  "served_mismatch": "Scale only: the served number (1.96, 1.31-2.93) equals the source value, but it is an odds ratio (source prints 'OR 1·96') while served_outcome.estimand and served_estimand are RR. Pooling it as an RR would be a scale mismatch; an RR would have to be recomputed from 76/392 vs 43/393 (the arm sizes come from the randomisation sentence, not from the estimate span). Endpoint is specifically in-hospital hyperglycaemia NEEDING INSULIN treatment, not any hyperglycaemia.",
+  "candidate_rejections": [],
+  "entry_population_matches_question": {
+    "value": "YES",
+    "why": "Adults (>=18 y) admitted to hospital with community-acquired pneumonia, randomised to prednisone added to care versus placebo.",
+    "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+    "span": "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
+  },
+  "notes": "Source prints decimals with a middle dot (U+00B7): 1·96, 1·31, 2·93; bound_values keep them as printed. The europepmc_core.json abstract is truncated after the primary result and does not contain the hyperglycaemia sentence; registry NCT00973154 has no results. Arm sizes n=392 (prednisone) and n=393 (placebo) are stated in the randomisation sentence ('the prednisone group (n=392) or the placebo group (n=393)'), not in the estimate span, so n_t/n_c are left null. The served row's source text uses '.' decimals, i.e. it was normalised from the record."
+}

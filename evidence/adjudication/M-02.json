@@ -1,0 +1,292 @@
+{
+ "key": "M-02",
+ "ruling": "CANDIDATE_REJECTED",
+ "reason": "OR served on an RR-declared outcome while the counts that give the RR are printed.",
+ "reviewed_note": "Blum 2015 (prednisone in CAP) hyperglycaemia: the served row is the printed OR 1.96 (1.31-2.93), but the outcome's estimand and served estimand are RR. The source prints the arm counts and the randomised arm sizes, so the declared scale is available as counts. Candidate (OR on an RR outcome) rejected; the trial is kept. Same class as P53-23 (RE-LY). Extraction by a Claude subagent; verified by the lane's gate.",
+ "served_compare": {
+  "state": "MATCH",
+  "served": [
+   1.96,
+   1.31,
+   2.93
+  ],
+  "bound": [
+   1.96,
+   1.31,
+   2.93
+  ],
+  "bound_scale": "OR",
+  "served_scale": "OR",
+  "tolerance": 0.0050000010000000004
+ },
+ "evidence": {
+  "population": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
+  },
+  "endpoint": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment"
+  },
+  "estimate": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."
+  },
+  "ci": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "OR 1·96, 95% CI 1·31-2·93, p=0·0010"
+  },
+  "treatment_strategy": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "Patients were randomly assigned (1:1 ratio) to receive either prednisone 50 mg daily for 7 days or placebo."
+  },
+  "follow_up": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "in-hospital hyperglycaemia needing insulin treatment"
+  },
+  "entry_population_reading": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
+  },
+  "arm_sizes": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "785 patients were randomly assigned to either the prednisone group (n=392) or the placebo group (n=393)"
+  },
+  "counts_and_or": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "span": "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."
+  }
+ },
+ "typed_estimand": {
+  "analysis_set": {
+   "served_label": "intention-to-treat",
+   "source_reading": "NOT_STATED",
+   "absent_reason": "No source states the analysis set for the hyperglycaemia estimate. The only analysis-set statement ('analysed by intention to treat') is attached to the primary endpoint (time to clinical stability), so it is not bound here."
+  },
+  "treatment_strategy": "bound",
+  "follow_up": "bound"
+ },
+ "entry_population": {
+  "extractor_reading": "YES",
+  "extractor_why": "Adults (>=18 y) admitted to hospital with community-acquired pneumonia, randomised to prednisone added to care versus placebo.",
+  "lane_ruling": "ESTABLISHED"
+ },
+ "extractor_mismatch_note": "Scale only: the served number (1.96, 1.31-2.93) equals the source value, but it is an odds ratio (source prints 'OR 1·96') while served_outcome.estimand and served_estimand are RR. Pooling it as an RR would be a scale mismatch; an RR would have to be recomputed from 76/392 vs 43/393 (the arm sizes come from the randomisation sentence, not from the estimate span). Endpoint is specifically in-hospital hyperglycaemia NEEDING INSULIN treatment, not any hyperglycaemia.",
+ "set_aside_reason": null,
+ "proposed_row": {
+  "ai": 76,
+  "n1i": 392,
+  "ci": 43,
+  "n2i": 393,
+  "scale": "RR (from counts)",
+  "derived_rr": 1.772,
+  "note": "denominators = randomised arms; the source does not state a separate analysed set for this harm outcome"
+ },
+ "notice": {
+  "slug": "corticosteroids-cap-mortality",
+  "outcome": "Hyperglycaemia",
+  "trial": "PMID 25608756 (Blum 2015)",
+  "before_row": "OR 1.96 (1.31-2.93) -- an odds ratio on an RR-declared outcome",
+  "after_row": "counts 76/392 vs 43/393 (RR 1.77, derived)",
+  "pooled_effect": "NOT COMPUTED here: moves only on a rebuild after signature",
+  "mechanism": "the printed OR was served though the outcome declares RR and the arm counts are printed",
+  "coordination": "hyperglycaemia is an adverse-event count outcome; Evidence lane two owns TYPED count rows -- this row is served as an effect (OR), so it is in this lane's census; flag to evid2 if its typed-arm work covers it",
+  "state": "QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED"
+ },
+ "served_row_at_adjudication": {
+  "label": "25608756",
+  "id": "PMID 25608756",
+  "effect": 1.96,
+  "ci_low": 1.31,
+  "ci_high": 2.93,
+  "scale": "OR",
+  "source": "abstract effect+CI (OR): The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1.96, 95% CI 1.31-2.93, p=0.0010).",
+  "provenance": "abstract",
+  "derivation": "reported",
+  "selection_rule": "KEEP_REPORTED_EFFECT",
+  "selected_estimator": "published_effect_ci",
+  "alternatives": [],
+  "endpoint_admissibility": "UNBOUND_LEGACY",
+  "endpoint_binding": "unbound_legacy",
+  "verified": "verified",
+  "verify_basis": "effect present in committed source",
+  "design": {
+   "unit_of_randomisation": "INDIVIDUAL",
+   "design": "PARALLEL",
+   "estimator_source": "PUBLISHED_OR",
+   "adjustment_status": "UNRESOLVED",
+   "adjustment_axis": {
+    "status": "UNRESOLVED"
+   },
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+   "basis": [
+    {
+     "source": "AACT designs.intervention_model",
+     "span": "PARALLEL"
+    },
+    {
+     "source": "trial reported estimate label",
+     "span": "OR 1.96, 95% CI 1.31-2.93"
+    }
+   ],
+   "published_alternative": {
+    "effect": 1.96,
+    "ci_low": 1.31,
+    "ci_high": 2.93,
+    "scale": "OR",
+    "adjusted": false,
+    "span": "OR 1.96, 95% CI 1.31-2.93"
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "study_effect": {
+   "effect_estimate": 1.96,
+   "standard_error": 0.2053546116575249,
+   "estimand": "RR",
+   "analysis_population": "UNKNOWN",
+   "randomisation_unit": "INDIVIDUAL",
+   "study_design": "PARALLEL",
+   "estimator_method": "PUBLISHED_OR",
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "source_provenance": {
+    "source": "abstract",
+    "span": "abstract effect+CI (OR): The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1.96, 95% CI 1.31-2.93, p=0.0010)."
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "effect_object": {
+   "reported_label": "OR",
+   "statistical_model": null,
+   "canonical_estimand": "ODDS_RATIO"
+  },
+  "trial_family_id": "NCT00973154",
+  "publication_role": "primary",
+  "analysis_set": "intention-to-treat",
+  "follow_up_window": null,
+  "endpoint_definition": "In-hospital hyperglycaemia needing insulin (pooled with an undefined hyperglycaemia).; DISCLOSED (endpoint is in-hospital hyperglycaemia requiring insulin — a treatment-threshold definition narrower than hyperglycaemia)",
+  "population_age": "not_stated",
+  "intervention_ontology": {
+   "intervention_class": null
+  },
+  "compat_dimensions": {
+   "trial_id": "25608756",
+   "trial_label": "25608756",
+   "analysis_set": {
+    "value": "intention-to-treat",
+    "source": "committed source text",
+    "span": "time to clinical stability defined as time (days) until stable vital signs for at least 24 h, and analysed by intention to treat. This trial is registered with ClinicalTrials.gov, number NCT00973154. FINDINGS: From Dec 1, 2009, to May 21,"
+   },
+   "follow_up_window": {
+    "value": null,
+    "source": "underivable",
+    "span": ""
+   },
+   "endpoint_definition": {
+    "value": "In-hospital hyperglycaemia needing insulin (pooled with an undefined hyperglycaemia).; DISCLOSED (endpoint is in-hospital hyperglycaemia requiring insulin — a treatment-threshold definition narrower than hyperglycaemia)",
+    "source": "docs/definition_audit.json",
+    "span": "In-hospital hyperglycaemia needing insulin (pooled with an undefined hyperglycaemia).; DISCLOSED (endpoint is in-hospital hyperglycaemia requiring insulin — a treatment-threshold definition narrower than hyperglycaemia)"
+   },
+   "population_age": {
+    "value": "not_stated",
+    "source": "committed source text",
+    "span": ""
+   },
+   "intervention_ontology": {
+    "intervention_class": null
+   }
+  },
+  "trial_id": "PMID 25608756",
+  "report_id": "PMID 25608756",
+  "outcome_effect_id": "corticosteroids-cap-mortality::Hyperglycaemia::PMID 25608756::PMID 25608756",
+  "harm_absence_state": "EXTRACTED",
+  "harm_source_reported": true,
+  "family_identity_state": "REGISTRY_ANCHORED",
+  "family_id": "NCT00973154"
+ },
+ "pinned_spans": {
+  "evidence/population": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    535
+   ]
+  },
+  "evidence/endpoint": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    1727
+   ]
+  },
+  "evidence/estimate": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    1727
+   ]
+  },
+  "evidence/ci": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    1850
+   ]
+  },
+  "evidence/treatment_strategy": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    693
+   ]
+  },
+  "evidence/follow_up": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    1774
+   ]
+  },
+  "evidence/entry_population_reading": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    535
+   ]
+  },
+  "evidence/arm_sizes": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    1233
+   ]
+  },
+  "evidence/counts_and_or": {
+   "ref": "cache/corticosteroids-cap-mortality/records.json#/records/83",
+   "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+   "offsets": [
+    1727
+   ]
+  }
+ },
+ "by": "Claude Opus 5.5 (evidence lane evid/evidence-records)",
+ "when_utc": "2026-09-25T07:23:12Z"
+}

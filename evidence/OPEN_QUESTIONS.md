@@ -1,6 +1,6 @@
 # Open questions for Mahmood (method decisions the evidence cannot settle; no number changed)
 
-4 of 92 adjudicated rows carry one.
+4 of 107 adjudicated rows carry one.
 
 - **P53-05**:  SCALE: RECOVERY reports a Cox-model mortality rate ratio; the page pools it with risk ratios/odds ratios from other trials. Whether a rate ratio may be pooled on a risk-ratio scale is a method decision for Mahmood; no number is changed here.
 
