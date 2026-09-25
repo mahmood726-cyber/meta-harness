@@ -10,3 +10,5 @@ The served row's `compat_dimensions.endpoint_definition.span` cites a DIFFERENT 
 - **UA-045** (Serious adverse events): the served citation reads "acebo. Site selection was focused on the inclusion of sites enrolling high-risk and minority populations. The primary outcome was mechanical ventilation or death by day 2..."; the lane's bound endpoint span: "In the safety population, serious adverse events occurred in 38 of 250 patients (15.2%) in the tocilizumab group and 25 of 127 patients (19.7%) in the"
 
 - UA-039: the served note says DAPA-HF's primary includes urgent HF visits; true, but the served number is the registry's exact CV-death-or-HHF analysis (UA-039 adjudication), so the disclosure is stale for this row.
+
+- **S16-14** (EMPA-KIDNEY, Lower-limb amputation): the served endpoint citation is the trial's primary kidney/CV composite, not amputation. Eye label committed before a blind codex verdict (agree 16 of 16 on S16); lane WS flagged the same row.
