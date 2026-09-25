@@ -44,9 +44,9 @@ from reproducible_ai import model_source as ms  # noqa: E402
 
 MODEL = "gpt-6-astra"
 # a second reader must be a different model id; same vendor (OpenAI via codex) -- stated, not hidden
-MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5", "screening_excluded_agree_reader2": "gpt-5.5", "comparator_k_reader2": "gpt-5.5", "regex_label_reader2": "gpt-5.5", "site_label_v2_reader2": "gpt-5.5", "regex_label_deep_reader2": "gpt-5.5", "site_label_deep_reader2": "gpt-5.5", "site_label_ol_reader2": "gpt-5.5", "site_label_ol2_reader2": "gpt-5.5", "site_label_deep2_reader2": "gpt-5.5"}
+MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5", "screening_excluded_agree_reader2": "gpt-5.5", "comparator_k_reader2": "gpt-5.5", "regex_label_reader2": "gpt-5.5", "site_label_v2_reader2": "gpt-5.5", "regex_label_deep_reader2": "gpt-5.5", "site_label_deep_reader2": "gpt-5.5", "site_label_ol_reader2": "gpt-5.5", "site_label_ol2_reader2": "gpt-5.5", "site_label_deep2_reader2": "gpt-5.5", "site_label_ol3_reader2": "gpt-5.5", "site_label_ol4_reader2": "gpt-5.5", "site_label_ol5_reader2": "gpt-5.5", "site_label_deep3_reader2": "gpt-5.5", "site_label_deep4_reader2": "gpt-5.5"}
 EFFORT = "medium"
-BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6, "screening_excluded_agree_reader2": 6, "regex_label": 8, "comparator_k": 1, "comparator_k_reader2": 1, "site_label": 8, "site_label_v2": 8, "regex_label_reader2": 8, "site_label_v2_reader2": 8, "site_label_ol": 8, "regex_label_deep": 8, "site_label_deep": 8, "regex_label_deep_reader2": 8, "site_label_deep_reader2": 8, "site_label_ol2": 8, "site_label_deep2": 8, "site_label_ol_reader2": 8, "site_label_ol2_reader2": 8, "site_label_deep2_reader2": 8}
+BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6, "screening_excluded_agree_reader2": 6, "regex_label": 8, "comparator_k": 1, "comparator_k_reader2": 1, "site_label": 8, "site_label_v2": 8, "regex_label_reader2": 8, "site_label_v2_reader2": 8, "site_label_ol": 8, "regex_label_deep": 8, "site_label_deep": 8, "regex_label_deep_reader2": 8, "site_label_deep_reader2": 8, "site_label_ol2": 8, "site_label_deep2": 8, "site_label_ol_reader2": 8, "site_label_ol2_reader2": 8, "site_label_deep2_reader2": 8, "site_label_ol3": 8, "site_label_ol3_reader2": 8, "site_label_deep3": 8, "site_label_ol4": 8, "site_label_ol5": 8, "site_label_deep4": 8, "site_label_ol4_reader2": 8, "site_label_ol5_reader2": 8, "site_label_deep3_reader2": 8, "site_label_deep4_reader2": 8}
 REC_DIR = ROOT / ms.RECORD_DIR
 Q_DIR = ROOT / ms.PROPOSAL_DIR
 
@@ -381,6 +381,21 @@ CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand
               "site_label_ol_reader2": lambda: [dict(i, task="site_label_ol_reader2") for i in CANDIDATES["site_label_ol"]()],
               "site_label_ol2_reader2": lambda: [dict(i, task="site_label_ol2_reader2") for i in CANDIDATES["site_label_ol2"]()],
               "site_label_deep2_reader2": lambda: [dict(i, task="site_label_deep2_reader2") for i in CANDIDATES["site_label_deep2"]()],
+              "site_label_ol3": lambda: [dict(i, task="site_label_ol3") for i in candidates_site_label()
+                                         if i["pattern"].split(":")[0] in ("comparator_truth.py", "reason_audit.py", "consumer_consistency.py", "index.py", "membership.py", "cites.py", "search_v2.py")],
+              "site_label_ol3_reader2": lambda: [dict(i, task="site_label_ol3_reader2") for i in CANDIDATES["site_label_ol3"]()],
+              "site_label_deep3": lambda: [dict(i, task="site_label_deep3") for i in candidates_site_label_deep()
+                                           if i["pattern"].split(":")[0] in ("comparator_truth.py", "reason_audit.py", "consumer_consistency.py", "index.py", "membership.py", "cites.py", "search_v2.py")],
+              "site_label_ol4": lambda: [dict(i, task="site_label_ol4") for i in candidates_site_label()
+                                         if i["pattern"].split(":")[0] in ("architecture_identity.py", "claimgraph.py", "design_key.py", "scope_identity.py", "trial_family.py", "compat_direction.py", "honest_ratchet.py", "page.py", "registry_first.py", "unit_of_analysis.py", "arm_object.py")],
+              "site_label_ol5": lambda: [dict(i, task="site_label_ol5") for i in candidates_site_label()
+                                         if i["pattern"].split(":")[0] in ("estmeasure.py", "harms.py", "known_missing.py", "lexicon.py", "source_hierarchy.py")],
+              "site_label_deep4": lambda: [dict(i, task="site_label_deep4") for i in candidates_site_label_deep()
+                                           if i["pattern"].split(":")[0] in ("architecture_identity.py", "claimgraph.py", "design_key.py", "scope_identity.py", "trial_family.py", "compat_direction.py", "honest_ratchet.py", "page.py", "registry_first.py", "unit_of_analysis.py", "arm_object.py")],
+              "site_label_ol4_reader2": lambda: [dict(i, task="site_label_ol4_reader2") for i in CANDIDATES["site_label_ol4"]()],
+              "site_label_ol5_reader2": lambda: [dict(i, task="site_label_ol5_reader2") for i in CANDIDATES["site_label_ol5"]()],
+              "site_label_deep3_reader2": lambda: [dict(i, task="site_label_deep3_reader2") for i in CANDIDATES["site_label_deep3"]()],
+              "site_label_deep4_reader2": lambda: [dict(i, task="site_label_deep4_reader2") for i in CANDIDATES["site_label_deep4"]()],
               "site_label_deep2": lambda: [dict(i, task="site_label_deep2") for i in candidates_site_label_deep()
                                            if i["pattern"].split(":")[0] in ("gate.py", "protocol_compiler.py", "absence.py", "registry_multi.py", "pipeline.py")],
               "site_label_ol2": lambda: [dict(i, task="site_label_ol2") for i in candidates_site_label()
@@ -407,7 +422,7 @@ SELECT = {"screening": lambda i: i["rule_decision"] == "include",
           # phase B: X1 'not an RCT' (publication type / design words); a missing pubtype can wrongly exclude a trial
           "screening_excluded_x1": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") == "X1",
           "screening_excluded_reader2": lambda i: True, "screening_excluded_x1_reader2": lambda i: True,
-          "screening_excluded_agree_reader2": lambda i: True, "regex_label": lambda i: True, "comparator_k": lambda i: True, "comparator_k_reader2": lambda i: True, "site_label": lambda i: True, "site_label_v2": lambda i: True, "regex_label_reader2": lambda i: True, "site_label_v2_reader2": lambda i: True, "site_label_ol": lambda i: True, "regex_label_deep": lambda i: True, "site_label_deep": lambda i: True, "regex_label_deep_reader2": lambda i: True, "site_label_deep_reader2": lambda i: True, "site_label_ol2": lambda i: True, "site_label_deep2": lambda i: True, "site_label_ol_reader2": lambda i: True, "site_label_ol2_reader2": lambda i: True, "site_label_deep2_reader2": lambda i: True}
+          "screening_excluded_agree_reader2": lambda i: True, "regex_label": lambda i: True, "comparator_k": lambda i: True, "comparator_k_reader2": lambda i: True, "site_label": lambda i: True, "site_label_v2": lambda i: True, "regex_label_reader2": lambda i: True, "site_label_v2_reader2": lambda i: True, "site_label_ol": lambda i: True, "regex_label_deep": lambda i: True, "site_label_deep": lambda i: True, "regex_label_deep_reader2": lambda i: True, "site_label_deep_reader2": lambda i: True, "site_label_ol2": lambda i: True, "site_label_deep2": lambda i: True, "site_label_ol_reader2": lambda i: True, "site_label_ol2_reader2": lambda i: True, "site_label_deep2_reader2": lambda i: True, "site_label_ol3": lambda i: True, "site_label_ol3_reader2": lambda i: True, "site_label_deep3": lambda i: True, "site_label_ol4": lambda i: True, "site_label_ol5": lambda i: True, "site_label_deep4": lambda i: True, "site_label_ol4_reader2": lambda i: True, "site_label_ol5_reader2": lambda i: True, "site_label_deep3_reader2": lambda i: True, "site_label_deep4_reader2": lambda i: True}
 SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
                   "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles",
                   "outcome_identity": "every candidate CT.gov outcome measure of every topic with a committed "
@@ -449,7 +464,18 @@ SELECTION_RULE = {"screening": "screened records with decision == include on the
                                       "sites were planted after site_label_deep was frozen",
                   "site_label_ol_reader2": "the site_label_ol items, read by a second model (gpt-5.5)",
                   "site_label_ol2_reader2": "the site_label_ol2 items, read by a second model (gpt-5.5)",
-                  "site_label_deep2_reader2": "the site_label_deep2 items, read by a second model (gpt-5.5)"}
+                  "site_label_deep2_reader2": "the site_label_deep2 items, read by a second model (gpt-5.5)",
+                  "site_label_ol3": "site_label's rule for the sites of comparator_truth, reason_audit, consumer_consistency, "
+                                    "index, membership, cites and search_v2 (the other lane's files; read-only)",
+                  "site_label_ol3_reader2": "the site_label_ol3 items, read by a second model (gpt-5.5)",
+                  "site_label_deep3": "site_label_deep's rule (items 16-40 per pool) for the site_label_ol3 files",
+                  "site_label_ol4": "site_label's rule for the batch-4 files (the other lane's; read-only)",
+                  "site_label_ol5": "site_label's rule for the batch-5 files with held-sentence sites (read-only)",
+                  "site_label_deep4": "site_label_deep's rule (items 16-40 per pool) for the batch-4 files",
+                  "site_label_ol4_reader2": "the site_label_ol4 items, read by a second model (gpt-5.5)",
+                  "site_label_ol5_reader2": "the site_label_ol5 items, read by a second model (gpt-5.5)",
+                  "site_label_deep3_reader2": "the site_label_deep3 items, read by a second model (gpt-5.5)",
+                  "site_label_deep4_reader2": "the site_label_deep4 items, read by a second model (gpt-5.5)"}
 FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior",
                "pattern", "sample")
 
@@ -498,7 +524,8 @@ TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reade
          "screening_excluded_x1", "screening_excluded_reader2", "screening_excluded_x1_reader2",
          "screening_excluded_agree_reader2", "regex_label", "comparator_k", "comparator_k_reader2", "site_label", "site_label_v2", "regex_label_reader2", "site_label_v2_reader2", "site_label_ol", "regex_label_deep", "site_label_deep",
          "regex_label_deep_reader2", "site_label_deep_reader2", "site_label_ol2", "site_label_deep2",
-         "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2")
+         "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2", "site_label_ol3", "site_label_ol3_reader2", "site_label_deep3", "site_label_ol4", "site_label_ol5", "site_label_deep4",
+         "site_label_ol4_reader2", "site_label_ol5_reader2", "site_label_deep3_reader2", "site_label_deep4_reader2")
 # retired: kept as the record of what ran (a frozen population is never edited); never run again
 RETIRED_TASKS = ("site_label",)
 SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1",
@@ -529,7 +556,17 @@ N_NAME = {"screening": "screened-in records across committed review pages",
           "site_label_deep2": "held texts 16-40 per pool for the site_label_ol2 sites",
           "site_label_ol_reader2": "the site_label_ol texts, second reader",
           "site_label_ol2_reader2": "the site_label_ol2 texts, second reader",
-          "site_label_deep2_reader2": "the site_label_deep2 texts, second reader"}
+          "site_label_deep2_reader2": "the site_label_deep2 texts, second reader",
+          "site_label_ol3": "sampled held texts per labellable site of the batch-3 files",
+          "site_label_ol3_reader2": "the site_label_ol3 texts, second reader",
+          "site_label_deep3": "held texts 16-40 per pool for the site_label_ol3 sites",
+          "site_label_ol4": "sampled held texts per labellable site of the batch-4 files",
+          "site_label_ol5": "sampled held texts per labellable site of the batch-5 files",
+          "site_label_deep4": "held texts 16-40 per pool for the batch-4 sites",
+          "site_label_ol4_reader2": "the site_label_ol4 texts, second reader",
+          "site_label_ol5_reader2": "the site_label_ol5 texts, second reader",
+          "site_label_deep3_reader2": "the site_label_deep3 texts, second reader",
+          "site_label_deep4_reader2": "the site_label_deep4 texts, second reader"}
 
 
 def check_unique_ids(task: str, items: list) -> None:
@@ -652,7 +689,7 @@ def _schema(task: str) -> dict:
         return {"type": "object", "additionalProperties": False, "required": ["items"],
                 "properties": {"items": {"type": "array", "items": it}}}
     if task in ("site_label_v2", "site_label_v2_reader2", "site_label_ol", "site_label_deep", "site_label_deep_reader2",
-                "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
+                "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2", "site_label_ol3", "site_label_ol3_reader2", "site_label_deep3", "site_label_ol4", "site_label_ol5", "site_label_deep4", "site_label_ol4_reader2", "site_label_ol5_reader2", "site_label_deep3_reader2", "site_label_deep4_reader2"):
         it = {"type": "object", "additionalProperties": False, "required": ["item", "states", "quote"],
               "properties": {"item": {"type": "string"}, "states": {"type": "boolean"}, "quote": {"type": ["string", "null"]}}}
         return {"type": "object", "additionalProperties": False, "required": ["items"],
@@ -719,9 +756,9 @@ def batches(task: str, items: list[dict]) -> list[dict]:
                 body = regex_label_prompt(slug, keyed)
             elif task in ("regex_label_reader2", "regex_label_deep_reader2"):
                 body = READER2_HEADER + regex_label_prompt(slug, keyed)
-            elif task in ("site_label", "site_label_v2", "site_label_ol", "site_label_deep", "site_label_ol2", "site_label_deep2"):
+            elif task in ("site_label", "site_label_v2", "site_label_ol", "site_label_deep", "site_label_ol2", "site_label_deep2", "site_label_ol3", "site_label_deep3", "site_label_ol4", "site_label_ol5", "site_label_deep4"):
                 body = site_label_prompt(slug, keyed, strict=(task != "site_label"))
-            elif task in ("site_label_v2_reader2", "site_label_deep_reader2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
+            elif task in ("site_label_ol4_reader2", "site_label_ol5_reader2", "site_label_deep3_reader2", "site_label_deep4_reader2", "site_label_ol3_reader2", "site_label_v2_reader2", "site_label_deep_reader2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
                 body = READER2_HEADER + site_label_prompt(slug, keyed, strict=True)
             elif task == "estimand":
                 vocab = "\n".join(f"  {f}: {', '.join(ms.estimand_vocabulary(f))}" for f in ("analysis_set", "analysis_window"))
@@ -805,7 +842,7 @@ def decision_of(task: str, claim, verification: dict):
     """What a re-ask must reproduce for the proposal to count as stable: the DERIVED decision, not the wording."""
     if task in ("regex_label", "regex_label_reader2", "site_label", "site_label_v2", "site_label_v2_reader2", "site_label_ol",
                 "regex_label_deep", "site_label_deep", "regex_label_deep_reader2", "site_label_deep_reader2",
-                "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
+                "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2", "site_label_ol3", "site_label_ol3_reader2", "site_label_deep3", "site_label_ol4", "site_label_ol5", "site_label_deep4", "site_label_ol4_reader2", "site_label_ol5_reader2", "site_label_deep3_reader2", "site_label_deep4_reader2"):
         return verification.get("label")
     if task in ("comparator_k", "comparator_k_reader2"):
         return [(claim or {}).get("state"), verification.get("k")]
