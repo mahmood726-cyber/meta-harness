@@ -1,5 +1,7 @@
-"""R2 labelling specs (regex_layer/site_detects.py): one per regex site of target_endpoint.py, eligibility_chain.py and
-compat_check.py; each labellable trigger is a superset of the site's accept plants (it is used to sample misses)."""
+"""R2 labelling specs (regex_layer/site_detects.py): one per regex site of target_endpoint.py, eligibility_chain.py,
+compat_check.py and the other lane's files (read only: rob2.py, funding.py, hand_binding.py; gate.py,
+protocol_compiler.py, absence.py, registry_multi.py, pipeline.py); each labellable trigger is a superset of the site's
+accept plants (it is used to sample misses)."""
 from __future__ import annotations
 
 import re
@@ -9,13 +11,23 @@ import pytest
 from regex_layer.site_detects import DETECTS
 from regex_layer.specs import INLINE_SPECS
 
-FILES = ("target_endpoint.py", "eligibility_chain.py", "compat_check.py")
+FILES = ("target_endpoint.py", "eligibility_chain.py", "compat_check.py",   # regex-layer files: 42 sites
+         "rob2.py", "funding.py", "hand_binding.py",                          # other lane, batch 1: 70 sites
+         "gate.py", "protocol_compiler.py", "absence.py", "registry_multi.py", "pipeline.py")  # batch 2: 69 sites
+N_SITES = 42 + 70 + 69
 SITE_KEYS = sorted(k for k in INLINE_SPECS if k.split(":", 1)[0] in FILES)
 
 
 def test_keys_are_exactly_the_planted_sites():
-    assert len(SITE_KEYS) == 42, "the three files should carry 42 planted sites -- the key set would be vacuous"
+    assert len(SITE_KEYS) == N_SITES == 181, "the eleven files should carry 42 + 70 + 69 planted sites"
     assert sorted(DETECTS) == SITE_KEYS
+
+
+def test_every_inventory_site_of_the_eleven_files_has_a_spec():
+    # against the AST inventory, not against INLINE_SPECS itself: a site with no plant cannot drop out of both sides
+    from regex_layer.inventory import sites
+    inv = sorted(s["site"] for s in sites() if s["file"] in FILES)
+    assert len(inv) == N_SITES and inv == SITE_KEYS
 
 
 @pytest.mark.parametrize("site", SITE_KEYS)

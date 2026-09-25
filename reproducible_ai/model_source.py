@@ -478,10 +478,11 @@ def reverify(entry: dict, held_text: str) -> dict:
         return verify_outcome_identity(entry.get("claim"), held_text, prior)
     if task == "locate":
         return verify_locate(entry.get("claim"), held_text, prior)
-    if task in ("regex_label", "regex_label_reader2"):
+    if task in ("regex_label", "regex_label_reader2", "regex_label_deep", "regex_label_deep_reader2"):
         from regex_layer.measure import verify_label     # the regex layer owns its label verifier
         return verify_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
-    if task in ("site_label", "site_label_v2", "site_label_v2_reader2", "site_label_ol"):
+    if task in ("site_label", "site_label_v2", "site_label_v2_reader2", "site_label_ol", "site_label_deep",
+                "site_label_deep_reader2", "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
         from regex_layer.site_measure import verify_site_label     # the regex layer owns its label verifier
         return verify_site_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
     if task in ("comparator_k", "comparator_k_reader2"):

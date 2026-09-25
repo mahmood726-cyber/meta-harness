@@ -11,6 +11,10 @@ No hand-typed numbers: everything comes from the cached source text.
 from __future__ import annotations
 import re
 
+from harness.extract_values import (ArmCounts, ArmHit, ContinuousArms, Effect,  # noqa: E402  R1 typed values
+                                     MeanSDHit, RateArms, RateHit)
+from harness.whole_numbers import whole_numbers  # noqa: E402  R4 refuse number fragments
+
 from . import lexicon
 
 NEG = ("not ", "non-", "non ", "never ", "no ")
@@ -26,8 +30,11 @@ _ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?|subjects?)?\s*[\(
 # "P% (N/M)" — percentage FIRST, then the explicit fraction, e.g. "9% (7/78)". Unambiguous
 # (explicit numerator/denominator; the % corroborates), so safe to accept like _ARM2/_ARM3.
 _ARM4 = re.compile(r"(\d+(?:\.\d+)?)\s*%\s*[\(\[]\s*(\d+)\s*/\s*(\d+)\s*[\)\]]")
-_DENOM_EACH = re.compile(r"(\d+)\s+(?:patients?\s+|were\s+)?(?:randomly\s+)?(?:assigned|allocated|randomi[sz]ed)\s+to\s+each", re.I)
-_NEQ = re.compile(r"n\s*=\s*(\d+)", re.I)
+# RX-D1 fixed: 'patients' and 'were' may BOTH precede 'assigned' ('100 patients were randomly assigned to each');
+# measured radius over every cached record x declared outcome: 0 of 10,098 extractions change (regex_layer/radius.py)
+_DENOM_EACH = re.compile(r"(\d+)\s+(?:patients?\s+)?(?:were\s+)?(?:randomly\s+)?(?:assigned|allocated|randomi[sz]ed)\s+to\s+each", re.I)
+# 'n' must be the word n, not the last letter of one ('P for interactio[n = 0].92' is not n = 0); radius 0 of 10,098
+_NEQ = re.compile(r"(?<![A-Za-z])n\s*=\s*(\d+)", re.I)
 _WORDNUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
             "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
             "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
@@ -140,19 +147,19 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
     for m in _ARM.finditer(sentence):
         ev, pct, n = int(m.group(1)), float(m.group(2)), int(m.group(3))
         if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append((m.start(), ev, n))
+            groups.append(ArmHit(m.start(), ev, n))
     for m in _ARM2.finditer(sentence):
         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
         if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append((m.start(), ev, n))
+            groups.append(ArmHit(m.start(), ev, n))
     for m in _ARM3.finditer(sentence):
         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append((m.start(), ev, n))
+            groups.append(ArmHit(m.start(), ev, n))
     for m in _ARM4.finditer(sentence):  # "P% (N/M)" percentage-first
         pct, ev, n = float(m.group(1)), int(m.group(2)), int(m.group(3))
         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append((m.start(), ev, n))
+            groups.append(ArmHit(m.start(), ev, n))
     if len(groups) < 2 and (denom_each or arm_ns):
         # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept only if a
         # candidate denominator corroborates the stated percentage for that arm. With per-arm arm_ns
@@ -180,7 +187,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
             for (pos, ev, pct), arm in zip(armp, order):
                 d = int(arm_ns[arm])
                 if d > 0 and ev <= d and abs(ev / d * 100 - pct) <= 1.0:
-                    paired.append((pos, ev, d))
+                    paired.append(ArmHit(pos, ev, d))
             if len(paired) == 2:
                 groups.extend(paired)
                 used_reading_order = True
@@ -193,7 +200,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
                         if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
                             best = den
                 if best:
-                    groups.append((pos, ev, best))
+                    groups.append(ArmHit(pos, ev, best))
     # de-duplicate overlapping matches at the same position
     seen, uniq = set(), []
     for g in sorted(groups):
@@ -211,8 +218,8 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
     # assign the two arm-groups to intervention/comparator by reading order
     (p1, e1, n1), (p2, e2, n2) = groups[0], groups[1]
     if i_pos <= c_pos:
-        return (e1, n1, e2, n2)
-    return (e2, n2, e1, n1)
+        return ArmCounts(e1, n1, e2, n2)
+    return ArmCounts(e2, n2, e1, n1)
 
 
 # A genuine person-time / recurrent INCIDENCE-rate ratio leaves a footprint in the source: an event
@@ -238,7 +245,7 @@ def _effect_from_match(m, context=""):
     if "reduction" in kind:  # RRR -> RR
         if not (0 < pt < 1 and 0 < lo < 1 and 0 < hi < 1):
             return None
-        return ("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
+        return Effect("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
     if "incidence rate" in kind:
         scale = "IRR"   # explicit person-time incidence-rate ratio
     elif "rate ratio" in kind:
@@ -252,7 +259,7 @@ def _effect_from_match(m, context=""):
         scale = "RR"
     if not (lo <= pt <= hi):
         return None
-    return (scale, pt, lo, hi)
+    return Effect(scale, pt, lo, hi)
 
 
 def extract_effect(sentence):
@@ -651,6 +658,14 @@ _MED_IQR = re.compile(  # "median X (IQR a-b)" / "median X (IQR a to b)"
     r"median\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:days?|hours?|minutes?|min|points?)?\s*"
     r"[\(\[]\s*(?:IQR|interquartile range)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)", re.I)
 
+# R4: a match whose number is a FRAGMENT of a longer one ('2' of 'n = 2,523', '3' of '7.3', '488' of '48 488') is refused
+# (harness/whole_numbers.py), so the extractor sees no match there and takes its existing refuse / declare-absent path.
+# Only patterns read solely inside this module are wrapped; _EFFECT is also read by absence.py and reason_audit.py and
+# is left as it is (0 fragment matches in every held sentence; regex_layer/partial.py).
+(_ARM, _ARM2, _ARM3, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD, _MED_IQR) = (
+    whole_numbers(_rx) for _rx in (_ARM, _ARM2, _ARM3, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD,
+                                   _MED_IQR))
+
 
 def _arm_ns(abstract, interv_terms, comp_terms):
     """Per-arm randomised n, {i: n_intervention, c: n_comparator}, only when unambiguously stated
@@ -692,12 +707,12 @@ def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
     for m in _MEAN_SD.finditer(sentence):
         mean = float(m.group(1))
         sd = float(m.group(2) or m.group(3))
-        vals.append((m.start(), mean, sd))
+        vals.append(MeanSDHit(m.start(), mean, sd))
     for m in _MED_IQR.finditer(sentence):
         mean = float(m.group(1))
         sd = (float(m.group(3)) - float(m.group(2))) / 1.35  # Wan 2014 IQR->SD
         if sd > 0:
-            vals.append((m.start(), mean, sd))
+            vals.append(MeanSDHit(m.start(), mean, sd))
     if len(vals) < 2 or not n_by_arm:
         return None
     n1, n2 = n_by_arm.get("i"), n_by_arm.get("c")
@@ -710,7 +725,7 @@ def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
         return None
     vals.sort()
     (_, m1, s1), (_, m2, s2) = vals[0], vals[1]
-    return (m1, s1, n1, m2, s2, n2) if i_pos <= c_pos else (m2, s2, n2, m1, s1, n1)
+    return ContinuousArms(m1, s1, n1, m2, s2, n2) if i_pos <= c_pos else ContinuousArms(m2, s2, n2, m1, s1, n1)
 
 
 def extract_rate(sentence, interv_terms, comp_terms):
@@ -723,7 +738,7 @@ def extract_rate(sentence, interv_terms, comp_terms):
         ev = int(m.group(1).replace(",", ""))
         pt = float(m.group(2).replace(",", ""))
         if pt > 0 and ev >= 0:
-            pairs.append((m.start(), ev, pt))
+            pairs.append(RateHit(m.start(), ev, pt))
     if len(pairs) < 2:
         return None
     low = sentence.lower()
@@ -733,7 +748,7 @@ def extract_rate(sentence, interv_terms, comp_terms):
         return None
     pairs.sort()
     (_, e1, t1), (_, e2, t2) = pairs[0], pairs[1]
-    return (e1, t1, e2, t2) if i_pos <= c_pos else (e2, t2, e1, t1)
+    return RateArms(e1, t1, e2, t2) if i_pos <= c_pos else RateArms(e2, t2, e1, t1)
 
 
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):

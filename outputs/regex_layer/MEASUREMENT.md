@@ -6,29 +6,29 @@ Patterns measured: 23 of 23.
 
 | pattern | kind | role in harness/ | measured of frozen | precision | sampled recall | labels stable on re-ask | pools fires / trigger-only |
 |---|---|---|---|---|---|---|---|
-| `_ANCHOR_RX` | classifier | conjunct:_DEF_CUE | 30 of 30 | 11 of 15 | 11 of 11 | 30 of 30 | 879 / 3072 |
-| `_ARM` | extractor | standalone | 30 of 30 | 26 of 27 | 26 of 30 | 30 of 30 | 47 / 4767 |
-| `_ARM2` | extractor | standalone | 30 of 30 | 34 of 34 | 34 of 34 | 30 of 30 | 25 / 196 |
-| `_ARM3` | extractor | standalone | 30 of 30 | 29 of 29 | 29 of 31 | 30 of 30 | 90 / 1555 |
-| `_ARM4` | extractor | standalone | 30 of 30 | 20 of 21 | 20 of 22 | 30 of 30 | 78 / 311 |
-| `_ARMP` | extractor | standalone | 30 of 30 | 19 of 29 | 19 of 21 | 30 of 30 | 605 / 4209 |
-| `_COMPOSITE_ENDPOINT` | classifier | standalone | 30 of 30 | 13 of 15 | 13 of 13 | 29 of 30 | 717 / 4736 |
-| `_DEF_CUE` | classifier | conjunct:_ANCHOR_RX | 30 of 30 | 1 of 15 | 1 of 1 | 30 of 30 | 19533 / 16140 |
-| `_DENOM_EACH` | extractor | standalone | 18 of 18 | 3 of 3 | 3 of 3 | 18 of 18 | 3 / 394 |
-| `_DOSE_ARM` | extractor | dead | 22 of 22 | 21 of 23 | 21 of 22 | 22 of 22 | 1089 / 7 |
-| `_EFFECT` | extractor | standalone | 30 of 30 | 26 of 26 | 26 of 33 | 29 of 30 | 1448 / 940 |
-| `_FACTORIAL` | classifier | standalone | 30 of 30 | 15 of 15 | 15 of 15 | 30 of 30 | 26 / 3465 |
-| `_K` | extractor | standalone | 30 of 30 | 3 of 15 | 3 of 9 | 29 of 30 | 1168 / 3738 |
-| `_MEAN_SD` | extractor | standalone | 30 of 30 | 33 of 34 | 33 of 54 | 29 of 30 | 360 / 138 |
-| `_MED_IQR` | extractor | standalone | 16 of 16 | 1 of 1 | 1 of 18 | 16 of 16 | 1 / 127 |
-| `_MORT_D` | classifier | dead | 30 of 30 | 15 of 15 | 15 of 15 | 30 of 30 | 852 / 84 |
-| `_MORT_Y` | classifier | dead | 15 of 15 | 15 of 15 | 15 of 15 | 15 of 15 | 1410 / 0 |
-| `_NEQ` | extractor | standalone | 30 of 30 | 16 of 22 | 16 of 18 | 30 of 30 | 647 / 226 |
-| `_NULL_RESULT` | classifier | standalone | 30 of 30 | 14 of 15 | 14 of 18 | 30 of 30 | 686 / 4117 |
-| `_RATE_EVPT` | extractor | standalone | 30 of 30 | 0 of 28 | 0 of 1 | 30 of 30 | 15 / 54 |
-| `_RATE_UNIT` | extractor | dead | 30 of 30 | 20 of 25 | 20 of 31 | 29 of 30 | 38 / 473 |
-| `_RECURRENT_PERSONTIME` | classifier | standalone | 30 of 30 | 10 of 15 | 10 of 13 | 30 of 30 | 113 / 1987 |
-| `_SUBGROUP` | classifier | standalone | 30 of 30 | 8 of 15 | 8 of 8 | 30 of 30 | 583 / 2028 |
+| `_ANCHOR_RX` | classifier | conjunct:_DEF_CUE | 80 of 80 | 31 of 40 | 31 of 34 | 80 of 80 | 879 / 3072 |
+| `_ARM` | extractor | standalone | 80 of 80 | 69 of 75 | 69 of 80 | 80 of 80 | 46 / 4768 |
+| `_ARM2` | extractor | standalone | 65 of 65 | 51 of 54 | 51 of 64 | 54 of 65 | 25 / 196 |
+| `_ARM3` | extractor | standalone | 80 of 80 | 72 of 72 | 72 of 83 | 79 of 80 | 90 / 1555 |
+| `_ARM4` | extractor | standalone | 80 of 80 | 62 of 69 | 62 of 66 | 79 of 80 | 78 / 311 |
+| `_ARMP` | extractor | standalone | 80 of 80 | 48 of 79 | 48 of 54 | 80 of 80 | 574 / 4240 |
+| `_COMPOSITE_ENDPOINT` | classifier | standalone | 80 of 80 | 37 of 40 | 37 of 37 | 79 of 80 | 717 / 4736 |
+| `_DEF_CUE` | classifier | conjunct:_ANCHOR_RX | 80 of 80 | 1 of 40 | 1 of 2 | 80 of 80 | 19533 / 16140 |
+| `_DENOM_EACH` | extractor | standalone | 43 of 43 | 3 of 3 | 3 of 4 | 43 of 43 | 3 / 394 |
+| `_DOSE_ARM` | extractor | dead | 47 of 47 | 53 of 60 | 53 of 58 | 47 of 47 | 1089 / 7 |
+| `_EFFECT` | extractor | standalone | 80 of 80 | 69 of 69 | 69 of 82 | 78 of 80 | 1448 / 940 |
+| `_FACTORIAL` | classifier | standalone | 66 of 66 | 23 of 26 | 23 of 23 | 66 of 66 | 26 / 3465 |
+| `_K` | extractor | standalone | 80 of 80 | 11 of 41 | 11 of 27 | 76 of 80 | 1168 / 3738 |
+| `_MEAN_SD` | extractor | standalone | 80 of 80 | 87 of 100 | 87 of 133 | 77 of 80 | 359 / 139 |
+| `_MED_IQR` | extractor | standalone | 41 of 41 | 1 of 1 | 1 of 50 | 41 of 41 | 1 / 127 |
+| `_MORT_D` | classifier | dead | 80 of 80 | 40 of 40 | 40 of 40 | 80 of 80 | 852 / 84 |
+| `_MORT_Y` | classifier | dead | 40 of 40 | 40 of 40 | 40 of 40 | 40 of 40 | 1410 / 0 |
+| `_NEQ` | extractor | standalone | 80 of 80 | 54 of 56 | 54 of 64 | 79 of 80 | 564 / 272 |
+| `_NULL_RESULT` | classifier | standalone | 80 of 80 | 39 of 40 | 39 of 48 | 80 of 80 | 686 / 4117 |
+| `_RATE_EVPT` | extractor | standalone | 55 of 55 | 0 of 0 | 0 of 4 | 55 of 55 | 0 / 69 |
+| `_RATE_UNIT` | extractor | dead | 78 of 78 | 61 of 70 | 61 of 86 | 77 of 78 | 38 / 473 |
+| `_RECURRENT_PERSONTIME` | classifier | standalone | 80 of 80 | 28 of 40 | 28 of 33 | 80 of 80 | 113 / 1987 |
+| `_SUBGROUP` | classifier | standalone | 80 of 80 | 24 of 40 | 24 of 27 | 80 of 80 | 583 / 2028 |
 
 Role: `dead` = no reader in harness/ (its numbers cannot move a served value); `conjunct:P` = read only together with P, so its standalone precision is not its contract.
 

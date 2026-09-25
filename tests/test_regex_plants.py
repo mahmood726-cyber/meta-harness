@@ -137,6 +137,13 @@ def _inline_pattern(site: str):
     fname = site.split(":", 1)[0]
     by_site, tree = _sites_and_tree(fname)
     s = by_site[site]
+    if (s["kind"] == "compiled" and not isinstance(
+            getattr(importlib.import_module(f"harness.{fname[:-3]}"), s["name"] or "", None), re.Pattern)) \
+            or s.get("pattern", "").startswith(("f'", 'f"')):
+        # an unnamed or function-local compile (no module attribute; possibly re.escape(<name>)) or an f-string
+        # pattern (compiled with its spec's "bind"): read through regex_layer.site_measure, from the same AST call
+        from regex_layer.site_measure import site_regex
+        return site_regex(site)
     if s["kind"] == "compiled":
         return getattr(importlib.import_module(f"harness.{fname[:-3]}"), s["name"])
     for node in ast.walk(tree):
@@ -147,12 +154,8 @@ def _inline_pattern(site: str):
                 and getattr(node.func.value, "id", "") == "re" and node.args
                 and ast.unparse(node.args[0]) == s["pattern"]):
             pat = ast.literal_eval(node.args[0])
-            flags = 0
-            for extra in list(node.args[2:]) + [k.value for k in node.keywords if k.arg == "flags"]:
-                for a in ast.walk(extra):
-                    if isinstance(a, ast.Attribute) and getattr(a.value, "id", "") == "re":
-                        flags |= getattr(re, a.attr)
-            return re.compile(pat, flags)
+            from regex_layer.site_measure import call_flags
+            return re.compile(pat, call_flags(node))
     raise AssertionError(f"{site}: not found at line {s['line']}")
 
 
