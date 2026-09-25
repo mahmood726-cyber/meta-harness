@@ -350,3 +350,13 @@ def test_recorded_set_readings_are_current():
         if te["source_reading"] != set_reading(sp):
             stale.append((a["key"], te["source_reading"], set_reading(sp)))
     assert stale == []
+
+
+def test_render_keeps_a_literal_less_than_sign():
+    """Europe PMC abstracts mix real tags with literal '<' ('P<0.001', '<70 kg'). A tag regex that accepts any '<...>'
+    ate FLOW's whole MACE result (from 'P<0.001' to the next '<h4>'). Only real tag syntax may be stripped."""
+    import textrep
+    s = "in the semaglutide group (P<0.001), the risk of major cardiovascular events 18% lower (hazard ratio, 0.82).<h4>Conclusions</h4>Done; weight <70 kg and m<sup>2</sup>."
+    out = textrep._strip(s)
+    assert "(P<0.001), the risk of major cardiovascular events 18% lower (hazard ratio, 0.82)." in out
+    assert "weight <70 kg" in out and "<h4>" not in out and "Conclusions" in out and "<sup>" not in out

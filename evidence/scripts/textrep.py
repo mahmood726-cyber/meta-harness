@@ -18,9 +18,15 @@ def _ws(s):
     return re.sub(r"\s+", " ", s or "").strip()
 
 
+# A TAG is '<' followed by a letter or '/', or an HTML comment. Abstracts mix real tags with a literal '<'
+# ('P<0.001', 'weight <70 kg'); the earlier '<[^>]+>' treated that '<' as a tag opening and deleted everything up to
+# the next '>' -- it ate FLOW's whole MACE result sentence. Only real tag syntax may be stripped.
+TAG = re.compile(r"<!--.*?-->|</?[A-Za-z][A-Za-z0-9:_-]*(?:\s[^<>]*)?/?>", re.S)
+
+
 def _strip(s):
     s = re.sub(r"<(xref|sup)[^>]*>(.*?)</\1>", lambda m: m.group(0) if m.group(1) == "sup" else " ", s or "", flags=re.S)
-    return _ws(html.unescape(re.sub(r"<[^>]+>", " ", s)))
+    return _ws(html.unescape(TAG.sub(" ", s)))
 
 
 def _ctgov(d):
@@ -92,7 +98,7 @@ def render(ref):
     if path.endswith(".html"):
         t = raw.decode("utf-8", errors="replace")
         t = re.sub(r"<(script|style)\b.*?</\1>", " ", t, flags=re.S)
-        return _ws(html.unescape(re.sub(r"<[^>]+>", " ", t)))
+        return _ws(html.unescape(TAG.sub(" ", t)))
     if path.endswith(".xml"):
         t = raw.decode("utf-8")
         t = re.sub(r"<(ref-list|back)\b.*?</\1>", " ", t, flags=re.S)
