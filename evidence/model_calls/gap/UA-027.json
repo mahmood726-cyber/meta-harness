@@ -1,0 +1,250 @@
+{
+ "schema": "model_call_record/1",
+ "state": "RAN_OK",
+ "model": {
+  "id_requested": "gpt-6-astra",
+  "id_reported": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "params": {
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "project_doc_max_bytes": 0,
+  "output_schema": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "analysis_set": {
+     "anyOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "ref": {
+         "type": "string"
+        },
+        "span": {
+         "type": "string"
+        },
+        "scope": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "ref",
+        "span",
+        "scope"
+       ]
+      },
+      {
+       "type": "string"
+      }
+     ]
+    },
+    "follow_up": {
+     "anyOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "ref": {
+         "type": "string"
+        },
+        "span": {
+         "type": "string"
+        },
+        "scope": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "ref",
+        "span",
+        "scope"
+       ]
+      },
+      {
+       "type": "string"
+      }
+     ]
+    },
+    "entry_age": {
+     "anyOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "ref": {
+         "type": "string"
+        },
+        "span": {
+         "type": "string"
+        },
+        "scope": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "ref",
+        "span",
+        "scope"
+       ]
+      },
+      {
+       "type": "string"
+      }
+     ]
+    },
+    "entry_other": {
+     "anyOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "ref": {
+         "type": "string"
+        },
+        "span": {
+         "type": "string"
+        },
+        "scope": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "ref",
+        "span",
+        "scope"
+       ]
+      },
+      {
+       "type": "string"
+      }
+     ]
+    },
+    "notes": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "key",
+    "analysis_set",
+    "follow_up",
+    "entry_age",
+    "entry_other",
+    "notes"
+   ]
+  },
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "client": {
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4",
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ]
+ },
+ "request_utc": "2026-09-25T00:21:44Z",
+ "response_utc": "2026-09-25T00:21:57Z",
+ "caller": {
+  "file": "evidence/scripts/codex_job.py",
+  "line": 89,
+  "purpose": "evidence lane gap job for row UA-027 (brief evidence/GAP_BRIEF.md)",
+  "lane": "evid/evidence-records",
+  "kind": "gap",
+  "key": "UA-027"
+ },
+ "input_digests": [
+  {
+   "ref": "evidence/GAP_BRIEF.md",
+   "sha256": "30c37165ca586101d24be2164c33001601d95c79f0d6a667b7c1aea9f466ff83",
+   "what": "task brief"
+  },
+  {
+   "ref": "evidence/packets/UA-027.json",
+   "sha256": "0fcde1961410d6a71f88ea4c37d172dcbe912d921127dac5c2fbd6d15f8c1711",
+   "what": "the row's held sources, rendered"
+  },
+  {
+   "ref": "evidence/adjudication/UA-027.json",
+   "sha256": "71e76348f00ba7462e57a305b7d86af1a3efde32c57db1515b5de27405d27caf",
+   "what": "the lane's ruling"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "973170a526c1bb1aae180861e81c90dfceac67858d4f74c59726232020666ad5",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "prompt": {
+  "sha256": "2ccaa81382fe952a81716c0ea7573eae79f37e41c25d0668511be0442ccbf9b7",
+  "bytes": 277693,
+  "b64": null,
+  "note": "prompt bytes withheld (may contain local-only full text); full record kept locally"
+ },
+ "response": {
+  "b64": "eyJrZXkiOiJVQS0wMjciLCJhbmFseXNpc19zZXQiOnsicmVmIjoiZXZpZGVuY2UvaGVsZC9yZWdpc3RyeS9OQ1QwMDM5NzE4OS5qc29uIiwic3BhbiI6IlByZS1wbGFubmVkIGFuYWx5c2lzIG9uIElUVCBwb3B1bGF0aW9uIGFnZSA2NS04MCIsInNjb3BlIjoiVEhJU19PVVRDT01FIn0sImZvbGxvd191cCI6eyJyZWYiOiJldmlkZW5jZS9oZWxkLzIwNzEyODY5L1BNQzI5MzM2MDYueG1sIiwic3BhbiI6IlRhYmxlIDMgRWZmZWN0cyBvZiAzIHdlZWtzIHRyZWF0bWVudCB3aXRoIHByb2xvbmdlZCByZWxlYXNlIG1lbGF0b25pbiAoUFJNKSBhbmQgcGxhY2VibyBvbiBzbGVlcCBkaWFyeS1yZWNvcmRlZCBzbGVlcCBsYXRlbmN5IGluIHRoZSBsb3cgZXhjcmV0b3JzIGFuZCB0aGUgZWxkZXJseSBwYXRpZW50cy4iLCJzY29wZSI6IlRISVNfT1VUQ09NRSJ9LCJlbnRyeV9hZ2UiOnsicmVmIjoiZXZpZGVuY2UvaGVsZC8yMDcxMjg2OS9QTUMyOTMzNjA2LnhtbCIsInNwYW4iOiJNZW4gYW5kIHdvbWVuIGFnZWQgYmV0d2VlbiAxOCBhbmQgODAgeWVhcnMgc3VmZmVyaW5nIGZyb20gcHJpbWFyeSBpbnNvbW5pYSBhY2NvcmRpbmcgdG8gdGhlIERpYWdub3N0aWMgYW5kIFN0YXRpc3RpY2FsIE1hbnVhbCBmb3IgTWVudGFsIERpc29yZGVycyAoRFNNLUlWKSBjcml0ZXJpYSB3aXRoIHNsZWVwIGxhdGVuY3kgbG9uZ2VyIHRoYW4gMjAgbWluIHdlcmUgaW5jbHVkZWQgaW4gdGhlIHN0dWR5LiIgLCJzY29wZSI6IlRSSUFMX0VOVFJZIn0sImVudHJ5X290aGVyIjoiTk9ORSIsIm5vdGVzIjoiVGhlIHNlcnZlZCBhZ2UgNjUtODAgc3ViZ3JvdXAgcmVtYWlucyB3aXRoaW4gYWR1bHRzIHdpdGggcHJpbWFyeSBpbnNvbW5pYS4gUmVnaXN0cnkgbGFiZWxzIHRoaXMgb3V0Y29tZSdzIHBvcHVsYXRpb24gSVRUOyB0aGUgcGFwZXIgaWRlbnRpZmllcyB0aGUgbWF0Y2hpbmcgc3ViZ3JvdXAgYXMgRkFTLCBzbyAnY29tcGxldGVycyBlZmZpY2FjeSBzZXQnIGlzIHVuc3VwcG9ydGVkLiBUaGUgc2VydmVkIGVzdGltYXRlIGlzIGF0IDMgd2Vla3MsIG5vdCB0aGUgZXh0ZW5zaW9uIGVuZHBvaW50LiBUaGUgcmF3IGFybS1jaGFuZ2UgZGlmZmVyZW5jZSBpcyAtMTcuNCBtaW51dGVzOyB0aGUgcmVwb3J0ZWQgYWRqdXN0ZWQgZGlmZmVyZW5jZSBvZiAtMTUuNiBtaW51dGVzIGFuZCBpdHMgY29uZmlkZW5jZSBpbnRlcnZhbCBkZXNjcmliZSBhIGRpZmZlcmVudCBlc3RpbWF0b3IuIn0=",
+  "sha256": "13f903547ba1ca6e7660fcf79405334f7eeebd62dcf388c72a709142e9ab9ce7",
+  "bytes": 1220
+ },
+ "client_evidence": {
+  "header": {
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "approval": "never",
+   "sandbox": "read-only",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "session id": "01a0d5f0-83d0-7b40-a08f-6ddda2bcd19d",
+   "tokens used": "94,393",
+   "client banner": "v0.153.4"
+  },
+  "stdout_sha256": "ec499d29b50e5fd1bfb014ed487175f12c5c711da2e61c4280b8bf3e1621d785",
+  "stdout_bytes": 1221,
+  "stderr_sha256": "a9a383f29675cd7bcd66de4f9ae98c07f46149b960e66b35de8c7fc14835bc53",
+  "stderr_bytes": 279195,
+  "note": "raw client streams are hashed, not stored: they carry a local path (workdir) and echo the prompt; the header's model/provider/effort/session are copied above"
+ },
+ "record_id": "mc-2711589273ecba1c5bc78cec491cd688"
+}
