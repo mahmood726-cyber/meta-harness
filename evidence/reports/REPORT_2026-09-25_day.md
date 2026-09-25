@@ -1,6 +1,6 @@
 # Evidence lane report: 2026-09-25
 
-Branch `evid/evidence-records` @ `b203184a`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
+Branch `evid/evidence-records` @ `ee405c09`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
 
 ## P53: N = 53 (pooled primary rows inadmissible on P5 at 38c04411)
 
@@ -104,8 +104,8 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
 - follow_up: BLOCKED 1, BOUND 53
 - every unbound field carries a coded reason on its ruling (BLOCKED = the only source is paywalled or bot-checked, not bypassed; NOT_STATED; STATED_FOR_OTHER_ESTIMATE; INFERRED_ONLY = derivable, never stated):
   - UA-002 analysis_set: BLOCKED: COPPS-2's analysis set is named only in the full text; the only open-access copies are university-repository PDFs behind bot checks (AIR Milan, Cloudflare; VinaR, 'Human Verification'), not bypassed; the JAMA/Annals full text is pa
-  - UA-004 analysis_set: BLOCKED: CORP's analysis set is named only in the Annals full text; the only open-access copies are university-repository PDFs behind bot checks (AIR Milan, Cloudflare; VinaR, 'Human Verification'), not bypassed; the JAMA/Annals full text i
-  - UA-005 analysis_set: BLOCKED: as UA-004 (same CORP report): the only open-access copies are university-repository PDFs behind bot checks (AIR Milan, Cloudflare; VinaR, 'Human Verification'), not bypassed; the JAMA/Annals full text is paywalled; no PMC copy, no 
+  - UA-004 analysis_set: BLOCKED: CORP's analysis set is named only in the Annals full text; the only open-access copy is the University of Milan repository PDF (AIR, air.unimi.it/bitstream/2434/635125), behind a Cloudflare bot check, not bypassed; the Annals full 
+  - UA-005 analysis_set: BLOCKED: as UA-004 (same CORP report): the only open-access copy is the University of Milan repository PDF (AIR, air.unimi.it/bitstream/2434/635125), behind a Cloudflare bot check, not bypassed; the Annals full text is paywalled (403); no P
   - UA-008 analysis_set: NOT_STATED: CAPE COD's NEJM report is paywalled/bot-checked; the only accessible statement is a review by the lead investigator (PMC12904692, CC BY) giving '795 were analyzable' of 800 enrolled, which matches the served 400/395 denominators
   - UA-010 analysis_set: BLOCKED: only the paywalled JAMA full text (Torres 2015) would state the population for hyperglycaemia; CT.gov NCT00908713 has no results or documents; three open-access post hoc papers define populations only for their own analyses. The ab
   - UA-010 follow_up: BLOCKED: as for the analysis set; the abstract's 'June 2004 through February 2012' is the recruitment/calendar period, not a per-patient window for hyperglycaemia.
