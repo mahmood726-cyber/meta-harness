@@ -257,11 +257,18 @@ class Audit:
             s, oc, which = k
             ns = [n for n in notices if n.get("slug") == s and n.get("outcome") == oc]
             sig = [n for n in ns if (n.get("reviewer_countersignature") or {}).get("state") in signed_states]
+            def result_match(nlist, a):
+                return [n for n in nlist if tuple((n.get("after") or {}).get(x) for x in ("k", "estimate", "ci_low", "ci_high")) == a]
             if which == "RESULT":
-                a = after.get(k)
-                match = [n for n in sig if tuple((n.get("after") or {}).get(x) for x in ("k", "estimate", "ci_low", "ci_high")) == a]
+                match = result_match(sig, after.get(k))
             else:
-                match = sig      # a trial-row change is carried by its outcome's notice (left/entered pool)
+                # a trial-row change is signed only if a signed notice for this outcome NAMES the trial as leaving or entering
+                # the pool, or the outcome's served RESULT change is itself carried by a signed notice with that exact `after`
+                tid = which.replace("PMID ", "")
+                named = [n for n in sig if any(tid in json.dumps(x) for x in (n.get("left_pool") or []) + (n.get("entered_pool") or []))]
+                res_key = (s, oc, "RESULT")
+                carried = result_match(sig, after.get(res_key)) if before.get(res_key) != after.get(res_key) else []
+                match = named or carried
             (signed if match else unsigned).append({"key": list(k), "before": before.get(k), "after": after.get(k),
                                                      "notices_for_outcome": len(ns), "signed_notices": len(sig),
                                                      "signers": sorted({str((n.get("reviewer_countersignature") or {}).get("by")) for n in match})})
