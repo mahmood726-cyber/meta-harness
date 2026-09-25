@@ -70,8 +70,8 @@ Result: held 26 of 34 written (was 24), served 31 of 35 (unchanged).
 
 ## Adversarial ownership audit of every written v2 row (2026-09-25, `v2/ownership_audit/`)
 232 witnesses of the 58 written rows (27 held + 31 served), each shown in +-700 characters of its held document to a
-blind auditor (two Claude subagents; same model family as the lane). **215 of 232 OWNED, 0 NOT_OWNED, 17 UNCLEAR; no
-arm swap anywhere.** The 17 UNCLEAR, ruled:
+blind auditor (two Claude subagents; same model family as the lane). **215 of 232 OWNED, 0 NOT_OWNED, 17 UNCLEAR**; no
+reason names a swap (the audit gives no separate swap verdict; 10 UNCLEAR rest on the mechanical T5 check). The 17 UNCLEAR, ruled:
 - 10 (PCSK9 x2 registry rows, omega-3 AF): the window did not reach the registry group titles or measure title --
   ownership was already decided mechanically (T5, innermost scoping object; `group_id_scope`). OWNED.
 - 1 (colchicine secondary prevention, placebo total 129): printed 129, but the source's own "3 (2.5%)" implies 120.

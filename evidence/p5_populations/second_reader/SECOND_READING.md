@@ -5,12 +5,14 @@ that saw the review's topic requirements and the trial's held documents (each pr
 `make_packets.py`), and never saw evid2's state, EV53's interpretation, or which span the ledger cites.
 Every quote a reader gave was re-found verbatim in the document file it named (`compare.py`); none was refused.
 
-**Readers (disclosed).** 34 of 53 rows were read by codex `gpt-6-astra` (openai) -- 114 facts; the codex budget ran out
-mid-run, so the other 19 rows (51 facts) were read by Claude subagents under the same brief and the same isolation
-rules. Claude is the lane's own model family, so those 19 rows are a blind reading but NOT a cross-family one.
-Per row: `SECOND_READING.json` -> `readers`. Two rows (P53-19, P53-42) were read by both: codex finished them just before its
-runners were stopped, and a Claude batch then overwrote those two `out.json` files (my batching error). Codex's verdicts,
-recovered from its logged command stream, are identical to the Claude readings kept; the counts below use the Claude files.
+**Readers (disclosed; recounted from `SECOND_READING.json` after a claims audit corrected an earlier miscount).**
+- codex `gpt-6-astra` (openai) only: **33 rows, 108 facts**;
+- Claude subagents only (the lane's own model family -- blind, but NOT cross-family): **18 rows, 51 facts** (17 rows, plus
+  P53-41, re-read by Claude with its full text after codex's first reading);
+- both: **2 rows, 6 facts** (P53-19, P53-42: codex finished them seconds before its runners were stopped, and a Claude
+  batch then overwrote those two `out.json` files -- my batching error; codex's verdicts, recovered from its logged
+  command stream, are identical to the Claude readings kept). These two are counted as their own group below.
+Codex made 36 reading calls in all (33 + 2 + P53-41's first reading).
 
 **Result (final, after the review-tightened comparison).** **163 of 165 facts agree with the ledger** (per reader:
 codex 107 of 108; Claude 50 of 51; the 2 rows read by both 6 of 6). Two disagreements remain, both ruled for the ledger:
@@ -39,7 +41,12 @@ and now cite the full sentence; P53-41 now cites its own full text ("The trial p
 patients who were anticipated to take at least three days of any systemic antibiotic."; PMC2658588, free to read but
 not open access, held local-only with its sha256). No state changed; 4 facts now rest on evidence that actually states them.
 
-**Step 4 / 2b (POLICY.md amendment A).** 12 trials, 396 hits screened (`step4_screening/`); one candidate (RALES
+**Step 4 / 2b (POLICY.md amendments A and B).** First run: the first 25 hits of each query screened (396; the
+queries returned 16,555). Amendment B (disclosed as written after that run): the author-limited query 4a paged and EVERY
+hit screened -- 417 hits, 409 by a subagent (`step4_screening/`, `step4_screening_4a_rest/`) and 8 without any PMID or
+PMCID that my own filter had dropped, found by a coverage check and screened by the lane by title; the title-word query
+4b stated as the first 25 by relevance (it returns up to 4,992, almost all unrelated); 2b paged. One candidate (RALES
 rationale paper, PMID 8682055) fetched and read: no registration identifier, and its dose-ranging data are the RALES
 pilot (a different trial). The ClinicalTrials.gov reverse lookup found registrations citing 3 of the 12 trials (P53-35, P53-39, P53-48), all as
-BACKGROUND. The 15 UNRESOLVED facts stay UNRESOLVED with the stopping rule now fully reached.
+BACKGROUND. The 15 UNRESOLVED facts stay UNRESOLVED; the stopping rule as amended (B) is reached -- an earlier
+line here said 'fully reached' when only 396 of 16,555 hits had been screened, which was an overstatement.
