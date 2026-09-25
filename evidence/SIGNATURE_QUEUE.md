@@ -1,6 +1,6 @@
 # Signature queue: served numbers the evidence lane proposes to change (NONE LANDED)
 
-4 of 76 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
+4 of 92 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
 
 ### P53-23: noac-vs-warfarin-af-stroke / Stroke or systemic embolism / PMID 19717844 (RE-LY, dabigatran 150 mg)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -54,7 +54,10 @@
   - treatment_policy_estimate: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "RESULT OUTCOME 0 ANALYSIS 0: groups Semaglutide 2.4 mg, Placebo | Treatment difference -12.44 (95% CI -13.37 to -11.51) | p <.0001 | METHOD ANCOVA"
   - abstract_estimate: `cache/semaglutide-obesity-weight/records.json#/records/118` (sha256 8779e517b6f0): "for an estimated treatment difference of -12.4 percentage points (95% confidence interval [CI], -13.4 to -11.5; P<0.001)"
   - estimand_definition: `cache/semaglutide-obesity-weight/records.json#/records/118` (sha256 8779e517b6f0): "The primary estimand (a precise description of the treatment effect reflecting the objective of the clinical trial) assessed effects regardless of treatment discontinuation or rescue interventions."
-- block sha256: 1f03ad71c3e1a6a2e95eb5616a506a9edce317261f36e30763e72d59b644179b
+  - gap_analysis_set: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
+  - gap_follow_up: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Change in body weight from baseline (week 0) to week 68 is presented."
+  - gap_entry_age: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Male or female, age greater than or equal to 18 years at the time of signing informed consent"
+- block sha256: 7279ac0fe2be1eda90aee59767af009b4674e9e36f2a2dbc09950a2cdc6809d1
 
 ### UA-042: spironolactone-hfref-mortality / All-cause mortality / PMID 28824029 (J-EMPHASIS-HF)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -71,4 +74,7 @@
   - estimate_ci: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "RESULT OUTCOME 2 ANALYSIS 0: groups Eplerenone, Placebo | Hazard Ratio (HR) 1.77 (95% CI 0.81 to 3.87)"
   - analysis_set: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "RESULT OUTCOME 2 DENOM Participants: Eplerenone=111; Placebo=110"
   - counts: `cache/spironolactone-hfref-mortality/records.json#/records/220` (sha256 e901036c243c): "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died."
-- block sha256: 208bb628c87421f243e06ecaa74d38d89c6723731e8a8c5872c9c1aeb042c4c3
+  - gap_analysis_set: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Full analysis set included all randomized participants."
+  - gap_follow_up: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Randomization up to the date when the last enrolled participant had been followed up for 1 year (up to 1744 days)"
+  - gap_entry_age: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "ELIGIBILITY AGE/SEX: minimum age 55 Years | maximum age None | sex ALL"
+- block sha256: 281d19c7f5fbc2f13397ca8b4bb3284433f40022c27ce4e62ac4d42bdd82d11d
