@@ -40,7 +40,7 @@ def main():
         L += [f"**Second blind read on the CURRENT spans** (run to test that warning; same family, blind): agreement "
               f"**{b2['agreement']}**; the post-blind moves were supported in **{b2['moves_supported']} of "
               f"{len(b2['the_5_post_blind_moves'])}**. Remaining disagreements, kept for you:", ""]
-        L += [f"- {x['trial']} {x['domain']}: lane **{x['lane']}**, second reader **{x['blind2']}** -- {x['blind2_why']}" for x in b2["disagreements"]]
+        L += [f"- {x['trial']} {x['domain']}: lane **{x['lane']}**, second reader **{x["blind2"]}** -- {x["blind2_why"]}" + (f" **[answered after the read: {x['evidence_added_after']}]**" if x.get("evidence_added_after") else "") for x in b2["disagreements"]]
         L += ["- (the second reader itself flagged that its D3 calls penalise trials that report MORE: those giving a ~96-97% "
               "primary-outcome completeness figure were rated some_concerns while trials reporting only vital status >=98.6% were rated low)", ""]
     for p in sorted(glob.glob(os.path.join(HERE, "*.json"))):

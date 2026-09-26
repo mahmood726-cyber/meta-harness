@@ -2,7 +2,7 @@
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
 Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: low 45, some_concerns 5. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Proposals: low 46, some_concerns 4. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
 **Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 39 of 50 after. Disagreements KEPT for you to decide (6):
@@ -18,9 +18,9 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 
 **Second blind read on the CURRENT spans** (run to test that warning; same family, blind): agreement **46 of 50**; the post-blind moves were supported in **5 of 5**. Remaining disagreements, kept for you:
 
-- LEADER D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper spans: vital status 99.7% but only 96.8% completed a final visit, died or had a primary outcome, leaving about 3% with incomplete MACE ascertainment and no balance/sensitivity information.
+- LEADER D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper spans: vital status 99.7% but only 96.8% completed a final visit, died or had a primary outcome, leaving about 3% with incomplete MACE ascertainment and no balance/sensitivity information. **[answered after the read: per-arm vital status bound AFTER this read: unavailable 12 (0.25%) vs 17 (0.36%) (FDA review of NDA 022341/S-027)]**
 - AMPLITUDE-O D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper span: primary-outcome status known for only 3941/4076 (96.7%) though vital status 99.9%; the 3.3% with unknown MACE status has no by-arm balance or sensitivity analysis in the spans, so 'nearly all' cannot be confirmed and missingness could plausibly relate to events.
-- REWIND D4_outcome_measurement: lane **low**, second reader **some_concerns** -- Protocol span: independent CEC adjudicates all primary events, but no span states the adjudicators were blinded (4.3 NI) and MI/stroke adjudication involves judgement.
+- REWIND D4_outcome_measurement: lane **low**, second reader **some_concerns** -- Protocol span: independent CEC adjudicates all primary events, but no span states the adjudicators were blinded (4.3 NI) and MI/stroke adjudication involves judgement. **[answered after the read: committee blinding bound AFTER this read: 'adjudicated by an independent committee of physicians blinded to the study medication' (PMC7690176)]**
 - EXSCEL D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper span: only 96.2% completed the trial (vital status 98.8%), so MACE status is incomplete for about 3.8% with no balance or sensitivity information in the spans.
 - (the second reader itself flagged that its D3 calls penalise trials that report MORE: those giving a ~96-97% primary-outcome completeness figure were rated some_concerns while trials reporting only vital status >=98.6% were rated low)
 
@@ -90,9 +90,9 @@ Stopped treatment (D2 context, not missing data): 24% vs 27% discontinued study 
 |---|---|---|---|---|
 | D1 randomisation | **some_concerns** | 1:1, stratified by eGFR; no held source describes sequence generation or allocation concealment (1.1/1.2 = NI) and no baseline-balance statement is bound. | paper: `PMC4985288/efetch.xml` | ______ |
 | D2 deviations (assignment) | **low** | Double-blind, matching placebo; all randomised included in the primary analysis. | paper: `PMC4985288/efetch.xml`; paper: `PMC4985288/efetch.xml` | ______ |
-| D3 missing outcome data | **low** | Vital status known for 99.7%; 96.8% completed a final visit, died or had a primary outcome. | paper: `PMC4985288/efetch.xml`; paper: `PMC4985288/efetch.xml` | ______ |
+| D3 missing outcome data | **low** | Vital status known for 99.7%; per arm, unavailable for 12 (0.25%) on liraglutide vs 17 (0.36%) on placebo (FDA review); 96.8% completed a final visit, died or had a primary outcome. | paper: `PMC4985288/efetch.xml`; regulator: `FDA_022341_s027/review_package.pdf`; paper: `PMC4985288/efetch.xml` | ______ |
 | D4 outcome measurement | **low** | Adjudicated in a blinded fashion by an external independent committee. | paper: `PMC4985288/efetch.xml` | ______ |
-| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1: an outcome definition is not an analysis plan fixed before unblinding] The 2013 design paper (published before the 2016 results) fixes 3-point MACE as the primary end point; protocol and SAP published with the article (not held here). | paper: `24176437/europepmc_core.json`; paper: `PMC4985288/efetch.xml` | ______ |
+| D5 selection of reported result | **low** | [low on NEW evidence: FDA review of NDA 022341/S-027] The FDA reviewer records the SAP changes made 'before breaking the blind' (three SAP versions) and that blinding was maintained until the code break on 02 February 2016, with database lock three days later (RoB 2 5.1 = Y). The 2013 design paper fixes 3-point MACE as the primary end point. | regulator: `FDA_022341_s027/review_package.pdf`; regulator: `FDA_022341_s027/review_package.pdf`; paper: `24176437/europepmc_core.json` | ______ |
 
 Stopped treatment (D2 context, not missing data): time on regimen 84% vs 83%; more stopped liraglutide for adverse events
 
@@ -115,7 +115,7 @@ Stopped treatment (D2 context, not missing data): more permanently discontinued 
 | D1 randomisation | **low** | Computer-generated random sequence via IVRS (concealed), 1:1, stratified by site. | protocol: `NCT01394952/Prot_000.pdf` | ______ |
 | D2 deviations (assignment) | **low** | Double-blind treatment period; primary analyses by intent-to-treat. | protocol: `NCT01394952/Prot_000.pdf`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
 | D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): 'completers' include participants whose vital status was ascertained at close-out; completed 4935/4952 vs 4932/4949 (99.7% each arm); not completed 17 vs 17. The protocol required vital status for all randomised. | registry: `registry/NCT01394952.json`; registry: `registry/NCT01394952.json`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
-| D4 outcome measurement | **low** | Independent CEC adjudicates all primary endpoint events; the trial is double-blind (assessors' awareness: 4.3 = PN). Blinding of the CEC is not stated verbatim in held text -- flagged for review. | protocol: `NCT01394952/Prot_000.pdf` | ______ |
+| D4 outcome measurement | **low** | Independent CEC adjudicates all primary endpoint events (protocol); a REWIND secondary paper states the events were adjudicated by an independent committee of physicians BLINDED to the study medication using pre-specified definitions. | protocol: `NCT01394952/Prot_000.pdf`; paper: `PMC7690176/fullText.xml` | ______ |
 | D5 selection of reported result | **low** | SAP version 1 approved 21 Nov 2011 before the first unblinding; the protocol fixes the 3-point composite as the primary efficacy measure. | sap: `NCT01394952/SAP_001.pdf`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
 
 ## SOUL (PMID 40162642, NCT03914326) -- overall proposal: some_concerns
