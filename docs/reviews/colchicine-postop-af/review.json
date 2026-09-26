@@ -11,7 +11,7 @@
     "text": "# Protocol — colchicine for prevention of postoperative atrial fibrillation\n\n**Registration.** The commit adding/updating this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. Same machinery as topic 1.\n\n## PICO\n- **P** — adults undergoing cardiac (cardiothoracic) surgery.\n- **I** — colchicine (peri-operative), added to usual care.\n- **C** — placebo / usual care.\n- **O (primary)** — postoperative atrial fibrillation (POAF).\n- **O (harms)** — gastrointestinal adverse effects; treatment discontinuation.\n\n## Estimand / population / timepoint\n- RR of POAF, intention-to-treat, in-hospital / index-admission follow-up.\n\n## Eligibility — P/I/C/DESIGN only\n- **I1** RCT; **I2** cardiac-surgery population with POAF as an outcome; **I3** colchicine vs\n  placebo/usual care; **design** double-blind OR placebo-controlled RCT.\n- Exclude: **X1** not RCT; **X2** wrong population (ablation/pulmonary-vein-isolation AF,\n  pericarditis, coronary-disease AF); **X3** no colchicine-vs-control contrast; **X5** off-topic\n  (a primary trial of another topic in this set — negative control).\n- Eligibility is NOT on the outcome axis; a published effect+CI is a poolable input.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log(RR); Paule-Mandel τ²; HKSJ 95% CI on t_{k-1}\n(floor max(1,Q/(k-1))); PI μ ± t_{k-1}·√(τ²+se²). DerSimonian-Laird forbidden. metafor-validated.\n(Note: the comparator used DerSimonian-Laird; we report theirs as published and pool ours under the declared method.)\n\n## Comparator (resolved; OA confirmed)\nZhao et al., *J Cardiothorac Surg* 2022, \"A meta-analysis of colchicine in prevention of atrial\nfibrillation following cardiothoracic surgery or cardiac intervention\" (PMID 36050741,\nPMC9438305, DOI 10.1186/s13019-022-01958-9; open access). Reports POAF RR 0.62 (0.52–0.74) over 9 RCTs.\n\n## Controls\n- **Positive** — the search recovers the colchicine-vs-placebo cardiac-surgery POAF RCTs the comparator pools.\n- **Negative** — CORP (colchicine for recurrent pericarditis, PMID 21873705 — another topic in this set)\n  must be recovered and EXCLUDED (wrong population).\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the\ncardiac-surgery population vocabulary missed \"myocardial revascularization\"\nlanguage in Zarpelon PMID 27223641. The config now treats myocardial\nrevascularization/revascularisation surgery as cardiac-surgery vocabulary and\naccepts its randomized \"control group\" wording as the usual-care control. This\namendment changes screening only and does not make dose/timing-ambiguous or\nmulti-arm outcome data poolable.\n\n\n## Amendment — 17 Sep 2026\n\n**Status: RETROSPECTIVE**\n\nEligibility is based on population, intervention, comparator and design only. Analysis set and follow-up window are compatibility axes: mismatches and UNKNOWN/not_stated values must appear as typed per-trial compatibility findings and do not evict trials. Design/masking remains an eligibility rule.\n\nBoth readings were disclosed in the handoff when this amendment was written: strict contract k=1 (no pooled result) versus compatibility-axis k=4. Those were the handoff expectations, not verified results of the integrated build. The held base includes open-label END-AF (PMID 27502857), which fails the unchanged design/masking rule; with that rule enforced, the integrated build measures strict k=0 versus compatibility-axis k=3. Both must be rendered, with the strict reading as a sensitivity row, so this retrospective choice remains visible. No earlier protocol sentence is withdrawn by this amendment.\n"
   },
   "search": {
-    "n_records": 67,
+    "n_records": 68,
     "cache_ref": "cache/colchicine-postop-af/records.json",
     "run_utc": "2026-09-11",
     "databases": [
@@ -1117,13 +1117,29 @@
         "enrollment": null,
         "trial_family_id": "NCT02177266",
         "publication_role": "primary"
+      },
+      {
+        "id": "JOURNAL:tehranunivmedj:2014:72:147",
+        "id_type": "journal",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "eligible double-blind/placebo-controlled RCT: intervention colchicine, comparator placebo, population cardiac surgery — P/I/C/design met.",
+        "span": "population “…m-matory response after cardiac surgery that is significantly d…”; comparator “…ntrol groups to receive placebo or Colchicine. The clin…”",
+        "found_by": [
+          "UNRECORDED"
+        ],
+        "matched_intervention": "colchicine",
+        "trial_family_id": "REC:JOURNAL:tehranunivmedj:2014:72:147",
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_unavailable",
+        "completeness_basis": "publication record / committed cache metadata"
       }
     ],
     "positive_control": "Recovered & included the canonical trials ['25172965', '32720823'] that a comparator includes; none missed.",
     "negative_control": "Cross-topic trial(s) ['21873705'] recovered by the search and correctly EXCLUDED ['21873705'] by rule (same drug/design, wrong topic).",
     "dual": {
-      "n": 67,
-      "agree": 67,
+      "n": 68,
+      "agree": 68,
       "disagree": 0,
       "unresolved": 0,
       "disagreement_rate_pct": 0.0,
@@ -1312,8 +1328,8 @@
             }
           },
           "endpoint_definition": "primary outcome was incidence of postoperative atrial fibrillation (POAF)",
-          "analysis_set": "intention-to-treat",
           "follow_up_window": "14 days",
+          "analysis_set": "intention-to-treat",
           "study_effect": {
             "effect_estimate": 0.37,
             "standard_error": 0.2921309558072649,
@@ -1489,8 +1505,8 @@
             }
           },
           "endpoint_definition": "Postoperative atrial fibrillation",
-          "analysis_set": "intention-to-treat",
           "follow_up_window": "in-hospital / index-admission",
+          "analysis_set": "intention-to-treat",
           "study_effect": {
             "effect_estimate": 0.8765432098765431,
             "standard_error": 0.35695373340470143,
@@ -1655,8 +1671,8 @@
             }
           },
           "endpoint_definition": "Postoperative atrial fibrillation",
-          "analysis_set": "intention-to-treat",
           "follow_up_window": "in-hospital / index-admission",
+          "analysis_set": "intention-to-treat",
           "study_effect": {
             "effect_estimate": 0.8133333333333334,
             "standard_error": 0.13643923499189314,
@@ -1935,6 +1951,55 @@
             "input_set_version": "00a2152f2d12f496406b3249c12d4a42cea335f0c2a110d832837f398ce64e48"
           },
           "claim_kind": "membership_state"
+        },
+        {
+          "label": "JOURNAL:tehranunivmedj:2014:72:147",
+          "id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "absent_kind": "journal_route_not_pooled",
+          "state": "RECONSTRUCTED_NOT_POOLED",
+          "reason_code": "RECONSTRUCTED_NOT_POOLED",
+          "source_adjudicated": true,
+          "document_ref": "cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html",
+          "document_sha256": "29c0248d1ccdf525603f003d43ac67bd72a20fe54b27af604cffc4736a570585",
+          "source_span": "14.8% in the Col-chicine group | 30.6% in the control group | each consisting of 108 patients",
+          "verbatim_span": "14.8% in the Col-chicine group | 30.6% in the control group | each consisting of 108 patients",
+          "source": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+          "reconstructed": {
+            "intervention": {
+              "events": 16,
+              "n": 108,
+              "percent": 14.8
+            },
+            "comparator": {
+              "events": 33,
+              "n": 108,
+              "percent": 30.6
+            },
+            "rule": "events = round(percent x n), checked to round-trip to the printed percentage (16/108 = 14.8%, 33/108 = 30.6%)",
+            "until": "pooled only once the full report is held and its arm counts are located (then a result-change notice)"
+          },
+          "reason": "RECONSTRUCTED: 16/108 vs 33/108 from the printed 14.8% vs 30.6% (n=108/arm); retrieved through the journal route (not in PubMed); not pooled until the full report is held",
+          "trial_family_id": "REC:JOURNAL:tehranunivmedj:2014:72:147",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_unavailable",
+          "completeness_basis": "publication record / committed cache metadata",
+          "state_basis": "RECONSTRUCTED_NOT_POOLED: source span: \"14.8% in the Col-chicine group | 30.6% in the control group | each consisting of 108 patients\"; RECONSTRUCTED: 16/108 vs 33/108 from the printed 14.8% vs 30.6% (n=108/arm); retrieved through the journal route (not in PubMed); not pooled until the full report is held",
+          "trial_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "report_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "outcome_effect_id": "colchicine-postop-af::Postoperative atrial fibrillation::JOURNAL:tehranunivmedj:2014:72:147::JOURNAL:tehranunivmedj:2014:72:147",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "RECONSTRUCTED_NOT_POOLED"
+          },
+          "family_id": "SYN-9513c33707df",
+          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
+          "input_set_version": "00a2152f2d12f496406b3249c12d4a42cea335f0c2a110d832837f398ce64e48",
+          "claim_id": "4a5d2d224f5e6959",
+          "depends_on": {
+            "input_set_version": "00a2152f2d12f496406b3249c12d4a42cea335f0c2a110d832837f398ce64e48"
+          },
+          "claim_kind": "membership_state"
         }
       ],
       "membership": {
@@ -1958,11 +2023,12 @@
         "declared_absent": [
           "PMID 36286314",
           "NCT07611019",
-          "NCT07287345"
+          "NCT07287345",
+          "JOURNAL:tehranunivmedj:2014:72:147"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "7fe995b794784ddc8d53ee12f02e794091938eee40c583d3f2a5939fc9988e2a"
+        "input_set_version": "3341946679e0fa431f2a551e56bcbc750f7968f668f548d12c184ed5827c854a"
       },
       "result": {
         "k": 3,
@@ -2512,6 +2578,18 @@
             "name": "Colchicine's Effect on Inflammatory Markers",
             "source_ref": "cache/colchicine-postop-af/records.json#227965717.abstract",
             "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention colchicine, comparator placebo, population cardiac surgery — P/I/C/design met.",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+            "name": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+            "source_ref": "cache/colchicine-postop-af/records.json#JOURNAL:tehranunivmedj:2014:72:147.abstract",
+            "source_span": "Background: The occurrence of Atrial Fibrillation (AF) is linked to an increased inflam-matory response after cardiac surgery that is significantly decreased by anti-inflammatory treatments. The present study aimed at administrating Colchicine as a way to reduce the incidence of post- Coronary Artery Bypass Graft (CABG) atrial fibrillation. Methods: In this",
             "verify_basis": "committed source does not carry an extractable target-estimand value",
             "value_status": "NOT_IN_COMMITTED_SOURCE",
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
@@ -3119,6 +3197,45 @@
             "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
+        },
+        {
+          "label": "JOURNAL:tehranunivmedj:2014:72:147",
+          "id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "absent_kind": "journal_route_not_pooled",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "source_adjudicated": true,
+          "document_ref": "cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html",
+          "document_sha256": "29c0248d1ccdf525603f003d43ac67bd72a20fe54b27af604cffc4736a570585",
+          "source_span": "",
+          "verbatim_span": "",
+          "source": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+          "reason": "journal-route report: full report not held; this outcome is not extracted from the abstract of a non-PubMed record",
+          "trial_family_id": "REC:JOURNAL:tehranunivmedj:2014:72:147",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_unavailable",
+          "completeness_basis": "publication record / committed cache metadata",
+          "state_basis": "SOURCE_NOT_RETRIEVED: journal-route report: full report not held; this outcome is not extracted from the abstract of a non-PubMed record",
+          "trial_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "report_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "outcome_effect_id": "colchicine-postop-af::Gastrointestinal adverse effects::JOURNAL:tehranunivmedj:2014:72:147::JOURNAL:tehranunivmedj:2014:72:147",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": true,
+          "harm_source_span": "Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses.",
+          "harm_source_signal": "term_signal",
+          "family_id": "SYN-9513c33707df",
+          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "093acc377180b77e",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
         }
       ],
       "membership": {
@@ -3133,11 +3250,12 @@
           "PMID 32720823",
           "PMID 25172965",
           "NCT07611019",
-          "NCT07287345"
+          "NCT07287345",
+          "JOURNAL:tehranunivmedj:2014:72:147"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "db9bf6736853f45cd69d2d19192c426d22243c49a79e633959b3992cc9c0a1ed"
+        "input_set_version": "fca9354a6543be3d6e30fa6b44be7dba383e042e961fcd4803939c12e8911b9f"
       },
       "result": {
         "present": false,
@@ -3146,7 +3264,8 @@
           "42132185",
           "36286314",
           "32720823",
-          "25172965"
+          "25172965",
+          "JOURNAL:tehranunivmedj:2014:72:147"
         ],
         "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
@@ -3276,11 +3395,40 @@
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
+          },
+          {
+            "id": "JOURNAL:tehranunivmedj:2014:72:147",
+            "label": "JOURNAL:tehranunivmedj:2014:72:147",
+            "state": "NOT_RETRIEVED",
+            "extracted": false,
+            "reason_code": "SOURCE_NOT_RETRIEVED",
+            "reason": "journal-route report: full report not held; this outcome is not extracted from the abstract of a non-PubMed record",
+            "span": "Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses.",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "NOT_CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html",
+                "state": "SPAN_NOT_VERIFIED",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
           }
         ],
-        "harm_reporting_trials_n": 4,
+        "harm_reporting_trials_n": 5,
         "harm_extracted_trials_n": 0,
-        "harm_registered_trials_n": 6,
+        "harm_registered_trials_n": 7,
         "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "528e89663d620eb7",
@@ -3688,6 +3836,43 @@
           "claim_kind": "membership_state"
         },
         {
+          "label": "JOURNAL:tehranunivmedj:2014:72:147",
+          "id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "absent_kind": "journal_route_not_pooled",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "source_adjudicated": true,
+          "document_ref": "cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html",
+          "document_sha256": "29c0248d1ccdf525603f003d43ac67bd72a20fe54b27af604cffc4736a570585",
+          "source_span": "",
+          "verbatim_span": "",
+          "source": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+          "reason": "journal-route report: full report not held; this outcome is not extracted from the abstract of a non-PubMed record",
+          "trial_family_id": "REC:JOURNAL:tehranunivmedj:2014:72:147",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_unavailable",
+          "completeness_basis": "publication record / committed cache metadata",
+          "state_basis": "SOURCE_NOT_RETRIEVED: journal-route report: full report not held; this outcome is not extracted from the abstract of a non-PubMed record",
+          "trial_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "report_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "outcome_effect_id": "colchicine-postop-af::Treatment discontinuation::JOURNAL:tehranunivmedj:2014:72:147::JOURNAL:tehranunivmedj:2014:72:147",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "family_id": "SYN-9513c33707df",
+          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "9055ac3e8c5f907e",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
           "label": "32720823",
           "id": "PMID 32720823",
           "absent_kind": "machine_absent",
@@ -3825,11 +4010,12 @@
           "PMID 25172965",
           "NCT07611019",
           "NCT07287345",
+          "JOURNAL:tehranunivmedj:2014:72:147",
           "PMID 32720823"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "fd629f4826eb54d330287dbfe32784c099d0ff5cf6c8971a0738eb623abd82bf"
+        "input_set_version": "800963f013042da6e1ff15d258241b528e0a19c27c37279b2e79678b17ad7f5d"
       },
       "result": {
         "present": false,
@@ -3904,7 +4090,7 @@
         ],
         "harm_reporting_trials_n": 2,
         "harm_extracted_trials_n": 0,
-        "harm_registered_trials_n": 6,
+        "harm_registered_trials_n": 7,
         "harms_synthesis_suppressed": true,
         "claim": {
           "present": false,
@@ -4033,13 +4219,165 @@
     "overlap": {
       "ours_k": 3,
       "theirs_k": 9,
-      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "shared_k": 2,
       "only_ours": [
-        "42132185"
+        "SYN-f9c2d88aa0de"
       ],
-      "only_theirs": [],
-      "method": "publication-date + design identity (comparator trial list not extracted from source)",
-      "note": "Trials newer than the comparator (2022) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+      "only_theirs": [
+        "Bessissow 2018 [CR17]",
+        "Deftereos 2012 [CR15]",
+        "Deftereos 2014 [CR16]",
+        "Imazio 2011 [CR19]",
+        "Sarzaeem 2014 [CR23]",
+        "Tabbalat 2016 [CR22]",
+        "Zarpelon 2016 [CR20]"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set + date proof",
+      "note": "Computed overlap relation with the published comparator: OVERLAPPING (overlapping -- some families shared, each side has trials the other lacks); our pooled trial families 3, comparator trials 9, shared 2; basis: set operation on the enumerated comparator trial set + date proof; unbound comparator trial(s) Sarzaeem 2014 [CR23] cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof).",
+      "theirs_k_source": "comparator panel trial_set (cache/colchicine-postop-af/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 9 comparator trial(s) for this outcome",
+      "relation": "OVERLAPPING"
+    },
+    "overlap_relation": {
+      "outcome": "Postoperative atrial fibrillation",
+      "comparator_pmid": "36050741",
+      "comparator_year": 2022,
+      "ours": [
+        {
+          "family_id": "SYN-f9c2d88aa0de",
+          "row_id": "PMID 42132185",
+          "label": "42132185",
+          "earliest_report": {
+            "report_id": "42132185",
+            "year": 2026
+          }
+        },
+        {
+          "family_id": "NCT03015831",
+          "row_id": "PMID 32720823",
+          "label": "32720823",
+          "earliest_report": {
+            "report_id": "32720823",
+            "year": 2020
+          }
+        },
+        {
+          "family_id": "NCT01552187",
+          "row_id": "PMID 25172965",
+          "label": "25172965",
+          "earliest_report": {
+            "report_id": "25172965",
+            "year": 2014
+          }
+        }
+      ],
+      "ours_k": 3,
+      "date_proof": {
+        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
+        "comparator_year": 2022,
+        "post_dating": [
+          "SYN-f9c2d88aa0de (42132185, 2026)"
+        ],
+        "holds_for_every_pooled_family": false
+      },
+      "constraints": [
+        "unbound comparator trial(s) Sarzaeem 2014 [CR23] cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof)"
+      ],
+      "theirs": {
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/colchicine-postop-af/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
+        "endpoint_for_outcome": null,
+        "members": [
+          {
+            "name": "Bessissow 2018 [CR17]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Bessissow [<xref ref-type=\"bibr\" rid=\"CR17\">17</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">100</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.6 mg before operation, 0.6 mg bid for 9 day after operation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">30 days</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Lung resection surgery</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">(ECG) was per-formed once a day for the first 3 days. Then 30-day follow-up</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">5/1</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">POAF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0/0</td></tr>"
+          },
+          {
+            "name": "Deftereos 2012 [CR15]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Deftereos [<xref ref-type=\"bibr\" rid=\"CR15\">15</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">161</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Pulmonary Vein Isolation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Electrogram obtained during patient visits at the arrhythmia clinic</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">7/1</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Recurrence of AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">All/All</td></tr>"
+          },
+          {
+            "name": "Deftereos 2014 [CR16]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Deftereos [<xref ref-type=\"bibr\" rid=\"CR16\">16</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">206</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Pulmonary Vein Isolation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not report</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">10/2</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Recurrence of AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">All/All</td></tr>"
+          },
+          {
+            "name": "Imazio 2011 [CR19]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Imazio [<xref ref-type=\"bibr\" rid=\"CR19\">19</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">336</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 1 month</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">1 month</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG, aortic surgery, valvular surgery, combined</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Continuous ECG monitoring and 12-lead ECG recordings</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">16/8</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Rate of POAF on placebo/colchicine treatment</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">8/11</td></tr>"
+          },
+          {
+            "name": "Imazio 2014 [CR18]",
+            "bound_to": "NCT01552187",
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Imazio [<xref ref-type=\"bibr\" rid=\"CR18\">18</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">360</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 1 month</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG, aortic surgery, valvular surgery, combined</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Continuous ECG monitoring and 12-lead ECG recordings</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">36/21</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">18/15</td></tr>"
+          },
+          {
+            "name": "Sarzaeem 2014 [CR23]",
+            "bound_to": null,
+            "identity": "identified by bibliographic key bib:tehranunivmedj:2014:72:147",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Sarzaeem [<xref ref-type=\"bibr\" rid=\"CR23\">23</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">216</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">24 h before surgery 2 mg; 0.5 mg bid for 1 week after operation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Continuous ECG monitoring while in ICU, and daily 12 lead ECG while on the regular floor</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not report</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          {
+            "name": "Tabbalat 2016 [CR22]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Tabbalat [<xref ref-type=\"bibr\" rid=\"CR22\">22</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">360</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid after operation was taken in hospital until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG or other open heart surgery</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Daily electrocardiograms (ECGs) until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">55/14</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          {
+            "name": "Tabbalat 2020 [CR21]",
+            "bound_to": "NCT03015831",
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Tabbalat [<xref ref-type=\"bibr\" rid=\"CR21\">21</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">152</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg qd after operation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Open heart surgery</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Daily electrocardiograms (ECGs) until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">2/2</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">POAF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          {
+            "name": "Zarpelon 2016 [CR20]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Zarpelon [<xref ref-type=\"bibr\" rid=\"CR20\">20</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">140</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">After operation 0.5 mg bid was taken in hospital until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Open heart surgery-Myocardial Revascularization</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">continuous cardiac monitoring and 12-lead electrocardiogram during ICU stay</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">19/6</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          }
+        ],
+        "out_of_scope": []
+      },
+      "theirs_k": 9,
+      "shared": [
+        "NCT01552187",
+        "NCT03015831"
+      ],
+      "shared_k": 2,
+      "only_ours": [
+        "SYN-f9c2d88aa0de"
+      ],
+      "only_theirs": [
+        "Bessissow 2018 [CR17]",
+        "Deftereos 2012 [CR15]",
+        "Deftereos 2014 [CR16]",
+        "Imazio 2011 [CR19]",
+        "Sarzaeem 2014 [CR23]",
+        "Tabbalat 2016 [CR22]",
+        "Zarpelon 2016 [CR20]"
+      ],
+      "relation": "OVERLAPPING",
+      "label": "overlapping -- some families shared, each side has trials the other lacks",
+      "basis": "set operation on the enumerated comparator trial set + date proof",
+      "theirs_k_stated": {
+        "value": 9,
+        "source": null
+      }
     }
   },
   "estimand_exclusions": [],
@@ -4991,6 +5329,14 @@
       "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     },
     {
+      "id": "PMID JOURNAL:tehranunivmedj:2014:72:147",
+      "type": "source not retrieved",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "SOURCE_NOT_RETRIEVED"
+    },
+    {
       "id": "NCT07287345",
       "type": "source not retrieved",
       "span": "",
@@ -5052,7 +5398,7 @@
   },
   "publication_units": {
     "source": "harness.identity.build_publication_units",
-    "n_records_annotated": 76
+    "n_records_annotated": 77
   },
   "protocol_config": {
     "divergences": [],
@@ -5084,7 +5430,8 @@
       "32720823": "colchicine",
       "25172965": "colchicine",
       "NCT07611019": "colchicine",
-      "NCT07287345": "colchicine"
+      "NCT07287345": "colchicine",
+      "JOURNAL:tehranunivmedj:2014:72:147": "colchicine"
     },
     "unresolved": [],
     "verdict": "MATCH",
@@ -5103,7 +5450,7 @@
       },
       {
         "code": "eligible_declared_absent",
-        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04224545, NCT07611019, NCT07287345; the completeness claim cannot be current"
+        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04224545, NCT07611019, NCT07287345, REC:JOURNAL:tehranunivmedj:2014:72:147; the completeness claim cannot be current"
       }
     ]
   },
@@ -5177,15 +5524,15 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 15,
+    "N": 18,
     "counts": {
       "REASON_TRUE": 3,
       "REASON_FALSE_VALUE_HELD": 3,
       "REASON_WRONG_KIND": 3,
-      "NOT_VERIFIABLE": 6
+      "NOT_VERIFIABLE": 9
     },
     "n_false_value_held": 3,
-    "n_not_verifiable": 6,
+    "n_not_verifiable": 9,
     "by_code_kind": {
       "COUNTS_PRESENT_NOT_CORROBORATED": {
         "REASON_TRUE": 0,
@@ -5197,7 +5544,13 @@
         "REASON_TRUE": 0,
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
-        "NOT_VERIFIABLE": 6
+        "NOT_VERIFIABLE": 8
+      },
+      "RECONSTRUCTED_NOT_POOLED": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 1
       },
       "REFUSED_ON_EVIDENCE": {
         "REASON_TRUE": 0,
@@ -5258,6 +5611,17 @@
       },
       {
         "slug": "colchicine-postop-af",
+        "outcome": "Postoperative atrial fibrillation",
+        "outcome_kind": "primary",
+        "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+        "label": "JOURNAL:tehranunivmedj:2014:72:147",
+        "id": "JOURNAL:tehranunivmedj:2014:72:147",
+        "stated_reason_code": "RECONSTRUCTED_NOT_POOLED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "colchicine-postop-af",
         "outcome": "Gastrointestinal adverse effects",
         "outcome_kind": "harm",
         "trial_key": "42132185",
@@ -5328,6 +5692,17 @@
       },
       {
         "slug": "colchicine-postop-af",
+        "outcome": "Gastrointestinal adverse effects",
+        "outcome_kind": "harm",
+        "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+        "label": "JOURNAL:tehranunivmedj:2014:72:147",
+        "id": "JOURNAL:tehranunivmedj:2014:72:147",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "colchicine-postop-af",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
         "trial_key": "42132185",
@@ -5381,6 +5756,17 @@
         "trial_key": "NCT07287345",
         "label": "NCT07287345",
         "id": "NCT07287345",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "colchicine-postop-af",
+        "outcome": "Treatment discontinuation",
+        "outcome_kind": "harm",
+        "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+        "label": "JOURNAL:tehranunivmedj:2014:72:147",
+        "id": "JOURNAL:tehranunivmedj:2014:72:147",
         "stated_reason_code": "SOURCE_NOT_RETRIEVED",
         "verdict": "NOT_VERIFIABLE",
         "detail": "no held source"
@@ -5400,11 +5786,11 @@
   },
   "unextracted_outcome_audit": {
     "denominator_source": "included screening records x registered outcomes in this review",
-    "N": 18,
+    "N": 21,
     "counts": {
       "EXTRACTED": 3,
       "HELD_NOT_EXTRACTED": 3,
-      "NOT_IN_HELD_SOURCES": 9,
+      "NOT_IN_HELD_SOURCES": 12,
       "ABSENT_BY_DESIGN": 3
     },
     "n_held_not_extracted": 3,
@@ -5412,13 +5798,13 @@
       "primary": {
         "EXTRACTED": 3,
         "HELD_NOT_EXTRACTED": 1,
-        "NOT_IN_HELD_SOURCES": 2,
+        "NOT_IN_HELD_SOURCES": 3,
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
         "EXTRACTED": 0,
         "HELD_NOT_EXTRACTED": 2,
-        "NOT_IN_HELD_SOURCES": 7,
+        "NOT_IN_HELD_SOURCES": 9,
         "ABSENT_BY_DESIGN": 3
       }
     },
@@ -5476,6 +5862,14 @@
       },
       {
         "slug": "colchicine-postop-af",
+        "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+        "trial_label": "JOURNAL:tehranunivmedj:2014:72:147",
+        "outcome": "Postoperative atrial fibrillation",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "colchicine-postop-af",
         "trial_key": "42132185",
         "trial_label": "42132185",
         "outcome": "Gastrointestinal adverse effects",
@@ -5530,6 +5924,14 @@
       },
       {
         "slug": "colchicine-postop-af",
+        "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+        "trial_label": "JOURNAL:tehranunivmedj:2014:72:147",
+        "outcome": "Gastrointestinal adverse effects",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "colchicine-postop-af",
         "trial_key": "42132185",
         "trial_label": "42132185",
         "outcome": "Treatment discontinuation",
@@ -5575,6 +5977,14 @@
         "slug": "colchicine-postop-af",
         "trial_key": "NCT07287345",
         "trial_label": "NCT07287345",
+        "outcome": "Treatment discontinuation",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "colchicine-postop-af",
+        "trial_key": "JOURNAL:tehranunivmedj:2014:72:147",
+        "trial_label": "JOURNAL:tehranunivmedj:2014:72:147",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
         "status": "NOT_IN_HELD_SOURCES"
@@ -5735,11 +6145,11 @@
         "downgrade": 1,
         "not_estimable": false,
         "assessed": false,
-        "basis": "not assessable: STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "basis": "not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
         "stale": true,
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
-          "not assessable: STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+          "not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
         ]
       },
       "imprecision": {
@@ -5825,7 +6235,8 @@
         ],
         "dois": [
           "10.1056/NEJMoa2021372"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -6242,7 +6653,8 @@
         ],
         "dois": [
           "10.7326/0003-4819-155-7-201110040-00359"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -7475,7 +7887,8 @@
         ],
         "dois": [
           "10.1161/CIRCULATIONAHA.111.026153"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -8226,7 +8639,8 @@
         "dois": [
           "10.1001/jama.2014.11026",
           "10.1016/j.ahj.2013.03.025"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -10044,7 +10458,8 @@
         "report_ids": [
           "NCT02177266"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -11537,7 +11952,8 @@
         ],
         "dois": [
           "10.1177/0300060520939832"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -12996,7 +13412,8 @@
         ],
         "dois": [
           "10.1016/j.ahj.2016.05.006"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -14753,7 +15170,8 @@
           "10.1093/ejcts/ezx401",
           "10.1093/ejcts/ezx422",
           "10.1177/20543581231185427"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -16769,7 +17187,8 @@
         "report_ids": [
           "NCT03905759"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -17942,7 +18361,8 @@
         "dois": [
           "10.3390/jcdd9100363",
           "10.3390/jcm11051387"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -19391,7 +19811,8 @@
         ],
         "dois": [
           "10.1038/s41467-025-61916-6"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -20894,7 +21315,8 @@
         ],
         "dois": [
           "10.1136/bmjopen-2024-084368"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -22611,7 +23033,8 @@
         ],
         "dois": [
           "10.3390/biomedicines13081999"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -24030,7 +24453,8 @@
         "report_ids": [
           "NCT07287345"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -25702,7 +26126,8 @@
         "report_ids": [
           "NCT07611019"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -27252,7 +27677,8 @@
         ],
         "dois": [
           "10.7326/J23-0103"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -27656,7 +28082,8 @@
         ],
         "dois": [
           "10.1016/j.ejim.2021.10.002"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -28060,7 +28487,8 @@
         ],
         "dois": [
           "10.1097/HCO.0000000000001215"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -28464,7 +28892,8 @@
         ],
         "dois": [
           "10.3390/ijms27104419"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -28868,7 +29297,8 @@
         ],
         "dois": [
           "10.1038/s41569-019-0166-5"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -29349,7 +29779,8 @@
         ],
         "dois": [
           "10.2174/1573403X15666181205110624"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -29753,7 +30184,8 @@
         ],
         "dois": [
           "10.1093/ejcts/ezag190"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -30156,7 +30588,8 @@
         ],
         "dois": [
           "10.5935/abc.20160082"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -30562,7 +30995,8 @@
         ],
         "dois": [
           "10.1016/j.clinthera.2018.08.008"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -30966,7 +31400,8 @@
         ],
         "dois": [
           "10.1093/ehjqcco/qcx043"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -31374,7 +31809,8 @@
         ],
         "dois": [
           "10.1016/j.amjcard.2009.01.010"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -31778,7 +32214,8 @@
         ],
         "dois": [
           "10.1124/pr.117.014183"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -32184,7 +32621,8 @@
         ],
         "dois": [
           "10.1016/j.ahjo.2025.100525"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -32588,7 +33026,8 @@
         ],
         "dois": [
           "10.1714/1145.12619"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -32994,7 +33433,8 @@
         ],
         "dois": [
           "10.1016/j.amjcard.2004.01.053"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -33397,7 +33837,8 @@
         ],
         "dois": [
           "10.1016/j.hrthm.2014.02.002"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -33803,7 +34244,8 @@
         ],
         "dois": [
           "10.1136/heartjnl-2020-317108"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -34207,7 +34649,8 @@
         ],
         "dois": [
           "10.7326/AITC201703070"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -34609,7 +35052,8 @@
         "report_ids": [
           "27637120"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -35011,7 +35455,8 @@
         ],
         "dois": [
           "10.1136/bmj.l4898"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -35393,6 +35838,538 @@
       ]
     },
     {
+      "family_id": "SYN-9513c33707df",
+      "identity_flag": "NO_REGISTRY_RECORD",
+      "flags": [
+        "NO_REGISTRY_RECORD"
+      ],
+      "identity_basis": {
+        "primary_report_ids": [
+          "JOURNAL:tehranunivmedj:2014:72:147"
+        ],
+        "registry_ids": [],
+        "fallback_report_ids": []
+      },
+      "aliases": {
+        "acronym": [],
+        "registry_ids": [],
+        "mentioned_registry_ids": [],
+        "report_ids": [
+          "JOURNAL:tehranunivmedj:2014:72:147"
+        ],
+        "dois": [],
+        "bib_keys": [
+          "bib:tehranunivmedj:2014:72:147"
+        ]
+      },
+      "reports": [
+        {
+          "report_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "role": "PRIMARY",
+          "span_basis": {
+            "source": "record.abstract",
+            "quote": "Background: The occurrence of Atrial Fibrillation (AF) is linked to an increased inflam-matory response after cardiac surgery that is significantly decreased by anti-inflammatory treatments. The present study aimed at administrating Colchicine as a way to reduce the incidence of post- Coronary Artery Bypass Graft (CABG) atrial fibrillation. Methods: In this double-blind, parallel clinical trial, 216 patients with coronary artery disease who underwent CABG surgery, by using a table of random numbers are divided into intervention and control groups to receive placebo or Colchicine. The clinical and surgical characteristics of the patients in two groups were similar. The intervention group received 1.0 mg of Colchicine tab, the night before surgery and on the morning of surgery. This drug followed by 0.5 mg twice a day for five days after surgery. On the other hand patients in the control group received only placebo (ineffective pill with similar size to Colchicine). After operation two groups were compared regarding important outcomes such as postoperative arrhythmia, ICU stay and hospital stay. The data were assessed using SPSS software (version 17) and t-test and 2 statistical tests. Results: One hundred fifty six men and sixty women with a mean age of 59.9±9.3 years were enrolled in the study in two Colchicine and placebo groups (each consisting of 108 patients). The incidence of postoperative atrial fibrillation was 14.8% in the Col-chicine group and 30.6% in the control group (P= 0.006). ICU stay in the Colchicine group were 2.4±1.3 days versus 3.1±1.5 days in controls (P< 0.001) and hospital stay in the Colchicine group were 6.6±1.5 days versus 8.1±2.0 days in controls (P< 0.001). Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses. According to the 48% reduction in the incidence of atrial fibrillation in Colchicine patients undergoing coronary artery bypass grafting surgery, this drug can be prescribed as a prophylaxis for prevention of post-CABG atrial fibrillation.",
+            "match": "self-described randomised trial (journal route)"
+          },
+          "retrieved_via": [
+            "journal_route: journal's own article page (not indexed in PubMed)"
+          ]
+        }
+      ],
+      "arms": [],
+      "arm_absence_code": "NO_COMPLETE_ARM_STRUCTURE",
+      "abstract_arm_objects": [
+        {
+          "source": "harness.arm_object",
+          "trial": {
+            "id": {
+              "value": "JOURNAL:tehranunivmedj:2014:72:147",
+              "span": "JOURNAL:tehranunivmedj:2014:72:147",
+              "source": "record.id"
+            },
+            "nct": {
+              "value": "NOT_DERIVABLE",
+              "span": "JOURNAL:tehranunivmedj:2014:72:147",
+              "source": "record.nct"
+            },
+            "label": {
+              "value": "JOURNAL:tehranunivmedj:2014:72:147",
+              "span": "JOURNAL:tehranunivmedj:2014:72:147",
+              "source": "record"
+            },
+            "title": {
+              "value": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+              "span": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+              "source": "record.title"
+            }
+          },
+          "randomised_arm": [
+            {
+              "name": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "role": "NOT_DERIVABLE",
+              "drug": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "dose": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "background_therapy": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              }
+            }
+          ],
+          "randomised_contrasts": [],
+          "population": {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical tri...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical tri...",
+              "source": "record.title_abstract_conditions"
+            }
+          },
+          "timepoint": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "analysis_set": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "effect_source": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          }
+        }
+      ],
+      "randomised_contrasts": [],
+      "population": {
+        "absence_code": "REGISTRY_ELIGIBILITY_NOT_HELD",
+        "report_fields": [
+          {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical tri...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical tri...",
+              "source": "record.title_abstract_conditions"
+            }
+          }
+        ]
+      },
+      "analysis_sets": [
+        {
+          "report_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "value": "NOT_DERIVABLE",
+          "span": "NOT_DERIVABLE",
+          "source": "record"
+        }
+      ],
+      "lifecycle": {
+        "registered": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "started": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "completed": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "results_posted": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "publication_found": {
+          "value": "2014",
+          "span": {
+            "report_id": "JOURNAL:tehranunivmedj:2014:72:147",
+            "source": "record.year",
+            "precision": "year"
+          }
+        }
+      },
+      "entered_via": [
+        "LEGACY_UNRECORDED"
+      ],
+      "outcome_status": [
+        {
+          "outcome": "Postoperative atrial fibrillation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-9513c33707df"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Gastrointestinal adverse effects",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-9513c33707df"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-9513c33707df"
+            }
+          },
+          "registered_outcome_candidates": []
+        }
+      ],
+      "eligibility": {
+        "state": "UNKNOWN",
+        "absence_code": "REGISTRY_PARENT_UNRESOLVED"
+      },
+      "registry_design": {},
+      "source_records": [
+        {
+          "id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "id_type": "journal",
+          "title": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+          "abstract": "Background: The occurrence of Atrial Fibrillation (AF) is linked to an increased inflam-matory response after cardiac surgery that is significantly decreased by anti-inflammatory treatments. The present study aimed at administrating Colchicine as a way to reduce the incidence of post- Coronary Artery Bypass Graft (CABG) atrial fibrillation. Methods: In this double-blind, parallel clinical trial, 216 patients with coronary artery disease who underwent CABG surgery, by using a table of random numbers are divided into intervention and control groups to receive placebo or Colchicine. The clinical and surgical characteristics of the patients in two groups were similar. The intervention group received 1.0 mg of Colchicine tab, the night before surgery and on the morning of surgery. This drug followed by 0.5 mg twice a day for five days after surgery. On the other hand patients in the control group received only placebo (ineffective pill with similar size to Colchicine). After operation two groups were compared regarding important outcomes such as postoperative arrhythmia, ICU stay and hospital stay. The data were assessed using SPSS software (version 17) and t-test and 2 statistical tests. Results: One hundred fifty six men and sixty women with a mean age of 59.9±9.3 years were enrolled in the study in two Colchicine and placebo groups (each consisting of 108 patients). The incidence of postoperative atrial fibrillation was 14.8% in the Col-chicine group and 30.6% in the control group (P= 0.006). ICU stay in the Colchicine group were 2.4±1.3 days versus 3.1±1.5 days in controls (P< 0.001) and hospital stay in the Colchicine group were 6.6±1.5 days versus 8.1±2.0 days in controls (P< 0.001). Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses. According to the 48% reduction in the incidence of atrial fibrillation in Colchicine patients undergoing coronary artery bypass grafting surgery, this drug can be prescribed as a prophylaxis for prevention of post-CABG atrial fibrillation.",
+          "year": "2014",
+          "journal": "Tehran Univ Med J",
+          "volume": "72",
+          "first_page": "147",
+          "bib_key": "bib:tehranunivmedj:2014:72:147",
+          "doi": "",
+          "nct": "",
+          "pubtypes": [],
+          "source": "journal_route",
+          "found_by": [
+            "journal_route: journal's own article page (not indexed in PubMed)"
+          ],
+          "journal_route": {
+            "held": {
+              "document_ref": "cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html",
+              "document_sha256": "29c0248d1ccdf525603f003d43ac67bd72a20fe54b27af604cffc4736a570585",
+              "fetched_utc": "2026-09-26T21:58:00Z",
+              "license": "CC BY-NC 4.0 (printed on the page: 'This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License.')",
+              "what": "the journal's English abstract page; the full-text PDF linked there is NOT held"
+            },
+            "spans": {
+              "title": {
+                "start": 0,
+                "end": 122,
+                "quote": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial"
+              },
+              "citation": {
+                "start": 949,
+                "end": 1169,
+                "quote": "Sarzaeem M, Shayan N, Bagheri J, Jebelli M, Mandegar M. Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial. Tehran Univ Med J. 2014; 72 (3) :147-154"
+              },
+              "abstract": {
+                "start": 1689,
+                "end": 3745,
+                "quote": "Background: The occurrence of Atrial Fibrillation (AF) is linked to an increased inflam-matory response after cardiac surgery that is significantly decreased by anti-inflammatory treatments. The present study aimed at administrating Colchicine as a way to reduce the incidence of post- Coronary Artery Bypass Graft (CABG) atrial fibrillation. Methods: In this double-blind, parallel clinical trial, 216 patients with coronary artery disease who underwent CABG surgery, by using a table of random numbers are divided into intervention and control groups to receive placebo or Colchicine. The clinical and surgical characteristics of the patients in two groups were similar. The intervention group received 1.0 mg of Colchicine tab, the night before surgery and on the morning of surgery. This drug followed by 0.5 mg twice a day for five days after surgery. On the other hand patients in the control group received only placebo (ineffective pill with similar size to Colchicine). After operation two groups were compared regarding important outcomes such as postoperative arrhythmia, ICU stay and hospital stay. The data were assessed using SPSS software (version 17) and t-test and 2 statistical tests. Results: One hundred fifty six men and sixty women with a mean age of 59.9±9.3 years were enrolled in the study in two Colchicine and placebo groups (each consisting of 108 patients). The incidence of postoperative atrial fibrillation was 14.8% in the Col-chicine group and 30.6% in the control group (P= 0.006). ICU stay in the Colchicine group were 2.4±1.3 days versus 3.1±1.5 days in controls (P< 0.001) and hospital stay in the Colchicine group were 6.6±1.5 days versus 8.1±2.0 days in controls (P< 0.001). Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses. According to the 48% reduction in the incidence of atrial fibrillation in Colchicine patients undergoing coronary artery bypass grafting surgery, this drug can be prescribed as a prophylaxis for prevention of post-CABG atrial fibrillation."
+              }
+            },
+            "result": {
+              "state": "RECONSTRUCTED",
+              "outcome": "Postoperative atrial fibrillation",
+              "intervention": {
+                "arm": "colchicine",
+                "percent": 14.8,
+                "percent_quote": "14.8% in the Col-chicine group",
+                "n": 108,
+                "n_quote": "each consisting of 108 patients",
+                "events": 16
+              },
+              "comparator": {
+                "arm": "placebo",
+                "percent": 30.6,
+                "percent_quote": "30.6% in the control group",
+                "n": 108,
+                "n_quote": "each consisting of 108 patients",
+                "events": 33
+              },
+              "rule": "events = round(percent x n), checked to round-trip to the printed percentage (16/108 = 14.8%, 33/108 = 30.6%)",
+              "full_report_held": false,
+              "until": "pooled only once the full report is held and its arm counts are located (then a result-change notice)"
+            },
+            "url": "https://tumj.tums.ac.ir/article-1-6029-en.html",
+            "retrieval": {
+              "pubmed": "not indexed in PubMed (no PMID exists for this report)",
+              "tried": [
+                "Magiran search: HTTP 403 behind a Cloudflare bot challenge -- not bypassed",
+                "Crossref bibliographic query: no record (no DOI deposited)",
+                "journal site search tumj.tums.ac.ir for 'colchicine': 1 result, this article"
+              ],
+              "comparator_citation": "Zhao 2022 (PMC9438305) reference CR23: Tehran Univ Med J 72 147 (2014)"
+            }
+          },
+          "registry_ids": []
+        }
+      ],
+      "is_trial_family": false,
+      "strand": {
+        "state": "NONE",
+        "span": {
+          "source": "review.strands",
+          "names": []
+        }
+      },
+      "sources": [
+        {
+          "source_id": "JOURNAL:tehranunivmedj:2014:72:147",
+          "role": "PRIMARY",
+          "sha256": "8e1b80ac18c9398c1c1be0b246168f285515b02163d36709b2eb80ccebb32f4a",
+          "retrieval_origin": [
+            "journal_route: journal's own article page (not indexed in PubMed)"
+          ],
+          "span": {
+            "source": "held record",
+            "record": {
+              "id": "JOURNAL:tehranunivmedj:2014:72:147",
+              "id_type": "journal",
+              "title": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial",
+              "abstract": "Background: The occurrence of Atrial Fibrillation (AF) is linked to an increased inflam-matory response after cardiac surgery that is significantly decreased by anti-inflammatory treatments. The present study aimed at administrating Colchicine as a way to reduce the incidence of post- Coronary Artery Bypass Graft (CABG) atrial fibrillation. Methods: In this double-blind, parallel clinical trial, 216 patients with coronary artery disease who underwent CABG surgery, by using a table of random numbers are divided into intervention and control groups to receive placebo or Colchicine. The clinical and surgical characteristics of the patients in two groups were similar. The intervention group received 1.0 mg of Colchicine tab, the night before surgery and on the morning of surgery. This drug followed by 0.5 mg twice a day for five days after surgery. On the other hand patients in the control group received only placebo (ineffective pill with similar size to Colchicine). After operation two groups were compared regarding important outcomes such as postoperative arrhythmia, ICU stay and hospital stay. The data were assessed using SPSS software (version 17) and t-test and 2 statistical tests. Results: One hundred fifty six men and sixty women with a mean age of 59.9±9.3 years were enrolled in the study in two Colchicine and placebo groups (each consisting of 108 patients). The incidence of postoperative atrial fibrillation was 14.8% in the Col-chicine group and 30.6% in the control group (P= 0.006). ICU stay in the Colchicine group were 2.4±1.3 days versus 3.1±1.5 days in controls (P< 0.001) and hospital stay in the Colchicine group were 6.6±1.5 days versus 8.1±2.0 days in controls (P< 0.001). Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses. According to the 48% reduction in the incidence of atrial fibrillation in Colchicine patients undergoing coronary artery bypass grafting surgery, this drug can be prescribed as a prophylaxis for prevention of post-CABG atrial fibrillation.",
+              "year": "2014",
+              "journal": "Tehran Univ Med J",
+              "volume": "72",
+              "first_page": "147",
+              "bib_key": "bib:tehranunivmedj:2014:72:147",
+              "doi": "",
+              "nct": "",
+              "pubtypes": [],
+              "source": "journal_route",
+              "found_by": [
+                "journal_route: journal's own article page (not indexed in PubMed)"
+              ],
+              "journal_route": {
+                "held": {
+                  "document_ref": "cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html",
+                  "document_sha256": "29c0248d1ccdf525603f003d43ac67bd72a20fe54b27af604cffc4736a570585",
+                  "fetched_utc": "2026-09-26T21:58:00Z",
+                  "license": "CC BY-NC 4.0 (printed on the page: 'This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License.')",
+                  "what": "the journal's English abstract page; the full-text PDF linked there is NOT held"
+                },
+                "spans": {
+                  "title": {
+                    "start": 0,
+                    "end": 122,
+                    "quote": "Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial"
+                  },
+                  "citation": {
+                    "start": 949,
+                    "end": 1169,
+                    "quote": "Sarzaeem M, Shayan N, Bagheri J, Jebelli M, Mandegar M. Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial. Tehran Univ Med J. 2014; 72 (3) :147-154"
+                  },
+                  "abstract": {
+                    "start": 1689,
+                    "end": 3745,
+                    "quote": "Background: The occurrence of Atrial Fibrillation (AF) is linked to an increased inflam-matory response after cardiac surgery that is significantly decreased by anti-inflammatory treatments. The present study aimed at administrating Colchicine as a way to reduce the incidence of post- Coronary Artery Bypass Graft (CABG) atrial fibrillation. Methods: In this double-blind, parallel clinical trial, 216 patients with coronary artery disease who underwent CABG surgery, by using a table of random numbers are divided into intervention and control groups to receive placebo or Colchicine. The clinical and surgical characteristics of the patients in two groups were similar. The intervention group received 1.0 mg of Colchicine tab, the night before surgery and on the morning of surgery. This drug followed by 0.5 mg twice a day for five days after surgery. On the other hand patients in the control group received only placebo (ineffective pill with similar size to Colchicine). After operation two groups were compared regarding important outcomes such as postoperative arrhythmia, ICU stay and hospital stay. The data were assessed using SPSS software (version 17) and t-test and 2 statistical tests. Results: One hundred fifty six men and sixty women with a mean age of 59.9±9.3 years were enrolled in the study in two Colchicine and placebo groups (each consisting of 108 patients). The incidence of postoperative atrial fibrillation was 14.8% in the Col-chicine group and 30.6% in the control group (P= 0.006). ICU stay in the Colchicine group were 2.4±1.3 days versus 3.1±1.5 days in controls (P< 0.001) and hospital stay in the Colchicine group were 6.6±1.5 days versus 8.1±2.0 days in controls (P< 0.001). Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses. According to the 48% reduction in the incidence of atrial fibrillation in Colchicine patients undergoing coronary artery bypass grafting surgery, this drug can be prescribed as a prophylaxis for prevention of post-CABG atrial fibrillation."
+                  }
+                },
+                "result": {
+                  "state": "RECONSTRUCTED",
+                  "outcome": "Postoperative atrial fibrillation",
+                  "intervention": {
+                    "arm": "colchicine",
+                    "percent": 14.8,
+                    "percent_quote": "14.8% in the Col-chicine group",
+                    "n": 108,
+                    "n_quote": "each consisting of 108 patients",
+                    "events": 16
+                  },
+                  "comparator": {
+                    "arm": "placebo",
+                    "percent": 30.6,
+                    "percent_quote": "30.6% in the control group",
+                    "n": 108,
+                    "n_quote": "each consisting of 108 patients",
+                    "events": 33
+                  },
+                  "rule": "events = round(percent x n), checked to round-trip to the printed percentage (16/108 = 14.8%, 33/108 = 30.6%)",
+                  "full_report_held": false,
+                  "until": "pooled only once the full report is held and its arm counts are located (then a result-change notice)"
+                },
+                "url": "https://tumj.tums.ac.ir/article-1-6029-en.html",
+                "retrieval": {
+                  "pubmed": "not indexed in PubMed (no PMID exists for this report)",
+                  "tried": [
+                    "Magiran search: HTTP 403 behind a Cloudflare bot challenge -- not bypassed",
+                    "Crossref bibliographic query: no record (no DOI deposited)",
+                    "journal site search tumj.tums.ac.ir for 'colchicine': 1 result, this article"
+                  ],
+                  "comparator_citation": "Zhao 2022 (PMC9438305) reference CR23: Tehran Univ Med J 72 147 (2014)"
+                }
+              },
+              "registry_ids": []
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "poolability": [
+        {
+          "outcome": "Postoperative atrial fibrillation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Gastrointestinal adverse effects",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        }
+      ]
+    },
+    {
       "family_id": "SYN-a55a1b52337d",
       "identity_flag": "NO_REGISTRY_RECORD",
       "flags": [
@@ -35415,7 +36392,8 @@
         ],
         "dois": [
           "10.2174/1389450121666200302095103"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -35819,7 +36797,8 @@
         ],
         "dois": [
           "10.3390/jpm16070367"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -36223,7 +37202,8 @@
         ],
         "dois": [
           "10.1016/j.jcin.2025.09.023"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -36629,7 +37609,8 @@
         ],
         "dois": [
           "10.1016/j.cvsm.2017.04.002"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -37033,7 +38014,8 @@
         ],
         "dois": [
           "10.3390/jcdd13020063"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -37437,7 +38419,8 @@
         ],
         "dois": [
           "10.1016/j.jacep.2024.02.019"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -37842,7 +38825,8 @@
         ],
         "dois": [
           "10.1016/j.jacc.2012.07.031"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -38250,7 +39234,8 @@
         ],
         "dois": [
           "10.1161/CIRCULATIONAHA.104.475194"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -38656,7 +39641,8 @@
         ],
         "dois": [
           "10.1093/rheumatology/kex453"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -39061,7 +40047,8 @@
         ],
         "dois": [
           "10.1111/pace.70278"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -39496,7 +40483,8 @@
         ],
         "dois": [
           "10.1016/j.pharmthera.2026.109053"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -39900,7 +40888,8 @@
         ],
         "dois": [
           "10.1136/bmj.327.7414.557"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -40290,9 +41279,9 @@
     "contributing": 2,
     "pooled": 2,
     "eligibility_unresolved": 10,
-    "unresolved_report_candidates": 32,
+    "unresolved_report_candidates": 33,
     "contributing_without_structural_eligibility": [],
-    "publications_screened": 50,
+    "publications_screened": 51,
     "registry_records_screened": 6
   },
   "family_missing_evidence": [
@@ -40686,8 +41675,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (HAND_WRITTEN_KEYWORD_SEARCH): We retract any claim of a registry-first or systematic search for this topic.</li><li>a trial identified as eligible under the registered PICO is not pooled (five audit-named trials) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04224545, NCT07611019, NCT07287345; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "0d938b3a91995a06bcbdfe257eed6e383ea7b0a6b4db1aa0972b2081aa2822f6",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (HAND_WRITTEN_KEYWORD_SEARCH): We retract any claim of a registry-first or systematic search for this topic.</li><li>a trial identified as eligible under the registered PICO is not pooled (five audit-named trials) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04224545, NCT07611019, NCT07287345, REC:JOURNAL:tehranunivmedj:2014:72:147; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "be96e7862c2efceec8664c278d50c589edee9f997e2bf89dce7d86dbd13c8e1b",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -40865,8 +41854,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>42132185</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The held abstract and abstract-only JATS report gastrointestinal events as 25.9% versus 8.5% without explicit event counts or a gastrointestinal effect with confidence interval; the POAF RR is a different endpoint.</td><td>BACKGROUND: Postoperative arrhythmias are common after coronary artery bypass graft (CABG) surgery and are linked to adverse outcomes. Colchicine, an anti-inflammatory agent, has shown inconsistent results in prior studies, possibly due to dosing and timing variations. OBJECTIVES: To evaluate the efficacy and safety of short-term, weight-adjusted colchicine initiated preoperatively for preventing postoperative arrhythmias after CABG. METHODS: In this randomized, double-blind, placebo-controlled trial, 172 adults scheduled for on-pump CABG received colchicine or placebo. The regimen included a preoperative loading dose (1 mg twice daily) followed by a weight-based maintenance dose (0.5 mg daily if &lt;70 kg; 1 mg daily if ≥70 kg) for 14 days. The primary outcome was incidence of postoperative atrial fibrillation (POAF). Secondary outcomes included early (≤48 h) and late (&gt;48 h) POAF, other arrhythmias, inflammatory markers (CRP, ESR), length of stay, and adverse events. RESULTS: Of 163 analyzed patients (81 colchicine, 82 placebo), POAF incidence was significantly lower in the colchicine group (17.3% vs. 46.3%; RR 0.37, 95% CI 0.21-0.66; p &lt; 0.001), with an absolute risk reduction of 29.0% and number needed to treat (NNT) of 4. Colchicine reduced both early and late POAF (p &lt; 0.001 and p = 0.002). No significant reduction was seen in other arrhythmias. Gastrointestinal events, primarily diarrhea, were more common with colchicine (25.9% vs. 8.5%, p = 0.003), but were manageable and without serious adverse events. CONCLUSION: Short-term perioperative weight-adjusted colchicine is effective and safe for preventing POAF after CABG, with a low NNT and manageable side effects, though it did not significantly affect other arrhythmias. TRIAL REGISTRATION: Iranian Registry of Clinical Trials, IRCT20200328046886N6.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-42132185: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>36286314</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract gives diarrhea OR 2.578 (95% CI 1.300-5.111) and abdominal-pain OR 4.762 (1.010-22.91), but no overall gastrointestinal adverse-effect estimate or unique-patient total; the symptom effects cannot be relabelled as the overall outcome.</td><td>In patients who underwent cardiac surgery, first-time postoperative atrial fibrillation (POAF) is associated with increased incidence of hospital-acquired complications and mortality. Systemic inflammation is one of confirmed triggers of its development. The anti-inflammatory properties of colchicine can be effective for the POAF prevention. However, the results of several studies were questionable and required further investigation. Hence, we aimed to evaluate the effectiveness of low-dose short-term colchicine administration for POAF prevention in patients after the open-heart surgery. This double-blind randomized placebo-controlled trial included 267 patients, but 27 of them dropped out in the course of the study. Study subjects received the test drug on the day before the surgery and on postoperative days 2, 3, 4 and 5. The rhythm control was conducted immediately after the operation and until the discharge from the hospital. The final analysis included 240 study subjects: 113 in the colchicine group and 127 in the placebo group. POAF was observed in 21 (18.6%) patients of the colchicine group vs. 39 (30.7%) control patients (OR 0.515; 95% Cl 0.281-0.943; p = 0.029). We observed no statistically significant differences between the patient groups in the secondary endpoints of the study (hospital mortality, respiratory failure, stroke, bleeding, etc.). For other parameters characterizing the severity of inflammation (pericardial effusion, pleural effusion, WBC count, neutrophil count), there were statistically significant differences between the groups in the early postoperative period (days 3 and 5). Also, statistically significant differences between the groups in the frequency of adverse events were revealed: the incidence of diarrhea in the colchicine group was 25.7% vs. 11.8% in the placebo group (OR 2.578; 95% Cl 1.300-5.111; p = 0.005); for abdominal pain, incidence values were 7% vs. 1.6%, correspondingly (OR 4.762; 95% Cl 1.010-22.91; p = 0.028). Thus, there were statistically significant differences between groups in the primary endpoint, thereby confirming the effectiveness of short-term colchicine use for the POAF prevention after coronary artery bypass grafting and/or aortic valve replacement. Also, we detected statistically significant differences between groups in the frequency of side effects to colchicine: diarrhea and abdominal pain were more common in the colchicine group. This clinical trial is registered with ClinicalTrials database under a unique identifier: NCT04224545.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-36286314: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32720823</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports two diarrhea cases per arm, but diarrhea is only one component of gastrointestinal adverse effects and no overall gastrointestinal count or effect with confidence interval is reported.</td><td>BACKGROUND: Studies using 1 mg of colchicine to prevent postoperative atrial fibrillation (POAF) reported conflicting results. Moreover, colchicine was associated with significant gastrointestinal (GI) side effects. This study examined whether low-dose colchicine effectively prevents POAF and whether low-dose therapy is associated with lower rates of colchicine-induced GI side effects. METHODS: In this prospective, randomized, double-blind, placebo-controlled study, consecutive adult patients admitted for elective cardiac surgeries randomly received a 1-mg dose of colchicine (n = 81) or placebo (n = 71) orally 12 to 24 hours before surgery followed by a daily dose of 0.5 mg until hospital discharge. The primary efficacy endpoint was the development of at least one episode of POAF of ≥5 minutes. The primary safety endpoint was the development of adverse events, especially diarrhea. RESULTS: The in-hospital mortality rate was 3.9%. POAF occurred in 13 patients (16.1%) in the colchicine group and 13 patients (18.3%) in the placebo group (odds ratio 0.85 [95% Confidence Interval = 0.37-1.99]). Diarrhea occurred in two patients in each group and necessitated treatment discontinuation in one patient in each group. CONCLUSION: Low-dose colchicine did not prevent POAF in patients undergoing cardiac surgery. These results should be interpreted cautiously because of the small sample size and early study termination.ClinicalTrials.gov Unique Identifier number: NCT03015831.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-32720823: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>25172965</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports 36 versus 21 patients with any adverse event, not gastrointestinal-specific events; it gives no gastrointestinal count or effect with confidence interval.</td><td>IMPORTANCE: Postpericardiotomy syndrome, postoperative atrial fibrillation (AF), and postoperative effusions may be responsible for increased morbidity and health care costs after cardiac surgery. Postoperative use of colchicine prevented these complications in a single trial. OBJECTIVE: To determine the efficacy and safety of perioperative use of oral colchicine in reducing postpericardiotomy syndrome, postoperative AF, and postoperative pericardial or pleural effusions. DESIGN, SETTING, AND PARTICIPANTS: Investigator-initiated, double-blind, placebo-controlled, randomized clinical trial among 360 consecutive candidates for cardiac surgery enrolled in 11 Italian centers between March 2012 and March 2014. At enrollment, mean age of the trial participants was 67.5 years (SD, 10.6 years), 69% were men, and 36% had planned valvular surgery. Main exclusion criteria were absence of sinus rhythm at enrollment, cardiac transplantation, and contraindications to colchicine. INTERVENTIONS: Patients were randomized to receive placebo (n=180) or colchicine (0.5 mg twice daily in patients ≥70 kg or 0.5 mg once daily in patients &lt;70 kg; n=180) starting between 48 and 72 hours before surgery and continued for 1 month after surgery. MAIN OUTCOMES AND MEASURES: Occurrence of postpericardiotomy syndrome within 3 months; main secondary study end points were postoperative AF and pericardial or pleural effusion. RESULTS: The primary end point of postpericardiotomy syndrome occurred in 35 patients (19.4%) assigned to colchicine and in 53 (29.4%) assigned to placebo (absolute difference, 10.0%; 95% CI, 1.1%-18.7%; number needed to treat = 10). There were no significant differences between the colchicine and placebo groups for the secondary end points of postoperative AF (colchicine, 61 patients [33.9%]; placebo, 75 patients [41.7%]; absolute difference, 7.8%; 95% CI, -2.2% to 17.6%) or postoperative pericardial/pleural effusion (colchicine, 103 patients [57.2%]; placebo, 106 patients [58.9%]; absolute difference, 1.7%; 95% CI, -8.5% to 11.7%), although there was a reduction in postoperative AF in the prespecified on-treatment analysis (placebo, 61/148 patients [41.2%]; colchicine, 38/141 patients [27.0%]; absolute difference, 14.2%; 95% CI, 3.3%-24.7%). Adverse events occurred in 21 patients (11.7%) in the placebo group vs 36 (20.0%) in the colchicine group (absolute difference, 8.3%; 95% CI; 0.76%-15.9%; number needed to harm = 12), but discontinuation rates were similar. No serious adverse events were observed. CONCLUSIONS AND RELEVANCE: Among patients undergoing cardiac surgery, perioperative use of colchicine compared with placebo reduced the incidence of postpericardiotomy syndrome but not of postoperative AF or postoperative pericardial/pleural effusion. The increased risk of gastrointestinal adverse effects reduced the potential benefits of colchicine in this setting. TRIAL REGISTRATION: clinicaltrials.gov Identifier: NCT01552187.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-25172965: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "7cc02db3d1e2643d7ff049098d761fc0dbfc996b72cf9e5411fa836481df5831",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>42132185</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The held abstract and abstract-only JATS report gastrointestinal events as 25.9% versus 8.5% without explicit event counts or a gastrointestinal effect with confidence interval; the POAF RR is a different endpoint.</td><td>BACKGROUND: Postoperative arrhythmias are common after coronary artery bypass graft (CABG) surgery and are linked to adverse outcomes. Colchicine, an anti-inflammatory agent, has shown inconsistent results in prior studies, possibly due to dosing and timing variations. OBJECTIVES: To evaluate the efficacy and safety of short-term, weight-adjusted colchicine initiated preoperatively for preventing postoperative arrhythmias after CABG. METHODS: In this randomized, double-blind, placebo-controlled trial, 172 adults scheduled for on-pump CABG received colchicine or placebo. The regimen included a preoperative loading dose (1 mg twice daily) followed by a weight-based maintenance dose (0.5 mg daily if &lt;70 kg; 1 mg daily if ≥70 kg) for 14 days. The primary outcome was incidence of postoperative atrial fibrillation (POAF). Secondary outcomes included early (≤48 h) and late (&gt;48 h) POAF, other arrhythmias, inflammatory markers (CRP, ESR), length of stay, and adverse events. RESULTS: Of 163 analyzed patients (81 colchicine, 82 placebo), POAF incidence was significantly lower in the colchicine group (17.3% vs. 46.3%; RR 0.37, 95% CI 0.21-0.66; p &lt; 0.001), with an absolute risk reduction of 29.0% and number needed to treat (NNT) of 4. Colchicine reduced both early and late POAF (p &lt; 0.001 and p = 0.002). No significant reduction was seen in other arrhythmias. Gastrointestinal events, primarily diarrhea, were more common with colchicine (25.9% vs. 8.5%, p = 0.003), but were manageable and without serious adverse events. CONCLUSION: Short-term perioperative weight-adjusted colchicine is effective and safe for preventing POAF after CABG, with a low NNT and manageable side effects, though it did not significantly affect other arrhythmias. TRIAL REGISTRATION: Iranian Registry of Clinical Trials, IRCT20200328046886N6.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-42132185: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>36286314</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract gives diarrhea OR 2.578 (95% CI 1.300-5.111) and abdominal-pain OR 4.762 (1.010-22.91), but no overall gastrointestinal adverse-effect estimate or unique-patient total; the symptom effects cannot be relabelled as the overall outcome.</td><td>In patients who underwent cardiac surgery, first-time postoperative atrial fibrillation (POAF) is associated with increased incidence of hospital-acquired complications and mortality. Systemic inflammation is one of confirmed triggers of its development. The anti-inflammatory properties of colchicine can be effective for the POAF prevention. However, the results of several studies were questionable and required further investigation. Hence, we aimed to evaluate the effectiveness of low-dose short-term colchicine administration for POAF prevention in patients after the open-heart surgery. This double-blind randomized placebo-controlled trial included 267 patients, but 27 of them dropped out in the course of the study. Study subjects received the test drug on the day before the surgery and on postoperative days 2, 3, 4 and 5. The rhythm control was conducted immediately after the operation and until the discharge from the hospital. The final analysis included 240 study subjects: 113 in the colchicine group and 127 in the placebo group. POAF was observed in 21 (18.6%) patients of the colchicine group vs. 39 (30.7%) control patients (OR 0.515; 95% Cl 0.281-0.943; p = 0.029). We observed no statistically significant differences between the patient groups in the secondary endpoints of the study (hospital mortality, respiratory failure, stroke, bleeding, etc.). For other parameters characterizing the severity of inflammation (pericardial effusion, pleural effusion, WBC count, neutrophil count), there were statistically significant differences between the groups in the early postoperative period (days 3 and 5). Also, statistically significant differences between the groups in the frequency of adverse events were revealed: the incidence of diarrhea in the colchicine group was 25.7% vs. 11.8% in the placebo group (OR 2.578; 95% Cl 1.300-5.111; p = 0.005); for abdominal pain, incidence values were 7% vs. 1.6%, correspondingly (OR 4.762; 95% Cl 1.010-22.91; p = 0.028). Thus, there were statistically significant differences between groups in the primary endpoint, thereby confirming the effectiveness of short-term colchicine use for the POAF prevention after coronary artery bypass grafting and/or aortic valve replacement. Also, we detected statistically significant differences between groups in the frequency of side effects to colchicine: diarrhea and abdominal pain were more common in the colchicine group. This clinical trial is registered with ClinicalTrials database under a unique identifier: NCT04224545.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-36286314: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32720823</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports two diarrhea cases per arm, but diarrhea is only one component of gastrointestinal adverse effects and no overall gastrointestinal count or effect with confidence interval is reported.</td><td>BACKGROUND: Studies using 1 mg of colchicine to prevent postoperative atrial fibrillation (POAF) reported conflicting results. Moreover, colchicine was associated with significant gastrointestinal (GI) side effects. This study examined whether low-dose colchicine effectively prevents POAF and whether low-dose therapy is associated with lower rates of colchicine-induced GI side effects. METHODS: In this prospective, randomized, double-blind, placebo-controlled study, consecutive adult patients admitted for elective cardiac surgeries randomly received a 1-mg dose of colchicine (n = 81) or placebo (n = 71) orally 12 to 24 hours before surgery followed by a daily dose of 0.5 mg until hospital discharge. The primary efficacy endpoint was the development of at least one episode of POAF of ≥5 minutes. The primary safety endpoint was the development of adverse events, especially diarrhea. RESULTS: The in-hospital mortality rate was 3.9%. POAF occurred in 13 patients (16.1%) in the colchicine group and 13 patients (18.3%) in the placebo group (odds ratio 0.85 [95% Confidence Interval = 0.37-1.99]). Diarrhea occurred in two patients in each group and necessitated treatment discontinuation in one patient in each group. CONCLUSION: Low-dose colchicine did not prevent POAF in patients undergoing cardiac surgery. These results should be interpreted cautiously because of the small sample size and early study termination.ClinicalTrials.gov Unique Identifier number: NCT03015831.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-32720823: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>25172965</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports 36 versus 21 patients with any adverse event, not gastrointestinal-specific events; it gives no gastrointestinal count or effect with confidence interval.</td><td>IMPORTANCE: Postpericardiotomy syndrome, postoperative atrial fibrillation (AF), and postoperative effusions may be responsible for increased morbidity and health care costs after cardiac surgery. Postoperative use of colchicine prevented these complications in a single trial. OBJECTIVE: To determine the efficacy and safety of perioperative use of oral colchicine in reducing postpericardiotomy syndrome, postoperative AF, and postoperative pericardial or pleural effusions. DESIGN, SETTING, AND PARTICIPANTS: Investigator-initiated, double-blind, placebo-controlled, randomized clinical trial among 360 consecutive candidates for cardiac surgery enrolled in 11 Italian centers between March 2012 and March 2014. At enrollment, mean age of the trial participants was 67.5 years (SD, 10.6 years), 69% were men, and 36% had planned valvular surgery. Main exclusion criteria were absence of sinus rhythm at enrollment, cardiac transplantation, and contraindications to colchicine. INTERVENTIONS: Patients were randomized to receive placebo (n=180) or colchicine (0.5 mg twice daily in patients ≥70 kg or 0.5 mg once daily in patients &lt;70 kg; n=180) starting between 48 and 72 hours before surgery and continued for 1 month after surgery. MAIN OUTCOMES AND MEASURES: Occurrence of postpericardiotomy syndrome within 3 months; main secondary study end points were postoperative AF and pericardial or pleural effusion. RESULTS: The primary end point of postpericardiotomy syndrome occurred in 35 patients (19.4%) assigned to colchicine and in 53 (29.4%) assigned to placebo (absolute difference, 10.0%; 95% CI, 1.1%-18.7%; number needed to treat = 10). There were no significant differences between the colchicine and placebo groups for the secondary end points of postoperative AF (colchicine, 61 patients [33.9%]; placebo, 75 patients [41.7%]; absolute difference, 7.8%; 95% CI, -2.2% to 17.6%) or postoperative pericardial/pleural effusion (colchicine, 103 patients [57.2%]; placebo, 106 patients [58.9%]; absolute difference, 1.7%; 95% CI, -8.5% to 11.7%), although there was a reduction in postoperative AF in the prespecified on-treatment analysis (placebo, 61/148 patients [41.2%]; colchicine, 38/141 patients [27.0%]; absolute difference, 14.2%; 95% CI, 3.3%-24.7%). Adverse events occurred in 21 patients (11.7%) in the placebo group vs 36 (20.0%) in the colchicine group (absolute difference, 8.3%; 95% CI; 0.76%-15.9%; number needed to harm = 12), but discontinuation rates were similar. No serious adverse events were observed. CONCLUSIONS AND RELEVANCE: Among patients undergoing cardiac surgery, perioperative use of colchicine compared with placebo reduced the incidence of postpericardiotomy syndrome but not of postoperative AF or postoperative pericardial/pleural effusion. The increased risk of gastrointestinal adverse effects reduced the potential benefits of colchicine in this setting. TRIAL REGISTRATION: clinicaltrials.gov Identifier: NCT01552187.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/records.json#PMID-25172965: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>JOURNAL:tehranunivmedj:2014:72:147</td><td>NOT_RETRIEVED / SOURCE_NOT_RETRIEVED: journal-route report: full report not held; this outcome is not extracted from the abstract of a non-PubMed record</td><td>Conclusion: Colchicine is an anti-inflammatory medication and has very few side effects at low doses.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-postop-af/journal/tumj_article-1-6029-en.html: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "c173241ab8580e7fb830062fef750383a2da9848d563211bf0aa00b54730e949",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -40988,8 +41977,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 0 known</strong> (6 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 42132185</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 32720823</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 25172965</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 36286314</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT07287345</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07611019</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
-      "text_sha256": "9eec1b3669b0d2d534081dc44211c240f47bc94c6eb25abbe95c7ad8183287af",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 0 known</strong> (7 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 42132185</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 32720823</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 25172965</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 36286314</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID JOURNAL:tehranunivmedj:2014:72:147</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07287345</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07611019</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "e4b292f54cfe7c5e150ccf353290c57f7750ac50c049c3bb85eb5f560e4879c0",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -41047,8 +42036,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td>ASSESSED: &minus;1</td><td>95% CI [0.2063, 2.0538]; GRADE default appreciable-effect thresholds 0.75/1.25; no topic threshold registered; spans clinical decisions or inadequate information -&gt; imprecise; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (1 of ~14 completed unpublished, 7%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "83679ddf00635a2ea39ff014147f3f616d7f5ad09e57c0db018cfea5a610f1f6",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td>ASSESSED: &minus;1</td><td>95% CI [0.2063, 2.0538]; GRADE default appreciable-effect thresholds 0.75/1.25; no topic threshold registered; spans clinical decisions or inadequate information -&gt; imprecise; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (1 of ~14 completed unpublished, 7%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "0155f7d6c8f399f789eae51323288d36d88d94fadaea9e6d2f5ec6f463770d2a",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -41202,20 +42191,408 @@
       "held": true,
       "document_ref": "cache/colchicine-postop-af/comparator_fulltext.txt",
       "document_sha256": "6a7760af7cd873c1bd1a54cc15172c9987dfcd6b0a6bd847acfcf831ee914e9c",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "Bessissow 2018 [CR17]",
+          "name_in_source": "Bessissow",
+          "references": [
+            "CR17"
+          ],
+          "span": {
+            "start": 21424,
+            "end": 22079,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Bessissow [<xref ref-type=\"bibr\" rid=\"CR17\">17</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">100</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.6 mg before operation, 0.6 mg bid for 9 day after operation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">30 days</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Lung resection surgery</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">(ECG) was per-formed once a day for the first 3 days. Then 30-day follow-up</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">5/1</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">POAF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0/0</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "29237033",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 59599,
+                "end": 60683,
+                "quote": "<ref id=\"CR17\"><label>17.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Bessissow</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Agzarian</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Shargall</surname><given-names>Y</given-names></name><name name-style=\"western\"><surname>Srinathan</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Neary</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Tandon</surname><given-names>V</given-names></name><etal/></person-group><article-title>Colchicine for prevention of perioperative atrial fibrillation in patients undergoing lung resection surgery: a pilot randomized controlled study</article-title><source>Eur J Cardiothorac Surg</source><year>2018</year><volume>53</volume><fpage>945</fpage><lpage>951</lpage><pub-id pub-id-type=\"doi\">10.1093/ejcts/ezx422</pub-id><pub-id pub-id-type=\"pmid\">29237033</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR17"
+            },
+            {
+              "id": "10.1093/ejcts/ezx422",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 59599,
+                "end": 60683,
+                "quote": "<ref id=\"CR17\"><label>17.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Bessissow</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Agzarian</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Shargall</surname><given-names>Y</given-names></name><name name-style=\"western\"><surname>Srinathan</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Neary</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Tandon</surname><given-names>V</given-names></name><etal/></person-group><article-title>Colchicine for prevention of perioperative atrial fibrillation in patients undergoing lung resection surgery: a pilot randomized controlled study</article-title><source>Eur J Cardiothorac Surg</source><year>2018</year><volume>53</volume><fpage>945</fpage><lpage>951</lpage><pub-id pub-id-type=\"doi\">10.1093/ejcts/ezx422</pub-id><pub-id pub-id-type=\"pmid\">29237033</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR17"
+            }
+          ]
+        },
+        {
+          "family_id": "Deftereos 2012 [CR15]",
+          "name_in_source": "Deftereos",
+          "references": [
+            "CR15"
+          ],
+          "span": {
+            "start": 22079,
+            "end": 22707,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Deftereos [<xref ref-type=\"bibr\" rid=\"CR15\">15</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">161</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Pulmonary Vein Isolation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Electrogram obtained during patient visits at the arrhythmia clinic</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">7/1</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Recurrence of AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">All/All</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "23040570",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 57459,
+                "end": 58510,
+                "quote": "<ref id=\"CR15\"><label>15.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Deftereos</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Giannopoulos</surname><given-names>G</given-names></name><name name-style=\"western\"><surname>Kossyvakis</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Efremidis</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Panagopoulou</surname><given-names>V</given-names></name><name name-style=\"western\"><surname>Kaoukis</surname><given-names>A</given-names></name><etal/></person-group><article-title>Colchicine for prevention of early atrial fibrillation recurrence after pulmonary vein isolation</article-title><source>J Am Coll Cardiol</source><year>2012</year><volume>60</volume><fpage>1790</fpage><lpage>1796</lpage><pub-id pub-id-type=\"doi\">10.1016/j.jacc.2012.07.031</pub-id><pub-id pub-id-type=\"pmid\">23040570</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR15"
+            },
+            {
+              "id": "10.1016/j.jacc.2012.07.031",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 57459,
+                "end": 58510,
+                "quote": "<ref id=\"CR15\"><label>15.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Deftereos</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Giannopoulos</surname><given-names>G</given-names></name><name name-style=\"western\"><surname>Kossyvakis</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Efremidis</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Panagopoulou</surname><given-names>V</given-names></name><name name-style=\"western\"><surname>Kaoukis</surname><given-names>A</given-names></name><etal/></person-group><article-title>Colchicine for prevention of early atrial fibrillation recurrence after pulmonary vein isolation</article-title><source>J Am Coll Cardiol</source><year>2012</year><volume>60</volume><fpage>1790</fpage><lpage>1796</lpage><pub-id pub-id-type=\"doi\">10.1016/j.jacc.2012.07.031</pub-id><pub-id pub-id-type=\"pmid\">23040570</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR15"
+            }
+          ]
+        },
+        {
+          "family_id": "Deftereos 2014 [CR16]",
+          "name_in_source": "Deftereos",
+          "references": [
+            "CR16"
+          ],
+          "span": {
+            "start": 22707,
+            "end": 23279,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Deftereos [<xref ref-type=\"bibr\" rid=\"CR16\">16</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">206</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Pulmonary Vein Isolation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not report</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">10/2</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Recurrence of AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">All/All</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "24508207",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 58510,
+                "end": 59599,
+                "quote": "<ref id=\"CR16\"><label>16.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Deftereos</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Giannopoulos</surname><given-names>G</given-names></name><name name-style=\"western\"><surname>Efremidis</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Kossyvakis</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Katsivas</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Panagopoulou</surname><given-names>V</given-names></name><etal/></person-group><article-title>Colchicine for prevention of atrial fibrillation recurrence after pulmonary vein isolation: mid-term efficacy and effect on quality of life</article-title><source>Heart Rhythm</source><year>2014</year><volume>11</volume><fpage>620</fpage><lpage>628</lpage><pub-id pub-id-type=\"doi\">10.1016/j.hrthm.2014.02.002</pub-id><pub-id pub-id-type=\"pmid\">24508207</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR16"
+            },
+            {
+              "id": "10.1016/j.hrthm.2014.02.002",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 58510,
+                "end": 59599,
+                "quote": "<ref id=\"CR16\"><label>16.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Deftereos</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Giannopoulos</surname><given-names>G</given-names></name><name name-style=\"western\"><surname>Efremidis</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Kossyvakis</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Katsivas</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Panagopoulou</surname><given-names>V</given-names></name><etal/></person-group><article-title>Colchicine for prevention of atrial fibrillation recurrence after pulmonary vein isolation: mid-term efficacy and effect on quality of life</article-title><source>Heart Rhythm</source><year>2014</year><volume>11</volume><fpage>620</fpage><lpage>628</lpage><pub-id pub-id-type=\"doi\">10.1016/j.hrthm.2014.02.002</pub-id><pub-id pub-id-type=\"pmid\">24508207</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR16"
+            }
+          ]
+        },
+        {
+          "family_id": "Imazio 2011 [CR19]",
+          "name_in_source": "Imazio",
+          "references": [
+            "CR19"
+          ],
+          "span": {
+            "start": 23279,
+            "end": 23937,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Imazio [<xref ref-type=\"bibr\" rid=\"CR19\">19</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">336</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 1 month</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">1 month</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG, aortic surgery, valvular surgery, combined</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Continuous ECG monitoring and 12-lead ECG recordings</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">16/8</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Rate of POAF on placebo/colchicine treatment</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">8/11</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "22090167",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 61739,
+                "end": 62847,
+                "quote": "<ref id=\"CR19\"><label>19.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Imazio</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Brucato</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Ferrazzi</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Rovere</surname><given-names>ME</given-names></name><name name-style=\"western\"><surname>Gandino</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Cemin</surname><given-names>R</given-names></name><etal/></person-group><article-title>Colchicine reduces postoperative atrial fibrillation: results of the colchicine for the prevention of the postpericardiotomy syndrome (COPPS) atrial fibrillation substudy</article-title><source>Circulation</source><year>2011</year><volume>124</volume><fpage>2290</fpage><lpage>2295</lpage><pub-id pub-id-type=\"doi\">10.1161/CIRCULATIONAHA.111.026153</pub-id><pub-id pub-id-type=\"pmid\">22090167</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR19"
+            },
+            {
+              "id": "10.1161/CIRCULATIONAHA.111.026153",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 61739,
+                "end": 62847,
+                "quote": "<ref id=\"CR19\"><label>19.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Imazio</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Brucato</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Ferrazzi</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Rovere</surname><given-names>ME</given-names></name><name name-style=\"western\"><surname>Gandino</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Cemin</surname><given-names>R</given-names></name><etal/></person-group><article-title>Colchicine reduces postoperative atrial fibrillation: results of the colchicine for the prevention of the postpericardiotomy syndrome (COPPS) atrial fibrillation substudy</article-title><source>Circulation</source><year>2011</year><volume>124</volume><fpage>2290</fpage><lpage>2295</lpage><pub-id pub-id-type=\"doi\">10.1161/CIRCULATIONAHA.111.026153</pub-id><pub-id pub-id-type=\"pmid\">22090167</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR19"
+            }
+          ]
+        },
+        {
+          "family_id": "Imazio 2014 [CR18]",
+          "name_in_source": "Imazio",
+          "references": [
+            "CR18"
+          ],
+          "span": {
+            "start": 23937,
+            "end": 24556,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Imazio [<xref ref-type=\"bibr\" rid=\"CR18\">18</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">360</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid for 1 month</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">3 months</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG, aortic surgery, valvular surgery, combined</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Continuous ECG monitoring and 12-lead ECG recordings</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">36/21</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">18/15</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "25172965",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 60683,
+                "end": 61739,
+                "quote": "<ref id=\"CR18\"><label>18.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Imazio</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Brucato</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Ferrazzi</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Pullara</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Adler</surname><given-names>Y</given-names></name><name name-style=\"western\"><surname>Barosi</surname><given-names>A</given-names></name><etal/></person-group><article-title>Colchicine for prevention of postpericardiotomy syndrome and postoperative atrial fibrillation: the COPPS-2 randomized clinical trial</article-title><source>JAMA US</source><year>2014</year><volume>312</volume><fpage>1016</fpage><lpage>1023</lpage><pub-id pub-id-type=\"doi\">10.1001/jama.2014.11026</pub-id><pub-id pub-id-type=\"pmid\">25172965</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR18"
+            },
+            {
+              "id": "10.1001/jama.2014.11026",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 60683,
+                "end": 61739,
+                "quote": "<ref id=\"CR18\"><label>18.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Imazio</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Brucato</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Ferrazzi</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Pullara</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Adler</surname><given-names>Y</given-names></name><name name-style=\"western\"><surname>Barosi</surname><given-names>A</given-names></name><etal/></person-group><article-title>Colchicine for prevention of postpericardiotomy syndrome and postoperative atrial fibrillation: the COPPS-2 randomized clinical trial</article-title><source>JAMA US</source><year>2014</year><volume>312</volume><fpage>1016</fpage><lpage>1023</lpage><pub-id pub-id-type=\"doi\">10.1001/jama.2014.11026</pub-id><pub-id pub-id-type=\"pmid\">25172965</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR18"
+            }
+          ]
+        },
+        {
+          "family_id": "Sarzaeem 2014 [CR23]",
+          "name_in_source": "Sarzaeem",
+          "references": [
+            "CR23"
+          ],
+          "span": {
+            "start": 24556,
+            "end": 25225,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Sarzaeem [<xref ref-type=\"bibr\" rid=\"CR23\">23</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">216</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">24 h before surgery 2 mg; 0.5 mg bid for 1 week after operation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Continuous ECG monitoring while in ICU, and daily 12 lead ECG while on the regular floor</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not report</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [],
+          "bib_key": "bib:tehranunivmedj:2014:72:147",
+          "bib_key_span": {
+            "start": 66082,
+            "end": 66941,
+            "quote": "<ref id=\"CR23\"><label>23.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Sarzaeem</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Shayan</surname><given-names>N</given-names></name><name name-style=\"western\"><surname>Bagheri</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Jebelli</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Mandegar</surname><given-names>M</given-names></name></person-group><article-title>Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft: a double blind clinical trial</article-title><source>Tehran Univ Med J</source><year>2014</year><volume>72</volume><fpage>147</fpage><lpage>154</lpage></element-citation></ref>"
+          }
+        },
+        {
+          "family_id": "Tabbalat 2016 [CR22]",
+          "name_in_source": "Tabbalat",
+          "references": [
+            "CR22"
+          ],
+          "span": {
+            "start": 25225,
+            "end": 25877,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Tabbalat [<xref ref-type=\"bibr\" rid=\"CR22\">22</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">360</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg bid after operation was taken in hospital until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">CABG or other open heart surgery</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Daily electrocardiograms (ECGs) until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">55/14</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "27502857",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 65050,
+                "end": 66082,
+                "quote": "<ref id=\"CR22\"><label>22.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Tabbalat</surname><given-names>RA</given-names></name><name name-style=\"western\"><surname>Hamad</surname><given-names>NM</given-names></name><name name-style=\"western\"><surname>Alhaddad</surname><given-names>IA</given-names></name><name name-style=\"western\"><surname>Hammoudeh</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Akasheh</surname><given-names>BF</given-names></name><name name-style=\"western\"><surname>Khader</surname><given-names>Y</given-names></name></person-group><article-title>Effect of ColchiciNe on the InciDence of atrial fibrillation in open heart surgery patients: END-AF trial</article-title><source>Am Heart J</source><year>2016</year><volume>178</volume><fpage>102</fpage><lpage>107</lpage><pub-id pub-id-type=\"doi\">10.1016/j.ahj.2016.05.006</pub-id><pub-id pub-id-type=\"pmid\">27502857</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR22"
+            },
+            {
+              "id": "10.1016/j.ahj.2016.05.006",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 65050,
+                "end": 66082,
+                "quote": "<ref id=\"CR22\"><label>22.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Tabbalat</surname><given-names>RA</given-names></name><name name-style=\"western\"><surname>Hamad</surname><given-names>NM</given-names></name><name name-style=\"western\"><surname>Alhaddad</surname><given-names>IA</given-names></name><name name-style=\"western\"><surname>Hammoudeh</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Akasheh</surname><given-names>BF</given-names></name><name name-style=\"western\"><surname>Khader</surname><given-names>Y</given-names></name></person-group><article-title>Effect of ColchiciNe on the InciDence of atrial fibrillation in open heart surgery patients: END-AF trial</article-title><source>Am Heart J</source><year>2016</year><volume>178</volume><fpage>102</fpage><lpage>107</lpage><pub-id pub-id-type=\"doi\">10.1016/j.ahj.2016.05.006</pub-id><pub-id pub-id-type=\"pmid\">27502857</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR22"
+            }
+          ]
+        },
+        {
+          "family_id": "Tabbalat 2020 [CR21]",
+          "name_in_source": "Tabbalat",
+          "references": [
+            "CR21"
+          ],
+          "span": {
+            "start": 25877,
+            "end": 26476,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Tabbalat [<xref ref-type=\"bibr\" rid=\"CR21\">21</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">152</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">0.5 mg qd after operation</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Open heart surgery</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Daily electrocardiograms (ECGs) until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">2/2</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">POAF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "32720823",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 63951,
+                "end": 65050,
+                "quote": "<ref id=\"CR21\"><label>21.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Tabbalat</surname><given-names>RA</given-names></name><name name-style=\"western\"><surname>Alhaddad</surname><given-names>I</given-names></name><name name-style=\"western\"><surname>Hammoudeh</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Khader</surname><given-names>YS</given-names></name><name name-style=\"western\"><surname>Khalaf</surname><given-names>HA</given-names></name><name name-style=\"western\"><surname>Obaidat</surname><given-names>M</given-names></name><etal/></person-group><article-title>Effect of low-dose ColchiciNe on the InciDence of atrial fibrillation in open heart surgery patients: END-AF low dose trial</article-title><source>J Int Med Res</source><year>2020</year><volume>48</volume><fpage>030006052093983</fpage><pub-id pub-id-type=\"doi\">10.1177/0300060520939832</pub-id><pub-id pub-id-type=\"pmcid\">PMC7388125</pub-id><pub-id pub-id-type=\"pmid\">32720823</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR21"
+            },
+            {
+              "id": "10.1177/0300060520939832",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 63951,
+                "end": 65050,
+                "quote": "<ref id=\"CR21\"><label>21.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Tabbalat</surname><given-names>RA</given-names></name><name name-style=\"western\"><surname>Alhaddad</surname><given-names>I</given-names></name><name name-style=\"western\"><surname>Hammoudeh</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Khader</surname><given-names>YS</given-names></name><name name-style=\"western\"><surname>Khalaf</surname><given-names>HA</given-names></name><name name-style=\"western\"><surname>Obaidat</surname><given-names>M</given-names></name><etal/></person-group><article-title>Effect of low-dose ColchiciNe on the InciDence of atrial fibrillation in open heart surgery patients: END-AF low dose trial</article-title><source>J Int Med Res</source><year>2020</year><volume>48</volume><fpage>030006052093983</fpage><pub-id pub-id-type=\"doi\">10.1177/0300060520939832</pub-id><pub-id pub-id-type=\"pmcid\">PMC7388125</pub-id><pub-id pub-id-type=\"pmid\">32720823</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR21"
+            }
+          ]
+        },
+        {
+          "family_id": "Zarpelon 2016 [CR20]",
+          "name_in_source": "Zarpelon",
+          "references": [
+            "CR20"
+          ],
+          "span": {
+            "start": 26476,
+            "end": 27170,
+            "quote": "<tr><td align=\"left\" colspan=\"1\" rowspan=\"1\">Zarpelon [<xref ref-type=\"bibr\" rid=\"CR20\">20</xref>]</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">140</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">After operation 0.5 mg bid was taken in hospital until discharge</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">In hospital</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Open heart surgery-Myocardial Revascularization</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">continuous cardiac monitoring and 12-lead electrocardiogram during ICU stay</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">19/6</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">AF</td><td align=\"left\" colspan=\"1\" rowspan=\"1\">Not recorded</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "27223641",
+              "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+              "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+              "span": {
+                "start": 62847,
+                "end": 63951,
+                "quote": "<ref id=\"CR20\"><label>20.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Zarpelon</surname><given-names>CS</given-names></name><name name-style=\"western\"><surname>Netto</surname><given-names>MC</given-names></name><name name-style=\"western\"><surname>Jorge</surname><given-names>JCM</given-names></name><name name-style=\"western\"><surname>Fabris</surname><given-names>CC</given-names></name><name name-style=\"western\"><surname>Desengrini</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Jardim</surname><given-names>MS</given-names></name><etal/></person-group><article-title>Colchicine to reduce atrial fibrillation in the postoperative period of myocardial revascularization</article-title><source>Arq Bras Cardiol.</source><year>2016</year><volume>107</volume><fpage>4</fpage><lpage>9</lpage><pub-id pub-id-type=\"pmid\">27223641</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.5935/abc.20160082</pub-id><pub-id pub-id-type=\"pmcid\">PMC4976950</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR20"
+            }
+          ]
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/colchicine-postop-af/comparator_pmc_jats.xml",
+        "document_sha256": "56ca15f1c8b9adb6fd88383cee2051aaee5d9544bf5a72ccd9cf34051398d0e4",
+        "source": "PMC JATS (efetch db=pmc)",
+        "pmcid": "PMC9438305",
+        "license": "creativecommons.org/licenses/by/4.0",
+        "fetched_utc": "2026-09-26T21:13:27Z",
+        "table_caption": "Characteristics of RCTs included in the meta-analysis"
+      },
+      "overlaps": [
+        {
+          "pool": "Postoperative atrial fibrillation",
+          "shared": [
+            "Imazio 2014 [CR18]",
+            "Tabbalat 2020 [CR21]"
+          ],
+          "harness_only": [
+            "SYN-f9c2d88aa0de"
+          ],
+          "comparator_only": [
+            "Bessissow 2018 [CR17]",
+            "Deftereos 2012 [CR15]",
+            "Deftereos 2014 [CR16]",
+            "Imazio 2011 [CR19]",
+            "Sarzaeem 2014 [CR23]",
+            "Tabbalat 2016 [CR22]",
+            "Zarpelon 2016 [CR20]"
+          ],
+          "jaccard": 0.2,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "Imazio 2014 [CR18]",
+            "Tabbalat 2020 [CR21]"
+          ],
+          "harness_k": 3,
+          "comparator_k": 9
+        },
+        {
+          "pool": "Gastrointestinal adverse effects",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "Bessissow 2018 [CR17]",
+            "Deftereos 2012 [CR15]",
+            "Deftereos 2014 [CR16]",
+            "Imazio 2011 [CR19]",
+            "Imazio 2014 [CR18]",
+            "Sarzaeem 2014 [CR23]",
+            "Tabbalat 2016 [CR22]",
+            "Tabbalat 2020 [CR21]",
+            "Zarpelon 2016 [CR20]"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 9
+        },
+        {
+          "pool": "Treatment discontinuation",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "Bessissow 2018 [CR17]",
+            "Deftereos 2012 [CR15]",
+            "Deftereos 2014 [CR16]",
+            "Imazio 2011 [CR19]",
+            "Imazio 2014 [CR18]",
+            "Sarzaeem 2014 [CR23]",
+            "Tabbalat 2016 [CR22]",
+            "Tabbalat 2020 [CR21]",
+            "Zarpelon 2016 [CR20]"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 9
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "48741f59d4db6a60f2fdfc2a31bb8f9080b8027ed1f162430f4ecb9d44a28df8",
+    "review_sha256": "681d12bb5d9aa2a0f247cbcb767598c68e082b3b642990d79ec04ea932baf3ad",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -41231,16 +42608,16 @@
       "reason": "Comparator (Zhao 2022) pools 9; comparable same-scope k=7 (excludes 2 post-PVI-ablation trials). Decomposed: 4 POOLED BY US (COPPS-2 25172965, END-AF 27502857, END-AF-low-dose 32720823, and Post-CABG Arrhythmias RCT 42132185 recovered by the PREVENTION_TRIAL_TITLE_OMITS_OUTCOME screening fix — its title names 'Post-CABG Arrhythmias' not 'atrial fibrillation'; RR 0.37 verified against the abstract); Bessissow 29237033 NOT pooled (declared-absent); of the rest: 2 SCOPE-excluded (Deftereos x2, post-pulmonary-vein-isolation ablation recurrence, not post-surgery POAF); 1 MULTI-ARM (Zarpelon 27223641, pre+post-op dosing + late-admission single-dose subgroup, dose/timing ambiguity); 1 REACH (Sarzaeem 2014, no PMID/not in corpus); 2 flagged ELIGIBLE and now screened IN by the prevention fix but NOT cleanly poolable from the abstract (COPPS AF substudy 22090167 and COCS 36286314: real POAF percentages without exact per-arm N or a CI, declared-absent on ambiguity). So the k gap is scope + multi-arm + reach + percentage-only trials, not a search/extraction failure.",
       "parity_relation": {
         "relation": "OVERLAPPING",
-        "label": "INFERRED overlapping -- neither trial set contains the other",
-        "inferred": true,
+        "label": "overlapping -- neither trial set contains the other",
+        "inferred": false,
         "our_k": 3,
         "hand_our_k": 4,
         "hand_our_k_stale": true,
-        "their_k": 7,
-        "their_k_source": "comparable_comparator_k",
-        "shared_k": null,
+        "their_k": 9,
+        "their_k_source": "computed overlap relation (enumerated comparator set)",
+        "shared_k": 2,
         "only_ours_n": 1,
-        "only_theirs_n": 0,
+        "only_theirs_n": 7,
         "dominance": null,
         "hand_status": "OVERLAPPING",
         "hand_status_normalized": "OVERLAPPING",
@@ -41391,7 +42768,7 @@
       "retrieved_corpus_sha256": "474eff90ca6b0041ac74609e05acb27d8c788eb7f23b84a48c98ec96a99d87e5",
       "records_file_sha256": "e3da2830e992afeb31a6e5a99199a1a427d6e1d5877385832887400ff08380a5",
       "retrieval_ledger_sha256": "fec36a63761c023ebada5b41e00a01af8e444be55a808ce56ae176cffda8b6fa",
-      "screening_ledger_sha256": "e5ed404f1e3e94a448226971e9f2c294cec33bc0e3654785a106cca840a9a5d4",
+      "screening_ledger_sha256": "0085dc9998b506be8eb6742d66b58309587799f76a60240e576973794e1d5016",
       "extraction_objects_sha256": "7cf42cf56e01b5a00d105f5e34c400ba2316f633ee3cc0ee1809e7dbd2a444ab",
       "trial_family_map_sha256": "1580c5b924a50e83b8d1aec791de7e3e08d1adacd0356d8d423935f55b428c87",
       "rob_object_sha256": "d1d6a10e8e6cdf89abe8ca6a68165e95a8100ecf29b196aca0507b80085ddfda",
@@ -41410,12 +42787,12 @@
         }
       ],
       "config_sha256": "3eba75890f2f882bc06e15af811611589ecb493d3cb47dbf5eb7bcb39f2ac3a3",
-      "analysis_code_sha256": "b86b0f2c0aa871a392f17dcdf63c8f44b28556f5ad898a0f006ae457d7c8712a",
+      "analysis_code_sha256": "44c6b1b0365fe6b2b965e2730697937a29ddbddd82e2f08e69c9144626f4e53d",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
+        "harness/absence.py": "19053e549df78e9d33bd14cef35aa3557426badd",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
@@ -41427,7 +42804,7 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "0a0b550f2a13e29c94e1a01ca2690c82650373b1",
+        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -41448,7 +42825,7 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
+        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -41457,19 +42834,21 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
+        "harness/index.py": "b4f1391a202f34ef02da8f727b6300f16296ce85",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+        "harness/journal_route.py": "fde5fdea07c69b09069a4d9c558b9d68437ce95b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
+        "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "1b100dc69dd570a2b2b62bd9c0e5e79aaabde8bb",
-        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/overlap_relation.py": "b249213972a06b785246bce2d4735af2236d20f6",
+        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
+        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -41482,14 +42861,14 @@
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "18a65903f0dd9426f139ba8da95625dc3157c5e2",
+        "harness/screen.py": "eea78180ecba3cf23e4b4a6e03326a364f3425b1",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
+        "harness/trial_family.py": "5919792d570e8b8bf007b3015edc9db8b948ed1f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -41509,7 +42888,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "84 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -41538,8 +42917,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "4739903db480f7a99d9888903a21a88078811a14679a731303474c01a35d8136",
-      "review_sha256": "48741f59d4db6a60f2fdfc2a31bb8f9080b8027ed1f162430f4ecb9d44a28df8",
+      "manuscript_sha256": "62c3c7885701a90fb88db1c505f017f1377e8fcd9c789eda7bc61e59c72403f8",
+      "review_sha256": "681d12bb5d9aa2a0f247cbcb767598c68e082b3b642990d79ec04ea932baf3ad",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-postop-af.md UTF-8 text, universal newlines",
@@ -41559,7 +42938,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "c5488740ea33dba5d5fcaa7da1201e3d344d0af68745316671f7f78f188eac37"
+      "release_sha256": "753028d7e0f6371c3b4c1a380bd02996dbd821188800d6dbb81460b2b4b84627"
     }
   }
 }

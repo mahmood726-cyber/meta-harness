@@ -2543,14 +2543,120 @@
     },
     "overlap": {
       "ours_k": 2,
-      "theirs_k": 6,
-      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "theirs_k": 5,
+      "shared_k": 1,
       "only_ours": [
-        "40159390"
+        "NCT03036462"
       ],
-      "only_theirs": [],
-      "method": "publication-date + design identity (comparator trial list not extracted from source)",
-      "note": "Trials newer than the comparator (2024) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+      "only_theirs": [
+        "HEART-FID 2023 [B11-diseases-12-00339]",
+        "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+        "FAIR-HF 2009 [B20-diseases-12-00339]",
+        "EFFECT-HF 2017 [B21-diseases-12-00339]"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: OVERLAPPING (overlapping -- some families shared, each side has trials the other lacks); our pooled trial families 2, comparator trials 5, shared 1; basis: set operation on the enumerated comparator trial set.",
+      "theirs_k_source": "comparator panel trial_set (cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 5 comparator trial(s) for this outcome",
+      "relation": "OVERLAPPING"
+    },
+    "overlap_relation": {
+      "outcome": "Heart-failure hospitalization",
+      "comparator_pmid": "39727669",
+      "comparator_year": 2024,
+      "ours": [
+        {
+          "family_id": "NCT03036462",
+          "row_id": "PMID 40159390",
+          "label": "40159390",
+          "earliest_report": {
+            "report_id": "40159390",
+            "year": 2025
+          }
+        },
+        {
+          "family_id": "NCT01453608",
+          "row_id": "PMID 25176939",
+          "label": "25176939",
+          "earliest_report": {
+            "report_id": "25176939",
+            "year": 2015
+          }
+        }
+      ],
+      "ours_k": 2,
+      "date_proof": {
+        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
+        "comparator_year": 2024,
+        "post_dating": [
+          "NCT03036462 (40159390, 2025)"
+        ],
+        "holds_for_every_pooled_family": false
+      },
+      "constraints": [],
+      "theirs": {
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
+        "endpoint_for_outcome": null,
+        "members": [
+          {
+            "name": "HEART-FID 2023 [B11-diseases-12-00339]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">HEART-FID [<xref rid=\"B11-diseases-12-00339\" ref-type=\"bibr\">11</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>≥18 years of age.</p></list-item><list-item><p>Ambulatory patients with HF, a LVEF ≤ 40%.</p></list-item><list-item><p>Hb &gt; 9.0 g per deciliter and either &lt; 13.5 g per deciliter (in women) or &lt; 15.0 g per deciliter (in men), ID (defined as a ferritin level of &lt;100 ng per milliliter or a level</p><p>of 100 to 300 ng per milliliter with a TSAT of &lt;20%).</p></list-item><list-item><p>Hospitalization for heart failure within the previous 12 months or an elevated natriuretic peptide level.</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item><list-item><p>Current atrial fibrillation or atrial flutter.</p></list-item><list-item><p>Hemodialysis or peritoneal dialysis (current or planned within the next 6 months).</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item></list>\n</td></tr>"
+          },
+          {
+            "name": "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">AFFIRM-AHF [<xref rid=\"B10-diseases-12-00339\" ref-type=\"bibr\">10</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>≥18 years of age.</p></list-item><list-item><p>Hospitalized for acute HF, treated with at least 40 mg furosemide intravenously (or equivalent).</p></list-item><list-item><p>LVEF ≤ 50%.</p></list-item><list-item><p>ID, defined as serum ferritin of less than 100 ng/mL, or 100–299 ng/mL with TSAT ≤ 20%.</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>Dyspnea due to non-cardiac causes.</p></list-item><list-item><p>Documented restricted amyloid cardiomyopathy or acute myocarditis or hypertrophic obstructive, restrictive, or constrictive cardiomyopathy.</p></list-item><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item><list-item><p>Individuals requiring immediate transfusion or with a Hb &lt; 8 g/dL or with a Hb &gt; 15 g/dL.</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item></list>\n</td></tr>"
+          },
+          {
+            "name": "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">FAIR-HF [<xref rid=\"B20-diseases-12-00339\" ref-type=\"bibr\">20</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>NYHA II–III functional class due to stable symptomatic chronic HF.</p></list-item><list-item><p>LVEF ≤ 40% (NYHA class II) or LVEF ≤ 45% (NYHA class III).</p></list-item><list-item><p>Screening Hb: 9.5–13.5 g/dL.</p></list-item><list-item><p>ID (Screening ferritin &lt; 100 µg/L or 100–299 µg/L + TSAT &lt; 20%).</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>Anemia due to reasons other than ID.</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item></list>\n</td></tr>"
+          },
+          {
+            "name": "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+            "bound_to": "NCT01453608",
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">CONFIRM-HF [<xref rid=\"B2-diseases-12-00339\" ref-type=\"bibr\">2</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>Stable ambulatory HF patients with NYHA class II or III (LVEF ≤ 45%).</p></list-item><list-item><p>Elevated natriuretic peptides (brain natriuretic peptide &gt;100 pg/mL and/or N-terminal-pro-brain natriuretic peptide &gt;400 pg/mL).</p></list-item><list-item><p>Presence of ID [defined as serum ferritin level &lt;100 ng/mL, or between 100 and 300 ng/mL if TSAT &lt;20%] and Hb &lt; 15 g/dL (all at the screening visit).</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item></list>\n</td></tr>"
+          },
+          {
+            "name": "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">EFFECT-HF [<xref rid=\"B21-diseases-12-00339\" ref-type=\"bibr\">21</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>NYHA class II/III (LVEF ≤ 45%).</p></list-item><list-item><p>BNP &gt; 100 pg/mL and/or NT-proBNP &gt; 400 pg/mL.</p></list-item><list-item><p>Hb &lt; 15 g/dL.</p></list-item><list-item><p>ID (ferritin &lt; 100 µg/L or 100–300 µg/L + TSAT &lt; 20%).</p></list-item><list-item><p>Decreased exercise capacity, as shown by a reproducible peak VO<sub>2</sub> 10–20 mL/kg/min.</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item><list-item><p>Exercise training programs in the 3 months prior to screening or planned in the next 6 months.</p></list-item><list-item><p>Chronic liver disease and/or elevated liver enzymes.</p></list-item><list-item><p>Vitamin B12 and/or serum folate deficiency.</p></list-item></list>\n</td></tr>"
+          }
+        ],
+        "out_of_scope": []
+      },
+      "theirs_k": 5,
+      "shared": [
+        "NCT01453608"
+      ],
+      "shared_k": 1,
+      "only_ours": [
+        "NCT03036462"
+      ],
+      "only_theirs": [
+        "HEART-FID 2023 [B11-diseases-12-00339]",
+        "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+        "FAIR-HF 2009 [B20-diseases-12-00339]",
+        "EFFECT-HF 2017 [B21-diseases-12-00339]"
+      ],
+      "relation": "OVERLAPPING",
+      "label": "overlapping -- some families shared, each side has trials the other lacks",
+      "basis": "set operation on the enumerated comparator trial set",
+      "theirs_k_stated": {
+        "value": 6,
+        "source": null
+      }
     }
   },
   "estimand_exclusions": [],
@@ -4130,7 +4236,8 @@
         ],
         "dois": [
           "10.1136/bmjresp-2020-000577"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -4550,7 +4657,8 @@
         ],
         "dois": [
           "10.1016/j.jacc.2007.09.036"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -5630,7 +5738,8 @@
         ],
         "dois": [
           "10.1056/NEJMoa0908355"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -6741,7 +6850,8 @@
         ],
         "dois": [
           "10.1161/CIRCULATIONAHA.117.027497"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -7770,7 +7880,8 @@
         ],
         "dois": [
           "10.1093/eurheartj/ehu385"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -9033,7 +9144,8 @@
         ],
         "dois": [
           "10.1016/S0140-6736(22)02083-9"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -10658,7 +10770,8 @@
         ],
         "dois": [
           "10.1016/S0140-6736(20)32339-4"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -14007,7 +14120,8 @@
         ],
         "dois": [
           "10.1001/jama.2025.3833"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -15464,7 +15578,8 @@
         ],
         "dois": [
           "10.1056/NEJMoa2304968"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -17088,7 +17203,8 @@
         "report_ids": [
           "NCT03079518"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -18387,7 +18503,8 @@
         "report_ids": [
           "NCT03803111"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -19731,7 +19848,8 @@
         "report_ids": [
           "NCT03991000"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -20911,7 +21029,8 @@
         "report_ids": [
           "NCT04974021"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -22596,7 +22715,8 @@
         "report_ids": [
           "NCT06434025"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -24284,7 +24404,8 @@
         "report_ids": [
           "NCT06542822"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -25471,7 +25592,8 @@
         "report_ids": [
           "NCT06703411"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -26749,7 +26871,8 @@
         "report_ids": [
           "NCT07053475"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -28166,7 +28289,8 @@
         ],
         "dois": [
           "10.1093/eurheartj/ehq158"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -28576,7 +28700,8 @@
         ],
         "dois": [
           "10.1093/eurheartj/ehab234"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -28991,7 +29116,8 @@
         ],
         "dois": [
           "10.1016/j.jacc.2006.07.015"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -29404,7 +29530,8 @@
         ],
         "dois": [
           "10.3390/diagnostics13020304"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -29815,7 +29942,8 @@
         ],
         "dois": [
           "10.1016/j.jacc.2011.04.040"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -30224,7 +30352,8 @@
         ],
         "dois": [
           "10.1016/S0140-6736(17)32154-2"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -30633,7 +30762,8 @@
         ],
         "dois": [
           "10.1038/s44161-022-00202-w"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -31042,7 +31172,8 @@
         ],
         "dois": [
           "10.1038/s41569-022-00735-4"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -31457,7 +31588,8 @@
         ],
         "dois": [
           "10.3390/jcm11010125"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -31868,7 +32000,8 @@
         ],
         "dois": [
           "10.1136/bmj.l4898"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -32279,7 +32412,8 @@
         ],
         "dois": [
           "10.1161/CIR.0000000000001063"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -32692,7 +32826,8 @@
         ],
         "dois": [
           "10.1016/j.jchf.2017.08.023"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -33981,20 +34116,358 @@
       "held": true,
       "document_ref": "cache/iv-iron-hfref-hosp/comparator_fulltext.txt",
       "document_sha256": "1ad28889226f9ad0726ec30f61a2c0fce6fe70f44bde9f0f509601aafb5373b7",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "HEART-FID 2023 [B11-diseases-12-00339]",
+          "name_in_source": "HEART-FID",
+          "references": [
+            "B11-diseases-12-00339"
+          ],
+          "span": {
+            "start": 92174,
+            "end": 93634,
+            "quote": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">HEART-FID [<xref rid=\"B11-diseases-12-00339\" ref-type=\"bibr\">11</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>≥18 years of age.</p></list-item><list-item><p>Ambulatory patients with HF, a LVEF ≤ 40%.</p></list-item><list-item><p>Hb &gt; 9.0 g per deciliter and either &lt; 13.5 g per deciliter (in women) or &lt; 15.0 g per deciliter (in men), ID (defined as a ferritin level of &lt;100 ng per milliliter or a level</p><p>of 100 to 300 ng per milliliter with a TSAT of &lt;20%).</p></list-item><list-item><p>Hospitalization for heart failure within the previous 12 months or an elevated natriuretic peptide level.</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item><list-item><p>Current atrial fibrillation or atrial flutter.</p></list-item><list-item><p>Hemodialysis or peritoneal dialysis (current or planned within the next 6 months).</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item></list>\n</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "37632463",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 54470,
+                "end": 55867,
+                "quote": "<ref id=\"B11-diseases-12-00339\"><label>11.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Mentz</surname><given-names>R.J.</given-names></name>\n<name name-style=\"western\"><surname>Garg</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Rockhold</surname><given-names>F.W.</given-names></name>\n<name name-style=\"western\"><surname>Butler</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>De Pasquale</surname><given-names>C.G.</given-names></name>\n<name name-style=\"western\"><surname>Ezekowitz</surname><given-names>J.A.</given-names></name>\n<name name-style=\"western\"><surname>Lewis</surname><given-names>G.D.</given-names></name>\n<name name-style=\"western\"><surname>O’meara</surname><given-names>E.</given-names></name>\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Troughton</surname><given-names>R.W.</given-names></name>\n<etal/>\n</person-group><article-title>Ferric Carboxymaltose in Heart Failure with Iron Deficiency</article-title><source>N. Engl. J. Med.</source><year>2023</year><volume>389</volume><fpage>975</fpage><lpage>986</lpage><pub-id pub-id-type=\"doi\">10.1056/NEJMoa2304968</pub-id><pub-id pub-id-type=\"pmid\">37632463</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B11-diseases-12-00339"
+            },
+            {
+              "id": "10.1056/NEJMoa2304968",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 54470,
+                "end": 55867,
+                "quote": "<ref id=\"B11-diseases-12-00339\"><label>11.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Mentz</surname><given-names>R.J.</given-names></name>\n<name name-style=\"western\"><surname>Garg</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Rockhold</surname><given-names>F.W.</given-names></name>\n<name name-style=\"western\"><surname>Butler</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>De Pasquale</surname><given-names>C.G.</given-names></name>\n<name name-style=\"western\"><surname>Ezekowitz</surname><given-names>J.A.</given-names></name>\n<name name-style=\"western\"><surname>Lewis</surname><given-names>G.D.</given-names></name>\n<name name-style=\"western\"><surname>O’meara</surname><given-names>E.</given-names></name>\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Troughton</surname><given-names>R.W.</given-names></name>\n<etal/>\n</person-group><article-title>Ferric Carboxymaltose in Heart Failure with Iron Deficiency</article-title><source>N. Engl. J. Med.</source><year>2023</year><volume>389</volume><fpage>975</fpage><lpage>986</lpage><pub-id pub-id-type=\"doi\">10.1056/NEJMoa2304968</pub-id><pub-id pub-id-type=\"pmid\">37632463</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B11-diseases-12-00339"
+            }
+          ]
+        },
+        {
+          "family_id": "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+          "name_in_source": "AFFIRM-AHF",
+          "references": [
+            "B10-diseases-12-00339"
+          ],
+          "span": {
+            "start": 93634,
+            "end": 95063,
+            "quote": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">AFFIRM-AHF [<xref rid=\"B10-diseases-12-00339\" ref-type=\"bibr\">10</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>≥18 years of age.</p></list-item><list-item><p>Hospitalized for acute HF, treated with at least 40 mg furosemide intravenously (or equivalent).</p></list-item><list-item><p>LVEF ≤ 50%.</p></list-item><list-item><p>ID, defined as serum ferritin of less than 100 ng/mL, or 100–299 ng/mL with TSAT ≤ 20%.</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>Dyspnea due to non-cardiac causes.</p></list-item><list-item><p>Documented restricted amyloid cardiomyopathy or acute myocarditis or hypertrophic obstructive, restrictive, or constrictive cardiomyopathy.</p></list-item><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item><list-item><p>Individuals requiring immediate transfusion or with a Hb &lt; 8 g/dL or with a Hb &gt; 15 g/dL.</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item></list>\n</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "33197395",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 53000,
+                "end": 54470,
+                "quote": "<ref id=\"B10-diseases-12-00339\"><label>10.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Kirwan</surname><given-names>B.-A.</given-names></name>\n<name name-style=\"western\"><surname>Anker</surname><given-names>S.D.</given-names></name>\n<name name-style=\"western\"><surname>McDonagh</surname><given-names>T.</given-names></name>\n<name name-style=\"western\"><surname>Dorobantu</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Drozdz</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Fabien</surname><given-names>V.</given-names></name>\n<name name-style=\"western\"><surname>Filippatos</surname><given-names>G.</given-names></name>\n<name name-style=\"western\"><surname>Göhring</surname><given-names>U.M.</given-names></name>\n<name name-style=\"western\"><surname>Keren</surname><given-names>A.</given-names></name>\n<etal/>\n</person-group><article-title>Ferric carboxymaltose for iron deficiency at discharge after acute heart failure: A multicentre, double-blind, randomised, controlled trial</article-title><source>Lancet</source><year>2020</year><volume>396</volume><fpage>1895</fpage><lpage>1904</lpage><pub-id pub-id-type=\"doi\">10.1016/S0140-6736(20)32339-4</pub-id><pub-id pub-id-type=\"pmid\">33197395</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B10-diseases-12-00339"
+            },
+            {
+              "id": "10.1016/S0140-6736(20)32339-4",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 53000,
+                "end": 54470,
+                "quote": "<ref id=\"B10-diseases-12-00339\"><label>10.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Kirwan</surname><given-names>B.-A.</given-names></name>\n<name name-style=\"western\"><surname>Anker</surname><given-names>S.D.</given-names></name>\n<name name-style=\"western\"><surname>McDonagh</surname><given-names>T.</given-names></name>\n<name name-style=\"western\"><surname>Dorobantu</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Drozdz</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Fabien</surname><given-names>V.</given-names></name>\n<name name-style=\"western\"><surname>Filippatos</surname><given-names>G.</given-names></name>\n<name name-style=\"western\"><surname>Göhring</surname><given-names>U.M.</given-names></name>\n<name name-style=\"western\"><surname>Keren</surname><given-names>A.</given-names></name>\n<etal/>\n</person-group><article-title>Ferric carboxymaltose for iron deficiency at discharge after acute heart failure: A multicentre, double-blind, randomised, controlled trial</article-title><source>Lancet</source><year>2020</year><volume>396</volume><fpage>1895</fpage><lpage>1904</lpage><pub-id pub-id-type=\"doi\">10.1016/S0140-6736(20)32339-4</pub-id><pub-id pub-id-type=\"pmid\">33197395</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B10-diseases-12-00339"
+            }
+          ]
+        },
+        {
+          "family_id": "FAIR-HF 2009 [B20-diseases-12-00339]",
+          "name_in_source": "FAIR-HF",
+          "references": [
+            "B20-diseases-12-00339"
+          ],
+          "span": {
+            "start": 95063,
+            "end": 96208,
+            "quote": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">FAIR-HF [<xref rid=\"B20-diseases-12-00339\" ref-type=\"bibr\">20</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>NYHA II–III functional class due to stable symptomatic chronic HF.</p></list-item><list-item><p>LVEF ≤ 40% (NYHA class II) or LVEF ≤ 45% (NYHA class III).</p></list-item><list-item><p>Screening Hb: 9.5–13.5 g/dL.</p></list-item><list-item><p>ID (Screening ferritin &lt; 100 µg/L or 100–299 µg/L + TSAT &lt; 20%).</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>Anemia due to reasons other than ID.</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item></list>\n</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "19920054",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 64849,
+                "end": 66261,
+                "quote": "<ref id=\"B20-diseases-12-00339\"><label>20.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Anker</surname><given-names>S.D.</given-names></name>\n<name name-style=\"western\"><surname>Comin Colet</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Filippatos</surname><given-names>G.</given-names></name>\n<name name-style=\"western\"><surname>Willenheimer</surname><given-names>R.</given-names></name>\n<name name-style=\"western\"><surname>Dickstein</surname><given-names>K.</given-names></name>\n<name name-style=\"western\"><surname>Drexler</surname><given-names>H.</given-names></name>\n<name name-style=\"western\"><surname>Lüscher</surname><given-names>T.F.</given-names></name>\n<name name-style=\"western\"><surname>Bart</surname><given-names>B.</given-names></name>\n<name name-style=\"western\"><surname>Banasiak</surname><given-names>W.</given-names></name>\n<name name-style=\"western\"><surname>Niegowska</surname><given-names>J.</given-names></name>\n<etal/>\n</person-group><article-title>Ferric carboxymaltose in patients with heart failure and iron deficiency</article-title><source>N. Engl. J. Med.</source><year>2009</year><volume>361</volume><fpage>2436</fpage><lpage>2448</lpage><pub-id pub-id-type=\"doi\">10.1056/NEJMoa0908355</pub-id><pub-id pub-id-type=\"pmid\">19920054</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B20-diseases-12-00339"
+            },
+            {
+              "id": "10.1056/NEJMoa0908355",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 64849,
+                "end": 66261,
+                "quote": "<ref id=\"B20-diseases-12-00339\"><label>20.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Anker</surname><given-names>S.D.</given-names></name>\n<name name-style=\"western\"><surname>Comin Colet</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Filippatos</surname><given-names>G.</given-names></name>\n<name name-style=\"western\"><surname>Willenheimer</surname><given-names>R.</given-names></name>\n<name name-style=\"western\"><surname>Dickstein</surname><given-names>K.</given-names></name>\n<name name-style=\"western\"><surname>Drexler</surname><given-names>H.</given-names></name>\n<name name-style=\"western\"><surname>Lüscher</surname><given-names>T.F.</given-names></name>\n<name name-style=\"western\"><surname>Bart</surname><given-names>B.</given-names></name>\n<name name-style=\"western\"><surname>Banasiak</surname><given-names>W.</given-names></name>\n<name name-style=\"western\"><surname>Niegowska</surname><given-names>J.</given-names></name>\n<etal/>\n</person-group><article-title>Ferric carboxymaltose in patients with heart failure and iron deficiency</article-title><source>N. Engl. J. Med.</source><year>2009</year><volume>361</volume><fpage>2436</fpage><lpage>2448</lpage><pub-id pub-id-type=\"doi\">10.1056/NEJMoa0908355</pub-id><pub-id pub-id-type=\"pmid\">19920054</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B20-diseases-12-00339"
+            }
+          ]
+        },
+        {
+          "family_id": "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+          "name_in_source": "CONFIRM-HF",
+          "references": [
+            "B2-diseases-12-00339"
+          ],
+          "span": {
+            "start": 96208,
+            "end": 97397,
+            "quote": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">CONFIRM-HF [<xref rid=\"B2-diseases-12-00339\" ref-type=\"bibr\">2</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>Stable ambulatory HF patients with NYHA class II or III (LVEF ≤ 45%).</p></list-item><list-item><p>Elevated natriuretic peptides (brain natriuretic peptide &gt;100 pg/mL and/or N-terminal-pro-brain natriuretic peptide &gt;400 pg/mL).</p></list-item><list-item><p>Presence of ID [defined as serum ferritin level &lt;100 ng/mL, or between 100 and 300 ng/mL if TSAT &lt;20%] and Hb &lt; 15 g/dL (all at the screening visit).</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>History of recent acute coronary syndrome, transient ischemic attack, or stroke.</p></list-item><list-item><p>Uncorrected severe valvular heart disease.</p></list-item><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item></list>\n</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "25176939",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 43463,
+                "end": 44994,
+                "quote": "<ref id=\"B2-diseases-12-00339\"><label>2.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Van Veldhuisen</surname><given-names>D.J.</given-names></name>\n<name name-style=\"western\"><surname>Comin-Colet</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Ertl</surname><given-names>G.</given-names></name>\n<name name-style=\"western\"><surname>Komajda</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Mareev</surname><given-names>V.</given-names></name>\n<name name-style=\"western\"><surname>McDonagh</surname><given-names>T.</given-names></name>\n<name name-style=\"western\"><surname>Parkhomenko</surname><given-names>A.</given-names></name>\n<name name-style=\"western\"><surname>Tavazzi</surname><given-names>L.</given-names></name>\n<name name-style=\"western\"><surname>Levesque</surname><given-names>V.</given-names></name>\n<etal/>\n</person-group><article-title>Beneficial effects of long-term intravenous iron therapy with ferric carboxymaltose in patients with symptomatic heart failure and iron deficiency†</article-title><source>Eur. Heart J.</source><year>2015</year><volume>36</volume><fpage>657</fpage><lpage>668</lpage><pub-id pub-id-type=\"doi\">10.1093/eurheartj/ehu385</pub-id><pub-id pub-id-type=\"pmid\">25176939</pub-id><pub-id pub-id-type=\"pmcid\">PMC4359359</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B2-diseases-12-00339"
+            },
+            {
+              "id": "10.1093/eurheartj/ehu385",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 43463,
+                "end": 44994,
+                "quote": "<ref id=\"B2-diseases-12-00339\"><label>2.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Van Veldhuisen</surname><given-names>D.J.</given-names></name>\n<name name-style=\"western\"><surname>Comin-Colet</surname><given-names>J.</given-names></name>\n<name name-style=\"western\"><surname>Ertl</surname><given-names>G.</given-names></name>\n<name name-style=\"western\"><surname>Komajda</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Mareev</surname><given-names>V.</given-names></name>\n<name name-style=\"western\"><surname>McDonagh</surname><given-names>T.</given-names></name>\n<name name-style=\"western\"><surname>Parkhomenko</surname><given-names>A.</given-names></name>\n<name name-style=\"western\"><surname>Tavazzi</surname><given-names>L.</given-names></name>\n<name name-style=\"western\"><surname>Levesque</surname><given-names>V.</given-names></name>\n<etal/>\n</person-group><article-title>Beneficial effects of long-term intravenous iron therapy with ferric carboxymaltose in patients with symptomatic heart failure and iron deficiency†</article-title><source>Eur. Heart J.</source><year>2015</year><volume>36</volume><fpage>657</fpage><lpage>668</lpage><pub-id pub-id-type=\"doi\">10.1093/eurheartj/ehu385</pub-id><pub-id pub-id-type=\"pmid\">25176939</pub-id><pub-id pub-id-type=\"pmcid\">PMC4359359</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B2-diseases-12-00339"
+            }
+          ]
+        },
+        {
+          "family_id": "EFFECT-HF 2017 [B21-diseases-12-00339]",
+          "name_in_source": "EFFECT-HF",
+          "references": [
+            "B21-diseases-12-00339"
+          ],
+          "span": {
+            "start": 97397,
+            "end": 98633,
+            "quote": "<tr><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">EFFECT-HF [<xref rid=\"B21-diseases-12-00339\" ref-type=\"bibr\">21</xref>]</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>NYHA class II/III (LVEF ≤ 45%).</p></list-item><list-item><p>BNP &gt; 100 pg/mL and/or NT-proBNP &gt; 400 pg/mL.</p></list-item><list-item><p>Hb &lt; 15 g/dL.</p></list-item><list-item><p>ID (ferritin &lt; 100 µg/L or 100–300 µg/L + TSAT &lt; 20%).</p></list-item><list-item><p>Decreased exercise capacity, as shown by a reproducible peak VO<sub>2</sub> 10–20 mL/kg/min.</p></list-item></list>\n</td><td align=\"left\" valign=\"middle\" style=\"border-bottom:solid thin\" rowspan=\"1\" colspan=\"1\">\n<list list-type=\"bullet\"><list-item><p>History of recent erythropoietin stimulating agent, IV iron therapy, and/or blood transfusion.</p></list-item><list-item><p>Exercise training programs in the 3 months prior to screening or planned in the next 6 months.</p></list-item><list-item><p>Chronic liver disease and/or elevated liver enzymes.</p></list-item><list-item><p>Vitamin B12 and/or serum folate deficiency.</p></list-item></list>\n</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "28701470",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 66261,
+                "end": 67768,
+                "quote": "<ref id=\"B21-diseases-12-00339\"><label>21.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Van Veldhuisen</surname><given-names>D.J.</given-names></name>\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Van Der Meer</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Metra</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Böhm</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Doletsky</surname><given-names>A.</given-names></name>\n<name name-style=\"western\"><surname>Voors</surname><given-names>A.A.</given-names></name>\n<name name-style=\"western\"><surname>MacDougall</surname><given-names>I.C.</given-names></name>\n<name name-style=\"western\"><surname>Anker</surname><given-names>S.D.</given-names></name>\n<name name-style=\"western\"><surname>Roubert</surname><given-names>B.</given-names></name>\n<etal/>\n</person-group><article-title>Effect of Ferric Carboxymaltose on Exercise Capacity in Patients with Chronic Heart Failure and Iron Deficiency</article-title><source>Circulation</source><year>2017</year><volume>136</volume><fpage>1374</fpage><lpage>1383</lpage><pub-id pub-id-type=\"doi\">10.1161/CIRCULATIONAHA.117.027497</pub-id><pub-id pub-id-type=\"pmid\">28701470</pub-id><pub-id pub-id-type=\"pmcid\">PMC5642327</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B21-diseases-12-00339"
+            },
+            {
+              "id": "10.1161/CIRCULATIONAHA.117.027497",
+              "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+              "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+              "span": {
+                "start": 66261,
+                "end": 67768,
+                "quote": "<ref id=\"B21-diseases-12-00339\"><label>21.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\">\n<name name-style=\"western\"><surname>Van Veldhuisen</surname><given-names>D.J.</given-names></name>\n<name name-style=\"western\"><surname>Ponikowski</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Van Der Meer</surname><given-names>P.</given-names></name>\n<name name-style=\"western\"><surname>Metra</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Böhm</surname><given-names>M.</given-names></name>\n<name name-style=\"western\"><surname>Doletsky</surname><given-names>A.</given-names></name>\n<name name-style=\"western\"><surname>Voors</surname><given-names>A.A.</given-names></name>\n<name name-style=\"western\"><surname>MacDougall</surname><given-names>I.C.</given-names></name>\n<name name-style=\"western\"><surname>Anker</surname><given-names>S.D.</given-names></name>\n<name name-style=\"western\"><surname>Roubert</surname><given-names>B.</given-names></name>\n<etal/>\n</person-group><article-title>Effect of Ferric Carboxymaltose on Exercise Capacity in Patients with Chronic Heart Failure and Iron Deficiency</article-title><source>Circulation</source><year>2017</year><volume>136</volume><fpage>1374</fpage><lpage>1383</lpage><pub-id pub-id-type=\"doi\">10.1161/CIRCULATIONAHA.117.027497</pub-id><pub-id pub-id-type=\"pmid\">28701470</pub-id><pub-id pub-id-type=\"pmcid\">PMC5642327</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B21-diseases-12-00339"
+            }
+          ]
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+        "document_sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee",
+        "source": "PMC JATS (efetch db=pmc)",
+        "pmcid": "PMC11727542",
+        "license": "creativecommons.org/licenses/by/4.0",
+        "fetched_utc": "2026-09-26T21:13:43Z",
+        "table_caption": "Key inclusion and exclusion criteria in the included trials."
+      },
+      "overlaps": [
+        {
+          "pool": "Heart-failure hospitalization",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 5
+        },
+        {
+          "pool": "Injection-site reactions",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 5
+        },
+        {
+          "pool": "Hypersensitivity reactions",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 5
+        },
+        {
+          "pool": "strand:A",
+          "shared": [
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.2,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]"
+          ],
+          "harness_k": 1,
+          "comparator_k": 5
+        },
+        {
+          "pool": "strand:B",
+          "shared": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]"
+          ],
+          "harness_only": [
+            "40159390"
+          ],
+          "comparator_only": [
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.16666666666666666,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]"
+          ],
+          "harness_k": 2,
+          "comparator_k": 5
+        },
+        {
+          "pool": "strand:C",
+          "shared": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]"
+          ],
+          "harness_only": [
+            "36347265"
+          ],
+          "comparator_only": [
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.16666666666666666,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]"
+          ],
+          "harness_k": 2,
+          "comparator_k": 5
+        },
+        {
+          "pool": "strand:D",
+          "shared": [
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "AFFIRM-AHF 2020 [B10-diseases-12-00339]",
+            "EFFECT-HF 2017 [B21-diseases-12-00339]",
+            "FAIR-HF 2009 [B20-diseases-12-00339]",
+            "HEART-FID 2023 [B11-diseases-12-00339]"
+          ],
+          "jaccard": 0.2,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CONFIRM-HF 2015 [B2-diseases-12-00339]"
+          ],
+          "harness_k": 1,
+          "comparator_k": 5
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "ed77a1831cf817a596da92d4052080709c646dcd78d9b70d4e74d1a34542a51d",
+    "review_sha256": "3974ed81ba417c854fa72a58684d4f98b314a03ddef9c21d3599fad228705441",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -34010,16 +34483,16 @@
       "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered.",
       "parity_relation": {
         "relation": "OVERLAPPING",
-        "label": "INFERRED overlapping -- neither trial set contains the other",
-        "inferred": true,
+        "label": "overlapping -- neither trial set contains the other",
+        "inferred": false,
         "our_k": 2,
         "hand_our_k": 2,
         "hand_our_k_stale": false,
-        "their_k": 3,
-        "their_k_source": "comparable_comparator_k",
-        "shared_k": null,
+        "their_k": 5,
+        "their_k_source": "computed overlap relation (enumerated comparator set)",
+        "shared_k": 1,
         "only_ours_n": 1,
-        "only_theirs_n": 0,
+        "only_theirs_n": 4,
         "dominance": null,
         "hand_status": "OVERLAPPING",
         "hand_status_normalized": "OVERLAPPING",
@@ -34171,12 +34644,12 @@
         }
       ],
       "config_sha256": "f09cda80d6a994f59d417d8384380d846eab17f9fa1828dad1ae2c37d17272c2",
-      "analysis_code_sha256": "b86b0f2c0aa871a392f17dcdf63c8f44b28556f5ad898a0f006ae457d7c8712a",
+      "analysis_code_sha256": "44c6b1b0365fe6b2b965e2730697937a29ddbddd82e2f08e69c9144626f4e53d",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
+        "harness/absence.py": "19053e549df78e9d33bd14cef35aa3557426badd",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
@@ -34188,7 +34661,7 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "0a0b550f2a13e29c94e1a01ca2690c82650373b1",
+        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -34209,7 +34682,7 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
+        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -34218,19 +34691,21 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
+        "harness/index.py": "b4f1391a202f34ef02da8f727b6300f16296ce85",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+        "harness/journal_route.py": "fde5fdea07c69b09069a4d9c558b9d68437ce95b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
+        "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "1b100dc69dd570a2b2b62bd9c0e5e79aaabde8bb",
-        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/overlap_relation.py": "b249213972a06b785246bce2d4735af2236d20f6",
+        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
+        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -34243,14 +34718,14 @@
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "18a65903f0dd9426f139ba8da95625dc3157c5e2",
+        "harness/screen.py": "eea78180ecba3cf23e4b4a6e03326a364f3425b1",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
+        "harness/trial_family.py": "5919792d570e8b8bf007b3015edc9db8b948ed1f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -34270,7 +34745,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "84 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -34299,8 +34774,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "d4cb21fc24566444c0c8c921c4228f7b0a729c93c9db18626233e60d8cf84fad",
-      "review_sha256": "ed77a1831cf817a596da92d4052080709c646dcd78d9b70d4e74d1a34542a51d",
+      "manuscript_sha256": "1cfbb1fa5b33d3fad822e2edf6e645ad64ed825fd45429fd75e862b8dc336d61",
+      "review_sha256": "3974ed81ba417c854fa72a58684d4f98b314a03ddef9c21d3599fad228705441",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -34320,7 +34795,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "bae69e7368f2ea07b56642e28c65add8dafc32aaa215788e175bc7a3cdc8c45b"
+      "release_sha256": "a24788f3b0135d0c7da14cb24215c077ba51e47c2ca6cba1c16771ae1dedd58b"
     }
   }
 }

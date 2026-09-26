@@ -4058,15 +4058,133 @@
     },
     "overlap": {
       "ours_k": 2,
-      "theirs_k": 6,
-      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "theirs_k": 5,
+      "shared_k": 0,
       "only_ours": [
-        "35041780",
-        "34375394"
+        "NCT02721654",
+        "NCT02875873"
       ],
-      "only_theirs": [],
-      "method": "publication-date + design identity (comparator trial list not extracted from source)",
-      "note": "Trials newer than the comparator (2018) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+      "only_theirs": [
+        "Young 2015",
+        "Verma 2016",
+        "SMART",
+        "SALT",
+        "Young 2014"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set + date proof",
+      "note": "Computed overlap relation with the published comparator: DISJOINT (disjoint -- no trial family in common); our pooled trial families 2, comparator trials 5, shared 0; basis: set operation on the enumerated comparator trial set + date proof; unbound comparator trial(s) Young 2015, Verma 2016, Young 2014 cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof).",
+      "theirs_k_source": "comparator panel trial_set (cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt, located spans; per-outcome membership bound (mortality)): 5 comparator trial(s) for this outcome; 1 with another endpoint excluded",
+      "relation": "DISJOINT"
+    },
+    "overlap_relation": {
+      "outcome": "Mortality",
+      "comparator_pmid": "30140441",
+      "comparator_year": 2018,
+      "ours": [
+        {
+          "family_id": "NCT02721654",
+          "row_id": "PMID 35041780",
+          "label": "35041780",
+          "earliest_report": {
+            "report_id": "35041780",
+            "year": 2022
+          }
+        },
+        {
+          "family_id": "NCT02875873",
+          "row_id": "PMID 34375394",
+          "label": "34375394",
+          "earliest_report": {
+            "report_id": "34375394",
+            "year": 2021
+          }
+        }
+      ],
+      "ours_k": 2,
+      "date_proof": {
+        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
+        "comparator_year": 2018,
+        "post_dating": [
+          "NCT02721654 (35041780, 2022)",
+          "NCT02875873 (34375394, 2021)"
+        ],
+        "holds_for_every_pooled_family": true
+      },
+      "constraints": [
+        "unbound comparator trial(s) Young 2015, Verma 2016, Young 2014 cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof)"
+      ],
+      "theirs": {
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt, located spans; per-outcome membership bound (mortality))",
+        "endpoint_for_outcome": "mortality",
+        "members": [
+          {
+            "name": "Young 2015",
+            "bound_to": null,
+            "identity": "unbound (name only)",
+            "endpoint": "mortality",
+            "span": "Young 2015 Multi-center double-blind, cluster randomized, double-crossover trial 90 days after randomizations for all variables Hospital and ICU mortality, AKI and RRT Plasma-Lyte 1152 Saline 1110"
+          },
+          {
+            "name": "Verma 2016",
+            "bound_to": null,
+            "identity": "unbound (name only)",
+            "endpoint": "mortality",
+            "span": "Verma 2016 Multi-center double-bind randomized controlled trial AKI during the first 4 days while other outcomes till discharge Hospital and ICU mortality, AKI and RRT Plasma-Lyte 33 Saline 34"
+          },
+          {
+            "name": "SMART",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": "mortality",
+            "span": "Semler (SMART trial) 2018 Single center unblinded, cluster randomized, multiple crossover trial Death at 60 days, AKI after enrollment, RRT at 28 days. Hospital and ICU mortality, AKI and RRT LR or Plasma-Lyte 7942 Saline 7860"
+          },
+          {
+            "name": "SALT",
+            "bound_to": null,
+            "identity": "bound by panel alias",
+            "endpoint": "mortality",
+            "span": "Semler (SALT trial) 2016 Single-center prospective, open-label, cluster-randomized, multiple crossover trial Death at 60 days, AKI after enrollment, RRT at 28 days. Hospital and ICU mortality, AKI and RRT LR or Plasma-Lyte 520 Saline 454"
+          },
+          {
+            "name": "Young 2014",
+            "bound_to": null,
+            "identity": "unbound (name only)",
+            "endpoint": "mortality",
+            "span": "Young 2014 Single center randomized, double-blind, parallel-group clinical trial In-hospital mortality at 30 days Hospital mortality Plasma-Lyte 22 Saline 24"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "name": "Ratanarat 2017",
+            "bound_to": null,
+            "identity": "unbound (name only)",
+            "endpoint": "AKI and RRT only (no mortality reported)",
+            "span": "Ratanarat 2017 Single-center randomized controlled trial AKI during the first 7 days AKI and RRT Balanced 88 Saline 93"
+          }
+        ]
+      },
+      "theirs_k": 5,
+      "shared": [],
+      "shared_k": 0,
+      "only_ours": [
+        "NCT02721654",
+        "NCT02875873"
+      ],
+      "only_theirs": [
+        "Young 2015",
+        "Verma 2016",
+        "SMART",
+        "SALT",
+        "Young 2014"
+      ],
+      "relation": "DISJOINT",
+      "label": "disjoint -- no trial family in common",
+      "basis": "set operation on the enumerated comparator trial set + date proof",
+      "theirs_k_stated": {
+        "value": 6,
+        "source": null
+      }
     }
   },
   "estimand_exclusions": [],
@@ -5530,7 +5648,8 @@
         ],
         "dois": [
           "10.1001/jama.2015.12334"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -5976,7 +6095,8 @@
         ],
         "dois": [
           "10.1001/jamapediatrics.2022.4912"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -6416,7 +6536,8 @@
         ],
         "dois": [
           "10.1097/SLA.0b013e318295feba"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -7523,7 +7644,8 @@
         ],
         "dois": [
           "10.1164/rccm.201607-1345OC"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -11331,7 +11453,8 @@
         "report_ids": [
           "NCT02414555"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -13187,7 +13310,8 @@
         "report_ids": [
           "NCT02444988"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -14944,7 +15068,8 @@
         "report_ids": [
           "NCT02458157"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -16539,7 +16664,8 @@
         "report_ids": [
           "NCT02547779"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -18294,7 +18420,8 @@
         "report_ids": [
           "NCT02614040"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -19819,7 +19946,8 @@
         ],
         "dois": [
           "10.1056/NEJMoa2114464"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -21304,7 +21432,8 @@
         "report_ids": [
           "NCT02860572"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -22718,7 +22847,8 @@
         ],
         "dois": [
           "10.1001/jama.2021.11684"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -24827,7 +24957,8 @@
         "report_ids": [
           "NCT03118362"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -26049,7 +26180,8 @@
         "report_ids": [
           "NCT03537898"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -27903,7 +28035,8 @@
         "report_ids": [
           "NCT04201704"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -29668,7 +29801,8 @@
         "report_ids": [
           "NCT05441878"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -31264,7 +31398,8 @@
         "report_ids": [
           "NCT06394947"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -32359,7 +32494,8 @@
         "report_ids": [
           "NCT07189091"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -34786,7 +34922,8 @@
         "report_ids": [
           "NCT07212582"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -36153,7 +36290,8 @@
         "report_ids": [
           "NCT07367113"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -37697,7 +37835,8 @@
         "report_ids": [
           "NCT07464431"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -39341,7 +39480,8 @@
         "report_ids": [
           "NCT07649694"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -40355,7 +40495,8 @@
         "report_ids": [
           "NCT07738536"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -41849,7 +41990,8 @@
         ],
         "dois": [
           "10.1056/NEJMc1804294"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -42991,7 +43133,8 @@
         ],
         "dois": [
           "10.1056/NEJMoa1711584"
-        ]
+        ],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -43443,7 +43586,8 @@
         "report_ids": [
           "27604335"
         ],
-        "dois": []
+        "dois": [],
+        "bib_keys": []
       },
       "reports": [
         {
@@ -44669,24 +44813,201 @@
       "id": "30140441",
       "citation": "Balanced crystalloids versus isotonic saline in critically ill patients: systematic review and meta-analysis. (2018); J Intensive Care; DOI 10.1186/s40560-018-0320-x; PMID 30140441",
       "year": "2018",
-      "scope_note": "Registered comparator identity; unextracted quantities and trial membership remain unknown.",
+      "scope_note": "Registered comparator identity; Table 1 trial set located (six studies; five report mortality, Ratanarat 2017 reports AKI and RRT only). Pooled quantities remain unextracted.",
       "held": true,
       "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt",
       "document_sha256": "d49ee735ce7d94b2da0ec89ffcf30dfde140b9064408882040266f290b84aa54",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "Young 2015",
+          "span": {
+            "start": 7824,
+            "end": 8020,
+            "quote": "Young 2015 Multi-center double-blind, cluster randomized, double-crossover trial 90 days after randomizations for all variables Hospital and ICU mortality, AKI and RRT Plasma-Lyte 1152 Saline 1110"
+          },
+          "endpoint": "mortality",
+          "endpoint_span": {
+            "start": 7952,
+            "end": 7991,
+            "quote": "Hospital and ICU mortality, AKI and RRT"
+          },
+          "aliases": []
+        },
+        {
+          "family_id": "Verma 2016",
+          "span": {
+            "start": 8021,
+            "end": 8213,
+            "quote": "Verma 2016 Multi-center double-bind randomized controlled trial AKI during the first 4 days while other outcomes till discharge Hospital and ICU mortality, AKI and RRT Plasma-Lyte 33 Saline 34"
+          },
+          "endpoint": "mortality",
+          "endpoint_span": {
+            "start": 8149,
+            "end": 8188,
+            "quote": "Hospital and ICU mortality, AKI and RRT"
+          },
+          "aliases": []
+        },
+        {
+          "family_id": "SMART",
+          "span": {
+            "start": 8214,
+            "end": 8440,
+            "quote": "Semler (SMART trial) 2018 Single center unblinded, cluster randomized, multiple crossover trial Death at 60 days, AKI after enrollment, RRT at 28 days. Hospital and ICU mortality, AKI and RRT LR or Plasma-Lyte 7942 Saline 7860"
+          },
+          "endpoint": "mortality",
+          "endpoint_span": {
+            "start": 8366,
+            "end": 8405,
+            "quote": "Hospital and ICU mortality, AKI and RRT"
+          },
+          "aliases": [
+            {
+              "id": "29485925",
+              "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json",
+              "document_sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+              "span": {
+                "start": 9713,
+                "end": 12175,
+                "quote": "{\n      \"id\": \"29485925\",\n      \"id_type\": \"pmid\",\n      \"title\": \"Balanced Crystalloids versus Saline in Critically Ill Adults.\",\n      \"abstract\": \"BACKGROUND: Both balanced crystalloids and saline are used for intravenous fluid administration in critically ill adults, but it is not known which results in better clinical outcomes. METHODS: In a pragmatic, cluster-randomized, multiple-crossover trial conducted in five intensive care units at an academic center, we assigned 15,802 adults to receive saline (0.9% sodium chloride) or balanced crystalloids (lactated Ringer's solution or Plasma-Lyte A) according to the randomization of the unit to which they were admitted. The primary outcome was a major adverse kidney event within 30 days - a composite of death from any cause, new renal-replacement therapy, or persistent renal dysfunction (defined as an elevation of the creatinine level to ≥200% of baseline) - all censored at hospital discharge or 30 days, whichever occurred first. RESULTS: Among the 7942 patients in the balanced-crystalloids group, 1139 (14.3%) had a major adverse kidney event, as compared with 1211 of 7860 patients (15.4%) in the saline group (marginal odds ratio, 0.91; 95% confidence interval [CI], 0.84 to 0.99; conditional odds ratio, 0.90; 95% CI, 0.82 to 0.99; P=0.04). In-hospital mortality at 30 days was 10.3% in the balanced-crystalloids group and 11.1% in the saline group (P=0.06). The incidence of new renal-replacement therapy was 2.5% and 2.9%, respectively (P=0.08), and the incidence of persistent renal dysfunction was 6.4% and 6.6%, respectively (P=0.60). CONCLUSIONS: Among critically ill adults, the use of balanced crystalloids for intravenous fluid administration resulted in a lower rate of the composite outcome of death from any cause, new renal-replacement therapy, or persistent renal dysfunction than the use of saline. (Funded by the Vanderbilt Institute for Clinical and Translational Research and others; SMART-MED and SMART-SURG ClinicalTrials.gov numbers, NCT02444988 and NCT02547779 .).\",\n      \"pubtypes\": [\n        \"Comparative Study\",\n        \"Journal Article\",\n        \"Multicenter Study\",\n        \"Pragmatic Clinical Trial\",\n        \"Randomized Controlled Trial\",\n        \"Research Support, N.I.H., Extramural\",\n        \"Research Support, Non-U.S. Gov't\"\n      ],\n      \"year\": \"2018\",\n      \"journal\": \"N Engl J Med\",\n      \"doi\": \"10.1056/NEJMoa1711584\",\n      \"nct\": \"NCT02444988\"\n    }"
+              }
+            }
+          ]
+        },
+        {
+          "family_id": "SALT",
+          "span": {
+            "start": 8441,
+            "end": 8678,
+            "quote": "Semler (SALT trial) 2016 Single-center prospective, open-label, cluster-randomized, multiple crossover trial Death at 60 days, AKI after enrollment, RRT at 28 days. Hospital and ICU mortality, AKI and RRT LR or Plasma-Lyte 520 Saline 454"
+          },
+          "endpoint": "mortality",
+          "endpoint_span": {
+            "start": 8606,
+            "end": 8645,
+            "quote": "Hospital and ICU mortality, AKI and RRT"
+          },
+          "aliases": [
+            {
+              "id": "27749094",
+              "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json",
+              "document_sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+              "span": {
+                "start": 12181,
+                "end": 14578,
+                "quote": "{\n      \"id\": \"27749094\",\n      \"id_type\": \"pmid\",\n      \"title\": \"Balanced Crystalloids versus Saline in the Intensive Care Unit. The SALT Randomized Trial.\",\n      \"abstract\": \"RATIONALE: Saline is the intravenous fluid most commonly administered to critically ill adults, but it may be associated with acute kidney injury and death. Whether use of balanced crystalloids rather than saline affects patient outcomes remains unknown. OBJECTIVES: To pilot a cluster-randomized, multiple-crossover trial using software tools within the electronic health record to compare saline to balanced crystalloids. METHODS: This was a cluster-randomized, multiple-crossover trial among 974 adults admitted to a tertiary medical intensive care unit from February 3, 2015 to May 31, 2015. The intravenous crystalloid used in the unit alternated monthly between saline (0.9% sodium chloride) and balanced crystalloids (lactated Ringer's solution or Plasma-Lyte A). Enrollment, fluid delivery, and data collection were performed using software tools within the electronic health record. The primary outcome was the difference between study groups in the proportion of isotonic crystalloid administered that was saline. The secondary outcome was major adverse kidney events within 30 days (MAKE30), a composite of death, dialysis, or persistent renal dysfunction. MEASUREMENTS AND MAIN RESULTS: Patients assigned to saline (n = 454) and balanced crystalloids (n = 520) were similar at baseline and received similar volumes of crystalloid by 30 days (median [interquartile range]: 1,424 ml [500-3,377] vs. 1,617 ml [500-3,628]; P = 0.40). Saline made up a larger proportion of the isotonic crystalloid given in the saline group than in the balanced crystalloid group (91% vs. 21%; P < 0.001). MAKE30 did not differ between groups (24.7% vs. 24.6%; P = 0.98). CONCLUSIONS: An electronic health record-embedded, cluster-randomized, multiple-crossover trial comparing saline with balanced crystalloids can produce well-balanced study groups and separation in crystalloid receipt. Clinical trial registered with www.clinicaltrials.gov (NCT 02345486).\",\n      \"pubtypes\": [\n        \"Comparative Study\",\n        \"Journal Article\",\n        \"Randomized Controlled Trial\"\n      ],\n      \"year\": \"2017\",\n      \"journal\": \"Am J Respir Crit Care Med\",\n      \"doi\": \"10.1164/rccm.201607-1345OC\",\n      \"nct\": \"NCT02345486\"\n    }"
+              }
+            }
+          ]
+        },
+        {
+          "family_id": "Young 2014",
+          "span": {
+            "start": 8679,
+            "end": 8836,
+            "quote": "Young 2014 Single center randomized, double-blind, parallel-group clinical trial In-hospital mortality at 30 days Hospital mortality Plasma-Lyte 22 Saline 24"
+          },
+          "endpoint": "mortality",
+          "endpoint_span": {
+            "start": 8793,
+            "end": 8811,
+            "quote": "Hospital mortality"
+          },
+          "aliases": []
+        },
+        {
+          "family_id": "Ratanarat 2017",
+          "span": {
+            "start": 8837,
+            "end": 8955,
+            "quote": "Ratanarat 2017 Single-center randomized controlled trial AKI during the first 7 days AKI and RRT Balanced 88 Saline 93"
+          },
+          "endpoint": "AKI and RRT only (no mortality reported)",
+          "endpoint_span": {
+            "start": 8922,
+            "end": 8933,
+            "quote": "AKI and RRT"
+          },
+          "aliases": []
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "outcome_endpoints": {
+        "Mortality": "mortality"
+      },
+      "overlaps": [
+        {
+          "pool": "Mortality",
+          "shared": [],
+          "harness_only": [
+            "NCT02721654",
+            "NCT02875873"
+          ],
+          "comparator_only": [
+            "Ratanarat 2017",
+            "SALT",
+            "SMART",
+            "Verma 2016",
+            "Young 2014",
+            "Young 2015"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 2,
+          "comparator_k": 6
+        },
+        {
+          "pool": "Acute kidney injury",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "Ratanarat 2017",
+            "SALT",
+            "SMART",
+            "Verma 2016",
+            "Young 2014",
+            "Young 2015"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 6
+        },
+        {
+          "pool": "New renal-replacement therapy",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "Ratanarat 2017",
+            "SALT",
+            "SMART",
+            "Verma 2016",
+            "Young 2014",
+            "Young 2015"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 6
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "f85737aa471079fa1ef93da4ca0caf21c83b77e8",
-    "review_sha256": "db66dd507036ae35be0bf1aa641fb00b719dbe342b2ce99986b8eb179e523c64",
+    "review_sha256": "79cf0516bbff0876a17f3b152088719a11f4d1cd73b6de22fc409eafbf31d384",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -44698,27 +45019,27 @@
       "slug": "balanced-crystalloids-vs-saline-mortality",
       "our_k": 2,
       "comparable_comparator_k": 5,
-      "status": "OVERLAPPING",
+      "status": "DISJOINT",
       "reason": "Design-key update: primary mortality pool is now k=2 (PLUS + BaSICS). SMART, SALT, and SPLIT are cluster-crossover trials whose effects were reconstructed through the simple parallel-group path; they are refused unless an explicit design_adjustment is attached. Comparator mortality pool remains k=5, but the three refused trials are disclosed exclusions rather than pooled to preserve variance validity.",
       "parity_relation": {
-        "relation": "OVERLAPPING",
-        "label": "INFERRED overlapping -- neither trial set contains the other",
-        "inferred": true,
+        "relation": "DISJOINT",
+        "label": "disjoint -- no trial family in common",
+        "inferred": false,
         "our_k": 2,
         "hand_our_k": 2,
         "hand_our_k_stale": false,
         "their_k": 5,
-        "their_k_source": "comparable_comparator_k",
-        "shared_k": null,
+        "their_k_source": "computed overlap relation (enumerated comparator set)",
+        "shared_k": 0,
         "only_ours_n": 2,
-        "only_theirs_n": 0,
+        "only_theirs_n": 5,
         "dominance": null,
         "hand_status": "OVERLAPPING",
         "hand_status_normalized": "OVERLAPPING",
-        "hand_status_disagrees": false
+        "hand_status_disagrees": true
       },
       "hand_status": "OVERLAPPING",
-      "hand_status_stale": false,
+      "hand_status_stale": true,
       "input_set_version": "3399bae7ef9121108f6c751f6403a4af0d55c7064b5836da3d39f2cf89dc52ff",
       "claim_id": "b083d778ad91da4e",
       "depends_on": {
@@ -44827,12 +45148,12 @@
         }
       ],
       "config_sha256": "865664b09b13724a1e33df41970da3be4428fe2d608ccd0d892e9e24c5d4367c",
-      "analysis_code_sha256": "b86b0f2c0aa871a392f17dcdf63c8f44b28556f5ad898a0f006ae457d7c8712a",
+      "analysis_code_sha256": "44c6b1b0365fe6b2b965e2730697937a29ddbddd82e2f08e69c9144626f4e53d",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
+        "harness/absence.py": "19053e549df78e9d33bd14cef35aa3557426badd",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
@@ -44844,7 +45165,7 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "0a0b550f2a13e29c94e1a01ca2690c82650373b1",
+        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -44865,7 +45186,7 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
+        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -44874,19 +45195,21 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
+        "harness/index.py": "b4f1391a202f34ef02da8f727b6300f16296ce85",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+        "harness/journal_route.py": "fde5fdea07c69b09069a4d9c558b9d68437ce95b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
+        "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "1b100dc69dd570a2b2b62bd9c0e5e79aaabde8bb",
-        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/overlap_relation.py": "b249213972a06b785246bce2d4735af2236d20f6",
+        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
+        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -44899,14 +45222,14 @@
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "18a65903f0dd9426f139ba8da95625dc3157c5e2",
+        "harness/screen.py": "eea78180ecba3cf23e4b4a6e03326a364f3425b1",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
+        "harness/trial_family.py": "5919792d570e8b8bf007b3015edc9db8b948ed1f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -44926,7 +45249,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "84 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -44955,8 +45278,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "c9663c7d4ccfd9277ba3b5c66e459726a14692300fab7e16b779a893a421a94c",
-      "review_sha256": "db66dd507036ae35be0bf1aa641fb00b719dbe342b2ce99986b8eb179e523c64",
+      "manuscript_sha256": "6c1479f80623e1cd85316380c8700aa59548e656982641740d19fe63b240ffb8",
+      "review_sha256": "79cf0516bbff0876a17f3b152088719a11f4d1cd73b6de22fc409eafbf31d384",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/balanced-crystalloids-vs-saline-mortality.md UTF-8 text, universal newlines",
@@ -44976,7 +45299,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "aebdde26d2686e376d7d1b8ee9364226e97aeafd5dc109d8d5c1a16d52281f12"
+      "release_sha256": "945834ee76e9ce786247d204e5fa5e4b40e9f445010a348c73b1e6f0ce7b6448"
     }
   }
 }
