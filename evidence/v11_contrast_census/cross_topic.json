@@ -1,0 +1,1492 @@
+{
+ "rules": "Ordered-contrast census of EVERY served topic's primary pool (lane OC, V1.1; report only -- nothing served is changed).\n\nFor each pooled trial row of each live page's primary outcome (review.json fetched from Pages), apply the V1 verifier's own\nrules (scripts/verify_bundle.py loaded from a pinned commit of oc/ordered-contrast, blob id recorded) with the topic's own\nvocabulary (topics/<slug>.json at the same main commit the pages were built from), and classify:\n  PROVEN               the clause orders the arms, EXPERIMENTAL is the numerator, the clause states a measure equal to the\n                       row's label, and the per-arm rate witness does not contradict\n  REVERSED             the clause orders REFERENCE over EXPERIMENTAL (would need a declared reciprocal to be poolable)\n  UNORDERED            a clause holds the tuple, but its words do not order the arms (or rates contradict the ordering)\n  NO_MEASURE_IN_CLAUSE the clause orders the arms but names no ratio measure (estimator unprovable from the clause)\n  LABEL_MISMATCH       the clause names a measure different from the row's stored label\n  NO_CLAUSE_LOCATED    the row carries no endpoint_result_span, or no clause in it holds the row's own tuple\n  COUNTS_DERIVED       the ratio was computed by the harness from arm counts (no stated estimator exists to prove)\n  REGISTRY_ANALYSIS    a ClinicalTrials.gov results analysis: its orientation is the registry's group order, not words\n  basis                where the clause was read: endpoint_result_span, or the row's `source` quotation with its provenance\n                       labels stripped (rows that carry no endpoint_result_span)\n  CONTINUOUS           a mean difference / SMD row (outside a ratio-orientation check)\nusage: python cross_topic_census.py <verifier_commit> <main_commit> <live_slugs.txt> <out.json>",
+ "verifier_commit": "23642e0d42457beff74b3930a0ccb0e5284e8db2",
+ "verifier_blob": "d3fefa60a3e9a4384dc0a5df8723a813840b27f8",
+ "verifier_sha256": "5a8af64d26a78027bb6dd29ead7b9cee42435a05aed667599bc52ba823fc506a",
+ "topics_commit": "b284e08571d889de3d89ab4dff45c27aa3b4377f",
+ "pages": 32,
+ "errors": {},
+ "rows_primary": 87,
+ "ratio_rows": 81,
+ "unprovable_ratio_rows": 41,
+ "summary": {
+  "COUNTS_DERIVED": 13,
+  "PROVEN": 40,
+  "NO_CLAUSE_LOCATED": 13,
+  "UNORDERED": 8,
+  "CONTINUOUS": 6,
+  "REGISTRY_ANALYSIS": 5,
+  "REVERSED": 1,
+  "LABEL_MISMATCH": 1
+ },
+ "by_topic": {
+  "balanced-crystalloids-vs-saline-mortality": {
+   "COUNTS_DERIVED": 1,
+   "PROVEN": 1
+  },
+  "colchicine-postop-af": {
+   "PROVEN": 1,
+   "COUNTS_DERIVED": 2
+  },
+  "colchicine-recurrent-pericarditis": {
+   "PROVEN": 1,
+   "NO_CLAUSE_LOCATED": 1
+  },
+  "colchicine-secondary-cv-prevention": {
+   "PROVEN": 1,
+   "NO_CLAUSE_LOCATED": 2
+  },
+  "corticosteroids-cap-mortality": {
+   "COUNTS_DERIVED": 2
+  },
+  "corticosteroids-covid19-mortality": {
+   "NO_CLAUSE_LOCATED": 1
+  },
+  "denosumab-vertebral-fracture": {
+   "NO_CLAUSE_LOCATED": 1
+  },
+  "doac-vte-recurrence": {
+   "NO_CLAUSE_LOCATED": 4,
+   "PROVEN": 2
+  },
+  "dpp4-mace-t2d": {
+   "PROVEN": 2,
+   "UNORDERED": 1
+  },
+  "esketamine-trd-madrs": {
+   "CONTINUOUS": 3
+  },
+  "finerenone-ckd-t2d-renal": {
+   "PROVEN": 2
+  },
+  "glp1-ra-mace-t2d": {
+   "PROVEN": 8
+  },
+  "iv-iron-hfref-hosp": {
+   "PROVEN": 1,
+   "UNORDERED": 1
+  },
+  "melatonin-primary-insomnia-sol": {
+   "CONTINUOUS": 1
+  },
+  "metformin-pcos-ovulation": {
+   "COUNTS_DERIVED": 3
+  },
+  "noac-vs-warfarin-af-stroke": {
+   "PROVEN": 2,
+   "UNORDERED": 2
+  },
+  "omega3-cardiovascular-events": {
+   "REGISTRY_ANALYSIS": 2,
+   "PROVEN": 3
+  },
+  "pcsk9-mace": {
+   "REGISTRY_ANALYSIS": 1,
+   "PROVEN": 1
+  },
+  "probiotics-aad-prevention": {
+   "PROVEN": 2,
+   "COUNTS_DERIVED": 5,
+   "UNORDERED": 2,
+   "NO_CLAUSE_LOCATED": 2
+  },
+  "sacubitril-valsartan-hfref": {
+   "PROVEN": 1,
+   "REGISTRY_ANALYSIS": 1
+  },
+  "semaglutide-obesity-mace": {
+   "PROVEN": 1
+  },
+  "semaglutide-obesity-weight": {
+   "CONTINUOUS": 2
+  },
+  "sglt2-ckd-progression": {
+   "PROVEN": 2,
+   "NO_CLAUSE_LOCATED": 1
+  },
+  "sglt2-hfref-hosp-cvdeath": {
+   "REGISTRY_ANALYSIS": 1,
+   "PROVEN": 1
+  },
+  "sglt2-primary-prevention-hf": {
+   "PROVEN": 3,
+   "UNORDERED": 1
+  },
+  "spironolactone-hfref-mortality": {
+   "REVERSED": 1,
+   "PROVEN": 2
+  },
+  "statins-primary-prevention-elderly": {
+   "PROVEN": 1,
+   "NO_CLAUSE_LOCATED": 1
+  },
+  "ticagrelor-vs-clopidogrel-acs": {
+   "PROVEN": 1,
+   "UNORDERED": 1
+  },
+  "tocilizumab-covid19-mortality": {
+   "LABEL_MISMATCH": 1
+  },
+  "tranexamic-acid-pph": {
+   "PROVEN": 1
+  }
+ },
+ "rows": [
+  {
+   "slug": "balanced-crystalloids-vs-saline-mortality",
+   "trial": "PMID 35041780",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    13,
+    5
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "balanced-crystalloids-vs-saline-mortality",
+   "trial": "PMID 34375394",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    13,
+    5
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "By day 90, 1381 of 5230 patients (26.4%) assigned to a balanced solution died vs 1439 of 5290 patients (27.2%) assigned to saline solution (adjusted hazard ratio, 0.97 [95% CI, 0.90-1.05]; P = .47)."
+  },
+  {
+   "slug": "colchicine-postop-af",
+   "trial": "PMID 42132185",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    5
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "RESULTS: Of 163 analyzed patients (81 colchicine, 82 placebo), POAF incidence was significantly lower in the colchicine group (17.3% vs. 46.3%; RR 0.37, 95% CI 0.21-0.66; p < 0.001), with an absolute"
+  },
+  {
+   "slug": "colchicine-postop-af",
+   "trial": "PMID 32720823",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    5
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "colchicine-postop-af",
+   "trial": "PMID 25172965",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    5
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "colchicine-recurrent-pericarditis",
+   "trial": "PMID 24694983",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo group (relative risk 0.49; 95% CI 0.24-0.65; p=0.0009; numb"
+  },
+  {
+   "slug": "colchicine-recurrent-pericarditis",
+   "trial": "PMID 21873705",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "colchicine-secondary-cv-prevention",
+   "trial": "PMID 31733140",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The primary end point occurred in 5.5% of the patients in the colchicine group, as compared with 7.1% of those in the placebo group (hazard ratio, 0.77; 95% confidence interval [CI], 0.61 to 0.96; P ="
+  },
+  {
+   "slug": "colchicine-secondary-cv-prevention",
+   "trial": "PMID 32865380",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "colchicine-secondary-cv-prevention",
+   "trial": "PMID 39555823",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "corticosteroids-cap-mortality",
+   "trial": "PMID 36942789",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    13,
+    5
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "corticosteroids-cap-mortality",
+   "trial": "PMID 25688779",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    13,
+    5
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "corticosteroids-covid19-mortality",
+   "trial": "PMID 32678530",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    13,
+    6
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "denosumab-vertebral-fracture",
+   "trial": "PMID 19671655",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    3,
+    1
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "doac-vte-recurrence",
+   "trial": "PMID 24344086",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    7
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "doac-vte-recurrence",
+   "trial": "PMID 19966341",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    7
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "NUMERATOR_NAMED",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The hazard ratio with dabigatran was 1.10 (95% CI, 0.65 to 1.84)."
+  },
+  {
+   "slug": "doac-vte-recurrence",
+   "trial": "PMID 22449293",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    7
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "doac-vte-recurrence",
+   "trial": "PMID 21128814",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    7
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "doac-vte-recurrence",
+   "trial": "PMID 23991658",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    7
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "doac-vte-recurrence",
+   "trial": "PMID 23808982",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    7
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "RESULTS: The primary efficacy outcome occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2635 (2.7%) in the conventional-therapy group (relative risk, 0.84; 95% confidence interval [CI], 0.60 to 1.18; difference in risk [apixa"
+  },
+  {
+   "slug": "dpp4-mace-t2d",
+   "trial": "PMID 23992601",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    9,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "NUMERATOR_NAMED",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "RESULTS: A primary end-point event occurred in 613 patients in the saxagliptin group and in 609 patients in the placebo group (7.3% and 7.2%, respectively, according to 2-year Kaplan-Meier estimates; hazard ratio with saxagliptin, 1.00; 95% confidence interval"
+  },
+  {
+   "slug": "dpp4-mace-t2d",
+   "trial": "PMID 30418475",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    9,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "During a median follow-up of 2.2 years, the primary outcome occurred in 434 of 3494 (12.4%) and 420 of 3485 (12.1%) in the linagliptin and placebo groups, respectively, (absolute incidence rate difference, 0.13 [95% CI, -0.63 to 0.90] per 100 person-years) (HR"
+  },
+  {
+   "slug": "dpp4-mace-t2d",
+   "trial": "PMID 28893244",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    9,
+    1
+   ],
+   "kind": "UNORDERED",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['REFERENCE'] and no comparative connective orders them",
+   "clause": "The primary MACE outcome occurred in 114/2092 patients in the omarigliptin group (5.45%) and 114/2100 patients in the placebo group (5.43%), with a hazard ratio (HR) of 1.00 (95% confidence interval [CI] 0.77, 1.29)."
+  },
+  {
+   "slug": "esketamine-trd-madrs",
+   "trial": "PMID 37025256",
+   "scale": "MD",
+   "pool_served": true,
+   "vocab_sizes": [
+    3,
+    2
+   ],
+   "kind": "CONTINUOUS"
+  },
+  {
+   "slug": "esketamine-trd-madrs",
+   "trial": "PMID 31109201",
+   "scale": "MD",
+   "pool_served": true,
+   "vocab_sizes": [
+    3,
+    2
+   ],
+   "kind": "CONTINUOUS"
+  },
+  {
+   "slug": "esketamine-trd-madrs",
+   "trial": "NCT02422186",
+   "scale": "MD",
+   "pool_served": true,
+   "vocab_sizes": [
+    3,
+    2
+   ],
+   "kind": "CONTINUOUS"
+  },
+  {
+   "slug": "finerenone-ckd-t2d-renal",
+   "trial": "PMID 33264825",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    3,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "RESULTS: During a median follow-up of 2.6 years, a primary outcome event occurred in 504 of 2833 patients (17.8%) in the finerenone group and 600 of 2841 patients (21.1%) in the placebo group (hazard ratio, 0.82; 95% confidence interval [CI], 0.73 to 0.93; P ="
+  },
+  {
+   "slug": "finerenone-ckd-t2d-renal",
+   "trial": "PMID 34449181",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    3,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The secondary composite outcome occurred in 350 patients (9.5%) in the finerenone group and in 395 (10.8%) in the placebo group (hazard ratio, 0.87; 95% CI, 0.76 to 1.01)."
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 31185157",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority)."
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 27633186",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority)."
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 27295427",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P="
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 34215025",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard "
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 31189511",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 1"
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 30291013",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group ("
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 28910237",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence int"
+  },
+  {
+   "slug": "glp1-ra-mace-t2d",
+   "trial": "PMID 40162642",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86;"
+  },
+  {
+   "slug": "iv-iron-hfref-hosp",
+   "trial": "PMID 40159390",
+   "scale": "IRR",
+   "pool_served": false,
+   "vocab_sizes": [
+    7,
+    6
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "IRR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12"
+  },
+  {
+   "slug": "iv-iron-hfref-hosp",
+   "trial": "PMID 25176939",
+   "scale": "HR",
+   "pool_served": false,
+   "vocab_sizes": [
+    7,
+    6
+   ],
+   "kind": "UNORDERED",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['EXPERIMENTAL'] and no comparative connective orders them",
+   "clause": "Treatment with FCM was associated with a significant reduction in the risk of hospitalizations for worsening HF [hazard ratio (95% confidence interval): 0.39 (0.19–0.82),  P  = 0.009]."
+  },
+  {
+   "slug": "melatonin-primary-insomnia-sol",
+   "trial": "PMID 20712869",
+   "scale": "MD",
+   "pool_served": true,
+   "vocab_sizes": [
+    4,
+    2
+   ],
+   "kind": "CONTINUOUS"
+  },
+  {
+   "slug": "metformin-pcos-ovulation",
+   "trial": "PMID 19522426",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "metformin-pcos-ovulation",
+   "trial": "PMID 16769748",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "metformin-pcos-ovulation",
+   "trial": "PMID 11172832",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    1,
+    2
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "noac-vs-warfarin-af-stroke",
+   "trial": "PMID 21830957",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    3
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "In the intention-to-treat analysis, the primary end point occurred in 269 patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.88; 95% CI, 0.74 to 1.03; P<0.001 for noninferiority; P=0.12 "
+  },
+  {
+   "slug": "noac-vs-warfarin-af-stroke",
+   "trial": "PMID 19717844",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    3
+   ],
+   "kind": "UNORDERED",
+   "basis": "source_field",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['EXPERIMENTAL'] and no comparative connective orders them",
+   "clause": "RE-LY, verbatim: '... in the group that received 150 mg of dabigatran (relative risk, 0.66; 95% CI, 0.53 to 0.82; P<0.001 for superiority)'."
+  },
+  {
+   "slug": "noac-vs-warfarin-af-stroke",
+   "trial": "PMID 24251359",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    3
+   ],
+   "kind": "UNORDERED",
+   "basis": "source_field",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['EXPERIMENTAL'] and no comparative connective orders them",
+   "clause": "the 30 mg low-dose arm is not pooled. [CI CONVERTED: source reports HR 0.87 with a 97.5% CI 0.73-1.04 (multiplicity-adjusted for the two edoxaban doses); converted to a 95% CI 0.745-1.016 (SE=0.079 from the 97.5% bounds, z=2.2414) so it pools on the same 95% b"
+  },
+  {
+   "slug": "noac-vs-warfarin-af-stroke",
+   "trial": "PMID 21870978",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    22,
+    3
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "NUMERATOR_NAMED",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The rate of the primary outcome was 1.27% per year in the apixaban group, as compared with 1.60% per year in the warfarin group (hazard ratio with apixaban, 0.79; 95% confidence interval [CI], 0.66 to 0.95; P<0.001 for noninferiority; P=0.01 for superiority)."
+  },
+  {
+   "slug": "omega3-cardiovascular-events",
+   "trial": "PMID 33190147",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    20,
+    5
+   ],
+   "kind": "REGISTRY_ANALYSIS",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names no arm and no comparative connective orders them",
+   "clause": "ClinicalTrials.gov outcome measure #2: The Composite of CV Events -- analysis: Hazard Ratio (HR) 1.05 (95% CI 0.93 to 1.19; Regression, Cox)"
+  },
+  {
+   "slug": "omega3-cardiovascular-events",
+   "trial": "PMID 30415637",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    20,
+    5
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "During a median follow-up of 5.3 years, a major cardiovascular event occurred in 386 participants in the n-3 group and in 419 in the placebo group (hazard ratio, 0.92; 95% confidence interval [CI], 0.80 to 1.06; P=0.24)."
+  },
+  {
+   "slug": "omega3-cardiovascular-events",
+   "trial": "PMID 30415628",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    20,
+    5
+   ],
+   "kind": "REGISTRY_ANALYSIS",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names no arm and no comparative connective orders them",
+   "clause": "ClinicalTrials.gov outcome measure #1: Composite of CV Death, Nonfatal MI (Including Silent MI), or Nonfatal Stroke. -- analysis: Hazard Ratio (HR) 0.74 (95% CI 0.65 to 0.83; Log Rank)"
+  },
+  {
+   "slug": "omega3-cardiovascular-events",
+   "trial": "PMID 20929341",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    20,
+    5
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "NUMERATOR_NAMED",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Neither EPA-DHA nor ALA reduced this primary end point (hazard ratio with EPA-DHA, 1.01; 95% confidence interval [CI], 0.87 to 1.17; P=0.93; hazard ratio with ALA, 0.91; 95% CI, 0.78 to 1.05; P=0.20)."
+  },
+  {
+   "slug": "omega3-cardiovascular-events",
+   "trial": "PMID 21115589",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    20,
+    5
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Allocation to omega 3 fatty acids increased plasma concentrations of omega 3 fatty acids by 37% compared with placebo, but also had no significant effect on major vascular events (81  v  76 patients, hazard ratio 1.08 (0.79 to 1.47, P=0.64))."
+  },
+  {
+   "slug": "pcsk9-mace",
+   "trial": "PMID 28304224",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    5,
+    2
+   ],
+   "kind": "REGISTRY_ANALYSIS",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names no arm and no comparative connective orders them",
+   "clause": "ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke -- analysis: If the primary endpoint reached statistical significance at the 0.05 level, the key secondary endpoint (composite of cardiovascular death, myocar"
+  },
+  {
+   "slug": "pcsk9-mace",
+   "trial": "PMID 30403574",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    5,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "A composite primary end-point event occurred in 903 patients (9.5%) in the alirocumab group and in 1052 patients (11.1%) in the placebo group (hazard ratio, 0.85; 95% confidence interval [CI], 0.78 to 0.93; P<0.001)."
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 35727573",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Compared with placebo (n = 155), the probiotic (n = 158) had no effect on risk of AAD (relative risk [RR], 0.81; 95% CI, 0.49-1.33)."
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 32035998",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 24772726",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "UNORDERED",
+   "basis": "source_field",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": "the clause names no arm and no comparative connective orders them",
+   "clause": "The relative risk for AAD was 0.7 with the 95% CI being 0.4 to 1.2."
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 23932219",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "AAD (including CDD) occurred in 159 (10.8%) participants in the microbial preparation group and 153 (10.4%) participants in the placebo group (relative risk [RR] 1.04; 95% CI 0.84-1.28; p=0.71)."
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 18701826",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 18410562",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 15740542",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 11560298",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 7872284",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "UNORDERED",
+   "basis": "source_field",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['EXPERIMENTAL'] and no comparative connective orders them",
+   "clause": "Using a multivariate model to adjust for two independent risk factors for AAD (age and days of cephalosporin use), the adjusted relative risk was significantly protective for S. boulardii (RR = 0.29, 95% CI = 0.08, 0.98)."
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 21165295",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "probiotics-aad-prevention",
+   "trial": "PMID 18026577",
+   "scale": null,
+   "pool_served": true,
+   "vocab_sizes": [
+    29,
+    6
+   ],
+   "kind": "COUNTS_DERIVED"
+  },
+  {
+   "slug": "sacubitril-valsartan-hfref",
+   "trial": "PMID 25176015",
+   "scale": "HR",
+   "pool_served": false,
+   "vocab_sizes": [
+    8,
+    4
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "At the time of study closure, the primary outcome had occurred in 914 patients (21.8%) in the LCZ696 group and 1117 patients (26.5%) in the enalapril group (hazard ratio in the LCZ696 group, 0.80; 95% confidence interval [CI], 0.73 to 0.87; P<0.001)."
+  },
+  {
+   "slug": "sacubitril-valsartan-hfref",
+   "trial": "NCT02468232",
+   "scale": "HR",
+   "pool_served": false,
+   "vocab_sizes": [
+    8,
+    4
+   ],
+   "kind": "REGISTRY_ANALYSIS",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names no arm and no comparative connective orders them",
+   "clause": "ClinicalTrials.gov outcome measure #1: Exposure-adjusted Incident Rate (EAIR) of CEC Confirmed Composite Endpoints -- analysis: For Primary Composite: Hazard Ratio (HR) 1.0881 (95% CI 0.6501 to 1.8212; Regression, Cox)"
+  },
+  {
+   "slug": "semaglutide-obesity-mace",
+   "trial": "PMID 37952131",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    4,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "A primary cardiovascular end-point event occurred in 569 of the 8803 patients (6.5%) in the semaglutide group and in 701 of the 8801 patients (8.0%) in the placebo group (hazard ratio, 0.80; 95% confidence interval, 0.72 to 0.90; P<0.001)."
+  },
+  {
+   "slug": "semaglutide-obesity-weight",
+   "trial": "PMID 33625476",
+   "scale": "MD",
+   "pool_served": true,
+   "vocab_sizes": [
+    4,
+    2
+   ],
+   "kind": "CONTINUOUS"
+  },
+  {
+   "slug": "semaglutide-obesity-weight",
+   "trial": "PMID 33567185",
+   "scale": "MD",
+   "pool_served": true,
+   "vocab_sizes": [
+    4,
+    2
+   ],
+   "kind": "CONTINUOUS"
+  },
+  {
+   "slug": "sglt2-ckd-progression",
+   "trial": "PMID 32970396",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Over a median of 2.4 years, a primary outcome event occurred in 197 of 2152 participants (9.2%) in the dapagliflozin group and 312 of 2152 participants (14.5%) in the placebo group (hazard ratio, 0.61; 95% confidence interval [CI], 0.51 to 0.72; P<0.001; numbe"
+  },
+  {
+   "slug": "sglt2-ckd-progression",
+   "trial": "PMID 30990260",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "sglt2-ckd-progression",
+   "trial": "PMID 36331190",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Results  During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with co"
+  },
+  {
+   "slug": "sglt2-hfref-hosp-cvdeath",
+   "trial": "PMID 31535829",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "REGISTRY_ANALYSIS",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names no arm and no comparative connective orders them",
+   "clause": "ClinicalTrials.gov outcome measure #1: Subjects Included in the Composite Endpoint of CV Death or Hospitalization Due to Heart Failure. -- analysis: Hazard Ratio (HR) 0.75 (95% CI 0.65 to 0.85; Regression, Cox)"
+  },
+  {
+   "slug": "sglt2-hfref-hosp-cvdeath",
+   "trial": "PMID 32865377",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "RESULTS: During a median of 16 months, a primary outcome event occurred in 361 of 1863 patients (19.4%) in the empagliflozin group and in 462 of 1867 patients (24.7%) in the placebo group (hazard ratio for cardiovascular death or hospitalization for heart fail"
+  },
+  {
+   "slug": "sglt2-primary-prevention-hf",
+   "trial": "PMID 28605608",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Overall, cardiovascular death or hospitalized HF was reduced in those treated with canagliflozin compared with placebo (16.3 versus 20.8 per 1000 patient-years; hazard ratio [HR], 0.78; 95% confidence interval [CI], 0.67-0.91), as was fatal or hospitalized HF "
+  },
+  {
+   "slug": "sglt2-primary-prevention-hf",
+   "trial": "PMID 26378978",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "COMPARATIVE_CONNECTIVE",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "As previously reported, hospitalization for heart failure occurred in a significantly lower percentage of patients treated with empagliflozin [126/4687 patients (2.7%)] than with placebo [95/2333 patients (4.1%)] [HR: 0.65 (95% CI: 0.50–0.85); P = 0.002]. 19 T"
+  },
+  {
+   "slug": "sglt2-primary-prevention-hf",
+   "trial": "PMID 32966714",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    1
+   ],
+   "kind": "UNORDERED",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['EXPERIMENTAL'] and no comparative connective orders them",
+   "clause": "Overall, ertugliflozin reduced risk for first HHF (HR, 0.70 [95% CI, 0.54-0.90]; P=0.006)."
+  },
+  {
+   "slug": "sglt2-primary-prevention-hf",
+   "trial": "PMID 30415602",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    12,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "In the two primary efficacy analyses, dapagliflozin did not result in a lower rate of MACE (8.8% in the dapagliflozin group and 9.4% in the placebo group; hazard ratio, 0.93; 95% CI, 0.84 to 1.03; P=0.17) but did result in a lower rate of cardiovascular death "
+  },
+  {
+   "slug": "spironolactone-hfref-mortality",
+   "trial": "PMID 10471456",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    7,
+    2
+   ],
+   "kind": "REVERSED",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "There were 386 deaths in the placebo group (46 percent) and 284 in the spironolactone group (35 percent; relative risk of death, 0.70; 95 percent confidence interval, 0.60 to 0.82; P<0.001)."
+  },
+  {
+   "slug": "spironolactone-hfref-mortality",
+   "trial": "PMID 21073363",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    7,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "A total of 12.5% of patients receiving eplerenone and 15.5% of those receiving placebo died (hazard ratio, 0.76; 95% CI, 0.62 to 0.93; P=0.008);"
+  },
+  {
+   "slug": "spironolactone-hfref-mortality",
+   "trial": "PMID 28824029",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    7,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)]."
+  },
+  {
+   "slug": "statins-primary-prevention-elderly",
+   "trial": "PMID 20404379",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    6,
+    4
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82"
+  },
+  {
+   "slug": "statins-primary-prevention-elderly",
+   "trial": "PMID 42670961",
+   "scale": "HR",
+   "pool_served": true,
+   "vocab_sizes": [
+    6,
+    4
+   ],
+   "kind": "NO_CLAUSE_LOCATED",
+   "basis": "source_field"
+  },
+  {
+   "slug": "ticagrelor-vs-clopidogrel-acs",
+   "trial": "PMID 19717846",
+   "scale": "HR",
+   "pool_served": false,
+   "vocab_sizes": [
+    2,
+    1
+   ],
+   "kind": "PROVEN",
+   "basis": "endpoint_result_span",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "RESULTS: At 12 months, the primary end point--a composite of death from vascular causes, myocardial infarction, or stroke--had occurred in 9.8% of patients receiving ticagrelor as compared with 11.7% of those receiving clopidogrel (hazard ratio, 0.84; 95% conf"
+  },
+  {
+   "slug": "ticagrelor-vs-clopidogrel-acs",
+   "trial": "PMID 26376600",
+   "scale": "HR",
+   "pool_served": false,
+   "vocab_sizes": [
+    2,
+    1
+   ],
+   "kind": "UNORDERED",
+   "basis": "endpoint_result_span",
+   "rule": null,
+   "rate_witness": null,
+   "measure": "HR",
+   "measure_state": "STATED",
+   "reason": "the clause names ['EXPERIMENTAL'] and no comparative connective orders them",
+   "clause": "the composite primary efficacy endpoint occurred in 9.0% and in 6.3% of ticagrelor- and clopidogrel-treated patients, respectively (HR, 1.47; 95% CI: 0.88-2.44)."
+  },
+  {
+   "slug": "tocilizumab-covid19-mortality",
+   "trial": "PMID 33933206",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    5,
+    8
+   ],
+   "kind": "LABEL_MISMATCH",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "AGREES",
+   "measure": "IRR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Overall, 621 (31%) of the 2022 patients allocated tocilizumab and 729 (35%) of the 2094 patients allocated to usual care died within 28 days (rate ratio 0.85; 95% CI 0.76-0.94; p=0.0028).",
+   "label": "RR"
+  },
+  {
+   "slug": "tranexamic-acid-pph",
+   "trial": "PMID 28456509",
+   "scale": "RR",
+   "pool_served": true,
+   "vocab_sizes": [
+    2,
+    2
+   ],
+   "kind": "PROVEN",
+   "basis": "source_field",
+   "rule": "ORDER_OF_MENTION",
+   "rate_witness": "NOT_INFORMATIVE",
+   "measure": "RR",
+   "measure_state": "STATED",
+   "reason": null,
+   "clause": "Death due to bleeding was significantly reduced in women given tranexamic acid (155 [1.5%] of 10 036 patients vs 191 [1.9%] of 9985 in the placebo group, risk ratio [RR] 0.81, 95% CI 0.65-1.00; p=0.04"
+  }
+ ]
+}
