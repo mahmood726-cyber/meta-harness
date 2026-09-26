@@ -29,6 +29,7 @@ Branch `evid/v1.1-rob2` only. Nothing here is on main and nothing here is final.
    - SOUL stays low because an independent source (the design paper, still "ongoing" in 2023) dates its plan before unblinding.
    - SUSTAIN-6 stays low on the FDA statistical reviewer's "pre-specified", with no dated SAP held; it is already flagged for weighing.
    - The same audit of D1 found no inconsistency. Every low D1 has a span saying the randomisation itself ran through a central IVRS/IWRS/IRT or a sequestered schedule; ELIXA and SUSTAIN-6 are incidental mentions, already flagged. LEADER's only central-system span concerns code breaking, not randomisation, which is why LEADER D1 stays some_concerns.
+   - D2 and D4 audited too, with no change. All 10 D4 lows rest on an adjudication committee stated to be blinded/unaware/masked (REWIND's from a secondary paper). All 10 D2 lows rest on double-blind or identical placebo plus an ITT or all-randomised analysis.
 4. **ELIXA D5.** The prespecification dispute is quoted from three sources: the FDA statistical review, the FDA summary review, and the registry.
 5. **AMPLITUDE-O D3.** The per-arm split of the 3.3% with unknown primary-outcome status is only in the paper's Supplementary Appendix, which is not held.
 
