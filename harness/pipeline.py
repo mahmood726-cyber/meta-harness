@@ -1984,6 +1984,7 @@ def build_review_core(slug, config, records, protocol_sha):
                 **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                 **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
                    if d.get("arm_object_hidden_eligible_contrast") else {}),
+                **({"screening_record": d["screening_record"]} if d.get("screening_record") else {}),
             })
     else:
         screening_records = [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
@@ -1994,7 +1995,8 @@ def build_review_core(slug, config, records, protocol_sha):
                               **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
                               **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                               **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
-                                 if d.get("arm_object_hidden_eligible_contrast") else {})}
+                                 if d.get("arm_object_hidden_eligible_contrast") else {}),
+                              **({"screening_record": d["screening_record"]} if d.get("screening_record") else {})}
                              for d in scr["decisions"]]
 
     _adj = _apply_adjudicator_flags(slug, screening_records)
@@ -2258,6 +2260,10 @@ def build_review_core(slug, config, records, protocol_sha):
     # Scientific consumers above join held report-keyed RoB/GRADE evidence.
     # Family identity is additive; regenerate the dependent sensitivity stamp afterwards.
     trial_family_mod.attach_review(review, family_nodes)
+    # ONE screening record per report (harness.screening_record): admissibility per outcome, the family object's
+    # report entry and the screening narrative are DERIVED from it here; the gate checks they still agree.
+    from . import screening_record as screening_record_mod
+    screening_record_mod.derive(review)
     known_missing_mod.build(review, _inv_sig, rec_by_id, records)
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
