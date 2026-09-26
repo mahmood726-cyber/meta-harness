@@ -98,6 +98,19 @@ SPECS = {
                           "exploratory analysis rather than the main randomised comparison",
                   "trigger": r"protocol|hoc|subgroup|sensitivity|treated|among|restricted|exploratory|lowest|highest",
                   "plants": {"accept": ["in the per-protocol analysis"], "refuse": ["in the intention-to-treat analysis"]}},
+    # lane NR V1.0.1 (COCS 36286314): the two sentence gates of _arm_ns_in_the_group ('N in the <arm> group' sizes)
+    "_POP_SENT": {"kind": "classifier",
+                  "spec": "the sentence declares a study POPULATION (included / analysed / analysis / randomised / "
+                          "enrolled / allocated / assigned), so an 'N in the <arm> group' in it is an arm size",
+                  "trigger": r"includ|analy|randomi|enrol|allocat|assign",
+                  "plants": {"accept": ["The final analysis included 240 study subjects: 113 in the colchicine group"],
+                             "refuse": ["POAF was seen in 21 patients of the colchicine group"]}},
+    "_EVENT_SENT": {"kind": "classifier",
+                    "spec": "the sentence reports EVENTS (occurred / observed / developed / experienced / reported / "
+                            "events / incidence / died / deaths), so an 'N in the <arm> group' in it is a count, not a size",
+                    "trigger": r"occur|observ|develop|experienc|report|event|incidence|died|death",
+                    "plants": {"accept": ["Adverse events occurred in 25 in the colchicine group"],
+                               "refuse": ["113 in the colchicine group and 127 in the placebo group"]}},
     "_NULL_RESULT": {"kind": "classifier",
                      "spec": "the sentence states there was NO difference between groups (similar / comparable / did "
                              "not differ / no significant difference)",

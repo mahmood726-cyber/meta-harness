@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import re
 from typing import Any
 
-from . import screen
+from . import screen, window_evidence
 
 
 HARD_CODES = {
@@ -277,13 +277,23 @@ def _follow_up_value(pid: str, text: str) -> tuple[str, str]:
         "22090167": ("1 month", "at 1 month"),
         "36286314": ("until discharge", "until the discharge from the hospital"),
     }
-    if pid in known:
+    # Every reading, hand-typed or parsed, must be OUTCOME-ASCERTAINMENT evidence: a treatment/dosing duration is not
+    # a follow-up window (42132185's hand row cites its 14-day REGIMEN; it is refused here, and with nothing else in
+    # the source stating the window the value is not_stated -> UNKNOWN, never the regimen's length).
+    if pid in known and window_evidence.is_follow_up_evidence(known[pid][1]):
         return known[pid]
-    tl = _fold(text)
+    nt = _norm(text)          # _fold(text) == nt.lower(), position for position; the role is read with case kept
+    tl = nt.lower()
     for pat, val in (("trial end", "trial end"), ("3 months", "3 months"), ("1 month", "1 month"), ("14 days", "14 days"),
                      ("hospital discharge", "in-hospital / until discharge"), ("in-hospital", "in-hospital")):
-        if pat in tl:
-            return val, _span(text, pat)
+        hits = [m.start() for m in re.finditer(re.escape(pat), tl)]
+        # only a DURATION ('14 days', '3 months') can be a regimen's length; 'in-hospital' / 'trial end' are not tested
+        ok = [i for i in hits if not window_evidence.DURATION.fullmatch(pat)
+              or window_evidence.duration_role(nt, i, i + len(pat)) != "DOSING"]
+        if ok:
+            # the first occurrence keeps its historical span; a later one (the first was a regimen) is cut at itself
+            return val, (_span(text, pat) if ok[0] == hits[0] else
+                         "..." + nt[max(0, ok[0] - 45):ok[0] + len(pat) + 90] + "...")
     return "not_stated", ""
 
 
@@ -320,7 +330,10 @@ def _endpoint_definition(pid: str, text: str) -> dict[str, str]:
         "42132185": {"duration_threshold": "not_stated", "surveillance_window": "14-day regimen / analysed population"},
     }
     if pid in data:
-        return data[pid]
+        row = dict(data[pid])
+        if not window_evidence.is_follow_up_evidence(row["surveillance_window"]):
+            row["surveillance_window"] = "not_stated"   # a regimen is not a surveillance window (42132185)
+        return row
     tl = _fold(text)
     if "5 minutes" in tl:
         return {"duration_threshold": ">=5 minutes", "surveillance_window": "not_stated"}

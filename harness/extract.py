@@ -715,7 +715,34 @@ def _arm_ns(abstract, interv_terms, comp_terms):
                 break
         if best:
             out[key] = best
+    if not out:
+        out = _arm_ns_in_the_group(abstract, interv_terms, comp_terms)
     return out
+
+
+# 'N in the <arm> group' per-arm sizes -- COCS (36286314): "The final analysis included 240 study subjects: 113 in the
+# colchicine group and 127 in the placebo group." Read ONLY from a sentence that declares a study population and states
+# BOTH arms, never from a sentence that reports events ('adverse events occurred in 25 in the colchicine group' is a
+# count, not a size), and only when no other pattern gave either arm. A count paired with this size must still
+# corroborate its own stated percentage (<= 1.0 point); what the analysed n means for admissibility is RoB's question.
+_POP_SENT = re.compile(r"\b(?:included|analy[sz]ed|analysis|randomi[sz]ed|enrolled|allocated|assigned)\b", re.I)
+_EVENT_SENT = re.compile(r"\b(?:occurred|observed|developed|experienced|reported|events?|incidence|died|deaths?)\b", re.I)
+
+
+def _arm_ns_in_the_group(abstract, interv_terms, comp_terms):
+    for s in _sentences(abstract):
+        if not _POP_SENT.search(s) or _EVENT_SENT.search(s):
+            continue
+        got = {}
+        for key, terms in (("i", interv_terms), ("c", comp_terms)):
+            for t in terms:
+                m = re.search(rf"(?<![\d.,])(\d+)\s+in\s+the\s+{re.escape(t)}\s+(?:group|arm)\b", s, re.I)
+                if m:
+                    got[key] = int(m.group(1))
+                    break
+        if len(got) == 2:
+            return got
+    return {}
 
 
 def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):

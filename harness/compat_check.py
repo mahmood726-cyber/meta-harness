@@ -12,7 +12,9 @@ import os
 import re
 from typing import Any
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from harness import window_evidence
+
+ROOT =os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ASSERTED_NOT_UNDERLYING = "COMPAT_ASSERTED_NOT_UNDERLYING"
 UNDERIVABLE = "COMPAT_DIMENSION_UNDERIVABLE"
@@ -163,15 +165,25 @@ def _derive_follow_up(
         (r"\bfor\s+40\s+months\b", "40 months"),
         (r"\bmedian duration of supplementation was\s+([0-9.]+)\s+years\b", None),
     ]
+    refused_dosing = None
     for pattern, value in rules:
-        m = _search(pattern, text)
+        # a duration is follow-up evidence only if it is not a TREATMENT/DOSING duration ('1 mg daily ... for 14
+        # days' is the regimen, not the ascertainment window): take the first match that is not dosing
+        hits = list(re.finditer(pattern, text or "", re.I | re.S))
+        m = next((x for x in hits if window_evidence.duration_role(text, x.start(), x.end()) != "DOSING"), None)
         if not m:
+            refused_dosing = refused_dosing or (hits[0] if hits else None)
             continue
         if value is None and m.groups():
             value = m.group(1) + " years"
         return _derived(value, "committed source text", _short_span(text, m))
     if trial.get("timeframe"):
         return _derived(str(trial.get("timeframe")), "trial.timeframe", str(trial.get("timeframe")))
+    if refused_dosing is not None:
+        # the source's only window-like statement is a regimen: the window is UNRESOLVED. The review's declared
+        # timepoint is a promise about the outcome, not a statement by this trial, so it must not stand in here.
+        return {**_derived(None, "underivable", ""),
+                "refused_dosing_span": _short_span(text, refused_dosing)}
     if outcome.get("timepoint"):
         return _derived(str(outcome.get("timepoint")), "outcome.timepoint", str(outcome.get("timepoint")))
     return _derived(None, "underivable", "")
