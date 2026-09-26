@@ -28,8 +28,10 @@ _REFERENCE_MARK = re.compile(r"\b(?:as\s+)?(?:compared\s+(?:with|to)|versus|vs\.
 # ... and a ratio 'for' an arm names that arm as the NUMERATOR: "hazard ratio for liraglutide, 0.87", "the hazard ratio for placebo versus ..."
 _NUMERATOR_MARK = re.compile(r"\b(?:hazard|odds|risk|rate)\s+ratios?\s*(?:\([A-Z]{2,3}\)\s*|\[[A-Z]{2,3}\]\s*)?,?\s*(?:for|with|of)\s+"
                              r"(?:(?:the|patients|participants|those|in|receiving|assigned\s+to(?:\s+receive)?)\s+){0,4}$", re.I)
-_PCT = re.compile(r"(\d+(?:\.\d+)?)\s*%")
+_PCT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|percent\b|per\s+cent\b)", re.I)   # RALES writes "(46 percent)"
 _NOT_AN_ARM = re.compile(r"^-(?:controlled|matched|treated|based|like)", re.I)
+# ... except the second half of a suspended hyphen: "ticagrelor- and clopidogrel-treated patients" names BOTH arms
+_SUSPENDED_HYPHEN = re.compile(r"[\w)]-\s+(?:and|or|vs\.?|versus)\s+$", re.I)
 _GENERIC_REFERENCE = ("control",)          # names an arm only as '<control> group|arm'; 'glycaemic control' is not an arm
 
 
@@ -80,7 +82,8 @@ def arm_mentions(clause, vocab):
     for side, terms in (("EXPERIMENTAL", vocab.get("experimental", [])), ("REFERENCE", vocab.get("reference", []))):
         for t in terms:
             for m in re.finditer(r"(?<![\w])" + re.escape(t) + r"(?![\w])", clause or "", re.I):
-                if _NOT_AN_ARM.match((clause or "")[m.end():]):
+                if _NOT_AN_ARM.match((clause or "")[m.end():]) and not (
+                        (clause or "")[m.end():].lower().startswith("-treated") and _SUSPENDED_HYPHEN.search((clause or "")[:m.start()])):
                     continue
                 if t in _GENERIC_REFERENCE and not re.match(r"\s+(?:group|arm)\b", (clause or "")[m.end():], re.I):
                     continue
