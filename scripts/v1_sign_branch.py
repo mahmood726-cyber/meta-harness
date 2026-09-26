@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ["scripts/notice_anchor.py", "scripts/notice_rejudge.py", "scripts/sign_walk.py",
          "scripts/countersign_result_change.py", "scripts/notice_signing_list.py",
          "scripts/verify_notice_signatures.py", "scripts/rederive_notices.py", "scripts/v1_notice_registry.py",
-         "scripts/v1_sign_branch.py"]
+         "scripts/v1_sign_branch.py", "scripts/v1_prepare_session.py", "scripts/v1_final_list.py",
+         "scripts/sign_session.py", "scripts/sign_session_plan.py"]
 
 
 def git(*args: str, env=None, data: bytes | None = None) -> str:
