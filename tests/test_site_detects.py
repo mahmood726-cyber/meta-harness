@@ -34,8 +34,12 @@ def test_keys_are_exactly_the_planted_sites():
 def test_every_inventory_site_of_the_OWNED_files_has_a_spec():
     # strict only where this lane owns the file (regex_layer/lanes.py): a new or changed site in the OTHER lane's files is
     # reported (plants skipped as STALE, new sites listed by regex_layer.inventory), never a failure of that lane's commit
+    # LITERAL sites only: a pattern BUILT at run time (kind 'built:*') has no fixed text a labelling spec could describe;
+    # its coverage is a function-level plant (regex_layer/specs_built.py), held strictly for owned files by
+    # tests/test_regex_inventory.py::test_owned_sites_without_plants_only_shrink
     from regex_layer.inventory import sites
-    inv = sorted(s["site"] for s in sites() if s["file"] in FILES and lanes.owned(s["site"]))
+    inv = sorted(s["site"] for s in sites()
+                 if s["file"] in FILES and lanes.owned(s["site"]) and not s["kind"].startswith("built:"))
     assert inv and inv == sorted(k for k in SITE_KEYS if lanes.owned(k))
 
 

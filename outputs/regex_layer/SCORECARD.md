@@ -7,7 +7,7 @@
 | R3 | **23 of 23** |
 | R4 | **11 of 23 (12 not applicable, 0 open)** |
 
-Harness-wide: R3_harness_sites_planted 407 of 407; R2_other_sites_measured 95 of 367
+Harness-wide: R3_harness_sites_planted 423 of 426; R2_other_sites_measured 95 of 367
 
 | pattern | kind / role | R1 | R2 | R3 | R4 |
 |---|---|---|---|---|---|

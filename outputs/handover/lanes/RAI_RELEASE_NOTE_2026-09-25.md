@@ -63,6 +63,20 @@ The earlier line "407 of 407 regex sites planted" stated no N and hid the blind 
     It is latent today, with no served consequence.
   - `hand_binding.py` is not this lane's file, so the fix is yours: the `whole_numbers` separator rule used in
     extract.py would close it.
+- **Update (blind spot closed where honest, post-freeze):**
+  - `regex_layer.inventory` now counts built patterns as sites (kind `built:*`), so N is **426**. The plant for the
+    change failed on the old inventory.
+  - Function-level plants (`regex_layer/specs_built.py`, `tests/test_built_plants.py`) call the harness function that
+    builds each pattern. **R3 is now 423 of 426.** The 3 unplanted sites need on-disk fixtures to reach:
+    `comparator_panel.validate` (raises, and reads a hash-pinned document) and `trial_family.prepare` :406 and :421
+    (read `cache/<slug>/family_*.json`).
+  - The plants found **3 more instances of the PVA-D12 fragment class, all in your files.** Each is a strict xfail,
+    and each was confirmed by calling the function:
+    - `hand_binding._effect_pattern_ok("HR 1.03 (95% CI 0.5-2)", {effect 1, ci 0.5–2})` → True;
+    - `verify._digits_in("HR 1.03", 1)` → True;
+    - `comparator_truth.span_or_not_held("The HR was 1.03 overall.", 1)` → FOUND.
+  - `hand_binding._ci_pct_ok` does not have the defect.
+  - The served impact of these three is **not measured**. pva's 0 of 132 covers `_present` only.
 - R2 is sampled recall, not population recall. `_RATE_EVPT` fired 0 times in its 55 labels, so its precision is
   undefined (0 of 0), not 100%.
 

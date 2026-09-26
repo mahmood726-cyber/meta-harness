@@ -16,6 +16,15 @@ ROOT = Path(__file__).resolve().parents[1]
 INLINE = ("search", "match", "fullmatch", "findall", "finditer", "sub", "subn", "split")
 
 
+def _enclosing(tree: ast.AST, target: ast.AST) -> str:
+    """The name of the innermost function containing `target`, or '<module>'."""
+    best = "<module>"
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and any(n is target for n in ast.walk(node)):
+            best = node.name        # ast.walk is breadth-first, so a later hit is nested deeper
+    return best
+
+
 def sites(root: Path = ROOT) -> list[dict]:
     out = []
     for p in sorted((root / "harness").glob("*.py")):
@@ -42,6 +51,15 @@ def sites(root: Path = ROOT) -> list[dict]:
                             "pattern": lit,
                             # keyed by the pattern's text, not its line: another lane's edit must not rename a site
                             "site": f"{p.name}:{node.func.attr}:{hashlib.sha256(lit.encode('utf-8')).hexdigest()[:10]}"})
+            elif node.func.attr in INLINE and node.args:
+                # a pattern BUILT at run time (concatenation, re.escape, a variable): still a regex site. Skipping it
+                # made "n of N planted" true of literal sites only (pva, RAI-C13 / PVA-D12). Keyed by the expression's
+                # text and named by its enclosing function; planted by calling that function (regex_layer.specs_built)
+                expr = ast.unparse(node.args[0])
+                out.append({"file": p.name, "name": _enclosing(tree, node), "line": node.lineno,
+                            "kind": f"built:{node.func.attr}", "pattern": expr,
+                            "site": f"{p.name}:{node.func.attr}:built:"
+                                    f"{hashlib.sha256(expr.encode('utf-8')).hexdigest()[:10]}"})
     out.sort(key=lambda s: (s["file"], s["line"]))
     seen = {}
     for s in out:                                   # the same literal twice in a file: #2, #3 in reading order
@@ -53,7 +71,8 @@ def sites(root: Path = ROOT) -> list[dict]:
 
 def planted() -> set[str]:
     from regex_layer.specs import INLINE_SPECS, SPECS
-    return {f"extract.py:{n}" for n in SPECS} | set(INLINE_SPECS)
+    from regex_layer.specs_built import BUILT_SPECS
+    return {f"extract.py:{n}" for n in SPECS} | set(INLINE_SPECS) | set(BUILT_SPECS)
 
 
 if __name__ == "__main__":
