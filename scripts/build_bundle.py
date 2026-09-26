@@ -1273,6 +1273,30 @@ def _spans_for_row(t: dict, span: str, loc: dict, parsed: str) -> list[dict]:
     return out
 
 
+def _adjudicated_carrier(t: dict, art_by_ref: dict) -> dict | None:
+    """V1.0.1: a row admitted by signed result-level adjudication has no records.json abstract. Its evidence is the
+    ONE witnessed span of its decision that carries estimate and both bounds (`tuple_witnessed_by`), in the committed
+    text extraction of the held regulatory PDF. Every predicate below is then computed on that text exactly as for an
+    abstract row; nothing is relaxed. Returns None for any other row."""
+    adj = t.get("result_adjudication") if t.get("provenance") == "signed_result_adjudication" else None
+    if not adj:
+        return None
+    d = _read_json(ROOT / adj["decision"])
+    w = d
+    for k in adj["tuple_witnessed_by"].split("/"):
+        w = w[int(k)] if isinstance(w, list) else w[k]
+    pdf = w["ref"]
+    if not pdf.endswith(".pdf"):
+        raise ValueError(f"{t.get('label')}: tuple carrier {pdf} is not a held PDF with a committed text extraction")
+    head, name = pdf.rsplit("/", 1)
+    text_ref = (head[:-len("/held")] if head.endswith("/held") else head) + "/" + name + ".txt"
+    data = (ROOT / text_ref).read_bytes()
+    pdf_art, txt_art = art_by_ref.get(pdf), art_by_ref.get(text_ref)
+    return {"decision": adj["decision"], "decision_sha256": adj["decision_sha256"], "pdf_ref": pdf, "text_ref": text_ref,
+            "parsed": data.decode("utf-8"), "span": w["span"], "text_sha256": _sha256(data),
+            "bytes_ok": bool(pdf_art and txt_art and pdf_art["sha256"] == w["sha256"] and txt_art["sha256"] == _sha256(data))}
+
+
 def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dict, records: dict) -> tuple[list[dict], dict]:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     extraction = _extraction_entries(slug)
@@ -1288,10 +1312,15 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
     for t in primary["trials"]:
         trial_id = str(t.get("id") or "")
         pmid = trial_id.replace("PMID ", "")
-        doc = docs_by_id.get(f"pubmed:{pmid}") or {}
-        selected = resolve_selector(records, pmid)      # refuses on 0 or >=2 matches
-        parsed = selected.get("abstract") or ""
-        span = t.get("endpoint_result_span") or ""
+        car = _adjudicated_carrier(t, art_by_ref)
+        if car:
+            doc, selected = {}, {"id_type": "pmid", "id": pmid}
+            parsed, span = car["parsed"], car["span"]
+        else:
+            doc = docs_by_id.get(f"pubmed:{pmid}") or {}
+            selected = resolve_selector(records, pmid)      # refuses on 0 or >=2 matches
+            parsed = selected.get("abstract") or ""
+            span = t.get("endpoint_result_span") or ""
         loc = locate_all(span, parsed)
         fam = fam_by_id.get(t.get("family_id")) or {}
         fam_r = fam_rendered.get(t.get("family_id")) or {}
@@ -1312,8 +1341,10 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         located = loc["match"] in ("VERBATIM", "NORMALISED")
         ee = estimand_evidence(parsed, eff_clause)
         predicates = {
-            "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
-                                "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
+            "P1_source_bytes": ({"state": "PASS" if car["bytes_ok"] else "FAIL", "declared": car["text_sha256"], "container": car["text_ref"],
+                                 "held_pdf": car["pdf_ref"], "decision": car["decision"], "decision_sha256": car["decision_sha256"]} if car else
+                                {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
+                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref}),
             "P2_span_located": {"state": "PASS" if located else "FAIL", **loc,
                                 "typed_state": ("LOCATED" if located and loc.get("occurrences", 0) == 1 else
                                                 "LOCATED" if located and loc.get("occurrences", 0) > 1 else
@@ -1336,7 +1367,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             "P6_no_unresolved_conflict": {"state": "PASS" if not unresolved else "FAIL", "unresolved": unresolved},
             "P7_coverage_adequate_for_claim": {"state": "PASS" if located else "FAIL", "claim_kind": "POSITIVE",
                                                "rule": "positive claim: a located excerpt suffices; coverage_status of the source is " + str(cov)},
-            "P8_endpoint_bound": {"state": "PASS" if t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span" else "FAIL",
+            "P8_endpoint_bound": {"state": "PASS" if t.get("endpoint_binding") in ("named_endpoint_resolved_to_definition_span", "signed_result_adjudication_witnesses") else "FAIL",
                                   "endpoint_binding": t.get("endpoint_binding"), "endpoint_admissibility": t.get("endpoint_admissibility")},
             "P9_span_target_mention": span_target_mention(span, values, t.get("endpoint_definition_span"), canonical_components, context=document_neighbourhood(span, parsed)) if all(v is not None for v in values)
                                       else {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no effect tuple"},
@@ -1434,6 +1465,25 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                           "evidence_version": {"records_json_sha256": art_by_ref[rec_ref]["sha256"], "certificate_release_sha256": None,
                                                "review_blob": None}},
         })
+        if car:
+            # the evidence is the carrier span in the committed FDA text extraction, not a records.json abstract
+            rows[-1]["source"] = {
+                "source_id": f"signed_adjudication:{pmid}", "scheme": "signed_result_adjudication",
+                "document_ref": car["text_ref"], "held_pdf": car["pdf_ref"],
+                "decision": car["decision"], "decision_sha256": car["decision_sha256"],
+                "identity": "held PDF (sha256 recorded in the decision's witness) + its committed text extraction (held document)",
+                "digests": [{"subject": "text extraction", "ref": car["text_ref"], "procedure": "sha256 of the raw served bytes", "value": car["text_sha256"]},
+                            {"subject": "decision file", "ref": car["decision"], "procedure": "sha256 of the raw bytes, pinned in the topic config",
+                             "value": car["decision_sha256"]}],
+                "source_sha256": car["text_sha256"], "representation": "PARSED_SOURCE", "representation_sha256": sha256_text(parsed),
+                "quotation_must_occur_in": "the committed text extraction of the held PDF",
+                "coverage_status": "REGULATORY_FULL_DOCUMENT"}
+            rows[-1]["span"]["source_id"] = f"signed_adjudication:{pmid}"
+            rows[-1]["certified_evidence_chain"] = {
+                "extraction_object_for_this_outcome": {"file": car["decision"], "provenance": "signed_result_adjudication"},
+                "chain": [f"{car['decision']} (decision_sha256 pinned in topics/<slug>.json, config_sha256)",
+                          f"{car['pdf_ref']} + {car['text_ref']} (held_documents)",
+                          "reviews/<slug>/review.json trial row (review_sha256)"]}
     return rows, {"canonical_components": canonical_components, "k": len(rows)}
 
 
