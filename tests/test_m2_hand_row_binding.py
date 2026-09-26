@@ -453,8 +453,15 @@ def test_PLANT_handed_abstract_is_ignored_when_the_entry_names_a_document():
     assert refused[0]["held_document"]["ref"].startswith("cache/")
 
 
-def test_registry_and_derived_rows_keep_unbound_legacy_and_are_still_admitted():
+def test_registry_and_derived_rows_without_an_endpoint_class_abstain_they_are_never_admitted_unbound():
+    """Was: `..._keep_unbound_legacy_and_are_still_admitted` -- M2 scoped the binder to hand rows and pinned the other routes as
+    ADMITTED UNBOUND_LEGACY. That asserted the fail-open itself (external audit, 2026-09-26: losing endpoint identity must never
+    increase admissibility). The requirement now: a registry/derived row with no endpoint class ABSTAINS with
+    ENDPOINT_IDENTITY_MISSING, stays visible with its tuple, and is not refused on evidence (it is not shown to be wrong)."""
     for prov in ("ctgov_results", "published_rate", "aact_verified", "pre_specified_dose", "registry_verified"):
         kept, refused = _admit(SPEC, {"label": "x", "id": "PMID 1", "effect": 0.9, "ci_low": 0.8, "ci_high": 1.0,
                                       "scale": "HR", "provenance": prov, "source": "registry measure"})
-        assert refused == [] and kept[0]["endpoint_admissibility"] == "UNBOUND_LEGACY", prov
+        assert kept == [], prov
+        assert refused[0]["reason_code"] == "ENDPOINT_IDENTITY_MISSING" and refused[0]["state"] == "EXTRACTION_DEBT", prov
+        assert refused[0]["candidate_tuple"] == {"effect": 0.9, "ci_low": 0.8, "ci_high": 1.0, "scale": "HR"}, prov
+        assert all(r.get("endpoint_admissibility") != "UNBOUND_LEGACY" for r in refused), prov

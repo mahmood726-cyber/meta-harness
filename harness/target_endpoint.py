@@ -18,6 +18,10 @@ NEAR_MATCH = "NEAR_MATCH"
 DIFFERENT_OUTCOME = "DIFFERENT_OUTCOME"
 EXACT_TARGET_IN_SOURCE_NOT_HELD = "EXACT_TARGET_IN_SOURCE_NOT_HELD"
 ENDPOINT_UNBOUND = "ENDPOINT_UNBOUND"
+# A row that reaches the gate with NO endpoint class (or one this module does not define): its endpoint identity is missing.
+# Losing endpoint identity must never INCREASE admissibility (external audit, 2026-09-26: an authentic ELIXA 4-point row
+# refused when classified was admitted as UNBOUND_LEGACY when its class was deleted). It abstains, like ENDPOINT_UNBOUND.
+ENDPOINT_IDENTITY_MISSING = "ENDPOINT_IDENTITY_MISSING"
 
 # Endpoint-span binding (external review of served glp1 edaf5f6b, defect 1 -- wrong-endpoint
 # acceptance).  Before this, an abstract candidate was classified against the WHOLE abstract and that
@@ -502,7 +506,15 @@ def _class_verdict(spec: dict[str, Any], cls: str | None, extra, missing, name: 
                 "reason": ("the extracted number could not be bound to an endpoint-definition span in the held "
                            "text (" + str(binding_reason or "no binding") + "); a number without a bound "
                            "endpoint is not evidence for '" + name + "'")}
-    return {"admissible": None, "verdict": "UNCLASSIFIED"}
+    return _identity_missing(name, f"endpoint class {cls!r} is not one this gate defines")
+
+
+def _identity_missing(name: str, why: str) -> dict[str, Any]:
+    """Fail closed: no endpoint identity -> ABSTAIN (never admissible). The trial stays visible as eligible evidence awaiting
+    adjudication (EXTRACTION_DEBT), exactly as an unbound hand row does."""
+    return {"admissible": False, "verdict": ENDPOINT_IDENTITY_MISSING, "abstain": True, "reason_code": ENDPOINT_IDENTITY_MISSING,
+            "reason": (f"{why}: the row carries no endpoint identity bound to held text, so it is not shown to be evidence for "
+                       f"'{name}'; losing endpoint identity never makes a row MORE admissible -- set aside for binding or review")}
 
 
 def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
@@ -511,10 +523,10 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     EXACT_TARGET -> admissible.  NEAR_MATCH -> admissible only under the outcome's explicit declaration
     (`near_match_declared`) AND with no MISSING component (a superset composite may be disclosed; a
     component or subset is never the composite).  DIFFERENT_OUTCOME / ENDPOINT_UNBOUND -> refused.
-    Rows with no class (routes that never classified: hand-verified, registry fallback, full text,
-    dose rule) keep the conservative composite-mismatch check and carry `endpoint_binding:
-    unbound_legacy` so a reader can see that no span binding exists (the pre-existing state, now
-    labelled; binding those rows to held bytes is the FACT-object landing, not this one)."""
+    Rows with no class, or a class this module does not define (routes that never classified: registry fallback,
+    full text, dose rule, the verified_arms override), ABSTAIN with ENDPOINT_IDENTITY_MISSING after the conservative
+    composite-mismatch refusal. Until 2026-09-26 they were ADMITTED as UNBOUND_LEGACY, so deleting a row's endpoint class
+    made non-target evidence MORE admissible (external audit; BUNDLE limit L10_admit_rows_fail_open)."""
     cls = row.get("target_endpoint_class")
     name = spec.get("name", "")
     # Arithmetic impossibility needs no document: a point estimate outside its own interval is not a result
@@ -562,7 +574,9 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     mm = extract.composite_component_mismatch(name, row.get("source") or "")
     if mm:
         return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE", "reason": mm}
-    return {"admissible": True, "verdict": "UNBOUND_LEGACY", "endpoint_binding": "unbound_legacy"}
+    out = _identity_missing(name, "no endpoint class" if cls is None else f"endpoint class {cls!r} is not one this gate defines")
+    out["endpoint_binding"] = "unbound_legacy"
+    return out
 
 
 def admit_rows(spec: dict[str, Any], trials: list[dict[str, Any]]):
@@ -584,8 +598,8 @@ def admit_rows(spec: dict[str, Any], trials: list[dict[str, Any]]):
             # EXTRACTION_DEBT / ENDPOINT_UNBOUND; no new vocabulary).
             refused.append({
                 "label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
-                "state": "EXTRACTION_DEBT", "reason_code": ENDPOINT_UNBOUND,
-                "endpoint_admissibility": ENDPOINT_UNBOUND, "hand_binding_state": t.get("hand_binding_state"),
+                "state": "EXTRACTION_DEBT", "reason_code": v.get("reason_code") or ENDPOINT_UNBOUND,
+                "endpoint_admissibility": v["verdict"], "hand_binding_state": t.get("hand_binding_state"),
                 "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
                 "endpoint_result_span": t.get("endpoint_result_span"), "held_document": t.get("held_document"),
                 "candidate_locations": v.get("candidate_locations") or [],
