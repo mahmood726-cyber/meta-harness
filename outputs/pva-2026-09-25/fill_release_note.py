@@ -125,6 +125,16 @@ def main():
     def aud_rows(p6detail):
         ms = [m for v in (p6detail or {}).values() if isinstance(v, dict) for m in v.get("mutations", [])]
         return {m["id"].split("_")[0]: m for m in ms if m.get("id", "").startswith("aud")}
+
+    def refused(m):
+        # LEADER itself refused, for a named predicate. NOT 'verdict FAIL': a run with a swapped-in source verifier fails its
+        # digest check on every edit, and a verdict-level test would then call every edit refused.
+        if not m or not m.get("target_failing_predicates"):
+            return False
+        tgt = str(m.get("target"))
+        row_out = (m.get("rows_final") or {}).get(tgt) not in (None, "ADMISSIBLE")
+        named = any(tgt in str(c) for c in (m.get("semantic_codes") or []) + (m.get("raw_first_failures") or []))
+        return row_out or named
     AUD_PLAIN = {
         "aud1": "reversing which arm a trial's result compares against (LEADER recorded as placebo vs liraglutide) is not caught",
         "aud2": "changing the recorded estimator of a pooled result (LEADER's hazard ratio relabelled a rate ratio) is not caught",
@@ -145,11 +155,11 @@ def main():
         if not m:
             fill[a_id] = NM("P6 on V1 did not run this edit")
             continue
-        refused = bool(m.get("fails_as_expected"))
+        is_refused = refused(m)
         codes = ", ".join((m.get("target_failing_predicates") or []) + (m.get("semantic_codes") or [])[:2]) or "no code"
         fill[a_id] = (f"REFUSED in V1 ({'verdict FAIL' if m.get('verdict_level_fail') else 'LEADER refused'}; {codes}; "
-                      f"P6 `{m['id']}`)" if refused else "**OPEN** in V1 (verdict PASS, LEADER admissible; P6 `" + m["id"] + "`)")
-        if not refused:
+                      f"P6 `{m['id']}`)" if is_refused else "**OPEN** in V1 (LEADER stays admissible; P6 `" + m["id"] + "`)")
+        if not is_refused:
             open_aud.append(a_id)
     bundle = load(work / "served" / "site" / "reviews" / "glp1-ra-mace-t2d" / "BUNDLE.json")
     if bundle:
@@ -169,8 +179,8 @@ def main():
         hit = None
         for label, rows, key_has in fixes:
             if a_id == "aud5" and key_has:
-                hit = f"{label} (its LEADER key names comparator direction)"
-            elif a_id != "aud5" and (rows.get(a_id) or {}).get("fails_as_expected"):
+                hit = f"{label} (its producer puts comparator direction into the key)"
+            elif a_id != "aud5" and refused(rows.get(a_id)):
                 m = rows[a_id]
                 hit = f"{label} (refused there: {', '.join((m.get('target_failing_predicates') or [])[:2]) or 'verdict FAIL'})"
             if hit:

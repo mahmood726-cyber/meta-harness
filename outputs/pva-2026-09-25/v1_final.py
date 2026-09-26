@@ -182,16 +182,17 @@ def step_fixbranches(work, branches):
             stamp(f"fix branch {br}: not found")
             continue
         d = work / ("fix_" + br.replace("/", "_"))
+        # A V1.1 fix lives in the branch's SOURCE verifier; its served copy and bundles are regenerated only at release. So the
+        # edits are run with the source verifier (the scorecard records the swap), and 'refused' is judged at LEADER's row.
         p = sh([PY, str(HERE / "v1_accept.py"), "--release", sha, "--prev", sha, "--work", str(d), "--source", "git",
-                "--only", "P5,P6"], timeout=3600)
+                "--only", "P5,P6", "--verifier-from", "scripts/verify_bundle.py"], timeout=3600)
         (d / "run.log").write_text(p.stdout + p.stderr, encoding="utf-8")
-        bpath = d / "site" / "reviews" / "glp1-ra-mace-t2d" / "BUNDLE.json"
-        key_has = None
-        if bpath.is_file():
-            b = json.loads(bpath.read_text(encoding="utf-8"))
-            lr = next((r for r in b.get("verification_rows", []) if str(r["trial"]["id"]).endswith("27295427")), None)
-            key_has = "comparator" in (((lr or {}).get("analysis_identity") or {}).get("analysis_identity_key") or "")
-        out.append({"label": f"{br} {sha[:8]}", "scorecard": str(d / "scorecard.json"), "key_has_comparator": key_has})
+        # AUD-5 on a branch: does its producer put comparator_direction into the key (read from the source, not a stale bundle)?
+        src = git("show", f"{sha}:scripts/build_bundle.py", check=False)
+        m = re.search(r'ident\["analysis_identity_key"\]\s*=.*?for k in \(([^)]*)\)', src)
+        key_has = ("comparator_direction" in m.group(1)) if m else None
+        out.append({"label": f"{br} {sha[:8]} (source verifier; not yet regenerated into served bytes)",
+                    "scorecard": str(d / "scorecard.json"), "key_has_comparator": key_has})
         stamp(f"fix branch {br} {sha[:8]}: " + " ".join(l.split()[1] + ("=caught" if "NOT CAUGHT" not in l else "=open")
                                                          for l in p.stdout.splitlines() if " aud" in l))
         for sub in ("site", "tmp"):               # keep the scorecard, drop the ~170 MB copy of the tree

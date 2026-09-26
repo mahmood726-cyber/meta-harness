@@ -573,11 +573,20 @@ def main():
     ap.add_argument("--site", default=SITE)
     ap.add_argument("--source", choices=["served", "git"], default="served")
     ap.add_argument("--only", default="P0,P1,P2,P3,P4,P5,P6,P7,P8,P9")
+    ap.add_argument("--verifier-from", help="run P5/P6 with this path's verifier from the release commit (e.g. scripts/verify_bundle.py)")
     a = ap.parse_args()
     au = Audit(a)
     only = set(a.only.split(","))
     print(f"release {au.rel} prev {au.prev} mode {au.mode}", flush=True)
     au.acquire()
+    if a.verifier_from:
+        # Measure a fix that exists in SOURCE but not yet in the served copy: swap in the commit's source verifier. The scorecard
+        # records it, because the result then describes the branch's code, not the bytes a reader downloads.
+        src = git("show", f"{au.rel}:{a.verifier_from}")
+        (au.root / "scripts" / "verify_bundle.py").write_bytes(src)
+        au.record("VERIFIER", f"verify_bundle.py replaced by {a.verifier_from} at {au.rel[:12]} (NOT the served copy)", None,
+                  {"path": a.verifier_from, "sha256": sha(src)})
+        print(f"verifier: {a.verifier_from} sha256 {sha(src)[:12]} (not the served copy)", flush=True)
     for pid in ("P0", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"):
         if pid in only:
             try:
