@@ -45,6 +45,10 @@ def main():
     def probe(pid):
         return P.get(pid) or {}
 
+    def det(pid):          # a probe detail is a dict when it ran, a reason string when N/A -- never assume
+        d = probe(pid).get("detail")
+        return d if isinstance(d, dict) else {}
+
     def ok(pid):
         return {True: "PASS", False: "FAIL", None: "n/a"}.get(probe(pid).get("ok"), "absent")
 
@@ -59,10 +63,10 @@ def main():
                         f"[bundle verifier baseline {ok('P5')}].")
     else:
         fill["pool"] = NM("served glp1 review.json not fetched")
-    d2 = probe("P2").get("detail") or {}
+    d2 = det("P2")
     fill["certs"] = (f"V1: {d2.get('reproduced_full_scope')} of {d2.get('pages')} pages RESULT REPRODUCED at full scope (P2 {ok('P2')})."
                      if d2 else NM("P2 not run"))
-    d1, d0 = probe("P1").get("detail") or {}, probe("P0").get("detail") or {}
+    d1, d0 = det("P1"), det("P0")
     fill["bytes"] = (f"V1: {d1.get('files', 0) - d1.get('n_mismatch', 0) - d1.get('n_missing', 0)} of {d1.get('files')} fetched files equal the "
                      f"committed bytes (P1 {ok('P1')}); {d0.get('record') or 'no production record'} (P0 {ok('P0')})."
                      if d1 else NM("P1 not run"))
@@ -73,7 +77,7 @@ def main():
     fill["ruling"] = ("V1: the protocol at V1 contains 'preserved systolic function' -- the clarification was applied; it is a retrospective "
                       "clarification, not a pre-registered rule." if "preserved systolic function" in proto.lower()
                       else "V1: not applied -- the dapagliflozin-HFpEF protocol at V1 does not add 'preserved systolic function'.")
-    d7 = probe("P7").get("detail") or {}
+    d7 = det("P7")
     fill["verdicts"] = (f"V1: the verifier reports {'separate verdicts' if probe('P5b').get('ok') else 'one PASS/FAIL, not separate verdicts'} "
                         f"(P5b {ok('P5b')}). HARMONY Outcomes is "
                         + (f"in the pooled k and its row is {d7.get('row_final')} (failing {', '.join(d7.get('failing_predicates') or []) or 'none'}), "
@@ -98,7 +102,13 @@ def main():
         if d3 and "DELIVER" in str(d3rec.get("question_put")) and "NCT03619213" not in (d3rec.get("families_affected") or []):
             d3_label += ("; **its recorded question calls the condition 'the DELIVER registry condition', but the family it "
                          "affects is PRESERVED-HF (NCT03030235), not DELIVER (NCT03619213)**")
-        fill["scope"] = (f"V1: `{v1[:12]}` {'contains' if on_frozen else '**does NOT contain**'} frozen main 6260e70c; the P5 fix is "
+        import hashlib
+        vb = git("show", f"{v1}:docs/scripts/verify_bundle.py").encode("utf-8")
+        vb_sha = hashlib.sha256(vb).hexdigest()[:8] if vb else "?"
+        has_values = "COMPARATOR_DIRECTION_MISMATCH" in vb.decode("utf-8", "replace")
+        fill["scope"] = (f"V1: `{v1[:12]}` {'contains' if on_frozen else '**does NOT contain**'} frozen main 6260e70c; its served "
+                         f"verifier (docs/scripts/verify_bundle.py, sha256 {vb_sha}) {'has' if has_values else 'does NOT have'} the "
+                         "ordered-contrast value checks; the P5 fix is "
                          f"{'present' if p5_fixed else '**absent**'} (randomised_contrasts "
                          f"{'takes' if p5_fixed else 'does not take'} declared comparators); D3 is {d3_label}.")
         fill["ruling"] = ("V1: " + (d3_label[0].upper() + d3_label[1:]) + "." if d3 else fill["ruling"])
@@ -125,7 +135,7 @@ def main():
                             "V1: no refused row stayed in the pool under the planted inputs (producer_probe.py on the V1 commit).")
     else:
         fill["producer"] = NM("producer probe not run")
-    d6 = probe("P6").get("detail") or {}
+    d6 = det("P6")
     muts = [m for v in d6.values() if isinstance(v, dict) for m in v.get("mutations", [])]
     st = next((m for m in muts if m.get("id", "").startswith("span_text_replaced")), None)
     missed = [m.get("id", "?").split(":")[0] for m in muts if not (m.get("fails_as_expected") and m.get("intended_reason_named"))]
