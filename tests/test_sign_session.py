@@ -32,7 +32,10 @@ def test_the_committed_plan_runs_in_the_ordered_sections():
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
     secs = [i["section"] for i in plan["items"]]
     assert secs == sorted(secs, key=lambda x: x[0])  # 1 GLP-1, 2 re-derived, 3 evid2, 4 PRESERVED-HF
-    assert plan["items"][0]["kind"] == "bundle" and plan["items"][0]["bundle_sha256"].startswith("170c6922")
+    g = plan["items"][0]
+    assert g["kind"] == "bundle"
+    stated = sign_session_plan.show(g["source_commit"], "evidence/glp1_adjudication/SIGNATURE_REQUEST.md").decode()
+    assert f"sign this): `{g['bundle_sha256']}`" in stated  # the plan names the bundle the request itself states
     assert plan["items"][0]["intent"]["quote"] == "ten trials please with old k on same page"
     assert any("prespecified" in line for line in plan["items"][0]["lines"])  # the ELIXA dispute is stated
     ph = [i for i in plan["items"] if i["section"].startswith("4")]
