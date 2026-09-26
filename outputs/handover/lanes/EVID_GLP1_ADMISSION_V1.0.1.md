@@ -61,6 +61,11 @@ The class is computed from the label's own definition. Anything but EXACT_TARGET
 - **Pre-fix run.** Six of the identity tests were written first and fired before the fix. The 4-point plant **did not raise**, so the earlier port would have admitted it. Recorded in `evidence/glp1_adjudication/ADMISSION_TESTS_PREFIX.txt`.
 - **`tests/test_glp1_signed_admission.py`** (12 pipeline-level cases) needs `cache/` and has **not been run on this tree**. It passed 13/13 on the frozen-main branch before the identity change; the definition-witness plant has since moved to the identity file.
 
+**Cache-free regression check** (20 existing test files that touch notices or page rendering, plus the new ones):
+- **234 pass.**
+- **11 fail identically on the base `3876a62d`** with this branch's changes removed. They need `cache/` (`hm2_contract`, `model_source` queues, `delegated_acceptance`), so they are environmental, not caused by this branch.
+- **One real failure found and fixed.** Every notice must keep "the numbers are not asserted wrong" and "eligible evidence awaiting adjudication". The GLP-1 notice now states both, truthfully: the k=8 result is superseded by added evidence, not corrected, and FREEDOM-CVO remains eligible evidence awaiting adjudication of its strand.
+
 ## Open, in runbook order
 1. **Build (held).** Topic, bundle, site-wide certificate refresh (harness code moved, so every topic's certificate moves), then Step 3–5 checks and `verify_all.py`. A Codex brief for this is ready at `F:\mh-lanes-wt\v101-codex\BRIEF.md`, not launched.
 2. **Bundle verifier limit L14.** It covers PubMed records only and refuses the FDA-text rows. Lifting it is the captain's call.
