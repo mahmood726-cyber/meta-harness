@@ -348,7 +348,12 @@ def assess(core, signals=None):
     held = core.get("held_regulatory_facts") or []
     held_keys = {str(f.get(k)) for f in held for k in ("trial", "trial_key", "nct") if f.get(k)}
     kem = [x for x in kem if not any(_norm_id(x.get(k)) in held_keys for k in ("trial", "id", "pmid", "nct"))]
+    _prim = _primary(core) or {}
+    _pooled = {str(t.get("label")) for t in _prim.get("trials") or []} | {str(t.get("id")) for t in _prim.get("trials") or []}
     for fact in held:
+        # a held fact whose trial is in the primary pool (signed result-level adjudication) no longer marks it missing
+        if {str(fact.get(k)) for k in ("trial", "trial_key", "nct") if fact.get(k)} & _pooled:
+            continue
         state = missing_state(fact)
         if state != POOLABLE:
             reasons.append({"code": state, "trial": fact["trial"],

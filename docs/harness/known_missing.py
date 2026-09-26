@@ -200,7 +200,11 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
         if x.get("decision") == "include"
     }
     out: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    # A trial that IS pooled (e.g. admitted by signed result-level adjudication) is not a missing trial: listing it
+    # here would re-pool it on top of itself in the sensitivity and show it as absent beside the pool that holds it.
+    pooled = {str(t.get("label") or "").strip() for t in primary.get("trials") or []} | {
+        _clean_id(t.get("id")) for t in primary.get("trials") or []}
+    seen: set[str] = set(k for k in pooled if k)
     for x in signals.get("known_eligible_missing") or []:
         key = str(x.get("trial") or "").strip()
         if key and key not in seen:
