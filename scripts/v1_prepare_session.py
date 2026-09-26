@@ -89,6 +89,8 @@ def cmd_prepare(a) -> int:
     out = run([sys.executable, "scripts/v1_sign_branch.py", "--cand", cand, "--registry", str(work / "registry.json"),
                "--branch", branch, "--tools-ref", "HEAD"]).stdout
     print(out.strip())
+    # the session config lives on nr/notice-anchors, not on the sign branch: copy it before any switch
+    shutil.copyfile(ROOT / CONFIG, work / "session_config.json")
     if a.in_place:  # disk-short: this worktree becomes the sign branch (switch back with: git switch nr/notice-anchors)
         if git("status", "--porcelain", "--untracked-files=no"):
             raise SystemExit("refused: --in-place needs a clean worktree")
@@ -165,7 +167,7 @@ def cmd_finalize(a) -> int:
          "--out-json", str(work / "signing_list.json")], cwd=wt)
     rd = json.loads((work / "rd2/rederived.json").read_text(encoding="utf-8"))
     audit = json.loads((wt / "registry/notice_adjudication.json").read_text(encoding="utf-8"))
-    cfg = json.loads((ROOT / CONFIG).read_text(encoding="utf-8"))
+    cfg = json.loads((work / "session_config.json").read_text(encoding="utf-8"))  # copied by prepare
     hold = {r["audit_id"]: "its rendered wording carries a defect: " + "; ".join(r["judgements"][-1]["defects"])[:300]
             for r in audit["notices"] if (r.get("judgements") or [{}])[-1].get("defects")}
     for k, why in (cfg.get("extra_hold") or {}).items():  # content holds found after the audit (e.g. UA-042)
@@ -176,7 +178,6 @@ def cmd_finalize(a) -> int:
     withdrawn = [o["audit_id"] for o in rd["old_41"] if o["fate"] == "GONE"]
     (work / "decisions.json").write_text(json.dumps({"hold": hold, "ruling": ruling, "exclude": {}}, indent=1),
                                          encoding="utf-8")
-    shutil.copyfile(ROOT / CONFIG, work / "session_config.json")
     run([sys.executable, "scripts/sign_session_plan.py", "--signing-json", str(work / "signing_list.json"),
          "--decisions", str(work / "decisions.json"), "--config", str(work / "session_config.json"),
          "--withdrawn", ",".join(withdrawn), "--out", "registry/sign_session_plan.json"], cwd=wt)
