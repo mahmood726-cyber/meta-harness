@@ -168,6 +168,18 @@ def verify(spec: dict[str, Any], entry: dict[str, Any], root: str | None = None)
     if carrier is None:
         raise AdjudicationRefused(f"{entry['trial']}: no witnessed span of the bound result carries "
                                   f"{toks[0]} ({toks[1]}, {toks[2]}) together")
+    # Component identity is witnessed too: the entry names the ONE witness that defines the outcome, and its span's
+    # components must be exactly the outcome's canonical set (ELIXA's result sentence also mentions MACE+, so the
+    # definition is named, never inferred from whichever span carries the numbers).
+    from . import target_endpoint as _te        # late: target_endpoint imports this module
+    dpath_w = entry.get("definition_witness")
+    dw = dict(ws).get(dpath_w) if dpath_w else None
+    if dw is None:
+        raise AdjudicationRefused(f"{entry['trial']}: definition_witness {dpath_w!r} is not a witness of the decision")
+    comps = sorted(_te._components_from_text(dw["span"]))
+    canon = sorted(x.lower().replace("_", " ") for x in _te.canonical_components(spec))
+    if sorted(c.lower() for c in comps) != canon:
+        raise AdjudicationRefused(f"{entry['trial']}: definition witness names {comps}, the outcome is {canon}")
     fields = sorted({p.split("/")[2] if p.startswith("/bound_result/") else p.split("/")[1] for p, _ in ws})
     return {
         "label": entry["trial"], "id": entry["id"], "effect": e, "ci_low": lo, "ci_high": hi,
@@ -179,7 +191,8 @@ def verify(spec: dict[str, Any], entry: dict[str, Any], root: str | None = None)
                                 **({"source_conflict": b["source_conflict"]} if b.get("source_conflict") else {})},
         "endpoint_result_span": ((b.get("analysis") or {}).get("witness") or {}).get("span")
                                 or (b.get("endpoint") or {}).get("span"),
-        "endpoint_definition_span": (b.get("endpoint") or {}).get("span"),
+        "endpoint_definition_span": dw["span"],
+        "components": comps,
         "document_ref": ((b.get("endpoint") or {}).get("ref")),
         "source": (f"{entry['trial']} ({entry['id']}, {d.get('nct')}): 3-point MACE HR {e:g} (95% CI {lo:g}-{hi:g}), "
                    f"admitted by signed result-level adjudication {entry['decision']} "
