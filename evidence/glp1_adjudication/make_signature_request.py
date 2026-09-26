@@ -15,9 +15,9 @@ BOUND = [
     f"{D}/BEFORE_AFTER.json", f"{D}/compute_before_after.py",
     # the admission mechanism the build reads
     "topics/glp1-ra-mace-t2d.json", "harness/result_adjudication.py", "harness/pipeline.py", "harness/target_endpoint.py",
-    "harness/known_missing.py", "harness/invalidation.py", "evidence/scripts/textrep.py",
+    "harness/known_missing.py", "harness/invalidation.py", "harness/page.py", "evidence/scripts/textrep.py",
     # its proof
-    "tests/test_glp1_admission_identity.py", "tests/test_glp1_signed_admission.py",
+    "tests/test_glp1_admission_identity.py", "tests/test_glp1_signed_admission.py", "tests/test_previous_result_row.py",
     # what V1.0 serves today (runbook 0b: the bytes the signature is taken against) and the rules
     "docs/reviews/glp1-ra-mace-t2d/review.json", "protocols/glp1-ra-mace-t2d.md",
     "outputs/handover/lanes/DECISION_CLASS_BOUNDARY_STRANDS.md",
@@ -72,7 +72,7 @@ Every field carries a witness span re-verified against sha256-pinned held bytes 
 | after, ELIXA at its Table 8 rendering (0.89–1.18) | {fmt(alt)} |
 | alongside: ANY_DELIVERY, + FLOW + ELIXA + FREEDOM-CVO | {fmt(anyd)} |
 
-**Derived notice for the served page:** the pooled HR moves {b['estimate']} -> {prim['estimate']}; direction and significance UNCHANGED. Heterogeneity is no longer ~0: tau² {b['tau2']} -> {prim['tau2']}; the prediction interval widens from {b['pi_low']}–{b['pi_high']} to {prim['pi_low']}–{prim['pi_high']}. The k=8 result stays on the page as the previous result.
+**Derived notice for the served page:** the pooled HR moves {b['estimate']} -> {prim['estimate']}; direction and significance UNCHANGED. Heterogeneity is no longer ~0: tau² {b['tau2']} -> {prim['tau2']}; the prediction interval widens from {b['pi_low']}–{b['pi_high']} to {prim['pi_low']}–{prim['pi_high']}. The k=8 result stays on the page as the previous result, in the primary result table ("Previous result (k={b['k']}): HR {b['estimate']:.3f} ({b['ci_low']:.3f}–{b['ci_high']:.3f})", read by `harness/page.py` from the notice's `before` object, never typed).
 
 ## Open before V1.0.1 can land (none of these changes a number in this request)
 - **Build on the candidate tree** (held for disk; the captain's go): `build_topic.py glp1-ra-mace-t2d`, bundle, site-wide certificate refresh (harness code moved), the runbook's Step 3-6 checks and `verify_all.py`. The admission suite `tests/test_glp1_signed_admission.py` needs cache/ and has not been run on this tree; `tests/test_glp1_admission_identity.py` (cache-free) passes.

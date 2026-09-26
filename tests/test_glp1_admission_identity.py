@@ -177,3 +177,19 @@ def test_flow_is_identified_by_its_own_row_label():
     assert row["endpoint_identity"]["identified_by"] == ["table_header", "row_label", "row_label_enumerates_components", "event_counts"]
     assert row["endpoint_identity"]["events"] == {"semaglutide": 212, "placebo": 254}
     assert (row["effect"], row["ci_low"], row["ci_high"]) == (0.82, 0.68, 0.98)
+
+
+def test_hand_route_never_pools_the_elixa_tuple_whichever_row_it_cites():
+    """The other route an attacker would use: a hand-extracted row HR 1.02 (0.89, 1.17) against the FDA review.
+    The hand binder cannot tell the 3-point from the 4-point by numbers, so it sets the tuple aside (ENDPOINT_UNBOUND,
+    abstain) -- never pooled -- whether it cites nothing, the 4-point Table 1 row, or either summary sentence. ELIXA
+    therefore enters ONLY through the identity-bound adjudication above."""
+    ref = STATR_TXT
+    base = {"label": "ELIXA", "id": ELIXA, "effect": 1.02, "ci_low": 0.89, "ci_high": 1.17, "scale": "HR",
+            "provenance": "fulltext_verified", "document_ref": ref, "document_sha256": _sha(os.path.join(ROOT, ref)),
+            "source_level": 2, "kind": "extracted_effect", "source": "attack fixture"}
+    for cited in (None, _cut(*FOUR_POINT_ROW), _cut(*FOUR_POINT_RESULT), _cut(*THREE_POINT_SUMMARY)):
+        row = dict(base, **({"source_span": cited} if cited else {}))
+        kept, refused = target_endpoint.admit_rows(_spec(), [row])
+        assert kept == [], f"the ELIXA tuple was POOLED through the hand route citing {str(cited)[:60]!r}"
+        assert refused and refused[0]["reason_code"] in ("ENDPOINT_UNBOUND", "RESULT_INCOMPATIBLE"), refused

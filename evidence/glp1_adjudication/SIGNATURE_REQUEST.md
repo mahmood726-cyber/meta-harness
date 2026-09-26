@@ -1,6 +1,6 @@
 # Signature request, V1.0.1: the GLP-1 MACE primary pool gains FLOW and ELIXA (a served-number change), NOT LANDED
 
-**Status: QUEUED for Mahmood's signature. Nothing served has changed.** Regenerated 2026-09-26 20:11Z by `make_signature_request.py` on branch `evid/v1.0.1-glp1-admission`, against the **V1.0 candidate** `3876a62dca66` (runbook step 0b): the bound `review.json` is byte-identical to the one V1.0 serves (checked; this script refuses otherwise). Tree at generation: `ba58067cddd8` plus this request.
+**Status: QUEUED for Mahmood's signature. Nothing served has changed.** Regenerated 2026-09-26 20:19Z by `make_signature_request.py` on branch `evid/v1.0.1-glp1-admission`, against the **V1.0 candidate** `3876a62dca66` (runbook step 0b): the bound `review.json` is byte-identical to the one V1.0 serves (checked; this script refuses otherwise). Tree at generation: `b7234ee86c1f` plus this request.
 
 ## What the signature admits
 Under the protocol's B-prime rules (`protocols/glp1-ra-mace-t2d.md` at `b10c53d3`), through the admission mechanism the build reads (`topics/glp1-ra-mace-t2d.json` `adjudicated_results` -> `harness/result_adjudication.py`):
@@ -20,7 +20,7 @@ Every field carries a witness span re-verified against sha256-pinned held bytes 
 | after, ELIXA at its Table 8 rendering (0.89–1.18) | k=10, HR 0.8612 (95% CI 0.807–0.919), prediction interval 0.7539–0.9838, tau² 0.00263 |
 | alongside: ANY_DELIVERY, + FLOW + ELIXA + FREEDOM-CVO | k=11, HR 0.8673 (95% CI 0.7999–0.9404), prediction interval 0.7046–1.0675, tau² 0.00737 |
 
-**Derived notice for the served page:** the pooled HR moves 0.856 -> 0.8613; direction and significance UNCHANGED. Heterogeneity is no longer ~0: tau² 4e-05 -> 0.0027; the prediction interval widens from 0.8069–0.9081 to 0.7531–0.9852. The k=8 result stays on the page as the previous result.
+**Derived notice for the served page:** the pooled HR moves 0.856 -> 0.8613; direction and significance UNCHANGED. Heterogeneity is no longer ~0: tau² 4e-05 -> 0.0027; the prediction interval widens from 0.8069–0.9081 to 0.7531–0.9852. The k=8 result stays on the page as the previous result, in the primary result table ("Previous result (k=8): HR 0.856 (0.809–0.906)", read by `harness/page.py` from the notice's `before` object, never typed).
 
 ## Open before V1.0.1 can land (none of these changes a number in this request)
 - **Build on the candidate tree** (held for disk; the captain's go): `build_topic.py glp1-ra-mace-t2d`, bundle, site-wide certificate refresh (harness code moved), the runbook's Step 3-6 checks and `verify_all.py`. The admission suite `tests/test_glp1_signed_admission.py` needs cache/ and has not been run on this tree; `tests/test_glp1_admission_identity.py` (cache-free) passes.
@@ -41,13 +41,15 @@ ce322e0793bbfdc789a3a8a69c3ee310ffb0e8b4dee492f0301ebb1cc80bbf5c  harness/result
 5de4836da2a224a0479aad42a32d7850ef3697a01c4111811e7f6f2637a95db3  harness/target_endpoint.py
 54a865bea44d8467bb2bb6c992af9773bdf58b692acc0dcf4d8962be52772a80  harness/known_missing.py
 c49f8f855e2bdff52e9334e45bb32fbc2815a4459624debd6f33ef8479f27241  harness/invalidation.py
+1580caddc588ee7f269c4c76b65bf00ec1c685eff83c0c8a3597a229e1ff7690  harness/page.py
 8f27b6a4df241745acb13d022d71aab7af7a7bf7bf88ca8efa83a2dbdfbc41c8  evidence/scripts/textrep.py
-41889108fe1dc8c026a6efdc9bab3863c248af620ff79db07f6957439679c1b4  tests/test_glp1_admission_identity.py
+727598b23c6af87a5b75b3d5e682b84f12a252a58edc57ac933ddebca352ff5b  tests/test_glp1_admission_identity.py
 b49329f42215a5bcfef98cb7c15ff7c87efde8315c3e4b438d1334c0b4022d71  tests/test_glp1_signed_admission.py
+222376e7691a173fe3c631f0beb5f6717749a7222bb1c9d812507ec4f8d7b6f2  tests/test_previous_result_row.py
 c5a1d09e271f7e9bbac5dfd2eabfd2ef33b56dbed85f6647b33017bc83848160  docs/reviews/glp1-ra-mace-t2d/review.json
 d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c  protocols/glp1-ra-mace-t2d.md
 7d9922c55c43a8732c8c2e666478b2ae507ad9f904434c45c6213109f99714bc  outputs/handover/lanes/DECISION_CLASS_BOUNDARY_STRANDS.md
 ```
-**Bundle sha256 (sign this): `27df31f71102b2ecf7e9099de0559970d117e78e5369f47530d79862b5a9befe`**
+**Bundle sha256 (sign this): `b51cff437b31efcb40fa963e47f4b4aa65f3eb90591bf8ee452503acf49fb463`**
 
-Signature: `SIGNED-BY: ______  BUNDLE: 27df31f71102b2ecf7e9099de0559970d117e78e5369f47530d79862b5a9befe  DATE: ______` (unsigned: this request lands nothing)
+Signature: `SIGNED-BY: ______  BUNDLE: b51cff437b31efcb40fa963e47f4b4aa65f3eb90591bf8ee452503acf49fb463  DATE: ______` (unsigned: this request lands nothing)

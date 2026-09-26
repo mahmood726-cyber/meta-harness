@@ -1,6 +1,6 @@
 # V1.0.1: the mechanism that admits FLOW and ELIXA into the GLP-1 primary pool (NOT LANDED, build held)
 
-Branch `evid/v1.0.1-glp1-admission`, on **`v1/candidate` `3876a62d`** (the V1.0 cut). It lands only after Mahmood signs the request in `evidence/glp1_adjudication/SIGNATURE_REQUEST.md` (bundle `27df31f7…`). That request was regenerated against the candidate tree: runbook step 0b gives **MATCH**, meaning the bound `review.json` is byte-identical to what V1.0 serves.
+Branch `evid/v1.0.1-glp1-admission`, on **`v1/candidate` `3876a62d`** (the V1.0 cut). It lands only after Mahmood signs the request in `evidence/glp1_adjudication/SIGNATURE_REQUEST.md` (bundle `b51cff43…`). That request was regenerated against the candidate tree: runbook step 0b gives **MATCH**, meaning the bound `review.json` is byte-identical to what V1.0 serves.
 
 **Held for disk (captain's instruction).** This branch holds the design, the records and the tests. It has not been built. The build is `outputs/V1_0_1_RERUN_RUNBOOK.md`, steps 2–7.
 
@@ -38,8 +38,15 @@ The class is computed from the label's own definition. Anything but EXACT_TARGET
 | **Before (V1.0 served)** | 8 | 0.856 (0.8086–0.9061) | 0.8069–0.9081 | 0.00004 |
 | **After** | 10 | 0.8613 (0.8069–0.9194) | 0.7531–0.9852 | 0.0027 |
 
+## Page: the previous result beside the primary result
+`harness/page._previous_result_row` renders **"Previous result (k=8): HR 0.856 (0.809–0.906)"** in the primary result table. This is runbook Step 4, and Mahmood's request: "ten trials please with old k on same page".
+- The values are read from the result-change notice's `before` object, never typed.
+- The row renders only when the notice opts in with `show_previous_result: true`. Only the GLP-1 primary notice sets it, so no other page moves.
+- The countersigned notice block does not read the opt-in, so its signed bytes do not change.
+- `tests/test_previous_result_row.py`: 4 pass; 3 fired pre-fix.
+
 ## Tests
-- **`tests/test_glp1_admission_identity.py`: 9/9 pass. Cache-free, so CI-runnable without pypdf.**
+- **`tests/test_glp1_admission_identity.py`: 10/10 pass. Cache-free, so CI-runnable without pypdf.**
   - ELIXA admitted by row + label definition + counts, with explicit EXACT_TARGET.
   - **The 4-point MACE+ row with identical numbers is refused as DIFFERENT_OUTCOME.**
   - The 4-point row relabelled with the 3-point definition is refused.
@@ -48,6 +55,9 @@ The class is computed from the label's own definition. Anything but EXACT_TARGET
   - A forged class is refused at admissibility.
   - FLOW's identity pointed at its kidney-composite row is refused.
   - FLOW is identified by its own row label.
+  - **Hand-entered route.** A hand-extracted row HR 1.02 (0.89, 1.17) against the FDA review is never pooled, whichever row it cites (nothing, the 4-point Table 1 row, or either summary sentence).
+    - The hand binder cannot separate the two by number, so it sets the row aside (ENDPOINT_UNBOUND). It does not name it DIFFERENT_OUTCOME.
+    - ELIXA therefore enters only through the identity-bound adjudication.
 - **Pre-fix run.** Six of the identity tests were written first and fired before the fix. The 4-point plant **did not raise**, so the earlier port would have admitted it. Recorded in `evidence/glp1_adjudication/ADMISSION_TESTS_PREFIX.txt`.
 - **`tests/test_glp1_signed_admission.py`** (12 pipeline-level cases) needs `cache/` and has **not been run on this tree**. It passed 13/13 on the frozen-main branch before the identity change; the definition-witness plant has since moved to the identity file.
 
@@ -55,4 +65,4 @@ The class is computed from the label's own definition. Anything but EXACT_TARGET
 1. **Build (held).** Topic, bundle, site-wide certificate refresh (harness code moved, so every topic's certificate moves), then Step 3–5 checks and `verify_all.py`. A Codex brief for this is ready at `F:\mh-lanes-wt\v101-codex\BRIEF.md`, not launched.
 2. **Bundle verifier limit L14.** It covers PubMed records only and refuses the FDA-text rows. Lifting it is the captain's call.
 3. **ELIXA rendering.** The bound value is the unrounded text interval (0.887–1.172). Table 8's (0.89–1.18) gives the same result to 3 dp. Changing it changes a bound file and the signature bundle.
-4. **Signature.** Mahmood signs bundle `27df31f7…`. The result-change notice's reviewer countersignature is OPEN.
+4. **Signature.** Mahmood signs bundle `b51cff43…`. The result-change notice's reviewer countersignature is OPEN.
