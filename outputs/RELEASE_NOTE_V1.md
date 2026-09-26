@@ -39,7 +39,12 @@ the result, not buried.
 
 Decision: **Mahmood, 2026-09-25 — "ten trials please with old k on same page"**,
 `how_it_reached_the_reviewer: "Dispatch chat relay"`. Deployment of the k=10 result is bound to his
-signature over bundle `170c692283a451d9f031ae39924aba23000116c59a867914ca96f076e0efce1e`.
+signature over bundle `4bf8ec337f8b368ed171ef7e848a9ef44211c6586158a2421eb67a8644f36c0e`
+(regenerated 2026-09-26 00:26Z; it superseded `170c6922…`, which superseded `3809ce76…`, each time
+because a landing on main changed the reproduction block the bundle binds). **k=10 is NOT served in
+this release** -- FLOW and ELIXA are adjudicated eligible and approved in intent, but nothing in the
+build admits them, so V1.0 serves k=8. The pending-result-change block is NOT on the page in this
+cut; this note is where that is stated. k=10 lands as V1.0.1 on signature.
 
 **A prediction interval equal to its confidence interval carries no predictive information.** With
 τ² = 0, `sqrt(τ² + se²)` collapses to `se`, so a t-based prediction interval *becomes* the
@@ -98,19 +103,34 @@ with `406 vs 399`, so a number-based match would have selected the wrong row.
 
 ## Known limitations carried into V1
 
-1. **Tag stripping deletes text after a literal `<`.** `<[^>]+>` treats `P<0.001` as a tag opening.
+1. **`BUNDLE.json` is not an input to `release_sha256`.** It is covered by the commit and by the
+   production manifest, so this is not an external release-identity bypass — the auditor withdrew
+   that framing, and a trusted commit or production manifest may pin the bundle even though the
+   certificate does not. What remains true and matters: **the standalone verifier trusts the bundle
+   before checking it**, and **`build_bundle --check` was not idempotent** — it converged only on a
+   second pass, so a stale producer-step digest could pass its own freshness check because both the
+   committed and the "fresh" side were computed from the same non-converged state. Found and fixed
+   on 26 Sep: the stale digest was `harness/target_endpoint.py` at the blob sealed by fix
+   `M2-hand-row-binding-2026-09-20`, which rai's later change to that file superseded. The seal was
+   **not** rewritten — a seal pins the blob as of seal time, and re-dating it to match current code
+   would destroy the evidence it exists to carry. The bundle pin, the POOL references and
+   `POOL_CONTAINS_INADMISSIBLE_ROW` are folded into rai's POOL rebase for V1.0.1.
+2. **oc's ordered-contrast and estimator value checks are NOT in this release.** The
+   direction/ratio-type value checks and the pooled-input linkage repairs are built and tested on
+   branches but are not in this cut; see V1.0.1.
+3. **Tag stripping deletes text after a literal `<`.** `<[^>]+>` treats `P<0.001` as a tag opening.
    Measured: **84 of 892** held text fields containing a `<` are damaged, across 26 topics, losing up
    to 474 characters including whole effect sentences. Tested against all **433** declared-absent
    entries with a not-found reason: **zero** have their effect+CI or arm counts inside the deleted
    text, with both detectors proven to fire first (660 and 390 abstracts). So it is a real defect with
    **no demonstrated wrong served number** on this corpus. V1.1.
-2. **`gitblob.blob_shas` falls back to one process per file** when the target is not a git toplevel —
+4. **`gitblob.blob_shas` falls back to one process per file** when the target is not a git toplevel —
    938 spawns in one test. Correct but slow; `--stdin-paths` works outside a repository and would make
    it two. V1.1.
-3. **An ordered-contrast guard compares a long prose sentence by exact equality**, so it cannot
+5. **An ordered-contrast guard compares a long prose sentence by exact equality**, so it cannot
    distinguish "the direction is wrong" from "someone reworded the sentence". It should compare a
    typed direction token. V1.1.
-4. **FREEDOM-CVO's strand pair is still marked "proposed"** in the class-boundary document. If it is
+6. **FREEDOM-CVO's strand pair is still marked "proposed"** in the class-boundary document. If it is
    not approved, its delivery-route question reverts to UNRESOLVED. The primary pool is unaffected
    either way.
 
