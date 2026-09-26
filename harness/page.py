@@ -332,6 +332,29 @@ def _effect_label(res) -> str:
     return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
 
 
+def _derived_dim(o: dict, dim: str, declared):
+    """What the page states about a pooled outcome's window / analysis set: the label DERIVED from its inputs
+    (outcome_tiers.derived_label), falling back to the declared value only for an outcome built before tiers existed."""
+    d = ((o.get("outcome_tiers") or {}).get("derived_label") or {}).get(dim)
+    return d.get("label") if isinstance(d, dict) and d.get("label") else declared
+
+
+def _tier_line(o: dict):
+    t = o.get("outcome_tiers") or {}
+    if not t:
+        return None
+    pt = t.get("primary") or {}
+    if pt.get("state") == "POLICY_APPLIED":
+        pool = pt.get("pool") or {}
+        est = pool.get("estimate")
+        return (f"PRIMARY under the predeclared common_outcome_policy: k={len(pt.get('trials') or [])} of "
+                f"{len((t.get('exploratory') or {}).get('trials') or [])} eligible inputs"
+                + (f", {_num(est)} ({_num(pool.get('ci_low'))}-{_num(pool.get('ci_high'))})" if est is not None else "")
+                + "; the all-inputs pool is exploratory")
+    return ((t.get("exploratory") or {}).get("title") or "EXPLORATORY") + (
+        " -- no predeclared common_outcome_policy, so no input is shown to meet a common window / definition / population")
+
+
 def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:
     ref = res.get("pool_refused") or {}
     cf = res.get("counterfactual") or {}
@@ -785,7 +808,7 @@ def _overview(r, neutral):
                                  f"pooled (screening count = k).")
             dc = prim.get("design_consumption") or res.get("design_consumption") or {}
             rows = [
-                ("Outcome", prim.get("name")),
+                ("Outcome", prim.get("served_title") or prim.get("name")),
                 ("Estimand", res.get("scale") or prim.get("estimand")),
                 ("Estimand decision", _estimand_decision_text(prim)),
             ]
@@ -1753,8 +1776,10 @@ def _outcome_block(o, show_inputs=True, review=None):
                 if (res.get("estmeasure") or {}).get("status") == "incompatible" else None)),
             ("Design consumption", (o.get("design_consumption") or {}).get("headline")
              if (o.get("design_consumption") or {}).get("design_refused") else None),
-            ("Analysis population", o.get("population")),
-            ("Timepoint", o.get("timepoint")),
+            # DERIVED from the pooled inputs (outcome_tiers), never the declared registration alone
+            ("Analysis population", _derived_dim(o, "analysis_set", o.get("population"))),
+            ("Timepoint", _derived_dim(o, "follow_up_window", o.get("timepoint"))),
+            ("Tier", _tier_line(o)),
             ("Method", o.get("method")),
             ("k", _k_display(o)),
         ]
