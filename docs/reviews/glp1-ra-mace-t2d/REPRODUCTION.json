@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "b10c53d3783facb7e630219f0bb447fe6e22843e",
-  "review_sha256": "7d15dfd97fc744d1c44e8ad50f0f6612c4e9c9a6f6b4de131bca34f450da7d92",
+  "review_sha256": "7352585a34177ea9641ab0c738d0060b19edc3a41268215862e7253736642e05",
   "from_cache": true,
   "preregistration": {
     "prospective": false,
@@ -11,7 +11,7 @@
   },
   "parity": {
     "slug": "glp1-ra-mace-t2d",
-    "our_k": 8,
+    "our_k": 10,
     "comparable_comparator_k": 7,
     "status": "SUPERSET",
     "reason": "8 pooled including SOUL (PMID 40162642, 2025, source-verified HR 0.86) which postdates the comparator meta (k=7); the remaining gap ELIXA is a 4-point MACE (estimand) correctly declared-absent",
@@ -19,9 +19,9 @@
       "relation": "SUPERSET",
       "label": "superset -- the comparator trial set is contained in ours",
       "inferred": false,
-      "our_k": 8,
+      "our_k": 10,
       "hand_our_k": 8,
-      "hand_our_k_stale": false,
+      "hand_our_k_stale": true,
       "their_k": 7,
       "their_k_source": "comparable_comparator_k",
       "shared_k": 7,
@@ -32,6 +32,8 @@
       "hand_status_normalized": "SUPERSET",
       "hand_status_disagrees": false
     },
+    "hand_our_k": 8,
+    "hand_our_k_stale": true,
     "hand_status": "SUPERSET",
     "hand_status_stale": false,
     "membership_status": "STALE_VS_MEMBERSHIP",
@@ -41,15 +43,52 @@
         "trial_key": "PMID 40162642",
         "label": "SOUL",
         "sentence": "8 pooled including SOUL (PMID 40162642, 2025, source-verified HR 0.86) which postdates the comparator meta (k=7); the remaining gap ELIXA is a 4-point MACE (estimand) correctly declared-absent"
+      },
+      {
+        "trial_key": "PMID 26630143",
+        "label": "ELIXA",
+        "sentence": "8 pooled including SOUL (PMID 40162642, 2025, source-verified HR 0.86) which postdates the comparator meta (k=7); the remaining gap ELIXA is a 4-point MACE (estimand) correctly declared-absent"
       }
     ],
-    "input_set_version": "ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0",
-    "claim_id": "1a2b8259adee9340",
+    "input_set_version": "b4a2829db604de977b8937caa865f62cbb84c86ff477fbf7fb4bfd741bef7e84",
+    "claim_id": "1dd9b91bdf9d2b9e",
     "depends_on": {
-      "input_set_version": "ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0"
+      "input_set_version": "b4a2829db604de977b8937caa865f62cbb84c86ff477fbf7fb4bfd741bef7e84"
     },
     "claim_kind": "parity"
   },
+  "result_changes": [
+    {
+      "slug": "glp1-ra-mace-t2d",
+      "outcome": "3-point major adverse cardiovascular events",
+      "before": {
+        "k": 8,
+        "estimate": 0.856,
+        "ci_low": 0.8086,
+        "ci_high": 0.9061
+      },
+      "after": {
+        "k": 10,
+        "estimate": 0.8613,
+        "ci_low": 0.8069,
+        "ci_high": 0.9194
+      },
+      "left_pool": [],
+      "entered_pool": [
+        "PMID 26630143",
+        "PMID 38785209"
+      ],
+      "reason": "FLOW (PMID 38785209, NCT03819153) and ELIXA (PMID 26630143, NCT01147250) enter the CONVENTIONAL_GLP1RA primary pool under the protocol's B-prime rules (b10c53d3), each from a committed result-level adjudication whose every field carries a witness span re-verified against sha256-pinned held bytes (evidence/glp1_adjudication/FLOW.json, ELIXA.json). FLOW: 3-point MACE HR 0.82 (0.68-0.98), 212 vs 254, kept distinct from the kidney composite 0.76 by table row. ELIXA: 3-point MACE HR 1.02 (0.887-1.172), 400 vs 392, identified by its definition sentence and event counts, never by its number (the 4-point MACE+ primary rounds to the same 1.02 (0.89-1.17) but is 406 vs 399). ELIXA PRESPECIFICATION DISPUTE: the FDA statistical review calls the 3-point MACE a secondary endpoint analysed by a pre-specified Cox model; the FDA summary review calls it a sensitivity analysis; the registry lists the 4-point primary and secondary 5- and 6-point composites but no 3-point MACE. The same statistical review renders the interval as (0.887, 1.172) in text and (0.89, 1.18) in Table 8; the unrounded text interval is pooled (Table 8 rendering: k=10, 0.861, 0.807-0.919 either way). FREEDOM-CVO stays out: eligible only on the GLP1RA_ANY_DELIVERY strand. Conclusion unchanged in direction and significance; heterogeneity is no longer ~0 (tau2 0.00004 -> 0.0027) and the prediction interval widens from 0.807-0.908 to 0.753-0.985.",
+      "reason_locked": true,
+      "by": "evidence lane (Claude Opus 5.5), branch evid/glp1-admission; V1.0.1, lands only after Mahmood's hash-bound signature",
+      "when_utc": "2026-09-26T11:17:05Z",
+      "reviewer_countersignature": {
+        "state": "OPEN",
+        "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+      },
+      "conclusion_changed": null
+    }
+  ],
   "dual": {
     "agree": 0,
     "reconcile": 5,
@@ -186,8 +225,8 @@
         "sha256": "0696a732384857bef85daf6cd1d8515a8880f21373a15400c09bd6ac16605011"
       }
     ],
-    "config_sha256": "4682a204621b79916bea4ec8872b447500c5ef1350cfeef06f38269e7db04875",
-    "analysis_code_sha256": "b86b0f2c0aa871a392f17dcdf63c8f44b28556f5ad898a0f006ae457d7c8712a",
+    "config_sha256": "aca3b71e7c103db37c913d4395f0ab9104e2d64e3ffeda2a723d389d7fa0149d",
+    "analysis_code_sha256": "fe4a31191eac98c89619157516ef8ab803e34dfbd0ff8d4104a4beeda7e19620",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
       "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -235,9 +274,9 @@
       "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
       "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
       "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
-      "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+      "harness/invalidation.py": "472b3235c5d6e316a668299faac5ec7ec5201bd8",
       "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-      "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
+      "harness/known_missing.py": "66e1490d476ffa1036096f4d357c138a8318b267",
       "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
       "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
       "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
@@ -246,7 +285,7 @@
       "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
       "harness/page.py": "1b100dc69dd570a2b2b62bd9c0e5e79aaabde8bb",
       "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-      "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+      "harness/pipeline.py": "ab9a69c9e0afe4c2e96a9ded2ef195574848b9b1",
       "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
       "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
       "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -254,6 +293,7 @@
       "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
       "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
       "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+      "harness/result_adjudication.py": "987cd90ee581da079e399b8ea1aaad218eca1d08",
       "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
       "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
       "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
@@ -265,7 +305,7 @@
       "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
       "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
       "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-      "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
+      "harness/target_endpoint.py": "98f6c6b9630ff0537100e7acdca6eaf568e0d754",
       "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
       "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
       "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
@@ -286,7 +326,7 @@
         "harness/certificate.py",
         "scripts/reproduce_review.py"
       ],
-      "covers": "84 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+      "covers": "85 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
       "declared_but_absent": [
         "harness/effect_type.py"
       ],
@@ -315,8 +355,8 @@
       "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
-    "manuscript_sha256": "f3d839f0dd10d5129678ba450d137bca459130c293907fb17a375164b8b1ebf7",
-    "review_sha256": "7d15dfd97fc744d1c44e8ad50f0f6612c4e9c9a6f6b4de131bca34f450da7d92",
+    "manuscript_sha256": "55bc42d33eb720e2c1e8cb3a6755602e2aa64ed2f46771d9ebf13ba6bb4fd1c4",
+    "review_sha256": "7352585a34177ea9641ab0c738d0060b19edc3a41268215862e7253736642e05",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
       "protocol_text_sha256": "protocols/glp1-ra-mace-t2d.md UTF-8 text, universal newlines",
@@ -336,9 +376,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "57dcc3278b7e08486d0deefe9783fb741eeaf11e0fd7c9d68c8d1348d449fcd0"
+    "release_sha256": "f4d3920a51d0d098a227a9e25bffb3d1b9d6951a3856a5a0314a3af0f5ce9bba"
   },
-  "html_sha256": "750dd27ab77a3f21d19b5e287dd822ec031c6aa6d6b86ef05a5cc01099ec5ebf",
+  "html_sha256": "77e379c9b4692ac22f9439ef95dc14bfd1134b9441b300032f8481e85d7c31e1",
   "checks": [
     {
       "check": "render is deterministic",
