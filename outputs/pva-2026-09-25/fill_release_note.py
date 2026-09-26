@@ -83,14 +83,25 @@ def main():
     # ---- final V1 scope (26 Sep): frozen main + P5 + D3; GLP-1 k = 8 with a pending FLOW+ELIXA block
     if v1:
         tf = git("show", f"{v1}:harness/trial_family.py")
-        p5_fixed = bool(tf) and "if bool(aa) == bool(bb) or av-aa != bv-bb:" not in tf
+        # nr's P5 ADDS a declared-comparator path (the original placebo line stays): detect the new parameter, not a removal
+        p5_fixed = bool(re.search(r"def randomised_contrasts\([^)]*\bcomparators\b", tf))
+        topic = git("show", f"{v1}:topics/dapagliflozin-hfpef-hosp.json")
+        try:
+            d3rec = next((c for c in json.loads(topic).get("population_vocabulary_clarifications", []) if str(c.get("id", "")).startswith("D3")), None)
+        except ValueError:
+            d3rec = None
         on_frozen = subprocess.run(["git", "-C", REPO, "merge-base", "--is-ancestor", "6260e70c", v1], capture_output=True,
                                    stdin=subprocess.DEVNULL).returncode == 0
-        d3 = "preserved systolic function" in proto.lower()
+        d3 = bool(d3rec)
+        d3_label = (f"applied, labelled {d3rec.get('status')} (pre_specified={d3rec.get('pre_specified')}, affects "
+                    f"{', '.join(d3rec.get('families_affected') or [])})" if d3 else "**not applied**")
+        if d3 and "DELIVER" in str(d3rec.get("question_put")) and "NCT03619213" not in (d3rec.get("families_affected") or []):
+            d3_label += ("; **its recorded question calls the condition 'the DELIVER registry condition', but the family it "
+                         "affects is PRESERVED-HF (NCT03030235), not DELIVER (NCT03619213)**")
         fill["scope"] = (f"V1: `{v1[:12]}` {'contains' if on_frozen else '**does NOT contain**'} frozen main 6260e70c; the P5 fix is "
-                         f"{'present' if p5_fixed else '**absent**'} (the active-comparator line in harness/trial_family.py "
-                         f"{'is gone' if p5_fixed else 'is still there'}); D3 is {'applied' if d3 else '**not applied**'} in the "
-                         "dapagliflozin-HFpEF protocol.")
+                         f"{'present' if p5_fixed else '**absent**'} (randomised_contrasts "
+                         f"{'takes' if p5_fixed else 'does not take'} declared comparators); D3 is {d3_label}.")
+        fill["ruling"] = ("V1: " + (d3_label[0].upper() + d3_label[1:]) + "." if d3 else fill["ruling"])
     else:
         fill["scope"] = NM("no V1 commit")
     idx = work / "served" / "site" / "reviews" / "glp1-ra-mace-t2d" / "index.html"
