@@ -107,6 +107,11 @@ def main():
                          + " (notices queued on lane branches are not in it)"
                          + f"; GLP-1 primary k = {k} ({'FLOW+ELIXA admitted' if k == 10 else 'FLOW+ELIXA not admitted' if k == 8 else 'check'})"
                          + f"; four verdicts {'present' if probe('P5b').get('ok') else 'absent'}.")
+    lin = R.get("lineage")
+    if lin:
+        fill["lineage"] = ("V1 descends from every fix landed and proved live before the freeze (" if lin["ok"] else
+                           "**V1 does NOT descend from: ") + ", ".join(
+            f"{c} {v['what']}" for c, v in lin["commits"].items() if v["in_v1"] == lin["ok"]) + (")." if lin["ok"] else "**.")
     if tabs:
         fill["tabs"] = (f"V1 served pages: {tabs['passed']} of {tabs['checks']} tab checks pass ({tabs['pages']} pages at "
                         f"{' and '.join(tabs['above_max'])}, every tab, three click scenarios); the tab bar starts at most "
@@ -143,7 +148,7 @@ def main():
     if nh != 1:
         raise SystemExit("REFUSED: the draft's header block was not found; the note would still say DRAFT")
     text = re.sub(r"\*\*(V1:[^*]*)\*\*", sub, text)
-    extra = "\n".join(f"- {fill[k]}" for k in ("tabs", "f6") if k in fill)
+    extra = "\n".join(f"- {fill[k]}" for k in ("lineage", "tabs", "f6") if k in fill)
     if extra:
         text += "\n## V1 measurements added at release\n" + extra + "\n"
     out = work / "V1_RELEASE_NOTE_final.md"

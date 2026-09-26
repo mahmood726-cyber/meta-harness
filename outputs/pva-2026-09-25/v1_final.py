@@ -150,6 +150,21 @@ def step_archive(v1, work):
             "check_rc": c.returncode, "check": c.stdout[-1200:]}
 
 
+# Landed on main and proved live before the freeze; a V1 that does not descend from them silently reverts served fixes.
+MUST_CONTAIN = {"c23a7e91": "tabs fix (Verify-this-page tab)", "c62b6b12": "rai R1+R4 re-certification",
+                "b284e085": "main as attested at 02:51 on 26 Sep"}
+
+
+def step_lineage(v1):
+    out = {}
+    for c, what in MUST_CONTAIN.items():
+        rc = sh(["git", "-C", REPO, "merge-base", "--is-ancestor", c, v1]).returncode
+        out[c] = {"what": what, "in_v1": rc == 0}
+    missing = [f"{c} ({v['what']})" for c, v in out.items() if not v["in_v1"]]
+    stamp("LINEAGE: " + ("V1 contains every landed fix" if not missing else "V1 LACKS " + "; ".join(missing) + " -- BLOCKER"))
+    return {"ok": not missing, "commits": out}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--v1", required=True)
@@ -165,6 +180,7 @@ def main():
     res_path = work / "RESULTS.json"
     res = json.loads(res_path.read_text(encoding="utf-8")) if res_path.is_file() else {}
     res.update(v1=v1, started=res.get("started") or datetime.datetime.now().isoformat(timespec="seconds"))
+    res["lineage"] = step_lineage(v1)       # always: it costs nothing and is the one check nothing else makes
     try:
         if "record" in steps:
             res["record"] = step_record(v1, work)
