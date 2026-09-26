@@ -110,3 +110,6 @@ Re-derived `origin/main` 2a45f0cb → `origin/evid2/q-decisions` e1c3125e (`scri
   with no result-change notice.
 Needed from evid2 before the candidate: a third OPEN notice for that new outcome (or the outcome withheld). The
 signing script already carries it as item D-Q3b and turns it from information into a signable item once it exists.
+**RESOLVED at `evid2/q-decisions` 572b38c6:** the D-Q3b notice (ledger 15, OPEN) is there. Re-derived main 6260e70c →
+572b38c6: 3 served changes, 3 noticed, 0 unnoticed, 0 orphan, exit 0. The evid2 branch is clear to merge from
+lane NR's side.
