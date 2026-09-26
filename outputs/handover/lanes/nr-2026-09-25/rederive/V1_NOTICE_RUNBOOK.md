@@ -12,6 +12,13 @@ python scripts/v1_prepare_session.py test-sitting --work C:\mh-lanes\nr\v1
 - `test-sitting` 8 min: four sections in order; 33 signed and VALID; the GLP-1 bundle and PRESERVED-HF recorded;
   push proven.
 
+**If C: is short (about 1.5 GB free on 26 Sep): add `--in-place`** to `prepare` and `test-sitting`. This switches this
+worktree to the sign branch instead of creating a second one; `finalize` is unchanged. The dry run was proven again
+in place at 26 Sep 08:50 (candidate 1fa77f2c): 41 noticed, 0 unnoticed; finalize hold derived as
+N06 N17 N27 N28 N30 N32 N37 N38 N39 (no P5 fix in that tree), ruling N23; test-sitting signed 32 and reported
+32 of 41 VALID, 9 MISSING (the held ones), with the push proven by bytes. Afterwards run
+`git switch nr/notice-anchors` and delete the dry-run branch.
+
 Evidence is in `dryrun-2026-09-26/`. Mahmood's clone and branch then come from `v1/FINAL_SIGNING_LIST.md`
 (`C:\mh-sign-v1`, `sign/mahmood-v1`); he runs the same `sign_session.py` command against the sign branch's
 `registry/sign_session_plan.json`.
