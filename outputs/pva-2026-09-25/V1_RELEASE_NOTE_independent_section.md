@@ -68,10 +68,16 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
   (EG-F2); the signature verifier binds the bytes, not the person.
 - **The ten minutes after a deploy.** The CDN caches each file for 600 s and ignores request-side cache control, so a reader can briefly
   get files from two releases, and the auditor reports a generic MISMATCH. Wait ten minutes and re-run.
+- **"Every regex site is planted" is 401 sites, not all of them.** The regex layer's own inventory counts **401** sites; "407 of 407"
+  counts the plants (RAI-C12). The inventory also cannot see **9 sites** that build their pattern by concatenation (RAI-C13). One of
+  them, `harness/hand_binding._present`, still reads number fragments: a CI bound of 1.0 counts as present in "1.03", and 10 in
+  "10,033" (PVA-D12). Measured on the 39 served hand-bound rows, **0 of 132 values** depend on a fragment, and the check is
+  plant-proved. It is latent, with no served consequence today.
 
 ### Not merged by the freeze (as of 29f0a719; **V1: re-check at the freeze**)
 - ordered-contrast and estimator checks P10/P11 and the pool guard (oc 88f07c74 .. 23642e0d);
-- rai's R1+R4 pinned landing re-certification (409d98c4); it predates the tabs fix and must be regenerated, not merged as generated files;
+- ~~rai's R1+R4 pinned landing re-certification~~ **LANDED 26 Sep 01:24 (c62b6b12)**, rebased on the tabs fix; proved live (1194/1194;
+  served battery PASS; 2,304/2,304 live tab checks; 0 served numbers moved);
 - the 41 result-change notices: **0 of 41 signed**; the notice anchors and the P5 check patch (nr) are on branches;
 - the GLP-1 FLOW + ELIXA admission (k 8 -> 10, 0.856 -> 0.861): Mahmood's chat approval is recorded as intent, not as a signature; it
   is queued for his signature, not landed; this lane reproduced its before -> after exactly; ELIXA's 3-point MACE is 'prespecified
