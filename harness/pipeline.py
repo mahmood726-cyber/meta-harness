@@ -18,6 +18,7 @@ from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
 from . import source_hierarchy as source_hierarchy_mod
+from . import result_adjudication as result_adjudication_mod
 from . import design_variance
 from . import parity_relation
 from . import comparator_truth
@@ -1302,6 +1303,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             trials.append(row)
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+    # SIGNED RESULT-LEVEL ADJUDICATION (V1.0.1, opt-in per outcome via `adjudicated_results`): an eligible trial no
+    # automated route can bind (FLOW: not in the screened set; ELIXA: its 3-point MACE is not in the abstract) enters
+    # from its committed, sha256-pinned decision file, every witness re-verified against held bytes. Fail closed: a
+    # declared admission that does not verify stops the build. A trial another route already pooled is never doubled;
+    # an admitted trial leaves the declared-absent list (pooled AND absent is a contradiction).
+    for _row in result_adjudication_mod.admitted_rows(spec):
+        if any(t.get("id") == _row["id"] for t in trials):
+            raise result_adjudication_mod.AdjudicationRefused(
+                f"{_row['label']} ({_row['id']}) is already pooled by another route; an adjudicated admission never doubles a trial")
+        absent[:] = [a for a in absent if a.get("id") != _row["id"]]
+        trials.append(_row)
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are

@@ -160,11 +160,15 @@ def test_PLANT_held_source_bytes_changed_is_refused(inputs, tmp_path, monkeypatc
     assert _build(inp, spec)["result"]["k"] == 10                           # control
     from harness import result_adjudication as RA
     lane = tmp_path / "lane"
-    for rel in ("evidence", "outputs/handover/glp1_regulatory", "protocols"):
-        shutil.copytree(os.path.join(ROOT, rel), lane / rel,
-                        ignore=shutil.ignore_patterns("held_local", "*.gz", "sweeps"))
+    needed = {RA.RENDERER, *spec["adjudication_text_extractions"]}
+    for e in spec["adjudicated_results"]:
+        needed.add(e["decision"])
+        needed |= {w["ref"] for _, w in RA._witnesses(json.load(open(os.path.join(ROOT, e["decision"]), encoding="utf-8")))}
+    for rel in needed:                                                      # only what the admissions read
+        (lane / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(os.path.join(ROOT, rel), lane / rel)
     reg = lane / "evidence/held/registry/NCT01147250.json"
-    reg.write_bytes(reg.read_bytes().replace(b"minimum age", b"minimum  age"))
+    reg.write_bytes(reg.read_bytes() + b" ")                            # one byte appended
     monkeypatch.setattr(RA, "ROOT", str(lane))
     RA._text_cache.clear()
     with pytest.raises(RA.AdjudicationRefused, match="NCT01147250.json sha256"):
