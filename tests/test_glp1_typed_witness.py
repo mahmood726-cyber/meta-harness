@@ -5,6 +5,11 @@ import copy, hashlib, importlib.util, json, os
 
 import pytest
 
+# The FDA documents are PDFs, rendered by the extractor evidence/scripts/textrep.py pins; CI installs that exact
+# version (.github/workflows/verify.yml). Without it these tests SKIP -- which means the witnesses were not verified
+# on that runner, never that they passed.
+pytest.importorskip("pypdf", reason="PDF-held witnesses need the pinned extractor (pypdf 6.13.1); skipped = NOT verified")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 P = os.path.join(HERE, "..", "evidence", "typed_arms", "v2", "glp1", "build_glp1_typed.py")
 
