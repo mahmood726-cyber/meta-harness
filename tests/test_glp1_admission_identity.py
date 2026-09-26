@@ -148,3 +148,32 @@ def test_PLANT_admissibility_refuses_a_row_whose_identity_class_is_not_exact():
     forged = dict(row, target_endpoint_class="NEAR_MATCH")
     kept, refused = target_endpoint.admit_rows(_spec(), [forged])
     assert kept == [] and refused
+
+
+def test_PLANT_flow_identity_pointed_at_its_kidney_composite_row_is_refused(tmp_path):
+    """FLOW's Table 10 carries the kidney composite (HR 0.76) in the same table; naming that row label as the
+    identity is refused as DIFFERENT_OUTCOME (moved here from the admission suite when identity replaced the bare
+    definition witness)."""
+    spec = copy.deepcopy(_spec())
+    e = next(x for x in spec["adjudicated_results"] if x["trial"] == "FLOW")
+    d = json.load(open(os.path.join(ROOT, e["decision"]), encoding="utf-8"))
+    ident = d["bound_result"]["endpoint_identity"]
+    row = RA._norm(ident["row"]["span"])
+    i = row.index("Composite Endpoint (")
+    ident["row_label"] = row[i:row.index("(time to first occurrence)", i) + len("(time to first occurrence)")]
+    p = tmp_path / "FLOW.json"
+    p.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+    e.update(decision=str(p), decision_sha256=_sha(p))
+    with pytest.raises(RA.AdjudicationRefused) as exc:
+        RA.verify(spec, e)
+    assert exc.value.endpoint_class == "DIFFERENT_OUTCOME", str(exc.value)
+
+
+def test_flow_is_identified_by_its_own_row_label():
+    spec = _spec()
+    e = next(x for x in spec["adjudicated_results"] if x["trial"] == "FLOW")
+    row = RA.verify(spec, e)
+    assert row["target_endpoint_class"] == "EXACT_TARGET"
+    assert row["endpoint_identity"]["identified_by"] == ["table_header", "row_label", "row_label_enumerates_components", "event_counts"]
+    assert row["endpoint_identity"]["events"] == {"semaglutide": 212, "placebo": 254}
+    assert (row["effect"], row["ci_low"], row["ci_high"]) == (0.82, 0.68, 0.98)

@@ -36,7 +36,16 @@ _PAGE = re.compile(r"###\s*PAGE\s+\d+|=====\s*page\s+\d+\s*=====")
 
 
 class AdjudicationRefused(ValueError):
-    pass
+    """`endpoint_class` is set when the refusal is about WHICH outcome the bound row is (DIFFERENT_OUTCOME)."""
+
+    def __init__(self, message: str, endpoint_class: str | None = None):
+        super().__init__(message)
+        self.endpoint_class = endpoint_class
+
+
+def _bare(term: str):
+    """The term as a whole token, '+' counted as part of it: MACE matches 'MACE endpoint', never 'MACE+'."""
+    return re.compile(r"(?<![\w+])" + re.escape(term) + r"(?![\w+])")
 
 
 def _sha(path: str) -> str:
@@ -168,18 +177,53 @@ def verify(spec: dict[str, Any], entry: dict[str, Any], root: str | None = None)
     if carrier is None:
         raise AdjudicationRefused(f"{entry['trial']}: no witnessed span of the bound result carries "
                                   f"{toks[0]} ({toks[1]}, {toks[2]}) together")
-    # Component identity is witnessed too: the entry names the ONE witness that defines the outcome, and its span's
-    # components must be exactly the outcome's canonical set (ELIXA's result sentence also mentions MACE+, so the
-    # definition is named, never inferred from whichever span carries the numbers).
+    # ENDPOINT IDENTITY -- from the SOURCE ROW, never from the numbers. In ELIXA's FDA review the 3-point secondary
+    # and the 4-point primary are both printed as HR 1.02 (0.89, 1.17); only the row (table header + row label), the
+    # definition of THAT label, and the event counts tell them apart. The class is computed from the label's own
+    # definition; anything but the outcome's exact component set is DIFFERENT_OUTCOME for this admission route (the
+    # harness's finer relation -- a superset is its NEAR_MATCH -- is carried in the message, not admitted).
     from . import target_endpoint as _te        # late: target_endpoint imports this module
-    dpath_w = entry.get("definition_witness")
-    dw = dict(ws).get(dpath_w) if dpath_w else None
-    if dw is None:
-        raise AdjudicationRefused(f"{entry['trial']}: definition_witness {dpath_w!r} is not a witness of the decision")
-    comps = sorted(_te._components_from_text(dw["span"]))
-    canon = sorted(x.lower().replace("_", " ") for x in _te.canonical_components(spec))
-    if sorted(c.lower() for c in comps) != canon:
-        raise AdjudicationRefused(f"{entry['trial']}: definition witness names {comps}, the outcome is {canon}")
+    ident = b.get("endpoint_identity")
+    if not isinstance(ident, dict) or not isinstance(ident.get("row"), dict):
+        raise AdjudicationRefused(f"{entry['trial']}: decision has no endpoint_identity (source row + the definition of its "
+                                  "label + event counts); a result is never admitted on its numbers")
+    row_span = _norm(ident["row"]["span"])
+    header, label, term = ident.get("table_header") or "", ident.get("row_label") or "", ident.get("label_term")
+    for nm, v in (("table_header", header), ("row_label", label)):
+        if not v or _norm(v) not in row_span:
+            raise AdjudicationRefused(f"{entry['trial']}: identity {nm} {v!r} is not verbatim in the identity row")
+    if ident.get("definition_source") == "row_label":
+        def_text, how = label, "row_label_enumerates_components"
+    else:
+        if not isinstance(ident.get("definition"), dict):
+            raise AdjudicationRefused(f"{entry['trial']}: endpoint_identity has no definition witness for its label")
+        def_text, how = ident["definition"]["span"], "label_definition"
+    if term:
+        if not _bare(term).search(header + " " + label):
+            raise AdjudicationRefused(f"{entry['trial']}: the identity row's header/label do not name {term!r} as a whole token "
+                                      f"({header!r} / {label!r}); a row of another endpoint (e.g. MACE+) is not this one",
+                                      endpoint_class=_te.DIFFERENT_OUTCOME)
+        m = _bare(term).search(def_text)
+        if not (m and "defined as" in def_text[m.end():m.end() + 40]):
+            raise AdjudicationRefused(f"{entry['trial']}: the definition witness does not define {term!r}",
+                                      endpoint_class=_te.DIFFERENT_OUTCOME)
+    cls = _te._classify(spec, def_text)
+    if cls["target_endpoint_class"] != _te.EXACT_TARGET:
+        raise AdjudicationRefused(
+            f"{entry['trial']}: endpoint identity is DIFFERENT_OUTCOME for '{spec.get('name')}': the row "
+            f"{label!r} under {header!r} is defined as {cls['target_components']} (extra {cls['extra_components']}, "
+            f"missing {cls['missing_components']}; harness component relation {cls['target_endpoint_class']})",
+            endpoint_class=_te.DIFFERENT_OUTCOME)
+    events = ident.get("events") or {}
+    if not events or events != b.get("events"):
+        raise AdjudicationRefused(f"{entry['trial']}: identity event counts {events} differ from the bound result's {b.get('events')}")
+    carrier_span = dict(_witnesses(b))[carrier]["span"]
+    for arm, n in events.items():
+        tok = re.compile(r"(?<![\d.,])" + re.escape(str(n)) + r"(?![\d.,]\d)")
+        if not (tok.search(row_span) and tok.search(carrier_span)):
+            raise AdjudicationRefused(f"{entry['trial']}: event count {arm}={n} is not in both the identity row and the "
+                                      "span carrying the tuple; the tuple is not tied to this row")
+    comps = cls["target_components"]
     fields = sorted({p.split("/")[2] if p.startswith("/bound_result/") else p.split("/")[1] for p, _ in ws})
     return {
         "label": entry["trial"], "id": entry["id"], "effect": e, "ci_low": lo, "ci_high": hi,
@@ -191,8 +235,14 @@ def verify(spec: dict[str, Any], entry: dict[str, Any], root: str | None = None)
                                 **({"source_conflict": b["source_conflict"]} if b.get("source_conflict") else {})},
         "endpoint_result_span": ((b.get("analysis") or {}).get("witness") or {}).get("span")
                                 or (b.get("endpoint") or {}).get("span"),
-        "endpoint_definition_span": dw["span"],
+        "endpoint_definition_span": def_text,
         "components": comps,
+        "target_endpoint_class": _te.EXACT_TARGET,
+        "endpoint_binding": BINDING,
+        "endpoint_identity": {"table_header": header, "row_label": label, "label_term": term, "events": events,
+                              "class": _te.EXACT_TARGET, "components": comps,
+                              "identified_by": ["table_header", "row_label", how, "event_counts"],
+                              "row_witness": ident["row"]["span"][:400]},
         "document_ref": ((b.get("endpoint") or {}).get("ref")),
         "source": (f"{entry['trial']} ({entry['id']}, {d.get('nct')}): 3-point MACE HR {e:g} (95% CI {lo:g}-{hi:g}), "
                    f"admitted by signed result-level adjudication {entry['decision']} "
@@ -216,7 +266,7 @@ def reverify_row(spec: dict[str, Any], row: dict[str, Any], root: str | None = N
         want = verify(spec, entry, root)
     except AdjudicationRefused as exc:
         return str(exc)
-    for k in ("effect", "ci_low", "ci_high", "scale"):
+    for k in ("effect", "ci_low", "ci_high", "scale", "target_endpoint_class"):
         if row.get(k) != want[k]:
             return f"{row.get('label')}: row {k}={row.get(k)!r} differs from its verified decision ({want[k]!r})"
     return None

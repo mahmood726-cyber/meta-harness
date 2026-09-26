@@ -96,6 +96,13 @@ def main():
         },
         bound_result={
             "endpoint": W(LABEL, "Composite of cardiovascular death, non-fatal myocardial infarction, non-fatal stroke (time to first occurrence) 254 (14.4) 212 (12.0)", "0.0289"),
+            "endpoint_identity": {
+                "rule": "BY SOURCE ROW: the label's Table 10 row whose own label enumerates the three components; header, row label and event counts are verbatim in one row witness; never by the numbers",
+                "row": W(LABEL, "Table 10: Analyses of the Primary and Secondary Endpoints and their Individual Components in FLOW Trial", "0.0289"),
+                "table_header": "Table 10: Analyses of the Primary and Secondary Endpoints and their Individual Components in FLOW Trial",
+                "row_label": "Composite of cardiovascular death, non-fatal myocardial infarction, non-fatal stroke (time to first occurrence)",
+                "label_term": None, "definition_source": "row_label",
+                "events": {"semaglutide": 212, "placebo": 254}},
             "not_this_row (kidney composite, HR 0.76)": W(LABEL, "Composite Endpoint (≥ 50% sustained eGFR decline", "0.76 (0.66, 0.88) 0.0003"),
             "contrast": {"value": "semaglutide 1 mg once weekly vs placebo", "witness": W(LABEL, "Individual Components in FLOW Trial Placebo N=1766 (%) OZEMPIC 1 mg N=1767", "OZEMPIC 1 mg N=1767")},
             "population": {"value": "all randomised (1767 vs 1766 = 3,533 randomised)", "witness": W(LABEL, "A total of 3,533 patients were randomized", "median of 41 months.")},
@@ -125,7 +132,15 @@ def main():
             "why": "Adults with T2D and a recent ACS, lixisenatide vs matched placebo, randomised, double-blind, parallel. Its primary endpoint is the 4-point MACE+; 3-point MACE ('CV death, non-fatal MI and non-fatal stroke') was a prespecified secondary endpoint, which satisfies B-prime's 'or its exact three components, prospectively specified'.",
         },
         bound_result={
-            "endpoint_identity": "BY DEFINITION + EVENT COUNTS, never by matching numbers: the 3-point row and the 4-point primary share the rounded HR 1.02 (0.89, 1.17)",
+            "identity_rule": "BY SOURCE ROW + THE DEFINITION OF ITS LABEL + EVENT COUNTS, never by matching numbers: the 3-point secondary and the 4-point primary are both printed as HR 1.02 (0.89, 1.17) in this review",
+            "endpoint_identity": {
+                "row": W(STATR, "Table 8: Analysis of the MACE Endpoint Placebo (N=3,034)", "400 (13.2%)"),
+                "table_header": "Table 8: Analysis of the MACE Endpoint",
+                "row_label": "MACE endpoint (on-study)",
+                "label_term": "MACE",
+                "definition": W(STATR, "secondary endpoints – time to first secondary MACE event", "fatal stroke)"),
+                "events": {"lixisenatide": 400, "placebo": 392},
+                "not_this_row": W(STATR, "Table 1: Pre-specified Analysis of Primary MACE+ Endpoint", "406 (13.4%)")},
             "endpoint": W(STATR, "3.3.4.3 Analyses of MACE ITT analyses (on-study and on-treatment) of MACE, defined as cardiovascular death, non-fatal MI, and non-fatal stroke", "with a point estimate of 1.02."),
             "not_this_row (4-point MACE+ primary: 399 vs 406, 1.017 (0.886, 1.168))": W(STATR, "Using the pre-specified Cox proportional hazards model, the hazard ratio estimate and associated 95% confidence interval is 1.017", "406 (13.4%)"),
             "contrast": {"value": "lixisenatide (10 mcg QD, then 20 mcg QD) vs matched placebo", "witness": W("evidence/held/registry/NCT01147250.json", "ARM: Lixisenatide [EXPERIMENTAL]", "up to end of treatment.")},

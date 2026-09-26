@@ -226,18 +226,3 @@ def test_PLANT_second_route_for_an_admitted_trial_fails_the_build(inputs):
                           "scale": "HR", "source": "planted second route"}]
     with pytest.raises(RA.AdjudicationRefused, match="already pooled by another route"):
         P.build_outcome_from_inputs(inp, spec, "efficacy", SLUG, veffs=veffs)
-
-
-def test_PLANT_definition_witness_naming_another_composite_is_refused(inputs):
-    """Component identity is witnessed: pointing FLOW's definition at its kidney-composite row is refused. (The
-    component parser reads 'MACE+' as generic MACE, so ELIXA's 4-point row is NOT a usable plant for this check --
-    the named definition witness, not the parser, is what keeps ELIXA's 3-point identity.)"""
-    inp, spec = inputs
-    assert _build(inp, spec)["result"]["k"] == 10                           # control
-    from harness import result_adjudication as RA
-    bad = copy.deepcopy(spec)
-    _entry(bad, FLOW)["definition_witness"] = next(
-        p for p, _ in RA._witnesses(json.load(open(os.path.join(ROOT, _entry(spec, FLOW)["decision"]), encoding="utf-8")))
-        if p.startswith("/bound_result/not_this_row"))
-    with pytest.raises(RA.AdjudicationRefused, match="definition witness names"):
-        _build(inp, bad)
