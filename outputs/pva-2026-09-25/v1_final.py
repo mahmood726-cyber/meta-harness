@@ -81,13 +81,21 @@ def step_tabs(v1, work):
     return s
 
 
+FLOOR_GB = 3.0     # the release captain's DISK_NOTE: no drive below ~3 GB, ever
+WT_ROOT = None     # set from --wt-root
+
+
 def make_checkout(v1, work):
-    wt = work / "wt"
+    wt = WT_ROOT / f"v1wt_{v1[:12]}" if WT_ROOT else work / "wt"
     if wt.exists():
         return wt
-    free = shutil.disk_usage(str(work)).free / 2**30
-    if free < 3.0:
-        raise SystemExit(f"REFUSED: only {free:.1f} GB free under {work}; a full checkout needs ~2.1 GB and the floor is ~1 GB after")
+    wt.parent.mkdir(parents=True, exist_ok=True)
+    need = sum(int(l.split()[3]) for l in sh(["git", "-C", REPO, "ls-tree", "-r", "-l", v1]).stdout.splitlines()
+               if l.split()[3].isdigit()) / 2**30 * 1.05
+    free = shutil.disk_usage(str(wt.parent)).free / 2**30
+    if free - need < FLOOR_GB:
+        raise SystemExit(f"REFUSED: {free:.1f} GB free under {wt.parent}; the V1 tree needs {need:.2f} GB and would leave "
+                         f"{free - need:.1f} GB, below the {FLOOR_GB} GB floor. Use --wt-root on a drive with room.")
     sh(["git", "-C", REPO, "worktree", "add", "--no-checkout", "--detach", str(wt), v1], check=True)
     sh(["git", "-C", str(wt), "sparse-checkout", "disable"], check=False)
     sh(["git", "-C", str(wt), "checkout"], timeout=3600, check=True)
@@ -99,8 +107,8 @@ def make_checkout(v1, work):
     return wt
 
 
-def remove_checkout(work):
-    wt = work / "wt"
+def remove_checkout(v1, work):
+    wt = WT_ROOT / f"v1wt_{v1[:12]}" if WT_ROOT else work / "wt"
     if wt.exists():
         sh(["git", "-C", REPO, "worktree", "remove", "--force", str(wt)], timeout=1800)
         stamp("full checkout removed")
@@ -171,7 +179,10 @@ def main():
     ap.add_argument("--work", required=True)
     ap.add_argument("--steps", default="record,served,tabs,producer,f6,archive,note")
     ap.add_argument("--f6-script", default="F:/mh-gate/scripts/f6_acceptance.py")
+    ap.add_argument("--wt-root", help="where the ~2 GB full V1 checkout goes (default <work>/wt); must keep the 3 GB floor")
     a = ap.parse_args()
+    global WT_ROOT
+    WT_ROOT = Path(a.wt_root) if a.wt_root else None
     git("fetch", "-q", "origin")
     v1 = git("rev-parse", a.v1)
     work = Path(a.work)
@@ -197,7 +208,7 @@ def main():
                          "summary": {k: f6.get(k) for k in ("lane_acceptance", "summary", "acceptance") if k in f6}}
     finally:
         if "producer" in steps or "f6" in steps:
-            remove_checkout(work)
+            remove_checkout(v1, work)
         res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
     if "archive" in steps:
         res["archive"] = step_archive(v1, work)
