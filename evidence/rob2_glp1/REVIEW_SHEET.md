@@ -2,10 +2,10 @@
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
 Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: low 46, some_concerns 4. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Proposals: low 47, some_concerns 3. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
-**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 39 of 50 after. Disagreements KEPT for you to decide (6):
+**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 38 of 50 after. Disagreements KEPT for you to decide (6):
 
 - PIONEER 6 D5_selection_of_reported_result: lane **low**, blind **some_concerns** -- blind's reason: The protocol span defines the MACE primary endpoint, and the SAP span says blinding lasts until database release, but neither shows the analysis plan was finalised before unblinding (5.1 NI).
 - SOUL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans: completers 4755/4740, with 61 withdrawals and 94 lost to follow-up (roughly balanced), but no randomized denominator or vital-status ascertainment is given (3.1 NI).
@@ -14,7 +14,7 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 - EXSCEL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: 96.2% completed the trial and vital status was obtained for 98.8%, below the 99% level, with no per-arm balance or sensitivity analysis reported.
 - FLOW D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: vital status known in 98.6% only, below the 99% level, with no primary-outcome completeness or per-arm balance reported.
 
-**Direction warning:** 5 domains changed AFTER the blind read on newly bound evidence, and all 5 moved toward *low*: AMPLITUDE-O D5, HARMONY Outcomes D5, SOUL D2, SUSTAIN-6 D1, ELIXA D1. Each rests on a new span, but a one-directional pattern after a second opinion is exactly what a reviewer should weigh -- SUSTAIN-6 and ELIXA D1 in particular stand on incidental IV/WRS mentions.
+**Direction warning:** 6 domains changed AFTER the blind read on newly bound evidence, and all 6 moved toward *low*: SOUL D5, AMPLITUDE-O D5, HARMONY Outcomes D5, SOUL D2, SUSTAIN-6 D1, ELIXA D1. Each rests on a new span, but a one-directional pattern after a second opinion is exactly what a reviewer should weigh -- SUSTAIN-6 and ELIXA D1 in particular stand on incidental IV/WRS mentions.
 
 **Second blind read on the CURRENT spans** (run to test that warning; same family, blind): agreement **46 of 50**; the post-blind moves were supported in **5 of 5**. Remaining disagreements, kept for you:
 
@@ -88,7 +88,7 @@ Stopped treatment (D2 context, not missing data): 24% vs 27% discontinued study 
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
-| D1 randomisation | **some_concerns** | 1:1, stratified by eGFR; no held source describes sequence generation or allocation concealment (1.1/1.2 = NI) and no baseline-balance statement is bound. | paper: `PMC4985288/efetch.xml` | ______ |
+| D1 randomisation | **some_concerns** | 1:1, stratified by eGFR. Bound after the blind reads from the FDA review of NDA 022341/S-027: baseline characteristics 'generally well-balanced' (1.3 = N), and emergency code breaks were recorded through the sponsor's IV/WRS (OCR 'IVNVRS'), i.e. allocation was held centrally. That is indirect for concealment (1.2 = PY at best) and says nothing on sequence generation (1.1 = NI); RoB 2's algorithm would allow low on 1.2 = PY, so REVIEWER: this may justify low. Not moved by the lane, because the concealment inference rests on a code-break footnote, not a statement about how patients were randomised. | paper: `PMC4985288/efetch.xml`; regulator: `FDA_022341_s027/review_package.pdf`; regulator: `FDA_022341_s027/review_package.pdf` | ______ |
 | D2 deviations (assignment) | **low** | Double-blind, matching placebo; all randomised included in the primary analysis. | paper: `PMC4985288/efetch.xml`; paper: `PMC4985288/efetch.xml` | ______ |
 | D3 missing outcome data | **low** | Vital status known for 99.7%; per arm, unavailable for 12 (0.25%) on liraglutide vs 17 (0.36%) on placebo (FDA review); 96.8% completed a final visit, died or had a primary outcome. | paper: `PMC4985288/efetch.xml`; regulator: `FDA_022341_s027/review_package.pdf`; paper: `PMC4985288/efetch.xml` | ______ |
 | D4 outcome measurement | **low** | Adjudicated in a blinded fashion by an external independent committee. | paper: `PMC4985288/efetch.xml` | ______ |
@@ -118,7 +118,7 @@ Stopped treatment (D2 context, not missing data): more permanently discontinued 
 | D4 outcome measurement | **low** | Independent CEC adjudicates all primary endpoint events (protocol); a REWIND secondary paper states the events were adjudicated by an independent committee of physicians BLINDED to the study medication using pre-specified definitions. | protocol: `NCT01394952/Prot_000.pdf`; paper: `PMC7690176/fullText.xml` | ______ |
 | D5 selection of reported result | **low** | SAP version 1 approved 21 Nov 2011 before the first unblinding; the protocol fixes the 3-point composite as the primary efficacy measure. | sap: `NCT01394952/SAP_001.pdf`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
 
-## SOUL (PMID 40162642, NCT03914326) -- overall proposal: some_concerns
+## SOUL (PMID 40162642, NCT03914326) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -126,7 +126,7 @@ Stopped treatment (D2 context, not missing data): more permanently discontinued 
 | D2 deviations (assignment) | **low** | [low on NEW evidence bound after the blind read] Blinded (visually identical tablets) and all analyses by intention-to-treat methods on the full analysis set of all unique randomised participants (2.6 = Y). | paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): completed 4755/4825 vs 4740/4826 (98.5% vs 98.2%); not completed 70 vs 86 -- lost to follow-up 43 vs 51, withdrew 27 vs 34: small and balanced. This is TRIAL COMPLETION, not a vital-status figure (the results paper, which would give vital status, is not held) -- weigh accordingly. | registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json` | ______ |
 | D4 outcome measurement | **low** | Central adjudication by a masked external committee. | paper: `UCL_10169247/soul_design.pdf` | ______ |
-| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1] The 2023 design paper (before the 2025 results) fixes 3-point MACE as the primary outcome, but no held span shows the analysis plan was finalised before unblinding. | paper: `UCL_10169247/soul_design.pdf` | ______ |
+| D5 selection of reported result | **low** | [low on NEW evidence bound after the blind reads; same basis as the PIONEER 6 precedent] The SAP is Version 2.0, Status Final, dated 14 December 2022, and states Novo Nordisk remains blinded to treatment allocations until database lock; the design paper (received 13 January 2023) still describes the trial as ongoing before database lock, so the final plan predates unblinding (RoB 2 5.1 = PY). The SAP fixes 3-point MACE as the primary endpoint; the 2023 design paper names the same outcome before the 2025 results. Another move toward low after a blind read -- reviewer to confirm. | sap: `NCT03914326/SAP_001.pdf`; sap: `NCT03914326/SAP_001.pdf`; sap: `NCT03914326/SAP_001.pdf`; paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf` | ______ |
 
 ## SUSTAIN-6 (PMID 27633186, NCT01720446) -- overall proposal: low
 
