@@ -45,53 +45,39 @@ def test_no_held_trial_is_not_in_committed_source():
     assert not failures, failures
 
 
-def test_elixa_conflict_spans_primary_unchanged():
+def test_elixa_conflict_spans_held_and_elixa_pooled_only_by_signed_adjudication():
+    """V1.0.1: ELIXA's held regulatory fact (8 page-located spans of the conflicting renderings) stays verified in the
+    review; ELIXA enters the primary pool ONLY through the signed result-level adjudication, at the unrounded text
+    interval, and the page states the prespecification dispute. (V1 asserted 'primary k=8 unchanged'; that was the
+    requirement until the admission, and is now the requirement's opposite.)"""
     review = read(ROOT / 'docs/reviews' / SLUG / 'review.json')
     outcome = primary(review)
-    rows = outcome['known_missing_sensitivity']['rows']
-    row = next(r for r in rows if r['trial_key'] == '26630143')
-    assert row['value_status'] == 'EXTRACTED_SOURCE_CONFLICT'
-    assert len(row['held_fact']['spans']) >= 8
-    assert 'definition_3p' in {s['kind'] for s in row['held_fact']['spans']}
-    page = html.unescape((ROOT / 'docs/reviews' / SLUG / 'index.html').read_text(encoding='utf-8'))
-    assert row['held_fact']['document_sha256'] in page
-    assert 'ADJ-GLP1-005 PROPOSED (not countersigned)' in page
-    for span in row['held_fact']['spans']:
-        assert span['span'] in page
-        assert span['pdf_page'] > 0
-    assert {s['kind']: s['pdf_page'] for s in row['held_fact']['spans']} == {
+    fact = next(f for f in review['held_regulatory_facts'] if f['trial_key'] == '26630143')
+    assert len(fact['spans']) >= 8 and 'definition_3p' in {s['kind'] for s in fact['spans']}
+    assert {s['kind']: s['pdf_page'] for s in fact['spans']} == {
         'definition_3p': 24, 'text_unrounded_3p': 24, 'table8_onstudy_3p': 24,
         'table8_ontreatment_3p': 24, 'executive_summary_3p': 7,
         'primary_4p_table6': 22, 'primary_4p_text': 35, 'primary_4p_unrounded_text': 8}
-    base = json.loads(subprocess.check_output(['git', 'show', f'237e9094:docs/reviews/{SLUG}/review.json']))
-    assert outcome['result']['k'] == 8
-    # the primary RESULT is unchanged: every scientific field equal; the dependency stamps (input_set_version,
-    # claim_id, depends_on) are re-derived by later landings (ws/TF widened the input set) and are not the result
-    _stamps = {'input_set_version', 'claim_id', 'depends_on', 'claim_kind'}
-    scientific = lambda res: {k: v for k, v in res.items() if k not in _stamps}
-    assert scientific(outcome['result']) == scientific(primary(base)['result'])
-    from harness.page import _stale_topic_overview
-    assert '1.02' not in _stale_topic_overview(review)
+    row = next(t for t in outcome['trials'] if t['id'] == 'PMID 26630143')
+    assert row['provenance'] == 'signed_result_adjudication'
+    assert (row['effect'], row['ci_low'], row['ci_high']) == (1.02, 0.887, 1.172)
+    assert outcome['result']['k'] == 10
+    assert '26630143' not in {r['trial_key'] for r in outcome['known_missing_sensitivity']['rows']}
+    page = html.unescape((ROOT / 'docs/reviews' / SLUG / 'index.html').read_text(encoding='utf-8'))
+    assert 'ELIXA PRESPECIFICATION DISPUTE' in page and 'Previously served: k = 8' in page
 
 
-def test_membership_demonstration_recomputed():
+def test_primary_pool_recomputed_from_its_rows():
+    """The served k=10 result is exactly synth.pool over the served rows (the V1 membership demonstration for ELIXA
+    is gone: it is no longer a proposal beside the pool but a member of it)."""
     outcome = primary(read(ROOT / 'docs/reviews' / SLUG / 'review.json'))
-    demo = outcome['known_missing_sensitivity']['membership_demonstration']
-    assert demo['state'] == 'HETEROGENEITY_MEMBERSHIP_SENSITIVE'
+    assert 'membership_demonstration' not in outcome['known_missing_sensitivity']
     studies = [Study(label=t['label'], effect=t['effect'], ci_low=t['ci_low'],
                      ci_high=t['ci_high'], measure='HR') for t in outcome['trials']]
-    elixa = next(r for r in outcome['known_missing_sensitivity']['rows'] if r['trial_key'] == '26630143')
-    effect = elixa['held_fact']['decision']['effect']
-    added = Study(label='ELIXA', effect=effect['estimate'], ci_low=effect['ci_low'], ci_high=effect['ci_high'], measure='HR')
-    for key, members in [('primary', studies), ('proposed', studies + [added])]:
-        result = pool(members, scale='HR')
-        for field in ('k', 'estimate', 'ci_low', 'ci_high', 'tau2', 'pi_low', 'pi_high'):
-            assert demo[key][field] == pytest.approx(getattr(result, field), abs=1e-12)
-        assert demo[key]['i2'] == pytest.approx(max(0, (result.Q - (result.k-1))/result.Q)*100)
-    assert demo['proposed']['pi_high'] > 1
-    page = (ROOT / 'docs/reviews' / SLUG / 'index.html').read_text(encoding='utf-8')
-    assert demo['state'] in page
-    assert 'under the PROPOSED adjudication -- not a result; the primary k=8 pool is unchanged' in page
+    result = pool(studies, scale='HR')
+    assert result.k == outcome['result']['k'] == 10
+    for field in ('estimate', 'ci_low', 'ci_high'):
+        assert outcome['result'][field] == pytest.approx(getattr(result, field), abs=5e-5)
 
 
 def test_state_derivation_proposed_cannot_promote():
@@ -108,17 +94,20 @@ def test_state_derivation_proposed_cannot_promote():
     assert missing_state(fact) == 'EXTRACTED_SOURCE_CONFLICT'
 
 
-def test_flow_and_freedom_held_but_not_admitted():
+def test_freedom_held_but_not_admitted_and_flow_admitted_only_by_signed_adjudication():
     outcome = primary(read(ROOT / 'docs/reviews' / SLUG / 'review.json'))
     rows = outcome['known_missing_sensitivity']['rows']
-    for name in ('FLOW', 'FREEDOM-CVO'):
-        row = next(r for r in rows if r['name'] == name)
-        assert row['value_status'] == 'EXTRACTED_NOT_ADMISSIBLE'
-        assert row['held_fact']['admissible'] is False
-        assert not row.get('sensitivity')
-        assert row['held_fact']['trial_key'] not in {t['id'].replace('PMID ', '') for t in outcome['trials']}
-    flow = next(r['held_fact'] for r in rows if r['name'] == 'FLOW')
+    freedom = next(r for r in rows if r['name'] == 'FREEDOM-CVO')
+    assert freedom['value_status'] == 'EXTRACTED_NOT_ADMISSIBLE'
+    assert freedom['held_fact']['admissible'] is False
+    assert not freedom.get('sensitivity')
+    assert freedom['held_fact']['trial_key'] not in {t['id'].replace('PMID ', '') for t in outcome['trials']}
+    assert 'FLOW' not in {r['name'] for r in rows}
+    flow_row = next(t for t in outcome['trials'] if t['id'] == 'PMID 38785209')
+    assert flow_row['provenance'] == 'signed_result_adjudication'
+    assert (flow_row['effect'], flow_row['ci_low'], flow_row['ci_high']) == (0.82, 0.68, 0.98)
+    review = read(ROOT / 'docs/reviews' / SLUG / 'review.json')
+    flow = next(f for f in review['held_regulatory_facts'] if f['trial'] == 'FLOW')
     assert flow['adjudication']['id'] == 'ADJ-GLP1-003'
-    assert flow['adjudication']['state'] == 'PROPOSED'
     assert flow['spans'][0]['pdf_page'] == 25
     assert flow['spans'][0]['verbatim_located'] is True

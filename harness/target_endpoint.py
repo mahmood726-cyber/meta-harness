@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from . import extract, hand_binding
+from . import extract, hand_binding, result_adjudication
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
 
 EXACT_TARGET = "EXACT_TARGET"
@@ -527,6 +527,16 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
         if _e is not None and not (min(_lo, _hi) <= _e <= max(_lo, _hi)):
             return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE",
                     "reason": f"point estimate {_e:g} lies outside its own interval ({_lo:g}-{_hi:g}); not a result"}
+    # SIGNED RESULT-LEVEL ADJUDICATION (V1.0.1): the row's binding is its decision's witness set, re-verified here
+    # against the outcome's declared admission -- a row that only CLAIMS this provenance, or whose tuple differs from
+    # its verified decision, is refused. Checked before the hand binder, which abstains by design on these texts
+    # (ELIXA's 4-point primary rounds to the same HR; FLOW's label tuple sits in page debris).
+    if row.get("provenance") == result_adjudication.PROVENANCE:
+        why = result_adjudication.reverify_row(spec, row)
+        if why:
+            return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE", "reason": why}
+        return {"admissible": True, "verdict": EXACT_TARGET, "endpoint_binding": result_adjudication.BINDING,
+                "endpoint_definition_span": row.get("endpoint_definition_span")}
     # A HAND ROW is bound by the hand binder whatever an earlier route wrote in its class field: the abstract
     # route matches digits and resolves the endpoint, it does not check the declared scale / CI level /
     # direction / analysis set, so returning on its class let SOUL pool as an OR (M2 W1b, both trees).

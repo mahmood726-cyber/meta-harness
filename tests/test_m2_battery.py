@@ -47,6 +47,10 @@ def inputs():
     records = fetch.ensure(config, "")            # committed cache: no network
     inp = pipeline.outcome_inputs(SLUG, config, records)
     spec = next(s for s, k in pipeline._outcome_specs(config) if s.get("name") == PRIMARY)
+    # The battery tests the HAND-ROW route. V1.0.1's signed result-level adjudication (ELIXA, FLOW) is a different
+    # route with its own suite (tests/test_glp1_signed_admission.py); left in, it would pool ELIXA before any hand
+    # row for ELIXA could be refused or bound, and the W3b / P5 cases would test the wrong object.
+    spec = {k: v for k, v in spec.items() if k != "adjudicated_results"}
     return inp, spec
 
 
