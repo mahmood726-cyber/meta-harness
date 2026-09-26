@@ -86,3 +86,25 @@ records (T00072). Fix: the same one-to-one guard in the reverse direction. No qu
 sample changes (SCREEN.json and AI_SAMPLE.json are byte-identical after the rerun); only the trial grouping changes
 (4,323 -> 4,362 trials; 71 -> 91 included). The as-registered grouping is kept as `run/TRIALS_as_registered.json`.
 Because this fix was made after the reference set was seen, the report states recall under both groupings.
+
+## Part 2 -- registry-first pass (registered 2026-09-26, BEFORE it is run; reference set already known, disclosed)
+**Why.** The first pass found ASCEND PLUS only because its registration happened to match the text query. A trial
+that has no paper is visible only in a registry, so this pass asks ClinicalTrials.gov directly for GLP-1 RA
+cardiovascular outcome trials whatever their status and whether or not they have posted results.
+**Disclosed.** Written after the reference set and the Part 1 results were read. It changes nothing in Part 1, and its
+queries and criteria contain no trial name, acronym or NCT.
+**Query** (`registry_pass.py` `REG_PARAMS`): ClinicalTrials.gov API v2, interventional studies whose interventions
+match the Part 1 I block (class terms + the same 20 substances), and whose outcomes mention MACE / major adverse
+cardiovascular / cardiovascular death / cardiovascular outcome / myocardial infarction / stroke. There is NO condition
+filter and NO status filter. Every study is retained (compact fields committed; raw bodies local-only, sha256 logged).
+**Deterministic CVOT filter**, recorded per study (all must hold):
+- P: type 2 diabetes in the conditions, the titles or the eligibility text;
+- I: a GLP-1 RA in the interventions or arm labels;
+- C: placebo in the interventions or arm labels;
+- design: allocation RANDOMIZED;
+- O: the PRIMARY outcome names MACE, a major adverse cardiovascular composite or cardiovascular death, or names both
+  myocardial infarction and stroke.
+Masking, status, posted results, enrollment and dates are reported and are not filtered on.
+**Report.** Each candidate is reported with status and whether results are posted, whether Part 1 found it, and
+whether it is in the reference set. Separately, for each of the 10 reference trials, the report states whether the
+TEXT searches alone (PubMed / Europe PMC) would have found it, and whether this registry pass alone would.
