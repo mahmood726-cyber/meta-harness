@@ -4,7 +4,7 @@ Branch `evid/v1.1-rob2` only. Nothing here is on main and nothing here is final.
 
 **What it is.** For each of the 10 trials in the GLP-1 MACE pool (the 8 served, plus FLOW and ELIXA, which are pending signature), a RoB 2 judgement is proposed for each of the five domains. The result assessed is the 3-point MACE HR, effect of assignment. Every proposal carries witness spans cut from sha256-pinned held documents (protocol/SAP, main or design paper, registry, FDA review). `build_rob2.py` refuses to build if any span does not reproduce verbatim.
 
-**Count.** Held evidence covers **50 of 50** domains (N = 10 trials x 5 domains). The proposals are low 47 and some_concerns 3 (LEADER D1, EXSCEL D5, ELIXA D5). There is no `NO_EVIDENCE_HELD` domain, and none was relabelled high.
+**Count.** Held evidence covers **50 of 50** domains (N = 10 trials x 5 domains). The proposals are low 46 and some_concerns 4 (LEADER D1, EXSCEL D5, ELIXA D5, PIONEER 6 D5). There is no `NO_EVIDENCE_HELD` domain, and none was relabelled high.
 
 **Where to review.** `evidence/rob2_glp1/REVIEW_SHEET.md` has one table per trial and an empty reviewer column. The spans are in the per-trial JSON.
 
@@ -24,7 +24,11 @@ Branch `evid/v1.1-rob2` only. Nothing here is on main and nothing here is final.
    | 3 | 5 domains changed or gaining evidence after read 2 | 3 of 5 | supports SOUL D5 |
 
    Read 3 would move LEADER D1 and EXSCEL D5 to low. The lane did not follow, because those calls rest on an inference from a code-break footnote and on a deviations-review sentence.
-3. **ELIXA D5.** The prespecification dispute is quoted from three sources: the FDA statistical review, the FDA summary review, and the registry.
-4. **AMPLITUDE-O D3.** The per-arm split of the 3.3% with unknown primary-outcome status is only in the paper's Supplementary Appendix, which is not held.
+3. **D5 consistency audit.** I compared every D5 against the rule that a low needs a plan dated before unblinding.
+   - PIONEER 6 had been held low on its SAP's "blinding maintained until database release". That span does not date the plan: the only held SAP is v2.0 Final of 01 Nov 2018, and no held span dates unblinding. This is the same footing as EXSCEL, so PIONEER 6 moved to some_concerns. It is the first move toward concerns, and it matches the first blind reader (the second had rated it low).
+   - SOUL stays low because an independent source (the design paper, still "ongoing" in 2023) dates its plan before unblinding.
+   - SUSTAIN-6 stays low on the FDA statistical reviewer's "pre-specified", with no dated SAP held; it is already flagged for weighing.
+4. **ELIXA D5.** The prespecification dispute is quoted from three sources: the FDA statistical review, the FDA summary review, and the registry.
+5. **AMPLITUDE-O D3.** The per-arm split of the 3.3% with unknown primary-outcome status is only in the paper's Supplementary Appendix, which is not held.
 
 **Local-only sources** (FDA packages, PMC-free HTML, sponsor SAPs) sit in `evidence/held_local` (gitignored). Their ledger is `evidence/LOCAL_ACQUISITIONS.json`, and `STORAGE_NOTE.md` says where the bytes live.

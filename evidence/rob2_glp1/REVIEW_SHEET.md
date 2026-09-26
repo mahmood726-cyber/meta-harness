@@ -2,12 +2,12 @@
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
 Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: low 47, some_concerns 3. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Proposals: low 46, some_concerns 4. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
-**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 38 of 50 after. Disagreements KEPT for you to decide (6):
+**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 39 of 50 after. Disagreements KEPT for you to decide (6):
 
-- PIONEER 6 D5_selection_of_reported_result: lane **low**, blind **some_concerns** -- blind's reason: The protocol span defines the MACE primary endpoint, and the SAP span says blinding lasts until database release, but neither shows the analysis plan was finalised before unblinding (5.1 NI).
+- PIONEER 6 D5_selection_of_reported_result: lane **some_concerns**, blind **some_concerns** -- blind's reason: The protocol span defines the MACE primary endpoint, and the SAP span says blinding lasts until database release, but neither shows the analysis plan was finalised before unblinding (5.1 NI).
 - SOUL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans: completers 4755/4740, with 61 withdrawals and 94 lost to follow-up (roughly balanced), but no randomized denominator or vital-status ascertainment is given (3.1 NI).
 - REWIND D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans give completers (4935 placebo, 4932 dulaglutide) with no randomized denominator, and the protocol span states only a requirement, not what was achieved (3.1 NI).
 - REWIND D4_outcome_measurement: lane **low**, blind **some_concerns** -- blind's reason: Protocol span: an independent CEC adjudicates all primary events, but no span states the CEC was blinded to assignment (4.3 NI).
@@ -106,7 +106,7 @@ Stopped treatment (D2 context, not missing data): 24% vs 27% discontinued study 
 
 Stopped treatment (D2 context, not missing data): time on regimen 84% vs 83%; more stopped liraglutide for adverse events
 
-## PIONEER 6 (PMID 31185157, NCT02692716) -- overall proposal: low
+## PIONEER 6 (PMID 31185157, NCT02692716) -- overall proposal: some_concerns
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -114,7 +114,7 @@ Stopped treatment (D2 context, not missing data): time on regimen 84% vs 83%; mo
 | D2 deviations (assignment) | **low** | Double-blind with matching placebo; all analyses in the full analysis set = all randomised (ITT, as randomised). | paper: `31185157/radboud_208030.pdf`; sap: `NCT02692716/SAP_001.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status collected for the 11 non-completers: every randomised patient accounted for. | paper: `31185157/radboud_208030.pdf` | ______ |
 | D4 outcome measurement | **low** | Events adjudicated by an independent external committee unaware of trial-group assignments. | paper: `31185157/radboud_208030.pdf` | ______ |
-| D5 selection of reported result | **low** | Protocol (not registry) fixes 3-point MACE as the primary endpoint; the SAP keeps treatment blinding until database release (analysis plan fixed before unblinding). | protocol: `NCT02692716/Prot_000.pdf`; sap: `NCT02692716/SAP_001.pdf` | ______ |
+| D5 selection of reported result | **some_concerns** | [REVISED toward concerns by a consistency audit of D5, 26 Sep] The protocol (not registry) fixes 3-point MACE as the primary endpoint, and the SAP keeps treatment blinding until database release -- but that sentence is the plan describing its own procedure, not a dating of it. The only held SAP is Version 2.0, Status Final, dated 01 November 2018, and no held span places database release or unblinding after that date (RoB 2 5.1 = NI). This is the same footing as EXSCEL D5, which is some_concerns; PIONEER 6 had been low, so one of the two was inconsistent. REVIEWER: this may justify low if the SAP date is shown to precede database release. | protocol: `NCT02692716/Prot_000.pdf`; sap: `NCT02692716/SAP_001.pdf`; sap: `NCT02692716/SAP_001.pdf` | ______ |
 
 Stopped treatment (D2 context, not missing data): more permanently discontinued oral semaglutide (11.6% vs 6.5%); follow-up continued
 
@@ -136,7 +136,7 @@ Stopped treatment (D2 context, not missing data): more permanently discontinued 
 | D2 deviations (assignment) | **low** | [low on NEW evidence bound after the blind read] Blinded (visually identical tablets) and all analyses by intention-to-treat methods on the full analysis set of all unique randomised participants (2.6 = Y). | paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): completed 4755/4825 vs 4740/4826 (98.5% vs 98.2%); not completed 70 vs 86 -- lost to follow-up 43 vs 51, withdrew 27 vs 34: small and balanced. This is TRIAL COMPLETION, not a vital-status figure (the results paper, which would give vital status, is not held) -- weigh accordingly. | registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json` | ______ |
 | D4 outcome measurement | **low** | Central adjudication by a masked external committee. | paper: `UCL_10169247/soul_design.pdf` | ______ |
-| D5 selection of reported result | **low** | [low on NEW evidence bound after the blind reads; same basis as the PIONEER 6 precedent] The SAP is Version 2.0, Status Final, dated 14 December 2022, and states Novo Nordisk remains blinded to treatment allocations until database lock; the design paper (received 13 January 2023) still describes the trial as ongoing before database lock, so the final plan predates unblinding (RoB 2 5.1 = PY). The SAP fixes 3-point MACE as the primary endpoint; the 2023 design paper names the same outcome before the 2025 results. Another move toward low after a blind read -- reviewer to confirm. | sap: `NCT03914326/SAP_001.pdf`; sap: `NCT03914326/SAP_001.pdf`; sap: `NCT03914326/SAP_001.pdf`; paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf` | ______ |
+| D5 selection of reported result | **low** | [low on NEW evidence bound after the blind reads; unlike PIONEER 6 and EXSCEL, an INDEPENDENT source dates the plan before unblinding] The SAP is Version 2.0, Status Final, dated 14 December 2022, and states Novo Nordisk remains blinded to treatment allocations until database lock; the design paper (received 13 January 2023) still describes the trial as ongoing before database lock, so the final plan predates unblinding (RoB 2 5.1 = PY). The SAP fixes 3-point MACE as the primary endpoint; the 2023 design paper names the same outcome before the 2025 results. Another move toward low after a blind read -- reviewer to confirm. | sap: `NCT03914326/SAP_001.pdf`; sap: `NCT03914326/SAP_001.pdf`; sap: `NCT03914326/SAP_001.pdf`; paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf` | ______ |
 
 ## SUSTAIN-6 (PMID 27633186, NCT01720446) -- overall proposal: low
 
