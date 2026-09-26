@@ -145,7 +145,7 @@ def main():
                             "(producer_probe.py on the V1 commit)." if pooled_refused else
                             "V1: no refused row stayed in the pool under the planted inputs (producer_probe.py on the V1 commit).")
     else:
-        fill["producer"] = NM("producer probe not run")
+        fill["producer"] = NM("producer probe not run" + ((": " + (R.get("refused") or {})["producer"][:200]) if (R.get("refused") or {}).get("producer") else ""))
     d6 = det("P6")
     muts = [m for v in d6.values() if isinstance(v, dict) for m in v.get("mutations", [])]
     st = next((m for m in muts if m.get("id", "").startswith("span_text_replaced")), None)

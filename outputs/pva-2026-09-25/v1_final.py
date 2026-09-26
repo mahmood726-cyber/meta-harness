@@ -222,34 +222,55 @@ def main():
     res = json.loads(res_path.read_text(encoding="utf-8")) if res_path.is_file() else {}
     res.update(v1=v1, started=res.get("started") or datetime.datetime.now().isoformat(timespec="seconds"))
     res["lineage"] = step_lineage(v1)       # always: it costs nothing and is the one check nothing else makes
+    res.setdefault("refused", {})
+
+    def run(name, fn):
+        """One step. A refusal (disk floor, missing record, crash) is RECORDED and the run goes on: a refused checkout must
+        never cost the served audit, the archive or the note. The note then says the step was not measured, and why."""
+        if name not in steps:
+            return None
+        try:
+            out = fn()
+            res["refused"].pop(name, None)
+            return out
+        except (SystemExit, Exception) as e:  # noqa: BLE001
+            res["refused"][name] = f"{type(e).__name__}: {str(e)[:600]}"
+            stamp(f"STEP {name} REFUSED/FAILED: {str(e)[:300]}")
+            return None
+        finally:
+            res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
+
+    rec = run("record", lambda: step_record(v1, work))
+    if rec:
+        res["record"] = rec
+    sc = run("served", lambda: step_served(v1, work))
+    if sc:
+        res["served"] = {pid: {"ok": p["ok"], "what": p["what"]} for pid, p in sc["probes"].items()}
+    t = run("tabs", lambda: step_tabs(v1, work))
+    if t:
+        res["tabs"] = t
     try:
-        if "record" in steps:
-            res["record"] = step_record(v1, work)
-        if "served" in steps:
-            sc = step_served(v1, work)
-            res["served"] = {pid: {"ok": p["ok"], "what": p["what"]} for pid, p in sc["probes"].items()}
-        if "tabs" in steps:
-            res["tabs"] = step_tabs(v1, work)
-        if "producer" in steps:
-            res["producer"] = step_producer(v1, work)[-3000:]
-        if "f6" in steps:
-            f6 = step_f6(v1, work, a.f6_script)
+        pr = run("producer", lambda: step_producer(v1, work))
+        if pr:
+            res["producer"] = pr[-3000:]
+        f6 = run("f6", lambda: step_f6(v1, work, a.f6_script))
+        if f6:
             res["f6"] = {"pva": f6.get("_pva"), "restored": f6.get("original_bytes_restored"),
                          "summary": {k: f6.get(k) for k in ("lane_acceptance", "summary", "acceptance") if k in f6}}
     finally:
         if "producer" in steps or "f6" in steps:
             remove_checkout(v1, work)
-        res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
-    if "fixes" in steps:
-        res["fix_branches"] = step_fixbranches(work, [b for b in a.fix_branches.split(",") if b])
-        res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
-    if "archive" in steps:
-        res["archive"] = step_archive(v1, work)
-        res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
+    fb = run("fixes", lambda: step_fixbranches(work, [b for b in a.fix_branches.split(",") if b]))
+    if fb is not None:
+        res["fix_branches"] = fb
+    ar = run("archive", lambda: step_archive(v1, work))
+    if ar:
+        res["archive"] = ar
+    res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
     if "note" in steps:
         p = sh([PY, str(HERE / "fill_release_note.py"), "--results", str(res_path), "--work", str(work)], check=True)
         stamp(p.stdout[-600:])
-    stamp(f"RESULTS: {res_path}")
+    stamp(f"RESULTS: {res_path}; refused/failed steps: {sorted(res['refused']) or 'none'}")
 
 
 if __name__ == "__main__":
