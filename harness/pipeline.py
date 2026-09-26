@@ -14,6 +14,7 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
+from . import effect_identity as effect_identity_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -1428,6 +1429,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
         if design_variance.apply_design_adjustment(t, spec.get("estimand")):
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+        # EFFECT IDENTITY BEFORE SOURCE PREFERENCE (external review, 2026-09-26): what the source REPORTED when the served
+        # effect is a transform of it (CORP's RRR 0.56 served as RR 0.44), and whether a published ratio agrees with its own
+        # counts (CORP-2's "relative risk 0.49" is the RRR of 26/120 vs 51/120). A conflict is never relabelled: it is HELD.
+        _tp = effect_identity_mod.transform_provenance(t, ab)
+        if _tp:
+            t["effect_transform"] = _tp
+            if t.get("selection_rule") == "KEEP_REPORTED_EFFECT":
+                t["selection_rule"] = "KEEP_REPORTED_EFFECT_TRANSFORMED"
+            t["selected_estimator"] = "published_effect_ci_transformed"
+        _cc = effect_identity_mod.conflict_check(t, effect_identity_mod.adjusted_documented(t))
+        if _cc:
+            t["effect_conflict"] = _cc
+    _held = [t for t in trials if (t.get("effect_conflict") or {}).get("resolution") == "HOLD"]
+    if _held:
+        trials = [t for t in trials if t not in _held]
+        for t in _held:
+            absent.append(effect_identity_mod.held_absence(t))
     trials, design_refusals = design_key.split_design_refusals(trials)
     for t in design_refusals:
         absent.append(design_variance.refusal_absence(t))
@@ -1572,6 +1590,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # model cue read ONLY from the effect's own tightly-scoped source span (not the whole
             # abstract), so a distant unrelated "rate ratio"/"Cox" mention cannot mislabel this effect.
             t["effect_object"] = estmeasure.classify(_rl, t.get("source", "") or "")
+            if t.get("effect_transform"):
+                # the label is what the SOURCE reported; the canonical estimand stays the derived one (RR), so compatibility
+                # is unchanged and nobody reads "PUBLISHED_RR" for a number the source gave as a risk REDUCTION
+                t["effect_object"]["reported_label"] = t["effect_transform"]["reported_measure"]
+                t["effect_object"]["transformed_to"] = t["effect_transform"]["derived"]["measure"]
         _compat = estmeasure.pool_compatibility([t["effect_object"] for t in trials])
         out["result"]["estmeasure"] = _compat
         _incompat = _compat["status"] == "incompatible"
