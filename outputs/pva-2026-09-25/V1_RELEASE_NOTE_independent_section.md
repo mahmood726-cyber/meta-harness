@@ -10,6 +10,8 @@ not measured. No line is carried forward from a rehearsal.*
 - **Contents.** The main line as frozen on 26 Sep (6260e70c), plus two changes: the family-eligibility check fix (P5, from the
   notice-review lane) and one retrospective protocol clarification (D3, PRESERVED-HF), which is labelled on its page as
   retrospective. **V1: fill scope**
+- **The ordered-contrast lane's checks are NOT in V1.** The release commit's message mentions "oc's ordered-contrast repairs";
+  that wording is wrong about what V1 checks. **V1: fill oc statement**
 - **The GLP-1 result.** The pooled primary result is **k = 8 trials, HR 0.856 (95% CI 0.809-0.906)**. FLOW and ELIXA are not in it.
   Adding them would give k = 10, HR 0.861 (0.807-0.919). That change is shown on the page as a **pending result change**, awaiting
   the reviewer's signature, and does not alter the served number. **V1: fill pending block**

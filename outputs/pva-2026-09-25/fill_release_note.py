@@ -112,6 +112,17 @@ def main():
                          f"{'present' if p5_fixed else '**absent**'} (randomised_contrasts "
                          f"{'takes' if p5_fixed else 'does not take'} declared comparators); D3 is {d3_label}.")
         fill["ruling"] = ("V1: " + (d3_label[0].upper() + d3_label[1:]) + "." if d3 else fill["ruling"])
+        oc_in = [c for c in ("23642e0d", "4cc42b86", "d62c09a3") if subprocess.run(
+            ["git", "-C", REPO, "merge-base", "--is-ancestor", c, v1], capture_output=True, stdin=subprocess.DEVNULL).returncode == 0]
+        fill["oc"] = (f"Measured on V1 `{v1[:12]}`: the served verifier (sha256 {vb_sha}) "
+                      + ("contains no ordered-contrast value check (no COMPARATOR_DIRECTION_MISMATCH or ESTIMATOR_MISMATCH), "
+                         if not has_values else "**does contain ordered-contrast value checks** (this statement would be wrong), ")
+                      + ("and none of oc's handoff commits (23642e0d, 4cc42b86 pool guard, d62c09a3) is in its history. "
+                         if not oc_in else f"and {', '.join(oc_in)} **is** in its history. ")
+                      + "oc's earlier commit 88f07c74 is an ancestor, but its verifier change does not survive in V1's verifier file. "
+                      "So the direction and estimator checks listed under the limitations are not part of this release.")
+        if has_values or oc_in:
+            fill["oc"] = "**CONTRADICTION -- " + fill["oc"] + "**"
     else:
         fill["scope"] = NM("no V1 commit")
     idx = work / "served" / "site" / "reviews" / "glp1-ra-mace-t2d" / "index.html"
@@ -247,7 +258,7 @@ def main():
     # ---- apply: each marker is mapped by its own words -------------------------------------------------------------------
     rules = [(f"fill from P6 {a}", a) for a in ("aud1", "aud2", "aud3", "aud4")] + [("fill from key aud5", "aud5")] + \
             [(f"fill fix branch {a}", "fb_" + a) for a in ("aud1", "aud2", "aud3", "aud4", "aud5")] + \
-            [("fill auditor-open limitations", "audlim"), ("fill scope", "scope"), ("fill pending block", "pending")] + [("re-run on the served V1 bundle", "pool"), ("re-run on served V1", "certs"), ("V1: re-run.", "bytes"),
+            [("fill auditor-open limitations", "audlim"), ("fill scope", "scope"), ("fill oc statement", "oc"), ("fill pending block", "pending")] + [("re-run on the served V1 bundle", "pool"), ("re-run on served V1", "certs"), ("V1: re-run.", "bytes"),
              ("whether it is fixed in V1", "tagstrip"), ("unless that branch lands", "tagstrip"), ("state whether it was ruled", "ruling"),
              ("fill from P5b / P7", "verdicts"), ("fill from producer_probe", "producer"), ("fill from P6", "spantext"),
              ("re-check at the freeze", "notmerged")]
