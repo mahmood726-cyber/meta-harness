@@ -107,14 +107,24 @@ def main(argv=None) -> int:
     open_rows = [r for r in sl if r["state"] == "OPEN" and r["audit_id"] not in hold and r["audit_id"] not in exclude]
     by_outcome = {(r["slug"], r["outcome"]): r for r in open_rows}
     items: list[dict] = []
-    # 1. GLP-1 k=10 primary, previous k=8 on the same page; intent as relayed; the ELIXA dispute in its line
-    g = glp1_item(args.glp1_ref)
-    g.update(section="1 GLP-1", label=cfg["glp1"]["label"], intent=cfg["glp1"]["intent"])
-    g["lines"] = [g["lines"][0], g["lines"][1],
-                  "The page shows the previous k=8 result beside the new k=10 primary.",
-                  "ELIXA: " + cfg["glp1"]["elixa_dispute"],
-                  f"Your approval in chat, as relayed: \"{cfg['glp1']['intent']['quote']}\" (recorded as intent; "
-                  "this item asks you to sign it)."] + g["lines"][2:]
+    # 1. GLP-1 k=10 primary, previous k=8 on the same page; intent as relayed; the ELIXA dispute in its line.
+    #    If the release defers it (cfg glp1.pending_for), it is a Part B item; a stale request is information, never
+    #    a reason for the plan to fail.
+    pending = cfg["glp1"].get("pending_for")
+    try:
+        g = glp1_item(args.glp1_ref)
+        g.update(section="1 GLP-1", label=cfg["glp1"]["label"], intent=cfg["glp1"]["intent"])
+        g["lines"] = [g["lines"][0], g["lines"][1],
+                      "The page shows the previous k=8 result beside the new k=10 primary.",
+                      "ELIXA: " + cfg["glp1"]["elixa_dispute"],
+                      f"Your approval in chat, as relayed: \"{cfg['glp1']['intent']['quote']}\" (recorded as intent; "
+                      "this item asks you to sign it)."] + g["lines"][2:]
+    except SystemExit as why:
+        g = {"kind": "info", "section": "1 GLP-1", "id": "GLP1-FLOW-ELIXA", "label": cfg["glp1"]["label"] +
+             " -- NOT SIGNABLE NOW", "lines": [str(why), "ELIXA: " + cfg["glp1"]["elixa_dispute"]]}
+    if pending:
+        g["label"] = f"PENDING for {pending} (not in this release; the served page stays k=8): " + g["label"]
+        g["part"] = "B"
     items.append(g)
     # 2. the re-derived notices: as-is first, then re-issued; ruling-dependent last; withdrawn shown as information
     special = {(e["slug"], e["outcome"]) for e in cfg["evid2_notices"]}
@@ -157,9 +167,28 @@ def main(argv=None) -> int:
                       "label": "PRESERVED-HF consequence: the candidate has no notice on dapagliflozin HFpEF adverse "
                                "events -- PRESERVED-HF is readmitted and that change no longer happens",
                       "lines": ["Nothing to sign."]})
+    # Parts: A = every item the candidate's own pages need signed for the gate (its OPEN notices, and the ruling
+    # that decides one of them); B = pending items that do not change this release. Held notices that are OPEN in
+    # the candidate cannot be signed today and keep the gate red: say so first.
+    in_cand = {i["id"] for i in items if i["kind"] == "notice"}
+    for i in items:
+        if "part" not in i:
+            i["part"] = "A" if i["kind"] == "notice" or i["id"] in args.withdrawn.split(",") else "B"
+    if r and r["audit_id"] in in_cand:
+        for i in items:
+            if i["id"] == ph["id"]:
+                i["part"] = "A"
+    if hold:
+        items.insert(0, {"kind": "info", "part": "A", "section": "0 deploy warning", "id": "HELD-OPEN",
+                         "label": f"{len(hold)} notice(s) in this candidate are HELD and cannot be signed today; the "
+                                  "gate stays red for them until the release captain re-words or withdraws them",
+                         "lines": [f"{k}: {v[:160]}" for k, v in sorted(hold.items())]})
+    items = [i for i in items if i["part"] == "A"] + [i for i in items if i["part"] == "B"]
     plan = {"held_not_in_session": hold, "excluded_not_in_session": exclude, "withdrawn": args.withdrawn, "items": items}
     Path(args.out).write_bytes((json.dumps(plan, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
     counts = {k: sum(i["kind"] == k for i in items) for k in ("notice", "bundle", "ruling", "info")}
+    counts["partA"] = sum(i["part"] == "A" and i["kind"] != "info" for i in items)
+    counts["partB"] = sum(i["part"] == "B" and i["kind"] != "info" for i in items)
     print(f"plan: {counts}; {len(hold)} held and {len(exclude)} excluded (not in the session) -> {args.out}")
     return 0
 

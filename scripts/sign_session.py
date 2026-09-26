@@ -102,6 +102,8 @@ def main(argv=None) -> int:
     ap.add_argument("--push-remote", default="origin")
     ap.add_argument("--test", action="store_true")
     ap.add_argument("--push-as", help="--test only: push to this ref name instead of --push-branch (same-repo tests)")
+    ap.add_argument("--part", choices=("A", "B", "all"), default="all",
+                    help="A = the notices this release needs signed (run first); B = pending items")
     args = ap.parse_args(argv)
     if args.test:
         if not args.by.startswith("TEST-") or "mahmood" in args.by.lower():
@@ -118,7 +120,10 @@ def main(argv=None) -> int:
     if branch != args.push_branch:
         raise SystemExit(f"refused: you are on {branch!r}; run `git switch -c {args.push_branch}` first")
     plan = json.loads(Path(args.plan).read_text(encoding="utf-8"))
-    items = plan["items"]
+    items = [i for i in plan["items"] if args.part == "all" or i.get("part", args.part) == args.part]
+    if args.part != "all":
+        print("\nPART A: the notices THIS release needs signed before it can deploy." if args.part == "A" else
+              "\nPART B: pending items. They do not change this release.")
     print(f"\n{len(items)} items. Nothing is signed without your 'y'. "
           f"{len(plan.get('held_not_in_session') or {})} notices are held and not in this session.\n")
     default_basis = ""
@@ -208,7 +213,7 @@ def main(argv=None) -> int:
     if (ROOT / "signatures").exists():
         git("add", "--sparse", "signatures")  # a sparse clone may not list signatures/ in its patterns
     git("-c", f"user.name={args.by}", "commit", "-q", "-m",
-        f"Countersignatures by {args.by}: {len(done['notice'])} notices, {len(done['bundle'])} bundle, "
+        f"Countersignatures by {args.by} (part {args.part}): {len(done['notice'])} notices, {len(done['bundle'])} bundle, "
         f"{len(done['ruling'])} rulings (scripts/sign_session.py)")
     head = git("rev-parse", "HEAD")
     v = subprocess.run([sys.executable, "scripts/verify_notice_signatures.py", "--ref", "HEAD", "--base", "HEAD~1"],

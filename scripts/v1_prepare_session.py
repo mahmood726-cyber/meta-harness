@@ -155,6 +155,54 @@ def cmd_draft(a) -> int:
     return 0
 
 
+def one_line(i: dict) -> str:
+    """A plan item as one phone line: id, where, served now -> after (or its label)."""
+    if i["kind"] == "notice":
+        ln = [x.strip() for x in i["plain"].splitlines()]
+        before = next((x.split(": ", 1)[1] for x in ln if x.startswith("- Served now:")), "?")
+        after = next((x.split(": ", 1)[1] for x in ln if x.startswith("- After:")), "?")
+        tag = "" if i.get("status") == "AS-IS" else f" [{i['status']}]"
+        rul = " (a RULING first: " + i["label"].split(": ", 1)[1] + ")" if i["label"].startswith("RULING") else ""
+        return f"- **{i['id']}**{tag} {i['slug'].replace('-', ' ')}, *{i['outcome']}*: {before} → {after}{rul}"
+    if i["kind"] == "ruling":
+        return f"- **{i['id']}** (RULING, yes/no): {i['question']}"
+    return f"- **{i['id']}** ({i['kind']}): {i['label']}"
+
+
+def sign_now_md(plan: dict, st: dict, branch: str) -> str:
+    """The copy-paste page for Mahmood: set-up, PART A (the release needs these), PART B (pending)."""
+    items = plan["items"]
+    part = lambda p: [i for i in items if i.get("part") == p and i["kind"] != "info"]  # noqa: E731
+    info = lambda p: [i for i in items if i.get("part") == p and i["kind"] == "info"]  # noqa: E731
+    sparse = " ".join(f"'{x}'" for x in SPARSE)
+    cmd = ('python scripts/sign_session.py --plan registry/sign_session_plan.json --part {p} --by "Mahmood" '
+           '--push-branch sign/mahmood-v1')
+    out = [f"# Mahmood: sign V1 now (candidate `{st['cand'][:12]}`)", "",
+           "Windows PowerShell on your laptop. Paste each block as it is. Nothing is signed without your **y**; "
+           "**n** skips, **r** reads the full notice, **q** stops (what you signed is kept).", "",
+           "## 1. Set up (once, about 2 minutes)", "```",
+           f"git clone --filter=blob:none --no-checkout --branch {branch} {REPO_URL} C:\\mh-sign-v1",
+           "cd C:\\mh-sign-v1", f"git sparse-checkout set --no-cone {sparse}", f"git checkout {branch}",
+           "git switch -c sign/mahmood-v1", "python -m pip install -r requirements.txt", "```", "",
+           f"## 2. PART A: the release needs these signed to deploy ({len(part('A'))} items)"]
+    out += [one_line(i) for i in part("A")] or ["- (none)"]
+    out += ["", "```", cmd.format(p="A"), "```",
+            "It asks once how these reached you, then item by item; at the end one final **y** pushes. "
+            "**Tell lane NR 'pushed A'** -- deploy can go ahead once they are verified.", ""]
+    held = [i for i in info("A") if i["id"] == "HELD-OPEN"]
+    if held:
+        out += ["**Not signable today (the gate stays red for these until the release captain re-words or withdraws "
+                "them):**"] + ["- " + x for x in held[0]["lines"]] + [""]
+    wd = [i for i in info("A") if i["id"] != "HELD-OPEN"]
+    if wd:
+        out += ["Information only (shown during part A, nothing to sign):"] + [f"- {i['label']}" for i in wd] + [""]
+    out += [f"## 3. PART B: pending, not in this release ({len(part('B'))} items)"]
+    out += [one_line(i) for i in part("B")] or ["- (none)"]
+    out += [f"- {i['id']} (information only): {i['label']}" for i in info("B")]
+    out += ["", "```", cmd.format(p="B"), "```", "Then **tell lane NR 'pushed B'**.", ""]
+    return "\n".join(out) + "\n"
+
+
 def cmd_finalize(a) -> int:
     work = Path(a.work).resolve()
     st = json.loads((work / "status.json").read_text(encoding="utf-8"))
@@ -185,9 +233,13 @@ def cmd_finalize(a) -> int:
     run([sys.executable, "scripts/v1_final_list.py", "--signing-json", str(work / "signing_list.json"),
          "--decisions", str(work / "decisions.json"), "--branch", branch, "--out", str(work / "FINAL_SIGNING_LIST.md"),
          "--clone", r"C:\mh-sign-v1", "--push-branch", "sign/mahmood-v1"], cwd=wt)
-    git("add", "registry/sign_session_plan.json", cwd=wt)
+    plan = json.loads((wt / "registry/sign_session_plan.json").read_text(encoding="utf-8"))
+    now_md = sign_now_md(plan, st, branch)
+    (work / "SIGN_V1_NOW.md").write_text(now_md, encoding="utf-8")
+    (wt / "SIGN_V1_NOW.md").write_text(now_md, encoding="utf-8")
+    git("add", "registry/sign_session_plan.json", "SIGN_V1_NOW.md", cwd=wt)
     git("-c", "user.name=lane NR", "-c", "user.email=nr@lanes.invalid", "commit", "-q", "-m",
-        "One-sitting plan for the V1 candidate", cwd=wt)
+        "One-sitting plan for the V1 candidate (part A: release-gating; part B: pending)", cwd=wt)
     head = git("rev-parse", "HEAD", cwd=wt)
     print(f"finalized {branch} at {head[:12]}; hold {sorted(hold)}; ruling {sorted(ruling)}; withdrawn {withdrawn}")
     if a.push:
@@ -203,6 +255,28 @@ def cmd_finalize(a) -> int:
     return 0
 
 
+KEEP = ("PART A", "PART B", "# SECTION", "Signed notices", "HEAD:", "PUSHED", "PUSH NOT", "NOT SIGNED", "NOT RECORDED")
+
+
+def run_parts(tree: Path, push_args: list[str]) -> tuple[int, str]:
+    """The sitting exactly as Mahmood runs it: part A (what the release needs), then part B (pending), each its own
+    run with its own commit and push. TEST identity only; answers are generated from the plan."""
+    plan = json.loads((tree / "registry/sign_session_plan.json").read_text(encoding="utf-8"))
+    log, rc = "", 0
+    for part in ("A", "B"):
+        ans = [f"TEST sitting, part {part}, on the V1 sign branch"]
+        for i in plan["items"]:
+            if i.get("part", part) == part:
+                ans += ([""] if i["kind"] == "info" else ["y", "", "y"] if i["kind"] == "ruling" else ["y", ""])
+        ans.append("y")
+        p = subprocess.run([sys.executable, "scripts/sign_session.py", "--plan", "registry/sign_session_plan.json",
+                            "--part", part, "--by", "TEST-NR-LANE", "--test", *push_args], cwd=tree,
+                           input="\n".join(ans) + "\n", capture_output=True, text=True, env=ENV)
+        log += p.stdout + p.stderr
+        rc = rc or p.returncode
+    return rc, log
+
+
 def cmd_test_sitting(a) -> int:
     work = Path(a.work).resolve()
     st = json.loads((work / "status.json").read_text(encoding="utf-8"))
@@ -215,22 +289,12 @@ def cmd_test_sitting(a) -> int:
     git("sparse-checkout", "set", "--no-cone", *SPARSE, cwd=tc)
     git("checkout", "-q", st["branch"], cwd=tc)
     git("switch", "-q", "-c", "test/sign-session", cwd=tc)
-    plan = json.loads((tc / "registry/sign_session_plan.json").read_text(encoding="utf-8"))
-    ans = ["TEST sitting on the V1 sign branch"]
-    for i in plan["items"]:
-        ans += ([""] if i["kind"] == "info" else ["y", "", "y"] if i["kind"] == "ruling" else ["y", ""])
-    ans.append("y")
-    p = subprocess.run([sys.executable, "scripts/sign_session.py", "--plan", "registry/sign_session_plan.json",
-                        "--by", "TEST-NR-LANE", "--push-branch", "test/sign-session", "--push-remote", str(ROOT),
-                        "--test"], cwd=tc, input="\n".join(ans) + "\n", capture_output=True, text=True, env=ENV)
-    log = p.stdout + p.stderr
+    rc, log = run_parts(tc, ["--push-branch", "test/sign-session", "--push-remote", str(ROOT)])
     (work / "test_sitting.log").write_text(log, encoding="utf-8")
-    keep = [ln for ln in log.splitlines() if any(k in ln for k in ("# SECTION", "Signed notices", "HEAD:", "PUSHED",
-                                                                   "PUSH NOT", "NOT SIGNED", "NOT RECORDED"))]
-    print("\n".join(keep))
+    print("\n".join(ln for ln in log.splitlines() if any(k in ln for k in KEEP)))
     git("update-ref", "-d", "refs/heads/test/sign-session", check=False)
     shutil.rmtree(tc, ignore_errors=True)
-    return p.returncode
+    return rc
 
 
 def test_sitting_in_place(work: Path, st: dict) -> int:
@@ -239,20 +303,11 @@ def test_sitting_in_place(work: Path, st: dict) -> int:
     wt = Path(st["worktree"])
     git("switch", "-q", "-c", "test/sign-session", st["branch"], cwd=wt)
     try:
-        plan = json.loads((wt / "registry/sign_session_plan.json").read_text(encoding="utf-8"))
-        ans = ["TEST sitting on the V1 sign branch (in place)"]
-        for i in plan["items"]:
-            ans += ([""] if i["kind"] == "info" else ["y", "", "y"] if i["kind"] == "ruling" else ["y", ""])
-        ans.append("y")
-        p = subprocess.run([sys.executable, "scripts/sign_session.py", "--plan", "registry/sign_session_plan.json",
-                            "--by", "TEST-NR-LANE", "--push-branch", "test/sign-session", "--push-remote",
-                            str(wt), "--push-as", "test/pushed-sign-session", "--test"], cwd=wt,
-                           input="\n".join(ans) + "\n", capture_output=True, text=True, env=ENV)
-        log = p.stdout + p.stderr
+        rc, log = run_parts(wt, ["--push-branch", "test/sign-session", "--push-remote", str(wt),
+                                 "--push-as", "test/pushed-sign-session"])
         (work / "test_sitting.log").write_text(log, encoding="utf-8")
-        print("\n".join(ln for ln in log.splitlines() if any(k in ln for k in (
-            "# SECTION", "Signed notices", "HEAD:", "PUSHED", "PUSH NOT", "NOT SIGNED", "NOT RECORDED"))))
-        return p.returncode
+        print("\n".join(ln for ln in log.splitlines() if any(k in ln for k in KEEP)))
+        return rc
     finally:
         git("reset", "-q", "--hard", cwd=wt, check=False)
         git("switch", "-q", st["branch"], cwd=wt, check=False)
