@@ -510,6 +510,18 @@ class Audit:
                     {"distinct_values": {k[:12]: len(v) for k, v in codes.items()},
                      "where_if_more_than_one": ({k[:12]: sorted(v)[:10] for k, v in codes.items()} if not ok else None)})
 
+    def p9(self):
+        """The thin-tree hazard (oc, 26 Sep): build_topic in an incomplete tree wrote a review.json/CERTIFICATE without
+        release_status and rob_spancheck, and nothing else failed. Every served review.json must still carry both."""
+        missing = []
+        for s in self.pages:
+            d = json.loads((self.root / "reviews" / s / "review.json").read_bytes())
+            lack = [k for k in ("release_status",) if k not in d] + ([] if "rob_spancheck" in json.dumps(d) else ["rob_spancheck"])
+            if lack:
+                missing.append({"slug": s, "missing": lack})
+        self.record("P9", "every served review.json keeps release_status and rob_spancheck (the thin-tree regeneration hazard)",
+                    not missing, {"pages": len(self.pages), "missing": missing})
+
     # --------------------------------------------------------------------------------------------- output
     def write(self):
         self.work.mkdir(parents=True, exist_ok=True)
@@ -532,13 +544,13 @@ def main():
     ap.add_argument("--work", required=True)
     ap.add_argument("--site", default=SITE)
     ap.add_argument("--source", choices=["served", "git"], default="served")
-    ap.add_argument("--only", default="P0,P1,P2,P3,P4,P5,P6,P7,P8")
+    ap.add_argument("--only", default="P0,P1,P2,P3,P4,P5,P6,P7,P8,P9")
     a = ap.parse_args()
     au = Audit(a)
     only = set(a.only.split(","))
     print(f"release {au.rel} prev {au.prev} mode {au.mode}", flush=True)
     au.acquire()
-    for pid in ("P0", "P2", "P3", "P4", "P5", "P6", "P7", "P8"):
+    for pid in ("P0", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"):
         if pid in only:
             try:
                 getattr(au, pid.lower())()
