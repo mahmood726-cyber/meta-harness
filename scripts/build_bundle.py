@@ -67,8 +67,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.18"
+FORMAT_REVISION = "3.19"
 FORMAT_CHANGELOG = [
+    "3.19 (2026-09-26, lane OC V1.1, external audit against the live release): analysis_identity_key includes comparator_direction, and the verifier recomputes the key from the served fields (ANALYSIS_IDENTITY_KEY_MISMATCH); a REGISTERED_DEFAULT value must be the default the source recomputation renders (REGISTERED_DEFAULT_VALUE_MISMATCH).",
     "3.18 (2026-09-25, lane OC, external audit: ordered contrast and estimator VALUE-checked, not state-checked): analysis_identity."
     "comparator_direction.value is the ORDERED contrast ('<numerator arm> vs <reference arm>') recomputed from the tuple's own clause, with "
     "ordered_contrast {measure, experimental_arm, reference_arm (F4 arm ids <NCT>:<AACT design_group id> from the certified families.json), "
@@ -1334,7 +1335,7 @@ def _analysis_identity(t: dict, review: dict, ee: dict, oc: dict | None = None) 
                       "producer_fields": {"method": se.get("estimator_method"), "reported_label": (t.get("effect_object") or {}).get("reported_label"),
                                           "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand")}},
     }
-    ident["analysis_identity_key"] = " | ".join(f"{k}={ident[k]['value']}[{ident[k]['basis'][:3]}]" for k in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
+    ident["analysis_identity_key"] = " | ".join(f"{k}={ident[k]['value']}[{ident[k]['basis'][:3]}]" for k in ("analysis_set", "treatment_strategy", "follow_up_window", "comparator_direction", "estimator"))   # 3.19: the comparator is part of the identity
     ident["rule"] = "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
     return ident
 

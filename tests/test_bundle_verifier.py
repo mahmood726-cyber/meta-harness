@@ -207,8 +207,8 @@ def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
     # and the move is stated here and in the commit message; the 200-500 target was for a minimal checker
     # 2026-09-25 lane OC: ordered contrast + estimator VALUE checks, the pre-log measure guard and nine --corrupt limbs (+~420 lines); the
     # enforcement-gate branch alone reaches 1300 -- bound moved to 1750, stated here and in the commit message; then +~200 for estimator
-    # provenance (effect-scoped owner rule, P15, seven estimator limbs; auditor 2026-09-25) -- bound moved to 1900
-    assert len(src.splitlines()) <= 1900
+    # provenance (effect-scoped owner rule, P15, seven estimator limbs; auditor 2026-09-25) -- bound moved to 1900; V1.1 identity values (REGISTERED_DEFAULT_VALUE_MISMATCH, recomputed identity key; auditor 2026-09-26) -- 1950
+    assert len(src.splitlines()) <= 1950
 
 
 def _copy_served_tree(bundle, dst):

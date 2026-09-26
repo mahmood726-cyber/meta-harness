@@ -1,0 +1,161 @@
+[
+ {
+  "case": "canonical (control)",
+  "was": null,
+  "verdict": "PASS",
+  "leader_final": "ADMISSIBLE",
+  "leader_codes": [],
+  "all_codes": [],
+  "predicates": {
+   "P10_estimand_evidence": true,
+   "P15_estimator_source_bound": true,
+   "P11_registered_estimand": true
+  },
+  "failures": []
+ },
+ {
+  "case": "comparator_direction -> 'placebo vs GLP-1 RA'",
+  "was": "liraglutide vs placebo",
+  "verdict": "FAIL",
+  "leader_final": "INADMISSIBLE",
+  "leader_codes": [
+   "BOUND_TO_UNREGISTERED_ESTIMAND",
+   "COMPARATOR_DIRECTION_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "all_codes": [
+   "BOUND_TO_UNREGISTERED_ESTIMAND",
+   "COMPARATOR_DIRECTION_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "predicates": {
+   "P10_estimand_evidence": false,
+   "P15_estimator_source_bound": true,
+   "P11_registered_estimand": false
+  },
+  "failures": [
+   "COMPARATOR_DIRECTION_MISMATCH 27295427: served 'placebo vs GLP-1 RA' puts the REFERENCE arm in the numerator; the clause orders EXPERIMENTAL over the other (COMPARATIVE_CONNECTIVE: 'than in the placebo'); the stated tuple 0.87 was not reciprocated",
+   "BOUND_TO_UNREGISTERED_ESTIMAND 27295427: [\"contrast (pooled orientation puts the REFERENCE arm in the numerator; registered 'GLP-1 RA vs placebo')\"]",
+   "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE"
+  ]
+ },
+ {
+  "case": "estimator -> 'odds ratio'",
+  "was": "hazard ratio",
+  "verdict": "FAIL",
+  "leader_final": "INADMISSIBLE",
+  "leader_codes": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH",
+   "ESTIMATOR_MISMATCH",
+   "POOL_MEASURE_UNIDENTIFIED",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "all_codes": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH",
+   "ESTIMATOR_MISMATCH",
+   "POOL_MEASURE_UNIDENTIFIED",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "predicates": {
+   "P10_estimand_evidence": false,
+   "P15_estimator_source_bound": false,
+   "P11_registered_estimand": true
+  },
+  "failures": [
+   "ESTIMATOR_MISMATCH 27295427: served estimator 'odds ratio', recomputed from the owning evidence 'hazard ratio'",
+   "ESTIMATOR_MISMATCH 27295427: served estimator 'odds ratio' and served effect.scale 'HR' name different measures",
+   "ANALYSIS_IDENTITY_KEY_MISMATCH 27295427: served key 'analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]' is not the key of the served fields 'analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_",
+   "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE",
+   "POOL_MEASURE_UNIDENTIFIED 27295427: the row's measure is not identified (served 'HR'; clause 'HR')"
+  ]
+ },
+ {
+  "case": "analysis_set value -> 'per-protocol' (basis stays REGISTERED_DEFAULT)",
+  "was": [
+   "intention-to-treat (registered primary-analysis default)",
+   "REGISTERED_DEFAULT"
+  ],
+  "verdict": "FAIL",
+  "leader_final": "INADMISSIBLE",
+  "leader_codes": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH",
+   "REGISTERED_DEFAULT_VALUE_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "all_codes": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH",
+   "REGISTERED_DEFAULT_VALUE_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "predicates": {
+   "P10_estimand_evidence": false,
+   "P15_estimator_source_bound": true,
+   "P11_registered_estimand": true
+  },
+  "failures": [
+   "REGISTERED_DEFAULT_VALUE_MISMATCH 27295427: analysis_set: served default 'per-protocol', but the registered default the source recomputation renders is 'intention-to-treat (registered primary-analysis default)'; a default's value is not free",
+   "ANALYSIS_IDENTITY_KEY_MISMATCH 27295427: served key 'analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]' is not the key of the served fields 'analysis_set=per-protocol[REG] | treatment_strategy=treatment-policy (on-study)[STA] | ",
+   "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE"
+  ]
+ },
+ {
+  "case": "analysis_identity_key edited alone ([REG] -> [STA])",
+  "was": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
+  "verdict": "FAIL",
+  "leader_final": "INADMISSIBLE",
+  "leader_codes": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "all_codes": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "predicates": {
+   "P10_estimand_evidence": false,
+   "P15_estimator_source_bound": true,
+   "P11_registered_estimand": true
+  },
+  "failures": [
+   "ANALYSIS_IDENTITY_KEY_MISMATCH 27295427: served key 'analysis_set=intention-to-treat (registered primary-analysis default)[STA] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]' is not the key of the served fields 'analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_",
+   "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE"
+  ]
+ },
+ {
+  "case": "analysis_set.registered -> 'per-protocol' (basis REGISTERED_DEFAULT)",
+  "was": "intention-to-treat",
+  "verdict": "FAIL",
+  "leader_final": "INADMISSIBLE",
+  "leader_codes": [
+   "REGISTERED_DEFAULT_VALUE_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "all_codes": [
+   "REGISTERED_DEFAULT_VALUE_MISMATCH",
+   "ROW_VERDICT_DISAGREES"
+  ],
+  "predicates": {
+   "P10_estimand_evidence": false,
+   "P15_estimator_source_bound": true,
+   "P11_registered_estimand": true
+  },
+  "failures": [
+   "REGISTERED_DEFAULT_VALUE_MISMATCH 27295427: analysis_set: served `registered` 'per-protocol' is not the registered estimand's 'intention-to-treat'",
+   "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE"
+  ]
+ },
+ {
+  "case": "restore (control)",
+  "was": null,
+  "verdict": "PASS",
+  "leader_final": "ADMISSIBLE",
+  "leader_codes": [],
+  "all_codes": [],
+  "predicates": {
+   "P10_estimand_evidence": true,
+   "P15_estimator_source_bound": true,
+   "P11_registered_estimand": true
+  },
+  "failures": []
+ }
+]

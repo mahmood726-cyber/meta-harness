@@ -950,6 +950,61 @@ def contrast_value_check(served_row, oc, ee_re, vocab, regd):
     return {"p10": p10, "p11": p11, "detail": detail, "pooled": pooled, "pooled_numerator_side": pooled_num, "measure": srv_scale}
 
 
+def _format_at_least(rev, want):
+    try:
+        return tuple(int(x) for x in str(rev).split(".")) >= tuple(int(x) for x in want.split("."))
+    except ValueError:
+        return False
+
+
+# The ordinary-row analysis_identity_key: the fields it is a function of. From format 3.19 the comparator direction is part of the key --
+# two rows that differ only in which arm is the numerator are two analyses, and a key that cannot tell them apart is not an identity.
+IDENTITY_KEY_FIELDS_LEGACY = ("analysis_set", "treatment_strategy", "follow_up_window", "estimator")
+IDENTITY_KEY_FIELDS = ("analysis_set", "treatment_strategy", "follow_up_window", "comparator_direction", "estimator")
+
+
+def identity_key(ai, fields):
+    return " | ".join(f"{k}={(ai.get(k) or {}).get('value')}[{str((ai.get(k) or {}).get('basis'))[:3]}]" for k in fields)
+
+
+def identity_value_check(ai, ee_re, regd, format_revision):
+    """VALUES of the estimand fields the contrast/estimator check does not reach (auditor, 2026-09-26, against the live release):
+    - a REGISTERED_DEFAULT is the registration standing in for an unknown observation, so its VALUE is not free: it must be the value
+      the source recomputation renders for that default, and the field's `registered` must be the registered estimand's. Changing
+      'intention-to-treat (registered primary-analysis default)' to 'per-protocol' while the basis stays REGISTERED_DEFAULT is refused
+      (REGISTERED_DEFAULT_VALUE_MISMATCH) -- the basis agreeing is necessary and not sufficient, exactly as for contrast and estimator;
+    - analysis_set is rendered from the recomputed evidence whatever its basis, so a STATED analysis_set must equal it too;
+    - the analysis_identity_key is recomputed from the served fields, never trusted (ANALYSIS_IDENTITY_KEY_MISMATCH); from format
+      3.19 it must carry comparator_direction."""
+    out = []
+    regd = regd or {}
+    reg_of = {"analysis_set": regd.get("analysis_set"), "treatment_strategy": regd.get("treatment_strategy"),
+              "comparator_direction": regd.get("contrast"), "estimator": regd.get("estimator")}
+    src_of = {"analysis_set": "analysis_set", "treatment_strategy": "analysis_window", "follow_up_window": "analysis_window"}
+    for fname, src in src_of.items():
+        fv, rv = ai.get(fname), (ee_re or {}).get(src) or {}
+        if not isinstance(fv, dict):
+            continue
+        if fv.get("basis") == "REGISTERED_DEFAULT" and rv.get("state") == "REGISTERED_DEFAULT" and fv.get("value") != rv.get("value"):
+            out.append(("REGISTERED_DEFAULT_VALUE_MISMATCH", f"{fname}: served default {fv.get('value')!r}, but the registered default the "
+                        f"source recomputation renders is {rv.get('value')!r}; a default's value is not free"))
+        elif (fname == "analysis_set" and fv.get("basis") == "STATED_IN_OWNING_EVIDENCE" and rv.get("state") == "STATED_IN_OWNING_EVIDENCE"
+              and fv.get("value") != rv.get("value")):
+            out.append(("ESTIMAND_VALUE_MISMATCH", f"{fname}: served {fv.get('value')!r}, recomputed from the owning evidence {rv.get('value')!r}"))
+    for fname, reg in reg_of.items():
+        fv = ai.get(fname)
+        if isinstance(fv, dict) and fv.get("basis") == "REGISTERED_DEFAULT" and reg is not None and fv.get("registered") != reg:
+            out.append(("REGISTERED_DEFAULT_VALUE_MISMATCH", f"{fname}: served `registered` {fv.get('registered')!r} is not the registered "
+                        f"estimand's {reg!r}"))
+    if "analysis_identity_key" in ai:
+        fields = IDENTITY_KEY_FIELDS if _format_at_least(format_revision, "3.19") else IDENTITY_KEY_FIELDS_LEGACY
+        want = identity_key(ai, fields)
+        if ai.get("analysis_identity_key") != want:
+            out.append(("ANALYSIS_IDENTITY_KEY_MISMATCH", f"served key {ai.get('analysis_identity_key')!r} is not the key of the served "
+                        f"fields {want!r} (format {format_revision}: {', '.join(fields)})"))
+    return out
+
+
 def pool_measure_guard(inputs, rows_by_pmid, declared_scale):
     """Refuse BEFORE any log is taken: pool() is log(effect) whatever the effect is. Every input's measure must be identified from its
     row (served label value-checked against the clause), all inputs one ratio measure, equal to the pool's declared scale; and every
@@ -1540,6 +1595,8 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             vocab = {"experimental": [], "reference": []}      # no vocabulary: nothing orders, every STATED contrast refuses (fail closed)
         oc = ordered_contrast(eff_clause, values, vocab, fam_c)
         cv = contrast_value_check(br, oc, ee_re, vocab, regd)
+        if br:
+            cv["p10"] += identity_value_check((br or {}).get("analysis_identity") or {}, ee_re, regd, bundle.get("format_revision"))
         stated_copy = {k: (br or {}).get("effect", {}).get(k) for k in ("estimate", "ci_low", "ci_high")}
         if br and not corrupt and ([stated_copy[k] for k in ("estimate", "ci_low", "ci_high")] != values
                                    or scale_measure(br["effect"].get("scale")) != scale_measure(t.get("scale"))):
