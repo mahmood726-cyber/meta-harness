@@ -14,9 +14,23 @@ import sys
 import zipfile
 from pathlib import Path
 
+import shutil
+
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def _drop_large_outputs(request, tmp_path):
+    """Each test here unpacks a release archive into tmp_path (tens to hundreds of MB). pytest keeps the last three runs'
+    basetemps, so these outputs held ~1.7 GB of a nearly full drive on 26 Sep (F: reached 0 MB). Remove them when the
+    test passes; keep them when it fails, because then they are the evidence. (A hook in a test module is not registered,
+    so success is read from the session's failure count.)"""
+    failed_before = request.session.testsfailed
+    yield
+    if request.session.testsfailed == failed_before:
+        shutil.rmtree(tmp_path, ignore_errors=True)
 RELEASES = sorted((ROOT / "docs" / "releases").glob("*/*/RELEASE.json"))
 
 
@@ -126,7 +140,7 @@ def _load_archiver():
 
 
 @pytest.fixture(scope="module")
-def whole_release(tmp_path_factory):
+def whole_release(tmp_path_factory, request):
     ra = _load_archiver()
     out = tmp_path_factory.mktemp("rel")
     zpath = ra.build_release("HEAD", out, label="test")
@@ -134,7 +148,11 @@ def whole_release(tmp_path_factory):
     with zipfile.ZipFile(zpath) as f:
         f.extractall(dest)
     rel = json.loads((zpath.parent / "RELEASE.json").read_text(encoding="utf-8"))
-    return ra, zpath, rel, dest / rel["archive"]
+    failed_before = request.session.testsfailed
+    yield ra, zpath, rel, dest / rel["archive"]
+    if request.session.testsfailed == failed_before:   # the built zip and the unpacked whole site (~210 MB per run)
+        shutil.rmtree(out, ignore_errors=True)
+        shutil.rmtree(dest, ignore_errors=True)
 
 
 def test_whole_release_lists_every_served_file_and_archives_every_page(whole_release):
