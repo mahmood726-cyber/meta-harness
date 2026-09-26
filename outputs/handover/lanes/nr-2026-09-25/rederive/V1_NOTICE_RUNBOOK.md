@@ -1,3 +1,21 @@
+# FAST PATH (dry-run proven 26 Sep 07:40, about 14 minutes plus the lane's read)
+From `C:\mh-lanes\nr\wt` (nr/notice-anchors), with `<CAND>` as announced:
+```
+python scripts/v1_prepare_session.py prepare  --cand <CAND> --work C:\mh-lanes\nr\v1
+#   read C:\mh-lanes\nr\v1\NEEDS_LANE_READ.md (new or re-issued notices, failing checks); edit v1\verdicts.json
+python scripts/v1_prepare_session.py finalize --work C:\mh-lanes\nr\v1 --judged-by "..." --push
+python scripts/v1_prepare_session.py test-sitting --work C:\mh-lanes\nr\v1
+```
+**Dry run** (the gate 1fa77f2c as candidate, against the attested b284e085):
+- `prepare` 4 min: 41 noticed, 0 blockers, nothing needing a read.
+- `finalize` 2 min: hold derived from data = the 8 notices with wording defects; ruling N23; pushed and verified.
+- `test-sitting` 8 min: four sections in order; 33 signed and VALID; the GLP-1 bundle and PRESERVED-HF recorded;
+  push proven.
+
+Evidence is in `dryrun-2026-09-26/`. Mahmood's clone and branch then come from `v1/FINAL_SIGNING_LIST.md`
+(`C:\mh-sign-v1`, `sign/mahmood-v1`); he runs the same `sign_session.py` command against the sign branch's
+`registry/sign_session_plan.json`.
+
 # V1 notice runbook (lane NR): from the freeze (Sat 09:00) to Mahmood's verified signatures (before 15:00)
 
 The re-derivation tools are on `nr/notice-anchors`: `scripts/rederive_notices.py`, `v1_notice_registry.py`,
