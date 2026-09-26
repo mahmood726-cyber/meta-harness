@@ -43,8 +43,15 @@ def main():
         L += [f"- {x['trial']} {x['domain']}: lane **{x['lane']}**, second reader **{x["blind2"]}** -- {x["blind2_why"]}" + (f" **[answered after the read: {x['evidence_added_after']}]**" if x.get("evidence_added_after") else "") for x in b2["disagreements"]]
         L += ["- (the second reader itself flagged that its D3 calls penalise trials that report MORE: those giving a ~96-97% "
               "primary-outcome completeness figure were rated some_concerns while trials reporting only vital status >=98.6% were rated low)", ""]
+    b3p = os.path.join(HERE, "BLIND_READ_3.json")
+    if os.path.exists(b3p):
+        b3 = json.load(open(b3p, encoding="utf-8"))
+        L += [f"**Third blind read** (the {len(b3['rows'])} domains that moved or gained evidence after read 2; same family, blind; "
+              f"levels NOT moved on it): agreement **{b3['agreement']}**.", ""]
+        L += [f"- {r['trial']} {r['domain']}: lane **{r['lane']}**, third reader **{r['blind3']}**" + ("" if r["agree"] else f" -- {r['blind3_why']}") for r in b3["rows"]]
+        L += ["", f"Lane note: {b3['lane_note']}", ""]
     for p in sorted(glob.glob(os.path.join(HERE, "*.json"))):
-        if os.path.basename(p) in ("SPEC.json", "SUMMARY.json", "BLIND_SECOND_READ.json", "BLIND_SECOND_READ_raw.json", "BLIND_READ_2.json", "BLIND_READ_2_raw.json"):
+        if os.path.basename(p) in ("SPEC.json", "SUMMARY.json", "BLIND_SECOND_READ.json", "BLIND_SECOND_READ_raw.json", "BLIND_READ_2.json", "BLIND_READ_2_raw.json", "BLIND_READ_3.json"):
             continue
         d = json.load(open(p, encoding="utf-8"))
         L += [f"## {d['trial']} (PMID {d['pmid']}, {d['nct']}) -- overall proposal: {d['overall']['proposal']}", "",

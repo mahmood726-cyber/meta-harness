@@ -24,6 +24,16 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 - EXSCEL D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper span: only 96.2% completed the trial (vital status 98.8%), so MACE status is incomplete for about 3.8% with no balance or sensitivity information in the spans. **[answered after the read: per-arm completion bound AFTER this read: not completed 303/7396 (4.1%) placebo vs 262/7356 (3.6%) exenatide (registry participant flow; completers sum to the paper's 14,187)]**
 - (the second reader itself flagged that its D3 calls penalise trials that report MORE: those giving a ~96-97% primary-outcome completeness figure were rated some_concerns while trials reporting only vital status >=98.6% were rated low)
 
+**Third blind read** (the 5 domains that moved or gained evidence after read 2; same family, blind; levels NOT moved on it): agreement **3 of 5**.
+
+- SOUL D5_selection_of_reported_result: lane **low**, third reader **low**
+- LEADER D1_randomisation: lane **some_concerns**, third reader **low** -- Randomisation was stratified by eGFR, which implies a formal random sequence. Code breaks went through a central IVRS (the OCR reads it as 'IVNVRS') that notified the sponsor, which suggests allocation was centrally concealed. The FDA review reports baseline characteristics as well balanced.
+- EXSCEL D5_selection_of_reported_result: lane **some_concerns**, third reader **low** -- The initial SAP was approved in October 2010, long before results existed. Edition 4 (Feb 2017) refers to blinded review before database lock, so it was apparently finalised while blinded. The design paper prespecifies an ITT superiority analysis. No span suggests selection among outcome measures or analyses.
+- EXSCEL D3_missing_outcome_data: lane **low**, third reader **low**
+- AMPLITUDE-O D3_missing_outcome_data: lane **low**, third reader **low**
+
+Lane note: Both disagreements are domains the lane kept at some_concerns while flagging 'REVIEWER: this may justify low' (EXSCEL D5, LEADER D1). The reader's LEADER 1.1 = PY rests on 'stratified randomisation implies a formal sequence', which RoB 2 guidance does not accept on its own; its EXSCEL 5.1 = PY reads a deviations-review sentence as dating the plan's finalisation. The lane does not move either: doing so would make 8 of 8 post-blind changes toward low on a same-family reader. SOUL D5 (moved to low after read 2) is supported by this read; AMPLITUDE-O D3 (a read-2 disagreement) agrees with the lane here.
+
 ## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |
