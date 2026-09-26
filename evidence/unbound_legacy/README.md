@@ -65,3 +65,19 @@ never run, so they reached the gate with no class. Running the real `classify_bo
   where deleting a field raises admissibility, and the served numbers should move once, for a known reason.
 
 Every served-number move is a notice for Mahmood's hash-bound signature. Nothing here lands unsigned.
+
+## 6. What else the fix breaks, isolated (not guessed)
+
+CI on 7244e3b2 (run 36268625706) reports 27 failing unit tests, plus page reproduction, gate and fix-state. Those three are expected:
+target_endpoint.py is pinned in every page's certificate, so they clear on regeneration.
+
+Locally, 247 tests failed in the sparse tree. Those same 247 were rerun with the PRE-FIX target_endpoint.py swapped in:
+**230 fail before the fix too** (missing files in the sparse tree), and **17 are caused by the fix**
+(`tests_broken_by_failclosed.txt`):
+- **2 certificate pins** (`test_certificate_code_closure`): expected; they clear when pages are regenerated.
+- **12 behaviour tests** that build CLASSLESS rows and expect them pooled: `test_source_hierarchy` (x5), `test_verified_effects`,
+  `test_verified_override`, `test_hm1_lane`, `test_hm2_contract`, `test_hm3_contract`, `test_in2_verified_inputs`,
+  `test_harms_recovery`. Each tests something else (source precedence, override, harms recovery) but relies on the fail-open to
+  get a row into the pool. This is section 4's finding again: those routes never classify. They are not rewritten here; the
+  honest fix is option C (classify every route), after which they should pass with classified rows.
+- **3 page-state tests** (`test_acquisition`, two `test_result_change_notice` plants): named for CI confirmation.
