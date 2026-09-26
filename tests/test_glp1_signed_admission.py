@@ -200,3 +200,29 @@ def test_PLANT_renderer_swapped_is_refused(inputs):
     with pytest.raises(RA.AdjudicationRefused, match="renderer"):
         _build(inp, bad)
     RA._text_cache.clear()
+
+
+def test_PLANT_documented_absent_decision_and_admission_for_one_trial_fail_the_build(inputs):
+    """A documented human decision (typed refusal) for ELIXA plus its adjudicated admission: the build never picks one."""
+    from harness import pipeline as P
+    inp, spec = inputs
+    assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
+    veffs = copy.deepcopy(inp["veffs"] or {})
+    veffs["26630143"] = [{"outcome": PRIMARY, "override": True, "absent": True, "provenance": "REFUSED_ON_EVIDENCE",
+                          "reason": "planted documented decision"}]
+    with pytest.raises(RA.AdjudicationRefused, match="documented decision"):
+        P.build_outcome_from_inputs(inp, spec, "efficacy", SLUG, veffs=veffs)
+
+
+def test_PLANT_second_route_for_an_admitted_trial_fails_the_build(inputs):
+    """Any other route that pools FLOW or ELIXA as well would double the trial: refused, fail closed."""
+    from harness import pipeline as P
+    inp, spec = inputs
+    assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
+    veffs = copy.deepcopy(inp["veffs"] or {})
+    veffs["26630143"] = [{"outcome": PRIMARY, "override": True, "effect": 1.02, "ci_low": 0.89, "ci_high": 1.17,
+                          "scale": "HR", "source": "planted second route"}]
+    with pytest.raises(RA.AdjudicationRefused, match="already pooled by another route"):
+        P.build_outcome_from_inputs(inp, spec, "efficacy", SLUG, veffs=veffs)

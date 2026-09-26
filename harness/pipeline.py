@@ -1312,6 +1312,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if any(t.get("id") == _row["id"] for t in trials):
             raise result_adjudication_mod.AdjudicationRefused(
                 f"{_row['label']} ({_row['id']}) is already pooled by another route; an adjudicated admission never doubles a trial")
+        _human = [a for a in absent if a.get("id") == _row["id"] and a.get("absent_kind") != "machine_absent"]
+        if _human:
+            # a documented human decision (typed refusal / adjudicated absent) and an adjudicated admission for the
+            # same trial are two contradictory decisions: a reviewer resolves them; the build never picks one
+            raise result_adjudication_mod.AdjudicationRefused(
+                f"{_row['label']} ({_row['id']}) is declared {_human[0].get('absent_kind')} by a documented decision and "
+                "admitted by a result-level adjudication; resolve one before building")
         absent[:] = [a for a in absent if a.get("id") != _row["id"]]
         trials.append(_row)
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
