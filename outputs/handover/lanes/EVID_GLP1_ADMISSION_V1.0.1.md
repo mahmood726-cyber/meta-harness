@@ -55,15 +55,21 @@ The page shows: *"Previously served: k = 8, 0.86 (0.81 to 0.91). Now: k = 10, 0.
 - **Green:** the admission suite, the battery, and the held-source file.
 
 ## Not done: needs a decision or a site-wide step before V1.0.1 can land
-1. **BUNDLE and the ELIXA binding: a decision for the captain / Mahmood.**
-   - `scripts/build_bundle.py` assumes every pooled row has a `records.json` abstract, so it refuses FLOW. It needs a branch for adjudicated rows, and `scripts/verify_bundle.py` needs the same branch.
-   - Prototyped predicates:
-     - **FLOW passes** P2 (located), P3 (tuple in clause), P4 (components) and P9 (target mention in the tuple's clause), against the FDA label text.
-     - **ELIXA fails P9** with `AMBIGUOUS_ENDPOINT_BINDING`. The clause that carries the unrounded tuple — "The 95% confidence interval for the hazard ratio is (0.887, 1.172) with a point estimate of 1.02." — does not name the endpoint. This is the same property that makes the M2 hand binder abstain.
-   - Options:
-     - **(a)** Pool ELIXA's **Table 8** rendering, 1.02 (0.89–1.18). Its clause names "MACE endpoint (on-study)" and carries the counts 392 vs 400, and P9 **passes**. The result is identical at 3 dp: k=10, 0.8612 (0.807–0.919), PI 0.7539–0.9838. But 1.18 is a known mis-rounding of the text's 1.172, which is why the decision of record binds the unrounded interval. Choosing (a) changes a bound value, so the decision file gets a new version, a new pinned sha and a new signature bundle.
-     - **(b)** Keep the unrounded interval and let P9 accept a signed adjudication's named definition witness plus its event counts as the target mention. That is a rule change to the independent verifier.
-   - I did not pick one.
+1. **BUNDLE: DONE on the builder side; two decisions left.**
+   - `scripts/build_bundle.py` now evidences an adjudicated row by its witnessed tuple span in the committed FDA text extraction. Every predicate is computed on that text, unchanged.
+   - The regenerated `BUNDLE.json` shows **8 of 10 rows admissible**:
+     - FLOW passes all predicates.
+     - HARMONY fails P5, as it did in V1.
+     - **ELIXA fails three predicates**, all genuine findings:
+       - **P5** — its certified family object (`cache/glp1-ra-mace-t2d/families.json`, NCT01147250) says eligibility UNKNOWN, while the lane's decision says ELIGIBLE.
+       - **P9** — the clause carrying the unrounded tuple, "The 95% confidence interval for the hazard ratio is (0.887, 1.172) with a point estimate of 1.02.", does not name the endpoint.
+       - **P11** — the carrier passage names on-study *and* on-treatment analyses, so the estimand is UNRESOLVED.
+   - **Independent verifier.** `scripts/verify_bundle.py` is deliberately unchanged, and it refuses both FDA-text rows as `UNSUPPORTED_REPRESENTATION` under its declared limit L14 ("binds pooled rows to PubMed records only"). The pool itself reproduces to 1e-9 (k=10, 0.86134).
+   - **Decision A: lift L14 for committed regulatory text extractions?** That is a scope change to the independent checker.
+   - **Decision B: which ELIXA rendering to bind?**
+     - **(a)** The Table 8 rendering, 1.02 (0.89–1.18). Its row names "MACE endpoint (on-study)" and carries the counts 392 vs 400. P9 passes, and the result is identical at 3 dp: k=10, 0.8612 (0.807–0.919). But 1.18 mis-rounds the text's 1.172, and the decision file changes, so its sha and the signature bundle `4bf8ec33` must be regenerated.
+     - **(b)** Keep the unrounded interval, and let P9 accept a signed adjudication's named definition witness plus its event counts.
+   - Either way, ELIXA's P5 needs its family eligibility object to be repaired (UNKNOWN → ELIGIBLE, per the B-prime decision) or accepted as a finding.
 2. **Site-wide certificate refresh.**
    - Changing `harness/` moves `analysis_code_blobs` in **every** topic's certificate. `gate.check_certificate` and `test_stdlib_audit_reproduces_every_served_certificate` then refuse every other page until it is rebuilt. Pooled numbers do not change; the certificate moves.
    - This worktree holds only the GLP-1 cache (disk), so the other ~30 topics were not rebuilt here.
