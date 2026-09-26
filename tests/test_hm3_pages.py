@@ -1,6 +1,7 @@
 """End-to-end contract on the 17 rebuilt HM3 pages and their held inputs."""
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -9,6 +10,16 @@ from harness import harms
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / 'docs/evidence/hm3-held-source-audit'
 BASE = 'f6f7b14c820bdadd258122ac0bb54c7e4d2a989a'
+# A LATER landing may change the pinned HM3 controls only by a DECLARED supersession that names every change (the
+# snapshot itself is never rewritten): docs/evidence/hm3-held-source-audit/screening_roles_supersession.json, the V1.0.1
+# screening-roles landing -- each screening row it changed (before/after), the key it added to every row, and each
+# harms outcome it made HARMS_INCOMPLETE with the reports that did it. Anything NOT declared still fails.
+_SS_PATH = EVIDENCE / 'screening_roles_supersession.json'
+SUPERSESSION = json.loads(_SS_PATH.read_text(encoding='utf-8')) if _SS_PATH.exists() else {'pages': {}}
+
+
+def _declared(slug):
+    return (SUPERSESSION.get('pages') or {}).get(slug) or {}
 
 
 def test_rebuilt_pages_account_for_every_baseline_harm():
@@ -17,7 +28,11 @@ def test_rebuilt_pages_account_for_every_baseline_harm():
         folder = ROOT/'docs/reviews'/d['topic']
         review = json.loads((folder/'review.json').read_text(encoding='utf-8'))
         outcome = next(o for o in review['outcomes'] if o['name'] == d['outcome'])
-        assert not outcome['result'].get('harms_incomplete'), (d['topic'],d['outcome'])
+        if outcome['result'].get('harms_incomplete'):
+            declared = (_declared(d['topic']).get('harms_incomplete_by_entered_reports') or {}).get(d['outcome'])
+            assert declared, (d['topic'], d['outcome'], 'HARMS_INCOMPLETE without a declared supersession')
+            named = re.search(r"unresolved \(([^)]*)\)", outcome['result'].get('reason') or '')
+            assert named and sorted(x.strip() for x in named.group(1).split(',')) == declared, (d['topic'], d['outcome'])
         if d['entry'].get('absent'):
             row = next(t for t in outcome['declared_absent_trials'] if t['id'].replace('PMID ','')==d['trial'])
             assert row['harm_absence_state'] in (harms.RETRIEVED_REFUSED_WITH_REASON,harms.RETRIEVED_INCOMPATIBLE_STRUCTURE)
@@ -58,7 +73,20 @@ def test_primary_trial_values_and_membership_are_unchanged():
         assert snap['pinned_commit'] == BASE
         before = snap['pages'][slug]
         after = json.loads((ROOT/rel).read_text(encoding='utf-8'))
-        assert before['screening_records'] == after['screening']['records'], slug
+        ss = _declared(slug)
+        added = tuple(ss.get('added_keys') or ())
+        changed = ss.get('screening_rows_changed') or {}
+        strip = lambda r: {k: v for k, v in r.items() if k not in added}
+        b_rows = {str(r['id']): r for r in before['screening_records']}
+        a_rows = {str(r['id']): strip(r) for r in after['screening']['records']}
+        assert set(b_rows) == set(a_rows), slug
+        for rid in b_rows:
+            if rid in changed:
+                c = changed[rid]
+                assert {k: b_rows[rid].get(k) for k in ('decision', 'rule_id', 'reason')} == c['before'], (slug, rid)
+                assert {k: a_rows[rid].get(k) for k in ('decision', 'rule_id', 'reason')} == c['after'], (slug, rid)
+            else:
+                assert b_rows[rid] == a_rows[rid], (slug, rid, 'screening row changed without a declared supersession')
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
         sup = (snap.get('superseded') or {}).get(slug)

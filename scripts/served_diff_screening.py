@@ -5,6 +5,8 @@ named; a moved pooled NUMBER is a served-number change and needs Mahmood's signa
 import argparse, json, os, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KEYS = ("k", "estimate", "ci_low", "ci_high", "pi_low", "pi_high", "tau2")
+# result STATES a reader acts on as much as on a number: presence, completeness, refusal, suppression
+STATE_KEYS = ("present", "harms_incomplete", "state", "suppressed_incompatible", "unrenderable")
 
 
 def _load(ref, slug):
@@ -40,11 +42,16 @@ def main(argv=None):
             x, y = bo.get(name) or {}, wo.get(name) or {}
             rx, ry = x.get("result") or {}, y.get("result") or {}
             num = {k: [rx.get(k), ry.get(k)] for k in KEYS if rx.get(k) != ry.get(k)}
+            states = {k: [rx.get(k), ry.get(k)] for k in STATE_KEYS if rx.get(k) != ry.get(k)}
+            if bool(rx.get("pool_refused")) != bool(ry.get("pool_refused")):
+                states["pool_refused"] = [bool(rx.get("pool_refused")), bool(ry.get("pool_refused"))]
             pooled = (_ids(x.get("trials")), _ids(y.get("trials")))
             absent = (_ids(x.get("declared_absent_trials")), _ids(y.get("declared_absent_trials")))
             d = {}
             if num:
                 d["result"] = num
+            if states:
+                d["result_state"] = states
             if pooled[0] != pooled[1]:
                 d["pooled"] = {"left": sorted(set(pooled[0]) - set(pooled[1])), "entered": sorted(set(pooled[1]) - set(pooled[0]))}
             if absent[0] != absent[1]:
@@ -54,14 +61,17 @@ def main(argv=None):
         if diffs:
             moved.append(slug)
         report[slug] = {"state": "MOVED" if any("result" in d or "pooled" in d for d in diffs) else
+                                 "RESULT_STATE_CHANGED" if any("result_state" in d for d in diffs) else
                                  ("MEMBERSHIP_ONLY" if diffs else "UNCHANGED"), "outcomes": diffs}
     summary = {"base": a.base, "topics": len(slugs),
                "served_number_moved": sorted(s for s, r in report.items() if r["state"] == "MOVED"),
+               "result_state_changed": sorted(s for s, r in report.items() if r["state"] == "RESULT_STATE_CHANGED"),
                "declared_absent_membership_only": sorted(s for s, r in report.items() if r["state"] == "MEMBERSHIP_ONLY"),
                "unchanged": sum(1 for r in report.values() if r["state"] == "UNCHANGED"), "per_topic": report}
     if a.out:
         open(a.out, "w", encoding="utf-8", newline="\n").write(json.dumps(summary, indent=1, ensure_ascii=False) + "\n")
-    print(f"topics {len(slugs)} | served number moved: {summary['served_number_moved']} | declared-absent only: "
+    print(f"topics {len(slugs)} | served number moved: {summary['served_number_moved']} | result state changed: "
+          f"{summary['result_state_changed']} | declared-absent only: "
           f"{summary['declared_absent_membership_only']} | unchanged {summary['unchanged']}")
     return 1 if summary["served_number_moved"] else 0
 

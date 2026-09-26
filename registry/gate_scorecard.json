@@ -3567,6 +3567,60 @@
    "gate_id": "gate.check_harms_synthesis_gated",
    "what_it_refuses": "An incomplete reporting-trial harm extraction serves a quantitative synthesis, omits the complete debt ledger, or inserts an extra result alongside the ledger.",
    "where": "harness/gate.py:check_harms_synthesis_gated"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_screening_record.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-screening-record-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_screening_record.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "screening-record consistency plants (narrative vs ledger, ledger vs record, family vs record, report listed under another family)",
+     "when_utc": null,
+     "where": "harness/gate.py:check_screening_record"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-screening-record-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations exist; the gate is new in V1.0.1 (screening roles). Its corpus measurement on v1/candidate found 21 of 3146 screened reports that it would refuse (evidence/screening_roles/CONTRADICTIONS_v1_candidate.json); no dated production refusal exists yet.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_screening_record"
+    }
+   ],
+   "gate_id": "gate.check_screening_record",
+   "what_it_refuses": "Page-gate refusal when the screening ledger, the per-report screening record (parent eligibility, report relevance, result admissibility), the trial-family report entry and the screening narrative disagree about a screened report: LEDGER_VS_RECORD, FAMILY_VS_RECORD, NARRATIVE_VS_LEDGER, REASON_VS_SPAN, FAMILY_VS_LEDGER. Adjudicator disagreements are advisory, not refused.",
+   "where": "harness/gate.py:check_screening_record"
   }
  ],
  "generated_utc": null,
