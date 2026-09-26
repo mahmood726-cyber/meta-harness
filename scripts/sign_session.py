@@ -69,6 +69,23 @@ def signature_in_ledger(item: dict, by: str) -> bool:
             and s.get("judgement_id") == item["judgement"] and bool(str(s.get("how_it_reached_the_reviewer")).strip()))
 
 
+def bundle_problem(it: dict, current_ref: str = "origin/main") -> str | None:
+    """None if the bundle the plan names is still what its bound files hash to, BOTH at the request's commit and on
+    the current main (fetched first); else why not. A request whose bound bytes have moved on main is stale: signing
+    it would sign bytes that are no longer served."""
+    pinned, _ = planmod.glp1_bundle(it["source_commit"])
+    if pinned != it["bundle_sha256"]:
+        return f"the bound bytes at {it['source_commit'][:12]} hash to {pinned}, not {it['bundle_sha256']}"
+    subprocess.run(["git", "fetch", "-q", "origin", "main"], cwd=ROOT, capture_output=True)
+    current, files = planmod.glp1_bundle(current_ref)
+    if current != it["bundle_sha256"]:
+        _, old = planmod.glp1_bundle(it["source_commit"])
+        moved = [b["path"] for a, b in zip(old, files) if a["sha256"] != b["sha256"]]
+        return (f"the request is STALE on {current_ref}: its bound bytes now hash to {current} (changed: "
+                f"{', '.join(moved) or '?'}); the evidence lane must regenerate SIGNATURE_REQUEST.md before you sign")
+    return None
+
+
 def record(path: str, entry: dict) -> None:
     p = ROOT / path
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -155,11 +172,12 @@ def main(argv=None) -> int:
                 done["refused"].append(it["id"])
                 print(f"  NOT SIGNED -- the command refused: {(proc.stderr or proc.stdout).strip()[:400]}")
         elif it["kind"] == "bundle":
-            bundle, _ = planmod.glp1_bundle(it["source_commit"])
-            if bundle != it["bundle_sha256"]:
+            why = bundle_problem(it)
+            if why:
                 done["refused"].append(it["id"])
-                print(f"  NOT RECORDED -- the bound bytes now hash to {bundle}, not {it['bundle_sha256']}")
+                print(f"  NOT RECORDED -- {why}")
                 continue
+            bundle = it["bundle_sha256"]
             when = now()
             record(it["record_path"], {"SIGNED-BY": args.by, "BUNDLE": bundle, "DATE": when,
                                        "line": f"SIGNED-BY: {args.by}  BUNDLE: {bundle}  DATE: {when[:10]}",

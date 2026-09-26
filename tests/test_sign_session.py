@@ -55,3 +55,15 @@ def test_the_plan_builder_refuses_decisions_that_name_unknown_notices(tmp_path):
     with pytest.raises(SystemExit, match="not on the signing list"):
         sign_session_plan.main(["--signing-json", str(sl), "--decisions", str(dec), "--out", str(tmp_path / "p.json"),
                                 "--config", str(ROOT / "outputs/handover/lanes/nr-2026-09-25/session/session_config.json")])
+
+
+def test_a_bundle_stale_on_main_is_refused_even_if_it_matches_its_own_commit(monkeypatch):
+    item = {"source_commit": "a" * 40, "bundle_sha256": "b" * 64}
+    files = lambda h: [{"path": "docs/reviews/glp1-ra-mace-t2d/review.json", "sha256": h}]  # noqa: E731
+    calls = {"a" * 40: ("b" * 64, files("1")), "origin/main": ("c" * 64, files("2"))}
+    monkeypatch.setattr(sign_session.planmod, "glp1_bundle", lambda ref: calls[ref])
+    monkeypatch.setattr(sign_session.subprocess, "run", lambda *a, **k: None)
+    why = sign_session.bundle_problem(item)
+    assert why and "STALE" in why and "review.json" in why
+    calls["origin/main"] = ("b" * 64, files("1"))
+    assert sign_session.bundle_problem(item) is None
