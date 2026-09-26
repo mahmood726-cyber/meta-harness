@@ -1,0 +1,210 @@
+"""Enumerate each registered comparator's INCLUDED-TRIAL TABLE from its PMC full text (JATS), wherever the article is
+in PMC under an open licence, and store it as the comparator panel's located trial_set -- replacing the "comparator
+trial table not machine-exposed" state wherever the table can in fact be fetched (V1.0.1, external review of the
+colchicine-POAF topic).
+
+For each topic (topics/<slug>.json with a comparator_pmid) the outcome is exactly one named state:
+  ALREADY_ENUMERATED  the panel already carries a located trial_set (left untouched)
+  NOT_IN_PMC          the PMC ID converter maps the PMID to no PMCID
+  FETCH_FAILED        a request failed (status recorded; never read as "no table")
+  NOT_OPEN_LICENSE    the JATS carries no Creative Commons / open-access licence: not held, not enumerated
+  NO_INCLUDED_TABLE   no table whose first column links >= 2 rows to references
+  AMBIGUOUS_TABLES    several such tables with DIFFERENT reference sets: nothing written
+  WRITTEN             the table's rows were written as the trial_set (validated by comparator_panel.validate)
+
+A row is one included trial. It is located as its raw <tr> in the held JATS; its identity is the reference(s) its
+first cell links to: PMID and DOI become panel aliases (each a located <ref> span); a reference with neither is keyed
+bibliographically (journal:year:volume:first page, each printed in the located <ref>). Endpoint membership is not in
+the table, so it is left unknown (never guessed).
+usage: python scripts/comparator_trial_tables.py [--write] [--only SLUG]"""
+import hashlib, json, os, re, sys, time, urllib.parse, urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from harness import comparator_panel  # noqa: E402
+
+TOOL = "tool=meta-harness&email=meta-harness@example.org"
+LOG = []
+
+
+def get(url):
+    t0 = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "meta-harness"}), timeout=60) as r:
+            body, status = r.read(), r.status
+    except Exception as exc:  # noqa: BLE001 -- recorded, never swallowed into a "no table"
+        body, status = b"", f"ERROR {type(exc).__name__}: {exc}"
+    LOG.append({"url": url, "utc": t0, "status": status, "bytes": len(body),
+                "sha256": hashlib.sha256(body).hexdigest() if body else None})
+    time.sleep(0.4)
+    return status, body
+
+
+INCLUDED_CAPTION = re.compile(r"(?:characteristic|summar)\w*\b.{0,60}\b(?:included|eligible)\b|"
+                              r"\bincluded (?:stud|trial|rct|citation)", re.I)
+
+
+def norm_journal(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _text(x):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", x or "")).strip()
+
+
+def refs(xml):
+    out = {}
+    for m in re.finditer(r'<ref id="([^"]+)">.*?</ref>', xml, re.S):
+        r = m.group(0)
+        g = lambda t: _text((re.search(rf"<{t}[^>]*>(.*?)</{t}>", r, re.S) or [None, ""])[1])
+        out[m.group(1)] = {"span": {"start": m.start(), "end": m.end(), "quote": r},
+                           "ids": dict(re.findall(r'<pub-id pub-id-type="(pmid|doi)">([^<]+)</pub-id>', r)),
+                           "surname": g("surname"), "year": g("year")[:4], "source": g("source"),
+                           "volume": g("volume"), "fpage": g("fpage")}
+    return out
+
+
+def bibr_rids(cell):
+    """Reference ids a cell links to, whatever the attribute order (<xref ref-type="bibr" rid=..> or <xref rid=..
+    ref-type="bibr">); a multi-id rid ("CR3 CR4") yields each id."""
+    out = []
+    for tag in re.findall(r"<xref\b[^>]*>", cell):
+        if re.search(r'ref-type="bibr"', tag):
+            m = re.search(r'rid="([^"]+)"', tag)
+            if m:
+                out += m.group(1).split()
+    return out
+
+
+def printed_name(cell_head, row_raw):
+    """The row's label as printed: the longest leading run of words of the first cell (before its reference link)
+    that occurs verbatim in the raw row; None if even the first word is not verbatim (markup inside it)."""
+    words = _text(cell_head).strip(" [(,;").split()
+    for n in range(len(words), 0, -1):
+        cand = " ".join(words[:n]).strip(" [(,;.")
+        if cand and cand in row_raw:
+            return cand
+    return None
+
+
+def trial_tables(xml):
+    """(caption, [(row_match, first_cell_raw, rids)]) for tables whose first column links >= 2 rows to references."""
+    found = []
+    for tw in re.finditer(r"<table-wrap\b.*?</table-wrap>", xml, re.S):
+        cap = _text((re.search(r"<caption>(.*?)</caption>", tw.group(0), re.S) or [None, ""])[1])
+        rows = []
+        for tr in re.finditer(r"<tr\b[^>]*>.*?</tr>", tw.group(0), re.S):
+            cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr.group(0), re.S)
+            if not cells:
+                continue
+            rids = bibr_rids(cells[0])
+            if rids:
+                rows.append(((tw.start() + tr.start(), tw.start() + tr.end()), cells[0], rids))
+        if len(rows) >= 2:
+            found.append((cap, rows))
+    return found
+
+
+def build(slug, write):
+    cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8"))
+    pmid = str(cfg.get("comparator_pmid") or "")
+    ppath = os.path.join(ROOT, "cache", slug, "comparators.json")
+    if not pmid or not os.path.exists(ppath):
+        return {"state": "NO_REGISTERED_COMPARATOR"}
+    raw_panel = open(ppath, encoding="utf-8").read()
+    panel = json.loads(raw_panel)
+    entry = next((c for c in panel if pmid in str(c.get("citation") or "") or pmid == str(c.get("id") or "")), None)
+    if entry is None:
+        return {"state": "NO_PANEL_ENTRY"}
+    if entry.get("trial_set"):
+        return {"state": "ALREADY_ENUMERATED", "k": len(entry["trial_set"])}
+    st, body = get(f"https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids={pmid}&format=json&{TOOL}")
+    if st != 200:
+        return {"state": "FETCH_FAILED", "step": "idconv", "status": st}
+    pmcid = (json.loads(body).get("records") or [{}])[0].get("pmcid")
+    if not pmcid:
+        return {"state": "NOT_IN_PMC"}
+    st, xml_raw = get(f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmcid[3:]}&retmode=xml&{TOOL}")
+    if st != 200 or b"<article" not in xml_raw:
+        return {"state": "FETCH_FAILED", "step": "efetch", "status": st, "pmcid": pmcid}
+    xml = xml_raw.decode("utf-8")
+    lic = (re.search(r"creativecommons\.org/(?:licenses|publicdomain)/[a-z-]+/[0-9.]+", xml) or [None])[0] \
+        if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", xml) else None
+    if not lic and 'license-type="open-access"' not in xml:
+        return {"state": "NOT_OPEN_LICENSE", "pmcid": pmcid}
+    tables = trial_tables(xml)
+    if not tables:
+        return {"state": "NO_INCLUDED_TABLE", "pmcid": pmcid, "license": lic}
+    sets = {tuple(sorted({r for _, _, rids in rows for r in rids})) for _, rows in tables}
+    if len(sets) > 1:
+        # several reference-linked tables with different sets: take the ONE whose caption names the included (or
+        # eligible) studies/trials; otherwise refuse rather than pick
+        named = [t for t in tables if INCLUDED_CAPTION.search(t[0])]
+        if len({tuple(sorted({r for _, _, rids in rows for r in rids})) for _, rows in named}) != 1:
+            return {"state": "AMBIGUOUS_TABLES", "pmcid": pmcid, "tables": [c for c, _ in tables]}
+        tables = named
+    cap, rows = tables[0]
+    rf = refs(xml)
+    rel = f"cache/{slug}/comparator_pmc_jats.xml"
+    sha = hashlib.sha256(xml_raw).hexdigest()
+    entries, notes = [], []
+    for (s, e), cell, rids in rows:
+        name = printed_name(cell.split("<xref")[0], xml[s:e])
+        r0 = rf.get(rids[0]) or {}
+        family_id = f"{name or r0.get('surname') or rids[0]} {r0.get('year') or ''} [{rids[0]}]".replace("  ", " ")
+        m = {"family_id": family_id, "name_in_source": name, "references": rids,
+             "span": {"start": s, "end": e, "quote": xml[s:e]}, "endpoint": None, "aliases": []}
+        for rid in rids:
+            ref = rf.get(rid)
+            if not ref:
+                notes.append(f"{family_id}: reference {rid} not in the reference list")
+                continue
+            for kind in ("pmid", "doi"):
+                if ref["ids"].get(kind):
+                    # bound by the row's own reference link (rid), never by matching names
+                    m["aliases"].append({"id": ref["ids"][kind], "document_ref": rel, "document_sha256": sha,
+                                         "span": ref["span"], "linked_rid": rid})
+            if not ref["ids"] and ref["source"] and ref["year"] and ref["volume"] and ref["fpage"]:
+                m["bib_key"] = f"bib:{norm_journal(ref['source'])}:{ref['year']}:{ref['volume']}:{ref['fpage']}"
+                m["bib_key_span"] = ref["span"]
+        if not name:
+            m.pop("name_in_source")
+        entries.append(m)
+    result = {"state": "WRITTEN" if write else "WOULD_WRITE", "pmcid": pmcid, "license": lic, "caption": cap,
+              "k": len(entries), "bound": sum(bool(m["aliases"] or m.get("bib_key")) for m in entries),
+              "rows": [m["family_id"] for m in entries], "notes": notes}
+    if write:
+        open(os.path.join(ROOT, rel), "wb").write(xml_raw)
+        entry["trial_set"] = entries
+        entry["trial_set_document"] = {"document_ref": rel, "document_sha256": sha, "source": "PMC JATS (efetch db=pmc)",
+                                       "pmcid": pmcid, "license": lic, "fetched_utc": LOG[-1]["utc"],
+                                       "table_caption": cap}
+        comparator_panel.validate(entry, ROOT)
+        open(ppath, "w", encoding="utf-8", newline="\n").write(
+            json.dumps(panel, indent=2 if raw_panel.startswith("[\n  ") else 1, ensure_ascii=False)
+            + ("\n" if raw_panel.endswith("\n") else ""))
+    return result
+
+
+def main(argv):
+    write = "--write" in argv
+    only = argv[argv.index("--only") + 1] if "--only" in argv else None
+    slugs = sorted(os.path.basename(p)[:-5] for p in os.listdir(os.path.join(ROOT, "topics")) if p.endswith(".json")) \
+        if not only else [only]
+    slugs = [s if not s.endswith(".json") else s[:-5] for s in slugs]
+    report = {}
+    for slug in slugs:
+        if not os.path.isdir(os.path.join(ROOT, "docs", "reviews", slug)):
+            continue
+        report[slug] = build(slug, write)
+        print(slug, report[slug]["state"], {k: v for k, v in report[slug].items() if k in ("pmcid", "k", "bound", "license")})
+    out = os.path.join(ROOT, "evidence", "comparator_tables")
+    os.makedirs(out, exist_ok=True)
+    if write:
+        json.dump({"run_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "topics": report, "requests": LOG},
+                  open(os.path.join(out, "COMPARATOR_TABLES.json"), "w", encoding="utf-8", newline="\n"), indent=1)
+    return report
+
+
+if __name__ == "__main__":
+    main(sys.argv)

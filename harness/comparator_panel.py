@@ -56,13 +56,38 @@ def validate(comparator, root=ROOT):
             for value in values:
                 if not re.search(r"(?<![\d.])" + re.escape(str(value)) + r"(?![\d.])", fact["span"]["quote"]):
                     raise ValueError(f"COMPARATOR_PANEL: {key} value absent from its span")
+    # V1.0.1: a trial set may be located in its own held document (e.g. the comparator's PMC JATS, whose table rows
+    # link each included study to a reference with its PMID/DOI) instead of the panel's text; and a row may name its
+    # trial by the surname printed in the source (`name_in_source`) while `family_id` stays the unique key (two
+    # "Imazio" rows are two trials).
+    ts_doc = c.get("trial_set_document")
+    if ts_doc:
+        ts_path = (Path(root) / ts_doc["document_ref"]).resolve()
+        if not ts_path.is_relative_to(Path(root).resolve()):
+            raise ValueError("COMPARATOR_PANEL: trial-set document outside repository")
+        ts_raw = ts_path.read_bytes()
+        if hashlib.sha256(ts_raw).hexdigest() != ts_doc["document_sha256"]:
+            raise ValueError("COMPARATOR_PANEL: trial-set document hash mismatch")
+        ts_text = ts_raw.decode("utf-8")
+    else:
+        ts_text = text
     for trial in c.get("trial_set", []):
-        if not trial.get("family_id") or not validate_span(text, trial.get("span")):
+        name = (trial.get("name_in_source") or trial.get("family_id") or "").lower()
+        if not trial.get("family_id") or not validate_span(ts_text, trial.get("span")):
             raise ValueError("COMPARATOR_PANEL: unlocated trial family")
-        if trial["family_id"].lower() not in trial["span"]["quote"].lower():
+        if not name or name not in trial["span"]["quote"].lower():
             raise ValueError("COMPARATOR_PANEL: family absent from source span")
-        if trial.get("endpoint") and not validate_span(text, trial.get("endpoint_span")):
+        if trial.get("endpoint") and not validate_span(ts_text, trial.get("endpoint_span")):
             raise ValueError("COMPARATOR_PANEL: unlocated endpoint")
+        if trial.get("bib_key"):
+            # a reference with no PMID/DOI is identified by journal/year/volume/first page, each printed in its
+            # own located reference span
+            ref = trial.get("bib_key_span") or {}
+            if not validate_span(ts_text, ref):
+                raise ValueError("COMPARATOR_PANEL: unlocated bibliographic key")
+            _, _journal, year, volume, fpage = trial["bib_key"].split(":")
+            if not all(v and v in ref["quote"] for v in (year, volume, fpage)):
+                raise ValueError("COMPARATOR_PANEL: bibliographic key not printed in its reference")
         for alias in trial.get("aliases", []):
             alias_path = (Path(root) / alias["document_ref"]).resolve()
             if not alias_path.is_relative_to(Path(root).resolve()):
@@ -72,8 +97,15 @@ def validate(comparator, root=ROOT):
                 raise ValueError("COMPARATOR_PANEL: alias source hash mismatch")
             if not validate_span(alias_raw.decode("utf-8"), alias.get("span")):
                 raise ValueError("COMPARATOR_PANEL: alias not source backed")
-            if (alias["id"] not in alias["span"]["quote"]
-                    or trial["family_id"].lower() not in alias["span"]["quote"].lower()):
+            if alias["id"] not in alias["span"]["quote"]:
+                raise ValueError("COMPARATOR_PANEL: alias does not bind family and identifier")
+            rid = alias.get("linked_rid")
+            if rid:
+                # bound by the row's own reference link: the located row cites rid, and the alias span IS <ref id=rid>
+                cites = any(rid in m.split() for m in re.findall(r'rid="([^"]+)"', trial["span"]["quote"]))
+                if not cites or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"]):
+                    raise ValueError("COMPARATOR_PANEL: alias reference link not located in the row and its reference")
+            elif name not in alias["span"]["quote"].lower():
                 raise ValueError("COMPARATOR_PANEL: alias does not bind family and identifier")
 
 
@@ -189,6 +221,9 @@ def gate_reasons(review, markup):
 def render(review):
     esc = lambda x: html.escape(str(x))
     parts = ["<h3>Comparator panel</h3><p>MEASURED: overlaps use the live trial families for each outcome and strand. Unknown endpoint compatibility is not counted as compatible.</p>"]
+    # THE relation word (V1.0.1): one computed object, the same one the index, parity row and manuscript read.
+    from .overlap_relation import render_block
+    parts.append(render_block((review.get("comparator") or {}).get("overlap_relation")))
     for c in review.get("comparator_panel", []):
         parts.append(f"<article data-comparator='{esc(c['id'])}'><h4>{esc(c['citation'])}</h4><p>{esc(c['scope_note'])}</p>")
         if not c["held"]:

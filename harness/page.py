@@ -119,6 +119,8 @@ _ABSENCE_STATE_LABEL = {
     "outcome_post_hoc_not_pooled": "excluded on evidence -- outcome was post hoc and not prespecified",
     "outcome_not_reported": "declared absent -- outcome not reported in the committed source",
     "ENGINE_CANNOT_CONSUME": "engine cannot consume this design -- variance model unavailable",
+    "RECONSTRUCTED_NOT_POOLED": "RECONSTRUCTED -- counts reconstructed from the printed percentages and group sizes; "
+                                "not pooled until the full report is held",
 }
 
 _HARM_ABSENCE_STATE_LABEL = {
@@ -2109,7 +2111,7 @@ def _comparator(r, neutral):
         # Numeric legacy overlap snapshots remain suppressed; the panel owns the counts.
         for key in ("theirs_k", "shared_k"):
             missing = (c.get("overlap") or {}).get(key)
-            if isinstance(missing, str) and missing.startswith(("not stated", "not exactly verifiable")):
+            if isinstance(missing, str) and missing.startswith(("not stated", "not exactly verifiable", "not computed")):
                 body += f"<p>Legacy comparator extraction, {_e(key)}: {_e(missing)}.</p>"
         return body + render(r)
     body += _comparator_truth_block(c)

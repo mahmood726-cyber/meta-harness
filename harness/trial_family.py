@@ -60,6 +60,13 @@ def report_role(rec):
                 return role, {'source': 'record.'+key, 'quote': text, 'match': m.group()}
     if str(rec.get('id_type')).lower() == 'nct':
         return 'REGISTRY_RECORD', {'source': 'record.id_type', 'quote': 'nct'}
+    if str(rec.get('id_type')).lower() == 'journal':
+        # journal route (no PubMed publication types): PRIMARY only when the report describes itself as a randomised
+        # trial, by the screen's own rule
+        from .screen import _is_rct
+        if _is_rct(rec):
+            return 'PRIMARY', {'source': 'record.abstract', 'quote': rec.get('abstract', ''),
+                               'match': 'self-described randomised trial (journal route)'}
     for kind in ('FDA', 'EMA'):
         if rec.get('source_kind') == 'REGULATORY_'+kind:
             return 'REGULATORY_'+kind, {'source':'record.source_kind', 'quote':rec['source_kind']}
@@ -196,7 +203,8 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
                          {r['acronym'] for r in held.get('raw',{}).get('studies',[]) if r.get('acronym')}),
                         'registry_ids':regs, 'mentioned_registry_ids':sorted({n for r in members for n in r.get('mentioned_registry_ids',[])}),
                         'report_ids':sorted(r['id'] for r in members),
-                        'dois':sorted({r['doi'] for r in members if r.get('doi')})},
+                        'dois':sorted({r['doi'] for r in members if r.get('doi')}),
+                        'bib_keys':sorted({r['bib_key'] for r in members if r.get('bib_key')})},
              'reports':reports, 'arms':arms, 'arm_absence_code':None if arms else 'NO_COMPLETE_ARM_STRUCTURE',
              'abstract_arm_objects':objects if not arms else [],
              'randomised_contrasts':randomised_contrasts(arms, agents, held.get('randomized',False)),

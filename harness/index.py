@@ -1163,13 +1163,15 @@ def build_index(docs_dir: str) -> str:
 
     if rows:
         body = "<table><tr><th>Review</th><th>Method</th><th>Comparator</th>"\
-               "<th>Overlap (ours / theirs / shared)</th></tr>"
+               "<th>Overlap (ours / theirs / shared)</th><th>Computed relation</th></tr>"
         for slug, m, comp, ov, ident in rows:
             body += (
                 f"<tr><td><a href='reviews/{_E(slug)}/index.html'>{_E(m.get('title') or slug)}</a></td>"
                 f"<td>{_E(m.get('served_method'))}</td>"
                 f"<td>{_E(comp.get('name'))} ({_E(ident)})</td>"
-                f"<td>{_E(ov.get('ours_k'))} / {_E(ov.get('theirs_k'))} / {_E(ov.get('shared_k'))}</td></tr>"
+                f"<td>{_E(ov.get('ours_k'))} / {_E(ov.get('theirs_k'))} / {_E(ov.get('shared_k'))}</td>"
+                # the relation word is the computed object's (harness/overlap_relation.py), never a count inference
+                f"<td>{_E(ov.get('relation') or 'not computed')}</td></tr>"
             )
         body += "</table>"
     else:

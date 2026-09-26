@@ -96,7 +96,7 @@ def test_PLANT_prefix_external_agreement_said_agrees_for_same_set():
         (
             {"our_k": 2, "comparable_comparator_k": 3, "status": "DISTINCT"},
             {"comparator": {"overlap": {"shared_k": 0}}},
-            "DISTINCT",
+            "DISJOINT",   # V1.0.1: the computed word for no shared trials is DISJOINT; the hand word DISTINCT is its synonym
         ),
         (
             {"our_k": 2, "comparable_comparator_k": 0, "status": "COMPARATOR_INVALID",
