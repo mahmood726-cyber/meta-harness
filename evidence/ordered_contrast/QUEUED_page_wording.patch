@@ -1,0 +1,84 @@
+diff --git a/harness/armcontrast.py b/harness/armcontrast.py
+index 1430e6b..6ba7ab9 100644
+--- a/harness/armcontrast.py
++++ b/harness/armcontrast.py
+@@ -108,8 +108,9 @@ def contrast_status(nct: str, keywords, index: dict) -> tuple[str, str]:
+     diff_match = _kw_match(keywords, differing)
+     if diff_match:
+         kw, arm = diff_match
+-        return ("verified", f"parser-confirmed contrast: keyword {kw!r} matched AACT arm intervention "
+-                f"{arm!r}; the intervention of interest DIFFERS across the randomised arms")
++        return ("verified", f"eligibility (not direction): keyword {kw!r} matched AACT arm intervention "
++                f"{arm!r}; the intervention of interest DIFFERS across the randomised arms -- which arm is the "
++                "numerator of an effect is not established here")
+     common_match = _kw_match(keywords, common)
+     if common_match:
+         kw, arm = common_match
+diff --git a/harness/limitations.py b/harness/limitations.py
+index f874b31..6c3b43d 100644
+--- a/harness/limitations.py
++++ b/harness/limitations.py
+@@ -604,7 +604,7 @@ def _funding_block(fund: list[dict[str, Any]]) -> str:
+ 
+ def _arm_contrast_block(ac: dict[str, dict[str, Any]]) -> str:
+     labels = {
+-        "verified": "parser-confirmed contrast",
++        "verified": "in the randomised difference (eligibility, not direction)",
+         "background_only": "BACKGROUND IN ALL ARMS &mdash; not a randomised contrast",
+         "unverified_granularity": "contrast unverified (registry class label / dev code)",
+         "unverified_no_contrast": "contrast unverified (no arm-level contrast coded)",
+@@ -620,14 +620,17 @@ def _arm_contrast_block(ac: dict[str, dict[str, Any]]) -> str:
+         for pid, entry in sorted(ac.items(), key=lambda kv: (order.get(kv[1].get("status"), 9), kv[0]))
+     )
+     return (
+-        "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the "
++        "<div class='absent'><strong>Randomised-difference eligibility disclosure (per pooled trial, from the "
+         "AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test "
+         "what actually DIFFERS between the randomised arms, not the mere presence of the drug word: "
+         "a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same "
+         "agent, randomising a different drug) is not a randomised comparison of it. For each pooled "
+         "trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + "
+-        f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have a "
+-        "parser-confirmed contrast (the intervention of interest matched a differing coded arm)"
++        f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have the "
++        "intervention of interest inside the randomised difference (it matched a coded arm that differs across the "
++        "randomised arms). This is an ELIGIBILITY check: it does not establish which arm is the numerator of any "
++        "effect; the ordered contrast (numerator arm, reference arm and the clause that orders them) is value-checked "
++        "per row in BUNDLE.json"
+         + (f"; <strong>{n_bg} is background in every arm (flagged)</strong>" if n_bg else "")
+         + ". A trial with no registry arm data, or coded under a class label / development code we "
+         "cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, "
+diff --git a/harness/page.py b/harness/page.py
+index 8d04cf2..85d4ff7 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -2789,7 +2789,7 @@ def _riskofbias(r, neutral):
+     ac_html = ""
+     if ac:
+         stale = (r.get("arm_contrast") or {}).get("stale_block_unrenderable") or {}
+-        _AC_LABEL = {"verified": "parser-confirmed contrast",
++        _AC_LABEL = {"verified": "in the randomised difference (eligibility, not direction)",
+                      "background_only": "BACKGROUND IN ALL ARMS — not a randomised contrast",
+                      "unverified_granularity": "contrast unverified (registry class label / dev code)",
+                      "unverified_no_contrast": "contrast unverified (no arm-level contrast coded)",
+@@ -2809,14 +2809,17 @@ def _riskofbias(r, neutral):
+                 f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []))}; suppressed stale ids: "
+                 f"{_e(', '.join(stale.get('dropped_trial_ids') or []))}.</div>"
+             )
+-        ac_html += ("<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the "
++        ac_html += ("<div class='absent'><strong>Randomised-difference eligibility disclosure (per pooled trial, from the "
+                    "AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test "
+                    "what actually DIFFERS between the randomised arms, not the mere presence of the drug word: "
+                    "a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same "
+                    "agent, randomising a different drug) is not a randomised comparison of it. For each pooled "
+                    "trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + "
+-                   f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have a "
+-                   "parser-confirmed contrast (the intervention of interest matched a differing coded arm)"
++                   f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have the "
++                   "intervention of interest inside the randomised difference (it matched a coded arm that differs across the "
++                   "randomised arms). This is an ELIGIBILITY check: it does not establish which arm is the numerator of any "
++                   "effect; the ordered contrast (numerator arm, reference arm and the clause that orders them) is value-checked "
++                   "per row in BUNDLE.json"
+                    + (f"; <strong>{n_bg} is background in every arm (flagged)</strong>" if n_bg else "")
+                    + ". A trial with no registry arm data, or coded under a class label / development code we "
+                    "cannot machine-match, is shown as <em>contrast unverified</em> — a VISIBLE fail-open state, "
