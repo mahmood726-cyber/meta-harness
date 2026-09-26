@@ -121,8 +121,72 @@ def main():
         fill["f6"] = (f"Section F.6 acceptance suite (19 cases, {pva.get('suite_source')}, sha256 {str(pva.get('suite_sha256'))[:16]}) on the V1 "
                       f"tree: rc {pva.get('rc')}, original bytes restored {f6.get('original_bytes_restored')}; per-case verdicts in f6.json.")
 
+    # ---- the 26 Sep auditor pass: AUD-1..4 from P6 on V1, AUD-5 read from the served key; fix branch from P6 on each branch
+    def aud_rows(p6detail):
+        ms = [m for v in (p6detail or {}).values() if isinstance(v, dict) for m in v.get("mutations", [])]
+        return {m["id"].split("_")[0]: m for m in ms if m.get("id", "").startswith("aud")}
+    AUD_PLAIN = {
+        "aud1": "reversing which arm a trial's result compares against (LEADER recorded as placebo vs liraglutide) is not caught",
+        "aud2": "changing the recorded estimator of a pooled result (LEADER's hazard ratio relabelled a rate ratio) is not caught",
+        "aud3": ("re-labelling a default analysis set as per-protocol is not caught: the check compares where a value came from, "
+                 "not the value itself"),
+        "aud4": "the analysis identity key of an ordinary row is stored, not recomputed, so an edited key is not caught",
+        "aud5": ("the analysis identity key leaves out comparator direction, so two results that differ only in which arm they "
+                 "compare against share one key"),
+    }
+    here = aud_rows(d6)
+    fixes = []                                 # (branch label, aud rows) from --fix-branch scorecards, in the order given
+    for spec in R.get("fix_branches") or []:
+        fsc = load(spec["scorecard"])
+        fixes.append((spec["label"], aud_rows(((fsc or {}).get("probes", {}).get("P6") or {}).get("detail")), spec.get("key_has_comparator")))
+    open_aud = []
+    for a_id in ("aud1", "aud2", "aud3", "aud4"):
+        m = here.get(a_id)
+        if not m:
+            fill[a_id] = NM("P6 on V1 did not run this edit")
+            continue
+        refused = bool(m.get("fails_as_expected"))
+        codes = ", ".join((m.get("target_failing_predicates") or []) + (m.get("semantic_codes") or [])[:2]) or "no code"
+        fill[a_id] = (f"REFUSED in V1 ({'verdict FAIL' if m.get('verdict_level_fail') else 'LEADER refused'}; {codes}; "
+                      f"P6 `{m['id']}`)" if refused else "**OPEN** in V1 (verdict PASS, LEADER admissible; P6 `" + m["id"] + "`)")
+        if not refused:
+            open_aud.append(a_id)
+    bundle = load(work / "served" / "site" / "reviews" / "glp1-ra-mace-t2d" / "BUNDLE.json")
+    if bundle:
+        lr = next((r for r in bundle.get("verification_rows", []) if str(r["trial"]["id"]).endswith("27295427")), None)
+        key = ((lr or {}).get("analysis_identity") or {}).get("analysis_identity_key") or ""
+        has = "comparator" in key
+        fill["aud5"] = ("fixed in V1: the served LEADER key names comparator direction" if has else
+                        "**OPEN** in V1: the served LEADER key has no comparator direction (`" + key[:70].replace("|", "\\|") + "...`)")
+        if not has:
+            open_aud.append("aud5")
+    else:
+        fill["aud5"] = NM("served GLP-1 BUNDLE.json not fetched")
+    for a_id in ("aud1", "aud2", "aud3", "aud4", "aud5"):
+        if a_id not in open_aud:
+            fill["fb_" + a_id] = "--" if a_id in fill and not fill[a_id].startswith("**[NOT") else NM("V1 not measured")
+            continue
+        hit = None
+        for label, rows, key_has in fixes:
+            if a_id == "aud5" and key_has:
+                hit = f"{label} (its LEADER key names comparator direction)"
+            elif a_id != "aud5" and (rows.get(a_id) or {}).get("fails_as_expected"):
+                m = rows[a_id]
+                hit = f"{label} (refused there: {', '.join((m.get('target_failing_predicates') or [])[:2]) or 'verdict FAIL'})"
+            if hit:
+                break
+        fill["fb_" + a_id] = hit or ("no measured branch refuses it" if fixes else NM("no fix branch measured"))
+    if open_aud:
+        fill["audlim"] = ("In V1, " + "; ".join(AUD_PLAIN[a] for a in open_aud) + ". Each was reproduced on the live release and "
+                          "measured on V1. Where a V1.1 branch was measured to refuse one, the auditor table in section 2 names it; the others "
+                          "have no measured fix.")
+    else:
+        fill["audlim"] = "None: V1 refuses all five (see the auditor table in section 2)."
+
     # ---- apply: each marker is mapped by its own words -------------------------------------------------------------------
-    rules = [("re-run on the served V1 bundle", "pool"), ("re-run on served V1", "certs"), ("V1: re-run.", "bytes"),
+    rules = [(f"fill from P6 {a}", a) for a in ("aud1", "aud2", "aud3", "aud4")] + [("fill from key aud5", "aud5")] + \
+            [(f"fill fix branch {a}", "fb_" + a) for a in ("aud1", "aud2", "aud3", "aud4", "aud5")] + \
+            [("fill auditor-open limitations", "audlim")] + [("re-run on the served V1 bundle", "pool"), ("re-run on served V1", "certs"), ("V1: re-run.", "bytes"),
              ("whether it is fixed in V1", "tagstrip"), ("unless that branch lands", "tagstrip"), ("state whether it was ruled", "ruling"),
              ("fill from P5b / P7", "verdicts"), ("fill from producer_probe", "producer"), ("fill from P6", "spantext"),
              ("re-check at the freeze", "notmerged")]

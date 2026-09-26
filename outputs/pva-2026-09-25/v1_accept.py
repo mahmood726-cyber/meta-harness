@@ -406,6 +406,34 @@ class Audit:
             def span_text(bb):   # PVA-D11
                 self._rows(bb)[leader]["span"]["text"] = "This sentence does not occur in the LEADER abstract at all."
             edit("span_text_replaced:LEADER", span_text, r"SPAN|P2", "PVA-D11", target=leader)
+
+            # The 26 Sep auditor pass (live release_sha256 57dcc327, pre-oc): ONE value changed, its basis left alone.
+            def aud_comparator(bb):
+                cd = self._rows(bb)[leader]["analysis_identity"]["comparator_direction"]
+                cd["value"] = "placebo vs liraglutide (named in the result clause)"
+                if isinstance(cd.get("observed"), dict):
+                    cd["observed"]["value"] = cd["value"]
+            edit("aud1_comparator_reversed:LEADER", aud_comparator, r"COMPARATOR|DIRECTION|CONTRAST|P10|P11", "AUD-1 comparator direction", target=leader)
+
+            def aud_estimator(bb):
+                est = self._rows(bb)[leader]["analysis_identity"]["estimator"]
+                est["value"] = "rate ratio"
+                if isinstance(est.get("observed"), dict):
+                    est["observed"]["value"] = "rate ratio"
+            edit("aud2_estimator_changed:LEADER", aud_estimator, r"ESTIMA|MEASURE|P10|P11", "AUD-2 estimator", target=leader)
+
+            def aud_set(bb):     # a REGISTERED_DEFAULT analysis set re-valued per-protocol, basis kept
+                s = self._rows(bb)[leader]["analysis_identity"]["analysis_set"]
+                s["value"] = "per-protocol"
+            edit("aud3_default_set_per_protocol:LEADER", aud_set, r"ANALYSIS|SET|ESTIMA|REGISTER|P10|P11", "AUD-3 REGISTERED_DEFAULT analysis_set", target=leader)
+
+            def aud_key(bb):     # the identity key is stored, not recomputed: tamper the key alone
+                ai = self._rows(bb)[leader]["analysis_identity"]
+                old = ai["analysis_identity_key"]
+                ai["analysis_identity_key"] = re.sub(r"analysis_set=[^|]*", "analysis_set=per-protocol[STA] ", old, count=1)
+                if ai["analysis_identity_key"] == old:     # a plant that changes nothing would score as "not caught"
+                    raise SystemExit("REFUSED: AUD-4 plant did not change the key (format moved?)")
+            edit("aud4_identity_key_tampered:LEADER", aud_key, r"IDENTITY|KEY|ESTIMA|P10|P11", "AUD-4 analysis_identity_key recompute", target=leader)
         if rewind in rows:
             def rewind_swap(bb):   # the REWIND arm swap: the contrast claimed reversed, the unreciprocated value kept
                 cd = self._rows(bb)[rewind]["analysis_identity"]["comparator_direction"]

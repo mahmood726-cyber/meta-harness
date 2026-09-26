@@ -33,6 +33,21 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
 | Every page must name the program that checks it, its sha256 and its limits | 41f3e2d0, 752e9c1f | a page naming a stale verifier fails CI (it fired on a lane branch on 25 Sep) |
 | **"All the tabs are empty"** (reported by Mahmood): the verifier box and certificate sat above every tab | c23a7e91 | on the LIVE site, **2,304 of 2,304** browser checks (32 pages x 1280 and 375 px x 12 tabs x 3 click scenarios); a layout test on every page plus 5 plants |
 
+### The 26 Sep auditor pass: one-value edits to LEADER's analysis identity
+
+An outside auditor, working against the live GLP-1 bundle (`release_sha256` 57dcc327, before the ordered-contrast lane's
+checks), reported that changing ONE recorded value of the LEADER row, and leaving its basis alone, passes the estimand checks
+(P10/P11). This lane reproduced all four on the frozen main 6260e70c (which serves that bundle): each edited bundle gets verdict
+PASS with LEADER still admissible. Each row below is then measured on the V1 commit with the same edit (`v1_accept.py` P6).
+
+| edit to LEADER (one value) | live 57dcc327 | in V1 | fix branch if still open |
+|---|---|---|---|
+| AUD-1 comparator direction reversed (placebo vs liraglutide) | passes (reproduced) | **V1: fill from P6 aud1** | **V1: fill fix branch aud1** |
+| AUD-2 estimator changed (hazard ratio -> rate ratio) | passes (reproduced) | **V1: fill from P6 aud2** | **V1: fill fix branch aud2** |
+| AUD-3 a REGISTERED_DEFAULT analysis set re-valued per-protocol | passes (reproduced) | **V1: fill from P6 aud3** | **V1: fill fix branch aud3** |
+| AUD-4 `analysis_identity_key` edited on its own (it is stored, not recomputed, for ordinary rows) | passes (reproduced) | **V1: fill from P6 aud4** | **V1: fill fix branch aud4** |
+| AUD-5 `analysis_identity_key` leaves out comparator direction (read from the served key, not an edit) | omitted (read) | **V1: fill from key aud5** | **V1: fill fix branch aud5** |
+
 ## 3. Named limitations
 
 - **Search.** **No V1 page claims a systematic search.** Every page carries a retrieval label: 17 of 32 TITLE-SEEDED RETRIEVAL, 11
@@ -73,6 +88,7 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
   them, `harness/hand_binding._present`, still reads number fragments: a CI bound of 1.0 counts as present in "1.03", and 10 in
   "10,033" (PVA-D12). Measured on the 39 served hand-bound rows, **0 of 132 values** depend on a fragment, and the check is
   plant-proved. It is latent, with no served consequence today.
+- **Edits to a trial's recorded analysis that the checks do not catch (the 26 Sep auditor pass).** **V1: fill auditor-open limitations**
 
 ### Not merged by the freeze (as of 29f0a719; **V1: re-check at the freeze**)
 - ordered-contrast and estimator checks P10/P11 and the pool guard (oc 88f07c74 .. 23642e0d);

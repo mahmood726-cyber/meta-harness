@@ -173,12 +173,40 @@ def step_lineage(v1):
     return {"ok": not missing, "commits": out}
 
 
+def step_fixbranches(work, branches):
+    """The auditor edits (P6 aud1-4) measured on each named fix branch, git mode, so the note can name where an OPEN item is fixed."""
+    out = []
+    for br in branches:
+        sha = git("rev-parse", "--verify", "-q", f"origin/{br}^{{commit}}", check=False) or git("rev-parse", "--verify", "-q", f"{br}^{{commit}}", check=False)
+        if not sha:
+            stamp(f"fix branch {br}: not found")
+            continue
+        d = work / ("fix_" + br.replace("/", "_"))
+        p = sh([PY, str(HERE / "v1_accept.py"), "--release", sha, "--prev", sha, "--work", str(d), "--source", "git",
+                "--only", "P5,P6"], timeout=3600)
+        (d / "run.log").write_text(p.stdout + p.stderr, encoding="utf-8")
+        bpath = d / "site" / "reviews" / "glp1-ra-mace-t2d" / "BUNDLE.json"
+        key_has = None
+        if bpath.is_file():
+            b = json.loads(bpath.read_text(encoding="utf-8"))
+            lr = next((r for r in b.get("verification_rows", []) if str(r["trial"]["id"]).endswith("27295427")), None)
+            key_has = "comparator" in (((lr or {}).get("analysis_identity") or {}).get("analysis_identity_key") or "")
+        out.append({"label": f"{br} {sha[:8]}", "scorecard": str(d / "scorecard.json"), "key_has_comparator": key_has})
+        stamp(f"fix branch {br} {sha[:8]}: " + " ".join(l.split()[1] + ("=caught" if "NOT CAUGHT" not in l else "=open")
+                                                         for l in p.stdout.splitlines() if " aud" in l))
+        for sub in ("site", "tmp"):               # keep the scorecard, drop the ~170 MB copy of the tree
+            shutil.rmtree(d / sub, ignore_errors=True)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--v1", required=True)
     ap.add_argument("--work", required=True)
-    ap.add_argument("--steps", default="record,served,tabs,producer,f6,archive,note")
+    ap.add_argument("--steps", default="record,served,tabs,producer,f6,fixes,archive,note")
     ap.add_argument("--f6-script", default="F:/mh-gate/scripts/f6_acceptance.py")
+    ap.add_argument("--fix-branches", default="oc/v11-contrast-rules",
+                    help="comma list of V1.1 branches on which the auditor edits are measured (step 'fixes')")
     ap.add_argument("--wt-root", help="where the ~2 GB full V1 checkout goes (default <work>/wt); must keep the 3 GB floor")
     a = ap.parse_args()
     global WT_ROOT
@@ -209,6 +237,9 @@ def main():
     finally:
         if "producer" in steps or "f6" in steps:
             remove_checkout(v1, work)
+        res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
+    if "fixes" in steps:
+        res["fix_branches"] = step_fixbranches(work, [b for b in a.fix_branches.split(",") if b])
         res_path.write_text(json.dumps(res, indent=1, default=str), encoding="utf-8")
     if "archive" in steps:
         res["archive"] = step_archive(v1, work)
