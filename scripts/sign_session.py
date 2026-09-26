@@ -101,12 +101,15 @@ def main(argv=None) -> int:
     ap.add_argument("--push-branch", required=True)
     ap.add_argument("--push-remote", default="origin")
     ap.add_argument("--test", action="store_true")
+    ap.add_argument("--push-as", help="--test only: push to this ref name instead of --push-branch (same-repo tests)")
     args = ap.parse_args(argv)
     if args.test:
         if not args.by.startswith("TEST-") or "mahmood" in args.by.lower():
             raise SystemExit("refused: --test signs only as a TEST- identity, never as Mahmood")
         if args.push_remote == "origin" or "github.com" in git("remote", "get-url", args.push_remote, check=False):
             raise SystemExit("refused: --test pushes only to a local repository, never to GitHub")
+    elif args.push_as:
+        raise SystemExit("refused: --push-as is for --test rehearsals only")
     elif args.by.startswith("TEST-"):
         raise SystemExit("refused: a TEST- identity is for --test rehearsals only")
     if git("status", "--porcelain", "--untracked-files=no"):
@@ -215,9 +218,10 @@ def main(argv=None) -> int:
         print("Not pushed. Your commit is kept; push later with: git push -u "
               f"{args.push_remote} {args.push_branch}")
         return 0
-    git("push", "-u", args.push_remote, f"HEAD:refs/heads/{args.push_branch}")
-    remote_sha = git("ls-remote", args.push_remote, f"refs/heads/{args.push_branch}").split()[0]
-    git("fetch", "-q", args.push_remote, f"refs/heads/{args.push_branch}")
+    target = args.push_as or args.push_branch
+    git("push", args.push_remote, f"HEAD:refs/heads/{target}")
+    remote_sha = git("ls-remote", args.push_remote, f"refs/heads/{target}").split()[0]
+    git("fetch", "-q", args.push_remote, f"refs/heads/{target}")
     fetched = hashlib.sha256(subprocess.run(["git", "show", f"FETCH_HEAD:{LEDGER}"], cwd=ROOT,
                                             capture_output=True).stdout).hexdigest()
     # compare COMMITTED bytes (git stores the ledger with LF; the working copy may carry CRLF on Windows)

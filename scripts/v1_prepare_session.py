@@ -89,10 +89,16 @@ def cmd_prepare(a) -> int:
     out = run([sys.executable, "scripts/v1_sign_branch.py", "--cand", cand, "--registry", str(work / "registry.json"),
                "--branch", branch, "--tools-ref", "HEAD"]).stdout
     print(out.strip())
-    wt = work / "signwt"
-    if wt.exists():
-        raise SystemExit(f"refused: {wt} exists; remove it (git worktree remove) first")
-    sparse_worktree(wt, branch)
+    if a.in_place:  # disk-short: this worktree becomes the sign branch (switch back with: git switch nr/notice-anchors)
+        if git("status", "--porcelain", "--untracked-files=no"):
+            raise SystemExit("refused: --in-place needs a clean worktree")
+        wt = ROOT
+        git("switch", "-q", branch)
+    else:
+        wt = work / "signwt"
+        if wt.exists():
+            raise SystemExit(f"refused: {wt} exists; remove it (git worktree remove) first")
+        sparse_worktree(wt, branch)
     r2 = run([sys.executable, "scripts/rederive_notices.py", "--prev", prev, "--cand", cand, "--out", str(work / "rd2"),
               "--audit-ref", "HEAD"], cwd=wt, check=False)
     if r2.returncode != 0:
@@ -101,7 +107,8 @@ def cmd_prepare(a) -> int:
          "--out", str(work / "packets")], cwd=wt)
     run([sys.executable, "scripts/v1_prepare_session.py", "_draft", "--work", str(work), "--prev", prev,
          "--cand", cand], cwd=wt)
-    (work / "status.json").write_text(json.dumps(dict(status, branch=branch), indent=1), encoding="utf-8")
+    (work / "status.json").write_text(json.dumps(dict(status, branch=branch, worktree=str(wt)), indent=1),
+                                      encoding="utf-8")
     print(f"prepared: {branch}; read {work / 'NEEDS_LANE_READ.md'}, then run finalize")
     return 0
 
@@ -149,7 +156,7 @@ def cmd_draft(a) -> int:
 def cmd_finalize(a) -> int:
     work = Path(a.work).resolve()
     st = json.loads((work / "status.json").read_text(encoding="utf-8"))
-    wt = work / "signwt"
+    wt = Path(st.get("worktree") or work / "signwt")
     run([sys.executable, "scripts/notice_rejudge.py", "append", "--served", st["prev"], "--proposed", st["cand"],
          "--verdicts", str(work / "verdicts.json"), "--judgement-prefix", "B3", "--judged-by", a.judged_by], cwd=wt)
     git("-c", "user.name=lane NR", "-c", "user.email=nr@lanes.invalid", "commit", "-q", "-am",
@@ -161,6 +168,9 @@ def cmd_finalize(a) -> int:
     cfg = json.loads((ROOT / CONFIG).read_text(encoding="utf-8"))
     hold = {r["audit_id"]: "its rendered wording carries a defect: " + "; ".join(r["judgements"][-1]["defects"])[:300]
             for r in audit["notices"] if (r.get("judgements") or [{}])[-1].get("defects")}
+    for k, why in (cfg.get("extra_hold") or {}).items():  # content holds found after the audit (e.g. UA-042)
+        if any(r["audit_id"] == k for r in audit["notices"]):
+            hold[k] = why
     ruling = {k: v for k, v in (cfg.get("ruling_notices") or {}).items()
               if any(r["audit_id"] == k for r in audit["notices"]) and k not in hold}
     withdrawn = [o["audit_id"] for o in rd["old_41"] if o["fate"] == "GONE"]
@@ -195,6 +205,8 @@ def cmd_finalize(a) -> int:
 def cmd_test_sitting(a) -> int:
     work = Path(a.work).resolve()
     st = json.loads((work / "status.json").read_text(encoding="utf-8"))
+    if a.in_place:
+        return test_sitting_in_place(work, st)
     tc = work / "tclone"
     if tc.exists():
         shutil.rmtree(tc)
@@ -220,12 +232,41 @@ def cmd_test_sitting(a) -> int:
     return p.returncode
 
 
+def test_sitting_in_place(work: Path, st: dict) -> int:
+    """No clone (disk-short): a throwaway branch in the sign-branch worktree, TEST identity, pushed to a separate
+    local test ref; then the worktree returns to the sign branch and every test ref is deleted."""
+    wt = Path(st["worktree"])
+    git("switch", "-q", "-c", "test/sign-session", st["branch"], cwd=wt)
+    try:
+        plan = json.loads((wt / "registry/sign_session_plan.json").read_text(encoding="utf-8"))
+        ans = ["TEST sitting on the V1 sign branch (in place)"]
+        for i in plan["items"]:
+            ans += ([""] if i["kind"] == "info" else ["y", "", "y"] if i["kind"] == "ruling" else ["y", ""])
+        ans.append("y")
+        p = subprocess.run([sys.executable, "scripts/sign_session.py", "--plan", "registry/sign_session_plan.json",
+                            "--by", "TEST-NR-LANE", "--push-branch", "test/sign-session", "--push-remote",
+                            str(wt), "--push-as", "test/pushed-sign-session", "--test"], cwd=wt,
+                           input="\n".join(ans) + "\n", capture_output=True, text=True, env=ENV)
+        log = p.stdout + p.stderr
+        (work / "test_sitting.log").write_text(log, encoding="utf-8")
+        print("\n".join(ln for ln in log.splitlines() if any(k in ln for k in (
+            "# SECTION", "Signed notices", "HEAD:", "PUSHED", "PUSH NOT", "NOT SIGNED", "NOT RECORDED"))))
+        return p.returncode
+    finally:
+        git("reset", "-q", "--hard", cwd=wt, check=False)
+        git("switch", "-q", st["branch"], cwd=wt, check=False)
+        git("branch", "-D", "test/sign-session", cwd=wt, check=False)
+        git("update-ref", "-d", "refs/heads/test/pushed-sign-session", cwd=wt, check=False)
+        shutil.rmtree(wt / "signatures", ignore_errors=True)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--cand", required=True); p.add_argument("--prev"); p.add_argument("--work", required=True)
     p.add_argument("--branch")
+    p.add_argument("--in-place", action="store_true", help="reuse this worktree for the sign branch (disk-short)")
     p.set_defaults(fn=cmd_prepare)
     d = sub.add_parser("_draft")
     d.add_argument("--work", required=True); d.add_argument("--prev", required=True); d.add_argument("--cand", required=True)
@@ -236,6 +277,7 @@ def main(argv=None) -> int:
     f.set_defaults(fn=cmd_finalize)
     t = sub.add_parser("test-sitting")
     t.add_argument("--work", required=True)
+    t.add_argument("--in-place", action="store_true", help="no clone: a throwaway branch in the sign worktree")
     t.set_defaults(fn=cmd_test_sitting)
     args = ap.parse_args(argv)
     return args.fn(args)
