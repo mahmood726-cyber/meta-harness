@@ -114,3 +114,22 @@ def test_the_composite_mismatch_refusal_still_precedes_the_abstain():
     row["source"] = "hand-verified effect+CI (HR): 1.02 (0.89-1.17)"               # no composite named: nothing to refuse on
     assert not NOW.extract.composite_component_mismatch(SPEC["name"], row["source"])
     assert NOW.admissibility(SPEC, copy.deepcopy(row))["verdict"] == "ENDPOINT_IDENTITY_MISSING"
+
+
+def test_the_abstention_reaches_the_reader_with_its_own_code():
+    """absence.classify_reason re-classifies declared-absent rows from the source text and kept a gate's code only for
+    RESULT_INCOMPATIBLE / ENDPOINT_UNBOUND: an ENDPOINT_IDENTITY_MISSING abstention would have been relabelled. PLANT: the
+    pre-fix absence layer (3876a62d) does relabel it; the current one keeps it."""
+    import importlib.util
+    e, _ = _rows(NOW)
+    kept, refused = NOW.admit_rows(SPEC, [copy.deepcopy(_strip(e))])
+    row = refused[0]
+    from harness import absence
+    got = absence.classify_reason(["cardiovascular"], ABSTRACTS["26630143"], row=row)
+    assert got["reason_code"] == "ENDPOINT_IDENTITY_MISSING"
+    src = subprocess.run(["git", "show", f"{PRE_FIX}:harness/absence.py"], cwd=ROOT, capture_output=True).stdout
+    spec = importlib.util.spec_from_loader("harness.absence_prefix", loader=None)
+    mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = "harness"
+    exec(compile(src, "absence_prefix.py", "exec"), mod.__dict__)
+    assert mod.classify_reason(["cardiovascular"], ABSTRACTS["26630143"], row=row)["reason_code"] != "ENDPOINT_IDENTITY_MISSING"

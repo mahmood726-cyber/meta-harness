@@ -269,7 +269,9 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     # (RESULT_INCOMPATIBLE / ENDPOINT_UNBOUND): on the served release this layer overwrote a
     # RESULT_INCOMPATIBLE refusal with EXTRACTION_NOT_PERFORMED -- the right reason, mislabelled before
     # publication (M2, 2026-09-20).
-    if row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND") and row.get("reason_code"):
+    # ENDPOINT_IDENTITY_MISSING (2026-09-26): the fail-closed abstention keeps its own code; without this it would reach the
+    # reader re-classified from the source text (e.g. EXTRACTION_NOT_PERFORMED) -- the same overwrite M2 found for RESULT_INCOMPATIBLE
+    if row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND", "ENDPOINT_IDENTITY_MISSING") and row.get("reason_code"):
         span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""
         return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
                 "state_basis": _basis(row["reason_code"], span, reason),
