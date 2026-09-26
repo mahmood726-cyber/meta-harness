@@ -1834,7 +1834,10 @@ def outcome_inputs(slug, config, records):
             config = dict(config, companion_reports=_existing)
     except (OSError, ValueError):
         pass
-    scr = screen.run(merged, config)
+    # the screening record's parent family is the family object's own (same identity machinery), never a second guess
+    _report_family = {str(rep.get("report_id")): f.get("family_id")
+                      for f in (family_nodes or []) for rep in (f.get("reports") or []) if f.get("family_id")}
+    scr = screen.run(merged, dict(config, _report_family=_report_family))
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
     interv = config.get("intervention_terms", ["colchicine"])

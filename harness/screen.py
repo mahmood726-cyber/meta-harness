@@ -658,7 +658,7 @@ _INELIGIBLE_RULE_BASIS = {"X1": "not a randomised trial by design", "X2": "popul
                           "X-CONTRAST": "randomised contrast is not the intervention-vs-comparator of interest"}
 
 
-def _link_and_record(decisions: list, all_recs: list) -> None:
+def _link_and_record(decisions: list, all_recs: list, report_family: dict | None = None) -> None:
     """ONE screening record per report -- the three decisions -- from which the ledger fields are then SET:
       parent_eligibility  : ELIGIBLE / INELIGIBLE / NOT_ASSESSED (a no-results or companion report decides nothing)
       report_relevance    : PRIMARY_REPORT / SECONDARY_REPORT (carries outcome evidence from its parent) /
@@ -670,7 +670,9 @@ def _link_and_record(decisions: list, all_recs: list) -> None:
     for d in decisions:
         rec = rec_by_id.get(str(d["id"]), {})
         d["_role"] = COMPANION_REPORT if d["rule_id"] == "X-DEDUP" else report_role(rec)
-        d["_family"] = parent_family_key(rec)
+        # the family object's identity when the family build placed this report (a multi-registry paper sits in a
+        # synthetic family, not under whichever NCT its record lists first); the record's registry id otherwise
+        d["_family"] = (report_family or {}).get(str(d["id"])) or parent_family_key(rec)
     by_family = {}
     for d in decisions:
         if d["decision"] == "include" and d["_family"]:
@@ -781,7 +783,7 @@ def run(all_recs: list, config: dict) -> dict:
                 row["matched_intervention"] = mi
         screen_entry.annotate_decision(row, rec, config)
         decisions.append(row)
-    _link_and_record(decisions, all_recs)
+    _link_and_record(decisions, all_recs, config.get("_report_family") or {})
     by_id = {d["id"]: d for d in decisions}
     pos = config.get("positive_control_pmids", [])
     pos_ok = [p for p in pos if by_id.get(p, {}).get("decision") == "include"]
