@@ -1,6 +1,9 @@
 # Handover to the main lane — regex layer findings in files this lane does not own (2026-09-25)
 
-This lane measured and planted every regex site in `harness/` (R3: 407 of 407) but edits only the files it owns
+This lane planted every regex site its inventory can see in `harness/`: 407 of the 407 sites `regex_layer.inventory`
+finds. There are 19 run-time-built patterns outside the inventory and unplanted: 9 built by concatenation, including
+`hand_binding._present`, which reads number fragments. The full list is in
+`outputs/handover/lanes/RAI_RELEASE_NOTE_2026-09-25.md` under "R3 coverage, exactly". This lane edits only the files it owns
 (`regex_layer/OWNERSHIP.md`). Everything below is in the main lane's files; the fix is yours. Each is a strict xfail in
 `regex_layer/defects.py`, so your fix flips it to a pass and its entry must be removed then. Plants in your files are
 never a gate on your commits: a pattern you change is skipped as STALE (`regex_layer/lanes.py`).

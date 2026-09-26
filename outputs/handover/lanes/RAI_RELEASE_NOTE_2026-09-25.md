@@ -9,8 +9,7 @@ SHA → pushed only when main was its ancestor → proved by `git ls-remote` plu
 | `ed0524d2` | **RAI-D7 / RAI-C9.** `harness/result_changes.signature_problem` refuses a DELEGATED_BULK_ACCEPTANCE by its record TYPE (status, typed fields, recorded basis); the phrase list is gone | none: 28 of 28 real served signatures still publish. 32 pages re-certified; invariance 32 of 32 |
 | `c82e86bd` | **R1 + R4 in extract.py.** Typed values (NamedTuples); number fragments refused (`harness/whole_numbers.py`, new); `_NEQ` word boundary; RX-D1 | none: the extraction snapshot is byte-identical. On every page the only change is the certificate code map (2 new pinned modules, 82 → 84) |
 | `c82e86bd` | **CODEX-2.** Every codex call is logged: `registry/model_calls/lane_log/rai.jsonl` | none |
-| `6e0c7379`, on main via `9ee0b06b` (landed 2026-09-25 ~13:05; CI green every step; 5 of 5 fetched blobs equal) | **R3 complete.** 407 of 407 harness regex sites carry named plants; located defects are strict xfails | none (regex_layer/ and tests only) |
-
+| `6e0c7379`, on main via `9ee0b06b` (landed 2026-09-25 ~13:05; CI green every step; 5 of 5 fetched blobs equal) | **R3: every INVENTORIED regex site is planted** (407 of the 407 sites `regex_layer.inventory` finds). This is not every regex use in `harness/`: 19 call sites build their pattern at run time and are outside the inventory (see "R3 coverage, exactly" below). Located defects are strict xfails | none (regex_layer/ and tests only) |
 | `e403573d` + `2012ff1d`, on main via `c62b6b12` (landed 2026-09-26 01:21; CI green on every step twice; 15 of 15 fetched blobs equal) | **R1 + R4 pinned landing.** Contents: typed values in screen.py / eligibility_chain.py and `ArmPercentHit`; the 7 owned regex defects fixed; 4 zero-radius R4 fixes; R4 ambiguity refusal at 9 sites; the lane-log attribution fix. Then the glp1 bundle was rebuilt on the code commit | none. Rebuild invariance vs `29f0a719`: 32 of 32, with 0 estimates, outcomes or text changed. pva P4: 0 of 224 served tuples changed. Layout tests 39 of 39. All 32 pages were regenerated on the tabs layout (B-9) |
 
 **Proven on current main (`f3034ecc`):** `tests/test_delegated_served_gate.py` 7 of 7. Its two plants returned `None`
@@ -33,7 +32,37 @@ The scorecard counts fragment refusal only.
 - "Not applicable" always carries its reason: a classifier returns a bool (7), a dead pattern has no reader (4), or the
   value is one integer rather than a tuple (3, R1 only). `_EFFECT` is left out of R4 because other lanes' modules
   read it; 0 fragments were found in the held text.
-- Harness-wide: R3 407 of 407 regex sites planted; R2 95 of 367 other sites measured.
+- Harness-wide: R3 is 407 of 407 **inventoried** sites planted, and R2 is 95 of 367 other sites measured. The inventory
+  is not the whole population; see below.
+
+### R3 coverage, exactly (corrected 2026-09-26 after pva's flag)
+The earlier line "407 of 407 regex sites planted" stated no N and hid the blind spot. The exact statement:
+
+- **N = the sites `regex_layer.inventory.sites()` finds** (literal patterns in `re.*` calls and module-level compiles in
+  `harness/`). Re-measured at `6e0c7379`, `9ee0b06b`, `c62b6b12` and `b284e085`:
+  - 407 sites, 407 distinct site keys, 407 plant keys;
+  - 407 of 407 sites have a plant, and 0 plants point outside the inventory.
+  - The "407" is a site count. pva/audit's figure of **401** (RAI-C12) did not reproduce with the inventory's own code
+    on any landed commit. I report the measured 407 and flag the disagreement to the auditor rather than adopt either
+    number unmeasured.
+- **Outside N (the blind spot): 29 `re.*` calls build their pattern at run time, and 19 of them are not in the
+  inventory** (`python regex_layer/nonliteral_sites.py .`, an AST scan, on `b284e085`):
+  - **9 build the pattern by `+` concatenation.** These are exactly RAI-C13: `comparator_panel.py:57 validate`,
+    `hand_binding.py:204 _present`, `:259 _effect_pattern_ok`, `:481 _ci_pct_ok`,
+    `lexicon.py:164 matches_only_as_subtype`, `trial_family.py:97 randomised_contrasts`, `:406` and `:421 prepare`,
+    `verify.py:27 _digits_in`.
+  - 3 search for `re.escape(term)` only: `comparator_second_pass.py:20/32`, `extract.py:473`.
+  - 7 take a pattern variable whose source I have not traced: `comparator_truth.py:109`, `compat_check.py:68`,
+    `extract.py:711`, `hand_binding.py:442/444`, `second_source.py:63`, `trial_family.py:58`. They may or may not
+    reuse inventoried literals.
+  - These 19 have **no plants**, so R3 says nothing about them.
+- **One of the 9 reads number fragments (PVA-D12, confirmed here):** `hand_binding._present` refuses a digit after the
+  number but not a `.` or `,`.
+  - `_forms(1.0)` includes `"1"`, which is found inside "1.03"; `"10"` is found inside "10,033".
+  - pva measured **0 of 132** served hand-bound values that depend on a fragment (on the 39 served hand-bound rows).
+    It is latent today, with no served consequence.
+  - `hand_binding.py` is not this lane's file, so the fix is yours: the `whole_numbers` separator rule used in
+    extract.py would close it.
 - R2 is sampled recall, not population recall. `_RATE_EVPT` fired 0 times in its 55 labels, so its precision is
   undefined (0 of 0), not 100%.
 
