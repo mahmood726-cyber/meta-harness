@@ -25,3 +25,16 @@ then `build_bundle.py` again. F4 `role` is not consumed, so T5 can land in eithe
 **Held for signature (V1 limitations):** OC-Q1 page wording; OC-Q2 producer HR+RR pooling (5 served pools, 4 primary); OC-Q3 the
 publication gate and estmeasure authenticate the claimed label (0 of 111 served rows disagree today). Details and hashes:
 `evidence/ordered_contrast/SIGNATURE_QUEUE.md` on the branch.
+
+## Update Sat 02:30 -- merging onto current main (1494159a)
+
+- `oc/ordered-contrast` + main now conflicts in **9 files, all generated** (glp1 BUNDLE / EXECUTION_RECORD / REPRODUCTION /
+  index / manifest, docs/fix_ledger.json, the m2 README and its twins). There is **no code conflict**. Resolve by taking main's
+  copies, committing the merge, and only then regenerating: `build_bundle.py` has read `HEAD:harness/target_endpoint.py` since
+  2012ff1d. The order is `build_bundle.py glp1-ra-mace-t2d` -> `build_topic.py glp1-ra-mace-t2d --now 2026-09-11` ->
+  `build_bundle.py` again -> `rewrite_fixstate_lines.py` + `render_fix_ledger.py` + `build_evidence_index.py`.
+- **Hazard, observed:** regenerate only in a COMPLETE tree. In a thin tree (no search snapshots, a partial `registry/`),
+  `build_topic.py` wrote an altered `review.json` and `CERTIFICATE.json` (release_status and rob_spancheck gone, 18 -> 16
+  limitations, a different GRADE basis) and only THEN refused at the site-index step. A failed build can therefore leave changed
+  served files behind. Lane OC discarded that attempt, pushed nothing, and did not retry, because C: sits at the 3 GB
+  regeneration floor.
