@@ -35,14 +35,27 @@ def main():
         if (a != b) if k == "k" else abs(a - b) > 5e-5:
             sys.exit(f"REFUSED: recomputed BEFORE {k}={a} != served {b}; not the production path, nothing written")
     st = lambda name: Study(label=name, measure=scale, **ADD[name])
+    # V1.0.1: the primary scenario takes its added rows from the ADMISSION MECHANISM itself (every witness, the endpoint
+    # identity and the tuple re-verified), not from the typed ADD values, which remain only as the cross-check scenarios.
+    from harness import result_adjudication as RA
+    cfg = json.load(open(os.path.join(ROOT, "topics", "glp1-ra-mace-t2d.json"), encoding="utf-8"))
+    admitted = RA.admitted_rows(dict(cfg["primary_outcome"], primary=True))
+    if sorted(r["label"] for r in admitted) != ["ELIXA", "FLOW"]:
+        sys.exit(f"REFUSED: the mechanism admits {[r['label'] for r in admitted]}, not exactly FLOW + ELIXA")
+    for r in admitted:
+        typed = ADD[r["label"]]
+        if (r["effect"], r["ci_low"], r["ci_high"]) != (typed["effect"], typed["ci_low"], typed["ci_high"]):
+            sys.exit(f"REFUSED: mechanism row {r['label']} {r['effect']} ({r['ci_low']}, {r['ci_high']}) != typed cross-check {typed}")
+    mech = [KM._study_from_trial(r, scale) for r in admitted]
     scen = {
-        "CONVENTIONAL_GLP1RA (primary strand): + FLOW + ELIXA": base + [st("FLOW"), st("ELIXA")],
+        "CONVENTIONAL_GLP1RA (primary strand): + FLOW + ELIXA": base + mech,
         "CONVENTIONAL_GLP1RA: + FLOW only": base + [st("FLOW")],
         "CONVENTIONAL_GLP1RA: + ELIXA only": base + [st("ELIXA")],
         "CONVENTIONAL_GLP1RA: + FLOW + ELIXA (ELIXA at its Table 8 rendering 0.89-1.18)": base + [st("FLOW"), st("ELIXA_table8_rendering")],
         "GLP1RA_ANY_DELIVERY (alongside): + FLOW + ELIXA + FREEDOM-CVO": base + [st("FLOW"), st("ELIXA"), st("FREEDOM-CVO")],
     }
-    out = {"computed_by": "harness.known_missing._study_from_trial + _pool_result (harness.synth.pool)",
+    out = {"computed_by": "harness.known_missing._study_from_trial + _pool_result (harness.synth.pool); primary scenario rows from harness.result_adjudication.admitted_rows",
+           "admitted_rows": [{k: r[k] for k in ("label", "id", "effect", "ci_low", "ci_high", "target_endpoint_class")} | {"identified_by": r["endpoint_identity"]["identified_by"], "decision_sha256": r["result_adjudication"]["decision_sha256"]} for r in admitted],
            "served_before": {k: served.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "tau2", "Q", "pi_low", "pi_high", "ci_provenance")},
            "recomputed_before": before, "before_reproduces_served": True, "inputs_added": ADD, "after": {}}
     for name, studies in scen.items():
