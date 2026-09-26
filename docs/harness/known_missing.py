@@ -295,7 +295,11 @@ def build(review: dict[str, Any], signals: dict[str, Any],
     primary["known_missing_sensitivity"] = panel
     for row in rows:
         fact = row.get("held_fact") or {}
-        if (fact.get("decision") or {}).get("source_conflict") and base_studies:
+        # A membership demonstration needs an EXTRACTED effect whose renderings conflict (ELIXA). A held source that
+        # is internally inconsistent (Mashayekhi 2020) also records its conflicting spans but has NO effect to
+        # demonstrate -- no denominators can be read -- so it never reaches a pool, not even a demonstration.
+        from .invalidation import missing_state as _ms, EXTRACTED_SOURCE_CONFLICT as _ESC
+        if _ms(fact) == _ESC and (fact.get("decision") or {}).get("effect") and base_studies:
             effect = fact["decision"]["effect"]
             from .synth import membership_demonstration
             panel["membership_demonstration"] = membership_demonstration(

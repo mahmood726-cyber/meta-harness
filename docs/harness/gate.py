@@ -534,6 +534,19 @@ def check_claimgraph(review_dir):
     return []
 
 
+def check_screening_record(review_dir):
+    """Ledger, screening record, family object and narrative must agree about every screened report."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check the screening record"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for the screening record: {exc}"]
+    from . import screening_record
+    return screening_record.gate_reasons(rev)
+
+
 def check_propositions(review_dir):
     p = os.path.join(review_dir, "review.json")
     if not os.path.exists(p):
@@ -1313,6 +1326,7 @@ def gate_page(review_dir):
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)
                + check_propositions(review_dir)
+               + check_screening_record(review_dir)
                + check_eligibility_chain(review_dir)
                + check_harms_complete(review_dir)
                + check_parity_our_k(review_dir)

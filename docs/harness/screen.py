@@ -153,6 +153,38 @@ _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?h
                              r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
 
 
+# REPORT ROLE (external review of colchicine-postop-af, 2026-09-26): a report's ROLE is not its parent trial's
+# DESIGN. A substudy / secondary / post-hoc report of a randomised trial carries outcome evidence FROM that trial; it
+# was being rejected X1 "not a randomized controlled trial" on the title word alone (COPPS AF 22090167: pubtype
+# Randomized Controlled Trial, adjudicator: include). A protocol / design / analysis-plan paper carries NO results;
+# it does not decide its parent's eligibility either way.
+_REPORT_NO_RESULTS = _re.compile(r"\bprotocol\b|\brationale and design\b|\bdesign and rationale\b|\bstudy design\b|"
+                                 r"\bstatistical analysis plan\b", _re.I)
+_REPORT_SECONDARY = _re.compile(r"\bsecondary analys[ie]s\b|\bpost[-\s]?hoc\b|\bsubstudy\b|\bsub-study\b", _re.I)
+PRIMARY_REPORT, SECONDARY_REPORT, NO_RESULTS_REPORT, COMPANION_REPORT = (
+    "PRIMARY_REPORT", "SECONDARY_REPORT", "NO_RESULTS_REPORT", "COMPANION_REPORT")
+
+
+def report_role(rec) -> str:
+    """PRIMARY_REPORT / SECONDARY_REPORT (carries outcome evidence from a parent trial) / NO_RESULTS_REPORT."""
+    if rec.get("id_type") != "pmid":
+        return PRIMARY_REPORT
+    pts = [p.lower() for p in rec.get("pubtypes", [])]
+    title = rec.get("title", "") or ""
+    if any("protocol" in p for p in pts) or _REPORT_NO_RESULTS.search(title):
+        return NO_RESULTS_REPORT
+    if _REPORT_SECONDARY.search(title):
+        return SECONDARY_REPORT
+    return PRIMARY_REPORT
+
+
+def parent_family_key(rec):
+    """The parent trial a report belongs to: its registry id (records carry `nct`; a registry record IS its id)."""
+    if rec.get("id_type") == "nct":
+        return str(rec.get("id"))
+    return rec.get("nct") or None
+
+
 def _title_says_rct(rec) -> bool:
     t = rec.get("title", "") or ""
     return bool(_TITLE_RCT.search(t)) and not _TITLE_RCT_NOT.search(t)
@@ -212,8 +244,9 @@ def _is_rct(rec) -> bool:
         # not a true RCT, even if the pubtype says "Randomized Controlled Trial".
         if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
             return False
-        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language).
-        if _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
+        # A design/protocol/rationale paper by TITLE is not a completed RCT report (screen_record routes it to
+        # X-NO-RESULTS before this); a SECONDARY/substudy title is a report role, not a design, and is NOT rejected here.
+        if _REPORT_NO_RESULTS.search(rec.get("title", "") or ""):
             return False
         if any("randomized controlled trial" in p for p in pts):
             return True
@@ -386,6 +419,19 @@ def describe_eligibility(inc: dict) -> str:
             + ". Excluded (rule id + verbatim span on each record): " + " · ".join(excl) + ".")
 
 
+def _x1_reason(rec, label) -> str:
+    """X1 names WHICH design fact excludes the record, so the reason never contradicts its own span (a quasi-random
+    trial is pubtype-RCT; 'not a randomized controlled trial' beside 'Randomized Controlled Trial' read as a defect)."""
+    pts = [p.lower() for p in rec.get("pubtypes", [])]
+    if rec.get("id_type") == "pmid" and _is_review(rec):
+        return f"a review, not a primary trial report (record: {label})."
+    if any(any(np in p for np in _NONPRIMARY_PT) for p in pts):
+        return f"a non-primary publication type (comment / editorial / letter / erratum), not a trial report (record: {label})."
+    if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
+        return f"quasi- or alternate allocation, not a truly randomised trial (record: {label})."
+    return f"not a randomized controlled trial (record: {label})."
+
+
 def screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""
@@ -396,10 +442,14 @@ def screen_record(rec, inc, neg_pmids):
     label = rec.get("acronym") or rec.get("id")
     if over := _manual_override(rec, inc):
         return over
+    if report_role(rec) == NO_RESULTS_REPORT:
+        return ScreenDecision("exclude", "X-NO-RESULTS",
+                              f"report carries no outcome results (protocol / design / analysis-plan paper, record: "
+                              f"{label}); it does not decide its parent trial's eligibility.",
+                              (rec.get("title") or "")[:160])
     if not _is_rct(rec):
         pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
-        return ScreenDecision("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
-                f"publication types: {pts}")
+        return ScreenDecision("exclude", "X1", _x1_reason(rec, label), f"publication types: {pts}")
     bad = None
     # NESTED-TERMINOLOGY guard (audit 16): an excluded phenotype term whose occurrence in the record's own
     # text is QUALIFIED into a DIFFERENT, included phenotype must not exclude it. "reduced ejection fraction"
@@ -421,10 +471,14 @@ def screen_record(rec, inc, neg_pmids):
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
     pop_haystack = _text(rec) if inc.get("prevention") else poptext
     pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
-    bad = screen_entry.population_exclusion(pop_haystack, inc, _has, _all_occurrences_qualified)
+    # The population_none VETO is judged on the title/registry conditions only -- the principle _poptext states.
+    # The prevention widening above is for the POSITIVE population signal; applying the veto to the abstract body
+    # excluded the COPPS AF substudy (22090167) for its BACKGROUND sentence "Inflammation and pericarditis may be
+    # contributing factors ...", and the reason then claimed "title/conditions" beside an abstract span.
+    bad = screen_entry.population_exclusion(poptext, inc, _has, _all_occurrences_qualified)
     if bad:
         return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
-                _span(pop_haystack_raw, bad))
+                _span(raw_pop, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
     if population_any and not popok:
@@ -514,14 +568,16 @@ def screen_record_2(rec, inc):
     _pts = [p.lower() for p in rec.get("pubtypes", [])]
     if rec["id_type"] == "pmid" and (
             _quasi_or_nonprimary(rec, _pts)
-            or _TITLE_RCT_NOT.search(rec.get("title", "") or "")):
-        return "exclude"  # quasi/alternate allocation, non-primary pubtype, or protocol/design paper
+            or report_role(rec) == NO_RESULTS_REPORT):
+        return "exclude"  # quasi/alternate allocation, non-primary pubtype, or protocol/design paper (no results)
     is_rct = (rec["id_type"] != "pmid"
               or any("randomized controlled trial" in p for p in _pts)
               or _title_says_rct(rec) or bool(_RANDOM_TEXT.search(rec.get("abstract", "") or "")))
     if not is_rct:
         return "exclude"
-    if screen_entry.population_exclusion(text, inc, _has, _all_occurrences_qualified):
+    # The population VETO is judged on title/conditions (as screener 1): this screener is the BROADER one, so a
+    # background mention in the abstract body must not narrow it (COPPS AF's "pericarditis may be contributing").
+    if screen_entry.population_exclusion(_poptext(rec), inc, _has, _all_occurrences_qualified):
         return "exclude"
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     if population_any and not _has(text, population_any):
@@ -595,6 +651,60 @@ def _source_case_basis(basis: str, rec: dict) -> str:
         if hit and hit.group(0) != token:
             out = _re.sub(rf"(?<![A-Za-z0-9]){_re.escape(token)}(?![A-Za-z0-9])", hit.group(0), out)
     return out
+
+
+_INELIGIBLE_RULE_BASIS = {"X1": "not a randomised trial by design", "X2": "population outside the protocol",
+                          "X3": "intervention / comparator outside the protocol", "X-DESIGN": "design outside the protocol",
+                          "X-CONTRAST": "randomised contrast is not the intervention-vs-comparator of interest"}
+
+
+def _link_and_record(decisions: list, all_recs: list, report_family: dict | None = None) -> None:
+    """ONE screening record per report -- the three decisions -- from which the ledger fields are then SET:
+      parent_eligibility  : ELIGIBLE / INELIGIBLE / NOT_ASSESSED (a no-results or companion report decides nothing)
+      report_relevance    : PRIMARY_REPORT / SECONDARY_REPORT (carries outcome evidence from its parent) /
+                            NO_RESULTS_REPORT / COMPANION_REPORT, with the parent family and any link
+      result_admissibility: per outcome, filled once outcomes are built (harness.screening_record)
+    A secondary report whose parent family already has an included report is LINKED to it (X-LINKED), so one
+    trial is counted once; with no included primary report the first secondary report (by id) carries the trial."""
+    rec_by_id = {str(r.get("id")): r for r in all_recs}
+    for d in decisions:
+        rec = rec_by_id.get(str(d["id"]), {})
+        d["_role"] = COMPANION_REPORT if d["rule_id"] == "X-DEDUP" else report_role(rec)
+        # the family object's identity when the family build placed this report (a multi-registry paper sits in a
+        # synthetic family, not under whichever NCT its record lists first); the record's registry id otherwise
+        d["_family"] = (report_family or {}).get(str(d["id"])) or parent_family_key(rec)
+    by_family = {}
+    for d in decisions:
+        if d["decision"] == "include" and d["_family"]:
+            by_family.setdefault(d["_family"], []).append(d)
+    for fam, rows in by_family.items():
+        primaries = sorted((r for r in rows if r["_role"] == PRIMARY_REPORT), key=lambda r: str(r["id"]))
+        secondaries = sorted((r for r in rows if r["_role"] == SECONDARY_REPORT), key=lambda r: str(r["id"]))
+        carrier = (primaries or secondaries or [None])[0]
+        for r in secondaries:
+            if r is carrier:
+                continue
+            r.update(decision="exclude", rule_id="X-LINKED", _linked_to=str(carrier["id"]),
+                     reason=(f"secondary report of {fam}, linked to its included report {carrier['id']}: the trial's "
+                             f"outcome evidence is taken once, not counted as a second trial."),
+                     span=(rec_by_id.get(str(r["id"]), {}).get("title") or "")[:160])
+    for d in decisions:
+        rule, dec = d["rule_id"], d["decision"]
+        if dec == "include" or rule == "X-LINKED":
+            elig = {"state": "ELIGIBLE", "basis": "this report's screen passed every eligibility rule"}
+        elif rule in ("X-NO-RESULTS", "X-DEDUP"):
+            elig = {"state": "NOT_ASSESSED",
+                    "basis": ("a no-results report does not decide its parent's eligibility" if rule == "X-NO-RESULTS"
+                              else "decided through its parent report")}
+        else:
+            elig = {"state": "INELIGIBLE", "basis": _INELIGIBLE_RULE_BASIS.get(rule, f"rule {rule}"), "rule": rule}
+        rel = {"state": d.pop("_role")}
+        if d.get("_linked_to"):
+            rel["linked_to"] = d.pop("_linked_to")
+        d["screening_record"] = {"report_id": str(d["id"]), "parent_family": d.pop("_family"),
+                                 "parent_eligibility": elig, "report_relevance": rel,
+                                 "result_admissibility": {"state": "PENDING_OUTCOME_BUILD"},
+                                 "ledger_decision": dec, "ledger_rule": rule}
 
 
 def run(all_recs: list, config: dict) -> dict:
@@ -673,6 +783,7 @@ def run(all_recs: list, config: dict) -> dict:
                 row["matched_intervention"] = mi
         screen_entry.annotate_decision(row, rec, config)
         decisions.append(row)
+    _link_and_record(decisions, all_recs, config.get("_report_family") or {})
     by_id = {d["id"]: d for d in decisions}
     pos = config.get("positive_control_pmids", [])
     pos_ok = [p for p in pos if by_id.get(p, {}).get("decision") == "include"]

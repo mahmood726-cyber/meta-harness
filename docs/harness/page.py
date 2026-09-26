@@ -835,6 +835,8 @@ def _overview(r, neutral):
                if (r.get('comparator') or {}).get('scope', {}).get('scope_valid') is False else "")
             + ((f"<li><strong>Evidence base incomplete.</strong> {_e(r.get('evidence_base_caveat'))}</li>")
                if r.get('evidence_base_caveat') else "")
+            + "".join(f"<li><strong>Screening, derived from the per-report record.</strong> {_e(s)}</li>"
+                      for s in (r.get("screening_narrative") or []))
             + "<li><strong>Favourable topic sample.</strong> Topics were chosen by us; clean binary "
             "outcomes with registered trials succeeded, while continuous, recurrent-event and older "
             "literature were declined — so the success rate reflects a selected sample, not the whole "
