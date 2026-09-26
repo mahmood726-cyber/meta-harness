@@ -1670,6 +1670,27 @@ def _harms_ledger_block(o):
             "<th>Source-ladder obligations</th></tr>" + "".join(rows) + "</table>")
 
 
+def _previous_result_row(o, review):
+    """PREVIOUS RESULT beside the primary result (V1.0.1; Mahmood: "ten trials please with old k on same page"). Read
+    from this outcome's result-change notice `before` object -- never typed -- and rendered only when the notice opts
+    in with `show_previous_result: true`, so no other topic's page moves. The countersigned notice block itself does
+    not read the opt-in, so its signed bytes are unchanged."""
+    if not o.get("primary"):
+        return None
+    for n in ((review or {}).get("reproduction") or {}).get("result_changes") or []:
+        if n.get("outcome") != o.get("name") or n.get("show_previous_result") is not True:
+            continue
+        b = n.get("before") or {}
+        if b.get("k") is None or b.get("estimate") is None or b.get("ci_low") is None or b.get("ci_high") is None:
+            return None
+        scale = (o.get("result") or {}).get("scale") or o.get("estimand") or ""
+        value = (f"{_e(scale)} {float(b['estimate']):.3f} ({float(b['ci_low']):.3f}–{float(b['ci_high']):.3f}): the "
+                 f"previously published result, kept on this page; superseded on {_e(str(n.get('when_utc'))[:10])} "
+                 "by the pool above (see Result changed)")
+        return (f"Previous result (k={_e(b['k'])})", value)
+    return None
+
+
 def _outcome_block(o, show_inputs=True, review=None):
     r = (review or {"outcomes": [o]}) if o.get("primary") else {}
     from . import harms
@@ -1759,6 +1780,9 @@ def _outcome_block(o, show_inputs=True, review=None):
             ("k", _k_display(o)),
         ]
         rows.extend(_effect_rows(res))
+        _prev = _previous_result_row(o, review)
+        if _prev:
+            rows.append(_prev)
         cerow = _common_effect_row(res)
         if cerow:
             _eu = _evidence_unit_summary(o)
