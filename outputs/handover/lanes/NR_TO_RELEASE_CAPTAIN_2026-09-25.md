@@ -88,3 +88,15 @@ replayed and gave 41 VALID; and a superseded signing command was refused.
    the audit registry. It judges every notice against your pages and gives Mahmood the final list, with his clone
    `C:\mh-sign-v1` and his branch `sign/mahmood-v1`. After he pushes, you get the VALID set; merge only
    `docs/result_changes.json` from his branch and rebuild.
+
+## 6. Blocker check on evid2's Q1/Q3 pages (26 Sep 08:10)
+`scripts/rederive_notices.py --prev origin/main --cand origin/evid2/q-decisions` exits 1 with **3 unnoticed
+served-number changes**:
+- corticosteroids-covid19 **SAE**: OR 2.81 → no pooled result;
+- the **new outcome** "Serious adverse reactions (septic shock, invasive fungal infection, GI bleeding, anaphylaxis;
+  day 14)" appears with its own served result;
+- sglt2-ckd **DKA**: RR 6.00 → 5.00.
+
+evid2's branch rebuilt the pages but added no ledger notice for any of them. **If those pages go into the V1
+candidate, the candidate's ledger must carry a notice for each of the three**; otherwise pva's probe E and lane NR's
+re-derivation both refuse. The signing session already has items for all three, as evid2 D-Q1, D-Q3 and D-Q3b.
