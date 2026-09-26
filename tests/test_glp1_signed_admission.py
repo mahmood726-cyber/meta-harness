@@ -95,9 +95,9 @@ def test_freedom_cvo_is_still_not_pooled(inputs):
 # ------------------------------------------------------------------------------------------ plants
 def test_PLANT_freedom_declared_on_the_primary_strand_is_refused(inputs):
     """FREEDOM-CVO's decision NAMES the primary strand only to exclude itself; a substring check admitted it."""
-    from harness import result_adjudication as RA
     inp, spec = inputs
     assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
     bad = copy.deepcopy(spec)
     d = f"{ADJ}/FREEDOM-CVO.json"
     bad["adjudicated_results"].append({"trial": "FREEDOM-CVO", "id": FREEDOM, "nct": "NCT01455896", "decision": d,
@@ -107,9 +107,9 @@ def test_PLANT_freedom_declared_on_the_primary_strand_is_refused(inputs):
 
 
 def test_PLANT_decision_bytes_changed_after_pinning_is_refused(inputs, tmp_path):
-    from harness import result_adjudication as RA
     inp, spec = inputs
     assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
     src = os.path.join(ROOT, _entry(spec, ELIXA)["decision"])
     d = json.load(open(src, encoding="utf-8"))
     d["bound_result"]["ci"]["value"] = [0.80, 1.10]                         # a quieter interval
@@ -123,9 +123,9 @@ def test_PLANT_decision_bytes_changed_after_pinning_is_refused(inputs, tmp_path)
 
 def test_PLANT_tuple_edited_and_repinned_has_no_witness_and_is_refused(inputs, tmp_path):
     """Re-pinning the edited decision beats the sha check; the tuple then has no witnessed span that carries it."""
-    from harness import result_adjudication as RA
     inp, spec = inputs
     assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
     src = os.path.join(ROOT, _entry(spec, ELIXA)["decision"])
     d = json.load(open(src, encoding="utf-8"))
     d["bound_result"]["estimate"]["value"] = 0.95
@@ -139,9 +139,9 @@ def test_PLANT_tuple_edited_and_repinned_has_no_witness_and_is_refused(inputs, t
 
 
 def test_PLANT_witness_span_not_in_the_held_bytes_is_refused(inputs, tmp_path):
-    from harness import result_adjudication as RA
     inp, spec = inputs
     assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
     src = os.path.join(ROOT, _entry(spec, FLOW)["decision"])
     d = json.load(open(src, encoding="utf-8"))
     w = d["bound_result"]["population"]["witness"]
@@ -156,9 +156,9 @@ def test_PLANT_witness_span_not_in_the_held_bytes_is_refused(inputs, tmp_path):
 
 def test_PLANT_held_source_bytes_changed_is_refused(inputs, tmp_path, monkeypatch):
     """A witness names held bytes by sha256; a changed held file (same path) is refused, not re-read."""
-    from harness import result_adjudication as RA
     inp, spec = inputs
     assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
     lane = tmp_path / "lane"
     for rel in ("evidence", "outputs/handover/glp1_regulatory", "protocols"):
         shutil.copytree(os.path.join(ROOT, rel), lane / rel,
@@ -187,9 +187,9 @@ def test_PLANT_row_claiming_the_provenance_without_a_declared_admission_is_refus
 
 
 def test_PLANT_renderer_swapped_is_refused(inputs):
-    from harness import result_adjudication as RA
     inp, spec = inputs
     assert _build(inp, spec)["result"]["k"] == 10                           # control
+    from harness import result_adjudication as RA
     bad = copy.deepcopy(spec)
     bad["adjudication_renderer_sha256"] = "0" * 64
     RA._text_cache.clear()
