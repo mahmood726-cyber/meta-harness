@@ -653,6 +653,26 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     return _refresh_cross_source_identity(out, spec, trial_components)
 
 
+def _analysis_groups(studies, adjustments, labels):
+    """ADJUSTED / UNADJUSTED / UNSTATED inputs kept as separate analysis groups: each group is pooled on its own when its
+    inputs share one measure, and reported (never merged into a headline) -- the reader sees what each kind of evidence says."""
+    groups = {}
+    for g in ("ADJUSTED", "UNADJUSTED", "UNSTATED"):
+        idx = [i for i, a in enumerate(adjustments) if a == g]
+        if not idx:
+            continue
+        gl = sorted({labels[i] for i in idx if labels[i]})
+        entry = {"k": len(idx), "trials": [studies[i].label for i in idx], "measures": gl}
+        if len(gl) == 1 and all(labels[i] for i in idx):
+            r = _pool_result([studies[i] for i in idx], scale=gl[0])
+            entry.update({k: r.get(k) for k in ("estimate", "ci_low", "ci_high", "estimate_fixed", "ci_low_fixed", "ci_high_fixed", "tau2", "Q")})
+            entry["scale"] = gl[0]
+        else:
+            entry["not_pooled"] = "the group's inputs are more than one measure" if len(gl) > 1 else "no identifiable measure"
+        groups[g] = entry
+    return groups
+
+
 def _pool_result(studies, scale="RR", *, require_study_effect=False):
     r = pool(studies, scale=scale, require_study_effect=require_study_effect)
     i2 = k2_mod.i2_from_q(r.Q, r.k)
@@ -1473,21 +1493,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             if t.get("mean1") is not None:
                 return "MD"
             return meas
+        _mlabels = [estmeasure.input_label(t, meas) for t in trials]
+        _madj = [estmeasure.adjustment_of(t) for t in trials]
+        _mpolicy = estmeasure.mixture_policy(spec)
+        _mdec = estmeasure.pool_measure_decision(_mlabels, _madj, _mpolicy)
         # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
-        # continuous, else the topic's ratio estimand.
+        # continuous, else the measure the admitted inputs are (derived; see below).
         if all(t.get("e1i") is not None for t in trials):
             pooled_scale = "IRR"
         elif all(t.get("mean1") is not None for t in trials):
             pooled_scale = "MD"
-        elif all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
-            # Every pooled trial reported an explicit effect on the SAME scale -> display that scale,
-            # not the topic's declared estimand. This stops a rate ratio (FAIR-HF2 total HF
-            # hospitalizations, scale IRR) being labelled a risk ratio just because the topic
-            # declared RR. Mixed scales fall through to the declared estimand (and are a known
-            # heterogeneity the label makes visible, e.g. spironolactone RR/HR).
-            pooled_scale = trials[0]["scale"]
         else:
-            pooled_scale = selector_estimand or spec.get("estimand", "RR")
+            # DERIVED, NEVER DECLARED (external review, 2026-09-26): the label is the measure the admitted inputs actually are
+            # (estmeasure.pool_measure_decision). It used to fall through to the topic's declared estimand whenever any input
+            # lacked a stated scale -- balanced-crystalloids served "HR" over PLUS's count-reconstructed RR + BaSICS's HR.
+            # A refused mixture is still computed here only to record its counterfactual; the numbers are suppressed below.
+            pooled_scale = _mdec["label"] if _mdec["state"] in ("DERIVED", "MIXED_BY_POLICY") else (_mlabels[0] or "RR")
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
                          ci_high=t.get("ci_high"),
@@ -1575,6 +1596,32 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         _compat = estmeasure.pool_compatibility([t["effect_object"] for t in trials])
         out["result"]["estmeasure"] = _compat
         _incompat = _compat["status"] == "incompatible"
+        _mrefused = (not _incompat) and _mdec["state"] == "REFUSED"
+        out["result"]["measure_decision"] = {k: v for k, v in _mdec.items() if k != "policy"}
+        if _mpolicy:
+            out["result"]["measure_policy"] = _mpolicy          # a predeclared mixture is shown wherever the number is
+        out["result"]["analysis_groups"] = _analysis_groups(studies, _madj, _mlabels)
+        if _mrefused:
+            out["result"]["counterfactual"] = {
+                "reason_code": _mdec["code"],
+                "would_be_estimate": out["result"].get("estimate"),
+                "would_be_ci_low": out["result"].get("ci_low"),
+                "would_be_ci_high": out["result"].get("ci_high"),
+                "would_be_label": _mdec.get("label"),
+                "note": ("what pooling these inputs anyway would have yielded; it is NOT a result and is shown only so the "
+                         "refusal is auditable")}
+            for _kpop in ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed",
+                          "ci_high_fixed", "pi_low", "pi_high", "leave_one_out", "pi_note", "fixed_note",
+                          "ci_note"):
+                out["result"].pop(_kpop, None)
+            out["result"]["scale"] = "REFUSED: " + (_mdec.get("label") or "unidentified measure")
+            out["result"]["pool_measure_refused"] = _mdec["code"]
+            # every consumer (page, gate, index, manuscript) already fails closed on suppressed_incompatible: reuse that path, so
+            # no renderer can fall through to a "Pooled effect" row with the number popped
+            out["result"]["suppressed_incompatible"] = True
+            out["result"]["suppressed_reason"] = "pooled effect SUPPRESSED: " + _mdec["reason"] + ". The per-trial estimates and the per-group analyses are shown."
+        elif _mdec["state"] == "MIXED_BY_POLICY":
+            out["result"]["scale"] = _mdec["label"]
         if _incompat:
             # FAIL CLOSED (audit 23, DETECTED-INVALID-BUT-PUBLISHED): a pool that mixes incompatible
             # estimand classes is NOT a valid summary, so we must SUPPRESS every derived number -- pooled
@@ -1610,7 +1657,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         elif _compat["status"] == "compatible_labels":
             # one compatibility class, >1 label: keep the pooled ratio scale, disclose the label mix
             out["result"]["scale_mixed"] = _compat["labels"]
-        if not _incompat and out["result"].get("k") == 2:
+        if not (_incompat or _mrefused) and out["result"].get("k") == 2:
             k2_mod.apply_k2_policy(
                 out["result"],
                 trials,
@@ -1638,7 +1685,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
         # hidden). Uses the same pooler and scale; no new number is invented.
         k_now = out["result"].get("k")
-        if isinstance(k_now, int) and k_now >= 3 and not _incompat and not out["result"].get("pool_refused"):
+        if isinstance(k_now, int) and k_now >= 3 and not (_incompat or _mrefused) and not out["result"].get("pool_refused"):
             loo = []
             for j in range(len(studies)):
                 sub = studies[:j] + studies[j + 1:]
@@ -1652,7 +1699,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "most_influential": worst["dropped"] if worst else None,
                 "per_trial": loo,
                 "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."}
-        elif isinstance(k_now, int) and not _incompat and not out["result"].get("pool_refused"):
+        elif isinstance(k_now, int) and not (_incompat or _mrefused) and not out["result"].get("pool_refused"):
             out["result"]["leave_one_out"] = {"note": f"not assessable at k={k_now} (leave-one-out needs k>=3)"}
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
