@@ -175,7 +175,8 @@ def main():
                 hit = f"{label} (refused there: {', '.join((m.get('target_failing_predicates') or [])[:2]) or 'verdict FAIL'})"
             if hit:
                 break
-        fill["fb_" + a_id] = hit or ("no measured branch refuses it" if fixes else NM("no fix branch measured"))
+        fill["fb_" + a_id] = hit or (("**no fix yet** (measured, does not refuse it: " + ", ".join(f[0] for f in fixes) + ")")
+                                     if fixes else NM("no fix branch measured"))
     if open_aud:
         fill["audlim"] = ("In V1, " + "; ".join(AUD_PLAIN[a] for a in open_aud) + ". Each was reproduced on the live release and "
                           "measured on V1. Where a V1.1 branch was measured to refuse one, the auditor table in section 2 names it; the others "

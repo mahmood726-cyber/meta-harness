@@ -205,7 +205,7 @@ def main():
     ap.add_argument("--work", required=True)
     ap.add_argument("--steps", default="record,served,tabs,producer,f6,fixes,archive,note")
     ap.add_argument("--f6-script", default="F:/mh-gate/scripts/f6_acceptance.py")
-    ap.add_argument("--fix-branches", default="oc/v11-contrast-rules",
+    ap.add_argument("--fix-branches", default="oc/ordered-contrast,oc/v11-contrast-rules",
                     help="comma list of V1.1 branches on which the auditor edits are measured (step 'fixes')")
     ap.add_argument("--wt-root", help="where the ~2 GB full V1 checkout goes (default <work>/wt); must keep the 3 GB floor")
     a = ap.parse_args()
