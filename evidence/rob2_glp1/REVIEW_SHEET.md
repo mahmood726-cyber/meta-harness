@@ -16,6 +16,14 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 
 **Direction warning:** 5 domains changed AFTER the blind read on newly bound evidence, and all 5 moved toward *low*: AMPLITUDE-O D5, HARMONY Outcomes D5, SOUL D2, SUSTAIN-6 D1, ELIXA D1. Each rests on a new span, but a one-directional pattern after a second opinion is exactly what a reviewer should weigh -- SUSTAIN-6 and ELIXA D1 in particular stand on incidental IV/WRS mentions.
 
+**Second blind read on the CURRENT spans** (run to test that warning; same family, blind): agreement **46 of 50**; the post-blind moves were supported in **5 of 5**. Remaining disagreements, kept for you:
+
+- LEADER D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper spans: vital status 99.7% but only 96.8% completed a final visit, died or had a primary outcome, leaving about 3% with incomplete MACE ascertainment and no balance/sensitivity information.
+- AMPLITUDE-O D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper span: primary-outcome status known for only 3941/4076 (96.7%) though vital status 99.9%; the 3.3% with unknown MACE status has no by-arm balance or sensitivity analysis in the spans, so 'nearly all' cannot be confirmed and missingness could plausibly relate to events.
+- REWIND D4_outcome_measurement: lane **low**, second reader **some_concerns** -- Protocol span: independent CEC adjudicates all primary events, but no span states the adjudicators were blinded (4.3 NI) and MI/stroke adjudication involves judgement.
+- EXSCEL D3_missing_outcome_data: lane **low**, second reader **some_concerns** -- Paper span: only 96.2% completed the trial (vital status 98.8%), so MACE status is incomplete for about 3.8% with no balance or sensitivity information in the spans.
+- (the second reader itself flagged that its D3 calls penalise trials that report MORE: those giving a ~96-97% primary-outcome completeness figure were rated some_concerns while trials reporting only vital status >=98.6% were rated low)
+
 ## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |

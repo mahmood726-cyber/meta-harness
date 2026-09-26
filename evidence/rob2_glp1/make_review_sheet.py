@@ -34,8 +34,17 @@ def main():
                   + ". Each rests on a new span, but a one-directional pattern after a second opinion is exactly what a "
                   "reviewer should weigh -- SUSTAIN-6 and ELIXA D1 in particular stand on incidental IV/WRS mentions."]
         L.append("")
+    b2p = os.path.join(HERE, "BLIND_READ_2.json")
+    if os.path.exists(b2p):
+        b2 = json.load(open(b2p, encoding="utf-8"))
+        L += [f"**Second blind read on the CURRENT spans** (run to test that warning; same family, blind): agreement "
+              f"**{b2['agreement']}**; the post-blind moves were supported in **{b2['moves_supported']} of "
+              f"{len(b2['the_5_post_blind_moves'])}**. Remaining disagreements, kept for you:", ""]
+        L += [f"- {x['trial']} {x['domain']}: lane **{x['lane']}**, second reader **{x['blind2']}** -- {x['blind2_why']}" for x in b2["disagreements"]]
+        L += ["- (the second reader itself flagged that its D3 calls penalise trials that report MORE: those giving a ~96-97% "
+              "primary-outcome completeness figure were rated some_concerns while trials reporting only vital status >=98.6% were rated low)", ""]
     for p in sorted(glob.glob(os.path.join(HERE, "*.json"))):
-        if os.path.basename(p) in ("SPEC.json", "SUMMARY.json", "BLIND_SECOND_READ.json", "BLIND_SECOND_READ_raw.json"):
+        if os.path.basename(p) in ("SPEC.json", "SUMMARY.json", "BLIND_SECOND_READ.json", "BLIND_SECOND_READ_raw.json", "BLIND_READ_2.json", "BLIND_READ_2_raw.json"):
             continue
         d = json.load(open(p, encoding="utf-8"))
         L += [f"## {d['trial']} (PMID {d['pmid']}, {d['nct']}) -- overall proposal: {d['overall']['proposal']}", "",
