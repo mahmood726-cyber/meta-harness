@@ -1,6 +1,6 @@
 # Evidence lane report: 2026-09-25
 
-Branch `evid/evidence-records` @ `a316b94e`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
+Branch `evid/evidence-records` @ `0c27fcb4`; the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.
 
 ## P53: N = 53 (pooled primary rows inadmissible on P5 at 38c04411)
 
@@ -26,7 +26,7 @@ Branch `evid/evidence-records` @ `a316b94e`; the lane's commits land on main onl
 - adjudicated: **23 of 23**; not yet: 0 (none)
 - rulings (of 23 adjudicated): CANDIDATE_REJECTED 3, SERVED_CONFIRMED 20
 - entry population, lane ruling (of 23): ESTABLISHED 23
-- analysis set as the source states it (of 15 drafted from extractions): ITT_STATED 4, NOT_STATED 7, OTHER_SET_STATED 4
+- analysis set as the source states it (of 16 drafted from extractions): ITT_STATED 7, NOT_STATED 4, OTHER_SET_STATED 5
 - rows carrying a recorded label defect (number unchanged): 5
 
   - UA-002 SERVED_CONFIRMED / entry ESTABLISHED: COPPS-2: served counts 61/180 vs 75/180 are printed. The extraction failed verification only on a non-core treatment span, so the adjudication cites the core spans directly. TIMEPOINT NOTE: the served window is 'in-hospital / index-admission', but the held tex
@@ -43,7 +43,7 @@ Branch `evid/evidence-records` @ `a316b94e`; the lane's commits land on main onl
 - adjudicated: **16 of 16**; not yet: 0 (none)
 - rulings (of 16 adjudicated): SERVED_CONFIRMED 16
 - entry population, lane ruling (of 16): ESTABLISHED 15, PARTLY 1
-- analysis set as the source states it (of 16 drafted from extractions): ITT_STATED 10, NOT_STATED 1, OTHER_SET_STATED 5
+- analysis set as the source states it (of 16 drafted from extractions): ITT_STATED 13, OTHER_SET_STATED 3
 - rows carrying a recorded label defect (number unchanged): 0
 
   - S16-10 SERVED_CONFIRMED / entry PARTLY: Served number printed in the bound span (verified); VITAL major CV events HR 0.92 (0.80-1.06). Entry PARTLY: a usual-risk primary-prevention population (men >=50, women >=55), not selected for elevated cardiovascular risk.
@@ -53,7 +53,7 @@ Branch `evid/evidence-records` @ `a316b94e`; the lane's commits land on main onl
 - adjudicated: **15 of 15**; not yet: 0 (none)
 - rulings (of 15 adjudicated): CANDIDATE_REJECTED 1, SERVED_CONFIRMED 14
 - entry population, lane ruling (of 15): ESTABLISHED 15
-- analysis set as the source states it (of 15 drafted from extractions): ITT_STATED 1, NOT_STATED 4, OTHER_SET_STATED 10
+- analysis set as the source states it (of 15 drafted from extractions): ITT_STATED 2, OTHER_SET_STATED 13
 - rows carrying a recorded label defect (number unchanged): 0
 
   - M-02 CANDIDATE_REJECTED / entry ESTABLISHED: Blum 2015 (prednisone in CAP) hyperglycaemia: the served row is the printed OR 1.96 (1.31-2.93), but the outcome's estimand and served estimand are RR. The source prints the arm counts and the randomised arm sizes, so the declared scale is available as counts.
@@ -82,7 +82,7 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
 ## Uniform sweeps (mechanical, all adjudicated rows; `evidence/sweeps/entry_age_and_analysis_set.json`)
 
 - adult age floor, of 86 rows whose question says 'adults': stated 84, not stated 1, floor explicitly removed 1
-- served 'intention-to-treat' label, of 75 rows carrying it: supported by a span 35, contradicted by a span 23, unsupported (no span states a set) 13 -- labels only; no number moves
+- served 'intention-to-treat' label, of 75 rows carrying it: supported by a span 37, contradicted by a span 26, unsupported (no span states a set) 8 -- labels only; no number moves
 
 - retest (exploratory, U23 rows outside the pre-registered 20): bound numbers AGREE 15, DISAGREE 1, NOT_COMPARABLE 1, RETEST_MISSING 0 of 17; verdict agree 17, entry agree 17
 - retest (exploratory, S16): bound numbers AGREE 15, DISAGREE 1, NOT_COMPARABLE 0, RETEST_MISSING 0 of 16; verdict agree 16, entry agree 16
@@ -95,7 +95,21 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
 - S16 endpoint-definition citations, by eye (of 16): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 9, RIGHT_ENDPOINT 5, WRONG_ENDPOINT 1; second opinion: 16 of 16 (blind, cross-family, recorded contract)
 - M endpoint-definition citations, by eye (of 15): NOTE_NOT_A_SPAN 1, OUTCOME_NAME_ONLY 7, WRONG_ENDPOINT 4, WRONG_VALUE_RIGHT_SPAN 3; second opinion: 14 of 15 (blind Claude subagent given only outcome name + cited value/source/span; SAME family as the lane, so blind but not decorrelated; evidence/sweeps/compat_endpoint_citation_m_blind_claude.json). Disagreement M-11: the lane said WRONG_ENDPOINT, the blind reader WRONG_VALUE_RIGHT_SPAN because the span continues 'Safety end points included bleeding events', which names the served outcome (any bleeding). Blind reader adopted after reading the span; M-06 (major bleeding, same span) stays WRONG_ENDPOINT because generic 'bleeding events' does not name major bleeding, and both readers agree.
 - M served follow-up citations (of 15): NO_VALUE ; LANE_BOUND_IN_HELD 7, ECHO_OF_OUTCOME_TIMEPOINT ; LANE_BOUND_IN_HELD 8; the lane's own follow-up spans by eye: FOLLOW_UP_BOUND 7, WINDOW_IS_IN_HOSPITAL 1, SPAN_WRONG_DIMENSION 2, ON_TREATMENT_WINDOW 5; served age: SERVED_NOT_STATED_BUT_HELD_STATES_FLOOR 15
-- served analysis-set label corrections listed row by row in `evidence/LABEL_CORRECTIONS.md`: 36 (queued, not landed)
+
+## Typed-estimand completeness (U23+S16+M rows bound (not set aside); `evidence/sweeps/typed_completeness.json`)
+
+- rows with every typed field bound: **50 of 54**
+- analysis_set: BLOCKED 4, BOUND 50
+- treatment_strategy: BOUND 54
+- follow_up: BOUND 54
+- every unbound field carries a coded reason on its ruling (BLOCKED = the only source is paywalled or bot-checked, not bypassed; NOT_STATED; STATED_FOR_OTHER_ESTIMATE; INFERRED_ONLY = derivable, never stated):
+  - UA-002 analysis_set: BLOCKED: COPPS-2's analysis set is named only in the full text; the only open-access copies are university-repository PDFs behind bot checks (AIR Milan, Cloudflare; VinaR, 'Human Verification'), not bypassed; the JAMA full text is paywalled
+  - UA-004 analysis_set: BLOCKED: CORP's analysis set is named only in the Annals full text; the only open-access copy is the University of Milan repository PDF (AIR, air.unimi.it/bitstream/2434/635125), behind a Cloudflare bot check, not bypassed; the Annals full 
+  - UA-005 analysis_set: BLOCKED: as UA-004 (same CORP report): the only open-access copy is the University of Milan repository PDF (AIR, air.unimi.it/bitstream/2434/635125), behind a Cloudflare bot check, not bypassed; the Annals full text is paywalled (403); no P
+  - UA-008 analysis_set: BLOCKED: CAPE COD's NEJM report (the only source that could name the population) is paywalled/bot-checked; Unpaywall lists no open copy. The trial's own abstract says 'Data from 795 patients were analyzed' of 800 randomised (matching the se
+
+- replacement endpoint citations proposed for the 14 wrong citations (U23 WRONG_ENDPOINT 6 + S16 1 + M WRONG_ENDPOINT 4 + M WRONG_VALUE_RIGHT_SPAN 3): DEFINES_OUTCOME 8, NAMES_OUTCOME 5, NO_DEFINITIONAL_SPAN_HELD 1 -- verified spans, queued in `evidence/CITATION_CORRECTIONS.md`, not landed
+- served analysis-set label corrections listed row by row in `evidence/LABEL_CORRECTIONS.md`: 34 (queued, not landed)
 
 ## Second adjudication of the M rows (Claude, adversarial; SAME family as the lane, so not decorrelated)
 
@@ -134,4 +148,4 @@ Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.
 - 'Entry ESTABLISHED' means the trial's own text states an entry population inside the question. It is evidence for Mahmood's D04, not an admission; no route that admits a row exists or was created.
 - Most held sources are abstracts or registry records; open-access full text was held or acquired for a minority. 'Analysis set NOT STATED' usually means 'not in an abstract', not 'not in the paper'.
 - M-02..M-15 were extracted by Claude subagents after the codex budget ran out (M-01 by codex): extractor and adjudicator are the same family for those rows, so their rulings rest on the byte-level span and number gates plus a same-family adversarial review, not a cross-family one.
-- Sources held LOCAL-ONLY (not redistributable): 14; URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.
+- Sources held LOCAL-ONLY (not redistributable): 25; URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.

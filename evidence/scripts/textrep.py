@@ -8,6 +8,7 @@ who holds (or re-fetches and hash-checks) the same bytes.
   europepmc_core.json     -> title + abstractText, tags stripped, whitespace collapsed
   *.html (held_local)     -> script/style removed, tags stripped to spaces, entities unescaped, whitespace collapsed
   *.txt                   -> text, whitespace collapsed
+  *.pdf (held_local)      -> page texts by the PINNED extractor (PDF_EXTRACTOR), joined, whitespace collapsed
 """
 import html, json, os, re
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -17,9 +18,15 @@ def _ws(s):
     return re.sub(r"\s+", " ", s or "").strip()
 
 
+# A TAG is '<' followed by a letter or '/', or an HTML comment. Abstracts mix real tags with a literal '<'
+# ('P<0.001', 'weight <70 kg'); the earlier '<[^>]+>' treated that '<' as a tag opening and deleted everything up to
+# the next '>' -- it ate FLOW's whole MACE result sentence. Only real tag syntax may be stripped.
+TAG = re.compile(r"<!--.*?-->|<\?.*?\?>|<![A-Za-z\[][^<>]*>|</?[A-Za-z][A-Za-z0-9:_-]*(?:\s[^<>]*)?/?>", re.S)
+
+
 def _strip(s):
     s = re.sub(r"<(xref|sup)[^>]*>(.*?)</\1>", lambda m: m.group(0) if m.group(1) == "sup" else " ", s or "", flags=re.S)
-    return _ws(html.unescape(re.sub(r"<[^>]+>", " ", s)))
+    return _ws(html.unescape(TAG.sub(" ", s)))
 
 
 def _ctgov(d):
@@ -91,9 +98,24 @@ def render(ref):
     if path.endswith(".html"):
         t = raw.decode("utf-8", errors="replace")
         t = re.sub(r"<(script|style)\b.*?</\1>", " ", t, flags=re.S)
-        return _ws(html.unescape(re.sub(r"<[^>]+>", " ", t)))
+        return _ws(html.unescape(TAG.sub(" ", t)))
     if path.endswith(".xml"):
         t = raw.decode("utf-8")
         t = re.sub(r"<(ref-list|back)\b.*?</\1>", " ", t, flags=re.S)
         return _strip(t)
+    if path.endswith(".pdf"):
+        return _pdf(raw)
     return _ws(raw.decode("utf-8", errors="strict"))
+
+
+PDF_EXTRACTOR = ("pypdf", "6.13.1")
+
+
+def _pdf(raw):
+    """Page texts in order, joined by one space, whitespace collapsed. A PDF's text layer depends on the extractor,
+    so the extractor is PINNED: any other pypdf version refuses to render (a drifted extractor would silently move
+    every span; refusing makes the gate fail closed instead)."""
+    import io, pypdf
+    if pypdf.__version__ != PDF_EXTRACTOR[1]:
+        raise RuntimeError(f"PDF render needs {PDF_EXTRACTOR[0]} {PDF_EXTRACTOR[1]}, found {pypdf.__version__}")
+    return _ws(" ".join((p.extract_text() or "") for p in pypdf.PdfReader(io.BytesIO(raw)).pages))

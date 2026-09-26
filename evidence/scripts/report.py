@@ -93,6 +93,25 @@ def main(out, since=None, notes=None):
         L += [f"- M served follow-up citations (of {x['population']['N']}): " + ", ".join(f"{k} {v}" for k, v in x["follow_up"].items())
               + "; the lane's own follow-up spans by eye: " + ", ".join(f"{k} {v}" for k, v in x["lane_span_eye"].items())
               + "; served age: " + ", ".join(f"{k} {v}" for k, v in x["age"].items())]
+    tc = os.path.join(ROOT, "evidence/sweeps/typed_completeness.json")
+    if os.path.exists(tc):
+        x = json.load(open(tc, encoding="utf-8"))
+        L += ["", f"## Typed-estimand completeness ({x['population']['denominator']}; `evidence/sweeps/typed_completeness.json`)", "",
+              f"- rows with every typed field bound: **{x['rows_fully_bound']} of {x['population']['N']}**"]
+        L += [f"- {f}: " + ", ".join(f"{k} {v}" for k, v in sorted(c.items())) for f, c in x["fields"].items()]
+        L += ["- every unbound field carries a coded reason on its ruling (BLOCKED = the only source is paywalled or "
+              "bot-checked, not bypassed; NOT_STATED; STATED_FOR_OTHER_ESTIMATE; INFERRED_ONLY = derivable, never stated):"]
+        for k, v in x["rows"].items():
+            for f, s in v.items():
+                if s not in ("RULING_SPAN", "GAP_VERIFIED"):
+                    L.append(f"  - {k} {f}: {str(s)[:240]}")
+        L.append("")
+    cc = os.path.join(ROOT, "evidence/sweeps/citation_corrections_proposed.json")
+    if os.path.exists(cc):
+        x = json.load(open(cc, encoding="utf-8"))
+        L += [f"- replacement endpoint citations proposed for the {x['population']['N']} wrong citations "
+              f"({x['population']['denominator']}): " + ", ".join(f"{k} {v}" for k, v in sorted(collections.Counter(
+                  r["kind"] for r in x["rows"].values()).items())) + " -- verified spans, queued in `evidence/CITATION_CORRECTIONS.md`, not landed"]
     lc = os.path.join(ROOT, "evidence/LABEL_CORRECTIONS.md")
     if os.path.exists(lc):
         n_ = sum(1 for l in open(lc, encoding="utf-8") if l.startswith("- **"))

@@ -20,7 +20,8 @@
   - entry_population_reading: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
   - arm_sizes: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "785 patients were randomly assigned to either the prednisone group (n=392) or the placebo group (n=393)"
   - counts_and_or: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."
-- block sha256: 4e198a21da23fcbbfd18cf32796e497ee999000dc4dc35c6c8f599fdaa1a1362
+  - analysis_set: `evidence/held/24974155/PMC4083867.xml` (sha256 a7a522ff84fa): "Following the intention-to-treat principle, all patients receiving at least one dose of study medication will be included in the analysis with group allocation as randomized; patients violating inclusion criteria or meeting exclusion criteria due to information that was not available at study entry will be excluded post randomization in a blinded manner [ ]."
+- block sha256: 792bc9281612b2316d93d3569c5943ee5f1d99a19ed78ae06d1aae36a45a0317
 
 ### P53-23: noac-vs-warfarin-af-stroke / Stroke or systemic embolism / PMID 19717844 (RE-LY, dabigatran 150 mg)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -56,7 +57,9 @@
   - gap_analysis_set: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
   - gap_follow_up: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "The co–primary end points, in the order planned for sequential hierarchic testing, were the percentage change in body weight and the proportion of participants who lost at least 5% of baseline weight by week 68"
   - gap_entry_age: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "Eligible participants were aged 18 years or older"
-- block sha256: eaff6799d1a0e67a5445a608fb9f27acfde3de45a419bcdda962a667fad6b2f6
+  - intercurrent_event_strategy: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment periods. In-trial observation period: the uninterrupted time interval from the start of randomisation (week 0) to last trial-related subject-site contact (week 75)."
+  - treatment_strategy: `cache/semaglutide-obesity-weight/records.json#/records/117` (sha256 8779e517b6f0): "Participants were randomized (2:1) to semaglutide, 2.4 mg (n = 407) or placebo (n = 204), both combined with a low-calorie diet for the first 8 weeks and intensive behavioral therapy (ie, 30 counseling visits) during 68 weeks."
+- block sha256: c0fd1e52631098dfc70f32dab7021da25965c0476e10ab951f49c0fc42584222
 
 ### UA-033: semaglutide-obesity-weight / Percent change in body weight / PMID 33567185 (STEP 1)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -77,7 +80,9 @@
   - gap_analysis_set: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
   - gap_follow_up: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Change in body weight from baseline (week 0) to week 68 is presented."
   - gap_entry_age: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Male or female, age greater than or equal to 18 years at the time of signing informed consent"
-- block sha256: 7279ac0fe2be1eda90aee59767af009b4674e9e36f2a2dbc09950a2cdc6809d1
+  - intercurrent_event_strategy: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment observation periods. In-trial observation period: the uninterrupted time interval from date of randomization (week 0) to date of last contact with trial site (week 75)."
+  - treatment_strategy: `cache/semaglutide-obesity-weight/records.json#/records/118` (sha256 8779e517b6f0): "randomly assigned them, in a 2:1 ratio, to 68 weeks of treatment with once-weekly subcutaneous semaglutide (at a dose of 2.4 mg) or placebo, plus lifestyle intervention."
+- block sha256: 9d9c7e306603cdc8a84b8e7a88a79f57cee68adf2416d424dd208854c10ae01b
 
 ### UA-042: spironolactone-hfref-mortality / All-cause mortality / PMID 28824029 (J-EMPHASIS-HF)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -97,4 +102,6 @@
   - gap_analysis_set: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Full analysis set included all randomized participants."
   - gap_follow_up: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Randomization up to the date when the last enrolled participant had been followed up for 1 year (up to 1744 days)"
   - gap_entry_age: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "ELIGIBILITY AGE/SEX: minimum age 55 Years | maximum age None | sex ALL"
-- block sha256: 281d19c7f5fbc2f13397ca8b4bb3284433f40022c27ce4e62ac4d42bdd82d11d
+  - treatment_strategy: `evidence/held_local/28824029/jstage_circj_82_1.html` (sha256 675e5ee29e43): "Eplerenone was initiated at a dose of 25 mg once daily provided that the serum potassium level was <5.0 mEq/L when dosage was initiated, and increased after 4 weeks to 50 mg once daily"
+  - intercurrent_event_strategy: `evidence/held_local/28824029/jstage_circj_82_1.html` (sha256 675e5ee29e43): "11 of 17 deaths in the eplerenone group occurred after study drug discontinuation"
+- block sha256: c3d81fb1b493de86223ecbfea28c860a90f5d2d469612052822c439df39efefb

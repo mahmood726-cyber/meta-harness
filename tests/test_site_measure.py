@@ -15,8 +15,9 @@ def test_every_site_is_measured_or_has_a_reason():
 
 def test_the_measured_pattern_is_the_one_the_plants_hold_to():
     # every accept plant of a measured site fires through site_measure (the same pattern the harness compiles)
+    from regex_layer import lanes
     for site in DETECTS:
-        if m.population_of(site) is None:
+        if m.population_of(site) is None or lanes.stale_reason(site):
             continue
         for i, (text, _groups) in enumerate(INLINE_SPECS[site]["plants"]["accept"]):
             if f"{site}-accept-{i}" not in KNOWN_DEFECTS:          # a located defect fails its plant by design

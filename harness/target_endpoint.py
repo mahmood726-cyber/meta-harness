@@ -196,11 +196,11 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
     s_cv = re.sub(r"\bnon-?\s?cardiovascular\b", "noncv", s)
     if ("cardiovascular death" in s_cv or "death from cardiovascular" in s_cv
             or "cardiovascular causes" in s_cv
-            or re.search(r"cardiovascular.{0,30}death|death.{0,30}cardiovascular", s_cv)
+            or re.search(r"cardiovascular(?:(?!\b(?:or|and)\b|[,;]).){0,30}death|death(?:(?!\b(?:or|and)\b|[,;]).){0,30}cardiovascular", s_cv)
             or re.search(r"\bcv\b.*death|death.*\bcv\b", s_cv)
             # 'death from vascular causes' / 'vascular death' is the PLATO / PHILO / ASCEND / ORIGIN
             # phrasing of cardiovascular death (not 'cerebrovascular')
-            or re.search(r"(?<!cerebro)(?<!cardio)\bvascular death|death from vascular causes", s)):
+            or re.search(r"(?<!cerebro)(?<!cardio)(?<!non-)(?<!non)\bvascular death|(?<!non-)death from vascular causes", s)):
         comps.add("cardiovascular death")
     if "transient ischemic attack" in s or "transient ischaemic attack" in s or re.search(r"\btia\b", s):
         comps.add("transient ischemic attack")
@@ -210,7 +210,7 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
             or (re.search(r"\bhf\b", s) and re.search(r"hospitali[sz]", s))):
         comps.add("heart failure hospitalization")
     # 'fatal or hospitalized HF' / 'death from heart failure' is a heart-failure death component, not HHF alone
-    if re.search(r"\bfatal\b.{0,25}\b(?:hf|heart failure)\b|death from heart failure|heart failure death", s):
+    if re.search(r"(?<!non-)(?<!non)\bfatal\b.{0,25}\b(?:hf|heart failure)\b|death from heart failure|heart failure death", s):
         comps.add("heart failure death")
     if "urgent visit" in s and ("heart failure" in s or re.search(r"\bhf\b", s)):
         comps.add("urgent heart failure visit")

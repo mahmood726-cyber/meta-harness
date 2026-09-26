@@ -186,3 +186,25 @@ INLINE_SPECS.update(_OTHER_LANES)
 from regex_layer.specs_other_lanes_2 import SITE_SPECS as _OTHER_LANES_2  # noqa: E402
 
 INLINE_SPECS.update(_OTHER_LANES_2)
+
+# Third batch of other-lane sites (harness/comparator_truth.py, reason_audit.py, consumer_consistency.py, index.py,
+# membership.py, cites.py, search_v2.py): read only, same discipline as specs_other_lanes.
+from regex_layer.specs_other_lanes_3 import SITE_SPECS as _OTHER_LANES_3  # noqa: E402
+
+INLINE_SPECS.update(_OTHER_LANES_3)
+
+# Fourth batch of other-lane sites (architecture_identity, claimgraph, design_key, scope_identity, trial_family,
+# compat_direction, honest_ratchet, page, registry_first, unit_of_analysis, arm_object): read only.
+from regex_layer.specs_other_lanes_4 import SITE_SPECS as _OTHER_LANES_4  # noqa: E402
+
+INLINE_SPECS.update(_OTHER_LANES_4)
+
+# Fifth batch: every remaining other-lane site (29 files), read only.
+from regex_layer.specs_other_lanes_5 import SITE_SPECS as _OTHER_LANES_5  # noqa: E402
+
+INLINE_SPECS.update(_OTHER_LANES_5)
+
+# harness/whole_numbers.py -- R4, owned by this lane
+from regex_layer.specs_whole_numbers import SITE_SPECS as _WHOLE_NUMBERS  # noqa: E402
+
+INLINE_SPECS.update(_WHOLE_NUMBERS)

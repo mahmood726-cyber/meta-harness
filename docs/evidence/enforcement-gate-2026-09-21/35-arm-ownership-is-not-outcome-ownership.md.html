@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>35-arm-ownership-is-not-outcome-ownership.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>35-arm-ownership-is-not-outcome-ownership.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/35-arm-ownership-is-not-outcome-ownership.md</code>; its SHA-256 is <code>0a3b27f4ce957aefa7be7d24af6465ab5f3a110fe27e568e0745f60b01d4f181</code> (4,721 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Arm ownership is not outcome ownership: a foreign-outcome denominator is accepted.</p><pre># Arm ownership is not outcome ownership: a foreign-outcome denominator is accepted
+
+Lane HOSTILE-2, `/f/mh-f4`, 2026-09-25. Adversarial lane, no patch, no repair. Nothing landed.
+
+## The finding
+
+&gt; A denominator explicitly belonging to **headache** was accepted for **nausea**, including through the
+&gt; real hand-override producer.
+
+Every layer passes it:
+
+    OTHER_OUTCOME_DENOMINATOR           shape=None  replay=None
+                                        admission={&#x27;admissible&#x27;: True, &#x27;verdict&#x27;: &#x27;EXACT_TARGET&#x27;}
+                                        verify=(&#x27;verified&#x27;, &#x27;role-labelled injective count witnesses
+                                                 replayed against held source&#x27;)
+    OTHER_OUTCOME_DENOMINATOR_PRODUCER  {&#x27;rows&#x27;: 1, &#x27;codes&#x27;: []}
+
+For contrast, every other &quot;wrong kind of number&quot; attack **is** refused:
+`WRONG_KIND_YEAR`, `WRONG_KIND_PMID`, `WRONG_KIND_PERCENT`, `WRONG_KIND_CI_BOUND` all fail at replay.
+
+## Mechanism, confirmed by reading the code rather than trusting the verdict
+
+    harness/count_observations.py:113   denominators(doc, terms)  -- takes the document and the ARM
+                                        TERMS. The outcome is not a parameter.
+    harness/count_observations.py:225   the denominator witness carries role and basis, no outcome.
+    harness/count_observations.py:227   the &quot;context&quot; witness covers the EVENTS candidate span,
+                                        not the denominator&#x27;s.
+    harness/count_observations.py:287   `outcome` is in the compared field list -- but it is only
+    harness/count_observations.py:326   checked as a VALUE between supplied and re-extracted objects.
+                                        It never constrains where a denominator may be located.
+
+So a denominator stated anywhere in the document for the right arm is admissible, regardless of which
+outcome&#x27;s section states it.
+
+## Why this matters, and why it is the same arrow rather than a new one
+
+This is finding B&#x27;s shape one level along. The original defect was **occurrence is not ownership** — the
+digits being on the page did not prove they belonged to that arm. The repair bound counts to arms. This
+says **arm ownership is not outcome ownership** — the denominator now provably belongs to the right arm,
+and still need not belong to the right outcome.
+
+The auditor&#x27;s own schema lists `outcome` as a constituent of the observation, alongside arm, population
+and window. The field is carried end to end; it is simply not enforced as a constraint on the
+denominator&#x27;s provenance.
+
+## What HOSTILE-2 confirmed, and one architectural correction
+
+Everything else held, on 34 named probes:
+
+| attack | verdict |
+|---|---|
+| distinct coordinates, same arm | CONFIRMED refused (`ARM_EVENT_OWNER_MISMATCH`; tables independently refuse duplicate columns) |
+| wrong kind of number | **REFUTED** — year/PMID/percent/CI-bound refused, foreign-outcome denominator accepted |
+| off-by-one, partial overlap, nested slices | CONFIRMED refused at replay |
+| table aliases (same cell via offset or group alias, string column) | CONFIRMED refused; null column fails shape too |
+| all three producer routes (hand override, abstract machine, CT.gov machine) | CONFIRMED — each admits its control, each refuses a shared-coordinate mutation with `ARM_WITNESS_NOT_INJECTIVE` |
+
+**The correction worth keeping: shape validation is not the defence — replay is.** Off-by-one, partial
+overlap, nested slices and the table aliases all present four *distinct* coordinates and pass the
+injectivity shape check; they are caught when the witness is replayed against the held source. So
+&quot;four distinct coordinates&quot; is necessary and nowhere near sufficient, and the claim that injectivity
+implies non-overlapping intervals is **REFUTED**.
+
+Stated limits from the lane: coverage is 3 of 3 named producer routes, not a corpus census; universal
+coverage beyond the exercised paths is UNTESTED; the 34 probes are heterogeneous checks, not 34
+independent studies. All newly created fixtures were removed and no pre-existing fixture was overwritten.
+
+## The repair this implies
+
+Bind the denominator to the outcome, not only to the arm: `denominators()` must be given the outcome
+context and refuse a candidate whose located span belongs to a different outcome&#x27;s section, with its own
+code rather than a reused one. The same question should then be asked of `population` and `window`, which
+are carried in the observation for the same reason and are, on this corpus, still UNEXERCISED.
+
+**Queued, not worked.** This is a repair to code that cannot land without the 32-topic regeneration, and
+the scope rule for this cycle is to close findings A and B rather than extend the catalogue.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

@@ -6,6 +6,8 @@ import hashlib, json, os, shutil, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TA = os.path.abspath(os.path.join(HERE, ".."))
+sys.path.insert(0, HERE)
+from arm_roles import arm_roles_for  # noqa: E402
 src, dst, nct_map = sys.argv[1], sys.argv[2], json.load(open(sys.argv[3], encoding="utf-8"))
 acq = {a["nct"]: a for a in json.load(open(os.path.join(TA, "registry", "ACQUISITIONS.json"), encoding="utf-8"))}
 os.makedirs(dst, exist_ok=True)
@@ -34,6 +36,9 @@ for job in sorted(os.listdir(src)):
                                  "origin_sha256": a["file_sha256"], "acquired": {"url": a["url"], "retrieved_utc": a["retrieved_utc"]}})
         reg.append({"nct": nct, "file": name, "hasResults": a.get("hasResults"), "modules": a.get("modules")})
     row["registry_results"] = [r for r in reg if r["hasResults"]]
+    # the protocol's roles (arm_roles.py): topic terms + the pipeline's _classify_arms over every registry scope
+    row["arm_roles"] = arm_roles_for(row.get("slug") or (row.get("held_key") or "").split("/")[0],
+                                     [os.path.join(TA, "registry", r["file"]) for r in reg])
     row["registry_records_without_results"] = [r["nct"] for r in reg if not r["hasResults"]]
     json.dump(row, open(os.path.join(d, "row.json"), "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     shutil.copy(os.path.join(HERE, "WITNESS_BRIEF.md"), os.path.join(d, "BRIEF.md"))

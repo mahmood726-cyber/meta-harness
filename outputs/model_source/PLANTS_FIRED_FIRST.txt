@@ -674,3 +674,8 @@ tests\test_model_source.py:332: AssertionError
     duplicate ids (::test_a_population_with_duplicate_item_ids_is_refused); protocol lines are de-duplicated by text.
     site_label is RETIRED (kept as the record of what ran; run/freeze refuse it); its successor site_label_v2 froze
     N = 803 with unique ids, and a one-call probe returned RAN_OK before the full run.
+#23 Calibration of the blind Claude labeller against the recorded first reader first read 69 of 138 -- EXACTLY half,
+    with _MORT_Y 0 of 6 where both labellers must say "states" on every "mortality" sentence. The stored recorded label
+    comes back from JSON with tuples turned into lists, the freshly verified one is tuples, so == only ever matched when
+    both labels were empty. scripts/measure_claude_labels.py now compares the canonical JSON form: 132 of 138. The
+    exactly-half result is what exposed it -- a 50% "agreement" measured the comparison, not the labellers.

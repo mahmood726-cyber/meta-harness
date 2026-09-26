@@ -48,7 +48,7 @@ def acquire(pid):
                        "fetched_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
                        "licence": "PMC free full text, not in the OA subset"}
             json.dump(ll, open(lp, "w", encoding="utf-8", newline="\n"), indent=1); out += " -> PMC html held LOCAL"
-    json.dump(led, open(A.LEDGER, "w", encoding="utf-8"), indent=1, sort_keys=True)
+    json.dump(led, open(A.LEDGER, "w", encoding="utf-8", newline="\n"), indent=1, sort_keys=True)
     return out
 
 

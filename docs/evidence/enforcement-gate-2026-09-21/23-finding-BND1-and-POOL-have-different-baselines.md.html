@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>23-finding-BND1-and-POOL-have-different-baselines.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>23-finding-BND1-and-POOL-have-different-baselines.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/23-finding-BND1-and-POOL-have-different-baselines.md</code>; its SHA-256 is <code>406ffc019d299d280e1de63b3fa4b300baa63877676f6c60cf11455e8475d300</code> (3,340 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> BND1 and POOL cannot be merged by patch application: they were built on different trees.</p><pre># BND1 and POOL cannot be merged by patch application: they were built on different trees
+
+Measured 2026-09-24. Nothing landed. The integration tree was restored with zero residue and re-verified.
+
+## The instruction
+&quot;Merge BND1 with POOL properly&quot; — on the understanding that they conflict textually, both editing
+`harness/gate.py` and `scripts/verify_bundle.py`.
+
+## What is actually true
+They do not conflict as two edits to the same lines. They are patches against **different baselines**:
+
+    a4e556e3 (main)              harness/gate.py  &quot;def admission_scope&quot;  -&gt;  0
+    1fa77f2c (enforcement-gate)  harness/gate.py  &quot;def admission_scope&quot;  -&gt;  1
+
+- **POOL** was built on `origin/main` (`a4e556e3`) — because my lane brief said so, verbatim: *&quot;Check out the
+  CURRENT `origin/main`, not the branch.&quot;*
+- **BND1** was built on the `enforcement-gate` branch (`1fa77f2c`), and its central addition
+  `estimand_audit()` is written to sit beside `admission_scope()`, which exists only on that branch. It was
+  introduced by the enforcement-gate landing `b25027e3` (&quot;the build reads the admission decision at pooling&quot;).
+
+So `git apply` fails not because the changes disagree but because BND1 depends on code that is not present in
+the tree POOL targets. Applying it there produced a **half-applied patch**: 5 hunks clean, hunk 6 rejected,
+`verify_bundle.py` taking content while `gate.py` and the tests did not — the state in which a patch looks
+installed and is not.
+
+## The cause is a briefing fault, and it is mine
+I directed the POOL lane to main while BND1 already existed on the branch. Two repairs to the same two files,
+aimed at two different trees, cannot be combined afterwards by patching.
+
+## What &quot;merge properly&quot; therefore requires
+Not a merge — a **choice of common base**, and then a rebuild of one side on it:
+- **(a) Rebase POOL onto `enforcement-gate`**, where BND1 already fits and where the admission work lives.
+  This is the practical route: the branch is where this entire body of work sits, and POOL&#x27;s changes
+  (`check_pool_contract`, the five-verdict split, the selected set) do not depend on anything main-only.
+- **(b) Land the branch&#x27;s admission work to main first**, then apply both on main. This is blocked by the
+  same 41-notice question that Decision B is answering, and by the branch being RED by design.
+
+**(a) is the recommendation.** It also removes the mismatch for everything downstream: `MASKING`, `ARM_final`
+and `REGSPAN` were all built on main and would need the same treatment if the branch is the destination.
+
+## A consequence that must not be lost
+Whichever base is chosen, BND1 must NOT be merged in its measured form. Its `ESTIMAND_UNOBSERVED` behaviour
+abstains 42 of 46 served occurrences and empties 29 of 29 result objects, which is the §F.5 violation ruled on
+in `21-decision-estimand-repair-under-F5.md`. **Merge first, then apply the §F.5 restructure** — merging and
+landing in one step reimports the corpus-emptying.
+
+## State after this investigation
+Integration tree restored from backups; `estimand_audit`, `estimand_check`, `duration_value_swap` all absent
+from `gate.py`, `verify_bundle.py` and `build_bundle.py`; F.2 (`input_linkage`) and F.3 (`selected_set`)
+intact; the four-patch landing stack still applies to pristine `a4e556e3` and passes 95 tests together.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

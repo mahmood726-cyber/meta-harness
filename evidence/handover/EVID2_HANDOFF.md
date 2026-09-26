@@ -55,3 +55,24 @@ evid2 now owns the 34 count rows (typed per-arm observations) and the 53 P5 popu
 - **Served analysis-set labels:** 23 P53 rows are served as 'intention-to-treat' but the held source contradicts the label or does not state a set. They are listed row by row, with the bound span, in `evidence/LABEL_CORRECTIONS.md` (derived by `evidence/scripts/label_corrections.py`). They are labels only, and no number moves. They are yours to adopt or re-rule. evid has not changed any P53 ruling since the handoff.
 - **Staleness gate:** `evidence/scripts/stale_check.py` (now condition 4 of `check_all.py`) says whether main has changed a served row since it was ruled on. All 53 P53 rulings match current main as of this addendum.
 - **Scale rule:** the M-02 vs M-03/M-04 rule in `evidence/DECISIONS.md` ('Served scale != declared estimand') also bears on the P53-05 and P53-53 scale-label defects recorded earlier.
+
+## Addendum 2026-09-25 (evid, midday): stale recorded set readings in P53 rulings
+5 P53 rulings record an analysis-set reading made at drafting time that the current reader (fixed since on eye-labelled fixtures) no longer gives. evid did not edit them. The sweep and LABEL_CORRECTIONS already use the current reading. evid refreshed its own 6 and added `test_recorded_set_readings_are_current`, which skips P53; drop that skip when you've refreshed these.
+  - P53-09: recorded ITT_STATED, current reader OTHER_SET_STATED
+  - P53-10: recorded ITT_STATED, current reader OTHER_SET_STATED
+  - P53-12: recorded ITT_STATED, current reader OTHER_SET_STATED
+  - P53-40: recorded OTHER_SET_STATED, current reader ITT_STATED
+  - P53-42: recorded ITT_STATED, current reader OTHER_SET_STATED
+
+## Addendum 2026-09-25 (evid, afternoon): analysis-set sources located for 2 of the 5 P53 rows whose served ITT label is unsupported
+evid located, acquired (local-only, ledgered in evidence/LOCAL_ACQUISITIONS.json) and verified these spans verbatim in `textrep.render` of the held file. **No P53 ruling or packet was changed.** To adopt: add the file as a companion, rebuild the packet, and bind with evidence/scripts/bind_field.py. The current reader's reading is given for each.
+- **P53-33** (Chatterjee 2013, J Assoc Physicians India, PMID 24772726). The source is the journal's own free PDF as captured by the Internet Archive on 2014-08-11 (https://web.archive.org/web/20140811202319id_/http://www.japi.org/october_2013/04_oa_randomised_placebo_controlled.pdf); the original japi.org address now returns 'Page Not Found'. File `evidence/held_local/24772726/japi_2013_oct_04_wayback20140811.pdf`, sha256 d7f2f4d1d94e909762e346b9044ce4a868a9549f7b86f51880ab2d69cd6f4b3b.
+  - span: "The efficacy data analysis was done as a modified intention to treat analysis (i.e. all subjects who had attended at least one post-baseline visit were considered evaluable)."
+  - reader: OTHER_SET_STATED. The served 'intention-to-treat' label is CONTRADICTED: this is mITT / available cases, 343 of 396 analysed per the locator.
+  - *Decided by the lane under delegated authority, 2026-09-25:* an Internet Archive capture of a publisher's own free PDF counts as an authentic copy. It is not a third-party re-host; the provenance URL is recorded.
+- **P53-47** (DECLARE-TIMI 58, PMID 30415602). The source is the SAP posted on CT.gov NCT01730534 (https://cdn.clinicaltrials.gov/large-docs/34/NCT01730534/SAP_001.pdf). File `evidence/held_local/NCT01730534/SAP_001.pdf`, sha256 52835fa64e62049d1ea12b60afbcad047a907c95f7d7fdce6ea1e495152e3ac4.
+  - span: "All primary, secondary, and exploratory efficacy variables will be analyzed using the FAS.". Reader: OTHER_SET_STATED. Hospitalisation for heart failure is listed among the SAP's efficacy variables.
+  - span: "Patients that were randomized at site 5709 will not be included in primary statistical analysis.". This restriction applies to every analysis set, so the FAS is 'all randomised except site 5709', not all randomised.
+  - Caveat: this is the pre-specified plan, not the NEJM methods sentence (which sits behind a bot check).
+- **P53-35** (Szymański 2008, Digestion) and **P53-48** (RALES, NEJM 1999): BLOCKED. The only copies sit behind a Karger or NEJM bot check, which was not bypassed.
+- **P53-39** (McFarland 1995): NOT FOUND. There is no open copy. The abstract's '193 eligible patients' with a covariate-adjusted RR suggests post-randomisation exclusions.

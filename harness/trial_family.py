@@ -80,11 +80,16 @@ def registry_ids(rec):
 def _rid(rec):
     return identity._norm(rec.get('id') or rec.get('pmid') or rec.get('doi') or rec.get('pmc') or rec.get('url'))
 
-def randomised_contrasts(arms, agents, randomized=False):
+def randomised_contrasts(arms, agents, randomized=False, comparators=()):
     """Compare COMPLETE linked arm intervention sets; same-drug dose trials fail.
 
     Missing linkage cannot be treated as placebo. Shared background must be
     explicitly represented by both arms. Matching placebo has no active drug.
+    An arm pair that differs by the agent on one side and by a comparator the
+    protocol DECLARES (include.comparator_any) on the other, with identical
+    background, is also a randomised contrast: without this, no drug-vs-active-drug
+    trial (NOAC vs warfarin, ticagrelor vs clopidogrel, sacubitril/valsartan vs
+    enalapril) could ever be shown to contrast what the review compares.
     """
     if not randomized:
         return []
@@ -99,6 +104,27 @@ def randomised_contrasts(arms, agents, randomized=False):
             if bool(aa) == bool(bb) or av-aa != bv-bb:
                 continue
             out.append({'arm_ids':[a['arm_id'], b['arm_id']], 'drug':agent,
+                        'background_therapy':sorted(av-aa), 'span':[a['span'], b['span']]})
+    if not comparators:
+        return out
+    seen = {(frozenset(c['arm_ids']), c['drug']) for c in out}
+    hit = lambda term, values: {v for v in values if re.search(r'(?<!\w)'+re.escape(term.lower())+r'(?!\w)', v)}
+    for a, b in itertools.permutations(arms, 2):
+        if not a.get('linkage_complete') or not b.get('linkage_complete'):
+            continue
+        av, bv = set(a['active_interventions']), set(b['active_interventions'])
+        for agent in agents:
+            aa = hit(agent, av)
+            if not aa or hit(agent, bv):
+                continue
+            cb = set().union(*[hit(c, bv) for c in comparators])
+            if not cb or set().union(*[hit(c, av) for c in comparators]) or av-aa != bv-cb:
+                continue
+            key = (frozenset([a['arm_id'], b['arm_id']]), agent)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({'arm_ids':[a['arm_id'], b['arm_id']], 'drug':agent, 'comparator':sorted(cb),
                         'background_therapy':sorted(av-aa), 'span':[a['span'], b['span']]})
     return out
 
@@ -169,6 +195,7 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         objects = [arm_object.build(r, config) for r in members]
         arms = held.get('arms') or []
         agents = list((config.get('include') or {}).get('intervention_any') or config.get('intervention_terms') or [])
+        comparators = list((config.get('include') or {}).get('comparator_any') or [])
         population = held.get('population') or {'absence_code':'REGISTRY_ELIGIBILITY_NOT_HELD', 'report_fields':[o['population'] for o in objects]}
         life = held.get('lifecycle') or {k:field(code='REGISTRY_DATE_NOT_HELD') for k in ('registered','started','completed','results_posted')}
         life = dict(life, publication_found=field(code='PUBLICATION_DATE_NOT_HELD'))
@@ -199,7 +226,7 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
                         'dois':sorted({r['doi'] for r in members if r.get('doi')})},
              'reports':reports, 'arms':arms, 'arm_absence_code':None if arms else 'NO_COMPLETE_ARM_STRUCTURE',
              'abstract_arm_objects':objects if not arms else [],
-             'randomised_contrasts':randomised_contrasts(arms, agents, held.get('randomized',False)),
+             'randomised_contrasts':randomised_contrasts(arms, agents, held.get('randomized',False), comparators),
              'population':population, 'analysis_sets':[{'report_id':r['id'], **o['analysis_set']} for r,o in zip(members,objects)],
              'lifecycle':life, 'entered_via':sorted(set(entered)), 'outcome_status':[],
              'eligibility':cell(code='FAMILY_SCREEN_NOT_RUN'), 'registry_design':held.get('design',{}),
@@ -317,6 +344,48 @@ def _legacy_count_sentence(chain):
             f"{chain['eligible_families']} trials met eligibility. "
             f"{chain.get('eligibility_unresolved',0)} families have unresolved structural eligibility; existing pooling membership is preserved.")
 
+def population_matches(terms, conditions):
+    """The protocol's population terms against the registry's conditions, folded as screening folds them
+    (lexicon.fold). A term ending in '*' is the protocol's truncation (PubMed honours it at search time) and
+    matches as a prefix; a condition written in MeSH inverted form 'X, Y' is also read as 'Y X'
+    ('Diabetes Mellitus, Type 2' -> 'type 2 diabetes mellitus'). Only ever ADDS matches to the plain
+    substring test it replaces."""
+    from . import lexicon
+    texts = []
+    for c in conditions:
+        f = lexicon.fold(str(c))
+        texts.append(f)
+        if ', ' in f:
+            head, tail = f.split(', ', 1)
+            texts.append(tail + ' ' + head)
+    text = ' | '.join(texts)
+    for t in terms:
+        f = lexicon.fold(str(t))
+        if (f[:-1] in text) if f.endswith('*') else (f in text):
+            return True
+    return False
+
+def population_clarification(config, conditions):
+    """A RETROSPECTIVE population-vocabulary equivalence, kept structurally apart from the
+    pre-specified `include.population_any`.
+
+    These are decided AFTER the data were seen, so they may never be presented as pre-specified.
+    They are declared in the topic config under `population_vocabulary_clarifications`, each
+    carrying its own attribution, and a family admitted by one carries that record in its cell so
+    the page can disclose it and a verifier can tell the two kinds of match apart.
+
+    Returns the matching clarification record, or None. Never widens `population_none`: an
+    excluded population stays excluded, because that check runs after this one.
+    """
+    for clar in config.get('population_vocabulary_clarifications') or []:
+        terms = clar.get('terms') or []
+        if terms and population_matches(terms, conditions):
+            return {k: clar.get(k) for k in
+                    ('id', 'equivalent_to', 'terms', 'status', 'pre_specified',
+                     'decided_after_data_seen', 'decided_by', 'decided_on', 'question_put',
+                     'answer', 'how_it_reached_the_reviewer') if k in clar}
+    return None
+
 def screen_family(family, config):
     """One P/I/C/design decision, independent of outcomes and report availability.
 
@@ -342,8 +411,11 @@ def screen_family(family, config):
             return cell(code='ADULT_ENTRY_AGE_NOT_PROVEN')
         if float(age.group(1)) < 18:
             return cell('INELIGIBLE', bound.get('span'))
-    if inc.get('population_any') and not any(t.lower() in text for t in inc['population_any']):
-        return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
+    clarification = None
+    if inc.get('population_any') and not population_matches(inc['population_any'], conditions):
+        clarification = population_clarification(config, conditions)
+        if not clarification:
+            return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
     if any(t.lower() in text for t in inc.get('population_none') or []):
         return cell('INELIGIBLE', family['population']['conditions']['span'])
     if not family['randomised_contrasts']:
@@ -354,9 +426,15 @@ def screen_family(family, config):
     if 'placebo' in [str(x).lower() for x in inc.get('comparator_any') or []]:
         if not any('placebo' in str(a.get('drug',{}).get('value','')).lower() for a in family['arms']):
             return cell(code='PLACEBO_CONTROL_NOT_PROVEN')
-    return cell('ELIGIBLE', {'design':design,'population':family['population']['conditions']['span'],
-                             'protocol_requirements':requirements,
-                             'contrasts':family['randomised_contrasts']})
+    span = {'design':design,'population':family['population']['conditions']['span'],
+            'protocol_requirements':requirements,
+            'contrasts':family['randomised_contrasts']}
+    if clarification:
+        # Admitted only via a retrospective vocabulary clarification: record it, so the page
+        # discloses it and nothing downstream can read this as a pre-specified match.
+        span['population_basis'] = 'RETROSPECTIVE_VOCABULARY_CLARIFICATION'
+        span['population_clarification'] = clarification
+    return cell('ELIGIBLE', span)
 
 def protocol_requirements(root, slug, config):
     """Apply explicit structured B-prime design/population declarations only.

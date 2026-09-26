@@ -42,8 +42,9 @@ TABS = [
     ("manuscript", "Manuscript"),
     ("reporting", "Reporting (PRISMA)"),
     ("reproduction", "Reproducibility"),
+    ("verify", "Verify this page"),
 ]
-NEUTRAL_DROP = {"comparator"}
+NEUTRAL_DROP = {"comparator", "verify"}   # a neutral page names no verifier and carries no certificate
 KNOWN_ITEM_RETRIEVAL_LABEL = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
 TITLE_SEEDED_RETRIEVAL_LABEL = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
 HAND_WRITTEN_KEYWORD_SEARCH_LABEL = "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH"
@@ -2888,7 +2889,7 @@ main{max-width:960px;margin:0 auto;padding:22px}
 .tab{display:block;margin-top:8px;padding-top:8px;border-top:1px solid #e6ebef}
 .tab h3.tabname{color:#1d3b4d;font-size:14px;margin:0 0 6px}
 html.js .tab{display:none;border-top:0}html.js .tab.active{display:block}
-html.js .tab h3.tabname{display:none}
+.verify-line{font-size:12.5px;background:#f1f6fa;border-bottom:1px solid #d9e6ef;padding:6px 18px;overflow-wrap:anywhere}.verify-line code{font-size:12px}
 table.kv,table.recs,table.arms{border-collapse:collapse;width:100%;margin:10px 0}
 table.kv th{text-align:left;width:36%;vertical-align:top;padding:6px 8px;color:#3a5a6b;background:#eef2f5;border:1px solid #dbe3e8}
 table.kv td{padding:6px 8px;border:1px solid #dbe3e8}
@@ -2906,8 +2907,9 @@ table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8
 h2{margin-top:0}h4{margin:16px 0 4px}
 """
 _JS = """document.documentElement.className='js';
-function show(id){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+id)});
-document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('active',b.dataset.t===id)});}
+function show(id,byClick){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+id)});
+document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('active',b.dataset.t===id)});
+if(byClick){var n=document.querySelector('nav');if(n)window.scrollTo(0,n.getBoundingClientRect().top+window.pageYOffset);}}
 (function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();"""
 
 
@@ -3098,19 +3100,41 @@ def render_page_verifier(review: dict) -> str:
     return "".join(parts)
 
 
-def render_page(review: dict, neutral: bool = False) -> str:
+def render_verify_line(review: dict) -> str:
+    """ONE line above the tabs (the verifier box itself is in the "Verify this page" tab): the name of the program that checks
+    this page, the sha256 of its served bytes and the command to run -- visible without opening anything."""
+    vs = [v for v in page_verifiers(review) if v.get("sha256")]
+    if not vs:
+        return ("<div id='verify-line' class='verify-line'><strong>No verifier is named for this page</strong> -- see the "
+                "<a href='#tab-verify' onclick=\"show('verify',1);return false\">Verify this page</a> tab.</div>")
+    cert = next((v for v in vs if v["key"] == "certificate"), vs[0])
+    cmd = cert["served_commands"][-1] if cert.get("served_commands") else ""
+    more = f" (+{len(vs) - 1} more)" if len(vs) > 1 else ""
+    return ("<div id='verify-line' class='verify-line'><strong>Verify this page:</strong> "
+            f"<code>{_e(cmd)}</code> -- {_e(cert['name'])}, <code>docs/{_e(cert['served_path'])}</code> sha256 "
+            f"<code>{_e(cert['sha256'][:16])}</code>{_e(more)}. Commands, limits and the full certificate: the "
+            "<a href='#tab-verify' onclick=\"show('verify',1);return false\">Verify this page</a> tab.</div>")
+
+
+def _verify(review: dict, neutral: bool = False) -> str:
     from .certificate import render as render_certificate
+    return render_page_verifier(review) + render_certificate((review.get("reproduction") or {}).get("certificate"))
+
+
+_R["verify"] = _verify   # registered here: _R is built above, before this function exists
+
+
+def render_page(review: dict, neutral: bool = False) -> str:
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
-    nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
+    nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\',1)">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
     body = ("<div class='absent'><strong>AACT_NOT_MEASURED</strong>: registry inputs have not "
             "been measured into a valid per-topic cache; registry dates, sponsors and arm "
             "contrasts are unavailable.</div>" if review.get("aact_status") == "AACT_NOT_MEASURED" else "")
     for tid, lbl in tabs_spec:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
-    if not neutral:
-        body = (render_page_verifier(review)
-                + render_certificate((review.get("reproduction") or {}).get("certificate")) + body)
+    # the verifier box and the certificate live in the "Verify this page" tab (_verify); above the tabs only one line
+    verify_line = "" if neutral else render_verify_line(review)
     body = _trial_families(review, body)
     title = _e(review.get("title") or review.get("slug"))
     sub = ("Meta-analysis" if neutral else
@@ -3133,4 +3157,4 @@ def render_page(review: dict, neutral: bool = False) -> str:
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
             f"<title>{title}</title><style>{_CSS}</style></head><body>"
             f"<header><h1>{title}</h1><div class=sub>{sub}</div>{_pin}</header>"
-            f"<nav>{nav}</nav><main>{body}</main><script>{_JS}</script></body></html>")
+            f"{verify_line}<nav>{nav}</nav><main>{body}</main><script>{_JS}</script></body></html>")

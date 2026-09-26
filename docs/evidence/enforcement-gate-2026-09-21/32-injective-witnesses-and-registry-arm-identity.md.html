@@ -1,0 +1,103 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>32-injective-witnesses-and-registry-arm-identity.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>32-injective-witnesses-and-registry-arm-identity.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/32-injective-witnesses-and-registry-arm-identity.md</code>; its SHA-256 is <code>dafd4b517eb32fe7f3b3be6408b5a46909b718631d9fa42d1a336c2b224ce310</code> (5,897 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Injective role-labelled witnesses, and arm identity carried end to end.</p><pre># Injective role-labelled witnesses, and arm identity carried end to end
+
+Two further auditor passes reshaped F4. Both were reproduced on the real path before anything was built.
+Measured 2026-09-24. Nothing landed; no served number moved.
+
+## 1. The non-injective witness — sharper than the pair swap
+
+Change **only** `ai`, 2347 -&gt; 1687 (the genuine *placebo* count). Keep `n1i=4949, ci=1687, n2i=4952`.
+Every digit is authentic and present. Through the real `harness.verify.verify_pooled` on the real held
+abstract:
+
+    AUTHENTIC                       RR 1.3921   verify_pooled=verified   gate PASS
+    NON_INJECTIVE (ai -&gt; 1687)      RR 1.0006   verify_pooled=verified   gate PASS
+    hand_binding._tuple_in(...)     True in both cases
+
+`&quot;1687&quot;` occurs **once** in the abstract and witnesses **both** arm slots, because `1687/4949 = 34.088%`
+and `1687/4952 = 34.067%` both display `34.1%`. The finding is erased — 1.392 to essentially the null —
+**with no invented number**, so no digit check can reach it.
+
+**The invariant is not &quot;the two numbers must differ.&quot;** It is that one source occurrence may not witness
+two mutually exclusive arm-specific fields.
+
+## 2. The CT.gov route discards arm identity it already has
+
+    harness/target_endpoint.py:759   _counts_from_om() classifies intervention/comparator groupIds
+    harness/target_endpoint.py:788   returns intervention_arm, comparator_arm
+    harness/target_endpoint.py:875   c[&quot;endpoint_counts&quot;] = {k: counts[k] for k in (&quot;ai&quot;,&quot;n1i&quot;,&quot;ci&quot;,&quot;n2i&quot;)}
+    harness/target_endpoint.py:877   the arm NAMES survive only inside a PROSE span
+    harness/target_endpoint.py:1014  row.update({&quot;ai&quot;:..., &quot;n1i&quot;:..., &quot;ci&quot;:..., &quot;n2i&quot;:...})
+
+Searched across `harness/` and `scripts/`: `intervention_arm` / `comparator_arm` appear **only** in
+`target_endpoint.py`. Nothing downstream reads them. The registry states which arm owns each count and
+the projection throws it away one line later — so this could never have been a `hand_binding`-only fix.
+
+Cochrane&#x27;s *Handbook* and the RevMan data-package specification both treat Arm, Reference arm, Sample
+size and Cases as constituents of the result object rather than free text; schema v2 follows that.
+
+## 3. My own first injectivity rule was wrong, and authentic data proved it
+
+I wrote: *the four role-specific witnesses must have four distinct coordinates*. Measured against the 32
+authentic rows in evid2&#x27;s `TYPED_ARMS.json`:
+
+    witnesses recorded at SENTENCE granularity (their current data):
+        &quot;all four coordinates distinct&quot;     would refuse  25 of 32 authentic rows
+        &quot;no coordinate shared across arms&quot;  would refuse  16 of 32 authentic rows
+
+Those are not violations. Example, PMID 30418475 &quot;Adverse events&quot;: one span `[2628:2731]` —
+*&quot;Adverse events occurred in 2697 (77.2%) and 2723 (78.1%) patients in the linagliptin and placebo gro…&quot;*
+— is recorded as `events_evidence` for **both** arms. The sentence establishes ownership by order; its
+coordinates simply cannot say which number each field points at.
+
+At **token** granularity the rule behaves exactly as intended, verified on real source bytes:
+
+    &quot;530&quot;  balanced-crystalloids abstract : 2 occurrences [851:854], [905:908]
+           -&gt; ai=530 and ci=530 each get their own coordinate -&gt; PASS   (a real case (d))
+    &quot;1687&quot; REWIND abstract                 : 1 occurrence
+           -&gt; both arms must share it -&gt; ARM_WITNESS_NOT_INJECTIVE      -&gt; REFUSED
+
+So the requirement is: **the coordinate locates the field&#x27;s own numeric token, not the enclosing
+sentence.** A fraction (&quot;530 of 2433 patients in the BMES group&quot;) then needs no exception, because
+`events` points at `530` and `total` at `2433`.
+
+Had this not been measured, the rule would have refused roughly three quarters of the authentic corpus —
+the over-fix that case (d) exists to catch, committed in the fix itself.
+
+## 4. The regression, through the complete producer -&gt; renderer -&gt; publication gate
+
+Lane F4G, 18 cases on a synthetic topic. Ownership verdicts, all correct:
+
+| case | ownership | first semantic blocker |
+|---|---|---|
+| AUTHENTIC | PASS | — |
+| ONLY_INTERVENTION_EVENTS | REFUSE | `ARM_EVENT_OWNER_MISMATCH` |
+| NON_INJECTIVE_VALUE_ATTACK | REFUSE | `ARM_EVENT_OWNER_MISMATCH` |
+| WHOLE_OBJECT_REVERSED | REFUSE | `CONTRAST_REVERSED_POLICY` |
+| EQUAL_DISTINCT_WITNESSES | PASS | — |
+| WHOLE_PAIR_SWAP | REFUSE | `ARM_EVENT_OWNER_MISMATCH` |
+| EVENT_ONLY_SWAP | REFUSE | `ARM_EVENT_OWNER_MISMATCH` |
+| DENOMINATOR_ONLY_SWAP | REFUSE | `COUNT_DENOMINATOR_MISMATCH` |
+| SHARED_COORDINATE | REFUSE | `ARM_WITNESS_NOT_INJECTIVE` |
+| PERCENTAGE_WILDCARD_DENOMINATORS | REFUSE | `COUNT_DENOMINATOR_MISMATCH` |
+| ABSENT_COUNT | REFUSE | `COUNT_EVENT_ARM_UNBOUND` |
+| MISSING_OBJECTS | REFUSE | `COUNT_ARM_OBJECTS_MISSING` |
+| HAND_PROSE_AUTHENTIC / HAND_PROSE_EQUAL | PASS | — |
+| ABSTRACT_MACHINE / REGISTRY_MACHINE | PASS | — |
+| TABLE_EQUAL_DISTINCT | PASS | — |
+| RESTORE | PASS | — |
+
+Two mechanisms, two distinct codes: an event that no longer belongs to its `group_id` is
+`ARM_EVENT_OWNER_MISMATCH`; two fields sharing a witness coordinate is `ARM_WITNESS_NOT_INJECTIVE`.
+Case (d) passes on three routes — prose, table, and equal values with distinct witnesses.
+
+## What this does NOT establish
+
+Every case&#x27;s **complete-gate** verdict is REFUSE, first blocker `L1: manifest missing &#x27;protocol_sha&#x27;`.
+A synthetic topic has no protocol marker, certificate, tracked cache, replay config or named OA
+comparator, and the lane refused to fabricate any of them. Complete-gate certification, a full BUNDLE
+build, the standalone bundle ownership replay, and migration of the real corpus data are **NOT_REACHED**
+and are not claimed.
+
+`COUNT_ARM_OBJECTS_MISSING` on real served rows remains correct: the typed objects are the data lane&#x27;s
+half, and no observation was generated, inferred or defaulted for a real corpus row.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

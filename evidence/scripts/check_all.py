@@ -31,6 +31,29 @@ def derived_drift():
             open(os.path.join(ROOT, f), "wb").write(b)
 
 
+def decision_witnesses():
+    """(6) Every witness in a result-level decision file (evidence/glp1_adjudication/<TRIAL>.json) still has the
+    sha256 it was cut from and is still verbatim in that file's render."""
+    out, n = [], 0
+    for p in sorted(glob.glob(os.path.join(ROOT, "evidence/glp1_adjudication/*.json"))):
+        if os.path.basename(p) == "BEFORE_AFTER.json":
+            continue
+        stack = [json.load(open(p, encoding="utf-8"))]
+        while stack:
+            o = stack.pop()
+            if isinstance(o, dict):
+                if "span" in o and "ref" in o and "sha256" in o:
+                    n += 1
+                    if V.file_sha(o["ref"]) != o["sha256"]:
+                        out.append(f"{os.path.basename(p)}: witness source changed: {o['ref']}")
+                    elif o["span"] not in textrep.render(o["ref"]):
+                        out.append(f"{os.path.basename(p)}: witness no longer verbatim in {o['ref']}")
+                stack.extend(o.values())
+            elif isinstance(o, list):
+                stack.extend(o)
+    return out
+
+
 def main():
     bad = []
     led = json.load(open(os.path.join(ROOT, "evidence/held/ACQUISITIONS.json"), encoding="utf-8"))
@@ -71,6 +94,7 @@ def main():
         if d:
             bad.append(f"{a['key']}: served row changed since the ruling {json.dumps(d, ensure_ascii=False)[:200]}")
     bad += derived_drift()
+    bad += decision_witnesses()
     print(f"held files {len(led)}; adjudications {len(adj)}; refusals {len(bad)}; local-only files absent here: {len(absent_local)} {absent_local}")
     for b in bad:
         print("  REFUSED", b)

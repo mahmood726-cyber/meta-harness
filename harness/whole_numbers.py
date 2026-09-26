@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 
-SEP = "    ,"                 # thin space, narrow no-break space, no-break space, space, comma
+SEP = "      ,"   # + figure space U+2007, punctuation space U+2008 (RX-X5)                 # thin space, narrow no-break space, no-break space, space, comma
 _GROUPED_BEFORE = re.compile(rf"\d[{SEP}]$")
 _GROUPED_AFTER = re.compile(rf"^[{SEP}]\d{{3}}(?!\d)")
 _DEC_BEFORE = re.compile(r"\d\.$")           # '3' read out of '7.3'

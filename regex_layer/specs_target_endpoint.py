@@ -93,7 +93,7 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("non-cardiovascular death", None), ("noncardiovascular death", None),
                               ("non cardiovascular death", None)],
                    "refuse": ["cardiovascular death", "nonfatal cardiovascular events"]}},
-    "target_endpoint.py:search:714a13cd06": {
+    "target_endpoint.py:search:05aff607b5": {
         "kind": "search", "what": "_components_from_text: cardiovascular death named with words between (reads s_cv)",
         "plants": {"accept": [("death due to cardiovascular disease", None), ("cardiovascular-related death", None)],
                    "refuse": ["noncv death", "cardiovascular hospitalization",
@@ -102,7 +102,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_components_from_text: CV death via a 'cv' that _fold did not expand (cv-death, (cv))",
         "plants": {"accept": [("cv-death", None), ("death (cv)", None)],
                    "refuse": ["noncv death", "death from any cause"]}},
-    "target_endpoint.py:search:aa4a355e65": {
+    "target_endpoint.py:search:e0e9b4f7fb": {
         "kind": "search", "what": "_components_from_text: 'vascular death' / 'death from vascular causes' as CV death, not cerebrovascular",
         "plants": {"accept": [("vascular death", None), ("death from vascular causes", None)],
                    "refuse": ["cerebrovascular death", "nonvascular death", "non-vascular death",
@@ -119,7 +119,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_components_from_text: hospitalisation/hospitalization/hospitalized, paired with HF",
         "plants": {"accept": [("hospitalized hf", None), ("hf hospitalisation", None)],
                    "refuse": ["in-hospital death", "hospital discharge"]}},
-    "target_endpoint.py:search:4a4f5b989a": {
+    "target_endpoint.py:search:2535b7ece1": {
         "kind": "search", "what": "_components_from_text: a heart-failure DEATH component (fatal HF / death from HF)",
         "plants": {"accept": [("fatal or hospitalized hf", None), ("death from heart failure", None),
                               ("heart failure death", None)],

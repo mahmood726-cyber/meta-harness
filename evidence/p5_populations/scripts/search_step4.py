@@ -21,7 +21,26 @@ def core(pmid, held, log):
     try:
         return json.loads(b)["resultList"]["result"][0]
     except Exception:
-        return {}
+        return None   # a FAILED fetch, not an empty record (review 4)
+
+
+def epmc_all(q, held, log, tag, limit):
+    """Every hit of a Europe PMC query, paged by cursorMark up to `limit`; (hitCount, hits, fetch_ok)."""
+    hits, cursor, total = [], "*", None
+    while True:
+        b = get(EPMC + urllib.parse.quote(q) + "&cursorMark=" + urllib.parse.quote(cursor), held, log, tag)
+        try:
+            d = json.loads(b)
+            total = d["hitCount"]
+            page = d["resultList"]["result"]
+        except Exception:
+            return total, hits, False
+        hits += page
+        nxt = d.get("nextCursorMark")
+        if not page or not nxt or nxt == cursor or len(hits) >= min(total, limit):
+            return total, hits[:limit], True
+        cursor = nxt
+        time.sleep(0.3)
 
 
 def queries(rec):
@@ -48,35 +67,50 @@ def main(held, out_path):
         res = {"trial": t["trial"], "facts": t["facts"], "pmid": pmid, "queries": [], "requests": log}
         if pmid:
             rec = core(pmid, held, log)
-            for label, q in zip(("4a", "4b"), queries(rec)):
+            if rec is None:
+                res["fetch_state"] = "FETCH_FAILED"
+                res["queries"].append({"step": "core", "error": "the trial's own core record did not fetch; 4a/4b not run"})
+                rec = {}
+            # 4a (author-limited) is paged to EVERY hit; 4b (title words, very broad) is the first 25 by relevance --
+            # stated in POLICY.md amendment B and in every record (review 4, 2026-09-25)
+            for label, q, limit in zip(("4a", "4b"), queries(rec), (5000, 25)):
                 if not q:
                     res["queries"].append({"step": label, "query": None, "why_none": "no author/year/title in core record"})
                     continue
-                b = get(EPMC + urllib.parse.quote(q), held, log, f"epmc_q{label}_{pmid}")
+                total, raw, ok = epmc_all(q, held, log, f"epmc_q{label}_{pmid}", limit)
+                hits = [{"pmid": x.get("pmid"), "pmcid": x.get("pmcid"), "title": x.get("title"), "year": x.get("pubYear"),
+                         "journal": x.get("journalTitle"), "is_the_trial_report": x.get("pmid") == pmid} for x in raw]
+                res["queries"].append({"step": label, "query": q, "hitCount": total, "hits": hits,
+                                       "coverage": ("all hits" if limit >= 5000 else f"first {limit} by relevance"),
+                                       "fetch_state": "OK" if ok else "FETCH_FAILED"})
+                time.sleep(0.4)
+            url = ("https://clinicaltrials.gov/api/v2/studies?format=json&pageSize=100&fields=NCTId,BriefTitle,ReferencesModule"
+                   "&query.term=" + urllib.parse.quote(f"AREA[ReferencePMID]{pmid}"))
+            regs, studies, token, ok = [], [], None, True
+            while True:
+                b = get(url + (f"&pageToken={token}" if token else ""), held, log, f"ctgov_refpmid_{pmid}")
                 try:
                     d = json.loads(b)
-                    hits = [{"pmid": x.get("pmid"), "pmcid": x.get("pmcid"), "title": x.get("title"), "year": x.get("pubYear"),
-                             "journal": x.get("journalTitle"), "is_the_trial_report": x.get("pmid") == pmid}
-                            for x in d["resultList"]["result"]]
-                    res["queries"].append({"step": label, "query": q, "hitCount": d.get("hitCount"), "hits": hits})
-                except Exception as e:
-                    res["queries"].append({"step": label, "query": q, "error": type(e).__name__})
-                time.sleep(0.4)
-            url = ("https://clinicaltrials.gov/api/v2/studies?format=json&pageSize=20&fields=NCTId,BriefTitle,ReferencesModule"
-                   "&query.term=" + urllib.parse.quote(f"AREA[ReferencePMID]{pmid}"))
-            b = get(url, held, log, f"ctgov_refpmid_{pmid}")
-            regs = []
+                    studies += d["studies"]          # a JSON error body has no 'studies': a failure, not a zero
+                except Exception:
+                    ok = False
+                    break
+                token = d.get("nextPageToken")
+                if not token:
+                    break
             try:
-                for s in json.loads(b).get("studies", []):
+                if not ok:
+                    raise ValueError("FETCH_FAILED")
+                for s in studies:
                     ps = s.get("protocolSection", {})
                     nct = ps.get("identificationModule", {}).get("nctId")
                     refs = [x for x in ps.get("referencesModule", {}).get("references", []) if str(x.get("pmid")) == pmid]
                     regs.append({"nct": nct, "title": ps.get("identificationModule", {}).get("briefTitle"),
                                  "reference_types": [x.get("type") for x in refs],
                                  "counts": any(x.get("type") in ("RESULT", "DERIVED") for x in refs)})
-                res["step2b"] = {"url": url, "registrations": regs}
+                res["step2b"] = {"url": url, "registrations": regs, "fetch_state": "OK", "pages": "all"}
             except Exception as e:
-                res["step2b"] = {"url": url, "error": type(e).__name__}
+                res["step2b"] = {"url": url, "error": type(e).__name__, "fetch_state": "FETCH_FAILED"}
         else:
             res["why_none"] = "trial has no PMID (registry-identified row)"
         res["title"] = rec.get("title")
