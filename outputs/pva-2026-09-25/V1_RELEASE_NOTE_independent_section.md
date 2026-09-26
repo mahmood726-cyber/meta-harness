@@ -1,26 +1,33 @@
 # V1 release note -- independent section: what V1 proves, and what it does not
 
 *Written by the page-verifier and archive lane, which did not build V1. Every claim cites a probe or a commit and was run on bytes
-this lane fetched or took from git, not on anyone's working tree. **STATUS: DRAFT (25 Sep, ~21:00), written against main
-29f0a719 before the freeze.** At the freeze and after the deploy, each line marked **V1:** is filled from this lane's run on the
-SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
+this lane fetched or took from git, not on anyone's working tree. **STATUS: DRAFT (26 Sep, 12:30), written to the final V1 scope
+before the cut.** After the deploy, each line marked **V1:** is filled from this lane's run on the SERVED V1 bytes, or says it was
+not measured. No line is carried forward from a rehearsal.*
+
+## 0. What V1 is
+
+- **Contents.** The main line as frozen on 26 Sep (6260e70c), plus two changes: the family-eligibility check fix (P5, from the
+  notice-review lane) and one retrospective protocol clarification (D3, PRESERVED-HF), which is labelled on its page as
+  retrospective. **V1: fill scope**
+- **The GLP-1 result.** The pooled primary result is **k = 8 trials, HR 0.856 (95% CI 0.809-0.906)**. FLOW and ELIXA are not in it.
+  Adding them would give k = 10, HR 0.861 (0.807-0.919). That change is shown on the page as a **pending result change**, awaiting
+  the reviewer's signature, and does not alter the served number. **V1: fill pending block**
 
 ## 1. Reproductions
 
-- **The served GLP-1 pool is reproduced by an outside party and by this lane.** An independent audit of the served page (hash
-  `90c01bcf`, 16 Sep) reported **k = 8, HR 0.856 (0.809-0.906)**. The served result is **0.8560 (0.8086-0.9061)**, equal to the three
-  decimals the auditor printed. This lane recomputed it with the served verifier's own `pool()` from the served inputs (Paule-Mandel
-  tau^2, HKSJ on t_{k-1}) and got the same result. The evidence lane's independent BEFORE computation through the production path
-  (`harness.known_missing` -> `harness.synth.pool`) gets it too. **V1: re-run on the served V1 bundle.**
+- **The served GLP-1 pool is reproduced exactly, by an outside party and by this lane.** An independent audit of the served page
+  (hash `90c01bcf`, 16 Sep) reported **k = 8, HR 0.856 (0.809-0.906)**. The served result is **0.8560 (0.8086-0.9061)**, equal to
+  the three decimals the auditor printed. This lane recomputed it with the served verifier's own `pool()` from the served inputs
+  (Paule-Mandel tau^2, HKSJ on t_{k-1}) and got the same result. The evidence lane's independent computation through the production
+  path (`harness.known_missing` -> `harness.synth.pool`) gets it too. **V1: re-run on the served V1 bundle.**
 - **What that reproduction does not show.** The published Hasebe 2025 meta-analysis (k = 10, HR 0.86 [0.82-0.91]) matches our
   number. The project's own record calls this **accidental**: Hasebe restricts to oral or bolus subcutaneous GLP-1RAs and we do not.
   Agreement under a different protocol is a coincidence, not validation.
-- **Every page reproduces its certificate from four downloaded files.** On the live site after the tabs deploy, **32 of 32** pages
-  printed `RESULT REPRODUCED` at full scope with the served auditor. **V1: re-run on served V1.**
-- **The served bytes are the committed bytes.** 284 of 284 fetched files equal `git show` at the release commit, and the deploy
-  attests 1194 of 1194. **V1: re-run.**
+- **Every page reproduces its certificate from four downloaded files.** **V1: re-run on served V1.**
+- **The served bytes are the committed bytes.** **V1: re-run.**
 
-## 2. Auditor findings closed, with the test evidence (all on main before the freeze)
+## 2. Auditor findings closed, with the test evidence
 
 | finding | fixed in | evidence the fix is real |
 |---|---|---|
@@ -38,9 +45,10 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
 An outside auditor, working against the live GLP-1 bundle (`release_sha256` 57dcc327, before the ordered-contrast lane's
 checks), reported that changing ONE recorded value of the LEADER row, and leaving its basis alone, passes the estimand checks
 (P10/P11). This lane reproduced all four on the frozen main 6260e70c (which serves that bundle): each edited bundle gets verdict
-PASS with LEADER still admissible. Each row below is then measured on the V1 commit with the same edit (`v1_accept.py` P6).
+PASS with LEADER still admissible. Each row below is then measured on the V1 commit with the same edit (`v1_accept.py` P6), and
+on the fix branches with each branch's own verifier.
 
-| edit to LEADER (one value) | live 57dcc327 | in V1 | fix branch if still open |
+| edit to LEADER (one value) | live 57dcc327 | in V1 | where it is fixed |
 |---|---|---|---|
 | AUD-1 comparator direction reversed (placebo vs liraglutide) | passes (reproduced) | **V1: fill from P6 aud1** | **V1: fill fix branch aud1** |
 | AUD-2 estimator changed (hazard ratio -> rate ratio) | passes (reproduced) | **V1: fill from P6 aud2** | **V1: fill fix branch aud2** |
@@ -50,55 +58,39 @@ PASS with LEADER still admissible. Each row below is then measured on the V1 com
 
 ## 3. Named limitations
 
-- **Search.** **No V1 page claims a systematic search.** Every page carries a retrieval label: 17 of 32 TITLE-SEEDED RETRIEVAL, 11
-  KNOWN-ITEM RETRIEVAL, 4 HAND-WRITTEN KEYWORD SEARCH (counted on the served pages). A registered discovery search for GLP-1
-  (`evid2/v11-discovery-glp1`) is V1.1 work, not in V1.
-- **Risk of bias.** The ratings are **model- and registry-derived domain ratings, not reviewer-judged RoB 2 assessments.** A different
-  model family spot-checked a seeded sample: 32 of 33 scoreable ratings agree, and 12 of 45 were unscoreable. Outcome-specific RoB 2
-  *proposals* (`evid/v1.1-rob2`) are V1.1 work.
-- **Tag stripping in the served absence code (PVA-D15).** `harness/absence.py` strips tags with `<[^>]+>`, so a literal `P<0.001` in
-  an abstract deletes text up to the next `>`, and its "abstracts are a no-op" guard does not hold. Measured on main: 7 of 670 served
-  absence claims sit on text it deletes; **0 of 670 decisions change** when the text is restored; the check is plant-proved. It is a
-  live defect with no served consequence today. The ordered-contrast lane measured it independently on the live pages, with the same
-  denominator and the same zero (670 rows, 0 changes), and has a tested fix on a **V1.1 branch** (oc/v11-tag-strip: 7 plants fail
-  pre-fix). **V1: state it is not fixed in V1 unless that branch lands by the freeze.**
+- **Two sets of checks are built and tested, but are not in this release (planned for V1.0.1).** The ordered-contrast value checks
+  (which arm is compared against which, and which estimator was used, checked against the source text) are on the ordered-contrast
+  lane's branch (`oc/ordered-contrast` 23642e0d). The pooled-input linkage (so that a trial the verifier refuses cannot still be
+  pooled) and the five separate verdicts (reported one by one, instead of a single PASS or FAIL) are on the POOL lane's branch. Until they land, a verifier PASS does not mean every pooled trial is admissible. **V1: fill from P5b / P7.**
+  **V1: fill from producer_probe.py on the V1 commit.**
+- **Edits to a trial's recorded analysis that the checks do not catch (the 26 Sep auditor pass).** **V1: fill auditor-open limitations**
+- **Search.** **No V1 page claims a systematic search.** The trials were found by known-item retrieval (starting from trials already
+  known), not by a discovery search. Every page carries its retrieval label: 17 of 32 TITLE-SEEDED RETRIEVAL, 11 KNOWN-ITEM
+  RETRIEVAL, 4 HAND-WRITTEN KEYWORD SEARCH (counted on the served pages). A registered discovery search for GLP-1 on the V1.1 branch
+  (`evid2/v11-discovery-glp1`, 8481d3c9 and cb26c226) found all 10 of the 10 known eligible trials; it is not in V1.
+- **Risk of bias.** The ratings are **model- and registry-derived domain ratings, not reviewer-judged RoB 2 assessments, and they are
+  not specific to the outcome being pooled.** A different model family spot-checked a seeded sample: 32 of 33 scoreable ratings agree,
+  and 12 of 45 were unscoreable. Outcome-specific RoB 2 *proposals* (`evid/v1.1-rob2`) are V1.1 work.
+- **A text-stripping bug with no effect on any served result (PVA-D15).** `harness/absence.py` removes markup with `<[^>]+>`, so a
+  literal "P<0.001" in an abstract deletes the text up to the next ">". Measured on the served pages: 7 of 670 absence claims sit on
+  deleted text, and **0 of 670 decisions change** when the text is restored. Two lanes measured this independently and got the same
+  zero. The fix is tested on the V1.1 branch (`oc/v11-tag-strip`). **V1: state it is not fixed in V1 unless that branch lands by the freeze.**
+- **"Every regex site is planted" covers 401 sites, not all of them.** The regex layer's own inventory counts **401** sites ("407 of
+  407" counts the plants, RAI-C12), and it cannot see **9 sites** that build their pattern by joining strings (RAI-C13). One of those,
+  `harness/hand_binding._present`, still matches number fragments: a CI bound of 1.0 counts as present in "1.03", and 10 in "10,033"
+  (PVA-D12). On the 39 served hand-bound rows, **0 of 132 values** depend on a fragment. It is latent, with no served effect today.
 - **Retrospective protocol amendments.** 11 of 32 protocols carry a RETROSPECTIVE amendment: a rule written after registration and
   labelled as such on the page. Those rules are disclosed, not pre-registered.
-- **The retrospective clarification on HFpEF wording (named "DELIVER" in the release plan) concerns PRESERVED-HF.** The ruling asks
-  whether the registry condition "Chronic Heart Failure With Preserved Systolic Function" names the review's population ("preserved
-  ejection fraction"). The trial is PRESERVED-HF (NCT03030235, PMID 34711976), not DELIVER (NCT03619213). The signing plan was relabelled
-  (nr 8a8c2e50) after this lane's finding. A yes adds a population term after registration, so it is a retrospective clarification, not a
-  pre-registered rule. **V1: state whether it was ruled, and how.**
-- **Verifier PASS is not "admissible".** On the served GLP-1 bundle, HARMONY Outcomes fails the family-eligibility predicate and is
-  still in the k = 8 pool with verdict PASS. The admissible-only pool (k = 7, 0.866 [0.814-0.922]) is not on the page. The checklist
-  requires four separate verdicts (byte integrity, arithmetic, admissibility, publication eligibility); **neither verifier emits them
-  on any candidate this lane has seen.** A recovery of HARMONY's entry population exists on the evidence lane (P53-17) and would move
-  no number. **V1: fill from P5b / P7.**
-- **A refused row can still be pooled.** Run on planted inputs, the real producer records a damaged row INADMISSIBLE and still pools
-  it, so the published estimate moves (0.855993 -> 0.854643 for one truncated CI). No gate on main reads admission at pooling.
-  **V1: fill from producer_probe.py on the V1 commit.**
+- **The PRESERVED-HF clarification (D3) is one of them.** It rules whether the registry condition "Chronic Heart Failure With
+  Preserved Systolic Function" names the review's population ("preserved ejection fraction"). The trial is PRESERVED-HF
+  (NCT03030235, PMID 34711976), not DELIVER (NCT03619213). A yes adds a population term after registration, so it is a
+  retrospective clarification, not a pre-registered rule. **V1: state whether it was ruled, and how.**
 - **The bundle's own copies of the evidence are not all checked.** A pooled row's `span.text` in BUNDLE.json can be replaced with a
   sentence that is not in the abstract and the verifier still passes (PVA-D11). **V1: fill from P6.**
 - **Who signed.** A countersignature records a name, a time and the digest of what was signed. Nothing authenticates who applied it
   (EG-F2); the signature verifier binds the bytes, not the person.
-- **The ten minutes after a deploy.** The CDN caches each file for 600 s and ignores request-side cache control, so a reader can briefly
-  get files from two releases, and the auditor reports a generic MISMATCH. Wait ten minutes and re-run.
-- **"Every regex site is planted" is 401 sites, not all of them.** The regex layer's own inventory counts **401** sites; "407 of 407"
-  counts the plants (RAI-C12). The inventory also cannot see **9 sites** that build their pattern by concatenation (RAI-C13). One of
-  them, `harness/hand_binding._present`, still reads number fragments: a CI bound of 1.0 counts as present in "1.03", and 10 in
-  "10,033" (PVA-D12). Measured on the 39 served hand-bound rows, **0 of 132 values** depend on a fragment, and the check is
-  plant-proved. It is latent, with no served consequence today.
-- **Edits to a trial's recorded analysis that the checks do not catch (the 26 Sep auditor pass).** **V1: fill auditor-open limitations**
-
-### Not merged by the freeze (as of 29f0a719; **V1: re-check at the freeze**)
-- ordered-contrast and estimator checks P10/P11 and the pool guard (oc 88f07c74 .. 23642e0d);
-- ~~rai's R1+R4 pinned landing re-certification~~ **LANDED 26 Sep 01:24 (c62b6b12)**, rebased on the tabs fix; proved live (1194/1194;
-  served battery PASS; 2,304/2,304 live tab checks; 0 served numbers moved);
-- the 41 result-change notices: **0 of 41 signed**; the notice anchors and the P5 check patch (nr) are on branches;
-- the GLP-1 FLOW + ELIXA admission (k 8 -> 10, 0.856 -> 0.861): Mahmood's chat approval is recorded as intent, not as a signature; it
-  is queued for his signature, not landed; this lane reproduced its before -> after exactly; ELIXA's 3-point MACE is 'prespecified
-  secondary' in one FDA review and a 'sensitivity analysis' in another;
-- the four separate verdicts (checklist B4) and the admission gate at pooling (checklist D1, B3).
+- **The ten minutes after a deploy.** The CDN caches each file for 600 s and ignores request-side cache control, so a reader can
+  briefly get files from two releases, and the auditor reports a generic MISMATCH. Wait ten minutes and re-run.
 
 ## 4. What we do not claim
 

@@ -160,7 +160,7 @@ def step_archive(v1, work):
 
 # Landed on main and proved live before the freeze; a V1 that does not descend from them silently reverts served fixes.
 MUST_CONTAIN = {"c23a7e91": "tabs fix (Verify-this-page tab)", "c62b6b12": "rai R1+R4 re-certification",
-                "b284e085": "main as attested at 02:51 on 26 Sep"}
+                "b284e085": "main as attested at 02:51 on 26 Sep", "6260e70c": "frozen main (V1 scope, 26 Sep)"}
 
 
 def step_lineage(v1):
@@ -176,7 +176,8 @@ def step_lineage(v1):
 def step_fixbranches(work, branches):
     """The auditor edits (P6 aud1-4) measured on each named fix branch, git mode, so the note can name where an OPEN item is fixed."""
     out = []
-    for br in branches:
+    for spec in branches:
+        br, _, tag = spec.partition("=")          # 'oc/ordered-contrast=V1.0.1': the release the branch is planned for
         sha = git("rev-parse", "--verify", "-q", f"origin/{br}^{{commit}}", check=False) or git("rev-parse", "--verify", "-q", f"{br}^{{commit}}", check=False)
         if not sha:
             stamp(f"fix branch {br}: not found")
@@ -191,7 +192,7 @@ def step_fixbranches(work, branches):
         src = git("show", f"{sha}:scripts/build_bundle.py", check=False)
         m = re.search(r'ident\["analysis_identity_key"\]\s*=.*?for k in \(([^)]*)\)', src)
         key_has = ("comparator_direction" in m.group(1)) if m else None
-        out.append({"label": f"{br} {sha[:8]} (source verifier; not yet regenerated into served bytes)",
+        out.append({"label": (f"{tag}: " if tag else "") + f"{br} {sha[:8]} (built and tested; not in V1's served bytes)",
                     "scorecard": str(d / "scorecard.json"), "key_has_comparator": key_has})
         stamp(f"fix branch {br} {sha[:8]}: " + " ".join(l.split()[1] + ("=caught" if "NOT CAUGHT" not in l else "=open")
                                                          for l in p.stdout.splitlines() if " aud" in l))
@@ -206,7 +207,7 @@ def main():
     ap.add_argument("--work", required=True)
     ap.add_argument("--steps", default="record,served,tabs,producer,f6,fixes,archive,note")
     ap.add_argument("--f6-script", default="F:/mh-gate/scripts/f6_acceptance.py")
-    ap.add_argument("--fix-branches", default="oc/ordered-contrast,oc/v11-contrast-rules",
+    ap.add_argument("--fix-branches", default="oc/ordered-contrast=V1.0.1,oc/v11-contrast-rules=V1.1",
                     help="comma list of V1.1 branches on which the auditor edits are measured (step 'fixes')")
     ap.add_argument("--wt-root", help="where the ~2 GB full V1 checkout goes (default <work>/wt); must keep the 3 GB floor")
     a = ap.parse_args()

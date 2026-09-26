@@ -74,10 +74,39 @@ def main():
                       "clarification, not a pre-registered rule." if "preserved systolic function" in proto.lower()
                       else "V1: not applied -- the dapagliflozin-HFpEF protocol at V1 does not add 'preserved systolic function'.")
     d7 = probe("P7").get("detail") or {}
-    fill["verdicts"] = (f"V1: four separate verdicts {('emitted' if probe('P5b').get('ok') else 'NOT emitted')} (P5b {ok('P5b')}); "
-                        f"HARMONY pooled={d7.get('pooled_in_k')}, row {d7.get('row_final')} "
-                        f"(failing {', '.join(d7.get('failing_predicates') or []) or 'none'}), verifier verdict {d7.get('verifier_verdict')}."
+    fill["verdicts"] = (f"V1: the verifier reports {'separate verdicts' if probe('P5b').get('ok') else 'one PASS/FAIL, not separate verdicts'} "
+                        f"(P5b {ok('P5b')}). HARMONY Outcomes is "
+                        + (f"in the pooled k and its row is {d7.get('row_final')} (failing {', '.join(d7.get('failing_predicates') or []) or 'none'}), "
+                           f"while the verifier's verdict is {d7.get('verifier_verdict')}." if d7.get('pooled_in_k') else
+                           f"not in the pooled k (row {d7.get('row_final')}).")
                         if P else NM("served probes not run"))
+    # ---- final V1 scope (26 Sep): frozen main + P5 + D3; GLP-1 k = 8 with a pending FLOW+ELIXA block
+    if v1:
+        tf = git("show", f"{v1}:harness/trial_family.py")
+        p5_fixed = bool(tf) and "if bool(aa) == bool(bb) or av-aa != bv-bb:" not in tf
+        on_frozen = subprocess.run(["git", "-C", REPO, "merge-base", "--is-ancestor", "6260e70c", v1], capture_output=True,
+                                   stdin=subprocess.DEVNULL).returncode == 0
+        d3 = "preserved systolic function" in proto.lower()
+        fill["scope"] = (f"V1: `{v1[:12]}` {'contains' if on_frozen else '**does NOT contain**'} frozen main 6260e70c; the P5 fix is "
+                         f"{'present' if p5_fixed else '**absent**'} (the active-comparator line in harness/trial_family.py "
+                         f"{'is gone' if p5_fixed else 'is still there'}); D3 is {'applied' if d3 else '**not applied**'} in the "
+                         "dapagliflozin-HFpEF protocol.")
+    else:
+        fill["scope"] = NM("no V1 commit")
+    idx = work / "served" / "site" / "reviews" / "glp1-ra-mace-t2d" / "index.html"
+    page = idx.read_text(encoding="utf-8", errors="replace") if idx.is_file() else ""
+    if rv or page:
+        prim = next((o for o in (rv or {}).get("outcomes", []) if o.get("primary")), {}) or {}
+        r = prim.get("result") or {}
+        txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
+        # a pending block, not scattered words: 'pending' with FLOW, ELIXA and k = 10 in the same 700-character window
+        has_block = any(re.search(r"\bFLOW\b", w) and "ELIXA" in w and re.search(r"k\s*=\s*10\b", w)
+                        for w in (txt[max(0, m.start() - 350): m.start() + 350] for m in re.finditer(r"(?i)pending", txt)))
+        fill["pending"] = (f"V1 serves k = {r.get('k')}, HR {r.get('estimate')} ({r.get('ci_low')}-{r.get('ci_high')}); the served GLP-1 page "
+                           + ("shows a pending result-change block naming FLOW and ELIXA." if has_block else
+                              "**does not show a pending block naming FLOW and ELIXA**" + ("" if page else " (page not fetched)") + "."))
+    else:
+        fill["pending"] = NM("served GLP-1 page not fetched")
     if producer:
         pooled_refused = len(re.findall(r"final=INADMISSIBLE in_pool=True", producer))
         fill["producer"] = (f"V1: on planted inputs the producer left {pooled_refused} refused (INADMISSIBLE) row(s) in the pool "
@@ -197,7 +226,7 @@ def main():
     # ---- apply: each marker is mapped by its own words -------------------------------------------------------------------
     rules = [(f"fill from P6 {a}", a) for a in ("aud1", "aud2", "aud3", "aud4")] + [("fill from key aud5", "aud5")] + \
             [(f"fill fix branch {a}", "fb_" + a) for a in ("aud1", "aud2", "aud3", "aud4", "aud5")] + \
-            [("fill auditor-open limitations", "audlim")] + [("re-run on the served V1 bundle", "pool"), ("re-run on served V1", "certs"), ("V1: re-run.", "bytes"),
+            [("fill auditor-open limitations", "audlim"), ("fill scope", "scope"), ("fill pending block", "pending")] + [("re-run on the served V1 bundle", "pool"), ("re-run on served V1", "certs"), ("V1: re-run.", "bytes"),
              ("whether it is fixed in V1", "tagstrip"), ("unless that branch lands", "tagstrip"), ("state whether it was ruled", "ruling"),
              ("fill from P5b / P7", "verdicts"), ("fill from producer_probe", "producer"), ("fill from P6", "spantext"),
              ("re-check at the freeze", "notmerged")]
