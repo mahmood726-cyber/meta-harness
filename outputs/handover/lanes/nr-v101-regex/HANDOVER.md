@@ -59,7 +59,7 @@ Produced by `scripts/nr_v101_radius.py`. BEFORE is candidate 3876a62d; AFTER is 
 | `extract_trial`, every cached record × declared outcome | **1 of 10,520**. Refusals 10,022 → 10,021: COCS POAF goes from refused to 21/113 vs 39/127. Nothing goes from a value to a refusal. |
 | `_arm_ns` | 4 of 3,330. Only COCS changes an extraction. |
 | compat follow-up window (pooled + declared-absent rows) | **14 of 797 rows**, 5 trials: Farzaneh; probiotics 40548185 ("LA85 or placebo for 14 days"); omega-3 20929341 ("to receive for 40 months"); 21115589 ("median duration of supplementation 4.7 years"). Melatonin 27559258 stays at 14 days, now bound to "After 1, 7, 14 days, the patients were reviewed" instead of the dosing sentence. |
-| admission follow-up window | **28 of 797 rows**, 9 trials. 7 are dosing durations now `not_stated`: 42132185, 23992557, 32862667, 11473953, 20146881, 40548185, plus 42132185's hand row. In 2 only the cited span changes (27559258, 19552097; values unchanged). |
+| admission follow-up window | **28 of 797 rows**, 9 trials. 6 are dosing durations now `not_stated`: 42132185 (its hand row), 23992557, 32862667, 11473953, 20146881, 40548185. In 3 only the cited span changes, values unchanged: 27559258, 19552097, 10545590. |
 | admission surveillance window | 3 of 797 rows: 42132185 "14-day regimen" → not_stated. |
 
 I read every changed row against its source (`RADIUS.json` lists each with its span). None goes from a genuine
