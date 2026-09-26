@@ -36,7 +36,7 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("trials must be double-blind and placebo-controlled", None),
                               ("double blind and placebo controlled", None)],
                    "refuse": ["double-blind or placebo-controlled", "double-blind and open-label"]}},
-    "eligibility_chain.py:search:3a8e5df5f4": {
+    "eligibility_chain.py:search:9a073711ca": {
         "kind": "search",
         "what": "protocol_criteria: the value of the protocol's **Population** line (read for the analysis set)",
         "plants": {"accept": [("- **Population** - intention-to-treat as randomised.", ("intention-to-treat as randomised",)),
@@ -44,7 +44,7 @@ SITE_SPECS: dict = {
                               ("- **Population:** adults, intention-to-treat.", None),
                               ("- **Population** — intention-to-treat as randomised.", None)],
                    "refuse": ["Population: adults with heart failure", "**Timepoint** - 28 days."]}},
-    "eligibility_chain.py:search:47eac977e0": {
+    "eligibility_chain.py:search:2f21bc603b": {
         "kind": "search",
         "what": "protocol_criteria: the value of the protocol's **Timepoint** line (the follow-up window)",
         "plants": {"accept": [("- **Timepoint** - 28 days.", ("28 days",)),
@@ -65,7 +65,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_summarize_follow: the day counts in per-trial follow-up values (for a min-max d range)",
         "plants": {"accept": [("56 days", ("56",)), ("during treatment plus 30 days", ("30",)), ("1 day", ("1",))],
                    "refuse": ["within 8 weeks", "1.5 years"]}},
-    "compat_check.py:search:854c55479d": {
+    "compat_check.py:search:f092a0af63": {
         "kind": "search", "what": "comparator scope: the comparator review is ADULT-ONLY (vs a pool with paediatric trials)",
         "plants": {"accept": [("probiotics for antibiotic-associated diarrhoea in adults", None),
                               ("an adult population", None), ("adult inpatients", None)],

@@ -83,8 +83,23 @@ def prepare_workdir(work: Path, schema: dict) -> None:
 # attempted and how that ended, the files it read, and the tokens the client reported. The prompt itself is in the call
 # record (by digest here); the client transcript is kept with the prompt echo replaced by that digest and the local
 # work-dir path replaced by <workdir>.
+# The log a call goes to is named by its CALLER's lane (caller["lane"]), never by this module: a hard-coded lane filed the
+# evidence lane's 53 calls under "rai" (tests/test_lane_log_attribution.py). A caller that names no lane is
+# "unattributed" -- visible as such, not silently this lane's.
 LANE = "rai"
-LANE_LOG = Path(__file__).resolve().parents[1] / "registry" / "model_calls" / "lane_log" / f"{LANE}.jsonl"
+UNATTRIBUTED = "unattributed"
+LANE_LOG_DIR = Path(__file__).resolve().parents[1] / "registry" / "model_calls" / "lane_log"
+LANE_LOG = LANE_LOG_DIR / f"{LANE}.jsonl"
+
+
+def lane_of(caller) -> str:
+    lane = caller.get("lane") if isinstance(caller, dict) else None
+    return lane.strip() if isinstance(lane, str) and lane.strip() else UNATTRIBUTED
+
+
+def lane_log_name(lane: str) -> str:
+    """One file per lane, inside the log directory whatever the name holds ('evid/x' -> 'evid__x.jsonl')."""
+    return re.sub(r"[^A-Za-z0-9_-]", "__", lane) + ".jsonl"
 _TOKENS = re.compile(r"tokens used\s*\n\s*([\d,]+)")
 _EXEC = re.compile(r"^exec\s*\n(?P<cmd>.+?)\n(?P<outcome>\s*(?:succeeded|failed|exited)[^\n]*)", re.M)
 _REJECT = re.compile(r"exec_command failed: (?P<why>[^\n]{0,400})")
@@ -110,8 +125,10 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
             "files_read": files, "transcript_redacted": red}
 
 
-def log_call(record: dict, facts: dict, path: Path = LANE_LOG) -> None:
-    line = {"lane": LANE, "record_id": record["record_id"], "state": record["state"],
+def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
+    lane = lane_of(record.get("caller"))
+    path = path or LANE_LOG_DIR / lane_log_name(lane)
+    line = {"lane": lane, "record_id": record["record_id"], "state": record["state"],
             "request_utc": record.get("request_utc"), "caller": record.get("caller"),
             "model_requested": (record.get("model") or {}).get("id_requested"),
             "model_reported": (record.get("model") or {}).get("id_reported"),
@@ -220,7 +237,7 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
                          "tokens_used": facts["tokens_used"], "tool_calls_n": facts["tool_calls_n"],
                          "tool_calls_rejected_n": facts["tool_calls_rejected_n"], "files_read": facts["files_read"],
                          "transcript_redacted_sha256": hashlib.sha256(facts["transcript_redacted"].encode("utf-8")).hexdigest(),
-                         "lane_log": f"registry/model_calls/lane_log/{LANE}.jsonl",
+                         "lane_log": f"registry/model_calls/lane_log/{lane_log_name(lane_of(caller))}",
                          "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work "
                                  "dir -> <workdir>) is in the lane log with every tool call and file read"})
     if runner is codex_runner:                  # a real call is logged; a test's fake runner is not

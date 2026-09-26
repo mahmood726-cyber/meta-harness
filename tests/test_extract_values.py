@@ -31,3 +31,17 @@ def test_the_extractors_return_typed_values():
     m = extract._EFFECT.search("hazard ratio 0.80 (95% CI 0.70 to 0.90)")
     eff = extract._effect_from_match(m) if m else None
     assert isinstance(eff, Effect) and eff.scale == "HR" and eff.point == 0.8
+
+
+def test_screen_and_eligibility_return_typed_values():
+    from harness import eligibility_chain as ec
+    from harness.extract_values import Reading, ScreenDecision  # noqa: F401  (screen_record's type)
+    r = ec._design_value("a double-blind, placebo-controlled trial")
+    assert isinstance(r, Reading) and r == ("double_blind_placebo_controlled", r.span)
+
+
+def test_armp_hits_are_typed():
+    import inspect
+    from harness.extract_values import ArmPercentHit
+    src = inspect.getsource(extract.extract_arm_counts)
+    assert "ArmPercentHit(m.start()" in src and ArmPercentHit._fields == ("pos", "events", "percent")
