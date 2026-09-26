@@ -127,15 +127,21 @@ def test_the_served_v1_review_shows_the_copps_contradiction():
     assert "ADJUDICATOR_VS_LEDGER" in kinds, probs        # adjudicator recommends include
 
 
+def _family_view(rec):
+    """What the family object's report entry carries: the record's summary (states, family, ledger)."""
+    from harness import screening_record
+    return screening_record._summary(rec)
+
+
 def _mini_review():
-    rec = {"parent_family": "NCT1", "parent_eligibility": {"state": "ELIGIBLE"},
+    rec = {"report_id": "11111111", "parent_family": "NCT1", "parent_eligibility": {"state": "ELIGIBLE"},
            "report_relevance": {"state": "SECONDARY_REPORT"}, "result_admissibility": {},
            "ledger_decision": "include", "ledger_rule": "INCLUDE"}
     return {"slug": "t", "screening": {"records": [
                 {"id": "11111111", "decision": "include", "rule_id": "INCLUDE", "reason": "", "span": "",
                  "screening_record": rec}]},
             "trial_families": [{"family_id": "NCT1", "reports": [
-                {"report_id": "11111111", "role": "SUBGROUP", "screening_record": dict(rec)}]}],
+                {"report_id": "11111111", "role": "SUBGROUP", "screening_record": _family_view(rec)}]}],
             "screening_narrative": []}
 
 
@@ -166,7 +172,7 @@ def test_PLANT_ledger_row_disagrees_with_its_record():
 def test_PLANT_family_object_disagrees_with_the_record():
     from harness import screening_record
     r = _mini_review()
-    r["trial_families"][0]["reports"][0]["screening_record"]["report_relevance"] = {"state": "PRIMARY_REPORT"}
+    r["trial_families"][0]["reports"][0]["screening_record"]["report_relevance"] = "PRIMARY_REPORT"
     kinds = {p["kind"] for p in screening_record.consistency_problems(r)}
     assert "FAMILY_VS_RECORD" in kinds
 

@@ -37,6 +37,10 @@ DISCOVERED_NOT_RETRIEVED = "DISCOVERED_NOT_RETRIEVED"
 SOURCE_RETRIEVED_NOT_EXTRACTED = "SOURCE_RETRIEVED_NOT_EXTRACTED"
 HELD_NOT_YET_EXTRACTED = SOURCE_RETRIEVED_NOT_EXTRACTED
 EXTRACTED_SOURCE_CONFLICT = "EXTRACTED_SOURCE_CONFLICT"
+# HELD and read, but the document's OWN numbers cannot be reconciled into one set of arm denominators (Mashayekhi 2020,
+# colchicine-postop-af: 240 randomised / 120 per arm in the text, 29 vs 52 in the flow diagram and table headings, AF
+# 7 vs 13 whose percentages fit neither). Not pooled; not 'not retrieved'; never promoted by an adjudication.
+SOURCE_INTERNALLY_INCONSISTENT = "SOURCE_INTERNALLY_INCONSISTENT"
 EXTRACTED_NOT_ADMISSIBLE = "EXTRACTED_NOT_ADMISSIBLE"
 POOLABLE = "POOLABLE"
 
@@ -45,6 +49,8 @@ def missing_state(fact=None, *, discovered=True):
     if not fact:
         return DISCOVERED_NOT_RETRIEVED if discovered else NOT_DISCOVERED
     decision = fact.get("decision") or {}
+    if decision.get("decision") == SOURCE_INTERNALLY_INCONSISTENT:
+        return SOURCE_INTERNALLY_INCONSISTENT
     if decision.get("source_conflict"):
         return EXTRACTED_SOURCE_CONFLICT
     if decision.get("decision") == "EXTRACTED":
