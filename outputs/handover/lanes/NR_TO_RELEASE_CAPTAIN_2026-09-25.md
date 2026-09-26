@@ -100,3 +100,13 @@ served-number changes**:
 evid2's branch rebuilt the pages but added no ledger notice for any of them. **If those pages go into the V1
 candidate, the candidate's ledger must carry a notice for each of the three**; otherwise pva's probe E and lane NR's
 re-derivation both refuse. The signing session already has items for all three, as evid2 D-Q1, D-Q3 and D-Q3b.
+
+## 7. UPDATE 26 Sep ~09:00: evid2 still has one UNNOTICED served change (a V1 blocker if merged as is)
+Re-derived `origin/main` 2a45f0cb → `origin/evid2/q-decisions` e1c3125e (`scripts/rederive_notices.py`, exit 1):
+- NOTICED (ledger 13): sglt2-ckd-progression / Diabetic ketoacidosis, RR 6.00 (0.72–49.83) → 5.00 (0.58–42.79).
+- NOTICED (ledger 14): corticosteroids-covid19-mortality / Serious adverse events, OR 2.81 (0.11–74.56) k=1 → no pooled result.
+- **UNNOTICED:** corticosteroids-covid19-mortality / **Serious adverse reactions (septic shock, invasive fungal
+  infection, GI bleeding, anaphylaxis; day 14)**: no outcome → **OR 2.81 (0.11–74.56), k=1**. A new served number
+  with no result-change notice.
+Needed from evid2 before the candidate: a third OPEN notice for that new outcome (or the outcome withheld). The
+signing script already carries it as item D-Q3b and turns it from information into a signable item once it exists.
