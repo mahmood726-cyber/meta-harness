@@ -57,6 +57,19 @@ def load(root, slug) -> Optional[dict]:
     return doc
 
 
+def _validate(rows):
+    """REV-R1 (codex review, verified): a reversed interval squares into a valid variance and an empty row list divides
+    by zero -- both are refused before anything is computed."""
+    if not rows:
+        raise DisplayRefused("no figure rows: nothing to reconstruct")
+    for r in rows:
+        vals = (r.get("effect"), r.get("ci_low"), r.get("ci_high"))
+        if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in vals):
+            raise DisplayRefused(f"row {r.get('label')!r}: effect/interval not finite numbers")
+        if not (r["ci_low"] < r["ci_high"] and r["ci_low"] <= r["effect"] <= r["ci_high"]):
+            raise DisplayRefused(f"row {r.get('label')!r}: interval {r['ci_low']} to {r['ci_high']} does not order around {r['effect']}")
+
+
 def _fe(rows):
     w = [1.0 / (((r["ci_high"] - r["ci_low"]) / (2 * Z)) ** 2) for r in rows]
     m = sum(wi * r["effect"] for wi, r in zip(w, rows)) / sum(w)
@@ -72,6 +85,7 @@ def assess(doc: Optional[dict]) -> Optional[dict]:
     if not doc:
         return None
     rows = doc["rows"]
+    _validate(rows)
     m, lo, hi, w = _fe(rows)
     tw = sum(w)
     recon = [100 * wi / tw for wi in w]

@@ -59,6 +59,9 @@ def _registry_cell(root: Path, src: dict):
 
 def check_source(root, src: dict) -> None:
     root = Path(root)
+    # REV-R1 (codex review, verified): an empty quote is 'in' any text, including a record that is not held at all
+    if src["kind"] in ("abstract", "registry_field", "held_text") and len(str(src.get("quote") or "").strip()) < 10:
+        raise InputsRefused(f"{src['kind']} source with an empty or too-short quote")
     if src["kind"] == "abstract":
         if src["quote"] not in _abstract(root, src["document_ref"], src["record_id"]):
             raise InputsRefused(f"quote not located in {src['document_ref']} record {src['record_id']}: {src['quote'][:60]}")
@@ -101,6 +104,9 @@ def load(root, slug) -> Optional[dict]:
                 d = s.get(dim) or {}
                 if d.get("source"):
                     check_source(root, d["source"])
+                elif d.get("state") == "HELD" and not d.get("literal"):
+                    # REV-R1 (codex review, verified): HELD is a claim about bytes -- it needs the source that holds them
+                    raise InputsRefused(f"{t['name']}: {side} {dim} is marked HELD with no source")
             if s.get("state") == "REPORTED_NOT_HELD" and not s.get("reported_by"):
                 raise InputsRefused(f"{t['name']}: a REPORTED_NOT_HELD side must say who reported it")
     if (doc.get("comparator_scope") or {}).get("statement"):
@@ -133,7 +139,8 @@ def compare(doc: dict, review: Optional[dict] = None) -> dict:
             if row is None:
                 raise InputsRefused(f"{t['name']}: not a row of our served primary pool")
             if "effect" in t["ours"]:
-                if abs(float(row["effect"]) - float(t["ours"]["effect"])) > 1e-9 or row.get("scale") != t["ours"]["scale"]:
+                # NaN-safe: 'not (|a-b| <= tol)' refuses a NaN, where '|a-b| > tol' would let it through
+                if not (abs(float(row["effect"]) - float(t["ours"]["effect"])) <= 1e-9) or row.get("scale") != t["ours"]["scale"]:
                     raise InputsRefused(f"{t['name']}: our side {t['ours']['effect']} {t['ours']['scale']} is not the "
                                         f"served row {row.get('effect')} {row.get('scale')}")
             else:   # a continuous row: our side is the served arm summaries

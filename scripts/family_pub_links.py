@@ -42,7 +42,7 @@ def main(slug, nct, pmid, token, reported_by):
         from harness.trial_family import load_registry
         st = ((load_registry(ROOT, slug).get(nct) or {}).get("raw", {}).get("studies") or [{}])[0]
         field = next((k for k in ("acronym", "brief_title", "official_title") if token in str(st.get(k) or "")), "acronym")
-        rq = {"document_ref": f"cache/{slug}/family_registry.json", "record_id": nct, "field": f"studies.{field}",
+        rq = {"source_reference": st.get("source_reference"), "record_id": nct, "field": f"studies.{field}",
               "quote": st.get(field)}
     paper_text = " ".join([title, abstract, *collective])
     if token not in str(rq["quote"] or "") or token not in paper_text:

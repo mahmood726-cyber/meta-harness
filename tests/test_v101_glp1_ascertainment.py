@@ -73,7 +73,7 @@ def test_PLANT_programme_evidence_supports_ascertainment_only(tmp_path):
 
 
 @pytest.mark.parametrize("mutate,msg", [
-    (lambda f: f["prospective"].update(quote="A sentence that is not in the document at all."), "not located"),
+    (lambda f: f["prospective"].update(quote="A sentence absent from the held document, naming 3-point MACE."), "not located"),
     (lambda f: f["prospective"].update(quote=ADJ), "names neither MACE"),
     (lambda f: f["ascertained"].update(quote=PRO), "states no adjudication"),
 ])

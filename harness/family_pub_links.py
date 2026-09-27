@@ -35,21 +35,37 @@ def merge(root, slug, records: dict) -> dict:
     for x in lk:
         reg = by_id.get(str(x["nct"])) or {}
         reg_text = str(reg.get("title") or "")
-        if not reg and (x.get("registry_quote") or {}).get("document_ref", "").endswith("family_registry.json"):
+        sref = (x.get("registry_quote") or {}).get("source_reference")
+        if not reg and sref:
             # V1.0.1 (GLP-1 review, PIONEER 8): a registry-only FAMILY whose record lives in the held family registry
-            # (AACT studies row), not in records.json -- bound on that row's acronym/titles
+            # (the AACT studies row, cited by its source_reference and row sha256), not in records.json -- bound on that
+            # row's acronym/titles, and the held row must be the cited one
             if fam_reg is None:
                 from .trial_family import load_registry
                 fam_reg = load_registry(root, slug)
             st = ((fam_reg.get(str(x["nct"])) or {}).get("raw", {}).get("studies") or [{}])[0]
+            if (st.get("source_reference") or {}).get("row_sha256") != sref.get("row_sha256"):
+                raise LinkRefused(f"{slug}: link {x['nct']} -> {x['pmid']}: the held registry row is not the cited one")
             reg_text = " ".join(str(st.get(k) or "") for k in ("acronym", "brief_title", "official_title"))
         rec = x["record"]
+        tok = str(x.get("binding_token") or "").strip()
+        # REV-R1 (codex review, verified): an empty token is 'in' every text, and a record other than the linked PMID
+        # would be appended under that PMID's name
+        if len(tok) < 3:
+            raise LinkRefused(f"{slug}: link {x['nct']} -> {x['pmid']}: binding token is empty or too short to bind")
+        if str(rec.get("id")) != str(x["pmid"]):
+            raise LinkRefused(f"{slug}: link {x['nct']} -> {x['pmid']}: the held record is PMID {rec.get('id')}, not the linked one")
         paper = " ".join([str(rec.get("title") or ""), str(rec.get("abstract") or ""), *(rec.get("collective_authors") or [])])
-        if x["binding_token"] not in reg_text or x["binding_token"] not in paper:
+        if tok not in reg_text or tok not in paper:
             raise LinkRefused(f"{slug}: link {x['nct']} -> {x['pmid']}: binding token not printed by both held texts")
+        link = {"nct": x["nct"], "binding_token": tok, "reported_by": x.get("reported_by")}
         if str(rec["id"]) not in have:
-            recs.append(dict(rec, family_link={"nct": x["nct"], "binding_token": x["binding_token"],
-                                               "reported_by": x.get("reported_by")}))
+            recs.append(dict(rec, family_link=link))
+            have.add(str(rec["id"]))                        # a repeated link never appends a duplicate record
+        else:
+            # the publication is already held: it still carries the recorded link, so the family binds it
+            recs = [dict(r, family_link=link, nct=r.get("nct") or x["nct"])
+                    if isinstance(r, dict) and str(r.get("id")) == str(rec["id"]) else r for r in recs]
     out["records"] = recs
     out["family_pub_links"] = [{"nct": x["nct"], "pmid": x["pmid"], "binding_token": x["binding_token"]} for x in lk]
     return out

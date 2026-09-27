@@ -97,24 +97,32 @@ def build(root, slug, review: dict) -> dict | None:
         for sid in v.get("found_by") or []:
             found.setdefault(sid, []).append(rid)
     for s in led.get("sources") or []:
-        ids = s.get("record_ids") or found.get(s["source_id"]) or []
+        # REV-R1 (codex review, verified): held vs not held is decided by the RECORD, not by emptiness -- a RAN_ZERO run
+        # with record_ids [] holds a zero; a RAN_UNRECORDED run (or no record_ids) holds nothing
+        if isinstance(s.get("record_ids"), list) and (s["record_ids"] or s.get("state") in ("RAN_OK", "RAN_ZERO")):
+            ids = s["record_ids"]
+        elif found.get(s["source_id"]):
+            ids = found[s["source_id"]]
+        else:
+            ids = None
         execs.append({"source": _source_of(s.get("kind")), "id": s["source_id"], "entered_via": _entered_via(s.get("kind")),
                       "query": s.get("query"), "date": s.get("run_utc"), "state": s.get("state"),
-                      "returned_ids": sorted(ids) if ids else None, "n_returned": len(ids) if ids else None,
+                      "returned_ids": sorted(ids) if ids is not None else None, "n_returned": len(ids) if ids is not None else None,
                       "dispositions": dispositions(ids) if ids else None,
-                      "family_links": len({fam_of[str(i)] for i in ids if str(i) in fam_of}) if ids else None,
+                      "family_links": len({fam_of[str(i)] for i in ids if str(i) in fam_of}) if ids is not None else None,
                       "integrated": True})
     if (cache / "family_query.json").exists():
         fq = json.loads((cache / "family_query.json").read_text(encoding="utf-8"))
-        ids = fq.get("record_ids") or []
+        ids = fq["record_ids"] if isinstance(fq.get("record_ids"), list) else None     # absent: not held (not zero)
         dec = {}
         for d in fq.get("decisions") or []:
             k = f"{d.get('decision')} ({d.get('reason_code') or 'retained'})"
             dec[k] = dec.get(k, 0) + 1
         execs.append({"source": "ClinicalTrials.gov (AACT)", "id": fq["source_id"], "entered_via": "EXECUTED_QUERY",
                       "query": fq.get("query"), "date": fq.get("run_utc"), "state": fq.get("state"), "returned_ids": ids,
-                      "n_returned": len(ids), "dispositions": dec or None,
-                      "family_links": len({f["family_id"] for f in review.get("trial_families") or []} & set(ids)),
+                      "n_returned": len(ids) if ids is not None else None, "dispositions": dec or None,
+                      "family_links": (len({f["family_id"] for f in review.get("trial_families") or []} & set(ids))
+                                       if ids is not None else None),
                       "integrated": True})
     if (cache / "family_pub_links.json").exists():
         for x in json.loads((cache / "family_pub_links.json").read_text(encoding="utf-8")).get("links") or []:

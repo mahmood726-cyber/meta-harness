@@ -54,12 +54,26 @@ def _norm(s) -> str:
     return re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", str(s or "")))).strip()
 
 
+# REV-R1 (codex review, verified): a bare 'MACE' may be a 4-point composite, so the 3-point clause needs '3-point' /
+# 'three-component' MACE or the three components named; and a NEGATED statement ('was not adjudicated') is never evidence
+_THREE_POINT = re.compile(r"\b(?:3|three)[\s\-‐‑]?(?:point|component)\b[^.]{0,40}?(?:\bMACE\b|major adverse cardiovascular)", re.I)
+_NEG = re.compile(r"\b(?:not|never|no|without|nor)\b|n't\b", re.I)
+
+
 def names_mace(q: str) -> bool:
-    return bool(MACE.search(q) or (_CVD.search(q) and _MI.search(q) and _STROKE.search(q)))
+    return bool(_THREE_POINT.search(q) or (_CVD.search(q) and _MI.search(q) and _STROKE.search(q)))
 
 
 def states_ascertainment(q: str) -> bool:
     return bool(ADJ.search(q) and _CV_EVENTS.search(q))
+
+
+def _date(s, owner):
+    import datetime
+    try:
+        return datetime.date.fromisoformat(str(s))
+    except (TypeError, ValueError):
+        raise EvidenceRefused(f"{owner}: date {s!r} is not an ISO date (YYYY-MM-DD)")
 
 
 def clause_required(protocol_line: str) -> bool:
@@ -77,7 +91,9 @@ def _doc_text(root, doc) -> str:
     raw = (Path(root) / doc["document_ref"]).read_text(encoding="utf-8")
     if doc.get("pmid"):
         arts = re.findall(r"<PubmedArticle>.*?</PubmedArticle>", raw, re.S)
-        raw = next((a for a in arts if re.search(r"<PMID[^>]*>" + re.escape(str(doc["pmid"])) + r"</PMID>", a)), None)
+        # the article's OWN PMID (its MedlineCitation's first PMID), never a CommentsCorrections reference to another
+        own = re.compile(r"<MedlineCitation[^>]*>\s*<PMID[^>]*>" + re.escape(str(doc["pmid"])) + r"</PMID>")
+        raw = next((a for a in arts if own.search(a)), None)
         if raw is None:
             raise EvidenceRefused(f"PMID {doc['pmid']} not in {doc['document_ref']}")
     elif doc.get("row_id"):
@@ -100,6 +116,10 @@ def load(root, slug) -> Optional[dict]:
     def check(owner, item, kind):
         if item["doc"] not in docs:
             raise EvidenceRefused(f"{owner}: {kind} cites unknown document {item['doc']}")
+        if len(_norm(item["quote"])) < 20:
+            raise EvidenceRefused(f"{owner}: {kind} quote is empty or too short to evidence anything")
+        if _NEG.search(item["quote"]):
+            raise EvidenceRefused(f"{owner}: {kind} quote is negated; a contrary statement is never evidence FOR the clause")
         if _norm(item["quote"]) not in texts[item["doc"]]:
             raise EvidenceRefused(f"{owner}: {kind} quote not located in {item['doc']}")
         if kind == "prospective" and not names_mace(item["quote"]):
@@ -115,8 +135,10 @@ def load(root, slug) -> Optional[dict]:
         if pro:
             src = docs[pro["doc"]].get("earliest_date")
             res = (f.get("results") or {}).get("earliest_date")
-            if not (src and res and src < res):
+            if not (_date(src, fid) < _date(res, fid)):
                 raise EvidenceRefused(f"{fid}: prospective source dated {src} is not before the results ({res})")
+            if f.get("completion_date"):
+                _date(f["completion_date"], fid)
     for pg in ev.get("programmes") or []:
         check(pg["id"], pg, "ascertained")
     return ev
@@ -130,7 +152,8 @@ def decide(family_id: str, acronyms, ev: Optional[dict]) -> dict:
     pro = fam.get("prospective")
     if pro:
         d = docs[pro["doc"]]
-        tier = ("DATED_BEFORE_COMPLETION" if fam.get("completion_date") and d["earliest_date"] < fam["completion_date"]
+        tier = ("DATED_BEFORE_COMPLETION" if fam.get("completion_date")
+                and _date(d["earliest_date"], family_id) < _date(fam["completion_date"], family_id)
                 else "DATED_BEFORE_RESULTS_ONLY")
         out["prospective"] = {"state": "YES", "doc": pro["doc"], "doc_kind": d.get("kind"), "source_date": d["earliest_date"],
                               "results_date": fam["results"]["earliest_date"], "date_tier": tier, "quote": pro["quote"]}

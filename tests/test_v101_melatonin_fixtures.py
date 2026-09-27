@@ -83,7 +83,8 @@ def test_PLANT_unswapped_weights_leave_no_row_error_and_a_moved_row_breaks_the_c
     rows["Smits MG, 2003"]["printed_weight_pct"], rows["Almeida Montes LG, 2002"]["printed_weight_pct"] = 0.29, 3.94
     assert not [x for x in cd.assess(ok)["display_errors"] if x["kind"].startswith("ROW_")]
     bad = copy.deepcopy(doc)
-    bad["rows"][2]["effect"] += 5                                       # Kayumov 1 -> 6
+    for k in ("effect", "ci_low", "ci_high"):                           # Kayumov shifted by 5 minutes, interval too
+        bad["rows"][2][k] += 5
     assert cd.assess(bad)["calculation"]["state"] == "CALCULATION_NOT_REPRODUCED"
 
 
