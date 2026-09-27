@@ -46,17 +46,71 @@ def _sentences(s: str) -> list[str]:
     return [re.sub(r"\s+", " ", p).strip().rstrip(".").strip() for p in parts if len(p.strip()) > 3]
 
 
+# Words that make up structured-abstract HEADINGS. A difference consisting only of these (a heading rendered, dropped,
+# re-cased or glued to the next sentence) is not an alteration. Anything else -- a number, a content word -- is.
+_HEADING_WORDS = frozenset("""background backgrounds introduction context objective objectives aim aims purpose purposes
+hypothesis rationale importance method methods materials design designs setting settings participant participants patient
+patients subject subjects study studies intervention interventions exposure exposures main primary secondary outcome
+outcomes measure measures measurement measurements result results finding findings conclusion conclusions relevance
+interpretation discussion summary significance trial registration funding clinical evidence level data sources selection
+extraction synthesis limitations unlabelled and of or in the""".split())
+
+
+def _words(s: str) -> list[str]:
+    s = _plain(s).replace("−", "-").replace("·", ".")
+    return re.findall(r"[a-z]+|\d+(?:[.,/]\d+)*|[^\sa-z\d]", s.lower())
+
+
+_ENDS = frozenset(".;:")
+
+
+def _diff(inspected: str, verbatim: str):
+    """Word-level difference of an inspected text against the verbatim original: (inserted, cut_within, missing).
+    inserted:   runs in the inspected text that the original does not have (an edit, a changed number);
+    cut_within: runs of the original removed from INSIDE a sentence the inspected text keeps ('or hHF' dropped);
+    missing:    whole sentences of the original that the inspected text omits.
+    Runs made only of heading words and punctuation are ignored."""
+    import difflib
+    a, b = _words(verbatim), _words(inspected)
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    ins, cut, miss = [], [], []
+    content = lambda ws: [w for w in ws if w not in _HEADING_WORDS and re.match(r"[a-z\d]", w)]
+    skip = lambda w: w not in _ENDS and (w in _HEADING_WORDS or not re.match(r"[a-z\d]", w))
+
+    def whole_sentences(i1, i2):
+        lo, hi = i1, i2
+        while lo > 0 and skip(a[lo - 1]):
+            lo -= 1
+        while hi > lo and skip(a[hi - 1]):
+            hi -= 1
+        start_ok = lo == 0 or a[lo - 1] in _ENDS
+        end_ok = hi == len(a) or a[hi - 1] in _ENDS or all(skip(w) or w in _ENDS for w in a[hi:])
+        return start_ok and end_ok
+
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op == "equal":
+            continue
+        if op == "replace" and "".join(a[i1:i2]) == "".join(b[j1:j2]):
+            continue      # same characters, different spacing: a flattened superscript (10<sup>8</sup> -> 108), a tag seam
+        if content(b[j1:j2]):
+            ins.append(" ".join(b[j1:j2]))
+        if content(a[i1:i2]):
+            (miss if whole_sentences(i1, i2) else cut).append(" ".join(a[i1:i2]))
+    return ins, cut, miss
+
+
 def classify(inspected: str, verbatim: str | None) -> str:
+    """Word-level comparison (not sentence matching: that depends on parsing headings, and graded 99 of 211 real
+    records ALTERED for heading artefacts). ALTERED: words added or changed, or words cut from inside a kept sentence.
+    EXCERPT: only whole sentences of the original missing. VERBATIM: neither."""
     if not verbatim:
         return UNVERIFIED
-    orig = _sentences(verbatim)
-    got = _sentences(inspected)
-    if not got:
+    if not _words(inspected):
         return ALTERED
-    orig_set = set(orig)
-    if any(g not in orig_set for g in got):
+    ins, cut, miss = _diff(inspected, verbatim)
+    if ins or cut:
         return ALTERED
-    return VERBATIM if set(got) == orig_set else EXCERPT
+    return EXCERPT if miss else VERBATIM
 
 
 def verbatim_record(pmid: str, root: str = _ROOT) -> dict[str, Any] | None:
@@ -79,8 +133,11 @@ def coverage_of(pmid: str, inspected: str, root: str = _ROOT) -> dict[str, Any]:
     out = {"inspected": "the committed record abstract", "coverage": cov}
     if v:
         out.update(verbatim_path=v["path"], verbatim_sha256=v["sha256"])
-        orig = set(_sentences(v["text"]))
-        out["missing_sentences"] = len(orig - set(_sentences(inspected)))
+        ins, cut, miss = _diff(inspected, v["text"])
+        # NAMED, not only counted: what the inspected text lacks, and what it has that the original does not
+        out["missing_text"] = [m[:300] for m in miss + cut]
+        out["inserted_text"] = [m[:300] for m in ins]
+        out["missing_sentences"] = len(miss) + len(cut)
     return out
 
 

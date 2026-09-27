@@ -321,9 +321,25 @@ statement) and are re-fetchable and verifiable by their recorded sha256.
   REPORTED_UNRESOLVED (the verbatim original mentions the outcome) or NOT_YET_RETRIEVED. RETRIEVED_NOT_REPORTED names
   its coverage in its statement. New blocking kind ABSENCE_ON_EXCERPT.
 - Plant: OMNeON (PMID 28893244), whose committed abstract is ALTERED (10 sentences, including both hHF results,
-  missing). Corpus count after the rebuild: 8 absent rows rest on 3 ALTERED records (32862667, 32785710, 28893244),
-  none served as "not reported"; 202 records remain UNVERIFIED (no verbatim original held yet; the acquisition lanes'
-  first step holds them).
+  missing).
+- **CORRECTION (same day, after commit 9727c3d8):** that commit reported "8 absent rows rest on 3 ALTERED records
+  (32862667, 32785710, 28893244)". Two of the three were wrong. The sentence-and-label classifier had never had its
+  error rate measured. Once the lanes held 211 verbatim originals it graded **99 of 211** ALTERED, and the differences
+  checked were heading artefacts: a case-insensitive label strip turning "The aim of" into "The of", half-stripped
+  "Conclusions and relevance", unknown headings, flattened superscripts (10<sup>8</sup> → "108"). The classifier is
+  now a word-level diff: ALTERED = words added or changed, or cut from inside a kept sentence; EXCERPT = whole
+  sentences missing; runs of heading words and same-characters-different-spacing seams are ignored; the missing and
+  inserted text is NAMED in the coverage record.
+  Measured after the fix, on the 211 records the absent rows rest on: **VERBATIM 207, ALTERED 2, UNVERIFIED 2**.
+  - The 2 ALTERED are real abridgements, and both were checked by hand: OMNeON 28893244 (hHF results and the
+    business-decision sentence missing) and SOUL 40162642 (background, secondary-outcome and SAE sentences missing,
+    the same defect the bundle verifier found independently).
+  - Validation: the 5 records that fixed the tests, plus an 8-record sample (seed 20260927) used to add the
+    spacing rule, are BURNED.
+  - A fresh 6-record sample (seed 20260928), plus the lowest-ratio VERBATIM record, all read VERBATIM correctly by
+    raw word diff (only heading colons and labels differ).
+  - Every VERBATIM grade has a cache/verbatim length ratio of 0.947-1.008, so no abridgement is hidden among them.
+  - Labeller = the classifier's author, a stated weakness.
 
 ### Served changes (both OPEN notices, countersignature owed)
 | Outcome | Before | After | Why |
@@ -353,3 +369,28 @@ failed harmlessly; the guard makes it impossible).
 - Known: Codex's global AGENTS.md made both lanes READ F:/ProjectIndex/INDEX.md and the E156 workbook at start,
   despite the brief. The sandbox confines writes to the worktree; reads outside it are a brief violation to fix at
   the next launch.
+
+### Lane round 1 results (both lanes exited 0; 640 rows answered)
+- Lane verdicts: FOUND 60, REPORTED_NOT_EXTRACTABLE 245, NOT_REPORTED 232, NOT_HELD 103. The lanes' NOT_REPORTED verdicts
+  are NOT imported as claims: the harness re-derives every state from the coverage of what is held.
+- **34 of 60 FOUND rows verify** against the held bytes; 26 do not, and none of those shows a wrong number. The
+  failures are: numbers written as words ("five (out of 12)"), zero-event sentences whose denominators come from
+  elsewhere, spans cut at "vs." by the lane's own sentence splitter, and PDF tables with no machine-readable header.
+  All 60 are in `evidence/acquisition_cascade/LANE_CANDIDATES.json` with their verification outcome.
+  **None is admitted.** Admitting one is a served-number change (notice plus signature).
+- The verifier found and fixed two of its own defects before relying on it:
+  - it rejected ".55" (journals that drop the leading zero);
+  - a heredoc turned `\b` into a backspace byte, so the table-header path never matched.
+  Plants: a wrong value, a paraphrased span, a wrong hash, an absence without the abstract held, a wrong header
+  denominator, and a denominator present elsewhere in the paper but not in the table's header each fail; true rows
+  pass.
+- Merged into this branch:
+  - 444 held JSON records (Europe PMC records carrying the verbatim abstracts, and ClinicalTrials.gov results), with
+    their HELD.json entries;
+  - 1,758 attempt lines.
+  The lanes' 34 PMC XML full texts stay local, with `licence_detected` recorded in HELD.json; none is both CC BY/CC0
+  and the witness of a verified row. PDFs and HTML are never copied.
+  The merge refuses to run twice. It did run twice once and doubled the attempt lines; that was caught by line count
+  and restored before anything was committed.
+- Two repository pages advertised `citation_pdf_url` on a local host (localhost:4000, *.cpd.local). The requests
+  failed harmlessly; the cascade now refuses them (REFUSED_NONPUBLIC_HOST).

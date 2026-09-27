@@ -122,3 +122,34 @@ def test_the_tecos_version_chain_names_its_population_model_and_the_row_it_is_no
     assert v["held"] and v["value"]["ai"] == 745 and v["value"]["n2i"] == 7339
     assert "stratified by region" in v["cells"]["model"] and "839" in v["cells"]["not this row"]
     assert ch["governing"]["state"] == "DECIDED"
+
+
+# --- classifier error rate (2026-09-27): with 211 verbatim originals held, the sentence/label classifier graded 99
+# ALTERED; the differences checked were section-label artefacts ('The aim of' -> 'The of' by a case-insensitive label
+# strip, half-stripped 'Conclusions and relevance', unknown headings 'Study design' / 'Main outcome and measures').
+# A heading difference is not an alteration; a changed number, an inserted or a removed result sentence is.
+_LABEL_ONLY = [("balanced-crystalloids-vs-saline-mortality", "34375394"), ("colchicine-postop-af", "22090167"),
+               ("probiotics-aad-prevention", "10547243"), ("omega3-cardiovascular-events", "20952767"),
+               ("tocilizumab-covid19-mortality", "33080005")]
+
+
+@pytest.mark.parametrize("slug,pmid", _LABEL_ONLY)
+def test_heading_differences_are_not_alterations(slug, pmid):
+    sc = _sc()
+    recs = {str(x["id"]): x for x in json.load(open(os.path.join(ROOT, "cache", slug, "records.json"), encoding="utf-8"))["records"]}
+    assert sc.coverage_of(pmid, recs[pmid]["abstract"])["coverage"] == sc.VERBATIM
+
+
+def test_real_edits_are_still_detected():
+    sc = _sc()
+    v = sc.verbatim_record("28893244")["text"]
+    assert sc.classify(v, v) == sc.VERBATIM
+    assert sc.classify(v.replace("20/2092", "21/2092"), v) == sc.ALTERED          # a changed number
+    assert sc.classify(v.replace("placebo group", "placebo arm"), v) == sc.ALTERED  # a changed word
+    plain = sc._plain(v)
+    cut = plain.replace("The hHF outcome occurred in 20/2092 patients", "")
+    assert sc.classify(cut, v) in (sc.EXCERPT, sc.ALTERED) and sc.classify(cut, v) != sc.VERBATIM
+    first_half = plain[: len(plain) // 2].rsplit(". ", 1)[0] + "."
+    assert sc.classify(first_half, v) == sc.EXCERPT                               # a prefix: an excerpt
+    cov = sc.coverage_of("28893244", CACHE["28893244"]["abstract"])
+    assert cov["coverage"] == sc.ALTERED and any("20/2092" in m for m in cov["missing_text"])  # named, not just counted
