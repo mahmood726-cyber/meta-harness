@@ -2097,38 +2097,54 @@
       },
       "trials": [
         {
-          "effect": 0.49,
-          "ci_low": 0.24,
-          "ci_high": 0.65,
-          "scale": "RR",
-          "provenance": "abstract",
-          "source": "abstract effect+CI (RR): abstract arm-level counts (percentage-corroborated): The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo group (relative risk 0.49; 95% CI 0.24-0.65; p=0.0009; numb",
-          "derivation": "reported",
           "label": "24694983",
           "id": "PMID 24694983",
-          "selection_rule": "PUBLISHED_EFFECT_TARGET_CLASS",
-          "selected_estimator": "published_effect_ci",
+          "ai": 26,
+          "n1i": 120,
+          "ci": 51,
+          "n2i": 120,
+          "source": "abstract arm-level counts (percentage-corroborated): The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo group (relative risk 0.49; 95% CI 0.24-0.65; p=0.0009; numb",
+          "provenance": "abstract",
+          "derivation": "reconstructed",
+          "selection_rule": "KEEP_COUNTS_PUBLISHED_RATIO_MISLABELLED_RRR",
+          "selected_estimator": "reconstructed",
           "alternatives": [
             {
-              "derivation": "reconstructed",
+              "derivation": "reported",
               "provenance": "abstract",
-              "source_span": "abstract arm-level counts (percentage-corroborated): The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo gro...",
-              "ai": 26,
-              "n1i": 120,
-              "ci": 51,
-              "n2i": 120,
-              "implied_rr": 0.5098039215686275,
-              "not_selected_reason": "source_hierarchy_lower_precedence"
+              "source_span": "abstract effect+CI (RR): abstract arm-level counts (percentage-corroborated): The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) ...",
+              "effect": 0.49,
+              "ci_low": 0.24,
+              "ci_high": 0.65,
+              "scale": "RR",
+              "estimand_class": "FIRST_EVENT_RATIO",
+              "not_selected_reason": "source_hierarchy_lower_precedence",
+              "ratio_label_audit": {
+                "verdict": "MISLABELLED_RRR",
+                "counts_rr": 0.5098039215686275,
+                "counts_ci": [
+                  0.3421372954492693,
+                  0.7596366777421032
+                ],
+                "printed": [
+                  0.49,
+                  0.24,
+                  0.65
+                ],
+                "distance_as_rr": 0.5501,
+                "distance_as_rrr": 0.0236,
+                "tolerance": 0.25
+              }
             }
           ],
           "endpoint_admissibility": "UNBOUND_LEGACY",
           "endpoint_binding": "unbound_legacy",
           "verified": "verified",
-          "verify_basis": "effect present in committed source",
+          "verify_basis": "arm counts present in committed source",
           "design": {
             "unit_of_randomisation": "INDIVIDUAL",
             "design": "PARALLEL",
-            "estimator_source": "PUBLISHED_RR",
+            "estimator_source": "RECONSTRUCTED",
             "adjustment_status": "UNRESOLVED",
             "adjustment_axis": {
               "status": "UNRESOLVED"
@@ -2137,7 +2153,7 @@
               "method": "none",
               "evidence": []
             },
-            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "se_provenance": "synth.Study.yi_vi:2x2:RR",
             "basis": [
               {
                 "source": "AACT designs.intervention_model",
@@ -2155,20 +2171,20 @@
           "prior_disease_stage": "multiple_recurrences",
           "background_therapy": "conventional_anti_inflammatory_therapy",
           "study_effect": {
-            "effect_estimate": 0.49,
-            "standard_error": 0.25417136422062925,
+            "effect_estimate": 0.5098039215686275,
+            "standard_error": 0.20347657096611074,
             "estimand": "RR",
             "analysis_population": "intention-to-treat; prior disease stage differs by trial (CORP first recurrence; CORP-2 multiple recurrences)",
             "randomisation_unit": "INDIVIDUAL",
             "study_design": "PARALLEL",
-            "estimator_method": "PUBLISHED_RR",
+            "estimator_method": "RECONSTRUCTED",
             "correlation_handling": {
               "method": "none",
               "evidence": []
             },
             "source_provenance": {
               "source": "abstract",
-              "span": "abstract effect+CI (RR): abstract arm-level counts (percentage-corroborated): The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo group (relative risk 0.49; 95% CI 0.24-0.65; p=0.0009; numb"
+              "span": "abstract arm-level counts (percentage-corroborated): The proportion of patients who had recurrent pericarditis was 26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo group (relative risk 0.49; 95% CI 0.24-0.65; p=0.0009; numb"
             },
             "design_action": {
               "action": "ALLOW",
@@ -2222,8 +2238,13 @@
           "trial_id": "PMID 24694983",
           "report_id": "PMID 24694983",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Recurrent pericarditis::PMID 24694983::PMID 24694983",
+          "consumer_consistency_state": "EXTRACTED_RECONSTRUCTION_WHILE_PUBLISHED_EXISTS",
+          "source_warning": "source span also reports an effect estimate with confidence interval; row keeps the existing reconstruction and is flagged for human review",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT00235079"
+          "family_id": "NCT00235079",
+          "result_status": {
+            "state": "ADMITTED"
+          }
         },
         {
           "label": "21873705",
@@ -2340,7 +2361,10 @@
           "report_id": "PMID 21873705",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Recurrent pericarditis::PMID 21873705::PMID 21873705",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT00128414"
+          "family_id": "NCT00128414",
+          "result_status": {
+            "state": "ADMITTED"
+          }
         }
       ],
       "declared_absent_trials": [
@@ -2377,10 +2401,16 @@
           },
           "family_id": "NCT00128453",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-          "claim_id": "23fccff82738e2a6",
+          "result_status": {
+            "state": "RETRIEVED_NOT_REPORTED",
+            "scope": "the inspected full text",
+            "basis": "OUTCOME_NOT_IN_SOURCE",
+            "statement": "not found in the inspected full text (a scoped statement, not a claim about the trial's design)"
+          },
+          "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+          "claim_id": "adf1103c51dbda12",
           "depends_on": {
-            "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+            "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
           },
           "claim_kind": "membership_state"
         }
@@ -2409,18 +2439,18 @@
       },
       "result": {
         "k": 2,
-        "estimate": 0.4643,
+        "estimate": 0.4813,
         "scale": "RR",
         "ci_low": null,
         "ci_high": null,
         "tau2": 0.0,
-        "Q": 0.08981,
+        "Q": 0.20497,
         "i2": 0.0,
         "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
         "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
-        "ci_low_fixed": 0.3265,
-        "ci_high_fixed": 0.6601,
-        "estimate_fixed": 0.4643,
+        "ci_low_fixed": 0.3526,
+        "ci_high_fixed": 0.6569,
+        "estimate_fixed": 0.4813,
         "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval.",
         "estmeasure": {
           "status": "homogeneous",
@@ -2441,9 +2471,9 @@
             {
               "label": "24694983",
               "id": "PMID 24694983",
-              "effect": 0.49,
-              "ci_low": 0.24,
-              "ci_high": 0.65,
+              "effect": 0.5098,
+              "ci_low": 0.3421,
+              "ci_high": 0.7596,
               "scale": "RR"
             },
             {
@@ -2461,8 +2491,8 @@
           "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
         },
         "ci_hksj_unserved": {
-          "ci_low": 0.0474,
-          "ci_high": 4.5468,
+          "ci_low": 0.064,
+          "ci_high": 3.6169,
           "method": "PM tau^2 + HKSJ on t(1)",
           "note": "computed for auditability only; not served as the registered interval at k=2"
         },
@@ -2481,10 +2511,10 @@
           "direction": null,
           "basis": "no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI"
         },
-        "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-        "claim_id": "b3f59ecf7af245d7",
+        "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+        "claim_id": "0bdfa5714d0e0da3",
         "depends_on": {
-          "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+          "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
         },
         "claim_kind": "outcome_result"
       },
@@ -2575,7 +2605,9 @@
           "RR"
         ],
         "k": 2,
-        "reconstructed_members": [],
+        "reconstructed_members": [
+          "24694983"
+        ],
         "label_mix_small_k": false
       },
       "compat_underlying": {
@@ -2622,7 +2654,7 @@
       "known_missing_sensitivity": {
         "claim_id": "colchicine-recurrent-pericarditis::primary::known_missing_sensitivity",
         "depends_on": {
-          "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+          "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
         },
         "depends_on_detail": [
           {
@@ -2635,7 +2667,7 @@
           {
             "path": "/outcomes/primary/result",
             "k": 2,
-            "estimate": 0.4643
+            "estimate": 0.4813
           }
         ],
         "heading": "Known eligible trials not in this pool, and what they would do",
@@ -2804,7 +2836,10 @@
           "report_id": "PMID 21873705",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Symptom persistence at 72 hours::PMID 21873705::PMID 21873705",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT00128414"
+          "family_id": "NCT00128414",
+          "result_status": {
+            "state": "ADMITTED"
+          }
         }
       ],
       "declared_absent_trials": [
@@ -2834,6 +2869,12 @@
           },
           "family_id": "NCT00235079",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "RETRIEVED_NOT_REPORTED",
+            "scope": "the inspected abstract",
+            "basis": "OUTCOME_NOT_IN_SOURCE",
+            "statement": "not found in the inspected abstract (a scoped statement, not a claim about the trial's design)"
+          },
           "input_set_version": "53b70cf880697683fabaad23b17b519291fbb5b084e95aba735cecc7eb2439fe",
           "claim_id": "97c275fb223d0656",
           "depends_on": {
@@ -2867,6 +2908,12 @@
           },
           "family_id": "NCT00128453",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "RETRIEVED_NOT_REPORTED",
+            "scope": "the inspected abstract",
+            "basis": "OUTCOME_NOT_IN_SOURCE",
+            "statement": "not found in the inspected abstract (a scoped statement, not a claim about the trial's design)"
+          },
           "input_set_version": "53b70cf880697683fabaad23b17b519291fbb5b084e95aba735cecc7eb2439fe",
           "claim_id": "97c275fb223d0656",
           "depends_on": {
@@ -3049,6 +3096,12 @@
           },
           "family_id": "NCT00235079",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "RETRIEVED_NOT_REPORTED",
+            "scope": "the inspected abstract",
+            "basis": "OUTCOME_NOT_IN_SOURCE",
+            "statement": "not found in the inspected abstract (a scoped statement, not a claim about the trial's design)"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "98e88cb2f24ef944",
           "depends_on": {
@@ -3082,6 +3135,10 @@
           },
           "family_id": "NCT00128453",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "OUTCOME_NOT_IN_SOURCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "98e88cb2f24ef944",
           "depends_on": {
@@ -3115,6 +3172,10 @@
           },
           "family_id": "NCT00128414",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "OUTCOME_NOT_IN_SOURCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "98e88cb2f24ef944",
           "depends_on": {
@@ -3145,7 +3206,7 @@
           "23992557",
           "21873705"
         ],
-        "reason": "REPORTED but not extractable as a pooled value: 23992557, 21873705 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.",
+        "reason": "REPORTED but not extracted as a pooled value: 23992557, 21873705 mention this outcome in the committed abstract without arm counts or an effect+CI in an extractable form; full-text acquisition would recover the countable form. This outcome is NOT absent.",
         "claim": {
           "present": false,
           "significant": false,
@@ -3153,6 +3214,13 @@
           "touches_null": null,
           "null": null,
           "direction": null
+        },
+        "status_counts": {
+          "EXTRACTED_NOT_ADMITTED": [],
+          "REPORTED_UNRESOLVED": [
+            "23992557",
+            "21873705"
+          ]
         },
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "089160446dcf9193",
@@ -3220,6 +3288,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "NCT00128453",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "c6d1d62f69cd7cb4",
           "depends_on": {
@@ -3264,6 +3336,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "NCT00128414",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "c6d1d62f69cd7cb4",
           "depends_on": {
@@ -3327,6 +3403,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "NCT00235079",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "ENDPOINT_UNBOUND"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "c6d1d62f69cd7cb4",
           "depends_on": {
@@ -3524,6 +3604,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "NCT00235079",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9055ac3e8c5f907e",
           "depends_on": {
@@ -3568,6 +3652,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "NCT00128453",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9055ac3e8c5f907e",
           "depends_on": {
@@ -3612,6 +3700,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "NCT00128414",
           "family_identity_state": "REGISTRY_ANCHORED",
+          "result_status": {
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE"
+          },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9055ac3e8c5f907e",
           "depends_on": {
@@ -4669,28 +4761,32 @@
     "counts": {
       "EXTRACTED": 3,
       "HELD_NOT_EXTRACTED": 0,
-      "NOT_IN_HELD_SOURCES": 7,
-      "ABSENT_BY_DESIGN": 5
+      "REPORTED_UNRESOLVED": 10,
+      "NOT_IN_HELD_SOURCES": 2,
+      "NOT_MEASURED": 0
     },
     "n_held_not_extracted": 0,
     "by_outcome_kind": {
       "primary": {
         "EXTRACTED": 2,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 1,
-        "ABSENT_BY_DESIGN": 0
+        "REPORTED_UNRESOLVED": 1,
+        "NOT_IN_HELD_SOURCES": 0,
+        "NOT_MEASURED": 0
       },
       "secondary": {
         "EXTRACTED": 1,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 5,
-        "ABSENT_BY_DESIGN": 0
+        "REPORTED_UNRESOLVED": 3,
+        "NOT_IN_HELD_SOURCES": 2,
+        "NOT_MEASURED": 0
       },
       "harm": {
         "EXTRACTED": 0,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 1,
-        "ABSENT_BY_DESIGN": 5
+        "REPORTED_UNRESOLVED": 6,
+        "NOT_IN_HELD_SOURCES": 0,
+        "NOT_MEASURED": 0
       }
     },
     "rows": [
@@ -4708,7 +4804,8 @@
         "trial_label": "23992557",
         "outcome": "Recurrent pericarditis",
         "outcome_kind": "primary",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "REPORTED_UNRESOLVED",
+        "reason_code": "OUTCOME_NOT_IN_SOURCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4724,7 +4821,9 @@
         "trial_label": "24694983",
         "outcome": "Symptom persistence at 72 hours",
         "outcome_kind": "secondary",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "NOT_IN_HELD_SOURCES",
+        "scope": "not found in the held sources inspected (a scoped statement)",
+        "reason_code": "OUTCOME_NOT_IN_SOURCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4732,7 +4831,8 @@
         "trial_label": "23992557",
         "outcome": "Symptom persistence at 72 hours",
         "outcome_kind": "secondary",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "REPORTED_UNRESOLVED",
+        "reason_code": "OUTCOME_NOT_IN_SOURCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4748,7 +4848,9 @@
         "trial_label": "24694983",
         "outcome": "Disease-related hospitalisation",
         "outcome_kind": "secondary",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "NOT_IN_HELD_SOURCES",
+        "scope": "not found in the held sources inspected (a scoped statement)",
+        "reason_code": "OUTCOME_NOT_IN_SOURCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4756,7 +4858,8 @@
         "trial_label": "23992557",
         "outcome": "Disease-related hospitalisation",
         "outcome_kind": "secondary",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "REPORTED_UNRESOLVED",
+        "reason_code": "OUTCOME_NOT_IN_SOURCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4764,7 +4867,8 @@
         "trial_label": "21873705",
         "outcome": "Disease-related hospitalisation",
         "outcome_kind": "secondary",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "REPORTED_UNRESOLVED",
+        "reason_code": "OUTCOME_NOT_IN_SOURCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4772,7 +4876,8 @@
         "trial_label": "24694983",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "REPORTED_UNRESOLVED",
+        "reason_code": "ENDPOINT_UNBOUND"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -4780,7 +4885,7 @@
         "trial_label": "23992557",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "status": "ABSENT_BY_DESIGN",
+        "status": "REPORTED_UNRESOLVED",
         "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
@@ -4789,7 +4894,7 @@
         "trial_label": "21873705",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "status": "ABSENT_BY_DESIGN",
+        "status": "REPORTED_UNRESOLVED",
         "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
@@ -4798,7 +4903,7 @@
         "trial_label": "24694983",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
-        "status": "ABSENT_BY_DESIGN",
+        "status": "REPORTED_UNRESOLVED",
         "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
@@ -4807,7 +4912,7 @@
         "trial_label": "23992557",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
-        "status": "ABSENT_BY_DESIGN",
+        "status": "REPORTED_UNRESOLVED",
         "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
@@ -4816,7 +4921,7 @@
         "trial_label": "21873705",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
-        "status": "ABSENT_BY_DESIGN",
+        "status": "REPORTED_UNRESOLVED",
         "reason_code": "REFUSED_ON_EVIDENCE"
       }
     ]
@@ -4828,65 +4933,65 @@
       "24694983": "low",
       "21873705": "low"
     },
-    "input_set_version": "e83d5ec7cbd7f83a0e08f62c4037f58b52effc351deacd43cc7f034f3cc9476a",
+    "input_set_version": "a67ae941df934acb01e2cc8a7ef06b5790d850e5ae53ceda052a8e04d1119d76",
     "n_trials": 2,
     "n_rob_rated": 2,
     "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 2,
-      "estimate": 0.4643,
+      "estimate": 0.4813,
       "scale": "RR",
       "ci_low": null,
       "ci_high": null,
       "tau2": 0.0,
       "ci_hksj_unserved": {
-        "ci_low": 0.0474,
-        "ci_high": 4.5468
+        "ci_low": 0.064,
+        "ci_high": 3.6169
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-      "claim_id": "839d3a37f0029522",
+      "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+      "claim_id": "bc1dda6b95ff8420",
       "depends_on": {
-        "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+        "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
       },
       "claim_kind": "rob_sensitivity.full"
     },
     "drop_high": {
       "k": 2,
-      "estimate": 0.4643,
+      "estimate": 0.4813,
       "scale": "RR",
       "ci_low": null,
       "ci_high": null,
       "tau2": 0.0,
       "ci_hksj_unserved": {
-        "ci_low": 0.0474,
-        "ci_high": 4.5468
+        "ci_low": 0.064,
+        "ci_high": 3.6169
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-      "claim_id": "6af22543542b9e53",
+      "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+      "claim_id": "f865eec3ebfab5c8",
       "depends_on": {
-        "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+        "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
     "low_only": {
       "k": 2,
-      "estimate": 0.4643,
+      "estimate": 0.4813,
       "scale": "RR",
       "ci_low": null,
       "ci_high": null,
       "tau2": 0.0,
       "ci_hksj_unserved": {
-        "ci_low": 0.0474,
-        "ci_high": 4.5468
+        "ci_low": 0.064,
+        "ci_high": 3.6169
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-      "claim_id": "08d0394c9fffda96",
+      "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+      "claim_id": "19528d940ee73d81",
       "depends_on": {
-        "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+        "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
@@ -4988,10 +5093,10 @@
     ],
     "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-    "claim_id": "970d773969dce795",
+    "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+    "claim_id": "79d5fff0e0a794f5",
     "depends_on": {
-      "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+      "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
     },
     "claim_kind": "grade"
   },
@@ -53005,16 +53110,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "9a6df7114336a30e",
+        "claim_id": "c02f38c34b4f8730",
         "depends_on": {
-          "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+          "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "8b534ea59e025eb4",
+        "claim_id": "788dce2e98fcea80",
         "depends_on": {
-          "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+          "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
         }
       }
     ]
@@ -53349,8 +53454,8 @@
         "/outcomes/*/result/present",
         "/outcomes/*/result/reason"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extractable as a pooled value: 23992557, 21873705 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.</div>",
-      "text_sha256": "ab8ae0c3c462db7fad78442bc6dc3a38ffa68bfa3e51a62e02091a099fbb2887",
+      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extracted as a pooled value: 23992557, 21873705 mention this outcome in the committed abstract without arm counts or an effect+CI in an extractable form; full-text acquisition would recover the countable form. This outcome is NOT absent.</div>",
+      "text_sha256": "3188ac3a8dbfb6f1fa2758b3b3b1d5e86deeb27b854156123a6ca6c69e957ea7",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -53705,7 +53810,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "34023da4e35f9094f846361cefb31c8a6655e678",
-    "review_sha256": "cd1a6445971fad2ee5ec018e38a0dd2910cbfa64b07b88e6480e9e8f21e6f1ab",
+    "review_sha256": "1be6f19b0da9f467897e34e8b4651dfbf0910f092ff3a96f10bc5bc03f67fc17",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -53814,10 +53919,10 @@
           "sentence": "Decomposed: 2 POOLED BY US (24694983, 21873705); of the gap trials, 0 are eligible-not-pooled recoverable misses."
         }
       ],
-      "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-      "claim_id": "019e2644aea237e3",
+      "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+      "claim_id": "2616e69f64e2f3eb",
       "depends_on": {
-        "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+        "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
       },
       "claim_kind": "parity"
     },
@@ -53826,10 +53931,10 @@
         "trial": "CORE (16186468), COPE (16186437)",
         "verified": "citation chasing (Crossref) RECOVERED both PMIDs from the comparator's reference list; FDA/EMA/registries could not reach them (pre-registry, generic drug)",
         "not_pooled_because": "REACH ✓ but SCREEN declines: both CORE and COPE (Imazio 2005) are OPEN-LABEL, and this topic preregisters double-blind (matching the pooled CORP/CORP-2/ICAP). A design-quality exclusion, not a reach failure — the comparator pooled open-label trials we do not.",
-        "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274",
-        "claim_id": "3cf16a6ef95c0347",
+        "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be",
+        "claim_id": "c158a12c39efc66f",
         "depends_on": {
-          "input_set_version": "1dc51100fd1223cc7137b2ba64abcb441c8a027b9e64de67c8e844158b171274"
+          "input_set_version": "d5bc271fb07cbeef143a91bc757248d6cc5c07463f36ba0d143d085be3ad39be"
         },
         "claim_kind": "refusal"
       }
@@ -53865,6 +53970,31 @@
           "how_it_reached_the_reviewer": "relayed by the orchestrating lane, 2026-09-21; for each notice the figures, the departing trial(s) and the stated reason were conveyed in full, and the shared mechanism sentence was quoted verbatim; the full rendered block was offered and not read letter-for-letter for the seven first-shown notices; this notice: one of the seven first-shown, not read letter-for-letter"
         },
         "conclusion_changed": "the outcome no longer has a pooled estimate"
+      },
+      {
+        "slug": "colchicine-recurrent-pericarditis",
+        "outcome": "Recurrent pericarditis",
+        "before": {
+          "k": 2,
+          "estimate": 0.4643,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "after": {
+          "k": 2,
+          "estimate": 0.4813,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "left_pool": [],
+        "entered_pool": [],
+        "reason": "CORP-2 (PMID 24694983) is now pooled from its own arm counts, 26/120 vs 51/120 (RR 0.51, 95% CI 0.34-0.76), instead of the printed 'relative risk 0.49; 95% CI 0.24-0.65'. That figure is the relative risk REDUCTION: 1 - (0.51, 0.76, 0.34) = (0.49, 0.24, 0.66), printed under the label 'relative risk' in the same sentence as the counts. Mechanism: harness/design_key.ratio_label_audit (V1.0.1 acquisition cascade) -- a printed ratio outranks the same source's counts only if it agrees with them; a ratio that matches the 1-x reading with a flipped interval is refused as MISLABELLED_RRR. A ratio that fits neither reading is kept (it may be adjusted), not guessed. Trial membership is unchanged.",
+        "by": "Claude Opus 5.5 (lane evid/v1.0.1-acquisition-cascade, 2026-09-27); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-27T00:00:00Z",
+        "reviewer_countersignature": {
+          "state": "OPEN"
+        },
+        "conclusion_changed": null
       }
     ],
     "dual": {
@@ -53964,32 +54094,34 @@
         }
       ],
       "config_sha256": "fb849b3b032885799231b74dc48acdd3945de804edf04cf18eb54fdb56e74a8d",
-      "analysis_code_sha256": "ea88b125cb0e9b88433c1993366f9c49b8452ea6b66fd7b02116ebb1aad057e9",
+      "analysis_code_sha256": "5968b174c6e9d96b75cca19f45e27d39714d2818812b9b1327e0cbe5225805e3",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
         "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
+        "harness/acquisition_state.py": "02551abf229143b25acbd236cd73c756869c17b8",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
+        "harness/census.py": "b6a060fc249cdba79278db9c15b785694ee65690",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
-        "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
+        "harness/claimgraph.py": "cc27d161436cf1aefee4e10b97f520dffa4d405b",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
         "harness/comparator_panel.py": "0a0b550f2a13e29c94e1a01ca2690c82650373b1",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
+        "harness/comparison_family.py": "4542cc506c9b30e7043ce7f2acf74a7450cc5c27",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
         "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+        "harness/design_key.py": "09ea53ac389bbf351f6123941e19c95db88f7392",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -54002,7 +54134,7 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "4a2ab935106869dd19fc96b5a06fa0a1b619a397",
+        "harness/gate.py": "4d8e9bc047af520f38f6e1d210e546cbe97a9c1b",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -54014,41 +54146,47 @@
         "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
         "harness/invalidation.py": "0b1f410061948cf8c2f3be70726d89666b0cbe07",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-        "harness/known_missing.py": "97b060258ab48b71cc95b436155840c0d96bd8e5",
+        "harness/known_missing.py": "c72eb103da5ebfcbfe53c9d1cb7b9d34ea6ba9ee",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
         "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "5e70040ce4738b6c59d205d2f5de7b4a2cb40e4f",
+        "harness/multi_trial_report.py": "4efe8dd30cab7bb711e71d6630bb1ed1f432ed16",
+        "harness/page.py": "6696c2c0c3093e8b84dc51ae866f85b2ff15e296",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "605f2e0d615d4fd84d602f43c6405626fa22b054",
+        "harness/pipeline.py": "3b1d06805e6251eef57cdd23bf0cf2b5227a475d",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
+        "harness/provenance_tiers.py": "1debfa78076de4ee40ee4ac06ca2e68ce0fc20eb",
         "harness/reason_audit.py": "6950b0298265ef47e7ef83a44622a715bfe54d9e",
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/report_family.py": "593b5294dc94c05603c597c1906e2494451b7010",
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
+        "harness/result_status.py": "9412a8b32a45d6e5578bea2c4672555c13d395f8",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
+        "harness/scope_decision.py": "1d6dca0ea5e55fc64d943d270c701bf8174ea3f5",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "58d0c7637b01d797c8e62b75b3b7c7a17eabba37",
+        "harness/screen.py": "6a13f1099654167b5e8f68caf691abca77f48382",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/screening_record.py": "54251147c855a4d4abad3b42fb48c3f8b5e168ba",
+        "harness/screening_record.py": "3af11a5a14714e1aa430baf6add49c0c6fbfe8e5",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
+        "harness/source_versions.py": "ee64784f3cc3766537b6f174bba4168c37d73e18",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
         "harness/trial_family.py": "28024d000c06965ed44a6e8084717a3734d67608",
-        "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
+        "harness/unextracted.py": "06e9faa6fb5e9806da307dd0cff2a5649d023dfa",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
-        "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
-        "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
+        "harness/verified_inputs.py": "906630a69c8da4858d3fc8a8a123dbed52f5da1f",
+        "harness/verify.py": "09c027848d692e146d4d97b19dd0c2680bafc5ad",
         "harness/whole_numbers.py": "9194bd58d2651a8ae524d53068f2f404b7781f49",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
         "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
@@ -54064,7 +54202,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "85 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -54093,8 +54231,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "33b10367155d6ca7a6101d00df900e80c404f807ffe198bfa8dd598f4468ce0c",
-      "review_sha256": "cd1a6445971fad2ee5ec018e38a0dd2910cbfa64b07b88e6480e9e8f21e6f1ab",
+      "manuscript_sha256": "85f9b1ed7347b8e155d409945b6d7d5e363a65417c70866b909f689ecbc1394d",
+      "review_sha256": "1be6f19b0da9f467897e34e8b4651dfbf0910f092ff3a96f10bc5bc03f67fc17",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-recurrent-pericarditis.md UTF-8 text, universal newlines",
@@ -54114,7 +54252,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "3026070ca4f38a23a6c732f823be43329897deee4b3ca8cbb2072b132a82ddf6"
+      "release_sha256": "1548213b269a1ef6b17f2a5724b5578a4195640e9b9d7cf5ce67d6d516115e7d"
     }
   }
 }

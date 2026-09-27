@@ -217,7 +217,93 @@ string). The former SOURCE_HELD_RESULT_NOT_EXTRACTED is split into the three REP
 - docs/refusals.json refused CoDEX "until its spans are committed"; once they were, the build refused itself
   (REFUSED_AND_POOLED). CoDEX was removed from that refusal (Metcovid, still unheld, remains) with a `superseded` record.
 
-SERVED_DIFF_PLACEHOLDER
+## Source versioning and protocol-text scope (DOAC-VTE review, hash 5f9c2b44)
+
+### Version chains (`harness/source_versions.py`, `docs/source_versions.json`)
+Every version of a result is recorded (ORIGINAL / ERRATUM / CORRECTION / CSR / CSR_ERRATUM / REGULATORY) with its
+source, date, held witness (path + sha256 + verbatim span) or the reason it is not held, its value and its cells, plus
+ONE governing decision {DECIDED | PENDING, version, reason}. Nothing is overwritten. A correction applies to the cells
+it lists (`apply_per_cell`); a correction that is not held cannot govern; VERSION_SUPERSEDED_SERVED and
+VERSION_CHAIN_UNSHOWN block. Chains render on their rows; chains for trials outside the pool render in their own block.
+
+- **Hokusai-VTE primary**: original 130/4,118 vs 146/4,122, HR 0.89 (0.70-1.13) — NEJM abstract, FDA label Jan 2015
+  and FDA label Oct 2023 (public domain, held). Reported CSR erratum (26 Feb 2015, Table 11.2): 131, HR 0.90
+  (0.709-1.136) — **not held**: the government portals hosting CSRs require accepting terms of use / registering,
+  which I did not do without permission. Governing: **PENDING**, original served, chain shown. Note: the regulator's
+  own label dated eight years after the erratum still carries 130 / 0.89.
+- **Hokusai-VTE major or CRNM**: 349 vs 423 (abstract, label); reported erratum warfarin 424, not held; PENDING.
+- **Hokusai-VTE major bleeding**: 56/4,118 vs 66/4,122 on treatment (FDA label Table 6.3, held); the published HR 0.84
+  (0.592-1.205) is in the unheld CSR. REPORTED_UNRESOLVED (this review admits the published HR, not a count-derived RR;
+  AMPLIFY precedent). The old refusal ("combines major and CRNM") was true only of the abstract; restated.
+- **J-EINSTEIN**: the journal erratum (held, CC BY) governs per cell: '1.4%' → '1.3%' in the abstract and Results,
+  ARD 3.9% (−3.4 to 23.8) → ARR 4.0% (−2.9 to 24.0), Table 3 2.9% → 2.8%; Table 3 '1.4%' is KEPT ("calculated by
+  another definition"). A global replace would have changed it (tested).
+
+### Scope from the protocol's own text (`harness/scope_decision.py`, `docs/scope_decisions.json`)
+- The committed search queries the six pivotal UIDs named in the protocol's Search section — the comparator's six
+  phase-3 trials. That is a SEARCH LIMITATION, disclosed on the page; it is not an eligibility rule.
+- **J-EINSTEIN** (PMID 25717286; NCT01516840 + NCT01516814, one programme, one trial): ELIGIBLE by I1-I4 (verbatim rule
+  spans + held evidence). 100 randomised 81:19; 3 rivaroxaban patients from one site excluded for GCP non-compliance;
+  symptomatic recurrent VTE **1/78 vs 0/19** (EXTRACTED_NOT_ADMITTED: outside the search); 1/78 vs 1/19 is the broader
+  symptomatic-or-asymptomatic-deterioration composite and is not used.
+- **BOTTICELLI** (PMID 18541000): ELIGIBLE by I1-I4 (the comparator rule explicitly includes parenteral → VKA);
+  dose-ranging / phase 2 are not protocol exclusions. 17/358 vs 5/118 is the composite with asymptomatic imaging
+  deterioration → REPORTED_UNRESOLVED; symptomatic-only split not in the held abstract; three dose arms.
+- SCOPE_RULE_NOT_IN_PROTOCOL and SCOPE_INHERITED_FROM_COMPARATOR block.
+
+## Final state of this branch (all 32 topics rebuilt on the final harness)
+
+### Served diff vs the screening-roles base 7e70759a (`evidence/acquisition_cascade/SERVED_DIFF_vs_screening_roles.json`)
+4 of 32 topics move a served number (5 outcomes); 28 unchanged; no result-state-only changes.
+
+| Topic | Outcome | Before | After | Why | Notice |
+|---|---|---|---|---|---|
+| colchicine-recurrent-pericarditis | Recurrent pericarditis (primary) | 0.4643, k=2 | 0.4813, k=2 | CORP-2 pooled from counts, not the mislabelled RRR | OPEN |
+| colchicine-secondary-cv-prevention | GI adverse effects | 5.375 (1.60-18.10), k=1 | no result | Akrami held out (safety-denominator conflict) | OPEN |
+| corticosteroids-covid19-mortality | 28-day mortality (primary) | 0.83 (0.75-0.93), k=1 | 0.85, k=2, interval withheld | CoDEX Table 2 row admitted | OPEN |
+| denosumab-vertebral-fracture | Serious adverse events | no result | 1.03 (0.95-1.11), k=1 | FREEDOM registry results, as treated | OPEN |
+| denosumab-vertebral-fracture | Serious infection | no result | 1.19 (0.95-1.49), k=1 | FREEDOM infection report (companion) | OPEN |
+
+### Gate
+26 of 32 pages pass the full page gate. The 6 refusals are designed holds: 4 pages carry the OPEN notices above
+(`result_change_countersigned`), and colchicine-postop-af / semaglutide-obesity-weight keep the pre-existing
+HARMS_INCOMPLETE sign-off item from the screening-roles branch.
+
+### HM3 pinned controls
+The pinned snapshot is never rewritten. This branch's changes to the 17 HM3 pages are DECLARED by name:
+`screening_roles_supersession.json` (regenerated by `scripts/hm3_screening_supersession.py`, now covering both
+landings): added keys `comparisons` / `pending_decisions`; REMAP-CAP's row (X2 → awaiting classification); FREEDOM
+serious infection's decided harm row superseded (REFUSED_ON_EVIDENCE → pooled 159/3,886 vs 133/3,876). The COVID
+primary move is declared in the pinned file's `superseded` section (additions only; pinned values untouched).
+
+### Defects found in my own work during the final verification, and fixed
+- `result_status.derive` overwrote a HARMS_INCOMPLETE reason (semaglutide lost the named unresolved report 40189961
+  and "must not render this as harm absence"); it now rewrites only the generic sentence it owns.
+- Undeclared-platform screening re-screened COPPER / I-SPY COVID without condition labels even for X3 decisions,
+  changing their evidence span; only an X2 is re-screened now, and both rows match the pinned control again.
+- The page verifier checked a hand row's cited span only (denominators live in table headers); it now uses the
+  binder's own rule against the named held document. A first "whole document" attempt let a planted wrong count pass
+  and was replaced before commit.
+- Four new renderers iterated dicts in insertion order and failed the census's canonical-JSON determinism check;
+  sorted, with a reversed-key-order test.
+
+### Known limitations (not fixed here)
+- The hand binder accepts a percentage-corroborated count in place of a denominator, so for FREEDOM serious infection
+  a denominator off by 7 still verifies (159/3,893 rounds to the printed 4.1%). Binder semantics, pre-existing.
+- colchicine-postop-af's definition-heterogeneity cell depends on dict key order under a reversed-order probe
+  (pre-existing; its census passes in build order). Flagged as a separate task.
+- The full test suite was not run (too slow for this environment / disk); the targeted suites listed in the commits
+  were.
+
+### Decisions owed to Mahmood
+1. Countersign (or reject) the 5 OPEN result-change notices above.
+2. Whether I may access a CSR portal (terms of use / registration) to hold the Hokusai-VTE CSR erratum; and whether a
+   held correction should govern (all Hokusai chains are PENDING, original served).
+3. A timepoint-window policy (CAPE COVID day 21, REMAP-CAP day 90, COVIDICUS 60-day): none is declared, so none is
+   substituted.
+4. Whether to admit DELIVER's held HR 0.82 (0.73-0.92), DETERMINE-Preserved's registry rows, SONIA, J-EINSTEIN
+   (1/78 vs 0/19) and Koh's double-blind phase — each is held and shown, none admitted.
+5. The three REMAP-CAP pending decisions (influenza stratum, day 90, Bayesian adjusted estimate).
 
 ## Committed / not committed
 Committed: targets, ATTEMPTS.jsonl (contact address redacted to `<contact>`; response sha256s unchanged), CANDIDATES,

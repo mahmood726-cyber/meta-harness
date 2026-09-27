@@ -161,3 +161,17 @@ def test_a_tampered_population_witness_fails_closed():
     rep["trials"][0]["population"]["witness"]["span"] = "504 patients with HF with reduced ejection fraction"
     with pytest.raises(ValueError, match="witness span not in"):
         m._relevance(ROOT, rep["trials"][0], _config())
+
+
+def test_derive_rewrites_only_the_generic_not_extracted_sentence_never_another_mechanisms_reason():
+    # regression (2026-09-27): derive() replaced a HARMS_INCOMPLETE reason -- which names the unresolved report and says
+    # the page must not render harm absence -- with the generic sentence, dropping the named report
+    rs = _rs()
+    harms_reason = ("HARMS_INCOMPLETE -- 1 known reported outcome(s) unresolved (40189961) among 5 source-reporting "
+                    "trial(s); extracted k=0. The page must not render this as harm absence.")
+    rev = {"outcomes": [{"name": "GI", "trials": [], "declared_absent_trials": [
+        {"id": "PMID 42070571", "reason_code": "OUTCOME_NOT_IN_SOURCE"}],
+        "result": {"present": False, "reported_not_extracted": True, "harms_incomplete": True,
+                   "reported_by": ["42070571"], "reason": harms_reason}}]}
+    rs.derive(rev)
+    assert rev["outcomes"][0]["result"]["reason"] == harms_reason

@@ -74,9 +74,14 @@ def _validate(entry, directory, pid, canonical=False):
             texts = [text]
         if any(span in value for value in texts if isinstance(value, str)):
             found = True
+            tp_span = entry.get('timepoint_span')
+            if tp_span and not any(tp_span in value for value in texts if isinstance(value, str)):
+                raise ValueError(f'{directory.name}/{pid}: timepoint_span absent from the same held document {ref}')
             break
     if not found:
         raise ValueError(f'{directory.name}/{pid}: source_span absent from held document {ref}')
+    if entry.get('timepoint') and not entry.get('timepoint_span') and entry['kind'] != 'typed_refusal':
+        raise ValueError(f'{directory.name}/{pid}: a declared timepoint needs its own span in the held document')
     if entry['kind'] == 'typed_refusal' and not entry.get('reason'):
         raise ValueError(f'{directory.name}/{pid}: typed refusal has no reason')
     if entry['kind'] == 'typed_refusal' and entry.get('provenance') not in {

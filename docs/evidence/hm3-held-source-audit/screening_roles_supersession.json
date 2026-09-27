@@ -1,7 +1,7 @@
 {
- "landing": "evid/v1.0.1-screening-roles",
+ "landing": "evid/v1.0.1-screening-roles + evid/v1.0.1-acquisition-cascade",
  "pinned_control": "primary-baseline-f6f7b14c.json (never rewritten)",
- "reason": "V1.0.1 screening roles: every screened report carries ONE screening record (parent eligibility, report relevance, result admissibility); secondary reports are linked to their parent family instead of X1 'not a randomized controlled trial'; X1 reasons name their cause; protocol/design papers are X-NO-RESULTS. A secondary report newly screened in can make a harms outcome HARMS_INCOMPLETE when it reports that harm and is not yet extracted.",
+ "reason": "V1.0.1 screening roles: every screened report carries ONE screening record (parent eligibility, report relevance, result admissibility); secondary reports are linked to their parent family instead of X1 'not a randomized controlled trial'; X1 reasons name their cause; protocol/design papers are X-NO-RESULTS. A secondary report newly screened in can make a harms outcome HARMS_INCOMPLETE when it reports that harm and is not yet extracted. V1.0.1 acquisition cascade: platform / multi-comparison registrations are screened per comparison (REMAP-CAP awaits classification instead of X2 on its registration's COVID label); a decided harm row is superseded where the cascade bound the result.",
  "pages": {
   "balanced-crystalloids-vs-saline-mortality": {
    "screening_rows_changed": {
@@ -72,7 +72,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -974,10 +976,25 @@
       "reason": "a review, not a primary trial report (record: 42694032)."
      },
      "other_fields_unchanged": true
+    },
+    "REMAP-CAP · NCT02735707": {
+     "before": {
+      "decision": "exclude",
+      "rule_id": "X2",
+      "reason": "wrong population: title/conditions mention 'covid'."
+     },
+     "after": {
+      "decision": "awaiting_classification",
+      "rule_id": "A-COMPARISON-UNRESOLVED",
+      "reason": "REMAP-CAP: comparison REMAP-CAP:non-pandemic-corticosteroid:fixed-duration-hydrocortisone-vs-control passes population and comparator on its own terms; primary-pool eligibility UNRESOLVED pending: MIXED_POPULATION_STRATUM; TIMEPOINT; ADJUSTED_ESTIMATE."
+     },
+     "other_fields_unchanged": false
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -1154,7 +1171,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -1708,9 +1727,24 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
-   "harms_incomplete_by_entered_reports": {}
+   "harms_incomplete_by_entered_reports": {},
+   "harm_decisions_superseded": {
+    "Serious infection|19671655": {
+     "before": "REFUSED_ON_EVIDENCE (absent)",
+     "after": "POOLED",
+     "values_after": {
+      "ai": 159,
+      "n1i": 3886,
+      "ci": 133,
+      "n2i": 3876
+     },
+     "reason": "the refusal was true of the abstract and the registry's unaggregated infection terms; the aggregate is in Table 1 of FREEDOM's own infection report (PMID 21892677, open access), a companion report of the same trial, bound (EXACT_TARGET); result-change notice OPEN"
+    }
+   }
   },
   "esketamine-trd-madrs": {
    "screening_rows_changed": {
@@ -2626,7 +2660,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -3583,7 +3619,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -4787,7 +4825,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -5302,7 +5342,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -5921,7 +5963,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -6917,7 +6961,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {
     "Gastrointestinal adverse events": [
@@ -6942,7 +6988,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -6963,7 +7011,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -8661,7 +8711,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -8682,7 +8734,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -8859,7 +8913,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -8906,7 +8962,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   },
@@ -9187,7 +9245,9 @@
     }
    },
    "added_keys": [
-    "screening_record"
+    "screening_record",
+    "comparisons",
+    "pending_decisions"
    ],
    "harms_incomplete_by_entered_reports": {}
   }

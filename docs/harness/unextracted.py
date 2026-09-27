@@ -13,16 +13,22 @@ from . import reason_audit
 
 EXTRACTED = "EXTRACTED"
 HELD_NOT_EXTRACTED = "HELD_NOT_EXTRACTED"
-NOT_IN_HELD_SOURCES = "NOT_IN_HELD_SOURCES"
+NOT_IN_HELD_SOURCES = "NOT_IN_HELD_SOURCES"       # SCOPED: not found in the sources we hold (never a design claim)
+REPORTED_UNRESOLVED = "REPORTED_UNRESOLVED"       # reported, but no admissible value resolved (mismatch / no aggregate)
+NOT_MEASURED = "NOT_MEASURED"                     # only from a witnessed declaration on the row (not_measured_span)
+# Retired 2026-09-27 (denosumab review): a refusal ABOUT THE INSPECTED SOURCE ("the source gives no serious-infection
+# aggregate") was promoted to ABSENT_BY_DESIGN, a claim about the TRIAL, although FREEDOM measured and reported serious
+# infection. The name is kept so an old record reads; the audit never emits it.
 ABSENT_BY_DESIGN = "ABSENT_BY_DESIGN"
 
-_DESIGN_CODES = {
+# codes meaning the outcome IS reported but not resolvable into this review's estimand (not "absent")
+_REPORTED_UNRESOLVED_CODES = {
     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
     absence.MULTI_ARM_UNRESOLVED,
     absence.TIMEPOINT_MISMATCH,
     absence.POPULATION_MISMATCH,
-    absence.REFUSED_ON_EVIDENCE,
 }
+_DESIGN_CODES = _REPORTED_UNRESOLVED_CODES        # the old name, for importers
 
 
 def _outcome_kind(outcome: dict[str, Any]) -> str:
@@ -71,9 +77,9 @@ def _is_design_absent(row: dict[str, Any] | None) -> bool:
         return False
     code = absence.normalize_code(row.get("reason_code") or row.get("state") or "")
     reason = (row.get("reason") or "").lower()
+    # a refusal on evidence is a statement about the INSPECTED SOURCE, not about the trial's design: not counted here
     return (
-        code in _DESIGN_CODES
-        or row.get("absent_kind") == "refused_on_evidence"
+        code in _REPORTED_UNRESOLVED_CODES
         or "timepoint mismatch" in reason
         or "population mismatch" in reason
         or "multi-arm" in reason
@@ -102,13 +108,19 @@ def audit_pair(
             "source_span": found["span"],
             **({"value_text": found["value_text"]} if found.get("value_text") else {}),
         }
-    if _is_design_absent(row):
-        return {"status": ABSENT_BY_DESIGN, "reason_code": row.get("reason_code") or row.get("state")}
-    return {"status": NOT_IN_HELD_SOURCES}
+    kws = [str(k).lower() for k in (spec.get("keywords") or [outcome.get("name") or ""]) if k]
+    mentioned = any(k and k in str(s.get("text") or "").lower() for s in sources for k in kws)
+    if _is_design_absent(row) or (row and mentioned):
+        # reported (a mismatch code, or the outcome discussed in a held source) but no admissible value resolved
+        return {"status": REPORTED_UNRESOLVED, "reason_code": (row or {}).get("reason_code") or (row or {}).get("state")}
+    if row and row.get("not_measured_span"):
+        return {"status": NOT_MEASURED, "span": row["not_measured_span"]}
+    return {"status": NOT_IN_HELD_SOURCES, "scope": "not found in the held sources inspected (a scoped statement)",
+            **({"reason_code": row.get("reason_code") or row.get("state")} if row else {})}
 
 
 def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    statuses = [EXTRACTED, HELD_NOT_EXTRACTED, NOT_IN_HELD_SOURCES, ABSENT_BY_DESIGN]
+    statuses = [EXTRACTED, HELD_NOT_EXTRACTED, REPORTED_UNRESOLVED, NOT_IN_HELD_SOURCES, NOT_MEASURED]
     counts = {s: sum(1 for r in rows if r.get("status") == s) for s in statuses}
     by_kind: dict[str, dict[str, int]] = {}
     for row in rows:

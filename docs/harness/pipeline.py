@@ -420,7 +420,12 @@ def _selection_extras(row):
 _NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt))"
                               r"(?:\s+\w+)?\s*\(?(?:PMID[\s-]?(?P<pid>\d{7,8}))?")
 _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
-                "comparator_direction", "analysis_set", "adjudication", "verification")
+                "comparator_direction", "analysis_set", "adjudication", "verification",
+                # the result's timepoint with its OWN span in the same held document (checked at load)
+                "timepoint", "timepoint_span", "endpoint_role_in_trial",
+                # a row taken from a COMPANION report of the same trial (never a second trial), and a safety
+                # population that differs from randomisation (as treated)
+                "companion_report", "safety_population", "supersedes")
 
 
 def _hand_fields(entry, slug, pid, rec=None):
@@ -1428,6 +1433,16 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
         if design_variance.apply_design_adjustment(t, spec.get("estimand")):
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+    # A held source that is internally inconsistent FOR THIS ENDPOINT is held out of the pool (endpoint-scoped)
+    trials, _sii_held = claimgraph_mod.hold_internally_inconsistent(ROOT, slug, spec["name"], trials)
+    absent.extend(_sii_held)
+    # a multi-comparison family's WHOLE-TRIAL row (spanning comparators) is never pooled; only a comparison's own row
+    from . import comparison_family as comparison_family_mod
+    trials, _whole_held = comparison_family_mod.hold_whole_trial(slug, spec["name"], trials)
+    absent.extend(_whole_held)
+    # what the acquisition cascade established about an absent trial's result (never a number)
+    from . import acquisition_state as acquisition_state_mod
+    acquisition_state_mod.annotate(slug, spec["name"], absent)
     trials, design_refusals = design_key.split_design_refusals(trials)
     for t in design_refusals:
         absent.append(design_variance.refusal_absence(t))
@@ -1984,6 +1999,8 @@ def build_review_core(slug, config, records, protocol_sha):
                 "span": d.get("span", ""), "found_by": found_by,
                 **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
                 **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
+                # a platform / multi-comparison registration's per-comparison screening, and its pending decisions
+                **{k: d[k] for k in ("comparisons", "pending_decisions") if d.get(k)},
                 **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                 **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
                    if d.get("arm_object_hidden_eligible_contrast") else {}),
@@ -1996,6 +2013,7 @@ def build_review_core(slug, config, records, protocol_sha):
                               "span": d.get("span", ""),
                               **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
                               **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
+                              **{k: d[k] for k in ("comparisons", "pending_decisions") if d.get(k)},
                               **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                               **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
                                  if d.get("arm_object_hidden_eligible_contrast") else {}),
@@ -2093,6 +2111,21 @@ def build_review_core(slug, config, records, protocol_sha):
     # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
     # Attach them before invalidation so strand members count as pooled membership.
     claimgraph_mod.attach_strands(review, ROOT)
+    # REPORT FAMILIES: several reports of one trial resolved to the protocol's timepoint (docs/report_families.json)
+    from . import report_family as report_family_mod
+    report_family_mod.attach(review, ROOT)
+    # COMPARISON FAMILIES: platform domains / recruitment periods, each screened on its own terms (docs/comparison_families.json)
+    from . import comparison_family as comparison_family_mod
+    comparison_family_mod.attach(review)
+    # MULTI-TRIAL REPORTS: one article, several registrations; each trial's relevance from its own population span
+    from . import multi_trial_report as multi_trial_report_mod
+    multi_trial_report_mod.attach(review, config)
+    # SOURCE VERSIONS: per-result version chains (original / corrections / regulatory) with a governing decision
+    from . import source_versions as source_versions_mod
+    source_versions_mod.attach(review)
+    # SCOPE DECISIONS: trials placed in or out of scope from the protocol's own text, never a comparator's list
+    from . import scope_decision as scope_decision_mod
+    scope_decision_mod.attach(review)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
     _protocol_i_line = ""
@@ -2271,6 +2304,11 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import screening_record as screening_record_mod
     screening_record_mod.derive(review)
     known_missing_mod.build(review, _inv_sig, rec_by_id, records)
+    # RESULT STATUS: one derived, mutually exclusive state per trial x outcome, and each outcome's "not extracted"
+    # sentence rebuilt FROM those states (a trial holding an extraction is never called not extractable). Signature
+    # state is outside the core (docs/result_changes.json): the page overlays ADMITTED_PENDING_SIGNATURE at render.
+    from . import result_status as result_status_mod
+    result_status_mod.derive(review)
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

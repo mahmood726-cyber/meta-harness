@@ -207,3 +207,22 @@ def test_the_served_reviews_carry_the_comparison_tables():
         assert reg in fams and len(fams[reg]["comparisons"]) == 2, slug
         html = open(os.path.join(ROOT, "docs", "reviews", slug, "index.html"), encoding="utf-8").read()
         assert "data-comparison=" in html, slug
+
+
+@pytest.mark.parametrize("slug", ["corticosteroids-cap-mortality", "corticosteroids-covid19-mortality",
+                                  "dapagliflozin-hfpef-hosp", "doac-vte-recurrence", "denosumab-vertebral-fracture"])
+def test_new_renderers_do_not_depend_on_dict_key_order(slug):
+    # the census renders the in-memory core and its canonical (sorted-key) JSON and requires equal bytes; the comparison,
+    # multi-trial, acquisition-state and version-chain renderers once iterated dicts in insertion order and failed it
+    from harness.canonical import canonical_json
+    from harness.page import render_page
+    rev = json.load(open(os.path.join(ROOT, "docs", "reviews", slug, "review.json"), encoding="utf-8"))
+    rev.pop("reproduction", None)
+
+    def reverse_keys(x):
+        if isinstance(x, dict):
+            return {k: reverse_keys(x[k]) for k in reversed(list(x))}
+        if isinstance(x, list):
+            return [reverse_keys(v) for v in x]
+        return x
+    assert render_page(reverse_keys(rev)) == render_page(json.loads(canonical_json(rev)))

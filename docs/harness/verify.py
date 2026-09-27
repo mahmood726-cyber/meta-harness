@@ -71,6 +71,23 @@ def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     # A hand-verified row whose passage is the ABSTRACT is checked against the held abstract bytes, never
     # against the hand-written description that carries the same digits (that is not a check).
     text = abstract if prov in ("abstract", "pmc_fulltext", "abstract_verified") else span
+    # A hand row that NAMES its held document (document_ref, sha-checked) is checked against that document's bytes,
+    # like the abstract route: a table row's denominators live in its column headers, not in the row itself
+    # (CoDEX 85 (56.3) | 91 (61.5) under 'Dexamethasone (n = 151) Standard care (n = 148)'), so checking the cited
+    # row alone refused a count the held table states. The document, never the hand-written description.
+    # The check is the binder's own: the WHOLE tuple located in ONE sentence or ONE table row read with its headers --
+    # never "these digits occur somewhere in a long document" (a wrong count passes that on any full text).
+    if trial.get("document_ref") and prov not in ("abstract", "pmc_fulltext", "abstract_verified"):
+        from . import hand_binding
+        doc = hand_binding.resolve_document(trial["document_ref"], str(trial.get("id") or "").replace("PMID ", ""))
+        tup = hand_binding._tuple_of(trial)
+        if doc is None or (trial.get("document_sha256") and trial["document_sha256"] != doc["sha256"]):
+            return ("not-yet", "the held document the row names is missing or changed since the entry (sha256)")
+        if tup is not None:
+            located = hand_binding.candidates(doc, tup)
+            return (("verified", f"values located together in one span of the held document {trial['document_ref']}")
+                    if located else
+                    ("not-yet", f"values not located together in one span of the held document {trial['document_ref']}"))
     if trial.get("ai") is not None:
         if prov == "aact_verified":
             return ("verified_handchecked", "AACT-derived arm entry, cross-checked to published %")

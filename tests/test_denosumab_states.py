@@ -110,3 +110,17 @@ def test_a_tampered_zero_event_witness_fails_closed():
     w["span"] = "Two new vertebral fractures were observed"
     with pytest.raises(ValueError, match="witness span not in"):
         cf._verified(ROOT, {"witness": w})
+
+
+def test_the_page_verifier_checks_a_hand_row_against_its_named_held_document():
+    # a table row's denominators live in its headers: the row verifies against the held document it names (one row
+    # read with its headers), and a wrong count or a changed document does not
+    from harness import verify, verified_inputs as vi
+    for slug, pid, outcome in (("corticosteroids-covid19-mortality", "32876695", "28-day all-cause mortality"),
+                               (SLUG, "19671655", "Serious infection"), (SLUG, "19671655", "Serious adverse events")):
+        rows = vi.load(slug)["verified_arms.json"][pid]
+        rows = rows if isinstance(rows, list) else [rows]
+        e = dict(next(vi.runtime(r) for r in rows if r["outcome"] == outcome), id="PMID " + pid)
+        assert verify.verify_pooled(e, "")[0] == "verified", (slug, outcome)
+        assert verify.verify_pooled(dict(e, ai=e["ai"] + 1), "")[0] == "not-yet"
+        assert verify.verify_pooled(dict(e, document_sha256="0" * 64), "")[0] == "not-yet"

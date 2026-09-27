@@ -547,6 +547,21 @@ def check_screening_record(review_dir):
     return screening_record.gate_reasons(rev)
 
 
+def check_provenance_tiers(review_dir):
+    """Counts taken from a citing paper (SECONDARY_SOURCE) are served only with a visible 'secondary-source' label."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check provenance tiers"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+        hp = os.path.join(review_dir, "index.html")
+        html = open(hp, encoding="utf-8").read() if os.path.exists(hp) else ""
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for provenance tiers: {exc}"]
+    from . import provenance_tiers
+    return provenance_tiers.serving_problems(rev, html)
+
+
 def check_propositions(review_dir):
     p = os.path.join(review_dir, "review.json")
     if not os.path.exists(p):
@@ -1327,6 +1342,7 @@ def gate_page(review_dir):
                + check_claimgraph(review_dir)
                + check_propositions(review_dir)
                + check_screening_record(review_dir)
+               + check_provenance_tiers(review_dir)
                + check_eligibility_chain(review_dir)
                + check_harms_complete(review_dir)
                + check_parity_our_k(review_dir)

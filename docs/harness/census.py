@@ -216,6 +216,9 @@ def build_review_dir(
     if _pa:
         reproduction["parity"] = _pa
     _rf = _refusals_rows(_root, manifest_meta.get("slug", ""))
+    # a refusal judged on one report of a multi-report trial names that report and the protocol-timepoint report
+    from . import report_family
+    _rf = report_family.annotate_refusals(_rf, review_core_obj)
     if _rf:
         reproduction["refusals"] = _rf
     # Result-change notices (docs/result_changes.json): a served result that changed says so on the page, with the

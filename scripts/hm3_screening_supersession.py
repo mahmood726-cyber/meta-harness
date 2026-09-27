@@ -7,8 +7,19 @@ that did it. tests/test_hm3_pages.py accepts exactly these changes and nothing e
 import json, os, re
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EV = os.path.join(ROOT, "docs", "evidence", "hm3-held-source-audit")
-LANDING = "evid/v1.0.1-screening-roles"
-ADDED_KEYS = ("screening_record",)
+LANDING = "evid/v1.0.1-screening-roles + evid/v1.0.1-acquisition-cascade"
+# keys a landing ADDS to every screened row (never a changed value): the per-report screening record, and for a platform
+# / multi-comparison registration its per-comparison screening and pending decisions
+ADDED_KEYS = ("screening_record", "comparisons", "pending_decisions")
+# a DECIDED harm row (decisions.json) that a later landing moved, named with its new state and the reason
+HARM_DECISIONS_SUPERSEDED = {
+    ("denosumab-vertebral-fracture", "Serious infection", "19671655"): {
+        "before": "REFUSED_ON_EVIDENCE (absent)", "after": "POOLED",
+        "values_after": {"ai": 159, "n1i": 3886, "ci": 133, "n2i": 3876},
+        "reason": ("the refusal was true of the abstract and the registry's unaggregated infection terms; the aggregate is in "
+                   "Table 1 of FREEDOM's own infection report (PMID 21892677, open access), a companion report of the same "
+                   "trial, bound (EXACT_TARGET); result-change notice OPEN")},
+}
 
 
 def _strip(r):
@@ -41,15 +52,19 @@ def main():
                 if not m:
                     raise SystemExit(f"REFUSED: {slug}/{d['outcome']} is HARMS_INCOMPLETE but names no unresolved reports")
                 harms[d["outcome"]] = sorted(x.strip() for x in m.group(1).split(","))
-        if changed or harms:
+        superseded = {f"{o}|{t}": v for (sl, o, t), v in HARM_DECISIONS_SUPERSEDED.items() if sl == slug}
+        if changed or harms or superseded:
             pages[slug] = {"screening_rows_changed": changed, "added_keys": list(ADDED_KEYS),
-                           "harms_incomplete_by_entered_reports": harms}
+                           "harms_incomplete_by_entered_reports": harms,
+                           **({"harm_decisions_superseded": superseded} if superseded else {})}
     out = {"landing": LANDING, "pinned_control": "primary-baseline-f6f7b14c.json (never rewritten)",
            "reason": ("V1.0.1 screening roles: every screened report carries ONE screening record (parent eligibility, report "
                       "relevance, result admissibility); secondary reports are linked to their parent family instead of "
                       "X1 'not a randomized controlled trial'; X1 reasons name their cause; protocol/design papers are "
                       "X-NO-RESULTS. A secondary report newly screened in can make a harms outcome HARMS_INCOMPLETE when "
-                      "it reports that harm and is not yet extracted."),
+                      "it reports that harm and is not yet extracted. V1.0.1 acquisition cascade: platform / multi-comparison "
+                      "registrations are screened per comparison (REMAP-CAP awaits classification instead of X2 on its "
+                      "registration's COVID label); a decided harm row is superseded where the cascade bound the result."),
            "pages": pages}
     open(os.path.join(EV, "screening_roles_supersession.json"), "w", encoding="utf-8", newline="\n").write(
         json.dumps(out, indent=1, ensure_ascii=False) + "\n")

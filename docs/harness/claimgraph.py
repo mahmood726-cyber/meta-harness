@@ -268,6 +268,41 @@ def regulatory_facts(root, slug):
     return facts
 
 
+def hold_internally_inconsistent(root, slug, outcome_name, trials):
+    """Split `trials` for ONE outcome: a trial whose held source is SOURCE_INTERNALLY_INCONSISTENT for this endpoint
+    (scope_outcomes names it, or the fact is unscoped) is HELD OUT of the pool -- not pooled, not 'not retrieved' --
+    with the conflicting locations named. Its other endpoints are untouched (Akrami 2021: the safety denominator is
+    122 randomised / 120 analysed in the colchicine arm, 2 exclusions 'lost to follow-up' in the flow diagram but
+    'drug intolerance' in the text; the GI rows are held, the efficacy rows are judged on their own grounds)."""
+    from .invalidation import SOURCE_INTERNALLY_INCONSISTENT, inconsistency_scope
+    if not slug:
+        return trials, []
+    facts = [f for f in regulatory_facts(root, slug)
+             if (f.get("decision") or {}).get("decision") == SOURCE_INTERNALLY_INCONSISTENT]
+    held = {}
+    for f in facts:
+        scope = inconsistency_scope(f)
+        if scope is None or outcome_name in scope:
+            for k in (f.get("trial_key"), f.get("nct")):
+                if k:
+                    held[_norm_id(k)] = f
+    keep, absent = [], []
+    for t in trials:
+        f = held.get(_norm_id(t.get("id")))
+        if not f:
+            keep.append(t)
+            continue
+        d = f.get("decision") or {}
+        absent.append({"id": t.get("id"), "reason_code": SOURCE_INTERNALLY_INCONSISTENT,
+                       "state": SOURCE_INTERNALLY_INCONSISTENT, "absent_kind": "held_source_inconsistent",
+                       "reason": d.get("reason"), "scope_outcomes": inconsistency_scope(f),
+                       "document_path": f.get("document_path"), "document_sha256": f.get("document_sha256"),
+                       "conflict_locations": [{"kind": s.get("kind"), "span": s.get("span")} for s in f.get("spans") or []],
+                       "held_out_row": {k: t.get(k) for k in ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high",
+                                                              "source") if t.get(k) is not None}})
+    return keep, absent
+
+
 def _strand_names_by_member(strands_doc: dict[str, Any] | None) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     for strand in (strands_doc or {}).get("strands") or []:

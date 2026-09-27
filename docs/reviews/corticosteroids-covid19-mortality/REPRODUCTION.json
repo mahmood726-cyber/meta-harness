@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
-  "review_sha256": "5fa64976c0e3659eb7852e7491fbd385ecfa338317f5f387a5fd674f702872d0",
+  "review_sha256": "9f33caa329d77bbd010e8c9dd4d792a8c1598a8bdc46092c55ae4a686a903454",
   "from_cache": true,
   "preregistration": {
     "prospective": false,
@@ -11,7 +11,7 @@
   },
   "parity": {
     "slug": "corticosteroids-covid19-mortality",
-    "our_k": 1,
+    "our_k": 2,
     "comparable_comparator_k": 5,
     "status": "OVERLAPPING",
     "reason": "1/5. Comparator (WHO REACT prospective MA) used investigator-supplied 28-day mortality not in the trial publications. In our committed cached abstracts, only RECOVERY reports 28-day all-cause mortality counts; the other trials report it only in full text, which is not in our committed cache, and their CT.gov results post no mortality table. The PMC full-text adapter did not run in this build, so the refusal rests on absence from the committed abstract, not on a tested access barrier.",
@@ -19,9 +19,9 @@
       "relation": "OVERLAPPING",
       "label": "INFERRED overlapping -- neither trial set contains the other",
       "inferred": true,
-      "our_k": 1,
+      "our_k": 2,
       "hand_our_k": 1,
-      "hand_our_k_stale": false,
+      "hand_our_k_stale": true,
       "their_k": 5,
       "their_k_source": "comparable_comparator_k",
       "shared_k": null,
@@ -32,12 +32,14 @@
       "hand_status_normalized": "OVERLAPPING",
       "hand_status_disagrees": false
     },
+    "hand_our_k": 1,
+    "hand_our_k_stale": true,
     "hand_status": "OVERLAPPING",
     "hand_status_stale": false,
-    "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5",
-    "claim_id": "7092cf3cd1b1ebd0",
+    "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
+    "claim_id": "12e91e11826df91a",
     "depends_on": {
-      "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5"
+      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
     },
     "claim_kind": "parity"
   },
@@ -46,21 +48,26 @@
       "trial": "COVID STEROID (PMID 34138478)",
       "verified": "28-day mortality 6/16 vs 2/14, exact counts in the committed abstract",
       "not_pooled_because": "n=30, stopped early; pooling it with RECOVERY's rate ratio produces a scale-mismatched IRR+OR combination and an uninformative interval (RR 1.30, 95% CI 0.0002-6827). Honest k=1 (RECOVERY) is preferred over an inflated, garbage k=2.",
-      "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5",
-      "claim_id": "cb0fcc5eebd34d1c",
+      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
+      "claim_id": "d34a71bf05d2427a",
       "depends_on": {
-        "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5"
+        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
       },
       "claim_kind": "refusal"
     },
     {
-      "trial": "CoDEX (PMID 32876695), Metcovid (PMID 32785710)",
-      "verified": "28-day mortality is reported in each trial's full text (CoDEX 85/151 vs 91/148; Metcovid 72/194 vs 76/199)",
-      "not_pooled_because": "those counts are in the publisher full text (JAMA/OUP), not in our committed cached abstract. The PMC full-text adapter did not run in this build (source_status['PMC full text'] = NOT_RUN), so full-text access was not established and the counts cannot be self-verified against a committed source span; re-running the full-text adapter and committing those spans would allow pooling. Refused rather than pool numbers absent from committed evidence.",
-      "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5",
-      "claim_id": "cb0fcc5eebd34d1c",
+      "trial": "Metcovid (PMID 32785710)",
+      "verified": "28-day mortality is reported in the trial's full text (Metcovid 72/194 vs 76/199, mITT)",
+      "not_pooled_because": "those counts are in the publisher full text (OUP), not in our committed cached abstract, and the acquisition cascade could not hold that text or its supplement by a legitimate route (publisher 403; PMC PDF behind a proof-of-work check; Europe PMC 500); the protocol-preferred ITT analysis is reported to be in Supplementary Table 2. Refused rather than pool numbers absent from committed evidence.",
+      "superseded": {
+        "when": "2026-09-27",
+        "by": "evidence lane (Claude Opus 5.5), branch evid/v1.0.1-acquisition-cascade",
+        "what": "CoDEX was named in this refusal until its lifting condition was met: its 28-day counts are now bound to a committed verbatim excerpt of Table 2 (evidence/acquisition_cascade/excerpts/CoDEX_table2.tables.txt) and pooled; a result-change notice (countersignature OPEN) records the change."
+      },
+      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
+      "claim_id": "d34a71bf05d2427a",
       "depends_on": {
-        "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5"
+        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
       },
       "claim_kind": "refusal"
     },
@@ -68,12 +75,41 @@
       "trial": "REMAP-CAP (PMID 32876697), CAPE-COVID (PMID 32876689)",
       "verified": "REMAP-CAP reports in-hospital mortality; CAPE-COVID reports day-21 mortality",
       "not_pooled_because": "neither reports the declared 28-day all-cause mortality in its publication; the comparator (WHO REACT) used investigator-supplied 28-day data not present in the papers.",
-      "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5",
-      "claim_id": "cb0fcc5eebd34d1c",
+      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
+      "claim_id": "d34a71bf05d2427a",
       "depends_on": {
-        "input_set_version": "bea0991e0c05de5a82adf91e8932c7d5d32d3b1ccf13a7a92adb01e9e815e6a5"
+        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
       },
       "claim_kind": "refusal"
+    }
+  ],
+  "result_changes": [
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "outcome": "28-day all-cause mortality",
+      "before": {
+        "k": 1,
+        "estimate": 0.83,
+        "ci_low": 0.75,
+        "ci_high": 0.93
+      },
+      "after": {
+        "k": 2,
+        "estimate": 0.85,
+        "ci_low": null,
+        "ci_high": null
+      },
+      "left_pool": [],
+      "entered_pool": [
+        "PMID 32876695"
+      ],
+      "reason": "CoDEX (PMID 32876695) enters the pool with its 28-day all-cause mortality, 85/151 dexamethasone vs 91/148 standard care, from Table 2's '28-Day results' row (a SECONDARY outcome in CoDEX; exactly this review's outcome and timepoint). The row is bound (BOUND, EXACT_TARGET) to a committed verbatim excerpt of the free-to-read PMC page (the page itself is not redistributed; its sha256 is in the excerpt header). The earlier refusal of CoDEX named this lifting condition ('committing those spans would allow pooling'). At k=2 the interval is withheld, as on every k=2 page, so the served primary loses the interval it had at k=1.",
+      "by": "Claude Opus 5.5 (lane evid/v1.0.1-acquisition-cascade, 2026-09-27); reviewer countersignature owed: Mahmood",
+      "when_utc": "2026-09-27T12:00:00Z",
+      "reviewer_countersignature": {
+        "state": "OPEN"
+      },
+      "conclusion_changed": null
     }
   ],
   "dual": {
@@ -83,21 +119,21 @@
     "conflict": 0
   },
   "claim_check": {
-    "claims_checked": 1,
+    "claims_checked": 0,
     "surfaces": [
       "outcome block",
       "overview",
       "manuscript"
     ],
     "scope_counts": {
-      "outcome_result": 1,
+      "outcome_result": 0,
       "strand_pool": 0,
       "rob_sensitivity": 3,
       "grade": 1
     },
     "scope": {
       "counts": {
-        "outcome_result": 1,
+        "outcome_result": 0,
         "strand_pool": 0,
         "rob_sensitivity": 3,
         "grade": 1
@@ -158,8 +194,8 @@
     "retrieved_corpus_sha256": "78f98d299b6b85ffbeb62e06bfcb8907d02ca55988756034de58707af94069db",
     "records_file_sha256": "ce20eb6ad9c48de58eb217007f52e81405eb6ea3b13e981254fbfa7a2ed187c6",
     "retrieval_ledger_sha256": "cda45b72e7d45b1a0d8c53db73e38ad55c0451b6de3ee375b7f5eecb996eeb06",
-    "screening_ledger_sha256": "6f431919117c10f8be5046e8f93400fa88f640d20303e8886304b6222f79081f",
-    "extraction_objects_sha256": "f4aedcd14c315200f6592ababa928a1069a1d8aa15973cc6dcbdc4b03b204033",
+    "screening_ledger_sha256": "bb066600ac5ff1ab951b4b1d1624fbc169db5898eaafa4e9a09be1ff7aea0530",
+    "extraction_objects_sha256": "af57bb4bfaf75c6d0b45c9a94a461302808e6e511bf0ca201a6d3e32d29dca9a",
     "trial_family_map_sha256": "f6b424838bd1a23f77b817666ce45af55b83872a2f69eed516d283d7e7f8cc2f",
     "rob_object_sha256": "0c587d2d04f3869e193e8233f10770826648682c589b02ece67aea6822c37c65",
     "held_documents": [
@@ -177,32 +213,34 @@
       }
     ],
     "config_sha256": "a7c697b15c00b1c9cf40718d24398ee5bc133fb8d4e2aaacf7928265c0698531",
-    "analysis_code_sha256": "ea88b125cb0e9b88433c1993366f9c49b8452ea6b66fd7b02116ebb1aad057e9",
+    "analysis_code_sha256": "5968b174c6e9d96b75cca19f45e27d39714d2818812b9b1327e0cbe5225805e3",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
       "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
       "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
       "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
       "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
+      "harness/acquisition_state.py": "02551abf229143b25acbd236cd73c756869c17b8",
       "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
       "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
       "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
       "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
       "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-      "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
+      "harness/census.py": "b6a060fc249cdba79278db9c15b785694ee65690",
       "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
       "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
-      "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
+      "harness/claimgraph.py": "cc27d161436cf1aefee4e10b97f520dffa4d405b",
       "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
       "harness/comparator_panel.py": "0a0b550f2a13e29c94e1a01ca2690c82650373b1",
       "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
       "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
+      "harness/comparison_family.py": "4542cc506c9b30e7043ce7f2acf74a7450cc5c27",
       "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
       "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
       "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
       "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
       "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-      "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+      "harness/design_key.py": "09ea53ac389bbf351f6123941e19c95db88f7392",
       "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
       "harness/effect_type.py": "NOT_PRESENT",
       "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -215,7 +253,7 @@
       "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
       "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
       "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-      "harness/gate.py": "4a2ab935106869dd19fc96b5a06fa0a1b619a397",
+      "harness/gate.py": "4d8e9bc047af520f38f6e1d210e546cbe97a9c1b",
       "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
       "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
       "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -227,41 +265,47 @@
       "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
       "harness/invalidation.py": "0b1f410061948cf8c2f3be70726d89666b0cbe07",
       "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-      "harness/known_missing.py": "97b060258ab48b71cc95b436155840c0d96bd8e5",
+      "harness/known_missing.py": "c72eb103da5ebfcbfe53c9d1cb7b9d34ea6ba9ee",
       "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
       "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
       "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
       "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
       "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
       "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-      "harness/page.py": "5e70040ce4738b6c59d205d2f5de7b4a2cb40e4f",
+      "harness/multi_trial_report.py": "4efe8dd30cab7bb711e71d6630bb1ed1f432ed16",
+      "harness/page.py": "6696c2c0c3093e8b84dc51ae866f85b2ff15e296",
       "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-      "harness/pipeline.py": "605f2e0d615d4fd84d602f43c6405626fa22b054",
+      "harness/pipeline.py": "3b1d06805e6251eef57cdd23bf0cf2b5227a475d",
       "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
       "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
       "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
+      "harness/provenance_tiers.py": "1debfa78076de4ee40ee4ac06ca2e68ce0fc20eb",
       "harness/reason_audit.py": "6950b0298265ef47e7ef83a44622a715bfe54d9e",
       "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
       "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
       "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+      "harness/report_family.py": "593b5294dc94c05603c597c1906e2494451b7010",
       "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
+      "harness/result_status.py": "9412a8b32a45d6e5578bea2c4672555c13d395f8",
       "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
       "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
       "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
+      "harness/scope_decision.py": "1d6dca0ea5e55fc64d943d270c701bf8174ea3f5",
       "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-      "harness/screen.py": "58d0c7637b01d797c8e62b75b3b7c7a17eabba37",
+      "harness/screen.py": "6a13f1099654167b5e8f68caf691abca77f48382",
       "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-      "harness/screening_record.py": "54251147c855a4d4abad3b42fb48c3f8b5e168ba",
+      "harness/screening_record.py": "3af11a5a14714e1aa430baf6add49c0c6fbfe8e5",
       "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
       "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
+      "harness/source_versions.py": "ee64784f3cc3766537b6f174bba4168c37d73e18",
       "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
       "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
       "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
       "harness/trial_family.py": "28024d000c06965ed44a6e8084717a3734d67608",
-      "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
+      "harness/unextracted.py": "06e9faa6fb5e9806da307dd0cff2a5649d023dfa",
       "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
-      "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
-      "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
+      "harness/verified_inputs.py": "906630a69c8da4858d3fc8a8a123dbed52f5da1f",
+      "harness/verify.py": "09c027848d692e146d4d97b19dd0c2680bafc5ad",
       "harness/whole_numbers.py": "9194bd58d2651a8ae524d53068f2f404b7781f49",
       "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
       "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
@@ -277,7 +321,7 @@
         "harness/certificate.py",
         "scripts/reproduce_review.py"
       ],
-      "covers": "85 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+      "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
       "declared_but_absent": [
         "harness/effect_type.py"
       ],
@@ -306,8 +350,8 @@
       "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
-    "manuscript_sha256": "53e962eef039cef287bb55276018ea962be933b06a50de354bb8407a1edbba0f",
-    "review_sha256": "5fa64976c0e3659eb7852e7491fbd385ecfa338317f5f387a5fd674f702872d0",
+    "manuscript_sha256": "f8d72f09188a915c98729d922504532fb9187913e39ace9d4bc6b4dbc28c345e",
+    "review_sha256": "9f33caa329d77bbd010e8c9dd4d792a8c1598a8bdc46092c55ae4a686a903454",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
       "protocol_text_sha256": "protocols/corticosteroids-covid19-mortality.md UTF-8 text, universal newlines",
@@ -327,9 +371,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "f0cfb9a6a549ad9dcf88a9aac88c09bfad780c56626d2238a4289f2fb6e57cc2"
+    "release_sha256": "ba551c8fdf69dd64b0abdff7c47273ca33fedc86212b9b3d5d84c115de2ae44a"
   },
-  "html_sha256": "71f358f5ec3e7225675a9ff95ca37ffccfea7036c8651550ae22549ebf459107",
+  "html_sha256": "ba2b020e7d67c41e6bf22645f6cacfd2c3c0887e90f7c9689f47c3b864d36d90",
   "checks": [
     {
       "check": "render is deterministic",

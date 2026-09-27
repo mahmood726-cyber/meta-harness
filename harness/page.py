@@ -58,8 +58,8 @@ def _chain_html(t) -> str:
     items = "".join(
         f"<li>{_e(v.get('version_id'))} &mdash; {_e(v.get('kind'))}, {_e(v.get('date'))}: {_e(v.get('source'))}; "
         f"{'held' if v.get('held') else 'NOT HELD (' + _e(v.get('not_held_reason')) + ')'}"
-        + (f"; value {_e(json.dumps(v.get('value')))}" if v.get("value") else "")
-        + (f"; cells {_e(json.dumps(v.get('cells'), ensure_ascii=False))}" if v.get("cells") else "") + "</li>"
+        + (f"; value {_e(json.dumps(v.get('value'), sort_keys=True))}" if v.get("value") else "")
+        + (f"; cells {_e(json.dumps(v.get('cells'), ensure_ascii=False, sort_keys=True))}" if v.get("cells") else "") + "</li>"
         for v in ch.get("versions") or [])
     return (f"<div class='ident' data-version-chain='{_e(ch.get('chain_id'))}'><em>source versions "
             f"(governing: <code>{_e(gov.get('version_id'))}</code>, {_e(gov.get('state'))}):</em> {_e(gov.get('reason'))}"
@@ -1236,7 +1236,7 @@ def _screening(r, neutral):
         crow = "".join(
             f"<tr data-comparison='{_e(c.get('comparison_id'))}'><td>{_e(c.get('comparison_id'))}</td>"
             f"<td>&ldquo;{_e(c.get('population'))}&rdquo;</td><td>&ldquo;{_e(c.get('comparator') or 'not assessed')}&rdquo;</td>"
-            f"<td>{_e(', '.join(f'{k} {v}' for k, v in (c.get('arms') or {}).items()))}</td>"
+            f"<td>{_e(', '.join(f'{k} {v}' for k, v in sorted((c.get('arms') or {}).items())))}</td>"
             f"<td><code>{_e(c.get('eligibility'))}</code>"
             + "".join(f"<br><span class='muted'>{_e(f.get('rule'))}: {_e(f.get('why'))}</span>" for f in c.get("fails") or [])
             + f"</td><td><code>{_e(c.get('primary_pool_eligibility'))}</code>"
@@ -1283,7 +1283,7 @@ def _screening(r, neutral):
             f"<td><code>{'RELEVANT' if t.get('relevant') else 'NOT THIS REVIEW'}</code><br><span class='muted'>{_e(t.get('basis'))}</span></td>"
             f"<td>{_e(((t.get('registry_results') or {}).get('state')) or '')}"
             + "".join(f"<br><span class='muted'>{_e(k.replace('_', ' '))}: {_e(v)}</span>"
-                      for k, v in ((t.get('registry_results') or {}).get('findings') or {}).items())
+                      for k, v in sorted(((t.get('registry_results') or {}).get('findings') or {}).items()))
             + "</td></tr>" for t in mtr.get("trials") or [])
         comb = "; ".join(f"{_e(c.get('label'))} (n={_e(c.get('n'))}): {_e(c.get('policy'))}" for c in mtr.get("combined_analyses") or [])
         flow += (f"<h4>One article, several trials: {_e(mtr.get('report_id'))}</h4>"
@@ -1738,7 +1738,7 @@ def _trial_inputs(o):
             acq = t["acquisition_state"]
             reason_detail += ("<br><span class='muted'>acquisition: <code>" + _e(" · ".join(acq.get("states") or []))
                               + "</code> &mdash; " + _e(acq.get("basis"))
-                              + "".join(f"; {_e(k.replace('_', ' '))}: {_e(v)}" for k, v in (acq.get("analysis_sets") or {}).items())
+                              + "".join(f"; {_e(k.replace('_', ' '))}: {_e(v)}" for k, v in sorted((acq.get("analysis_sets") or {}).items()))
                               + "</span>")
         if t.get("conflict_locations"):
             # an internally-inconsistent held source: every conflicting location, each as the document states it

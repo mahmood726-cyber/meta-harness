@@ -771,16 +771,21 @@ def run(all_recs: list, config: dict) -> dict:
             decisions.append(row)
             continue
         if _cf is None and comparison_family.is_undeclared_platform(rec):
-            # undeclared platform: screened WITHOUT its condition labels (they list every domain's population)
-            _dec = screen_record({**rec, "conditions": []}, inc, neg)
-            _aw = comparison_family.undeclared_platform_population(rec, tuple(_dec), config)
-            if _aw:
-                row = {"id": rec["id"], "id_type": rec["id_type"], "label": rec.get("acronym") or "",
-                       "decision": _aw["decision"], "rule_id": _aw["rule_id"], "reason": _aw["reason"],
-                       "span": _aw["span"], "pending_decisions": _aw["pending"]}
-                screen_entry.annotate_decision(row, rec, config)
-                decisions.append(row)
-                continue
+            # undeclared platform: its condition labels list every domain's population, so they may not decide a
+            # POPULATION refusal. Only an X2 is re-screened without them; any other outcome (design, intervention,
+            # comparator) stands exactly as screened, evidence span included (COPPER / I-SPY COVID stay X3 unchanged).
+            _orig = screen_record(rec, inc, neg)
+            _dec = _orig
+            if _orig[1] == "X2":
+                _dec = screen_record({**rec, "conditions": []}, inc, neg)
+                _aw = comparison_family.undeclared_platform_population(rec, tuple(_dec), config)
+                if _aw:
+                    row = {"id": rec["id"], "id_type": rec["id_type"], "label": rec.get("acronym") or "",
+                           "decision": _aw["decision"], "rule_id": _aw["rule_id"], "reason": _aw["reason"],
+                           "span": _aw["span"], "pending_decisions": _aw["pending"]}
+                    screen_entry.annotate_decision(row, rec, config)
+                    decisions.append(row)
+                    continue
             decision, rule, reason, span = _dec
         else:
             decision, rule, reason, span = screen_record(rec, inc, neg)

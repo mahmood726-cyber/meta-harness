@@ -28,6 +28,13 @@ def test_rebuilt_pages_account_for_every_baseline_harm():
         folder = ROOT/'docs/reviews'/d['topic']
         review = json.loads((folder/'review.json').read_text(encoding='utf-8'))
         outcome = next(o for o in review['outcomes'] if o['name'] == d['outcome'])
+        # a DECIDED harm row that a later landing moved must be declared by name, with the values it moved to
+        sup = (_declared(d['topic']).get('harm_decisions_superseded') or {}).get(f"{d['outcome']}|{d['trial']}")
+        if sup:
+            assert sup.get('reason') and sup.get('after') == 'POOLED', (d['topic'], d['outcome'], d['trial'])
+            row = next(t for t in outcome['trials'] if t['id'].replace('PMID ', '') == d['trial'])
+            assert {k: row.get(k) for k in sup['values_after']} == sup['values_after'], (d['topic'], d['trial'])
+            continue
         if outcome['result'].get('harms_incomplete'):
             declared = (_declared(d['topic']).get('harms_incomplete_by_entered_reports') or {}).get(d['outcome'])
             assert declared, (d['topic'], d['outcome'], 'HARMS_INCOMPLETE without a declared supersession')

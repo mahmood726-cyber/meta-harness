@@ -261,6 +261,36 @@ def _candidate_summary(candidate: dict[str, Any], chosen: dict[str, Any], declar
     return {k: v for k, v in row.items() if v is not None}
 
 
+def ratio_label_audit(ai, n1i, ci, n2i, effect, lo, hi) -> dict[str, Any]:
+    """Does a PRINTED risk ratio agree with the same source's own arm counts?
+
+    CORP-2 prints "relative risk 0.49; 95% CI 0.24-0.65" beside 26/120 vs 51/120: the counts give RR 0.51
+    (0.34-0.76), and 1 - (0.51, 0.76, 0.34) = (0.49, 0.24, 0.66) -- the printed figure is the relative risk
+    REDUCTION under the label 'relative risk'. Distance is summed |log| gaps over point and both bounds, the RRR
+    reading flipping the interval. CONSISTENT / MISLABELLED_RRR / INCONSISTENT; never a guess when neither fits."""
+    try:
+        a, n1, c, n2, e, l, h = (float(x) for x in (ai, n1i, ci, n2i, effect, lo, hi))
+        if min(a, c) <= 0 or min(n1, n2) <= 0 or not (0 < l <= e <= h):
+            return {"verdict": "NOT_AUDITABLE"}
+        rr = (a / n1) / (c / n2)
+        se = math.sqrt(1 / a - 1 / n1 + 1 / c - 1 / n2)
+        rlo, rhi = math.exp(math.log(rr) - 1.96 * se), math.exp(math.log(rr) + 1.96 * se)
+        d_rr = abs(math.log(e) - math.log(rr)) + abs(math.log(l) - math.log(rlo)) + abs(math.log(h) - math.log(rhi))
+        d_rrr = (abs(math.log(1 - e) - math.log(rr)) + abs(math.log(1 - h) - math.log(rlo))
+                 + abs(math.log(1 - l) - math.log(rhi))) if h < 1 else float("inf")
+    except (TypeError, ValueError, ZeroDivisionError):
+        return {"verdict": "NOT_AUDITABLE"}
+    tol = 0.25
+    verdict = ("CONSISTENT" if d_rr <= tol and d_rr <= d_rrr else
+               "MISLABELLED_RRR" if d_rrr <= tol and d_rrr < d_rr else "INCONSISTENT")
+    return {"verdict": verdict, "counts_rr": rr, "counts_ci": [rlo, rhi], "printed": [e, l, h],
+            "distance_as_rr": round(d_rr, 4), "distance_as_rrr": round(d_rrr, 4), "tolerance": tol}
+
+
+def _counts_of(c: dict[str, Any]):
+    return tuple(c.get(k) for k in ("ai", "n1i", "ci", "n2i")) if all(c.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")) else None
+
+
 def select_estimator_by_source_hierarchy(
     selected: dict[str, Any],
     candidates: list[dict[str, Any]] | None,
@@ -294,9 +324,24 @@ def select_estimator_by_source_hierarchy(
         if _is_reported_effect(cand) and _candidate_estimand_class(cand) == declared_class
     ]
     current_is_reconstructed = _is_reconstructed_derivation(current.get("derivation"))
+    # A printed ratio outranks the SAME source's arm counts only if it agrees with them (ratio_label_audit); a risk
+    # ratio that is really a relative risk reduction under the wrong label never replaces the counts (CORP-2 0.49).
+    audits = {}
+    counts = _counts_of(current)
+    if counts and published_target:
+        for cand in published_target:
+            if str(cand.get("scale") or "").upper() in ("RR", "RISK RATIO"):
+                audits[id(cand)] = ratio_label_audit(*counts, cand.get("effect"), cand.get("ci_low"), cand.get("ci_high"))
+        # only a POSITIVE identification refuses: an INCONSISTENT printed ratio may be an adjusted / stratified
+        # estimate that legitimately differs from crude counts -- it keeps its precedence, and its audit is recorded
+        refused = [c for c in published_target if audits.get(id(c), {}).get("verdict") == "MISLABELLED_RRR"]
+        published_target = [c for c in published_target if c not in refused]
     if current_is_reconstructed and published_target:
         chosen = dict(published_target[0])
         rule = "PUBLISHED_EFFECT_TARGET_CLASS"
+    elif current_is_reconstructed and audits and any(a.get("verdict") == "MISLABELLED_RRR" for a in audits.values()):
+        chosen = current
+        rule = "KEEP_COUNTS_PUBLISHED_RATIO_MISLABELLED_RRR"
     else:
         chosen = current
         if current.get("derivation") == "reported":
@@ -318,7 +363,8 @@ def select_estimator_by_source_hierarchy(
         else "reconstructed"
     )
     chosen["alternatives"] = [
-        _candidate_summary(cand, chosen, declared_class)
+        {**_candidate_summary(cand, chosen, declared_class),
+         **({"ratio_label_audit": audits[id(cand)]} if id(cand) in audits else {})}
         for cand in pool
         if not _same_candidate(cand, chosen)
     ]
