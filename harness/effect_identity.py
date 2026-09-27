@@ -459,3 +459,55 @@ def crude_corroboration(row: dict[str, Any]) -> dict[str, Any] | None:
     t = counts_tuple(*counts, scale)
     return t and {"role": "CORROBORATION_ONLY", "counts": list(counts), "crude": {k: round(v, 5) for k, v in t.items()},
                   "note": "a crude count ratio never replaces the published model estimate"}
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# (11) TYPED UNCERTAINTY (DPP-4 review): EXAMINE reports "hazard ratio, 0.96; upper boundary of the one-sided repeated confidence
+# interval, 1.16" (regulatory: one-sided 99%). A CI is a typed object {level, sidedness, repeated}. The SE reconstruction uses ONLY a
+# two-sided, non-repeated interval at its stated level: a one-sided or repeated bound never becomes a 95% two-sided CI, no lower
+# limit is invented by reflection, and a log of a 0 lower bound is never taken. State: outcome reported; required uncertainty
+# representation unresolved.
+UNCERTAINTY_UNRESOLVED = "UNCERTAINTY_REPRESENTATION_UNRESOLVED"
+_ONE_SIDED = __import__("re").compile(
+    r"(?i)(upper|lower)\s+(?:boundary|bound|limit)\s+of\s+the\s+one[- ]sided\s+(repeated\s+)?(?:(\d{2}(?:\.\d+)?)\s*%\s+)?"
+    r"confidence\s+(?:interval|bound)\s*[,:]?\s*(\d+(?:\.\d+)?)")
+_TWO_SIDED = __import__("re").compile(
+    r"(?i)(repeated\s+)?(\d{2}(?:\.\d+)?)\s*%\s*(?:confidence\s+interval|CI)\s*(?:\[CI\])?\s*[,:]?\s*(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)")
+_POINT_BEFORE = __import__("re").compile(r"(?i)(?:hazard|risk|odds|rate)\s+ratio\s*[,:]?\s*(\d+(?:\.\d+)?)\s*;\s*$")
+
+
+def ci_representation(text: str | None) -> list[dict[str, Any]]:
+    """Every interval the text states, typed. level None = the source does not state it."""
+    t = text or ""
+    out = []
+    for m in _ONE_SIDED.finditer(t):
+        pm = _POINT_BEFORE.search(t[max(0, m.start() - 60):m.start()])
+        out.append({"sidedness": f"one-sided-{m.group(1).lower()}", "repeated": bool(m.group(2)),
+                    "level": float(m.group(3)) if m.group(3) else None, "bound": float(m.group(4)),
+                    "point": float(pm.group(1)) if pm else None, "text": m.group(0)})
+    for m in _TWO_SIDED.finditer(t):
+        rep = bool(m.group(1)) or bool(__import__("re").search(r"(?i)repeated", t[max(0, m.start() - 30):m.start()]))
+        out.append({"sidedness": "two-sided", "repeated": rep, "level": float(m.group(2)),
+                    "lower": float(m.group(3)), "upper": float(m.group(4)), "text": m.group(0)})
+    return out
+
+
+def se_permitted(ci: dict[str, Any] | None) -> bool:
+    """Only a two-sided, non-repeated interval at a STATED level supports an SE; and never with a non-positive lower limit."""
+    return bool(ci) and ci.get("sidedness") == "two-sided" and not ci.get("repeated") and ci.get("level") is not None \
+        and (ci.get("lower") or 0) > 0 and (ci.get("upper") or 0) > 0
+
+
+def uncertainty_state(text: str | None) -> dict[str, Any] | None:
+    """A reported effect whose ONLY stated uncertainty cannot support an SE (one-sided and/or repeated): the typed state, with the
+    point and the bound kept as stated -- nothing reflected, nothing re-levelled."""
+    cis = ci_representation(text)
+    if not cis or any(se_permitted(c) for c in cis):
+        return None
+    c = cis[0]
+    return {"state": UNCERTAINTY_UNRESOLVED, "statement": "outcome reported; required uncertainty representation unresolved",
+            "ci": c, "point": c.get("point"),
+            "why": (f"the only stated uncertainty is a {c['sidedness']}{' repeated' if c.get('repeated') else ''} bound"
+                    + (f" at {c['level']}%" if c.get("level") else " at an unstated level")
+                    + "; it is never converted to a 95% two-sided interval and no lower limit is reflected")}

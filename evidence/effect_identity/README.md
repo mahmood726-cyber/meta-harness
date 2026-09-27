@@ -205,3 +205,23 @@ FREEDOM (19671655) serves the published RR 0.32 (0.26-0.41) and HRs 0.80 / 0.60 
 - A documented model (stratified / Mantel-Haenszel / Cox / adjusted) makes a count disagreement KEEP_DISCLOSED, never HOLD. The
   same estimate with no documented model is HOLD (tested both ways).
 - Not built end to end: both drives are below the 3 GB regeneration floor (C: 2.5 GB, F: 2.4 GB).
+
+## (13) Typed uncertainty: a one-sided or repeated bound never becomes a 95% CI (DPP-4 review)
+
+EXAMINE (23992602) reports "hazard ratio, 0.96; upper boundary of the one-sided repeated confidence interval, 1.16". It was served
+as **OUTCOME_NOT_IN_SOURCE**, which is false: the outcome is reported, and the extractor simply found no two-sided interval.
+- `ci_representation()` types every stated interval: {sidedness two-sided / one-sided-upper / one-sided-lower, repeated, level}.
+  EXAMINE's level is **not stated in the held abstract** (the one-sided 99% is in the full text), so the record says None rather than
+  asserting it.
+- `se_permitted()`: only a two-sided, non-repeated interval at a stated level supports an SE.
+- `uncertainty_state()` gives **UNCERTAINTY_REPRESENTATION_UNRESOLVED** ("outcome reported; required uncertainty representation
+  unresolved"). The point and bound are kept as stated; nothing is reflected or re-levelled.
+- Pipeline:
+  - a pooled row whose quotation states only such a bound is held;
+  - a declared-absent row whose abstract reports this outcome with only such a bound is re-stated from OUTCOME_NOT_IN_SOURCE;
+  - the code survives the absence layer.
+- `synth`: a non-positive ratio limit is refused explicitly (the old message was "has neither a 2x2 nor an effect+CI", or a bare
+  math-domain error).
+- **Count RR is a different measure.** EXAMINE's count RR (0.9573, 0.8257-1.1100 from 305/2701 vs 316/2679) cannot be rebuilt from
+  held bytes, because the abstract gives only the 5380 total and the per-arm n are in the full text. The reconstruction refuses with
+  that reason, and a count RR never enters the HR pool under the HR label. The review's counts are a synthetic fixture.

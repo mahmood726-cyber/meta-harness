@@ -1472,6 +1472,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t["double_zero"] = True
         # OUTCOME POLARITY: which EVENT the effect models; a benefit-event effect in a death pool is held, or re-oriented only
         # under a declared normalisation (the original kept)
+        # a pooled row whose own quotation states ONLY a one-sided / repeated bound has no admissible SE: held, never pooled
+        _us_row = effect_identity_mod.uncertainty_state(t.get("source") or "") if t.get("effect") is not None else None
+        if _us_row:
+            t["typed_uncertainty"] = _us_row
         _pc = effect_identity_mod.polarity_check(t, spec.get("name"), spec)
         if _pc:
             t["event_polarity"] = _pc
@@ -1513,6 +1517,16 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
                                "state": _co["state"], "reason_code": _co["state"], "endpoint_admissibility": _co["state"],
                                "counts_under_hr": _co, "source": t.get("source", ""), "reason": _co["reason"]})
+    _unc = [t for t in trials if t.get("typed_uncertainty")]
+    if _unc:
+        trials = [t for t in trials if not t.get("typed_uncertainty")]
+        for t in _unc:
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
+                           "state": effect_identity_mod.UNCERTAINTY_UNRESOLVED, "reason_code": effect_identity_mod.UNCERTAINTY_UNRESOLVED,
+                           "endpoint_admissibility": effect_identity_mod.UNCERTAINTY_UNRESOLVED, "typed_uncertainty": t["typed_uncertainty"],
+                           "candidate_tuple": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale") if t.get(k) is not None},
+                           "source": t.get("source", ""),
+                           "reason": t["typed_uncertainty"]["statement"] + ": " + t["typed_uncertainty"]["why"]})
     _pol = [t for t in trials if (t.get("event_polarity") or {}).get("state") == "EVENT_POLARITY_MISMATCH"]
     if _pol:
         trials = [t for t in trials if t not in _pol]
@@ -1537,11 +1551,26 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         str(d.get("id")): {k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d}
         for d in included
     }
+    _outcome_kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
     for row in absent:
         key = str(row.get("id", "")).replace("PMID ", "")
         meta = included_meta.get(key)
         if meta:
             row.update(meta)
+        # TYPED UNCERTAINTY: "no outcome in source" is FALSE when the abstract reports this outcome with only a one-sided / repeated
+        # bound (EXAMINE: HR 0.96, upper boundary of the one-sided repeated CI 1.16). Re-stated, never converted to a 95% interval.
+        if row.get("state") in (None, "OUTCOME_NOT_IN_SOURCE") and row.get("absent_kind") == "machine_absent":
+            _ab = (rec_by_id.get(key) or {}).get("abstract", "") or ""
+            for _sent in re.split(r"(?<=[.)])\s+(?=[A-Z])", _ab):
+                _us = effect_identity_mod.uncertainty_state(_sent)
+                if _us and any(k in _sent.lower() for k in _outcome_kws + ["primary end point", "primary endpoint", "primary outcome"]):
+                    _rc = effect_identity_mod.reconstruct_from_counts({"source": _sent}, _ab, list(interv or []), list(comp or []), "RR")
+                    row.update(state=_us["state"], reason_code=_us["state"], endpoint_admissibility=_us["state"], typed_uncertainty=_us,
+                               reason=f"{_us['statement']}: {_us['why']}", source_span=_sent[:400],
+                               count_rr=({"state": _rc.get("state"), "why": _rc.get("why"), "rr": _rc.get("rr"),
+                                          "note": "a count-based RR is a DIFFERENT measure: it never enters the HR pool under the HR label"}
+                                         if _rc else None))
+                    break
     _apply_trial_annotations(spec, trials)
     for t in trials:
         if t.get("cross_source"):

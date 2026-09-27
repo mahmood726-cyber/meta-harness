@@ -399,3 +399,59 @@ def test_a_documented_model_keeps_a_published_estimate_that_crude_counts_disagre
     assert ei.conflict_check(row, ei.model_documented(row))["resolution"] == "KEEP_DISCLOSED"
     bare = dict(row, source="risk ratio 0.30")
     assert ei.conflict_check(bare, ei.model_documented(bare))["resolution"] == "HOLD"
+
+
+# ------------------------------------------------------------------ DPP-4: typed uncertainty; a one-sided / repeated bound never becomes a 95% CI
+DPP4 = "dpp4-mace-t2d"
+
+
+def _dpp4():
+    rev = _git_json(f"docs/reviews/{DPP4}/review.json")
+    o = next(x for x in rev["outcomes"] if x.get("primary"))
+    recs = {str(r["id"]): r for r in _git_json(f"cache/{DPP4}/records.json")["records"]}
+    return o, recs
+
+
+def test_plant_pre_fix_examine_is_served_as_outcome_not_in_source():
+    o, recs = _dpp4()
+    row = next(a for a in o["declared_absent_trials"] if "23992602" in str(a["id"]))
+    assert row["state"] == "OUTCOME_NOT_IN_SOURCE"
+    assert "upper boundary of the one-sided repeated confidence interval, 1.16" in recs["23992602"]["abstract"]   # it IS reported
+
+
+def test_examine_is_typed_one_sided_repeated_and_its_state_is_unresolved_not_absent():
+    _, recs = _dpp4()
+    s = ei.uncertainty_state(recs["23992602"]["abstract"])
+    assert s["state"] == "UNCERTAINTY_REPRESENTATION_UNRESOLVED" and s["statement"] == "outcome reported; required uncertainty representation unresolved"
+    assert s["ci"] == {"sidedness": "one-sided-upper", "repeated": True, "level": None, "bound": 1.16, "point": 0.96,
+                       "text": "upper boundary of the one-sided repeated confidence interval, 1.16"}      # level: not stated in the abstract
+    assert not ei.se_permitted(s["ci"])
+
+
+@pytest.mark.parametrize("text,permitted", [
+    ("hazard ratio, 1.02; 95% CI, 0.89 to 1.17", True),
+    ("hazard ratio 0.9; repeated 95% confidence interval 0.8 to 1.1", False),
+    ("hazard ratio, 0.96; upper boundary of the one-sided 99% confidence interval, 1.16", False),
+])
+def test_only_a_two_sided_non_repeated_interval_at_a_stated_level_supports_an_se(text, permitted):
+    assert ei.se_permitted(ei.ci_representation(text)[0]) is permitted
+
+
+def test_a_non_positive_lower_limit_is_never_logged_and_no_limit_is_reflected():
+    for lo in (0, 0.0, -0.1):
+        with pytest.raises(ValueError, match="non-positive ratio limit"):
+            synth.Study(label="x", effect=0.96, ci_low=lo, ci_high=1.16).yi_vi()
+    # a reflected lower limit (0.96**2/1.16) is exactly what must never be manufactured from a one-sided bound
+    reflected = round(0.96 ** 2 / 1.16, 4)
+    s = ei.uncertainty_state("hazard ratio, 0.96; upper boundary of the one-sided repeated confidence interval, 1.16")
+    assert "lower" not in s["ci"] and str(reflected) not in json.dumps(s)
+
+
+def test_examines_count_rr_is_a_different_measure_and_needs_denominators_the_abstract_does_not_hold():
+    _, recs = _dpp4()
+    ab = recs["23992602"]["abstract"]
+    sent = next(x for x in ab.split(". ") if "305 patients assigned to alogliptin" in x)
+    r = ei.reconstruct_from_counts({"source": sent}, ab, ["alogliptin"], ["placebo"], "RR")
+    assert r["state"] == "NOT_RECONSTRUCTED"                              # per-arm n (2701 / 2679) are in the full text, not held
+    fixture = ei.counts_tuple(305, 2701, 316, 2679, "RR")                # the review's counts: a synthetic fixture
+    assert (round(fixture["estimate"], 4), round(fixture["ci_low"], 4), round(fixture["ci_high"], 4)) == (0.9573, 0.8257, 1.11)

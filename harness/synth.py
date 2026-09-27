@@ -165,6 +165,11 @@ class Study:
                 y = math.log((a / n1) / (c / n2))
                 v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
             return y, v
+        if self.effect is not None and self.ci_low is not None and self.ci_high is not None and \
+                (self.effect <= 0 or self.ci_low <= 0 or self.ci_high <= 0):
+            # a ratio limit <= 0 has no log: refused explicitly (DPP-4 review) -- never a reflected or invented lower limit
+            raise ValueError(f"study {self.label!r}: a non-positive ratio limit ({self.effect}, {self.ci_low}, {self.ci_high}) has no "
+                             "log; no SE is reconstructed and no lower limit is invented")
         if self.effect is not None and self.ci_low and self.ci_high:
             z = _norm.ppf(0.975)
             y = math.log(self.effect)
