@@ -76,3 +76,49 @@ def test_PLANT_CORP_never_binds_to_a_CORP_2_report():
     panel = json.load(open(os.path.join(ROOT, "cache", "colchicine-recurrent-pericarditis", "comparators.json"), encoding="utf-8"))
     corp = next(m for c in panel for m in c.get("trial_set") or [] if m["name_in_source"] == "CORP")
     assert [a["id"] for a in corp["aliases"]] == ["21873705"]                                     # CORP, not CORP-2 24694983
+
+
+def test_PLANT_esketamine_transform3_is_shared_through_screenings_dedup_parent():
+    # the comparator cites TRANSFORM-3's paper (PMID 31734084); we pool TRANSFORM-3 from its registry record
+    # (NCT02422186) and screening excluded the paper as its secondary publication (X-DEDUP). Binding the row to the
+    # paper's own family made TRANSFORM-3 look "ours only" and the relation OVERLAPPING; it is SUBSET.
+    rev = json.load(open(os.path.join(ROOT, "docs", "reviews", "esketamine-trd-madrs", "review.json"), encoding="utf-8"))
+    o = rev["comparator"]["overlap_relation"]
+    assert o["relation"] == "SUBSET" and o["theirs_k"] == 6 and o["only_ours"] == []
+    assert o["shared"] == ["NCT02418585", "NCT02422186", "NCT03434041"]           # TRANSFORM-2, TRANSFORM-3, Chen 2023
+    inv = {r["comparator_trial"].split(" ")[1]: r for r in o["inventory_comparison"]["rows"]}
+    assert inv["D"]["status"] == "POOLED" and inv["D"]["family"] == "NCT02422186"
+    assert inv["B"]["family"] == "NCT02417064"          # TRANSFORM-1, held by registry only: bound by its title acronym
+    assert inv["E"]["status"] == "NOT_IN_OUR_RECORDS"   # SUSTAIN-2: no family of ours carries it
+
+
+def _synthetic(title, families, screening=()):
+    from harness import overlap_relation as ov
+    rid = "R1"
+    quote = f'<ref id="{rid}"><mixed-citation><article-title>{title}</article-title> <pub-id pub-id-type="pmid">99999999</pub-id></mixed-citation></ref>'
+    panel = {"trial_set": [{"family_id": "Row 1", "aliases": [{"id": "99999999", "span": {"quote": quote}}]}]}
+    review = {"trial_families": families, "screening": {"records": list(screening)}}
+    acr = ov._acronym_index(review, lambda _r: None)
+    return ov._members(review, panel, "x", acr, set())[1][0]
+
+
+def _fam(fid, acr, reports=()):
+    return {"family_id": fid, "aliases": {"acronym": [acr], "registry_ids": [fid], "report_ids": list(reports)}}
+
+
+def test_PLANT_title_acronym_binds_only_a_whole_token_naming_exactly_one_family():
+    fams = [_fam("NCT00000002", "TRANSFORM-2"), _fam("NCT00000003", "TRANSFORM-3")]
+    assert _synthetic("Esketamine in elderly patients-TRANSFORM-3", fams)["family"] == "NCT00000003"
+    assert _synthetic("Esketamine in adults (TRANSFORM)", fams)["family"] is None               # not TRANSFORM-2/-3
+    assert _synthetic("A study (TRANSFORM-3)", fams)["family"] == "NCT00000003"
+    assert _synthetic("A study (PRE-TRANSFORM-3)", fams)["family"] is None                       # a fragment is not a token
+    two = fams + [_fam("NCT00000009", "TRANSFORM-3")]
+    assert _synthetic("Esketamine-TRANSFORM-3", two)["family"] is None                           # ambiguous: refused
+
+
+def test_PLANT_dedup_parent_needs_a_registration_that_is_one_family():
+    fams = [_fam("NCT00000003", "T3"), {"family_id": "SYN-x", "aliases": {"report_ids": ["99999999"]}}]
+    dd = {"id": "99999999", "rule_id": "X-DEDUP", "secondary_publication_of": "T3 (NCT00000003, already pooled)"}
+    assert _synthetic("A paper", fams, [dd])["family"] == "NCT00000003"
+    assert _synthetic("A paper", fams, [dict(dd, secondary_publication_of="T3 (NCT09999999)")])["family"] == "SYN-x"
+    assert _synthetic("A paper", fams)["family"] == "SYN-x"                                       # no decision: no redirect

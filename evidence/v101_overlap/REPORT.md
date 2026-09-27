@@ -83,18 +83,41 @@ own word. Esketamine showed the same defect directly: served `shared_k` 4 with o
   own, and merges the candidates: one row, family NCT00128453, `also_named` ICAP. Plant: another trial's NCT binds
   nothing.
 
+## Binding a comparator row to a trial we hold without its paper (found by CI, 27 Sep)
+A test pinned esketamine's old "Trial set NOT ENUMERATED" wording and failed once Zhao-style PMC reading
+enumerated the comparator's table. Reading the new object showed a real defect, not a stale test: **TRANSFORM-3 was
+"ours only" and the relation OVERLAPPING; the truth is SUBSET.** The comparator cites TRANSFORM-3's paper (PMID
+31734084). We pool TRANSFORM-3 from its registry record (NCT02422186), and screening excluded the paper as its
+secondary publication (X-DEDUP), so the paper sat in its own family and the PMID bound the row there. Two typed
+steps now resolve such rows, in order:
+1. **Screening's dedup parent:** a row bound to a record that X-DEDUP excluded as a secondary publication resolves
+   to the family whose registration that decision names, if exactly one family has it.
+2. **The acronym printed in the row's own cited article title:** used only when the reference's PMID/DOI binds
+   nothing. It must be a whole hyphenated token (TRANSFORM-3 never TRANSFORM-2; PRE-TRANSFORM-3 is not a token) that
+   names exactly one family of ours.
+
+Effect across the 32 topics:
+- **esketamine:** SUBSET (shared TRANSFORM-2, TRANSFORM-3, Chen 2023). TRANSFORM-1 and SUSTAIN-1 are found in our
+  ledger; SUSTAIN-2 is genuinely not in our records.
+- **omega3:** the FORWARD row is found in our ledger (NCT00597220). The relation is unchanged.
+- **ticagrelor:** the comparator's row 1 (PMID 20079528, PLATO's planned-invasive-strategy paper) is PLATO. Its 22
+  rows are therefore 21 trial families. The relation is unchanged (NOT_ENUMERABLE).
+- **No other topic changed.**
+
+The plants are in tests/test_comparator_trial_tables.py.
+
 ## n of N (final rebuild, 32 of 32 pages rebuilt rc=0 with `--now 2026-09-11`)
-- **Served relation word changed: 9 of the 19 topics that served one.** The acknowledgements are in
-  `docs/ratchet_acknowledgements.json` (9 parity, 5 block); the list goes to the signing list as label notices.
+- **Served relation word changed: 10 of the 19 topics that served one.** The acknowledgements are in
+  `docs/ratchet_acknowledgements.json` (10 parity, 5 block); the list goes to the signing list as label notices.
   - Balanced-crystalloids and corticosteroids-covid19: OVERLAPPING -> DISJOINT.
-  - Melatonin: OVERLAPPING -> SUBSET.
+  - Esketamine and melatonin: OVERLAPPING -> SUBSET.
   - **6 drop to NOT_ENUMERABLE** (noac, pcsk9, probiotics, semaglutide-weight, sglt2-ckd, tranexamic). Their word
     rested on counts or hand prose, and no typed enumeration exists to recompute it. Each can be restored by a
     typed trial set; their comparators are not open-licence in PMC, or have no linked table, or (noac) RE-LY and
     ROCKET AF cannot be bound.
-  - Pericarditis keeps OVERLAPPING, but it is now computed from trial identities (below), not inferred.
+  - Pericarditis keeps OVERLAPPING, but it is now computed from trial identities (above), not inferred.
 - **Index ours/theirs/shared changed: 31 of 32.**
-- **Computed relation now served on 32 of 32:** DISJOINT 3, IDENTICAL_SET 1, SUBSET 2, SUPERSET 1, OVERLAPPING 7,
+- **Computed relation now served on 32 of 32:** DISJOINT 3, IDENTICAL_SET 1, SUBSET 3, SUPERSET 1, OVERLAPPING 6,
   NOT_ENUMERABLE 18.
 - **Pooled results moved: 0 of 32.** So no result-change notices are needed.
 
@@ -111,7 +134,7 @@ own word. Esketamine showed the same defect directly: served `shared_k` 4 with o
 | doac-vte-recurrence | — | **—** | NOT_ENUMERABLE | 6 / 6 / 6 | 6 / 6 / not computed: comparator trial set not e | NOT_IN_PMC |
 | dpp4-mace-t2d | — | **—** | NOT_ENUMERABLE | 3 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 3 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
 | empagliflozin-hfpef-hosp | — | **—** | NOT_ENUMERABLE | 0 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 0 / not stated in the comparator abstract/fu / not computed: no pooled trials for the p | NO_INCLUDED_TABLE |
-| esketamine-trd-madrs | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 3 / 4 / 4 | 3 / 6 / 2 | WRITTEN |
+| esketamine-trd-madrs | OVERLAPPING | **SUBSET** | SUBSET | 3 / 4 / 4 | 3 / 6 / 3 | WRITTEN |
 | finerenone-ckd-t2d-renal | IDENTICAL_SET | **IDENTICAL_SET** | IDENTICAL_SET | 2 / 2 / 2 | 2 / 2 / 2 | WRITTEN |
 | glp1-ra-mace-t2d | SUPERSET | **SUPERSET** | SUPERSET | 8 / 8 / 7 | 8 / 7 / 7 | ALREADY_ENUMERATED |
 | iv-iron-hfref-hosp | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 2 / 6 / not exactly verifiable (comparator trial | 2 / 5 / 1 | WRITTEN |
@@ -129,7 +152,7 @@ own word. Esketamine showed the same defect directly: served `shared_k` 4 with o
 | sglt2-primary-prevention-hf | — | **—** | OVERLAPPING | 4 / 8 / 4 | 4 / 8 / 2 | WRITTEN |
 | spironolactone-hfref-mortality | — | **—** | NOT_ENUMERABLE | 3 / 9 / not exactly verifiable (comparator trial | 3 / 9 / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
 | statins-primary-prevention-elderly | COMPARATOR_INVALID | **COMPARATOR_INVALID** | DISJOINT | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / 12 / 0 | WRITTEN |
-| ticagrelor-vs-clopidogrel-acs | — | **—** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / 22 / not computed: enumerated comparator set  | WRITTEN |
+| ticagrelor-vs-clopidogrel-acs | — | **—** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / 21 / not computed: enumerated comparator set  | WRITTEN |
 | tocilizumab-covid19-mortality | — | **—** | NOT_ENUMERABLE | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
 | tranexamic-acid-pph | SUBSET | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
 

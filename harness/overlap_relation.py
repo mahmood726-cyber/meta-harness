@@ -131,14 +131,42 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
             return {"source": f"comparator panel trial_set ({panel.get('document_ref')})",
                     "endpoint_for_outcome": None, "ambiguous": collisions}, [], []
         fam_idx = _family_index(review)
+        # screening's X-DEDUP decision is a typed link: a record it excluded as the companion/secondary publication of
+        # a trial names that trial's registration. A comparator row bound to such a record IS the parent trial (the
+        # family ledger kept the publication as a separate node, e.g. a trial pooled from its registry record only).
+        parent_of = {}
+        for d in (review.get("screening") or {}).get("records") or []:
+            if d.get("rule_id") != "X-DEDUP" or not d.get("secondary_publication_of"):
+                continue
+            child = fam_idx.get(_key(d.get("id")))
+            parents = {fam_idx[_key(n)] for n in re.findall(r"NCT\d{8}", str(d["secondary_publication_of"])) if _key(n) in fam_idx}
+            if child and len(parents) == 1 and child not in parents:
+                parent_of[child] = (next(iter(parents)), d.get("id"))
         ins, outs = [], []
         for m in panel["trial_set"]:
             ep = m.get("endpoint")
             ids = [a["id"] for a in m.get("aliases", [])] + ([m["bib_key"]] if m.get("bib_key") else [])
             hits = {fam_idx[_key(i)] for i in ids if _key(i) in fam_idx}
+            via = [parent_of[h] for h in hits if h in parent_of]
+            hits = {parent_of[h][0] if h in parent_of else h for h in hits}
+            title_acr = None
+            if not hits and m.get("aliases"):
+                # the row's reference carries a PMID/DOI no family of ours holds (e.g. a trial we hold only by its
+                # registry record): bind by the acronym PRINTED IN THAT REFERENCE'S OWN ARTICLE TITLE, as a whole
+                # hyphenated token (TRANSFORM-3 never TRANSFORM-2), only when it names exactly one family of ours
+                titles = " ".join(t for a in m["aliases"] for t in re.findall(
+                    r"<article-title>(.*?)</article-title>", (a.get("span") or {}).get("quote") or "", re.S))
+                toks = set(re.findall(r"(?<![A-Za-z0-9])(?<![A-Z0-9]-)[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*(?![A-Za-z0-9-])", titles))
+                acr_hits = sorted((t, f) for t in toks for f in acr_idx.get(norm_name(t)) or ())
+                if len({f for _, f in acr_hits}) == 1:
+                    title_acr, fam = acr_hits[0]
+                    hits = {fam}
             rec = {"name": m["family_id"], "family": (next(iter(hits)) if len(hits) == 1 else None),
                    "alias_ids": [a["id"] for a in m.get("aliases", [])],
-                   "identity": ("bound by panel alias" if m.get("aliases") else
+                   "identity": ("bound by the acronym printed in its cited article title (" + title_acr + ")" if title_acr else
+                                "bound by panel alias to record " + via[0][1] + ", which screening excluded (X-DEDUP) as a "
+                                "secondary publication of " + via[0][0] if via and len(hits) == 1 else
+                                "bound by panel alias" if m.get("aliases") else
                                 "identified by bibliographic key " + m["bib_key"] if m.get("bib_key") else "unbound (name only)"),
                    "endpoint": ep, "span": (m.get("span") or {}).get("quote")}
             (outs if (ep and expected and ep != expected) else ins).append(rec)
