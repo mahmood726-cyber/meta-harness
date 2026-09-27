@@ -1428,6 +1428,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
         if design_variance.apply_design_adjustment(t, spec.get("estimand")):
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+    # A held source that is internally inconsistent FOR THIS ENDPOINT is held out of the pool (endpoint-scoped)
+    trials, _sii_held = claimgraph_mod.hold_internally_inconsistent(ROOT, slug, spec["name"], trials)
+    absent.extend(_sii_held)
     trials, design_refusals = design_key.split_design_refusals(trials)
     for t in design_refusals:
         absent.append(design_variance.refusal_absence(t))
@@ -2093,6 +2096,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
     # Attach them before invalidation so strand members count as pooled membership.
     claimgraph_mod.attach_strands(review, ROOT)
+    # REPORT FAMILIES: several reports of one trial resolved to the protocol's timepoint (docs/report_families.json)
+    from . import report_family as report_family_mod
+    report_family_mod.attach(review, ROOT)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
     _protocol_i_line = ""

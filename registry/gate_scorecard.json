@@ -3619,8 +3619,39 @@
     }
    ],
    "gate_id": "gate.check_screening_record",
-   "what_it_refuses": "Page-gate refusal when the screening ledger, the per-report screening record (parent eligibility, report relevance, result admissibility), the trial-family report entry and the screening narrative disagree about a screened report: LEDGER_VS_RECORD, FAMILY_VS_RECORD, NARRATIVE_VS_LEDGER, REASON_VS_SPAN, FAMILY_VS_LEDGER. Adjudicator disagreements are advisory, not refused.",
+   "what_it_refuses": "Page-gate refusal when the screening ledger, the per-report screening record (parent eligibility, report relevance, result admissibility), the trial-family report entry and the screening narrative disagree about a screened report: LEDGER_VS_RECORD, FAMILY_VS_RECORD, NARRATIVE_VS_LEDGER, REASON_VS_SPAN, FAMILY_VS_LEDGER, OMISSION_VS_RECORD, OMISSION_VS_PROTOCOL; and for a trial with several reports (docs/report_families.json): two reports pooled as two rows (FAMILY_DOUBLE_COUNT), or a pooled row or refusal judged on a non-timepoint report without saying so (FAMILY_TIMEPOINT_UNLABELLED). Adjudicator disagreements are advisory, not refused.",
    "where": "harness/gate.py:check_screening_record"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_provenance_tiers.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-provenance-tiers-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_provenance_tiers.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "provenance-tier plants (secondary row without the page label, without a hashed citing document, secondary passed off as primary)",
+     "when_utc": null,
+     "where": "harness/gate.py:check_provenance_tiers"
+    }
+   ],
+   "gate_id": "gate.check_provenance_tiers",
+   "what_it_refuses": "Page-gate refusal when a served row's counts are SECONDARY_SOURCE (read from a citing paper) but the row lacks a citing document with sha256 or the visible 'secondary-source' label beside it on the page, when a row is labelled PRIMARY while its only witness is secondary, or when a provenance tier is unknown.",
+   "where": "harness/gate.py:check_provenance_tiers"
   }
  ],
  "generated_utc": null,

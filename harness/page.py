@@ -1505,6 +1505,11 @@ def _trial_inputs(o):
                     f"{_e(cc_state)}"
                     + (f" - {_e(t.get('source_warning'))}" if t.get("source_warning") else "")
                     + "</div>")
+        if t.get("provenance_tier") == "SECONDARY_SOURCE":
+            # counts read from a citing paper, never shown as if they were the trial's own table (provenance_tiers)
+            sw = t.get("secondary_witness") or {}
+            inp += (f" <span class='badge secondary-source' data-provenance-tier='SECONDARY_SOURCE'>secondary-source: "
+                    f"{_e(sw.get('document') or 'citing paper')} {_e(sw.get('table') or '')}</span>")
         if t.get("selection_rule"):
             inp += f" <span class='muted' title='source hierarchy selector rule'>&middot; {_e(t.get('selection_rule'))}</span>"
         if t.get("alternatives"):
@@ -1605,6 +1610,12 @@ def _trial_inputs(o):
             )
         if span:
             reason_detail += f"<br><span class='muted'>span: {_e(span)}</span>"
+        if t.get("conflict_locations"):
+            # an internally-inconsistent held source: every conflicting location, each as the document states it
+            reason_detail += ("<br><span class='muted'>conflicting locations in the held source ("
+                              + _e(t.get("document_path")) + ", sha256 " + _e(str(t.get("document_sha256") or "")[:12])
+                              + "): " + "; ".join(f"{_e(c.get('kind'))}: &ldquo;{_e(' '.join(str(c.get('span') or '').split()))}&rdquo;"
+                                                  for c in t["conflict_locations"]) + "</span>")
         if t.get("endpoint_admissibility"):
             rf = t.get("refused_effect") or {}
             if rf.get("effect") is not None:
@@ -2334,9 +2345,19 @@ def _reproduction(r, neutral):
     # with the reason. "We found it, verified it, and still refused it, because ..." is a stronger
     # honesty statement than a larger k. Outside the core hash (committed docs/refusals.json).
     if rf := rep.get("refusals"):
+        def _rfam(x):
+            # a refusal judged on one report of a multi-report trial: which report, and which one the protocol selects
+            f = x.get("report_family")
+            if not isinstance(f, dict):
+                return ""
+            return (f"<div class='ident' data-report-family='{_e(f.get('family_id'))}'><em>report family "
+                    f"{_e(f.get('family_id'))} (one trial):</em> judged on {_e(f.get('judged_report'))} "
+                    f"({_e(f.get('judged_follow_up_months'))}-month report, {_e(f.get('judged_report_role'))}); "
+                    f"protocol timepoint report: {_e(f.get('timepoint_report'))} &mdash; {_e(f.get('timepoint_report_label'))}"
+                    f"; its result: {_e(f.get('timepoint_result_state'))} ({_e(f.get('rule'))})</div>")
         rows = "".join(
             f"<tr><td>{_e(x.get('trial'))}</td><td>{_e(x.get('verified'))}</td>"
-            f"<td>{_e(x.get('not_pooled_because'))}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; both policies are declared; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>" for x in rf)
+            f"<td>{_e(x.get('not_pooled_because'))}{_rfam(x)}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; both policies are declared; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>" for x in rf)
         body += ("<h4>Verified but not pooled (refusals, with reasons)</h4>"
                  "<p class='muted'>Trials we located and whose numbers we verified against source, "
                  "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"

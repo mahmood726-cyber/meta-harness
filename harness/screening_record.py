@@ -19,7 +19,7 @@ import re
 from typing import Any
 
 BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REASON_VS_SPAN", "FAMILY_VS_LEDGER",
-            "OMISSION_VS_RECORD", "OMISSION_VS_PROTOCOL")
+            "OMISSION_VS_RECORD", "OMISSION_VS_PROTOCOL", "FAMILY_DOUBLE_COUNT", "FAMILY_TIMEPOINT_UNLABELLED")
 ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
@@ -234,6 +234,10 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
                     add("NARRATIVE_VS_LEDGER", rid, f"{field}: '{sent.strip()[:160]}' vs ledger {dec}/{rows[rid].get('rule_id')}")
                 if says_out and dec == "include":
                     add("NARRATIVE_VS_LEDGER", rid, f"{field}: '{sent.strip()[:160]}' vs ledger include")
+    # REPORT FAMILIES (several reports of one trial): one trial, and a verdict on a non-timepoint report says so
+    from . import report_family
+    for p in report_family.problems(review):
+        add(p["kind"], p["report_id"], p["detail"])
     return probs
 
 
