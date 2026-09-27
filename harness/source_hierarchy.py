@@ -149,25 +149,21 @@ def estimand_decision(spec: dict[str, Any], candidates: list[dict[str, Any]]) ->
     has_rr = "RR" in scales
     has_or = "OR" in scales
 
+    # THE TARGET MEASURE COMES FROM THE PROTOCOL, NEVER FROM AN INPUT'S LABEL (COVID-corticosteroids review, 2026-09-26). This
+    # used to switch a declared OR to RR / HR, and a declared RR to HR, whenever such an effect was published -- so the first
+    # input's label (RECOVERY's rate ratio, stored as RR) became the analysis target. An input of another measure is now a recorded
+    # DEPARTURE: it is rebuilt to the target from held counts, routed (a published HR in a risk pool), or left for a protocol
+    # amendment -- the target itself never moves.
+    del has_hr, has_rr, has_or
     if declared in {"MD", "SMD"}:
-        decision, target = "continuous", declared
-        reason = "declared continuous estimand"
-    elif declared == "OR" and (has_rr or has_hr) and not has_or:
-        if has_hr:
-            decision, target = "time_to_first_event", "HR"
-            reason = "declared OR, but the target outcome's only published effect+CI is HR"
-        else:
-            decision, target = "cumulative_risk_at_trial_end", "RR"
-            reason = "declared OR, but the target outcome's only published effect+CI is RR"
+        decision, target, reason = "continuous", declared, "declared continuous estimand"
     elif declared == "OR":
-        decision, target = "odds", "OR"
-        reason = "declared odds-ratio estimand"
-    elif declared == "HR" or "HAZARD" in declared or has_hr:
-        decision, target = "time_to_first_event", "HR"
-        reason = "published HR exists for the target outcome" if has_hr else "declared hazard-ratio estimand"
+        decision, target, reason = "odds", "OR", "declared odds-ratio estimand (from the protocol)"
+    elif declared == "HR" or "HAZARD" in declared or declared in {"RR/HR", "HR/RR"}:
+        decision, target, reason = "time_to_first_event", "HR", "declared hazard-ratio estimand (from the protocol)"
     else:
-        decision, target = "cumulative_risk_at_trial_end", "RR"
-        reason = "declared cumulative risk-ratio estimand"
+        decision, target, reason = "cumulative_risk_at_trial_end", "RR", "declared cumulative risk-ratio estimand (from the protocol)"
+    departures = sorted({s for s in scales if s and s != target})
 
     return {
         "declared_estimand": declared,
@@ -175,8 +171,9 @@ def estimand_decision(spec: dict[str, Any], candidates: list[dict[str, Any]]) ->
         "target_scale": target,
         "target_class": _compat_class(target),
         "published_candidate_scales": sorted(set(scales)),
-        "served_scale_changed": target != declared,
+        "served_scale_changed": False,
         "reason": reason,
+        "protocol_measure_departures": departures,
         "rule": {
             "time_to_first_event": "prefer published HR; keep reconstruction only when no HR exists",
             "cumulative_risk_at_trial_end": "prefer published RR; otherwise reconstruct RR from counts consistently",

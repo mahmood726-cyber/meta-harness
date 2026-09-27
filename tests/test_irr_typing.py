@@ -16,13 +16,17 @@ def _scale(sentence):
 def test_recovery_first_event_rate_ratio_is_not_irr():
     s = ("Overall, 482 patients (22.9%) in the dexamethasone group and 1110 (25.7%) in the usual care group "
          "died within 28 days (age-adjusted rate ratio, 0.83; 95% confidence interval, 0.75 to 0.93).")
-    assert _scale(s) == "RR", "a first-event mortality rate ratio must not be typed IRR"
+    # was == "RR": the requirement is NOT-IRR, and a RATE is not a RISK either (COVID-corticosteroids review, 2026-09-26: RECOVERY's
+    # rate ratio stored as RR moved the analysis target from OR to RR). It is its own first-event rate ratio.
+    assert _scale(s) == "RATE_RATIO", "a first-event mortality rate ratio is neither an IRR nor a risk ratio"
 
 
 def test_ascend_first_event_rate_ratio_is_not_irr():
     s = ("a serious vascular event occurred in 689 patients (8.9%) in the fatty acid group and in 712 (9.2%) "
          "in the placebo group (rate ratio, 0.97; 95% confidence interval, 0.87 to 1.08).")
-    assert _scale(s) == "RR", "a first-event log-rank rate ratio must not be typed IRR"
+    # was == "RR": the requirement is NOT-IRR, and a RATE is not a RISK either (COVID-corticosteroids review, 2026-09-26: RECOVERY's
+    # rate ratio stored as RR moved the analysis target from OR to RR). It is its own first-event rate ratio.
+    assert _scale(s) == "RATE_RATIO", "a first-event log-rank rate ratio is neither an IRR nor a risk ratio"
 
 
 def test_recurrent_rate_ratio_stays_irr_by_times():

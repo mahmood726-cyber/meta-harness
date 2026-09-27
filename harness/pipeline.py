@@ -1432,17 +1432,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # EFFECT IDENTITY BEFORE SOURCE PREFERENCE (external review, 2026-09-26): what the source REPORTED when the served
         # effect is a transform of it (CORP's RRR 0.56 served as RR 0.44), and whether a published ratio agrees with its own
         # counts (CORP-2's "relative risk 0.49" is the RRR of 26/120 vs 51/120). A conflict is never relabelled: it is HELD.
-        if str(t.get("scale") or "").upper() == "OR" and t.get("effect") is not None and str(spec.get("estimand") or "").upper() == "RR":
-            # RECONSTRUCTION ROUTE (CAP-corticosteroids review): an OR on an RR outcome is incompatible; when the arm counts are
-            # held and corroborate their own percentages, the RR is rebuilt from them and the published OR is kept alongside
-            _rc = effect_identity_mod.reconstruct_from_counts(t, ab, list(interv or []), list(comp or []))
+        _target = str(spec.get("estimand") or "").upper()
+        if t.get("effect") is not None and _target in ("RR", "OR") and str(t.get("scale") or "").upper() not in (_target, "HR", ""):
+            # RECONSTRUCTION ROUTE: a published effect of ANOTHER measure than the protocol's target (an OR on an RR outcome --
+            # STEP; a RATE ratio on an OR outcome -- RECOVERY) is rebuilt to the target from held counts that corroborate their own
+            # percentages; the published effect is kept alongside. A published HR routes to time-to-event instead.
+            _rc = effect_identity_mod.reconstruct_from_counts(t, ab, list(interv or []), list(comp or []), _target)
             if _rc and _rc.get("state") == "RECONSTRUCTED":
                 _pub = dict(_rc["published_effect_retained"])
                 for _k in ("effect", "ci_low", "ci_high", "scale"):
                     t[_k] = None
                 t.update({k: _rc[k] for k in ("ai", "n1i", "ci", "n2i")})
                 t.update(derivation="RECONSTRUCTED_FROM_COUNTS", selected_estimator="reconstructed",
-                         selection_rule="RECONSTRUCTED_FROM_COUNTS_PUBLISHED_OR_RETAINED", published_effect_retained=_pub,
+                         selection_rule="RECONSTRUCTED_FROM_COUNTS_PUBLISHED_EFFECT_RETAINED", published_effect_retained=_pub,
                          reconstruction=_rc)
                 t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
             elif _rc:
@@ -1456,6 +1458,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         _cc = effect_identity_mod.conflict_check(t, effect_identity_mod.adjusted_documented(t))
         if _cc:
             t["effect_conflict"] = _cc
+        # OUTCOME POLARITY: which EVENT the effect models; a benefit-event effect in a death pool is held, or re-oriented only
+        # under a declared normalisation (the original kept)
+        _pc = effect_identity_mod.polarity_check(t, spec.get("name"), spec)
+        if _pc:
+            t["event_polarity"] = _pc
+            if _pc.get("state") == "NORMALISED":
+                t.update({k: _pc["normalised"][k] for k in ("effect", "ci_low", "ci_high")})
     _tte = [t for t in trials if (effect_identity_mod.hr_route(t, spec.get("estimand"), trials) or {}).get("route") == "TIME_TO_EVENT_SEPARATE"]
     if _tte:
         # an HR stays an HR (SONIA rule): never converted to a risk ratio; it enters a separately specified time-to-event analysis
@@ -1465,6 +1474,18 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         time_to_event_rows = list(_tte)
     else:
         time_to_event_rows = []
+    _pol = [t for t in trials if (t.get("event_polarity") or {}).get("state") == "EVENT_POLARITY_MISMATCH"]
+    if _pol:
+        trials = [t for t in trials if t not in _pol]
+        for t in _pol:
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
+                           "state": "EVENT_POLARITY_MISMATCH", "reason_code": "EVENT_POLARITY_MISMATCH",
+                           "endpoint_admissibility": "EVENT_POLARITY_MISMATCH", "event_polarity": t["event_polarity"],
+                           "candidate_tuple": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale") if t.get(k) is not None},
+                           "source": t.get("source", ""), "reason": t["event_polarity"]["reason"]})
+    # MULTI-ARM SHARED CONTROL: comparisons sharing one control never enter as independent; the declared rule resolves them
+    trials, _mheld = effect_identity_mod.apply_multi_arm_rule(trials, spec)
+    absent.extend(_mheld)
     _held = [t for t in trials if (t.get("effect_conflict") or {}).get("resolution") == "HOLD"]
     if _held:
         trials = [t for t in trials if t not in _held]

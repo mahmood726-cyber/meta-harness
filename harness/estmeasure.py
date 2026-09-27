@@ -28,12 +28,15 @@ from __future__ import annotations
 
 import re
 
-_CANON = {"RR": "RISK_RATIO", "OR": "ODDS_RATIO", "HR": "HAZARD_RATIO_FIRST_EVENT",
+_CANON = {"RR": "RISK_RATIO", "OR": "ODDS_RATIO", "HR": "HAZARD_RATIO_FIRST_EVENT", "RATE_RATIO": "RATE_RATIO_FIRST_EVENT",
           "IRR": "INCIDENCE_RATE_RATIO", "MD": "MEAN_DIFFERENCE", "SMD": "SMD"}
 
 _CLASS = {
     "RISK_RATIO": "FIRST_EVENT_RATIO", "ODDS_RATIO": "ODDS_RATIO",
     "HAZARD_RATIO_FIRST_EVENT": "FIRST_EVENT_RATIO",
+    # a first-event RATE ratio (RECOVERY's age-adjusted rate ratio): not a risk ratio, and not a person-time IRR -- its own class,
+    # so it is never pooled or labelled as a cumulative risk without a declared conversion
+    "RATE_RATIO_FIRST_EVENT": "FIRST_EVENT_RATE",
     "INCIDENCE_RATE_RATIO": "RATE", "RATE_RATIO_RECURRENT": "RATE",
     "MEAN_DIFFERENCE": "CONTINUOUS", "SMD": "CONTINUOUS",
 }

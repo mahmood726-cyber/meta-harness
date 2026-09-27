@@ -211,3 +211,86 @@ def test_endpoint_definitions_are_classified_not_assumed_compatible():
     o, _, _ = _step()
     classes = {t["id"]: ei.definition_class(t) for t in o["trials"]}
     assert classes["PMID 25608756"] == "INSULIN_REQUIRING" and classes["PMID 25688779"] == "DEFINITION_NOT_STATED_IN_QUOTATION"
+
+
+# ------------------------------------------------------------------ COVID-corticosteroids: rate != risk; target from protocol;
+# ------------------------------------------------------------------ outcome polarity; multi-arm shared control
+from harness import extract, source_hierarchy   # noqa: E402
+
+COVID = "corticosteroids-covid19-mortality"
+
+
+def _covid():
+    rev = _git_json(f"docs/reviews/{COVID}/review.json")
+    o = next(x for x in rev["outcomes"] if x.get("primary"))
+    recs = {str(r["id"]): r for r in _git_json(f"cache/{COVID}/records.json")["records"]}
+    topic = _git_json(f"topics/{COVID}.json")
+    interv = sorted(set(topic.get("intervention_terms") or []) | set(topic.get("intervention_class_terms") or [])
+                    | {a for k, v in (topic.get("intervention_agents") or {}).items() for a in [k, *(v or [])]})
+    return o, recs, interv, topic.get("comparator_terms") or []
+
+
+def test_plant_pre_fix_recovery_rate_ratio_was_served_as_rr_and_moved_the_target_off_the_protocol():
+    o, _, _, _ = _covid()
+    assert o["estimand"] == "OR" and o["estimand_decision"]["target_scale"] == "RR" and o["estimand_decision"]["served_scale_changed"]
+    t = o["trials"][0]
+    assert t["scale"] == "RR" and "age-adjusted rate ratio, 0.83" in t["source"]
+
+
+def test_a_rate_ratio_never_classifies_as_a_risk_ratio():
+    e = extract.extract_effect("died within 28 days (age-adjusted rate ratio, 0.83; 95% confidence interval [CI], 0.75 to 0.93)")
+    assert e.scale == "RATE_RATIO"
+    from harness import estmeasure
+    assert estmeasure.classify("RATE_RATIO")["canonical_estimand"] == "RATE_RATIO_FIRST_EVENT" != estmeasure.classify("RR")["canonical_estimand"]
+
+
+def test_the_target_measure_comes_from_the_protocol_not_from_the_first_input():
+    d = source_hierarchy.estimand_decision({"estimand": "OR"}, [{"effect": 0.83, "scale": "RATE_RATIO"}])
+    assert d["target_scale"] == "OR" and d["served_scale_changed"] is False and d["protocol_measure_departures"] == ["RATE_RATIO"]
+    d = source_hierarchy.estimand_decision({"estimand": "RR"}, [{"effect": 0.9, "scale": "HR"}])
+    assert d["target_scale"] == "RR" and d["protocol_measure_departures"] == ["HR"]
+
+
+def test_recovery_reconstructs_the_protocol_or_and_rr_from_held_counts():
+    o, recs, interv, comp = _covid()
+    t = o["trials"][0]
+    r = ei.reconstruct_from_counts(t, recs["32678530"]["abstract"], interv, comp, "OR")
+    assert (r["ai"], r["n1i"], r["ci"], r["n2i"]) == (482, 2104, 1110, 4321)
+    assert r["or"] == {"estimate": 0.8596, "ci_low": 0.7606, "ci_high": 0.9716}                 # the review's OR
+    assert ei.reconstruct_from_counts(t, recs["32678530"]["abstract"], interv, comp, "RR")["rr"] == {"estimate": 0.8918, "ci_low": 0.8123, "ci_high": 0.9791}
+
+
+def test_plant_remap_cap_or_models_a_benefit_event_and_is_refused_for_a_death_pool():
+    _, recs, _, _ = _covid()
+    ab = recs["32876697"]["abstract"]
+    clause = next(s for s in ab.split(". ") if "1.43 (95% credible interval, 0.91-2.27)" in s) + ". " + \
+        next(s for s in ab.split(". ") if "odds of improvement" in s)
+    row = {"effect": 1.43, "ci_low": 0.91, "ci_high": 2.27, "scale": "OR", "source": clause}
+    assert ei.event_modelled(clause) == "BENEFIT_EVENT"
+    assert ei.polarity_check(row, "28-day all-cause mortality", {})["state"] == "EVENT_POLARITY_MISMATCH"
+    n = ei.polarity_check(row, "28-day all-cause mortality", {"polarity_normalisation": {"reciprocal_for_benefit_event": True}})
+    assert n["state"] == "NORMALISED" and n["normalised"] == {"effect": 0.6993, "ci_low": 0.4405, "ci_high": 1.0989}
+    assert ei.polarity_check({**row, "source": "482 died (22.9%) ... odds ratio 0.86"}, "28-day all-cause mortality", {})["state"] == "CONSISTENT"
+
+
+# the REMAP-CAP arm counts below are the REVIEW'S (the held abstract gives only 30% / 26% / 33% over 137 / 146 / 101): a synthetic fixture
+_ARMS = [{"id": "PMID 32876697#fixed", "trial_family_id": "PMID:32876697", "label": "REMAP-CAP fixed", "ai": 41, "n1i": 137, "ci": 33, "n2i": 99},
+         {"id": "PMID 32876697#shock", "trial_family_id": "PMID:32876697", "label": "REMAP-CAP shock", "ai": 37, "n1i": 141, "ci": 33, "n2i": 99}]
+
+
+def test_plant_two_arms_sharing_one_control_are_held_unless_a_rule_is_declared():
+    out, held = ei.apply_multi_arm_rule([dict(a) for a in _ARMS], {})
+    assert out == [] and held[0]["state"] == "MULTI_ARM_SHARED_CONTROL_UNDECLARED"
+
+
+@pytest.mark.parametrize("rule,expected", [("COMBINE_ARMS", [(78, 278, 33, 99)]), ("SPLIT_CONTROL", [(41, 137, 16.5, 49.5), (37, 141, 16.5, 49.5)])])
+def test_a_declared_multi_arm_rule_counts_the_control_once(rule, expected):
+    out, held = ei.apply_multi_arm_rule([dict(a) for a in _ARMS], {"multi_arm_rule": rule})
+    assert [(r["ai"], r["n1i"], r["ci"], r["n2i"]) for r in out] == expected and held == []
+    assert sum(r["n2i"] for r in out) == 99                                                       # the control enters ONCE
+
+
+def test_the_new_holds_reach_the_reader_with_their_own_codes():
+    from harness import absence
+    _, held = ei.apply_multi_arm_rule([dict(a) for a in _ARMS], {})
+    assert absence.classify_reason(["mortality"], "", row=held[0])["reason_code"] == "MULTI_ARM_SHARED_CONTROL_UNDECLARED"

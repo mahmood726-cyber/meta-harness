@@ -115,3 +115,46 @@ prednisone in both intervention_terms and intervention_agents, and STEP reconstr
 | balanced-crystalloids | primary | 0.9774 (HR label, HR+RR) | BaSICS to a separate time-to-event analysis; with SMART design-refused, PLUS alone (k=1): no pooled number |
 | ticagrelor-vs-clopidogrel | major bleeding | 1.1658 (HR+RR) | the HR row routed to time-to-event; the count RR alone |
 | corticosteroids-cap | hyperglycaemia | suppressed (OR+RR incompatible) | still no number: held for definition adjudication; STEP now RR 1.772 with its OR retained |
+
+## (6) RATE is not RISK, and the target measure comes from the protocol (COVID-corticosteroids review)
+
+RECOVERY (PMID 32678530) reports an **age-adjusted rate ratio, 0.83 (0.75-0.93)**.
+- `extract` mapped a bare first-event "rate ratio" to RR (audit 22), and `source_hierarchy.estimand_decision` then set the
+  **target** from the first published label. The protocol's **OR** became RR (`served_scale_changed: true`).
+- Now a bare first-event rate ratio is `RATE_RATIO`, canonical `RATE_RATIO_FIRST_EVENT` in its own class: never a risk ratio,
+  never an IRR.
+- The target is the protocol's declared measure, always. An input of another measure is recorded in
+  `protocol_measure_departures` and rebuilt to the target from held counts (the reconstruction route now takes a target measure and
+  RECOVERY's "n (p%) in the X group and ..." wording).
+- In a real `build_topic`, RECOVERY enters the OR pool as **OR 0.8596 (0.7606-0.9716)** from 482/2104 vs 1110/4321, the review's
+  number. The rate ratio is retained alongside. The RR from the same counts is 0.8918 (0.8123-0.9791).
+- Measured at 3876a62d: the target departs from the protocol's measure on **14 of 97** outcomes with an estimand decision.
+  - 2 are OR -> RR (COVID-corticosteroids, tocilizumab: both via RECOVERY's rate ratio).
+  - 12 are RR -> HR (balanced-crystalloids; denosumab x3; omega3; statins; sglt2 x3; spironolactone; ticagrelor bleeding;
+    iv-iron). Those protocols declare RR while their evidence is HR. That is a protocol amendment for each topic owner, not a
+    switch the pipeline may make; these are notices.
+- **2 of 127** served rows are rate ratios stored as RR (both RECOVERY).
+- Two tests pinned `== "RR"` for a first-event rate ratio. Their stated requirement ("must not be typed IRR") is kept; the RR
+  half was the defect. They were rewritten to `RATE_RATIO`, and the change was isolated by rerunning the failing tests on the
+  pre-fix harness: only these two are caused by it.
+
+## (7) Outcome polarity: which EVENT is modelled
+
+REMAP-CAP's adjusted ORs (1.43, 1.22) are "the odds of improvement" in organ support-free days: >1 = benefit.
+- `event_modelled()` reads the effect's own quotation: BENEFIT_EVENT, DEATH or NOT_STATED.
+- In a death or mortality outcome, a benefit-event effect is **refused** (`EVENT_POLARITY_MISMATCH`, held visible), unless the
+  outcome declares `polarity_normalisation.reciprocal_for_benefit_event`. Then the reciprocal is applied with ends swapped
+  (1.43 (0.91-2.27) -> 0.6993 (0.4405-1.0989)) and the original is kept.
+- Served today: 0 of 20 stated-effect rows in death outcomes model a benefit event. The plant is REMAP-CAP's own held abstract.
+
+## (8) Multi-arm shared control
+
+REMAP-CAP's fixed-dose (41/137) and shock-dependent (37/141) hydrocortisone arms share one control (33/99). These are the review's
+counts; the held abstract gives only percentages over 137 / 146 / 101, so this is a synthetic fixture.
+- `apply_multi_arm_rule()` groups rows by trial family with identical control counts. A declared `multi_arm_rule`:
+  - `COMBINE_ARMS` -> 78/278 vs 33/99;
+  - `SPLIT_CONTROL` -> 41/137 vs 16.5/49.5 and 37/141 vs 16.5/49.5 (Cochrane Handbook 23.3.4).
+- Either way the control's 99 patients enter once. Undeclared, the group is **held** (`MULTI_ARM_SHARED_CONTROL_UNDECLARED`), never
+  entered as two independent comparisons.
+- Both new codes are preserved by the absence layer, so they reach the reader. Served today: 0 shared-control groups among 127
+  pooled rows.

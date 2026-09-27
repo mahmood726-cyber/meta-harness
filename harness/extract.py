@@ -268,8 +268,10 @@ def _effect_from_match(m, context=""):
     if "incidence rate" in kind:
         scale = "IRR"   # explicit person-time incidence-rate ratio
     elif "rate ratio" in kind:
-        # person-time/recurrent IRR only with an explicit recurrence/person-time footprint; else first-event
-        scale = "IRR" if _RECURRENT_PERSONTIME.search(context or "") else "RR"
+        # person-time/recurrent IRR only with an explicit recurrence/person-time footprint; otherwise a FIRST-EVENT RATE ratio.
+        # It was mapped to "RR" (audit 22): a RATE is not a RISK (COVID-corticosteroids review, 2026-09-26 -- RECOVERY's
+        # "age-adjusted rate ratio, 0.83" was stored as a cumulative risk ratio and moved the analysis target from OR to RR).
+        scale = "IRR" if _RECURRENT_PERSONTIME.search(context or "") else "RATE_RATIO"
     elif "odds" in kind or kind == "or":
         scale = "OR"
     elif "hazard" in kind or kind == "hr":

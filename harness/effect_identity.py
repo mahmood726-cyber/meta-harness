@@ -227,24 +227,48 @@ _PAIR = __import__("re").compile(r"\(\s*(\d{1,6})\s*\[\s*(\d{1,3}(?:\.\d+)?)\s*%
 _ARM_N = r"(?:the\s+)?{term}\s+group\s*\(\s*n\s*=\s*(\d{{1,6}})\s*\)"
 
 
+# "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care" (RECOVERY)
+_ARM_N_ASSIGNED = r"(\d[\d,]*)\s+(?:patients\s+)?(?:were\s+)?(?:(?:randomly\s+)?assigned|randomi[sz]ed)?\s*to\s+(?:receive\s+)?{term}\b"
+# "482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group" (RECOVERY)
+_NAMED_PAIR = __import__("re").compile(
+    r"(\d[\d,]*)\s+(?:patients?|participants?)?\s*\((\d{1,3}(?:\.\d+)?)\s*%\)\s+in\s+the\s+([\w\s-]{1,40}?)\s+group\s+and\s+"
+    r"(\d[\d,]*)\s+(?:patients?|participants?)?\s*\((\d{1,3}(?:\.\d+)?)\s*%\)\s+in\s+the\s+([\w\s-]{1,40}?)\s+group", __import__("re").I)
+
+
 def _arm_n(abstract: str, terms: list[str]) -> int | None:
     import re as _re
     hits = set()
     for term in terms:
-        for m in _re.finditer(_ARM_N.format(term=_re.escape(term)), abstract or "", _re.I):
-            hits.add(int(m.group(1)))
+        for pat in (_ARM_N, _ARM_N_ASSIGNED):
+            for m in _re.finditer(pat.format(term=_re.escape(term)), abstract or "", _re.I):
+                hits.add(int(m.group(1).replace(",", "")))
     return hits.pop() if len(hits) == 1 else None
 
 
-def reconstruct_from_counts(row: dict[str, Any], abstract: str | None, interv: list[str], comp: list[str]) -> dict[str, Any] | None:
+def reconstruct_from_counts(row: dict[str, Any], abstract: str | None, interv: list[str], comp: list[str],
+                            measure: str = "RR") -> dict[str, Any] | None:
+    """Rebuild the TARGET measure (RR or OR) from held arm counts. Two sentence shapes: '(n [p%] vs n [p%])' after a named arm
+    (STEP), and 'n (p%) in the <arm> group and n (p%) in the <arm> group' (RECOVERY). Every count must reproduce its own stated
+    percentage; any failure returns a typed reason and the row stays as published."""
     import re as _re
     src = (row.get("source") or "").replace("·", ".")
-    m = _PAIR.search(src)
-    if not m:
-        return {"state": "NOT_RECONSTRUCTED", "why": "the effect's own sentence gives no 'n [p%] vs n [p%]' arm counts"}
-    a, pa, c, pc = int(m.group(1)), m.group(2), int(m.group(3)), m.group(4)     # percentages kept AS WRITTEN: their precision is the source's
-    first_is_interv = bool(_re.search("|".join(_re.escape(t) for t in interv), src[:m.start()], _re.I)) if interv else False
-    first_is_comp = bool(_re.search("|".join(_re.escape(t) for t in comp), src[:m.start()], _re.I)) if comp else False
+    side = lambda text: (("I" if interv and _re.search("|".join(_re.escape(t) for t in interv), text, _re.I) else "")
+                         + ("C" if comp and _re.search("|".join(_re.escape(t) for t in comp), text, _re.I) else ""))
+    nm = _NAMED_PAIR.search(src)
+    if nm:
+        s1, s2 = side(nm.group(3)), side(nm.group(6))
+        if {s1, s2} != {"I", "C"}:
+            return {"state": "NOT_RECONSTRUCTED", "why": f"the named groups ({nm.group(3)!r}, {nm.group(6)!r}) are not one intervention and "
+                    "one comparator arm in this topic's vocabulary"}
+        a, pa, c, pc = int(nm.group(1).replace(",", "")), nm.group(2), int(nm.group(4).replace(",", "")), nm.group(5)
+        first_is_interv, first_is_comp = s1 == "I", s1 == "C"
+    else:
+        m = _PAIR.search(src)
+        if not m:
+            return {"state": "NOT_RECONSTRUCTED", "why": "the effect's own sentence gives no arm counts with percentages"}
+        a, pa, c, pc = int(m.group(1)), m.group(2), int(m.group(3)), m.group(4)   # percentages kept AS WRITTEN: their precision is the source's
+        first_is_interv = bool(_re.search("|".join(_re.escape(t) for t in interv), src[:m.start()], _re.I)) if interv else False
+        first_is_comp = bool(_re.search("|".join(_re.escape(t) for t in comp), src[:m.start()], _re.I)) if comp else False
     if first_is_interv == first_is_comp:
         return {"state": "NOT_RECONSTRUCTED", "why": ("the sentence names " + ("both arms" if first_is_interv else "no arm this topic's vocabulary knows")
                 + " before the counts, so which count is which arm is not stated -- check the topic's intervention/comparator terms")}
@@ -256,11 +280,11 @@ def reconstruct_from_counts(row: dict[str, Any], abstract: str | None, interv: l
     dec = lambda p: len(p.split(".")[1]) if "." in p else 0
     if round(100 * ai / n_i, dec(p_i)) != float(p_i) or round(100 * ci / n_c, dec(p_c)) != float(p_c):
         return {"state": "NOT_RECONSTRUCTED", "why": f"a count does not reproduce its own stated percentage ({ai}/{n_i} vs {p_i}%, {ci}/{n_c} vs {p_c}%)"}
-    rr = counts_tuple(ai, n_i, ci, n_c, "RR")
+    rr = counts_tuple(ai, n_i, ci, n_c, measure)
     if rr is None:
         return {"state": "NOT_RECONSTRUCTED", "why": "a zero cell"}
-    return {"state": "RECONSTRUCTED", "derivation": "RECONSTRUCTED_FROM_COUNTS", "ai": ai, "n1i": n_i, "ci": ci, "n2i": n_c,
-            "rr": {k: round(v, 4) for k, v in rr.items()},
+    return {"state": "RECONSTRUCTED", "derivation": "RECONSTRUCTED_FROM_COUNTS", "measure": measure, "ai": ai, "n1i": n_i, "ci": ci, "n2i": n_c,
+            ("rr" if measure == "RR" else "or"): {k: round(v, 4) for k, v in rr.items()},
             "published_effect_retained": {k: row.get(k) for k in ("effect", "ci_low", "ci_high", "scale")},
             "corroboration": f"{ai}/{n_i} = {p_i}% and {ci}/{n_c} = {p_c}% as stated; denominators from the held randomisation sentence"}
 
@@ -272,3 +296,94 @@ _INSULIN = __import__("re").compile(r"(?i)(?:needing|requiring|required|treated\
 
 def definition_class(row: dict[str, Any]) -> str:
     return "INSULIN_REQUIRING" if _INSULIN.search(row.get("source") or "") else "DEFINITION_NOT_STATED_IN_QUOTATION"
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# (6) OUTCOME POLARITY (COVID-corticosteroids review): REMAP-CAP reports adjusted ORs oriented so that >1 = BENEFIT ("the odds of
+# improvement"). The ordered contrast must carry WHICH EVENT is modelled; a benefit-event effect entering a death / mortality pool
+# is inverted in meaning. It is refused (EVENT_POLARITY_MISMATCH) unless the outcome DECLARES the normalisation
+# (spec.polarity_normalisation.reciprocal_for_benefit_event: true), in which case the reciprocal is applied and recorded.
+_BENEFIT_EVENT = __import__("re").compile(
+    r"(?i)odds\s+of\s+(?:improvement|a\s+better\s+outcome|better\s+outcomes?|survival|being\s+alive|recovery)|"
+    r"(?:probabilit(?:y|ies)\s+of\s+)?superiority\s+with\s+regard\s+to\s+the\s+odds\s+of\s+improvement|"
+    r"odds\s+ratio\s+greater\s+than\s+1\s*\(?\s*(?:threshold\s+for\s+)?(?:trial\s+conclusion\s+of\s+)?superiority")
+_DEATH_EVENT = __import__("re").compile(r"(?i)\b(?:died|deaths?|mortality|dead)\b")
+_DEATH_OUTCOME = __import__("re").compile(r"(?i)\b(?:mortality|death|died|survival)\b")
+
+
+def event_modelled(text: str | None) -> str:
+    t = text or ""
+    if _BENEFIT_EVENT.search(t):
+        return "BENEFIT_EVENT"          # >1 favours the intervention
+    if _DEATH_EVENT.search(t):
+        return "DEATH"                  # <1 favours the intervention
+    return "NOT_STATED"
+
+
+def polarity_check(row: dict[str, Any], outcome_name: str | None, spec: dict[str, Any] | None) -> dict[str, Any] | None:
+    """None when the outcome is not a death outcome or the row states death. A benefit-event effect in a death pool is refused,
+    or -- only under a declared normalisation -- re-oriented by the reciprocal (CI ends swapped) with the original kept."""
+    if row.get("effect") is None or not _DEATH_OUTCOME.search(outcome_name or ""):
+        return None
+    ev = event_modelled(row.get("source"))
+    if ev != "BENEFIT_EVENT":
+        return {"event_modelled": ev, "state": "CONSISTENT" if ev == "DEATH" else "NOT_STATED"}
+    decl = ((spec or {}).get("polarity_normalisation") or {}).get("reciprocal_for_benefit_event") is True
+    if not decl:
+        return {"event_modelled": ev, "state": "EVENT_POLARITY_MISMATCH", "resolution": "HOLD",
+                "reason": ("the effect models a BENEFIT event (>1 favours the intervention) and this is a death outcome; pooled as it "
+                           "stands its direction is inverted. Refused: no declared polarity normalisation")}
+    e, lo, hi = float(row["effect"]), float(row["ci_low"]), float(row["ci_high"])
+    return {"event_modelled": ev, "state": "NORMALISED", "resolution": "RECIPROCAL_DECLARED",
+            "original": {"effect": e, "ci_low": lo, "ci_high": hi},
+            "normalised": {"effect": round(1 / e, 4), "ci_low": round(1 / hi, 4), "ci_high": round(1 / lo, 4)}}
+
+
+# (7) MULTI-ARM SHARED CONTROL (COVID-corticosteroids review): REMAP-CAP's two hydrocortisone strategies (41/137 fixed, 37/141
+# shock-dependent) share ONE control (33/99). Entered as two independent comparisons the control is counted twice. A DECLARED rule
+# (spec.multi_arm_rule) resolves it before pooling: COMBINE_ARMS (one comparison, experimental arms summed) or SPLIT_CONTROL (the
+# control's events and patients divided equally among the comparisons, Cochrane Handbook 23.3.4). Undeclared -> the group is HELD.
+def _family(t: dict[str, Any]) -> str:
+    return str(t.get("trial_family_id") or t.get("trial_id") or t.get("id") or "").split("#")[0]
+
+
+def multi_arm_groups(trials: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    by: dict[tuple, list] = {}
+    for t in trials:
+        if t.get("ai") is None or t.get("ci") is None:
+            continue
+        by.setdefault((_family(t), t.get("ci"), t.get("n2i")), []).append(t)
+    return [g for g in by.values() if len(g) >= 2]
+
+
+def apply_multi_arm_rule(trials: list[dict[str, Any]], spec: dict[str, Any] | None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Returns (trials to pool, held records). Rows outside any shared-control group pass through unchanged."""
+    rule = str((spec or {}).get("multi_arm_rule") or "").upper()
+    groups = multi_arm_groups(trials)
+    if not groups:
+        return trials, []
+    grouped = {id(t) for g in groups for t in g}
+    out = [t for t in trials if id(t) not in grouped]
+    held = []
+    for g in groups:
+        k = len(g)
+        shared = {"ci": g[0]["ci"], "n2i": g[0]["n2i"]}
+        record = {"rule": rule or None, "arms": [{"id": t.get("id"), "label": t.get("label"), "ai": t["ai"], "n1i": t["n1i"]} for t in g],
+                  "shared_control": shared}
+        if rule == "COMBINE_ARMS":
+            row = dict(g[0])
+            row.update(ai=sum(t["ai"] for t in g), n1i=sum(t["n1i"] for t in g), multi_arm=dict(record, applied="COMBINE_ARMS"))
+            out.append(row)
+        elif rule == "SPLIT_CONTROL":
+            for t in g:
+                r = dict(t)
+                r.update(ci=shared["ci"] / k, n2i=shared["n2i"] / k, multi_arm=dict(record, applied="SPLIT_CONTROL", split_into=k))
+                out.append(r)
+        else:
+            held.append({"label": g[0].get("label"), "id": g[0].get("id"), "absent_kind": "machine_absent",
+                         "state": "MULTI_ARM_SHARED_CONTROL_UNDECLARED", "reason_code": "MULTI_ARM_SHARED_CONTROL_UNDECLARED",
+                         "endpoint_admissibility": "MULTI_ARM_SHARED_CONTROL_UNDECLARED", "multi_arm": record,
+                         "reason": (f"{k} comparisons share one control ({shared['ci']}/{shared['n2i']}); entered independently the "
+                                    "control would be counted {k} times. Held until the outcome declares multi_arm_rule "
+                                    "(COMBINE_ARMS or SPLIT_CONTROL)").replace("{k}", str(k))})
+    return out, held
