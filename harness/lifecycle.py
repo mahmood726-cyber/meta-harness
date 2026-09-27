@@ -32,8 +32,13 @@ def lifecycle(row: dict[str, Any] | None, source_date: str | None,
     row = row or {}
     status = str(row.get("overall_status") or "").upper().strip()
     comp = str(row.get("completion_date") or "").strip()[:10]
+    dtype = str(row.get("completion_date_type") or "").upper()
     if not comp:
         pva = "UNKNOWN"
+    elif dtype in ("ESTIMATED", "ANTICIPATED"):
+        pva = "PLANNED"            # the registry itself says the date is a plan, whatever the calendar says
+    elif dtype == "ACTUAL":
+        pva = "ACTUAL"
     elif source_date and comp > str(source_date)[:10]:
         pva = "PLANNED"
     elif source_date:

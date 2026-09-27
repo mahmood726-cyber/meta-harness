@@ -2322,6 +2322,9 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import source_coverage as source_coverage_mod
     source_coverage_mod.attach(review, rec_by_id)
     result_status_mod.derive(review, {s.get("name"): list(s.get("keywords") or []) for s, _k in _outcome_specs(config)})
+    # COMPLETENESS PER OUTCOME, from the derived row states and the typed lifecycles (never a topic-wide count)
+    from . import completeness as completeness_mod
+    completeness_mod.attach(review, slug)
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

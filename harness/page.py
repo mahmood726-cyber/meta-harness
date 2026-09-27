@@ -1275,6 +1275,16 @@ def _screening(r, neutral):
                  f"<p class='note'><strong>Search limitation:</strong> {_e(sdec.get('search_limitation'))}</p>"
                  "<table class='recs'><tr><th>Trial</th><th>Decision</th><th>Protocol rules (verbatim) and source</th>"
                  "<th>Outcome scope</th></tr>" + srows + "</table>")
+    cbo = r.get("completeness_by_outcome") or []
+    if cbo:
+        # completeness is a claim about ONE outcome; a trial that cannot yet report makes it PROVISIONAL, not incomplete
+        crow = "".join(
+            f"<tr data-completeness='{_e(c['claim'])}'><td>{_e(c['outcome'])}</td><td><code>{_e(c['claim'])}</code></td><td>"
+            + "<br>".join(f"{_e(f['family'])}: <code>{_e(f['state'])}</code> <span class='muted'>{_e(f['basis'])}</span>"
+                          for f in c["families"]) + "</td></tr>" for c in cbo)
+        flow += ("<h4>Completeness, per outcome</h4>"
+                 "<table class='recs'><tr><th>Outcome</th><th>Claim</th><th>Every eligible family and why it is (not) in the pool</th></tr>"
+                 + crow + "</table>")
     pc = r.get("protocol_clarifications")
     if pc:
         # a RETROSPECTIVE protocol clarification: the verbatim messages, who sent them and how they arrived, and the

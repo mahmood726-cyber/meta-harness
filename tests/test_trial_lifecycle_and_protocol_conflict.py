@@ -58,6 +58,20 @@ def test_a_future_planned_completion_never_yields_completed(status, completion, 
     assert lc["state"] != "COMPLETED" or completion <= "2026-08-30"
 
 
+def test_a_registry_declared_date_type_outranks_the_source_date_comparison():
+    # FIVE-STAR (NCT05887817): completion 2026-07-31 typed ESTIMATED, status UNKNOWN (last verified 2024-02). The date
+    # is before the source date, but the registry itself says it is a plan: PLANNED, never ACTUAL, never COMPLETED.
+    lc = _lc().lifecycle({"overall_status": "UNKNOWN", "completion_date": "2026-07-31", "completion_date_type": "ESTIMATED"},
+                         source_date="2026-09-27")
+    assert lc["planned_vs_actual_completion"]["value"] == "PLANNED" and lc["state"] == "UNKNOWN"
+    lc = _lc().lifecycle({"overall_status": "COMPLETED", "completion_date": "2026-07-31", "completion_date_type": "ESTIMATED"},
+                         source_date="2026-09-27")
+    assert lc["state"] == "CONFLICT"
+    lc = _lc().lifecycle({"overall_status": "COMPLETED", "completion_date": "2025-03-17", "completion_date_type": "ACTUAL"},
+                         source_date="2026-09-27")
+    assert lc["state"] == "COMPLETED" and lc["planned_vs_actual_completion"]["value"] == "ACTUAL"
+
+
 def test_completeness_state_is_derived_from_the_lifecycle():
     lc = _lc()
     assert lc.completeness_state({"state": "ONGOING"}, has_results=False) == "eligible+ongoing"

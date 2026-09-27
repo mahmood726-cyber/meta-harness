@@ -59,8 +59,11 @@ def _verified(root: str, field: dict[str, Any] | None) -> dict[str, Any] | None:
 
 
 def _active(text: str, agents) -> list[str]:
-    """Intervention agents NAMED AS GIVEN in a comparator ('standard dexamethasone'), not negated ('no corticosteroid')."""
-    return [a for a in _terms_in(text, agents)
+    """Intervention agents NAMED AS GIVEN in a comparator ('standard dexamethasone'), not negated ('no corticosteroid'),
+    and not a placebo component ('Finerenone placebo', 'placebo for finerenone' -- harness.arm_pairs)."""
+    from .arm_pairs import parse_arm
+    given = " ; ".join(parse_arm(text or "")["active"]) if re.search(r"placebo", text or "", re.I) else (text or "")
+    return [a for a in _terms_in(given, agents)
             if not re.search(r"\b(?:no|without|non-?)\s*" + re.escape(a.lower()), (text or "").lower())]
 
 
@@ -111,6 +114,16 @@ def evaluate(root: str, comp: dict[str, Any], config: dict[str, Any]) -> dict[st
                                             f"({', '.join(active)}), not {ca}")})
     elif cmp_ and ca and not _terms_in(cmp_.get("text"), ca):      # no witnessed comparator: not assessed, not failed
         fails.append({"rule": "X3", "why": f"comparator {cmp_.get('text')!r} is none of {ca}"})
+    ap = comp.get("arm_pair")
+    contrast_ = None
+    if ap:
+        # a multi-arm (double-dummy) trial: THIS pair of arms, judged on what the two arms differ in (harness.arm_pairs)
+        from .arm_pairs import judge
+        ex_t = (_verified(root, ap.get("experimental")) or {}).get("text")
+        cp_t = (_verified(root, ap.get("comparator")) or {}).get("text")
+        j = judge(ex_t or "", cp_t or "", list(config.get("intervention_agents") or inc.get("intervention_any") or []))
+        fails.extend(j["fails"])
+        contrast_ = j["contrast"]
     prim = config.get("primary_outcome") or {}
     want = _days(prim.get("timepoint"))
     tp = comp.get("primary_timepoint") or {}
@@ -136,7 +149,8 @@ def evaluate(root: str, comp: dict[str, Any], config: dict[str, Any]) -> dict[st
             "eligibility": state, "fails": fails, "pending_decisions": pending,
             "primary_pool_eligibility": pool, "primary_pool_pending": pending + pool_pending,
             "result_state": (comp.get("result") or {}).get("state"),
-            "result_basis": (comp.get("result") or {}).get("basis")}
+            "result_basis": (comp.get("result") or {}).get("basis"),
+            **({"arm_contrast": contrast_} if contrast_ else {})}
 
 
 def _family_for(rec: dict[str, Any], fams: list[dict[str, Any]]) -> dict[str, Any] | None:

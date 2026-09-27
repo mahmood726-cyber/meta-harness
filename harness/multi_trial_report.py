@@ -66,6 +66,7 @@ def resolve(root: str, config: dict[str, Any]) -> list[dict[str, Any]]:
                     else:
                         _verified(root, {"witness": w})
         trials = [{"label": t["label"], "registration": t["registration"], "n_randomised": t.get("n_randomised"),
+                   **({"reports": t["reports"]} if t.get("reports") else {}),
                    "population": (_verified(root, t.get("population")) or {}).get("text"),
                    **_relevance(root, t, config),
                    **({"registry_results": t["registry_results"]} if t.get("registry_results") else {})}
@@ -121,6 +122,8 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
         combined_labels = [c.get("label") for c in r.get("combined_analyses") or [] if c.get("label")]
         not_relevant = {t["registration"] for t in r["trials"] if not t["relevant"]}
         linked = {t["registration"] for t in r["trials"]}
+        # a trial's own report PMIDs link its rows too (rows are often keyed by PMID, not by registration)
+        linked_rows = linked | {_pid(p) for t in r["trials"] for p in t.get("reports") or []}
         for f in review.get("trial_families") or []:
             mtr = f.get("multi_trial_report")
             if mtr and mtr.get("report_id") == r["report_id"] and set([_nct(f.get("family_id"))] + mtr.get("shared_with", [])) != linked:
@@ -129,12 +132,12 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
         for o in review.get("outcomes") or []:
             for t in o.get("trials") or []:
                 ids = {_nct(t.get("id")), _nct(t.get("nct")), _pid(t.get("id"))}
-                if not (ids & (linked | {_pid(r["report_id"])})):
+                if not (ids & (linked_rows | {_pid(r["report_id"])})):
                     continue
                 n = (t.get("n1i") or 0) + (t.get("n2i") or 0)
                 src = str(t.get("source") or "")
                 if (n and n in combined_n) or any(lbl and lbl in src for lbl in combined_labels) or \
-                        (_pid(t.get("id")) == _pid(r["report_id"]) and not (ids & linked)):
+                        (_pid(t.get("id")) == _pid(r["report_id"]) and not (ids & linked_rows)):
                     out.append({"kind": "COMBINED_POPULATION_IMPORTED", "report_id": _pid(r["report_id"]),
                                 "detail": f"{o.get('name')}: {t.get('id')} carries the combined population of {r['report_id']}"})
                 if ids & not_relevant:
