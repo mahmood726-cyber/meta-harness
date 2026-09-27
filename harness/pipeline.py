@@ -15,6 +15,7 @@ import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import outcome_tiers as outcome_tiers_mod
+from . import composite_rule as composite_rule_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -2266,6 +2267,18 @@ def build_review_core(slug, config, records, protocol_sha):
         if not _trials:
             continue
         _t = outcome_tiers_mod.tiers(_o, _trials, _spec_by_name.get(_o.get("name")))
+        # ONE component rule for admitted and composite-refused rows alike (colchicine-secondary review, 2026-09-26)
+        _abs = {str(k): (v or {}).get("abstract", "") for k, v in rec_by_id.items()}
+        _cc = outcome_tiers_mod.composite_compatibility(_o, _trials, _spec_by_name.get(_o.get("name")) or {}, _abs,
+                                                        outcome_tiers_mod.refusals_for(ROOT, slug) if _o.get("primary") else None)
+        if _cc:
+            _o["composite_compatibility"] = _cc
+            if _cc["policy_declared"] and _t["primary"].get("state") in ("POLICY_APPLIED", "NO_POLICY_DECLARED"):
+                _ok = {str(x["id"]) for x in _cc["rows"] if x["served"] == "ADMITTED" and x["state"] == "PRIMARY"}
+                _base = _t["primary"]["trials"] if _t["primary"].get("state") == "POLICY_APPLIED" else [str(t.get("id") or t.get("label")) for t in _trials]
+                _keep = [i for i in _base if i in _ok]
+                _t["primary"] = {**_t["primary"], "tier": "PRIMARY", "state": "POLICY_APPLIED" if _keep else "NO_INPUT_SATISFIES_POLICY",
+                                 "trials": _keep, "composite_policy": composite_rule_mod.policy(_spec_by_name.get(_o.get("name")))}
         _pt = _t["primary"]
         if _pt.get("state") == "POLICY_APPLIED" and isinstance(_o.get("result"), dict) and _o["result"].get("estimate") is not None:
             _keep = set(_pt["trials"])

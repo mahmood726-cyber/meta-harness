@@ -19,7 +19,10 @@ A trial can be eligible without every result entering the primary pool: eligibil
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
+
+from . import composite_rule
 
 DIMENSIONS = ("follow_up_window", "analysis_set", "endpoint_definition")
 COPIED_SOURCES = {"outcome.timepoint", "outcome.name", "outcome.population", "study_effect.analysis_population"}
@@ -114,3 +117,85 @@ def tiers(outcome: dict[str, Any], trials: list[dict[str, Any]], spec: dict[str,
                 "excluded": excluded, "policy": {k: v for k, v in pol.items() if k != "constrained"}}
     return {"derived_label": derived_label(outcome, dims), "primary": prim, "exploratory": expl,
             "per_input": {i: x for i, x in zip(ids, dims)}}
+
+
+_DEF_SENTENCE = re.compile(r"(?i)\bprimary\s+(?:efficacy\s+|composite\s+)?(?:end\s?point|outcome)\s+(?:was|is)\s+(?:a\s+|the\s+)?composite\s+of\b")
+_PMID = re.compile(r"PMID\s*(\d{6,9})")
+
+
+def definition_text(pid: str, abstract: str | None, row: dict[str, Any] | None = None) -> tuple[str | None, str]:
+    """The definition of the result that was POOLED (or refused). An admitted row: its own served components / definition span
+    first -- the pooled outcome is not always the trial's primary composite (spironolactone pools all-cause mortality, not
+    EMPHASIS's primary composite). The held abstract's "primary ... was a composite of" sentence is used for a refused row (whose
+    refusal cites that composite) and for an admitted row only when its own result quotation says it is the PRIMARY outcome."""
+    if row:
+        comps = row.get("target_endpoint_components") or row.get("components")
+        if isinstance(comps, list) and comps:
+            return ", ".join(map(str, comps)), "row served components"
+        if row.get("endpoint_definition_span"):
+            return row["endpoint_definition_span"], "row endpoint_definition_span"
+        if not re.search(r"(?i)primary", str(row.get("source") or "")):
+            return None, "row carries no definition, and its result is not stated to be the trial's primary outcome"
+    for sent in re.split(r"(?<=[.])\s+(?=[A-Z])", abstract or ""):
+        if _DEF_SENTENCE.search(sent):
+            return sent, "held abstract definition sentence"
+    return None, "none"
+
+
+_MACE_NAME = re.compile(r"(?i)major\s+adverse\s+cardio|MACE|major\s+(?:coronary|cardiovascular|vascular)\s+(?:events?|composite)|coronary/cardiovascular\s+composite")
+
+
+def core_for(spec: dict[str, Any] | None, outcome: dict[str, Any]) -> list[str] | None:
+    """The core a row is compared with: a policy's core; the outcome's declared components; 3-point ONLY for a MACE-type outcome.
+    Anything else has no declared core and is not judged (a heart-failure composite is not measured against MACE)."""
+    pol = composite_rule.policy(spec)
+    if pol:
+        return pol["core"]
+    declared = composite_rule.components(", ".join(map(str, (spec or {}).get("canonical_components") or [])))
+    if declared:
+        return declared
+    return list(composite_rule.DEFAULT_CORE) if _MACE_NAME.search(str(outcome.get("name") or "")) else None
+
+
+def composite_compatibility(outcome: dict[str, Any], trials: list[dict[str, Any]], spec: dict[str, Any] | None,
+                            abstracts: dict[str, str], refusals: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """ONE rule (composite_rule.verdict) over the ADMITTED rows and the rows REFUSED for a composite reason. Reports every row
+    whose served admission differs from the rule, and any composite refusal the rule treats exactly like an admitted row."""
+    core = core_for(spec, outcome)
+    if core is None:
+        return None                                                    # no declared core: nothing to judge against
+    rows = []
+    for t in trials:
+        pid = str(t.get("id") or "").replace("PMID ", "")
+        text, where = definition_text(pid, abstracts.get(pid), t)
+        rows.append({"id": t.get("id"), "served": "ADMITTED", "definition_from": where, **composite_rule.verdict(text, spec, core)})
+    for r in refusals or []:
+        reason = str(r.get("not_pooled_because") or r.get("reason") or "")
+        if "composite" not in reason.lower():
+            continue
+        m = _PMID.search(str(r.get("trial") or ""))
+        pid = m.group(1) if m else None
+        text, where = definition_text(pid or "", abstracts.get(pid or ""), None)
+        rows.append({"id": f"PMID {pid}" if pid else r.get("trial"), "served": "REFUSED", "refusal_reason": reason, "definition_from": where,
+                     **composite_rule.verdict(text, spec, core)})
+    judged = [x for x in rows if x["state"] != "NO_DEFINITION"]
+    if not judged or all(len(x["components"]) < 2 for x in judged):
+        return None                                                    # not a composite outcome
+    for x in rows:
+        x["admission_changes"] = x["state"] != "NO_DEFINITION" and ((x["served"] == "ADMITTED") != (x["state"] == "PRIMARY"))
+    admitted_states = {x["state"] for x in rows if x["served"] == "ADMITTED"}
+    inconsistent = [x["id"] for x in rows if x["served"] == "REFUSED" and x["state"] in admitted_states]
+    return {"rule": "composite_rule.verdict (one rule; admitted and refused rows alike; definitions only, never an effect)",
+            "policy_declared": bool(composite_rule.policy(spec)), "rows": rows,
+            "admission_changes": [x["id"] for x in rows if x["admission_changes"]],
+            "refusals_judged_like_an_admitted_row": inconsistent}
+
+
+def refusals_for(root, slug: str) -> list[dict[str, Any]] | None:
+    """The topic's hand-recorded VERIFIED-BUT-NOT-POOLED refusals (docs/refusals.json), the same file census reads."""
+    import os
+    p = os.path.join(str(root), "docs", "refusals.json")
+    try:
+        return (json.load(open(p, encoding="utf-8")) or {}).get(slug)
+    except (OSError, ValueError):
+        return None
