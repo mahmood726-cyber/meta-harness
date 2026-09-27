@@ -87,6 +87,12 @@ def _pid(x) -> str:
     return m.group(1) if m else ""
 
 
+def _fam_ncts(f: dict[str, Any]) -> set[str]:
+    """A family's registrations: its id when that is an NCT, and every member report that is one. The family id is the
+    identity module's key -- the trial ACRONYM where there is one -- so it is never parsed for an NCT alone."""
+    return {x for x in [_nct(f.get("family_id"))] + [_nct(r.get("report_id")) for r in f.get("reports") or []] if x}
+
+
 def attach(review: dict[str, Any], config: dict[str, Any], root: str = _ROOT) -> None:
     """review['multi_trial_reports'] for any declared report touching this review, and the report link on each
     registration's family object and absent/pooled rows."""
@@ -95,7 +101,7 @@ def attach(review: dict[str, Any], config: dict[str, Any], root: str = _ROOT) ->
         for t in (o.get("trials") or []) + (o.get("declared_absent_trials") or []):
             regs.add(_nct(t.get("id")) or _nct(t.get("nct")))
     for f in review.get("trial_families") or []:
-        regs.add(_nct(f.get("family_id")))
+        regs |= _fam_ncts(f)
     rel = [r for r in resolve(root, config) if any(t["registration"] in regs for t in r["trials"])]
     if not rel:
         return
@@ -106,8 +112,8 @@ def attach(review: dict[str, Any], config: dict[str, Any], root: str = _ROOT) ->
             link = {"report_id": r["report_id"], "shared_with": [s for s in shared if s != t["registration"]],
                     "relevant_to_this_review": t["relevant"], "basis": t["basis"]}
             for f in review.get("trial_families") or []:
-                if _nct(f.get("family_id")) == t["registration"]:
-                    f["multi_trial_report"] = link
+                if t["registration"] in _fam_ncts(f):
+                    f["multi_trial_report"] = {**link, "registration": t["registration"]}
             for o in review.get("outcomes") or []:
                 for row in (o.get("trials") or []) + (o.get("declared_absent_trials") or []):
                     if (_nct(row.get("id")) or _nct(row.get("nct"))) == t["registration"]:
@@ -126,7 +132,8 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
         linked_rows = linked | {_pid(p) for t in r["trials"] for p in t.get("reports") or []}
         for f in review.get("trial_families") or []:
             mtr = f.get("multi_trial_report")
-            if mtr and mtr.get("report_id") == r["report_id"] and set([_nct(f.get("family_id"))] + mtr.get("shared_with", [])) != linked:
+            if mtr and mtr.get("report_id") == r["report_id"] and set([mtr.get("registration") or _nct(f.get("family_id"))]
+                                                                      + mtr.get("shared_with", [])) != linked:
                 out.append({"kind": "REPORT_TRIAL_UNLINKED", "report_id": _pid(r["report_id"]),
                             "detail": f"{r['report_id']} is linked to {mtr.get('shared_with')} from {f.get('family_id')}, not to all of {sorted(linked)}"})
         for o in review.get("outcomes") or []:

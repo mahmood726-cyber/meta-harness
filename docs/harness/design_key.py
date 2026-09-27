@@ -96,16 +96,30 @@ def display_name(trial: dict[str, Any]) -> str:
     return _KNOWN_NAMES.get(pid) or str(trial.get("label") or trial.get("id") or pid)
 
 
+def _merge_design(out: dict[str, dict[str, Any]], nct: str, row: dict[str, Any]) -> None:
+    """Add a design row's fields to the trial's design view WITHOUT touching its identity. A design row's own `id` is
+    its database row id (AACT designs.id, e.g. 227983957), not the trial's: it is kept as `design_row_id`. (It used to
+    be merged over the SHARED CT.gov record object, so every NCT record lost its NCT id from here on in the build --
+    EMPA-PRED's AACT dates were then never found, and an empty status defaulted to 'completed'.)"""
+    cur = out.setdefault(nct, {"id": nct})
+    for k, v in row.items():
+        if k in ("id", "id_type"):
+            continue
+        cur[k] = v
+    if row.get("id") and str(row.get("id")).upper() != nct:
+        cur["design_row_id"] = str(row["id"])
+
+
 def registry_designs(records: dict[str, Any]) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for row in records.get("ctgov") or []:
         nct = str(row.get("id") or row.get("nct_id") or "").upper()
         if nct:
-            out[nct] = row
+            out[nct] = dict(row)          # a COPY: the CT.gov record object is shared with the rest of the build
     for row in records.get("designs") or []:
         nct = str(row.get("nct_id") or row.get("id") or "").upper()
         if nct:
-            out.setdefault(nct, {}).update(row)
+            _merge_design(out, nct, row)
     slug = records.get("slug")
     if slug:
         path = os.path.join(ROOT, "cache", str(slug), "registry_designs.json")
@@ -117,7 +131,7 @@ def registry_designs(records: dict[str, Any]) -> dict[str, dict[str, Any]]:
             for nct, row in cached.items():
                 key = str(nct or "").upper()
                 if key and isinstance(row, dict):
-                    out.setdefault(key, {}).update(row)
+                    _merge_design(out, key, row)
     return out
 
 

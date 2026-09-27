@@ -104,14 +104,29 @@ def test_real_review_reproduces_and_passes_full_gate():
     # outside the repo (no docs/reviews present).
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    # glp1-ra-mace-t2d: a real committed page with no result-change notice pending a countersignature. (noac's
-    # major-bleeding outcome carries a notice held OPEN until the reviewer signs it -- a designed hold, not a
-    # broken page -- so it cannot be the "passes the whole gate" control while unsigned.)
-    d = _os.path.join(root, "docs", "reviews", "glp1-ra-mace-t2d")
-    if not _os.path.isdir(d):
+    # The control is chosen BY ITS PROPERTY, never by name: a named page retires itself the day a result-change
+    # notice lands on it (glp1-ra-mace-t2d was this control until PIONEER 6's discontinuation row put an OPEN
+    # notice -- a designed hold -- on it, 2026-09-27; noac before it). The first real page, in slug order, with no
+    # OPEN notice and no incomplete harms outcome must pass the WHOLE gate, replay included.
+    import json as _json
+    rev = _os.path.join(root, "docs", "reviews")
+    if not _os.path.isdir(rev):
         return
+    notices = _json.load(open(_os.path.join(root, "docs", "result_changes.json"), encoding="utf-8"))["notices"]
+    held = {n["slug"] for n in notices if (n.get("reviewer_countersignature") or {}).get("state") == "OPEN"}
+    candidates = []
+    for slug in sorted(_os.listdir(rev)):
+        p = _os.path.join(rev, slug, "review.json")
+        if slug in held or not _os.path.isfile(p):
+            continue
+        r = _json.load(open(p, encoding="utf-8"))
+        if any((o.get("result") or {}).get("harms_incomplete") for o in r.get("outcomes") or []):
+            continue
+        candidates.append(slug)
+    assert candidates, "no committed page is free of designed holds: the control has nothing to test"
+    d = _os.path.join(rev, candidates[0])
     ok, reasons = gate_page(d)
-    assert ok, f"real committed review must pass the full gate, got: {reasons}"
+    assert ok, f"real committed review {candidates[0]} must pass the full gate, got: {reasons}"
 
 
 def test_synthetic_harms_incomplete_refuses_full_gate():

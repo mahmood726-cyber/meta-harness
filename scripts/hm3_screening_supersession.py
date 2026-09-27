@@ -37,10 +37,17 @@ def main():
         if set(b) != set(a):
             raise SystemExit(f"REFUSED: {slug}: the set of screened records changed ({sorted(set(a) ^ set(b))[:5]}); "
                              "a screening-roles landing changes decisions, never the screened population")
-        changed = {rid: {"before": {k: b[rid].get(k) for k in ("decision", "rule_id", "reason")},
-                         "after": {k: a[rid].get(k) for k in ("decision", "rule_id", "reason")},
-                         "other_fields_unchanged": {k: v for k, v in b[rid].items() if k not in ("decision", "rule_id", "reason")}
-                         == {k: v for k, v in a[rid].items() if k not in ("decision", "rule_id", "reason")}}
+        dk = ("decision", "rule_id", "reason")
+
+        def other(rid):
+            # EVERY other field that differs, named with its before and after value (a bare 'changed' flag would let any
+            # field move unseen once a row is declared); tests/test_hm3_pages.py requires exactly these
+            ks = sorted((set(b[rid]) | set(a[rid])) - set(dk))
+            return {k: [b[rid].get(k), a[rid].get(k)] for k in ks if b[rid].get(k) != a[rid].get(k)}
+        changed = {rid: {"before": {k: b[rid].get(k) for k in dk},
+                         "after": {k: a[rid].get(k) for k in dk},
+                         "other_fields_unchanged": not other(rid),
+                         **({"other_fields_changed": other(rid)} if other(rid) else {})}
                    for rid in sorted(b) if b[rid] != a[rid]}
         harms = {}
         for d in decisions:
@@ -64,7 +71,14 @@ def main():
                       "X-NO-RESULTS. A secondary report newly screened in can make a harms outcome HARMS_INCOMPLETE when "
                       "it reports that harm and is not yet extracted. V1.0.1 acquisition cascade: platform / multi-comparison "
                       "registrations are screened per comparison (REMAP-CAP awaits classification instead of X2 on its "
-                      "registration's COVID label); a decided harm row is superseded where the cascade bound the result."),
+                      "registration's COVID label); a decided harm row is superseded where the cascade bound the result. "
+                      "Record-identity fix (2026-09-27): the registry-design merge had overwritten every registration "
+                      "record's NCT id with the AACT design row id, so identity lookups failed and fell back to the row "
+                      "id -- trial_family_id now follows the identity module's own key (the trial acronym where there is "
+                      "one), which also re-joins a registration to its publication; registrations carry a typed lifecycle "
+                      "(planned vs actual completion); a published report reads completed with results whatever its "
+                      "registry status; registrations whose registry masking or dose contradicts the protocol are held "
+                      "awaiting classification (A-PROTOCOL-CONFLICT)."),
            "pages": pages}
     open(os.path.join(EV, "screening_roles_supersession.json"), "w", encoding="utf-8", newline="\n").write(
         json.dumps(out, indent=1, ensure_ascii=False) + "\n")

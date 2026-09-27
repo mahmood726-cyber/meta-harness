@@ -897,8 +897,16 @@ def _completeness_for_record(rec, dates, source_date=None):
     d = (dates.get(nct or "") if nct else None) or {}
     has_results = bool((rec or {}).get("has_results") or d.get("results_first_posted_date"))
     if (rec or {}).get("id_type") == "pmid":
-        return {"completeness_state": "eligible+completed+results_available",
-                "completeness_basis": "a published report of the trial"}
+        # a publication IS a report: results available, whatever the registry's status says (a trial still in
+        # follow-up can have published). Its held registry row, when there is one, is still shown.
+        out = {"completeness_state": "eligible+completed+results_available",
+               "completeness_basis": ("a published report of the trial; registry status/dates from the held AACT snapshot"
+                                      if d else "a published report of the trial")}
+        if d:
+            out.update(registry_status=str(d.get("overall_status") or "").upper() or None,
+                       completion_date=d.get("completion_date") or None,
+                       results_first_posted_date=d.get("results_first_posted_date") or None)
+        return out
     row = d or {"overall_status": (rec or {}).get("overall_status") or (rec or {}).get("status"),
                 "completion_date": (rec or {}).get("completion_date")}
     lc = lifecycle_mod.lifecycle(row, source_date if d else None,

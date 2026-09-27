@@ -1275,6 +1275,37 @@ def _screening(r, neutral):
                  f"<p class='note'><strong>Search limitation:</strong> {_e(sdec.get('search_limitation'))}</p>"
                  "<table class='recs'><tr><th>Trial</th><th>Decision</th><th>Protocol rules (verbatim) and source</th>"
                  "<th>Outcome scope</th></tr>" + srows + "</table>")
+    cbo = r.get("completeness_by_outcome") or []
+    if cbo:
+        # completeness is a claim about ONE outcome; a trial that cannot yet report makes it PROVISIONAL, not incomplete
+        crow = "".join(
+            f"<tr data-completeness='{_e(c['claim'])}'><td>{_e(c['outcome'])}</td><td><code>{_e(c['claim'])}</code></td><td>"
+            + "<br>".join(f"{_e(f['family'])}: <code>{_e(f['state'])}</code> <span class='muted'>{_e(f['basis'])}</span>"
+                          for f in c["families"]) + "</td></tr>" for c in cbo)
+        flow += ("<h4>Completeness, per outcome</h4>"
+                 "<table class='recs'><tr><th>Outcome</th><th>Claim</th><th>Every eligible family and why it is (not) in the pool</th></tr>"
+                 + crow + "</table>")
+    pc = r.get("protocol_clarifications")
+    if pc:
+        # a RETROSPECTIVE protocol clarification: the verbatim messages, who sent them and how they arrived, and the
+        # explicit eligibility field each trial carries (with its own source span)
+        cl = pc["clarification"]
+        msgs = "".join(f"<li data-clarification-msg='{_e(m.get('status'))}'>&ldquo;{_e(m.get('verbatim'))}&rdquo; &mdash; "
+                       f"{_e(m.get('by'))}, via {_e(m.get('how_it_reached_the_reviewer'))} <code>{_e(m.get('status'))}</code>"
+                       f"<br><span class='muted'>{_e(m.get('reading') or m.get('literal_reading'))}</span></li>"
+                       for m in cl.get("messages") or [])
+        trs = "".join(f"<tr data-eligibility-field='{_e(t['value'])}'><td>{_e(t['trial'])}</td><td><code>{_e(t['value'])}</code><br>"
+                      f"<span class='muted'>{_e(t['meaning'])}</span></td><td>"
+                      + "<br>".join(f"&ldquo;{_e(s)}&rdquo;" for s in t["witnesses"])
+                      + (f"<br><strong>{_e(t['other_rule_conflict']['state'])}</strong>: {_e(t['other_rule_conflict']['why_pending'])}"
+                         if t.get("other_rule_conflict") else "") + "</td></tr>" for t in pc["trials"])
+        sa = pc.get("sensitivity_analysis") or {}
+        flow += (f"<h4>Protocol clarification ({_e(cl.get('label'))})</h4>"
+                 f"<p class='note'><strong>{_e(cl.get('kind'))}</strong> of &ldquo;{_e(pc.get('clarifies_span'))}&rdquo;, "
+                 f"implemented as the eligibility field <code>{_e(cl.get('field'))}</code>, never a keyword.</p><ul>{msgs}</ul>"
+                 "<table class='recs'><tr><th>Trial</th><th>Field value</th><th>Source (verbatim)</th></tr>" + trs + "</table>"
+                 f"<p class='muted'>Sensitivity analysis {_e(sa.get('id'))}: {_e(sa.get('description'))}; members: "
+                 f"{_e(', '.join(sa.get('members') or []) or 'none')}.</p>")
     for mtr in r.get("multi_trial_reports") or []:
         # one article, several registered trials: each trial judged on its own population; combined analyses never used
         trows = "".join(
@@ -1284,6 +1315,18 @@ def _screening(r, neutral):
             f"<td>{_e(((t.get('registry_results') or {}).get('state')) or '')}"
             + "".join(f"<br><span class='muted'>{_e(k.replace('_', ' '))}: {_e(v)}</span>"
                       for k, v in sorted(((t.get('registry_results') or {}).get('findings') or {}).items()))
+            + "".join(f"<br><span data-mtr-outcome-state='{_e(v.get('state'))}'>{_e(k)}: <code>{_e(v.get('state'))}</code> "
+                      f"&mdash; {_e(v.get('basis'))} (coverage: {_e(v.get('coverage'))})</span>"
+                      for k, v in sorted(((t.get('registry_results') or {}).get('per_outcome') or {}).items()))
+            + (("<br><strong>Exploratory harms</strong> <span class='muted'>("
+                + _e(((t.get('registry_results') or {}).get('exploratory_harms') or {}).get('_policy')) + ")</span>"
+                + "".join(f"<br><span data-mtr-exploratory='{_e(x.get('state'))}'>{_e(x.get('outcome'))}: <code>{_e(x.get('state'))}</code> "
+                          + (f"{_e(x['values'].get('ai'))}/{_e(x['values'].get('n1i'))} vs {_e(x['values'].get('ci'))}/{_e(x['values'].get('n2i'))} "
+                             f"({_e(x.get('arm_order'))}; {_e(x.get('timeframe'))})" if x.get('values') else _e(x.get('why')))
+                          + "</span>"
+                          for x in sorted((((t.get('registry_results') or {}).get('exploratory_harms') or {}).get('rows') or []),
+                                          key=lambda y: str(y.get('outcome')))))
+               if ((t.get('registry_results') or {}).get('exploratory_harms') or {}).get('rows') else "")
             + "</td></tr>" for t in mtr.get("trials") or [])
         comb = "; ".join(f"{_e(c.get('label'))} (n={_e(c.get('n'))}): {_e(c.get('policy'))}" for c in mtr.get("combined_analyses") or [])
         flow += (f"<h4>One article, several trials: {_e(mtr.get('report_id'))}</h4>"

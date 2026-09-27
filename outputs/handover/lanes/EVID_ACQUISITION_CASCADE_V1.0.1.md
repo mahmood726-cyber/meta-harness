@@ -459,3 +459,76 @@ create was deleted).
   override. The sandbox stops writes outside the worktree; the reads are a standing breach. I have not edited the
   global Codex config: that is Mahmood's call. Options: a lane-local CODEX_HOME, or removing that instruction from
   the global AGENTS.md.
+
+## Round 2026-09-27 (late): empagliflozin-HFpEF, esketamine, finerenone and GLP-1 fixtures
+
+### Root cause found on the way: registration records lost their identity
+`design_key.registry_designs()` merged each cached AACT design row into the SHARED CT.gov record object. The design
+row's own `id` (the AACT designs row id, e.g. 227983957) overwrote the trial's NCT id. From that point in the build
+onward, every registration record in every topic was keyed by a database row id. Two consequences:
+- **Lifecycle.** The held AACT dates were never found, and an empty status defaulted to "completed". EMPA-PRED
+  (RECRUITING, planned completion 2030-12-31) was served as "eligible, completed, awaiting results". FineCaRe and
+  NCT07775846 (planned 2028/2029) made the finerenone pool read "incomplete".
+- **Identity.** The identity lookup failed and fell back to the row id. So a registration's `trial_family_id` was its
+  NCT while its publication's was the acronym: one trial, two families. It now follows the identity module's own key.
+  The HM3 control declares every changed field row by row (`other_fields_changed`, before and after), and its test now
+  refuses any undeclared field change on a declared row. It used to check only decision, rule and reason.
+
+Fixes:
+- **Records** are copied, identity keys are never overwritten, and the design row id is kept as `design_row_id`.
+- **`harness/lifecycle.py`:** `recruitment_status`, `completion_date`, `planned_vs_actual_completion` (the registry's
+  own date type first, then the source date) and `source_date`. A planned date never yields COMPLETED; an UNKNOWN
+  status is never "completed".
+- **Published trials** read "completed, results available" whatever their registry status, which is still shown.
+
+The rebuild moved no pooled number through this fix. Two further registrations are now held UNRESOLVED by the
+protocol-conflict rule: NCT05735197 (sglt2-ckd, masking SINGLE) and NCT07143136 (colchicine-secondary-cv, masking
+NONE). Both were screened in by the "placebo implies blinded" default, and neither was pooled.
+
+### Empagliflozin-HFpEF
+- **EMPA-PRED:** ONGOING, PLANNED 2030-12-31. `awaiting_classification` (A-PROTOCOL-CONFLICT): registry masking
+  SINGLE against a double-blind protocol, and "Empagliflozin 25 MG" against the protocol's "Empagliflozin 10 mg
+  daily" (a verbatim protocol span in the topic config).
+- **EMPERIAL** (PMID 33351892): both registrations linked, Reduced NCT03448419 and Preserved NCT03448406. The Reduced
+  NCT was first guessed wrong, answered 404, and was then confirmed by the registration's own title.
+  - Preserved's composite is RETRIEVED_NOT_REPORTED from its held registry results; this replaces
+    SOURCE_NOT_RETRIEVED, and the old state is kept as `supersedes`. The same fix applies to DETERMINE-Preserved.
+  - Exploratory harms: SAE 20/157 vs 29/158 is bound to the posted registry results. Any AE (79/157 vs 93/158) and AE
+    leading to discontinuation (9/157 vs 8/158) stay REPORTED_UNRESOLVED: Table 4 is not openly held (Europe PMC not
+    OA; Unpaywall no open location). The relayed numbers are recorded as relayed, never rendered as data.
+- **EMPA-VISION** (PMID 37070436, CC BY; NCT03332212): a cohort family. The HFpEF cohort (18 vs 18) is eligible on its
+  own population, and the HFrEF cohort (17 vs 19) cannot veto it. The whole-trial 72 is held out of any pool. It is
+  still a known-missing entry: the search never found it.
+
+### Esketamine
+- Mahmood's two messages are recorded verbatim, attributed, relayed via Dispatch and labelled RETROSPECTIVE. They are
+  implemented as the field `oad_initiation`, never a keyword:
+  - TRANSFORM-1, -2, -3 and Chen: at randomisation.
+  - Takahashi: lead-in, continued unchanged. It qualifies as a disclosed design difference, and it is the sensitivity
+    analysis's only member.
+- **Takahashi is held UNRESOLVED, not INCLUDED.** The 2026-09-16 phase-2 amendment excludes it. That amendment says
+  the exclusion "was declared in the protocol", but the registered protocol (5e2b43c6) has none, and the ruling covered
+  the OAD, not the phase. Pending: Mahmood's phase-2 ruling and a multi-arm dose selection.
+  **Served consequence: none yet** (Day-28 MADRS k=3). Handoff: `outputs/handover/lanes/TO_OC_TAKAHASHI_ESKETAMINE.md`.
+
+### Finerenone
+- **FIGARO Table 2** is bound: hyperkalaemia 396/3683 vs 193/3658, and discontinuation due to hyperkalaemia 46 vs 13.
+  Both outcomes go from no result to k=1; notices OPEN.
+- **FIDELIO:** Table 2 is not openly held (403 twice). Its rows stay REPORTED_UNRESOLVED on their own evidence.
+- **FIVE-STAR** (PMID 41351003; 102 randomised; CAVI) and **CONFIDENCE** (judged per arm pair: A vs C eligible) are
+  known-missing entries with held sources.
+- **FIDELITY** is a pooled report of the two families, never a third trial, and never imported.
+- **Completeness** is claimed per outcome: kidney composite PROVISIONAL; hyperkalaemia and discontinuation INCOMPLETE.
+
+### GLP-1 (signature item)
+- **ELIXA:** a structured SOURCE_EFFECT_CONFLICT (narrative (0.887, 1.172) vs Table 8 (0.89, 1.18), one page). The
+  narrative governs, on computed evidence. The generator refuses to make a bundle while a conflict is undecided, and the
+  notice discloses the conflict with both diagnostics.
+- **FREEDOM-CVO:** the Table 18 pooled row (same numerator 85) is named "not this row".
+- **Source hierarchy:** a precedence order, not a prohibition. PIONEER 6 AE leading to discontinuation, 184/1591 vs
+  104/1592 (registry, level 3), takes the outcome from k 1 to 2; notice OPEN. GI adverse events is REPORTED_UNRESOLVED.
+
+### Known limitation found this round
+A row whose REPORTED_UNRESOLVED state rested only on the outcome's "reported but not extracted" flag drops to
+"retrieved, not reported" once the outcome gains its first pooled row. FIDELIO's rows now carry their own evidence;
+other topics have not been swept for this.

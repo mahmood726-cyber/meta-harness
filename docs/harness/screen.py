@@ -806,9 +806,30 @@ def run(all_recs: list, config: dict) -> dict:
                 rule = arm_refusal["rule_id"]
                 reason = arm_refusal["reason"]
                 span = arm_refusal["span"]
+        # PROTOCOL CONFLICTS (harness.protocol_conflict): a registry statement that contradicts the protocol (masking
+        # SINGLE against double-blind, a dose other than the protocol's) leaves the record UNRESOLVED, never eligible.
+        _conflicts = []
+        # RETROSPECTIVE CLARIFICATION FIELDS (harness.eligibility_field): a trial whose declared field qualifies but
+        # which another recorded rule excludes, under a DECLARED conflict, is held UNRESOLVED -- neither excluded by the
+        # rule nor included over it (Takahashi: the phase-2 amendment vs the OAD ruling)
+        if decision == "exclude":
+            from . import eligibility_field
+            _ef = eligibility_field.screen_override(rec, rule, config)
+            if _ef:
+                decision, rule, reason, span = _ef["decision"], _ef["rule_id"], _ef["reason"], _ef["span"]
+                _conflicts = _ef["pending"]
+        if decision == "include":
+            from . import protocol_conflict
+            _conflicts = protocol_conflict.check(rec, config)
+            if _conflicts:
+                decision, rule = "awaiting_classification", "A-PROTOCOL-CONFLICT"
+                reason = ("passes population, intervention and comparator, but its registry record conflicts with the "
+                          "protocol: " + "; ".join(c["detail"] for c in _conflicts))
+                span = " | ".join(c["record_span"] for c in _conflicts)[:200]
         row = {"id": rec["id"], "id_type": rec["id_type"],
                "label": rec.get("acronym") or "", "decision": decision,
-               "rule_id": rule, "reason": reason, "span": span}
+               "rule_id": rule, "reason": reason, "span": span,
+               **({"pending_decisions": _conflicts} if _conflicts else {})}
         if arm_obj is not None and (arm_refusal or hidden or config.get("arm_object")):
             row["arm_object"] = arm_obj
         if hidden:

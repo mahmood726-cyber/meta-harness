@@ -92,6 +92,10 @@ def test_primary_trial_values_and_membership_are_unchanged():
                 c = changed[rid]
                 assert {k: b_rows[rid].get(k) for k in ('decision', 'rule_id', 'reason')} == c['before'], (slug, rid)
                 assert {k: a_rows[rid].get(k) for k in ('decision', 'rule_id', 'reason')} == c['after'], (slug, rid)
+                # every OTHER field that moved is declared with its before/after value, and nothing undeclared moved
+                ks = sorted((set(b_rows[rid]) | set(a_rows[rid])) - {'decision', 'rule_id', 'reason'})
+                moved = {k: [b_rows[rid].get(k), a_rows[rid].get(k)] for k in ks if b_rows[rid].get(k) != a_rows[rid].get(k)}
+                assert json.loads(json.dumps(moved)) == (c.get('other_fields_changed') or {}), (slug, rid, 'undeclared field change')
             else:
                 assert b_rows[rid] == a_rows[rid], (slug, rid, 'screening row changed without a declared supersession')
         b = next(o for o in after['outcomes'] if o.get('primary'))
