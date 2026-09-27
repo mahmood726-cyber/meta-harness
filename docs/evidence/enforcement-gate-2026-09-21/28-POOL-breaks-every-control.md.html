@@ -1,0 +1,97 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>28-POOL-breaks-every-control.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>28-POOL-breaks-every-control.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/28-POOL-breaks-every-control.md</code>; its SHA-256 is <code>4f117659ddf6ceba06dc681822e4e3ea284b4ba450224ee3a9b5f21c31660bc4</code> (5,791 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> POOL closes the attacks and breaks every control — it must not land as written.</p><pre># POOL closes the attacks and breaks every control — it must not land as written
+
+Measured 2026-09-24 by lane F6B in `/f/mh-f6`, on base `a4e556e3` with `POOL_F2_F3.patch` applied
+unmodified, through the same complete producer -&gt; renderer -&gt; publication gate route as the pre-fix run.
+19 of 19 pre-fix ledger cases re-executed. Pre-fix files preserved. Nothing landed.
+
+## The verdict
+
+**Acceptance FAIL. 0 of 4 required controls retain publication acceptance.**
+4 of 5 claimed pool attacks return the exact requested first refusal.
+
+| | pre-fix | post-fix | first blocker |
+|---|---|---|---|
+| `baseline` | PASS | **REFUSED** | `POOL_PUBLICATION_INELIGIBLE` |
+| `reorder_records` | PASS | **REFUSED** | `POOL_PUBLICATION_INELIGIBLE` |
+| `reorder_pool_records` | PASS | **REFUSED** | `POOL_PUBLICATION_INELIGIBLE` |
+| `freedom_decimal_normalisation` | PASS | **REFUSED** | `POOL_PUBLICATION_INELIGIBLE` |
+| `unknown_id` | published | REFUSED | `POOL_INPUT_MEMBERSHIP_MISMATCH` — exact |
+| `duplicate_id` | published | REFUSED | `POOL_INPUT_DUPLICATE` — exact |
+| `omitted_id` | published | REFUSED | `POOL_INPUT_MEMBERSHIP_MISMATCH` — exact |
+| `altered_inputs_updated_aggregate` | published | REFUSED | `POOL_INPUT_TUPLE_MISMATCH` — exact |
+| `rotated_ids` | published | REFUSED | `POOL_INPUT_TUPLE_MISMATCH` — expected `POOL_ROW_IDENTITY_MISMATCH`, so **not credited** |
+
+## The mechanism, from the real captured output
+
+    stage  : bundle
+    code   : POOL_PUBLICATION_INELIGIBLE
+    message: REFUSED -- bundle not written
+             POOL_PUBLICATION_INELIGIBLE certified primary contains inadmissible rows: [&#x27;PMID 30291013&#x27;]
+
+PMID **30291013 is HARMONY**, and it has been INADMISSIBLE all along: the pre-fix F6 run recorded
+`scientific_admission: FAIL` on **every reached case including the baseline**, for exactly this row. That
+state was inert before, because publication did not depend on it.
+
+My patch makes it fatal. In `scripts/build_bundle.py`:
+
+    inadmissible = [r[&quot;trial&quot;][&quot;id&quot;] for r in vrows if r[&quot;admission&quot;][&quot;final&quot;] != &quot;ADMISSIBLE&quot;]
+    if inadmissible:
+        problems.append(f&quot;POOL_PUBLICATION_INELIGIBLE certified primary contains inadmissible rows: {inadmissible}&quot;)
+
+The bundle is then not written at all, which cascades: the gate additionally reports
+`ARTEFACT_DIGEST_MISMATCH`, `SUPPORTING_FILE_DIGEST_MISMATCH`, `CERTIFICATE_MISMATCH` and
+`EXECUTION_RECORD_MISMATCH` — all downstream of the missing bundle, not independent failures.
+
+## This is the same §F.5 violation I ruled on for BND1, committed again in a second patch
+
+`21-decision-estimand-repair-under-F5.md` ruled that BND1&#x27;s `ESTIMAND_UNOBSERVED` must not stand, because
+abstaining on 42 of 46 served occurrences turned an evidence-state uncertainty into a corpus-emptying
+scientific exclusion. I then wrote a different patch that converts a pre-existing
+`scientific_admission` state into a hard refusal to write the bundle. Owning the rule is not the rule
+firing.
+
+The irony is specific and worth stating plainly: the whole purpose of the five-verdict split was to STOP
+collapsing distinct verdicts into one pass/fail. My implementation separates them and then immediately
+**re-collapses** them, by making `publication_eligibility` a function of `scientific_admission`. The
+reviewer&#x27;s instruction was that these be *reported separately*, not that admission become a publication
+blocker.
+
+## And my own test defends the defect
+
+`POOL_F2_F3.patch` line 444:
+
+    assert any(&quot;POOL_PUBLICATION_INELIGIBLE&quot; in reason and &quot;30291013&quot; in reason for reason in reasons), reasons
+
+That asserts the corpus-emptying behaviour by name and by PMID. Repairing it will make my own suite go
+red and will look like a regression. This is `lessons.md` &quot;A test can DEFEND a defect&quot; — an assertion
+encoding what the code happened to do, with no requirement behind it — and it is in code I wrote after
+recording that lesson.
+
+## What the patch does get right, and must not lose
+
+The linkage enforcement works and is the thing worth keeping: `unknown_id`, `duplicate_id`, `omitted_id`
+and `altered_inputs_updated_aggregate` each return their exact intended first refusal, where pre-fix all
+five published with `first_refusal: null`. The five verdicts are now returned natively — the gate output
+shows `{&#x27;artifact_integrity&#x27;: &#x27;FAIL&#x27;, &#x27;state_reproduction&#x27;: &#x27;PASS&#x27;, &#x27;input_linkage&#x27;: &#x27;PASS&#x27;,
+&#x27;scientific_admission&#x27;: &#x27;FAIL&#x27;, &#x27;publication_eligibility&#x27;: &#x27;REFUSED&#x27;}`, where pre-fix `input_linkage` did
+not exist at all.
+
+`rotated_ids` refuses, but on the tuple rather than the row identity. F6B declines to credit it, per the
+rule that an inexact first blocker is not a semantic pass. That is the correct call.
+
+## Required repair before POOL is landable
+
+1. `publication_eligibility` must be driven by **linkage and integrity** failures, not by a pre-existing
+   `scientific_admission` state. Report admission separately, as the contract asks.
+2. Delete or rewrite the line-444 assertion as a requirement rather than a behaviour record, and add the
+   negative: the baseline and the three reorder/normalisation controls must still publish.
+3. Make `rotated_ids` refuse on `POOL_ROW_IDENTITY_MISMATCH`, so the code names the defect it found.
+4. Re-run the full 19-case acceptance and require **4 of 4 controls publishing** and **5 of 5 attacks
+   refused with exact codes** before landing.
+
+Until then the landing sequence in `26-landing-sequence-after-decision-B.md` is amended: POOL moves from
+&quot;evidenced, pending a corpus gate&quot; to **blocked, pending repair**. The corpus-wide question it was
+waiting on (&quot;does POOL refuse any of the 32 served topics?&quot;) is now answered in the worst way for a
+single topic — it refuses the baseline of `glp1-ra-mace-t2d` — so that question is moot until the repair
+lands.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

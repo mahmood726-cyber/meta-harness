@@ -1,0 +1,113 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>40-tag-defect-and-k10-crosscheck.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>40-tag-defect-and-k10-crosscheck.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/40-tag-defect-and-k10-crosscheck.md</code>; its SHA-256 is <code>b515b8d62bf831d9bcaeb0f4f9cea68b63c7f86a2c626cf8a79a5f334af20342</code> (6,976 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Two findings from the evidence lane, tested on the real path: the tag-stripping defect, and the k=10 scenario against the external reviewer.</p><pre># Two findings from the evidence lane, tested on the real path: the tag-stripping defect, and the k=10 scenario against the external reviewer
+
+## 1. The `&lt;[^&gt;]+&gt;` defect is real, and it is V1.1 — not a V1 blocker
+
+The lane&#x27;s minimal reproduction runs exactly as stated:
+
+    re.sub(r&quot;&lt;[^&gt;]+&gt;&quot;, &quot; &quot;, &quot;(P&lt;0.001), HR 0.82.&lt;h4&gt;End&lt;/h4&gt;&quot;)   -&gt;   &quot;(P End &quot;
+
+The `&lt;` in `P&lt;0.001` opens a pretend tag and the hazard ratio is deleted. The same pattern is in
+`harness/` at `absence.py:25`, `cites.py:33`, `hand_binding.py:100`/`:194`, `registry_multi.py:61`,
+`reason_audit.py:33`, `rob2.py:529`/`:532`, and over generated HTML at `gate.py:313`,
+`index.py:1089`, `honest_ratchet.py:71`.
+
+**Exposure on our corpus, measured:** of 892 held text fields containing a `&lt;`, **84 are damaged**,
+across 26 topics. Losses reach 474 characters and include whole effect sentences — e.g.
+`...exacerbation (RR 0.64; 95% CI: 0.52-0.78; P &lt; 0.0001)...` is removed entirely.
+
+**Does it produce a wrong served statement?** The served pages declare trials machine-absent with
+reasons of the form *&quot;no percentage-corroborated arm counts or effect+CI for this outcome found in
+the abstract&quot;*. If the deleted text held the effect, that declaration would be false and served.
+Both halves of that reason were tested against all **433** declared-absent entries with a
+not-found reason:
+
+    effect+CI in the deleted text, absent from the kept text : 0   (control: detector finds an effect+CI in 660 abstracts)
+    arm counts in the deleted text, absent from the kept text : 0   (control: detector finds arm counts in 390 abstracts)
+
+Both detectors were shown to fire before being trusted; a detector that finds nothing anywhere
+would have made this run void rather than clean.
+
+**Verdict:** a genuine defect that damages held text, with **no demonstrated wrong served number or
+false served absence on this corpus**. Under the scope freeze it is V1.1, and V1 names it as a
+known limitation with this measurement beside it. The fix the lane proposes is adopted for V1.1:
+
+    &lt;!--.*?--&gt;|&lt;\?.*?\?&gt;|&lt;![A-Za-z\[][^&lt;&gt;]*&gt;|&lt;/?[A-Za-z][A-Za-z0-9:_-]*(?:\s[^&lt;&gt;]*)?/?&gt;
+
+*Direction note for my own earlier checks:* this pattern can only DELETE text, so it can produce a
+false absence, never a false presence. The &quot;41 of 41 notices present in the rendered page&quot; result
+and the served-code counts are therefore unaffected in the unsafe direction.
+
+## 2. The k=10 scenario: our pipeline vs the external reviewer — close, not identical, and the reason is the inputs
+
+The external reviewer&#x27;s independent script and the evidence lane&#x27;s `BEFORE_AFTER.json` both compute
+the eight-trial baseline plus FLOW and ELIXA. The baseline itself agrees to floating-point noise
+(recorded in record 38: 4 of 4 quantities within 5e-12). The k=10 scenario does not:
+
+| quantity | ours (`BEFORE_AFTER.json`) | reviewer (independent) |
+|---|---|---|
+| k | 10 | 10 |
+| HR | 0.8613 | 0.8615325 |
+| CI low | 0.8069 | 0.8068470 |
+| CI high | 0.9194 | 0.9199244 |
+| PI low | 0.7531 | 0.7518126 |
+| PI high | 0.9852 | 0.9872650 |
+| tau² | 0.0027 | (I² 31.31%) |
+
+The differences are in the third and fourth decimals — far larger than the 1e-13 agreement on the
+baseline, so this is **not** a method difference and **not** floating-point. It is an input
+difference: the reviewer pooled the *published rounded* FLOW and ELIXA effects, while the lane
+bound FLOW from the FDA label (HR 0.82, 212/1767 vs 254/1766) and ELIXA from FDA StatR §3.3.4.3
+(HR 1.02, 0.887–1.172, ITT on-study, explicitly not the 4-point MACE+). The lane&#x27;s own variant at
+ELIXA&#x27;s Table 8 rendering (0.89–1.18) gives 0.8612 (0.807–0.919), which moves toward the reviewer&#x27;s
+CI and away from its PI — consistent with the inputs being the whole story.
+
+**Both routes give the same reading**: HR ≈ 0.861, CI excludes 1, PI entirely below 1, and I²
+rising from ≈0.9% to ≈31% — the reviewer&#x27;s substantive point, that the average effect is stable
+while the apparent homogeneity is not, survives on our numbers too.
+
+**Consequence for the release note:** the independent-reproduction claim is stated for the
+**served k=8 baseline only**, where agreement is exact. The k=10 scenario is reported as our own
+pipeline&#x27;s output with the input provenance named, and the reviewer&#x27;s figures are *not* quoted
+beside it as agreement. Their numbers remain a cross-check and are never copied into served
+content.
+
+**Back to the evidence lane:** please state in the admission which rendering of FLOW and ELIXA is
+bound, since the choice is worth ~0.0005 on the CI bound and ~0.002 on the PI bound, and a reader
+comparing against the published rounded values will land on different digits.
+
+Artefacts: `F:/claude-temp/tag_defect_exposure.py`, `tag_defect_false_absence.py`.
+
+## 3. A third V1.1 item, found while gating this work: gitblob&#x27;s per-file fallback
+
+`harness/gitblob.blob_shas()` documents itself as &quot;one batched git call for the set&quot;, and it is —
+but only when `_is_git_toplevel(repo)` is true. When it is false the code falls back to
+`_direct_hash_objects`, which spawns **one `git hash-object` process per file**.
+
+`tests/test_architecture_identity.py::test_topic_config_byte_change_changes_identity` copies the
+identity tree **without `.git`** (deliberately — it is testing identity, not git), so the clone is
+never a toplevel and the fallback always fires. Measured on this machine:
+
+    files hashed per identity() call : 469   (harness 95 + scripts 194 + configuration 89 + ...)
+    identity() calls in the test     : 2
+    process spawns                   : 938
+    measured cost per spawn          : 0.068 s
+    lower bound                      : ~64 s, plus 13-29 s to build the clone
+
+That is why the test timed out at 300 s and again at 600 s while the rest of the suite was
+competing for a saturated disk. On Linux CI a spawn costs ~2 ms, so the same code path costs ~2 s
+there and the cliff never shows.
+
+**The fallback is not necessary.** `git hash-object --stdin-paths` works outside a repository —
+verified here, rc=0, 10 shas returned from a plain temp directory. Using it unconditionally turns
+938 spawns into 2 and changes no hash value, since it is the same command over the same bytes.
+
+Not done now: `gitblob.py` is inside the certificate import closure, so editing it invalidates all
+32 certificates. It is a performance defect, not a wrong served number, so under the scope freeze
+it is **V1.1**. Recorded here so it is not rediscovered as a mystery timeout.
+
+*Method note:* the first hypothesis was antivirus scanning each spawned process. Measuring it gave
+0.068 s per spawn — about 6 s for 89 files, nowhere near the observed cost — which killed that
+explanation and pointed at the file **count** instead. The reproduction script that settled it is
+`F:/claude-temp/repro_gitblob_hang.py`; it hashes the same 89 config files one at a time with a
+per-call timeout and shows no call hangs, so &quot;slow&quot; and &quot;hung&quot; could be told apart.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

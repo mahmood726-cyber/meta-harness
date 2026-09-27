@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>36-T5-role-anchoring-and-ARM_ROLE_MISMATCH.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>36-T5-role-anchoring-and-ARM_ROLE_MISMATCH.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/36-T5-role-anchoring-and-ARM_ROLE_MISMATCH.md</code>; its SHA-256 is <code>ef334d81ded68f09ab3cfa3e8d76a636069af4dc5518836c851a6c7002fcd16f</code> (4,705 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> T5 proves group ownership, not protocol role — reproduced, and anchored.</p><pre># T5 proves group ownership, not protocol role — reproduced, and anchored
+
+Item 1 of the overnight audit passes. Reproduced by execution on the real checker, then repaired.
+2026-09-25. Nothing landed; no served number moved.
+
+## The defect, reproduced with working controls
+
+`evidence/typed_arms/witness/check_witness.py` (on `origin/main`; absent from the `enforcement-gate`
+worktree and from `mh-f4`) proves **number -&gt; groupId -&gt; arm title**. It never proves **protocol role -&gt;
+group**, because it reads `role` straight off the object —
+
+    check_witness.py:139   role = a.get(&quot;role&quot;)
+
+— and then keys the tuple comparison by that same role:
+
+    check_witness.py:173   got  = {a.get(&quot;role&quot;): (a.get(&quot;events&quot;), a.get(&quot;total&quot;)) for a in arms}
+    check_witness.py:174   want = {&quot;intervention&quot;: (s[&quot;ai&quot;], s[&quot;n1i&quot;]), &quot;comparator&quot;: (s[&quot;ci&quot;], s[&quot;n2i&quot;])}
+
+So a **consistently** reversed object satisfies `got == want`. Run against the real `check_job`:
+
+    AUTHENTIC (control)                          WITNESSED
+    GROUP_ID SWAP (their control)                INCOMPLETE  &quot;T5 arm 0 event_witness: enclosing groupId
+                                                              is &#x27;EG001&#x27;, not the arm&#x27;s &#x27;EG000&#x27;&quot;
+    ROLE REVERSED + tuple reversed  (the claim)  WITNESSED   &lt;- the defect
+    ROLE REVERSED, tuple NOT reversed            DIFFERS
+
+In the reversed case placebo&#x27;s group is declared the **intervention**, every witness still points at its
+own group&#x27;s own tokens, and every group title still equals its `arm_name`. Only the clinical direction is
+inverted, and nothing looks at it. Their own negative controls are a group_id swap and a wrong group
+title — a role reversal is not among them (`tests/test_witness.py:83, 114, 139` all hard-code the role).
+
+## The repair: anchor role to the protocol, and add ARM_ROLE_MISMATCH
+
+`check_job` reads only `row.json` (held_key, served, documents, registry_results) — it has **no access to
+the topic config**, which is why the role could not be anchored. The patch adds an optional `arm_roles`
+block to `row.json`, carrying the canonical terms from the topic config
+(`intervention_terms` / `comparator_terms`), and a `_role_anchor` check:
+
+- an arm whose name matches the **other** role&#x27;s terms and not its own -&gt; **`ARM_ROLE_MISMATCH`**;
+- an arm matching neither -&gt; flag `ROLE_UNMATCHED`;
+- **`arm_roles` absent -&gt; flag `ROLE_UNANCHORED`, never a silent pass.** A check that cannot run must
+  say so rather than contribute a pass, or the coverage number counts jobs it never checked. That is
+  the same rule that produced `REGISTRY_NOT_USED` in this file already.
+
+Measured, all four cases against the real `check_job`:
+
+| case | anchored | unanchored |
+|---|---|---|
+| AUTHENTIC | **WITNESSED** | WITNESSED + `ROLE_UNANCHORED` |
+| GROUP_ID SWAP (their control) | INCOMPLETE | INCOMPLETE |
+| ROLE REVERSED + tuple reversed | **INCOMPLETE / `ARM_ROLE_MISMATCH`** | WITNESSED (unchanged) |
+| ROLE REVERSED, tuple not reversed | INCOMPLETE / `ARM_ROLE_MISMATCH` | DIFFERS |
+
+The authentic row is not falsely refused, their control still fires for its own reason, and the defect is
+caught. Absent the anchor, behaviour is unchanged but visible.
+
+`ARM_ROLE_ANCHOR.patch` — 3,228 bytes, sha256 `ee5316763799b39b…`, against
+`origin/main:evidence/typed_arms/witness/check_witness.py`.
+
+## Ownership note
+
+The file is the **data lane&#x27;s**, not the harness&#x27;s. I own the T5 item, so the patch and its evidence are
+delivered to that lane rather than applied by me. The `arm_roles` block must be written by whatever
+builds the witness jobs, from the topic config — that producer change is theirs.
+
+There is already a config-anchored role assignment elsewhere in the system, which is the right source:
+
+    harness/ctgov_results.py:62      _classify_arms(groups, interv_l, comp_l)  -- by group title,
+                                     with the standard 2-arm placebo/control fallback
+    harness/count_observations.py:379, 388, 404   stamps role from it
+    harness/pipeline.py:1318, 1898-1899           terms come from the topic config
+
+**A related weakness, recorded not worked:** the prose path stamps role **positionally** —
+`count_observations.py:180`, `for side, ek, nk in ((&quot;intervention&quot;,&quot;ai&quot;,&quot;n1i&quot;), (&quot;comparator&quot;,&quot;ci&quot;,&quot;n2i&quot;))`
+— so prose-owned rows carry a role that is asserted by position rather than derived from the protocol.
+Anchoring there is the same fix applied at a second site.
+
+## For the ordered-contrast lane
+
+Until this lands, treat `role` as **asserted, not proven**, and say so in anything published. Once it
+lands, an ordered contrast can trust `experimental_arm` / `reference_arm` instead of re-deriving
+orientation.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>37-decisions-2026-09-25-candidate-release.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>37-decisions-2026-09-25-candidate-release.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/37-decisions-2026-09-25-candidate-release.md</code>; its SHA-256 is <code>8d92cdcb32bb73c862381c70fa96329d5d5a3b538eee22d76a50f7974f055081</code> (3,675 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Decisions of 2026-09-25: candidate release, archive-and-revert, reciprocal reversal.</p><pre># Decisions of 2026-09-25: candidate release, archive-and-revert, reciprocal reversal
+
+Recorded by the F4 lane. **Relayed by Dispatch under Mahmood&#x27;s delegation, 25 September 2026.** These are
+engineering decisions taken under that delegation; the 41 result-change signatures remain Mahmood&#x27;s and
+are not covered by it.
+
+## 1. Regeneration — AUTHORISED, as a CANDIDATE
+
+Integrate the repairs, cut a **new release identity**, regenerate **all 32 topics** on a branch or
+staging target, and run every probe plus the §F.6 suite against those **candidate bytes**. Then compute a
+**derived diff of every served number and verdict** against the current live release.
+
+    if NO served number changes  -&gt; deploy, then re-run the probes on the SERVED bytes (§B.5)
+    if ANY served number changes -&gt; deploy NOTHING; send the per-topic before -&gt; after list with
+                                    notices and hashes, for Mahmood to sign
+
+Coordinate integration with `oc`, `evid2` and `rai`. **Do not wait for `oc`**: repairs that are ready go
+in candidate 1, `oc`&#x27;s follow in candidate 2.
+
+## 2. `F:\mh-gate`&#x27;s half-finished 260-file rebuild — ARCHIVE then REVERT
+
+Copy the tree to an archive location, **verify sha256 at the destination**, record what it contained and
+why it was abandoned, then revert so `verify_all` is unblocked. **Nothing is deleted that has not been
+archived and verified.**
+
+## 3. Declared reciprocal reversal — PERMITTED
+
+A reversed contrast may publish **only** when the reversal is explicitly declared, the estimate and CI
+are transformed (HR -&gt; 1/HR, CI -&gt; [1/hi, 1/lo]), the arm roles are swapped consistently, and the page
+discloses it. **A silent reversal stays refused.** This **supersedes lane F4D&#x27;s reject-by-policy
+choice**, and `oc` has been told.
+
+## 4. Codex trust entries — SKIPPED
+
+Codex is exhausted until the reset; no new codex jobs. All remaining work is done in Claude.
+
+---
+
+## What the archive contained, and why it was abandoned
+
+The tree carried **262 dirty entries, 154.5 MB**, of two quite different kinds, which is why the revert
+was surgical rather than a blanket `git checkout`:
+
+- **The abandoned rebuild** — 237 tracked files modified 2026-09-24 **09:03–11:32**: 193 served review
+  pages under `docs/reviews`, 26 under `docs/m`, 5 in the served harness mirror `docs/harness`,
+  `scripts/build_bundle.py`, `scripts/verify_bundle.py` and four test files; plus 4 untracked files
+  (`docs/harness/follow_up.py`, `harness/follow_up.py`, `tests/fixtures/rx3_zero_spans.json`,
+  `tests/test_rx3_zero.py`). It is a **partial regeneration**: the honest-state ratchet reported *lost
+  absent blocks* on `docs/reviews/pcsk9-mace/index.html`, which is what a half-finished page rebuild
+  looks like from the outside.
+- **This session&#x27;s evidence** — 19 untracked records in
+  `docs/evidence/enforcement-gate-2026-09-21/` (files 20–36 and the two schema versions), plus **my own
+  edits** to `18-release-acceptance-checklist.md` (17:47) and `README.md` (13:47). These were set aside
+  before the revert and restored after it.
+
+Why it blocked everything: `verify_all` evaluates the **whole tree**, not the staged set, so any commit
+from that tree refused — 4 of 11 limbs (unit tests, publication gate on every live review page, index
+currency, honest-state ratchet). That is the gate behaving correctly on an inconsistent tree, and it is
+the reason a docs-only evidence commit could not land for most of a day.
+
+Archive: `C:\mh-archive\mh-gate-abandoned-rebuild-2026-09-24\` with `files/`, `MANIFEST.sha256`,
+`git-status.txt` and `verify.txt`. The revert proceeds only if every archived file verifies at the
+destination.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

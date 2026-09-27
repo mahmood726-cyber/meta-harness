@@ -1,0 +1,166 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>18-release-acceptance-checklist.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>18-release-acceptance-checklist.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/18-release-acceptance-checklist.md</code>; its SHA-256 is <code>7c5fc27ecce7d15275c1265be253d3bebb8035f06841ebbdcda9126e919c59b1</code> (11,641 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Release acceptance checklist — adopted from the external audits of 2026-09-24.</p><pre># Release acceptance checklist — adopted from the external audits of 2026-09-24
+
+This is the checklist the &quot;Page verifier and archive lane&quot; scores our landings against. It is adopted verbatim in
+substance from two external audit passes: the second (predicates reproduced in isolation) and the third (the auditor
+authenticated the source bytes and ran the GENUINE verifier `d1ba9320` and the real producer). Items are acceptance
+CRITERIA, not a description of current behaviour. Nothing on this list is claimed to be satisfied today.
+
+## Wording that must not drift
+- **`38c04411` is the known-defective reference that repairs are tested against.** Nobody calls it &quot;semantically
+  verified&quot;. The same applies to any later release until it passes this list.
+- These are **controlled mutations**. No reversal is present in the live results, and a green verifier result cannot
+  support a stronger scientific claim than the list below permits.
+- Release identity moves: the audit&#x27;s own `9fc4518a` was already stale when read — `main` was `b127522d` at
+  2026-09-24T08:0xZ. **Every probe must name the exact release it ran against, and be re-run on the SERVED bytes of the
+  release being accepted.**
+
+## A. Acceptance matrix (second pass, items a–e)
+- **(a) The authentic, correctly bound baseline still PASSES.** A repair that rejects everything is not a repair. Keep
+  the valid-evidence positive controls passing.
+- **(b) The named SUSTAIN-6 / AMPLITUDE-O / FREEDOM-CVO mutations FAIL, and fail FOR THE INTENDED REASON** — the
+  refusal code must name the defect, not an incidental one.
+- **(c) The numeric-prefix, mixed-tuple and identity-erasure mutations FAIL.**
+- **(d) Semantic mutations run with internally consistent package digests and unchanged authentic sources**, so a
+  checksum failure is never mistaken for a semantic rejection. **Integrity tests and semantic tests stay separate
+  categories.**
+- **(e) BOTH the producer route and the independent verifier enforce the decision.** No alternative pooling route may
+  bypass the checker.
+
+## B. Acceptance criteria (third pass, items 1–5)
+1. Keep the authentic baseline and the valid-evidence positive controls passing.
+2. Reject: pool substitutions; duplicate or missing IDs; contradictory or malformed estimand fields; FREEDOM mixed
+   tuples; the REWIND arm swap.
+3. Demonstrate each rejection through the **complete producer AND the publication gate**, not only the consumer.
+4. **Report the verdicts separately** — and define which combination permits release. **Superseded by F: the
+   separation is FIVE verdicts, not four.** `arithmetic consistency` alone conflated two different arrows and let a
+   correct calculation over the wrong rows read as a pass.
+5. Regenerate under a **new exact release identity** and re-run every probe on the served bytes.
+
+## C. Why (4) is required, in one measured example
+The verifier PASSes while HARMONY (PMID 30291013) fails P5 and remains in the k=8 pool; the admissible-only pool is
+0.8664 (0.8142–0.9218), k=7. That was a deliberate migration state (`c164c876`), but it means a PASS today carries no
+statement about scientific admissibility. Until the verdicts are separated, &quot;the verifier passed&quot; must not be
+reported as &quot;the result is admissible&quot;.
+
+## D. Repair order (the auditor&#x27;s, adopted)
+1. Generate pooling inputs directly from the certified, eligible rows.
+2. Bind every number to its endpoint, arm and analysis.
+3. Require complete, valid identity fields and check their meaning against the evidence.
+4. Separate the integrity, arithmetic and admissibility verdicts.
+5. Run the same deliberate-error tests through the full production and publication route.
+
+## E. Standing constraints that outrank any item above
+- **Anything that changes a served number waits for Mahmood&#x27;s signature.** 41 result-change notices are OPEN; 33 need
+  an individual signature because a conclusion changed.
+- A signature the system applies to its own result change is a password, not a check.
+- Every plant must be **observed failing before its fix exists**, with a positive control that keeps passing, and a
+  restore.
+- A recovery or radius claim is unproven until the real build is run and the first failing check observed per row
+  (`outputs/findings-2026-09-22/HAZARD_reported_reason_vs_binding_constraint.md`).
+- An exhaustive claim needs a positive control that would have fired
+  (`outputs/findings-2026-09-22/HAZARD_exhaustive_claim_over_incomplete_representation.md`).
+
+---
+
+## F. Second independent assessment (24 September 2026) — THIS SUPERSEDES B.4 AND SETS THE SCOPE
+
+A second reviewer assessed the third-pass audit report. They independently confirmed REWIND&#x27;s counts from the
+primary abstract and the arithmetic — RR **1.3920703685** (1.3260342677–1.4613950470), arm-reversed
+**0.7183544903** (0.6842776716–0.7541283241), identical `se_log_ratio` **0.0247960569** in both directions —
+using the standard library only. They did **NOT** re-run the verifier, execute any publisher code, re-pool the
+eight studies, or exercise the producer or publication gate. Treat their identity claims for `38c04411`,
+`9fc4518a` and verifier `d1ba9320` as repeated report claims, not freshly authenticated digests.
+
+### F.0 Scope discipline — the binding instruction for this cycle
+&gt; &quot;The most useful next result is successful regression of these exact failures through the complete
+&gt; publication path — not another broad search for additional defects and not another handwritten verifier
+&gt; imitation.&quot;
+
+**STOP EXPANDING THE DEFECT CATALOGUE.** Close finding A (pool-input linkage) and finding B (REWIND arm
+ownership) as blockers, then re-run AMPLITUDE-O and FREEDOM through the full publication path. New defects found
+in passing are recorded and queued; they are not worked this cycle.
+
+### F.1 One chain, a check on every arrow
+    authenticated source
+      -&gt; owned observations
+        -&gt; clinical result + admission
+          -&gt; SELECTED set
+            -&gt; derived statistical inputs
+              -&gt; computed and published result
+
+**A and B are DIFFERENT ARROWS and fixing one does not fix the other.** Certified-row authority repairs A and
+does nothing for B, because a single source of truth does not make a wrong row true. Conversely arm binding
+repairs B and leaves the certified-row-to-input link untouched.
+
+### F.2 FIVE verdicts, not four
+    artifact integrity | state reproduction | INPUT LINKAGE | scientific admission | publication eligibility
+A global PASS must not imply more than the enforced conjunction. `input linkage` is the verdict the four-way
+split was missing, and it is exactly where a correct calculation over the wrong rows used to pass.
+
+### F.3 Finding A — refinements that change the repair
+- **Comparing the final pooled HR is NOT enough.** Rotated IDs can leave the aggregate unchanged. Require
+  agreement **per input**: trial family, analysis id, outcome, orientation, measure, estimate, CI,
+  transformation, admission.
+- **Validate multiplicity BEFORE converting to a dict.** Duplicate IDs overwrite silently; a dict built first
+  destroys the evidence that there were duplicates. Repeated contributions are allowed only under a model that
+  accounts for dependence — never by repeating one row eight times in an independent-trial pool.
+- **Unresolved or unknown IDs, or an empty admissible set, must FAIL.** An empty subset is not a pass and is
+  not a refusal-by-emptiness; reject before pooling.
+- The redundant BUNDLE input list stays **only as a checked copy**, field by field. It is never an alternate
+  authority.
+- The **SELECTED set gets its own identity and declared multiplicity rules.** Eligible candidates and the
+  selected set are different objects: **not every ADMISSIBLE candidate must be forced into every pool.**
+- Invariant: *every selected input is admissible for this analysis, and every statistical input is exactly the
+  permitted derivation of one selected record.*
+- Independently check source semantics. Deriving everything from one incorrect certified row reproduces the
+  error consistently and calls it agreement.
+
+### F.4 Finding B — refinement that changes the repair
+Bind events **and** denominator to the **same source-supported arm, outcome, analysis population and
+observation window**, independent of which arm is named first in the prose. &quot;Comparing a bag of values and a
+sequence of drug names cannot establish those relationships.&quot; A direction label is not enough.
+
+### F.5 Do NOT turn checker uncertainty into clinical exclusion
+SUSTAIN-6 defaults and HARMONY&#x27;s unresolved family status do not prove those trials clinically unsuitable.
+Recover or adjudicate the evidence under a **predeclared policy for unresolved cases**, and label
+assumption-dependent analysis explicitly. **Dropping trials to get green is forbidden.** An unknown scientific
+fact can be legitimate data; an unknown enum spelling or a missing mandatory object is a schema error.
+
+### F.6 Acceptance suite — POSITIVE controls are mandatory
+**Must PASS:**
+- reordering complete input records;
+- reordering display columns while preserving arm IDs and owned observations;
+- the untouched baseline (identity and arithmetic reproduction), even while scientific admission is unresolved;
+- a legitimate reversed target contrast with an explicitly justified transformation — accepted as that distinct
+  target analysis;
+- restoring any rejected mutation.
+
+**Must REJECT:**
+- rotated IDs among fixed value tuples; unknown IDs; duplicate IDs; omissions;
+- altered inputs **with the aggregate updated to match**;
+- the REWIND arm swap, specifically for source-to-arm mismatch;
+- corrupted or malformed estimand fields (schema boundary) and false semantic values (clinical boundary);
+- FREEDOM wrong-row and mixed-row tuples. Lexical prefixes are not exact numeric matches: decimal
+  normalisation may equate `1.20` and `1.2`; **neither equals `1.24`.**
+
+**How it must be run:** through the **complete producer, renderer and publication gate**, with integrity
+material **regenerated through the legitimate build**. Logs must show the selected records, the derived inputs,
+the first refusal, and the restored acceptance — then re-check on the **post-fix served bytes**.
+&gt; **A stale-certificate or unrelated first blocker must NEVER be credited as catching a semantic defect.**
+
+### F.7 A correction to a fix ALREADY LANDED here
+&gt; &quot;A table need not be one contiguous string if a verifiable multi-location witness establishes its relevant
+&gt; row, headers and context. Merely locating unrelated fragments does not do that.&quot;
+
+The table-binding repair landed at `1fa77f2c` refuses a non-colocated table outright
+(`TABLE_SOURCE_NOT_COLOCATED`). That is **stricter than this contract requires** and would reject a legitimate
+multi-location witness. The admissible test is whether the witness establishes **row, headers and context**, not
+whether the bytes are contiguous. Re-open when A and B are closed; do not widen the catalogue now.
+
+### F.8 What the audit does NOT establish (their words, kept verbatim in substance)
+It does not show that the displayed MACE effect has been changed to the reversed value; does not defeat an
+independently trusted BUNDLE checksum (an external trusted digest **would** detect the modified artifact — this
+is a content-validation gap, not a cryptographic break or a deployment compromise); does not establish all trial
+eligibility; and does not complete the final publication-gate test. The assurance supported is &quot;selected bytes
+and calculations are reproducible&quot;, which is **substantially narrower than &quot;scientifically verified&quot;**.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>
