@@ -66,6 +66,45 @@ RULES = {
 }
 
 
+def elixa_conflict():
+    """SOURCE_EFFECT_CONFLICT inside ONE page of the FDA statistical review (PDF page 24, printed page 23): the section
+    3.3.4.3 narrative gives the on-study 3-point MACE interval as (0.887, 1.172); Table 8 renders it as (0.89, 1.18).
+    1.172 rounds to 1.17, not 1.18. The governing version is decided on evidence COMPUTED here from the witnessed
+    numbers, not asserted: which interval is centred on its own point estimate on the log scale, and whose implied SE
+    matches the SE the event counts imply (Cox, approximately sqrt(1/a + 1/c))."""
+    import math
+    narr = W(STATR, "The 95% confidence interval for the hazard ratio is (0.887,", "with a point estimate of 1.02.")
+    tab8 = W(STATR, "MACE endpoint (on-study) 1.02 (0.89, 1.18)", "392 (12.9%) 400 (13.2%)")
+    assert "(0.887, 1.172)" in narr["span"] and "(0.89, 1.18)" in tab8["span"]
+    a, c = 400, 392
+    se_events = math.sqrt(1 / a + 1 / c)
+
+    def ev(lo, hi):
+        return {"log_midpoint_hr": round(math.exp((math.log(lo) + math.log(hi)) / 2), 4),
+                "ci_implied_se": round((math.log(hi) - math.log(lo)) / (2 * 1.959964), 5),
+                "se_ratio_to_event_count_se": round((math.log(hi) - math.log(lo)) / (2 * 1.959964) / se_events, 4)}
+    return {
+        "kind": "SOURCE_EFFECT_CONFLICT",
+        "locations": [
+            {"where": "section 3.3.4.3 narrative, FDA statistical review 208471Orig1s000StatR, printed page 23 (PDF page 24)",
+             "ci": [0.887, 1.172], "witness": narr},
+            {"where": "Table 8 'Analysis of the MACE Endpoint', MACE endpoint (on-study) row, same page",
+             "ci": [0.89, 1.18], "witness": tab8}],
+        "governing": {
+            "state": "DECIDED", "version": "section 3.3.4.3 narrative", "ci": [0.887, 1.172],
+            "decided_by": "Claude Opus 5.5, evidence lane, 2026-09-27; disclosed in the signature request for Mahmood",
+            "reason": ("the narrative interval (0.887, 1.172) is centred on the stated point estimate 1.02 on the log scale "
+                       "and its implied standard error equals the one the 400 vs 392 events imply; Table 8's (0.89, 1.18) is "
+                       "centred on 1.025 and 1.2% too wide, and its upper bound is not the 2-decimal rounding of the "
+                       "narrative's 1.172 (which is 1.17) while its lower bound is (0.887 -> 0.89): Table 8's 1.18 is the "
+                       "rendering error. Both renderings are pooled for disclosure; the conclusion is identical."),
+            "evidence": {"narrative": ev(0.887, 1.172), "table8": ev(0.89, 1.18),
+                         "event_count_se": round(se_events, 5),
+                         "narrative_upper_rounded_2dp": round(1.172, 2), "narrative_lower_rounded_2dp": round(0.887, 2)}},
+        "disclosure": "both locations, the governing decision and the pooled result under each rendering appear in the signature request and its derived notice",
+    }
+
+
 def decision(trial, **kw):
     d = {"object": "RESULT_LEVEL_ADJUDICATION", "review": "glp1-ra-mace-t2d", "trial": trial,
          "protocol": {"ref": PROTO_REF, "commit": PROTO_COMMIT, "sha256_of_file": _sha(PROTO_REF)},
@@ -134,7 +173,7 @@ def main():
                          "witness": W(STATR, "Table 8: Analysis of the MACE Endpoint Placebo (N=3,034)", "MACE endpoint (on-treatment) 1.01 (0.87, 1.17)")},
             "estimate": {"value": 1.02, "scale": "HR"}, "ci": {"value": [0.887, 1.172], "level": 0.95},
             "events": {"lixisenatide": 400, "placebo": 392},
-            "source_conflict": "the same FDA review renders the on-study interval as (0.887, 1.172) in the text and as (0.89, 1.18) in Table 8; the unrounded text is bound (as ADJ-GLP1-005 proposed); both renderings were pooled and the conclusion is identical (BEFORE_AFTER.json)",
+            "source_effect_conflict": elixa_conflict(),
         },
         consequence="Enters the CONVENTIONAL_GLP1RA primary pool -> served-number change (k 8 -> 9 alone; 8 -> 10 with FLOW). Queued for signature.",
     )
@@ -163,6 +202,11 @@ def main():
             "table_context": W(BRIEF, "Table 19. Time to First Occurrence of 3-Point MACE (CV Death, Nonfatal MI, Nonfatal Stroke) and 4-Point MACE (CV Death, Nonfatal MI, Nonfatal Stroke, Unstable Angina) – ITT Population End of Study, FREEDOM (CLP-107) MACE Type", "FREEDOM (CLP-107) MACE Type", occurrence=1),
             "not_these_rows": {
                 "4-point MACE (same table)": W(BRIEF, "4-Point MACE 95/2075 (4.6%) 3.29 79/2081 (3.8%) 2.72 1.21 (0.90, 1.63)", "1.21 (0.90, 1.63)"),
+                # the ADJACENT table: the pooled analysis of CLP-103/105/107. Its ITCA 650 arm has the SAME numerator 85
+                # (85/2649 vs FREEDOM's 85/2075): identified by table title and denominator, never by the event count
+                "Table 18 title": W(BRIEF, "Table 18. Time to First Occurrence of 3-Point MACE", "Pooled Analysis of CLP-103, CLP- 105, and CLP-107"),
+                "Table 18 pooled CLP-103/105/107 3-point row (1.13; same ITCA numerator 85, denominator 2649)":
+                    W(BRIEF, "3-Point MACE* 85/2649 (3.2%) 2.47 75/2502 (3.0%) 2.25 1.13 (0.82, 1.54)", "1.13 (0.82, 1.54)"),
                 "on-treatment 3-point 1.36 and pooled 4-point 1.12": W(BRIEF, "The range of HRs include HR=1.12 (95% CI: 0.84, 1.50)", "the individual endpoint of CV death."),
             },
             "contrast": {"value": "ITCA 650 (exenatide in DUROS: 20 mcg/day then 60 mcg/day, replaced every 26 weeks) vs ITCA 650 placebo device", "witness": W(BRIEF, "Subjects were randomized to the proposed to-be-marketed dosing regimen of ITCA 650", "(same device but without exenatide).")},

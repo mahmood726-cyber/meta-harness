@@ -22,7 +22,8 @@ BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REAS
             "OMISSION_VS_RECORD", "OMISSION_VS_PROTOCOL", "FAMILY_DOUBLE_COUNT", "FAMILY_TIMEPOINT_UNLABELLED",
             "STATUS_VS_EXTRACTION", "STATUS_MISSING", "REPORT_TRIAL_UNLINKED", "COMBINED_POPULATION_IMPORTED",
             "DESIGN_ABSENCE_VS_HELD_RESULT", "VERSION_SUPERSEDED_SERVED", "VERSION_CHAIN_UNSHOWN",
-            "SCOPE_RULE_NOT_IN_PROTOCOL", "SCOPE_INHERITED_FROM_COMPARATOR", "ABSENCE_ON_EXCERPT")
+            "SCOPE_RULE_NOT_IN_PROTOCOL", "SCOPE_INHERITED_FROM_COMPARATOR", "ABSENCE_ON_EXCERPT",
+            "HIERARCHY_TREATED_AS_PROHIBITION")
 ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
@@ -246,8 +247,8 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     for p in multi_trial_report.problems(review):
         add(p["kind"], p["report_id"], p["detail"])
     # SOURCE VERSIONS (a superseded value never served; a chain always shown) and SCOPE DECISIONS (protocol text only)
-    from . import scope_decision, source_versions
-    for p in source_versions.problems(review) + scope_decision.problems(review):
+    from . import scope_decision, source_precedence, source_versions
+    for p in source_versions.problems(review) + scope_decision.problems(review) + source_precedence.problems(review):
         add(p["kind"], p["report_id"], p["detail"])
     # RESULT STATUS: the page's words about a trial's result agree with its derived state
     from . import result_status

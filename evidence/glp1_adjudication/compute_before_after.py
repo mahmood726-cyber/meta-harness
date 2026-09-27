@@ -39,6 +39,7 @@ def main():
         "CONVENTIONAL_GLP1RA (primary strand): + FLOW + ELIXA": base + [st("FLOW"), st("ELIXA")],
         "CONVENTIONAL_GLP1RA: + FLOW only": base + [st("FLOW")],
         "CONVENTIONAL_GLP1RA: + ELIXA only": base + [st("ELIXA")],
+        "CONVENTIONAL_GLP1RA: + ELIXA only (ELIXA at its Table 8 rendering 0.89-1.18)": base + [st("ELIXA_table8_rendering")],
         "CONVENTIONAL_GLP1RA: + FLOW + ELIXA (ELIXA at its Table 8 rendering 0.89-1.18)": base + [st("FLOW"), st("ELIXA_table8_rendering")],
         "GLP1RA_ANY_DELIVERY (alongside): + FLOW + ELIXA + FREEDOM-CVO": base + [st("FLOW"), st("ELIXA"), st("FREEDOM-CVO")],
     }

@@ -19,9 +19,39 @@ def fmt(r):
             f"{r.get('pi_low')}–{r.get('pi_high')}, tau² {r['tau2']}")
 
 
+def check_conflicts(root=ROOT):
+    """No bundle while any decision carries a SOURCE_EFFECT_CONFLICT without a DECIDED governing version and reason:
+    the notice would otherwise serve one rendering of a number the source itself states two ways, silently."""
+    out = []
+    for t in ("FLOW", "ELIXA", "FREEDOM-CVO"):
+        d = json.load(open(os.path.join(root, D, f"{t}.json"), encoding="utf-8"))
+        c = (d.get("bound_result") or {}).get("source_effect_conflict")
+        if not c:
+            continue
+        g = c.get("governing") or {}
+        if c.get("kind") != "SOURCE_EFFECT_CONFLICT" or g.get("state") != "DECIDED" or not g.get("reason"):
+            raise SystemExit(f"REFUSED: {t} carries a SOURCE_EFFECT_CONFLICT with no DECIDED governing version and reason; "
+                             "no signature bundle is generated")
+        if g.get("ci") != d["bound_result"]["ci"]["value"]:
+            raise SystemExit(f"REFUSED: {t}'s bound interval is not its governing version")
+        out.append((t, c))
+    return out
+
+
 def main():
+    conflicts = check_conflicts()
     ba = json.load(open(os.path.join(ROOT, D, "BEFORE_AFTER.json"), encoding="utf-8"))
     b, A = ba["served_before"], ba["after"]
+    e_n = A["CONVENTIONAL_GLP1RA: + ELIXA only"]
+    e_t8 = A["CONVENTIONAL_GLP1RA: + ELIXA only (ELIXA at its Table 8 rendering 0.89-1.18)"]
+    disclosure = ""
+    for t, c in conflicts:
+        locs = "; ".join(f"{l['where']}: ({l['ci'][0]}, {l['ci'][1]})" for l in c["locations"])
+        g = c["governing"]
+        disclosure += (f"\n**SOURCE_EFFECT_CONFLICT ({t}):** the regulator's document states the same result two ways -- {locs}. "
+                       f"Governing version: **{g['version']} ({g['ci'][0]}, {g['ci'][1]})**, DECIDED because {g['reason']} "
+                       f"Diagnostic (the conflicting trial added alone, k={e_n['k']}): HR {e_n['estimate']:.4f} on the governing "
+                       f"version vs {e_t8['estimate']:.4f} on the other.\n")
     prim = A["CONVENTIONAL_GLP1RA (primary strand): + FLOW + ELIXA"]
     anyd = A["GLP1RA_ANY_DELIVERY (alongside): + FLOW + ELIXA + FREEDOM-CVO"]
     alt = A["CONVENTIONAL_GLP1RA: + FLOW + ELIXA (ELIXA at its Table 8 rendering 0.89-1.18)"]
@@ -47,8 +77,8 @@ Every field of every decision carries its own witness span (sha256-pinned; re-ve
 | **after: primary, + FLOW + ELIXA** | {fmt(prim)} |
 | after, ELIXA at its Table 8 rendering (0.89–1.18) | {fmt(alt)} |
 | alongside: ANY_DELIVERY, + FLOW + ELIXA + FREEDOM-CVO | {fmt(anyd)} |
-
-**Derived notice for the served page:** the pooled HR moves {b['estimate']} → {prim['estimate']} and stays significant with the same direction (conclusion UNCHANGED). Heterogeneity is no longer ~0: τ² rises to {prim['tau2']}, and the prediction interval widens from {b['pi_low']}–{b['pi_high']} to {prim['pi_low']}–{prim['pi_high']}. On the any-delivery strand the prediction interval crosses 1 ({anyd['pi_low']}–{anyd['pi_high']}).
+{disclosure}
+**Derived notice for the served page:** the pooled HR moves {b['estimate']} → {prim['estimate']} and stays significant with the same direction (conclusion UNCHANGED). Heterogeneity is no longer ~0: τ² rises to {prim['tau2']}, and the prediction interval widens from {b['pi_low']}–{b['pi_high']} to {prim['pi_low']}–{prim['pi_high']}. On the any-delivery strand the prediction interval crosses 1 ({anyd['pi_low']}–{anyd['pi_high']}).""" + ("" if not conflicts else f""" The FDA statistical review states ELIXA's 3-point MACE interval two ways on one page, (0.887, 1.172) in its text and (0.89, 1.18) in Table 8; the text version is used (it is centred on the point estimate and matches the event counts), and the pooled result under the Table 8 version is {alt['estimate']} ({alt['ci_low']}–{alt['ci_high']}), the same conclusion.""") + f"""
 
 ## Bytes this signature binds (sha256)
 ```

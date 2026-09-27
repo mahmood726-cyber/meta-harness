@@ -1123,6 +1123,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source_level": _abs_over.get("source_level"),
                            **({"published_alternative": _abs_over.get("published_alternative")}
                               if _abs_over.get("published_alternative") else {}),
+                           # the source REPORTS the outcome without a countable form: carried so the status is
+                           # REPORTED_UNRESOLVED (with the span), never 'retrieved, not reported'
+                           **({"reported_unresolved_span": _abs_over.get("reported_unresolved_span")}
+                              if _abs_over.get("reported_unresolved_span") else {}),
                            "reason": _abs_over.get("reason", "declared absent (override): the committed source "
                                      "reports no value for this outcome; the extracted number was a different endpoint")})
             continue

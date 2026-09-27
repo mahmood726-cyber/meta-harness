@@ -7,7 +7,7 @@
   "commit": "b10c53d3783facb7e630219f0bb447fe6e22843e",
   "sha256_of_file": "d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c"
  },
- "made_utc": "2026-09-25T14:15:09Z",
+ "made_utc": "2026-09-27T17:53:00Z",
  "by": "Claude Opus 5.5, evidence lane evid/evidence-records (assignment: senior external review, forwarded by Mahmood)",
  "status": "DECIDED_BY_LANE -- admission to the primary pool is a served-number change: QUEUED for Mahmood's signature, not landed",
  "nct": "NCT01147250",
@@ -95,7 +95,61 @@
    "lixisenatide": 400,
    "placebo": 392
   },
-  "source_conflict": "the same FDA review renders the on-study interval as (0.887, 1.172) in the text and as (0.89, 1.18) in Table 8; the unrounded text is bound (as ADJ-GLP1-005 proposed); both renderings were pooled and the conclusion is identical (BEFORE_AFTER.json)"
+  "source_effect_conflict": {
+   "kind": "SOURCE_EFFECT_CONFLICT",
+   "locations": [
+    {
+     "where": "section 3.3.4.3 narrative, FDA statistical review 208471Orig1s000StatR, printed page 23 (PDF page 24)",
+     "ci": [
+      0.887,
+      1.172
+     ],
+     "witness": {
+      "ref": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
+      "sha256": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+      "span": "The 95% confidence interval for the hazard ratio is (0.887, 1.172) with a point estimate of 1.02."
+     }
+    },
+    {
+     "where": "Table 8 'Analysis of the MACE Endpoint', MACE endpoint (on-study) row, same page",
+     "ci": [
+      0.89,
+      1.18
+     ],
+     "witness": {
+      "ref": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
+      "sha256": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+      "span": "MACE endpoint (on-study) 1.02 (0.89, 1.18) No. of patients with event (%) 392 (12.9%) 400 (13.2%)"
+     }
+    }
+   ],
+   "governing": {
+    "state": "DECIDED",
+    "version": "section 3.3.4.3 narrative",
+    "ci": [
+     0.887,
+     1.172
+    ],
+    "decided_by": "Claude Opus 5.5, evidence lane, 2026-09-27; disclosed in the signature request for Mahmood",
+    "reason": "the narrative interval (0.887, 1.172) is centred on the stated point estimate 1.02 on the log scale and its implied standard error equals the one the 400 vs 392 events imply; Table 8's (0.89, 1.18) is centred on 1.025 and 1.2% too wide, and its upper bound is not the 2-decimal rounding of the narrative's 1.172 (which is 1.17) while its lower bound is (0.887 -> 0.89): Table 8's 1.18 is the rendering error. Both renderings are pooled for disclosure; the conclusion is identical.",
+    "evidence": {
+     "narrative": {
+      "log_midpoint_hr": 1.0196,
+      "ci_implied_se": 0.07108,
+      "se_ratio_to_event_count_se": 1.0001
+     },
+     "table8": {
+      "log_midpoint_hr": 1.0248,
+      "ci_implied_se": 0.07195,
+      "se_ratio_to_event_count_se": 1.0124
+     },
+     "event_count_se": 0.07107,
+     "narrative_upper_rounded_2dp": 1.17,
+     "narrative_lower_rounded_2dp": 0.89
+    }
+   },
+   "disclosure": "both locations, the governing decision and the pooled result under each rendering appear in the signature request and its derived notice"
+  }
  },
  "consequence": "Enters the CONVENTIONAL_GLP1RA primary pool -> served-number change (k 8 -> 9 alone; 8 -> 10 with FLOW). Queued for signature."
 }

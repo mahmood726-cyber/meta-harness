@@ -1,6 +1,6 @@
 # Signature request: the GLP-1 MACE primary pool gains FLOW and ELIXA (a served-number change), NOT LANDED
 
-**Status: QUEUED for Mahmood's signature. Nothing served has changed.** Prepared by the evidence lane (evid/evidence-records) on a senior external review's assignment, which Mahmood forwarded. Regenerated 2026-09-26 00:26Z by `make_signature_request.py`.
+**Status: QUEUED for Mahmood's signature. Nothing served has changed.** Prepared by the evidence lane (evid/evidence-records) on a senior external review's assignment, which Mahmood forwarded. Regenerated 2026-09-27 17:53Z by `make_signature_request.py`.
 
 ## What the signature admits
 Under the protocol's explicit B-prime rules (`protocols/glp1-ra-mace-t2d.md` at `b10c53d3`):
@@ -19,20 +19,22 @@ Every field of every decision carries its own witness span (sha256-pinned; re-ve
 | after, ELIXA at its Table 8 rendering (0.89–1.18) | k=10, HR 0.8612 (95% CI 0.807–0.919), prediction interval 0.7539–0.9838, tau² 0.00263 |
 | alongside: ANY_DELIVERY, + FLOW + ELIXA + FREEDOM-CVO | k=11, HR 0.8673 (95% CI 0.7999–0.9404), prediction interval 0.7046–1.0675, tau² 0.00737 |
 
-**Derived notice for the served page:** the pooled HR moves 0.856 → 0.8613 and stays significant with the same direction (conclusion UNCHANGED). Heterogeneity is no longer ~0: τ² rises to 0.0027, and the prediction interval widens from 0.8069–0.9081 to 0.7531–0.9852. On the any-delivery strand the prediction interval crosses 1 (0.7046–1.0675).
+**SOURCE_EFFECT_CONFLICT (ELIXA):** the regulator's document states the same result two ways -- section 3.3.4.3 narrative, FDA statistical review 208471Orig1s000StatR, printed page 23 (PDF page 24): (0.887, 1.172); Table 8 'Analysis of the MACE Endpoint', MACE endpoint (on-study) row, same page: (0.89, 1.18). Governing version: **section 3.3.4.3 narrative (0.887, 1.172)**, DECIDED because the narrative interval (0.887, 1.172) is centred on the stated point estimate 1.02 on the log scale and its implied standard error equals the one the 400 vs 392 events imply; Table 8's (0.89, 1.18) is centred on 1.025 and 1.2% too wide, and its upper bound is not the 2-decimal rounding of the narrative's 1.172 (which is 1.17) while its lower bound is (0.887 -> 0.89): Table 8's 1.18 is the rendering error. Both renderings are pooled for disclosure; the conclusion is identical. Diagnostic (the conflicting trial added alone, k=9): HR 0.8630 on the governing version vs 0.8629 on the other.
+
+**Derived notice for the served page:** the pooled HR moves 0.856 → 0.8613 and stays significant with the same direction (conclusion UNCHANGED). Heterogeneity is no longer ~0: τ² rises to 0.0027, and the prediction interval widens from 0.8069–0.9081 to 0.7531–0.9852. On the any-delivery strand the prediction interval crosses 1 (0.7046–1.0675). The FDA statistical review states ELIXA's 3-point MACE interval two ways on one page, (0.887, 1.172) in its text and (0.89, 1.18) in Table 8; the text version is used (it is centred on the point estimate and matches the event counts), and the pooled result under the Table 8 version is 0.8612 (0.807–0.919), the same conclusion.
 
 ## Bytes this signature binds (sha256)
 ```
-33670e6a13021c10c97a8a741b0d9e3e2e97a6ae738d905999ff800456f68f8f  evidence/glp1_adjudication/FLOW.json
-6127eb2815269ee8bc7c6258ff7d9d9555d67df2024447636c15e5ce9ee0255c  evidence/glp1_adjudication/ELIXA.json
-f593aa1ee0b5d9ae823778c40444c699633860aa676c7cc735eefe371f5589ef  evidence/glp1_adjudication/FREEDOM-CVO.json
-f853bd30711833ebcd88c7d3ab6e58b5934f8b45c9e67d1ed303e9b369022570  evidence/glp1_adjudication/BEFORE_AFTER.json
-22010a487dfffea2075b67296389e479a3de8264d7ebcddfb03c8e0c810b2070  evidence/glp1_adjudication/compute_before_after.py
-3856cbab58d53e60ca5f947b27679dbdfb4bef8782bb2937f126211d3bf22b63  evidence/glp1_adjudication/build_decisions.py
-ad3df7a3dd59858ee2c5780e22a82044824e71876134c4b13b362e5d9ccf3ac6  docs/reviews/glp1-ra-mace-t2d/review.json
+61919e4fd5ec66e5074df9f4f694aef296ed38300ba0725e817db984c5c34428  evidence/glp1_adjudication/FLOW.json
+e41d05f34a1e2743431322da5328c6db7e8ffae28dce285b7e401de557ec2abe  evidence/glp1_adjudication/ELIXA.json
+68e8d3990b7e99e22cdde3b06cb2a03f87382743179ee13d79bac201e5786fc7  evidence/glp1_adjudication/FREEDOM-CVO.json
+e880b8f755673f6a6058e3a6ac464e77d121aa8c7b686e68fb31b5cd84435b56  evidence/glp1_adjudication/BEFORE_AFTER.json
+3c82a1dea34436c37b3f746258ed8eca0af3731d6a1394dac8e20efd5aec54c4  evidence/glp1_adjudication/compute_before_after.py
+f4b3b1b7b06758d5ac2dfa697a602d60aa860eff3559ec026e2a2c794706761b  evidence/glp1_adjudication/build_decisions.py
+30de05b2e3c5fd43d328750fe1f26422328f266769805986385e4b6a2fee28e7  docs/reviews/glp1-ra-mace-t2d/review.json
 d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c  protocols/glp1-ra-mace-t2d.md
 7d9922c55c43a8732c8c2e666478b2ae507ad9f904434c45c6213109f99714bc  outputs/handover/lanes/DECISION_CLASS_BOUNDARY_STRANDS.md
 ```
-**Bundle sha256 (sign this): `4bf8ec337f8b368ed171ef7e848a9ef44211c6586158a2421eb67a8644f36c0e`**
+**Bundle sha256 (sign this): `3dd61b27e55ec2207896a6cf0a4d60abaf2aa6692056801682013d75ac150ac8`**
 
-Signature: `SIGNED-BY: ______  BUNDLE: 4bf8ec337f8b368ed171ef7e848a9ef44211c6586158a2421eb67a8644f36c0e  DATE: ______` (unsigned: this request lands nothing)
+Signature: `SIGNED-BY: ______  BUNDLE: 3dd61b27e55ec2207896a6cf0a4d60abaf2aa6692056801682013d75ac150ac8  DATE: ______` (unsigned: this request lands nothing)
