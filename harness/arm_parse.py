@@ -35,15 +35,27 @@ def _clean(s: str) -> str:
     return " ".join(_DOSE.sub(" ", s).split()).strip(" -").lower()
 
 
-def _component(text: str) -> dict[str, Any]:
-    alts = [a.strip() for a in text.split("/") if a.strip()]
-    if len(alts) > 1:
-        parsed = [_component(a) for a in alts]
-        return {"text": text.strip(), "kind": "LEVELS_WITHIN_ARM", "levels": parsed}
+def _single(text: str) -> dict[str, Any]:
     if _PLACEBO_WORD.search(text):
         agent = _clean(_MATCH_WORDS.sub(" ", text))
         return {"text": text.strip(), "kind": "MATCHED_PLACEBO" if agent else "PLACEBO", "matched_to": agent or None}
     return {"text": text.strip(), "kind": "ACTIVE", "agent": _clean(text)}
+
+
+def _component(text: str) -> dict[str, Any]:
+    """A slash marks two LEVELS inside one listed arm only in the "X/X placebo" form: one side the active agent, the other a
+    placebo matched to that SAME agent (VITAL-Echo "fish oil/fish oil placebo"). Every other slash belongs to one component --
+    a fixed combination ("sacubitril/valsartan", "balcinrenone/dapagliflozin"), a dose ("15 mg/10 mg") or a unit ("mg/ml")
+    (arm-parse corpus fixture: those four labels were read as levels)."""
+    alts = [a.strip() for a in text.split("/") if a.strip()]
+    if len(alts) == 2:
+        a, b = _single(alts[0]), _single(alts[1])
+        if {a["kind"], b["kind"]} == {"ACTIVE", "MATCHED_PLACEBO"}:
+            act, pl = (a, b) if a["kind"] == "ACTIVE" else (b, a)
+            x, y = act.get("agent") or "", pl.get("matched_to") or ""
+            if x and y and (x in y or y in x):
+                return {"text": text.strip(), "kind": "LEVELS_WITHIN_ARM", "levels": [a, b]}
+    return _single(text)
 
 
 def parse_arm(label: str) -> dict[str, Any]:
@@ -77,7 +89,9 @@ def exposure(arm: dict[str, Any], keywords) -> str:
                 states.add("ACTIVE")
             elif "MATCHED_PLACEBO" in lv:
                 states.add("MATCHED_PLACEBO")
-    if "VARIES_WITHIN_ARM" in states or {"ACTIVE", "MATCHED_PLACEBO"} <= states:
+    # an arm that GIVES the agent and also carries a matching placebo (a double-dummy, MIRO-CKD's "balcinrenone/dapagliflozin
+    # ... and matching placebo for dapagliflozin") is exposed: the dummy only preserves blinding
+    if "VARIES_WITHIN_ARM" in states:
         return "VARIES_WITHIN_ARM"
     if "ACTIVE" in states:
         return "ACTIVE"
