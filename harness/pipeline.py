@@ -15,6 +15,7 @@ import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import effect_identity as effect_identity_mod
+from . import measure_identity as measure_identity_mod
 from . import continuous_identity as continuous_identity_mod
 from . import outcome_tiers as outcome_tiers_mod
 from . import composite_rule as composite_rule_mod
@@ -1613,6 +1614,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                          if _rc else None))
                     break
     _apply_trial_annotations(spec, trials)
+    # MEASURE IDENTITY (NOAC-AF countercheck f1867881): the measure comes from the statistical MODEL and outcome process -- RE-LY's
+    # "relative risk" from a Cox model on time to first event is a hazard ratio -- with the source's word kept as its own field;
+    # and a CI published at a level other than 95% (ENGAGE 97.5%) keeps its level, interval, transform and SE.
+    _mreg = measure_identity_mod.registry_models(slug)
+    for t in trials:
+        if t.get("effect") is None:
+            continue
+        _pid = str(t.get("id") or "").replace("PMID ", "")
+        _rec = rec_by_id.get(_pid) or {}
+        _nct = _rec.get("nct") or (_pid if _pid.upper().startswith("NCT") else None)
+        _mi = measure_identity_mod.classify(t, spec.get("name"), _nct, _mreg, _rec.get("abstract"))
+        t["measure_identity"] = _mi
+        if _mi["model"] != "NOT_STATED" and _mi.get("scale") and _mi["scale"] != str(t.get("scale") or "").upper():
+            t["source_scale_label"] = t.get("scale")
+            t["scale"] = _mi["scale"]
+        _cp = measure_identity_mod.ci_level_provenance(t)
+        if _cp:
+            t["ci_level_provenance"] = _cp
     for t in trials:
         if t.get("cross_source"):
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))

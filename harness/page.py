@@ -1963,6 +1963,7 @@ def _outcome_block(o, show_inputs=True, review=None):
         body += _harms_ledger_block(o)
     body += _time_to_event_block(o) + _definition_adjudication_block(o) + _continuous_analysis_block(o)
     body += _measure_sensitivity_block(o)
+    body += _measure_identity_block(o)
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 
@@ -1978,6 +1979,24 @@ def _time_to_event_block(o: dict) -> str:
               if pool.get("estimate") is not None else "")
     return ("<div class='absent'><strong>Separate time-to-event analysis (TIME_TO_EVENT_SEPARATE).</strong> " + rows + "." + pooled
             + " " + _e(tte.get("note")) + "</div>")
+
+
+def _measure_identity_block(o: dict) -> str:
+    """Where the MODEL decides the measure against the source's wording (RE-LY: 'relative risk' from a Cox model), and where a
+    published CI level is not 95% (ENGAGE 97.5%): shown, so the reader sees the source term and the derived interval as such."""
+    parts = []
+    for t in o.get("trials") or []:
+        mi = t.get("measure_identity") or {}
+        if t.get("source_scale_label") and mi:
+            parts.append(f"<strong>{_e(t.get('label') or t.get('id'))}:</strong> the source says '{_e(mi.get('source_term'))}'; "
+                         f"the model is {_e(mi.get('model'))} ({_e(mi.get('model_basis'))}), so the measure is {_e(mi.get('measure'))}.")
+        cp = t.get("ci_level_provenance") or {}
+        if cp:
+            pub, der = cp.get("published") or {}, cp.get("derived_95") or {}
+            parts.append(f"<strong>{_e(t.get('label') or t.get('id'))}:</strong> published {_num(pub.get('level'))}% CI "
+                         f"{_num(pub.get('ci_low'))}-{_num(pub.get('ci_high'))}; pooled with a DERIVED ~95% interval "
+                         f"{der.get('ci_low'):.3f}-{der.get('ci_high'):.3f} (SE {_e(cp.get('se'))}) -- not a published 95% CI.")
+    return ("<div class='absent'><strong>Measure and interval provenance.</strong> " + " ".join(parts) + "</div>") if parts else ""
 
 
 def _continuous_analysis_block(o: dict) -> str:
