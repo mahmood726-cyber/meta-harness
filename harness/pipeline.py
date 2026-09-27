@@ -1223,6 +1223,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if cg:
             cg["provenance"] = "ctgov_results"
             t = {"label": label, "id": idstr, **cg}
+            t.update(target_endpoint_mod.bind_registry_row(spec, t, ctgov_results[nct], interv, comp))
             t = design_key.select_estimator_by_source_hierarchy(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )

@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from . import extract, hand_binding
-from .ctgov_results import _classify_arms, _num, _registry_measure_type
+from .ctgov_results import _classify_arms, _num, _registry_measure_type, extract_ctgov
 
 EXACT_TARGET = "EXACT_TARGET"
 NEAR_MATCH = "NEAR_MATCH"
@@ -516,6 +516,164 @@ def classify_bound(spec: dict[str, Any], abstract: str, source: str | None, *, e
         "endpoint_binding_reason": binding["binding_reason"],
     })
     return cls
+
+
+def _registry_missing(reason: str) -> dict[str, Any]:
+    out = _unbound_classification({"binding_reason": reason})
+    out["target_endpoint_class"] = ENDPOINT_IDENTITY_MISSING
+    return out
+
+
+def _registry_times(text: str) -> set[tuple[str, float]]:
+    """Literal durations in either registry order; no inferred follow-up aliases."""
+    times = set()
+    for m in re.finditer(r"\b(?:(\d+(?:\.\d+)?)\s*(days?|weeks?|months?|years?)"
+                         r"|(days?|weeks?|months?|years?)\s*(\d+(?:\.\d+)?))\b", _single_text(text)):
+        number, unit = (m[1], m[2]) if m[1] else (m[4], m[3])
+        if float(number) != 0:  # an explicitly stated baseline is not the endpoint
+            times.add((unit.rstrip("s"), float(number)))
+    return times
+
+
+def classify_registry_measure(spec: dict[str, Any], om: dict[str, Any]) -> dict[str, Any]:
+    """Identity of an ALREADY LOCATED measure, never of a trial or a matching number.
+
+    Full declared phrases only, as in the single-outcome fallback. Retrieval
+    keywords do not supply synonyms. Unresolved wording, populations and
+    timepoints abstain; a located measure is not automatically an exact target.
+    """
+    title, description = om.get("title") or "", om.get("description") or ""
+    text = title + " " + description
+    timeframe = om.get("timeFrame") or om.get("time_frame") or ""
+    population = om.get("populationDescription") or ""
+    quote = {k: om.get(k) for k in ("title", "description", "timeFrame", "time_frame",
+                                    "populationDescription", "type") if k in om}
+    base = _unbound_classification({"binding": BINDING_REGISTRY,
+                                   "endpoint_definition_span": text.strip()})
+    base["registry_outcome_quote"] = quote
+
+    def refuse(reason):
+        return dict(base, endpoint_binding_reason="registry measure: " + reason)
+
+    synonyms = spec.get("synonyms") or []
+    terms = [spec.get("name"), spec.get("definition")]
+    terms += [synonyms] if isinstance(synonyms, str) else synonyms
+    normalized = _single_text(text)
+    terms = [_single_text(t) for t in terms if isinstance(t, str) and t.strip()]
+    # Only source-defined abbreviations of a FULL declared phrase qualify.
+    for term in list(terms):
+        for m in re.finditer(r"(?<!\w)" + re.escape(term) + r"\s*\(([a-z][a-z0-9]{1,9})\)", normalized):
+            if any(re.search(r"\b" + re.escape(m[1]) + r"\b", _single_text(k))
+                   for k in spec.get("keywords") or []):
+                terms.append(m[1])
+    def unqualified_phrase(term):
+        for match in re.finditer(r"(?<!\w)" + re.escape(term) + r"(?!\w)", normalized):
+            if not re.search(r"\b(?:non|no|without|recurrent|severe|minor)\s*$", normalized[:match.start()]):
+                return True
+        return False
+
+    if not any(unqualified_phrase(t) for t in terms):
+        return refuse("no full declared outcome phrase in this measure's title/description")
+
+    declared = " ".join(str(spec.get(k) or "") for k in ("name", "definition"))
+    composite = (spec.get("components") or spec.get("canonical_components")
+                 or re.search(r"\b(?:composite|and|or)\b|/", declared, re.I)
+                 or any(len(a.get("components") or []) > 1
+                        for a in (spec.get("trial_annotations") or {}).values()))
+    if composite:
+        canon = set(canonical_components(spec))
+        own = _components_from_text(text, expand_named_composites=False)
+        # Unknown component vocabularies and bare composite labels stay out of scope.
+        if len(canon) < 2 or own != canon:
+            return refuse("composite does not explicitly list the same supported components")
+
+    target_time = str(spec.get("timepoint") or "")
+    if target_time:
+        wanted, actual = _registry_times(target_time), _registry_times(timeframe)
+        if wanted:
+            if len(wanted) != 1 or wanted != actual:
+                return refuse("timepoint identity is missing, ambiguous or different")
+        elif _single_text(target_time) != _single_text(timeframe):
+            return refuse("nonnumeric timepoint cannot be resolved from the held time frame")
+    # Do not map ITT/FAS/subgroup labels to one another by hand. An explicit
+    # population needs its declared phrase in this measure's own population.
+    target_population = _single_text(spec.get("population") or "")
+    if target_population and target_population not in _single_text(population):
+        return refuse("declared population is not explicit in this measure's population")
+    if re.search(r"\b(?:subgroup|subpopulation|subset|post hoc|per protocol)\b",
+                 _single_text(title + " " + population)) and not target_population:
+        return refuse("restricted population is not declared")
+    # A primary label elsewhere cannot rescue an explicitly secondary result.
+    if str(spec.get("kind") or "").lower() == "primary" and om.get("type") == "SECONDARY":
+        return refuse("secondary measure under a declared primary outcome")
+    base.update(target_endpoint_class=EXACT_TARGET, component_distance=0,
+                target_components=sorted(own) if composite else [],
+                endpoint_binding_reason="registry measure: full declared outcome phrase and declared qualifiers match")
+    return base
+
+
+def bind_registry_row(spec, row, outcome_measures, interv_terms, comp_terms):
+    """Locate one extraction in HELD measures for this row's registry record.
+
+    The caller supplies the record's measures (not a corpus-wide number search).
+    Replay each measure independently, requiring the complete emitted source
+    and every arm value. Neither copied metadata nor an equal point suffices.
+    The legacy impact report truncates source/omits continuous arms and MUST NOT
+    be used as the row input: use the full held review row instead.
+    """
+    if row.get("derived_from") is not None:
+        return bind_derived_registry_row(spec, row["derived_from"], outcome_measures, interv_terms, comp_terms)
+    if row.get("provenance") != "ctgov_results":
+        return _registry_missing("no registry extraction or explicit bound parent rows; provenance labels are not evidence")
+    hits = []
+    for index, om in enumerate(outcome_measures or []):
+        title = om.get("title") or ""
+        if not title:
+            continue
+        candidate = extract_ctgov([om], [title], interv_terms, comp_terms)
+        if not candidate or candidate.get("source") != row.get("source"):
+            continue
+        fields = ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2") if "mean1" in candidate else ("ai", "n1i", "ci", "n2i")
+        if not all(row.get(k) is not None and _num(row[k]) == _num(candidate[k]) for k in fields):
+            continue
+        # Effect/CI-only rows cannot borrow the identity of a count reconstruction.
+        if row.get("effect") is not None:
+            continue
+        if row.get("registry_title") and row["registry_title"] != title:
+            continue
+        hits.append((index, om, candidate, fields))
+    if len(hits) != 1:
+        return _registry_missing(f"registry extraction has {len(hits)} matching held outcome measures; requires exactly one")
+    index, om, candidate, fields = hits[0]
+    bound = classify_registry_measure(spec, om)
+    bound.update(registry_outcome_index=index,
+                 endpoint_result_span=candidate["source"],
+                 registry_numeric_quote={k: om.get(k) for k in ("paramType", "dispersionType", "unitOfMeasure", "classes", "denoms")},
+                 registry_matched_tuple={k: candidate[k] for k in fields})
+    return bound
+
+
+def bind_derived_registry_row(spec, parents, outcome_measures, interv_terms, comp_terms):
+    """Inherit ONLY from explicit input rows, each rebound to the held record.
+
+    This identity contract does not certify the arithmetic. Nested/implicit
+    derivations have no supported lineage here and fail closed, as do mixed
+    time frames/populations. Parent class strings are never trusted.
+    """
+    if (not isinstance(parents, list) or not parents
+            or any(not isinstance(p, dict) or p.get("derived_from") is not None for p in parents)):
+        return _registry_missing("derived row has no complete supported parent lineage")
+    bound = [bind_registry_row(spec, p, outcome_measures, interv_terms, comp_terms) for p in parents]
+    if any(p["target_endpoint_class"] != EXACT_TARGET for p in bound):
+        return dict(_registry_missing("derived row has an unbound or non-target parent"), endpoint_parent_bindings=bound)
+    identities = {(p["registry_outcome_quote"].get("timeFrame") or p["registry_outcome_quote"].get("time_frame"),
+                   p["registry_outcome_quote"].get("populationDescription")) for p in bound}
+    if len(identities) != 1:
+        return dict(_registry_missing("derived parents have different time frames or populations"), endpoint_parent_bindings=bound)
+    inherited = {k: v for k, v in bound[0].items()
+                 if k not in ("registry_numeric_quote", "registry_matched_tuple", "registry_outcome_index", "endpoint_result_span")}
+    return dict(inherited, endpoint_binding="derived_from_bound_registry_rows", endpoint_parent_bindings=bound,
+                endpoint_binding_reason="every explicit parent independently binds to the declared registry outcome")
 
 
 def _num_forms(value) -> set[str]:
