@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import arm_parse, design_key
+
 NOT_DERIVABLE = "NOT_DERIVABLE"
 SOURCE = "harness.arm_object"
 
@@ -129,8 +131,22 @@ def _background_of(text: str) -> str | None:
     return None
 
 
-def _arm(name: str, *, role: str | None = None) -> dict[str, Any]:
+def _active_drug_of(name: str) -> tuple[str | None, str | None]:
+    """(drug actively given, drug a placebo is matched to). "Potassium Chloride + Placebo for Empagliflozin" gives
+    (None, 'empagliflozin'): a placebo matched to X is never exposure to X (arm_parse)."""
     drug = _drug_of(name)
+    if not drug:
+        return None, None
+    state = arm_parse.exposure(arm_parse.parse_arm(name), [drug])
+    if state == "ACTIVE":
+        return drug, "none"
+    if state == "MATCHED_PLACEBO":
+        return "placebo", drug
+    return (None, "none") if state == "ABSENT" else (NOT_DERIVABLE, NOT_DERIVABLE)
+
+
+def _arm(name: str, *, role: str | None = None) -> dict[str, Any]:
+    drug, placebo_for = _active_drug_of(name)
     dose = _dose_of(name)
     bg = _background_of(name)
     return {
@@ -139,6 +155,7 @@ def _arm(name: str, *, role: str | None = None) -> dict[str, Any]:
         "drug": _field(drug, _span(name, drug), "record.interventions"),
         "dose": _field(dose, _span(name, dose), "record.interventions"),
         "background_therapy": _field(bg, _span(name, bg), "record.interventions"),
+        "matched_placebo_for": _field(placebo_for, _span(name, placebo_for), "record.interventions"),
     }
 
 
@@ -292,8 +309,16 @@ def build(rec: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str
             seen.add(key)
             deduped.append(c)
 
+    # ORDERED contrasts between the listed arms, matched placebos parsed (arm_parse), with the registry design carried on
+    # each -- a crossover's arms are periods in the same people, never independent parallel arms.
+    kws = _terms(config, "drug_any", "intervention_terms") or list((config.get("include") or {}).get("intervention_any") or [])
+    nct = str(rec.get("nct") or rec.get("id") or "").upper()
+    reg = design_key.registry_designs({"slug": config.get("slug")}).get(nct) if config.get("slug") and nct.startswith("NCT") else None
+    ordered = arm_parse.ordered_contrasts(interventions, kws, arm_parse.design_object(reg)) if kws and len(interventions) >= 2 else []
+
     return {
         "source": SOURCE,
+        "ordered_contrasts": ordered,
         "trial": {
             "id": _field(rec.get("id"), str(rec.get("id") or ""), "record.id"),
             "nct": _field(rec.get("nct") or (rec.get("id") if str(rec.get("id")).upper().startswith("NCT") else None),

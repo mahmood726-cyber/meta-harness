@@ -40,6 +40,25 @@ canonical again                              verdict PASS LEADER ADMISSIBLE   co
 Branch `oc/ordered-contrast`. Each piece below is on the pushed branch, tested and plant-proven, and names the commit that carries
 it. The V1 integration freeze is Saturday 09:00; items in "Held" are disclosed limitations, not candidates.
 
+## NEW (release-captain gap): a refused pool is never COMPUTED -- `pool_guarded` (commit 4cc42b86)
+
+`pool_guarded(inputs, rows_by_pmid, declared_scale)` is the ONLY route from a verdict to `pool()`: `pool_measure_guard` runs first
+and on refusal returns `(None, guard)` without calling `pool()`. **To apply on the candidate:** inside `check_pool_contract`
+replace `pool(x)` with `got, mg = pool_guarded(x, rows_by_pmid, declared_scale)` and report `mg`.
+`tests/test_pool_guarded.py` enforces it independent of names:
+- an AST walk refuses any call to `pool()` outside `pool_guarded` / `_plant_expected_pool` (a limb's producer model). It fired on
+  the pre-fix verifier (d587d9aa) and fires on a planted `check_pool_contract` that pools and then asks the guard, so it will
+  fire on the candidate until the call is rerouted;
+- a runtime sentinel replaces `pool()` and raises if reached; five refusing plants run through the real `run()` and report
+  `refused_before_logs` without reaching it; the canonical pool is still computed and reproduced to 1e-9.
+The `check_pool_contract` function itself is not in any pushed ref or any tree on this host, so this lane could not edit it in
+place; the rule above is written to catch it by shape.
+
+## Page wording (OC-Q1)
+
+The patch (sha256 `dfb2109d...`) applies cleanly (`git apply --check`) to origin/main be57137a (2026-09-25 15:42). It re-releases
+all 32 pages; it needs the full cache to rebuild them, which this host lacks.
+
 ## Merge facts (measured with `git merge-tree`, no checkout)
 
 - `oc/ordered-contrast` + `origin/main`: **clean**.
