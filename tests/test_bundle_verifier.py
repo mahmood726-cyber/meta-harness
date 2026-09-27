@@ -62,7 +62,8 @@ def test_pool_reproduced_without_the_harness(baseline):
     assert abs(p["recomputed"]["estimate"] - 0.8559934175938467) < 1e-9
     assert abs(p["recomputed"]["tau2"] - 0.00004447972517261924) < 1e-9
     assert abs(p["t_crit_recomputed"] - 2.3646242515927853) < 1e-9   # t_{0.975, 7}
-    assert p["k_declared"] == 8 and p["admissible_rows"] == 7
+    # 8 of 8 since V1.0.1: HARMONY (PMID 30291013) passes P5 once its population is established on source evidence
+    assert p["k_declared"] == 8 and p["admissible_rows"] == 8
 
 
 def test_absence_claims_judged_from_recomputed_preservation(baseline):
@@ -438,7 +439,7 @@ def test_h1a_sustain6_deleted_safety_sentence_is_caught_although_it_carries_no_n
     an = next(a for a in rep["anchors"] if a["pmid"] == "27633186")
     assert an["preservation"]["verdict"] == "FAILURE" and an["coverage_recomputed"] == "EXCERPT_ONLY" and an["coverage_recorded"] == "COMPLETE_ABSTRACT"
     assert rep["verdict"] == "FAIL" and any(f.startswith("ANCHOR_PRESERVATION_FAILURE 27633186") for f in rep["failures"])
-    assert rep["pool"]["admissible_rows"] == 7   # the positive claims stand; the coverage claim does not
+    assert rep["pool"]["admissible_rows"] == 8   # the positive claims stand; the coverage claim does not (8 since V1.0.1: HARMONY P5)
 
 
 def test_m11_rewritten_fragment_is_a_selector_mismatch(tmp_path):

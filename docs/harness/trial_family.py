@@ -386,6 +386,12 @@ def population_clarification(config, conditions):
                      'answer', 'how_it_reached_the_reviewer') if k in clar}
     return None
 
+def _deciding(pop):
+    """The population decision's state and the witnesses that decided it (the full decision, every witness, is
+    family['population_decision'])."""
+    return {'state':pop['state'],'witnesses':[w for w in pop['witnesses'] if w['verdict']==pop['state']],
+            **({k:pop[k] for k in ('population_basis','population_clarification') if k in pop})}
+
 def screen_family(family, config):
     """One P/I/C/design decision, independent of outcomes and report availability.
 
@@ -397,10 +403,22 @@ def screen_family(family, config):
     design = family.get('registry_design') or {}
     requirements = config.get('family_requirements') or {}
     conditions = (family.get('population',{}).get('conditions') or {}).get('value') or []
+    criteria = (family.get('population',{}).get('criteria') or {}).get('value')
     text = ' '.join(conditions).lower()
     if design.get('allocation') and design['allocation'].upper() != 'RANDOMIZED':
         return cell('INELIGIBLE', {'source':'AACT.designs','row':design})
-    if not design or not conditions or not family.get('arms'):
+    # V1.0.1: where the protocol's structured (B-prime) eligibility declares the entry population, that axis is read
+    # from ENTRY EVIDENCE (registry criteria + the primary report's enrolment sentence), exclusions first -- never from
+    # the registry conditions label alone. A proven population exclusion is decided before any design axis abstains.
+    pop = None
+    if requirements.get('population'):
+        from . import population_witness
+        pop = population_witness.decide(family, config, report_role)
+        family['population_decision'] = pop
+        if pop['state'] == 'EXCLUDED':
+            return cell('INELIGIBLE', {'axis':'population','population_decision':_deciding(pop),
+                                       'protocol_requirements':requirements})
+    if not design or not (conditions or criteria) or not family.get('arms'):
         return cell(code='INSUFFICIENT_PICD_EVIDENCE')
     if requirements.get('parallel') and design.get('intervention_model','').upper() not in {'PARALLEL','PARALLEL ASSIGNMENT'}:
         return cell(code='PARALLEL_DESIGN_NOT_PROVEN')
@@ -412,12 +430,17 @@ def screen_family(family, config):
         if float(age.group(1)) < 18:
             return cell('INELIGIBLE', bound.get('span'))
     clarification = None
-    if inc.get('population_any') and not population_matches(inc['population_any'], conditions):
-        clarification = population_clarification(config, conditions)
-        if not clarification:
-            return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
-    if any(t.lower() in text for t in inc.get('population_none') or []):
-        return cell('INELIGIBLE', family['population']['conditions']['span'])
+    if pop is not None:
+        if pop['state'] != 'ESTABLISHED':
+            return cell(code=population_witness.ABSENCE_CODE[pop['state']])
+        clarification = pop.get('population_clarification')
+    else:
+        if inc.get('population_any') and not population_matches(inc['population_any'], conditions):
+            clarification = population_clarification(config, conditions)
+            if not clarification:
+                return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
+        if any(t.lower() in text for t in inc.get('population_none') or []):
+            return cell('INELIGIBLE', family['population']['conditions']['span'])
     if not family['randomised_contrasts']:
         return cell(code='INTERVENTION_CONTRAST_NOT_PROVEN')
     if (inc.get('design_double_blind') or requirements.get('double_blind')) and design.get('masking','').upper() not in {'DOUBLE','TRIPLE','QUADRUPLE'}:
@@ -426,9 +449,11 @@ def screen_family(family, config):
     if 'placebo' in [str(x).lower() for x in inc.get('comparator_any') or []]:
         if not any('placebo' in str(a.get('drug',{}).get('value','')).lower() for a in family['arms']):
             return cell(code='PLACEBO_CONTROL_NOT_PROVEN')
-    span = {'design':design,'population':family['population']['conditions']['span'],
+    span = {'design':design,'population':(family['population'].get('conditions') or {}).get('span'),
             'protocol_requirements':requirements,
             'contrasts':family['randomised_contrasts']}
+    if pop is not None:
+        span['population_decision'] = _deciding(pop)
     if clarification:
         # Admitted only via a retrospective vocabulary clarification: record it, so the page
         # discloses it and nothing downstream can read this as a pre-specified match.
@@ -453,6 +478,7 @@ def protocol_requirements(root, slug, config):
         'parallel':'Parallel-group randomised' in line,
         'double_blind':'double-blind, placebo-controlled' in line,
         'adult':'in adults with type 2 diabetes' in line,
+        'population':'type 2 diabetes' if 'in adults with type 2 diabetes' in line else None,
         'span':{'source':f'protocols/{slug}.md','quote':line}})
 
 def prepare(root, slug, records, config, ledger=None):
