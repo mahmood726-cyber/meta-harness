@@ -169,7 +169,10 @@ _QUASI = _re.compile(r"quasi[-\s]?random|pseudo[-\s]?random|alternat(?:e|ely|ing
 _BODY_RCT = _re.compile(
     r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
     r"controlled trial|clinical trial|assigned|allocated|two groups|three groups)"
-    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)", _re.I)
+    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)"
+    # allocation by a table of random numbers / a random-number generator is randomisation (V1.0.1: Sarzaeem 2014,
+    # 'by using a table of random numbers are divided into intervention and control groups')
+    r"|\btable of random numbers\b|\brandom[-\s]number (?:table|generator)\b", _re.I)
 
 
 def _body_says_rct(rec) -> bool:
@@ -219,6 +222,12 @@ def _is_rct(rec) -> bool:
             return True
         # A missing RCT pubtype is UNKNOWN, not NOT-AN-RCT: accept an explicit self-declaration in the
         # TITLE or in the ABSTRACT BODY (full text/abstract overrules incomplete metadata).
+        return _title_says_rct(rec) or _body_says_rct(rec)
+    if rec["id_type"] == "journal":
+        # a journal-route record (no PubMed metadata): judged on its own printed text, with the same guards
+        text = (rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")
+        if _QUASI.search(text) or _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
+            return False
         return _title_says_rct(rec) or _body_says_rct(rec)
     return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
 

@@ -19,6 +19,7 @@ VOCABULARY = {
     "SUPERSET",
     "OVERLAPPING",
     "DISTINCT",
+    "DISJOINT",
     "COMPARATOR_INVALID",
     "NOT_ENUMERABLE",
     "PARITY_REFUTED_BY_N",
@@ -42,7 +43,8 @@ def _as_int(value):
 def _normalise_status(status: Optional[str]) -> Optional[str]:
     if status is None:
         return None
-    return str(status).strip().upper().replace("-", "_").replace(" ", "_")
+    s = str(status).strip().upper().replace("-", "_").replace(" ", "_")
+    return "DISJOINT" if s == "DISTINCT" else s   # the computed word is DISJOINT (V1.0.1); DISTINCT was its hand synonym
 
 
 def _first_ratio_denominator(text: str, numerator: Optional[int]) -> Optional[int]:
@@ -70,6 +72,7 @@ def _relation_label(relation: str, inferred: bool, dominance=None) -> str:
         "SUPERSET": "superset -- the comparator trial set is contained in ours",
         "OVERLAPPING": "overlapping -- neither trial set contains the other",
         "DISTINCT": "distinct -- no shared trials",
+        "DISJOINT": "disjoint -- no trial family in common",
         "COMPARATOR_INVALID": "comparator invalid -- not an RCT meta / not the same question",
         "NOT_ENUMERABLE": "not enumerable -- comparator trial list and k are not exposed",
         "PARITY_REFUTED_BY_N": "participant-count refutation -- comparator n exceeds the sum of our shared trial n",
@@ -167,14 +170,28 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
         or (comparable_k == 0 and ("observational" in invalid_l or "not an rct" in invalid_l))
         or scope.get("scope_valid") is False and "not an rct" in invalid_l
     )
+    computed = comp.get("overlap_relation") if isinstance(comp.get("overlap_relation"), dict) else None
     if not comparator_valid:
         relation = "COMPARATOR_INVALID"
         inferred = False
+    elif computed is not None:
+        # V1.0.1: THE relation is computed from the pooled trial-family sets (harness/overlap_relation.py); counts and
+        # hand words never decide it. The only refinement kept is the dominant-trial reading of a computed SUBSET.
+        relation = computed["relation"]
+        if relation == "SUBSET" and _patient_share(reason):
+            relation = "DOMINANT_SUBSET"
+        inferred = False
+        our_k = computed.get("ours_k")
+        shared_k = computed.get("shared_k")
+        only_ours = [str(x) for x in (computed.get("only_ours") or [])]
+        only_theirs = [str(x) for x in (computed.get("only_theirs") or [])]
+        if computed.get("theirs_k") is not None:
+            their_k, their_k_source = computed["theirs_k"], "computed overlap relation (enumerated comparator set)"
     elif their_k is None:
         relation = "NOT_ENUMERABLE"
         inferred = False
     elif shared_k == 0 and our_k and their_k:
-        relation = "DISTINCT"
+        relation = "DISJOINT"   # V1.0.1: the word for "no shared trials" is DISJOINT everywhere
         inferred = False
     elif shared_k is not None and our_k is not None:
         if shared_k == our_k == their_k and not only_ours and not only_theirs:

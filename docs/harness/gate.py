@@ -326,6 +326,50 @@ def check_manuscript_numbers(review_dir):
     return []
 
 
+def check_overlap_relation_one_object(review_dir, html=None):
+    """V1.0.1: the comparator overlap relation is ONE computed object (harness/overlap_relation.py). Refuse a page
+    whose projections disagree with it -- the overlap counts, the manifest, the parity row -- or that does not render
+    it. (Before this, the index said OVERLAPPING for two pools sharing zero trials: each surface derived its own
+    word from counts.)"""
+    from . import overlap_relation as _orel
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"OVERLAP: cannot read review.json: {exc}"]
+    comp = rev.get("comparator") or {}
+    obj = comp.get("overlap_relation")
+    if not isinstance(obj, dict) or obj.get("relation") not in _orel.RELATIONS:
+        return ["OVERLAP: comparator.overlap_relation missing or not a computed relation"]
+    rel = obj["relation"]
+    out = []
+    ov = comp.get("overlap") or {}
+    if ov.get("relation") != rel:
+        out.append(f"OVERLAP: comparator.overlap.relation {ov.get('relation')!r} != computed {rel!r}")
+    if ov.get("ours_k") != obj.get("ours_k"):
+        out.append(f"OVERLAP: comparator.overlap.ours_k {ov.get('ours_k')!r} != computed {obj.get('ours_k')!r}")
+    if obj.get("shared_k") is not None and ov.get("shared_k") != obj["shared_k"]:
+        out.append(f"OVERLAP: comparator.overlap.shared_k {ov.get('shared_k')!r} != computed {obj['shared_k']!r}")
+    par = ((rev.get("reproduction") or {}).get("parity") or {}).get("parity_relation") or {}
+    allowed = {rel, "COMPARATOR_INVALID", "PARITY_REFUTED_BY_N"} | ({"DOMINANT_SUBSET"} if rel == "SUBSET" else set())
+    if par.get("relation") and par["relation"] not in allowed:
+        out.append(f"OVERLAP: parity relation {par['relation']!r} disagrees with the computed relation {rel!r}")
+    mp = os.path.join(review_dir, "manifest.json")
+    if os.path.exists(mp):
+        try:
+            mov = ((json.load(open(mp, encoding="utf-8")).get("comparator") or {}).get("overlap") or {})
+            if mov.get("relation") != rel:
+                out.append(f"OVERLAP: manifest overlap relation {mov.get('relation')!r} != computed {rel!r}")
+        except (OSError, ValueError):
+            out.append("OVERLAP: manifest.json unreadable")
+    if html is not None and f"data-relation='{rel}'" not in html:
+        out.append(f"OVERLAP: the served page does not render the computed relation block ({rel})")
+    return out
+
+
 def check_pooled_verified(review_dir):
     """THE BAR, made structural: every pooled number's digits must appear in its committed source span
     (verify.verify_pooled marks 'verified'/'verified_handchecked'/'not-yet'). A page that pools a
@@ -1309,6 +1353,7 @@ def gate_page(review_dir):
                + check_pooled_verified(review_dir)
                + check_rob_rederivable(review_dir)
                + check_manuscript_numbers(review_dir)
+               + check_overlap_relation_one_object(review_dir, html)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)

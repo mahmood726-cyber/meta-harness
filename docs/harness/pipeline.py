@@ -1067,6 +1067,35 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
+        # JOURNAL ROUTE (V1.0.1): a report retrieved outside PubMed contributes NO pooled number while its full report
+        # is not held. For the outcome its printed percentages speak to, the reconstructed counts are shown under the
+        # explicit state RECONSTRUCTED_NOT_POOLED; for every other outcome it is SOURCE_NOT_RETRIEVED (full report).
+        if rec.get("id_type") == "journal":
+            _jr = rec.get("journal_route") or {}
+            _res = _jr.get("result") or {}
+            if not _res.get("full_report_held"):
+                _same = bool(_res) and _res.get("outcome") == spec.get("name")
+                _state = "RECONSTRUCTED_NOT_POOLED" if _same else "SOURCE_NOT_RETRIEVED"
+                _held = _jr.get("held") or {}
+                _quotes = ([_res["intervention"]["percent_quote"], _res["comparator"]["percent_quote"],
+                            _res["intervention"]["n_quote"]] if _same else [])
+                absent.append({
+                    "label": label, "id": idstr, "absent_kind": "journal_route_not_pooled",
+                    "state": _state, "reason_code": _state, "source_adjudicated": True,
+                    "document_ref": _held.get("document_ref"), "document_sha256": _held.get("document_sha256"),
+                    "source_span": " | ".join(_quotes), "verbatim_span": " | ".join(_quotes),
+                    "source": rec.get("title", ""),
+                    **({"reconstructed": {"intervention": {k: _res["intervention"][k] for k in ("events", "n", "percent")},
+                                          "comparator": {k: _res["comparator"][k] for k in ("events", "n", "percent")},
+                                          "rule": _res.get("rule"), "until": _res.get("until")}} if _same else {}),
+                    "reason": ((f"RECONSTRUCTED: {_res['intervention']['events']}/{_res['intervention']['n']} vs "
+                                f"{_res['comparator']['events']}/{_res['comparator']['n']} from the printed "
+                                f"{_res['intervention']['percent']}% vs {_res['comparator']['percent']}% "
+                                f"(n={_res['intervention']['n']}/arm); retrieved through the journal route (not in "
+                                "PubMed); not pooled until the full report is held")
+                               if _same else "journal-route report: full report not held; this outcome is not extracted "
+                                             "from the abstract of a non-PubMed record")})
+                continue
         # PRE-SPECIFIED DOSE (documented rule, TOP of the hierarchy): a multi-dose trial's abstract
         # headline may report a dose other than the one this review pools by a declared rule (the
         # APPROVED dose). Where a committed dose_selection entry names the dose + a verified effect+CI
@@ -1807,9 +1836,15 @@ def outcome_inputs(slug, config, records):
     contrast evictions, companion reports, screening, verified inputs, dose selection, registry designs,
     eligibility contract). Shared with tests/test_m2_battery.py so the battery runs on the real inputs."""
     merged = _dedup(records, config.get("pivotal_trials"))
+    # JOURNAL ROUTE (V1.0.1): trials reported outside PubMed enter screening and the family ledger as typed, held,
+    # located JOURNAL records (harness/journal_route.py) instead of staying permanent unresolved items
+    from . import journal_route as journal_route_mod
+    _journal = journal_route_mod.load(ROOT, slug)
+    merged = merged + [r for r in _journal if r["id"] not in {m["id"] for m in merged}]
     retrieval_ledger = _load_retrieval_ledger(slug)
     from . import trial_family as trial_family_mod
-    family_nodes = trial_family_mod.prepare(ROOT, slug, list(records.get('records') or []) + list(records.get('ctgov') or []), config, retrieval_ledger)
+    family_nodes = trial_family_mod.prepare(ROOT, slug, list(records.get('records') or []) + list(records.get('ctgov') or [])
+                                            + _journal, config, retrieval_ledger)
     retrieval_records = (retrieval_ledger.get("records") or {}) if retrieval_ledger else {}
     # ARMCONTRAST INTO SCREENING: inject this topic's committed, audit-confirmed non-contrast
     # evictions so screening excludes them at eligibility (not after pooling). Deterministic from
@@ -2276,6 +2311,10 @@ def build_review_core(slug, config, records, protocol_sha):
         raise ValueError("PROPOSITION CONTRADICTION (build refused): " + json.dumps(_prop_bad))
     from . import comparator_panel
     review["comparator_panel"] = comparator_panel.attach(slug, review, ROOT)
+    # THE overlap relation (V1.0.1): computed from the pooled trial-family sets and read by every surface; the legacy
+    # overlap counts become a projection of it (harness/overlap_relation.py).
+    from . import overlap_relation as overlap_relation_mod
+    review["comparator"] = overlap_relation_mod.attach(review, rec_by_id)
     return review
 
 

@@ -158,6 +158,8 @@ def object_numerals(review):
             if "." not in m:
                 continue
             out.add(f"{float(m):g}")
+    # the computed overlap relation's counts (the manuscript prints them in the limitations paragraph)
+    out |= _overlap_rel.numerals((review.get("comparator") or {}).get("overlap_relation"))
     return out
 
 
@@ -254,6 +256,9 @@ def _eligibility_rule_sentence(review):
         return ("Eligibility rule: NOT PARSABLE from the registered protocol text (no eligibility clause located); "
                 "no rule sentence is asserted.")
     return _e(sentence).replace("**", "")
+
+from . import overlap_relation as _overlap_rel  # noqa: E402
+
 
 def render(review, neutral: bool = False) -> str:
     prim = _primary(review)
@@ -464,7 +469,9 @@ def render(review, neutral: bool = False) -> str:
                   "No GRADE domain was downgraded from the machine-computable signals. "))
         + "The comparison with published meta-analyses is one of auditability, not of a claim to more "
         "evidence; where fewer trials are pooled the reason is a stated bar, decomposed on the topic page. "
-        "Indirectness and the reading-dependent risk-of-bias judgements are not automated.</p>"
+        # the relation word and counts are THE computed overlap object's (harness/overlap_relation.py)
+        + _e(_overlap_rel.short_sentence((review.get("comparator") or {}).get("overlap_relation"))) + " "
+        + "Indirectness and the reading-dependent risk-of-bias judgements are not automated.</p>"
     )
 
     # ---- data availability ----

@@ -55,6 +55,9 @@ RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
 RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
 UNIT_MISMATCH_CYCLE_LEVEL = "UNIT_MISMATCH_CYCLE_LEVEL"
 ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
+# V1.0.1 journal route: counts reconstructed from a report's printed percentages + group sizes (round-tripped),
+# shown but NOT pooled until the full report is held -- a statement about OUR source, never that the trial lacks it
+RECONSTRUCTED_NOT_POOLED = "RECONSTRUCTED_NOT_POOLED"
 
 _CODE_ALIASES = {
     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
@@ -274,6 +277,18 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
         return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
                 "state_basis": _basis(row["reason_code"], span, reason),
                 "source_span": _clip(span), "verbatim_span": _clip(span)}
+    # JOURNAL ROUTE (V1.0.1): a non-PubMed report that contributes no pooled number keeps its typed state --
+    # RECONSTRUCTED_NOT_POOLED (quotes must be printed in the record's held abstract) or SOURCE_NOT_RETRIEVED (full report
+    # not held). It is a statement about our source, never a refusal on evidence and never an absence claim.
+    if row.get("absent_kind") == "journal_route_not_pooled":
+        state = row.get("state")
+        if state not in (RECONSTRUCTED_NOT_POOLED, SOURCE_NOT_RETRIEVED) or not reason:
+            raise ValueError("journal-route row needs RECONSTRUCTED_NOT_POOLED or SOURCE_NOT_RETRIEVED and a reason")
+        span = row.get("source_span") or ""
+        if state == RECONSTRUCTED_NOT_POOLED and not all(q and q in (abstract or "") for q in span.split(" | ")):
+            raise ValueError("RECONSTRUCTED_NOT_POOLED quotes are not printed in the record's held abstract")
+        return {"reason_code": state, "state": state, "state_basis": _basis(state, span, reason),
+                "source_span": span, "verbatim_span": span}
     # All lane adjudications require a recognized reason and an exact held span.
     code = row.get("refusal_provenance") or row.get("reason_code") or row.get("state")
     span = row.get("source_span") or row.get("verbatim_span")

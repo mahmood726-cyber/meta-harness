@@ -119,6 +119,8 @@ _SOURCE_ABSENCE_STATES = {
     "SOURCE_NOT_RETRIEVED": EvidenceState.SOURCE_NOT_RETRIEVED.value,
     "REFUSED_ON_EVIDENCE": EvidenceState.REFUSED_ON_EVIDENCE.value,
     "ENGINE_CANNOT_CONSUME": EvidenceState.ENGINE_CANNOT_CONSUME.value,
+    # the full report is not retrieved; the reconstructed counts are shown, not pooled (journal route, V1.0.1)
+    "RECONSTRUCTED_NOT_POOLED": EvidenceState.SOURCE_NOT_RETRIEVED.value,
 }
 _VALIDITY_THREATENING_KINDS = {
     LimitationKind.UNIT_OF_ANALYSIS.value,
