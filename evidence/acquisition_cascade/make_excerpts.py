@@ -72,8 +72,31 @@ def table_rows_of(rel, caption_prefix, want_rows):
     return header, body
 
 
+def registry_safety_table(rel, name):
+    """ClinicalTrials.gov posted results (public domain): the serious-adverse-event totals of each event group, field
+    values verbatim, beside the registry's own adverse-event description (it names the as-treated safety population)
+    and time frame."""
+    p = os.path.join(HELD, rel)
+    raw = open(p, "rb").read()
+    d = json.loads(raw)
+    ae = d["resultsSection"]["adverseEventsModule"]
+    groups = ae["eventGroups"]
+    # ONE sentence of verbatim field values (the registry has no 'n (%)' cells, which is what a table-row reader keys
+    # on; a sentence carries the tuple, its label and its group names together)
+    lines = ["# EXCERPT (field values verbatim, joined into one sentence) of ClinicalTrials.gov posted results (public domain)",
+             f"# held_path: evidence/acquisition_cascade/held/{rel}", f"# held_sha256: {hashlib.sha256(raw).hexdigest()}",
+             "",
+             f"Adverse-event description (verbatim): {ae.get('description') or ''}",
+             f"Adverse-event time frame (verbatim): {ae.get('timeFrame')}.",
+             "Serious adverse events, participants affected / at risk: "
+             + "; ".join(f"{g['title']} {g['seriousNumAffected']} / {g['seriousNumAtRisk']}" for g in groups) + "."]
+    open(os.path.join(OUT, name), "w", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")
+    print("wrote", name)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
+    registry_safety_table("FREEDOM/NCT00089791.json", "FREEDOM_registry_serious_adverse_events.txt")
     # CoDEX Table 2: the table itself, as cells, for the binder (caption, header rows, the 28-Day section row, the row)
     rel = "CoDEX/pmc_article.html"
     header, body = table_rows_of(rel, "Table 2.", ["28-Day results", "All-cause mortality No. (%)"])

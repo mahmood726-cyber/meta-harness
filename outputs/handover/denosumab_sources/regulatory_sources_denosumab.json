@@ -1,0 +1,71 @@
+{
+ "slug": "denosumab-vertebral-fracture",
+ "contract": "held source: document identity + sha256, verbatim spans at offsets in the committed text extraction; SOURCE_INTERNALLY_INCONSISTENT with scope_outcomes: held, and its own numbers cannot be reconciled for THOSE endpoints; other endpoints untouched",
+ "acquired_by": "evidence lane (Claude Opus 5.5), 2026-09-27, acquisition cascade (ATTEMPTS.jsonl target 'Koh2016')",
+ "sources": [
+  {
+   "source_id": "KOH_2016_YMJ",
+   "kind": "JOURNAL_ARTICLE_OA",
+   "source_level": 1,
+   "query": "Europe PMC fullTextXML PMC4951467 (DOI 10.3349/ymj.2016.57.4.905)",
+   "licence": "CC BY-NC 3.0 (stated in the JATS <license>)",
+   "extractor": "JATS tag + processing-instruction strip; single '### PAGE 1' marker (XML has no pages)",
+   "document_path": "evidence/acquisition_cascade/held/Koh2016/PMC4951467.xml",
+   "document_sha256": "7db32f8c9a36f14fce403830702d6696ef869feae0392b50e5690d19c9212395",
+   "extracted_text_path": "outputs/handover/denosumab_sources/PMC4951467.txt",
+   "extracted_text_sha256": "8b91ab13b62980bc9f257c854a5cc564447b884e5ba0c12b5f9907b873bf2b56",
+   "state": "RAN_OK",
+   "decisions": [
+    {
+     "trial": "Koh 2016",
+     "trial_key": "PMID 27189284",
+     "nct": "NCT01457950",
+     "outcome": "serious adverse events (double-blind phase)",
+     "decision": "SOURCE_INTERNALLY_INCONSISTENT",
+     "rule_id": "source-state:internal-consistency-v1",
+     "scope_outcomes": [
+      "Serious adverse events"
+     ],
+     "scope_basis": "the conflict is in the SAE counts only; the phase split and denominators agree across locations",
+     "reason": "The held article reports serious adverse events as 6 (9%) denosumab vs 2 (3%) placebo in its results narrative, but its Table 3 gives the double-blind phase as 2 (3) vs 1 (2) under n=69 / n=66; no phase or combination of phases in Table 3 gives 6 vs 2. The trial's own registry results give a third value for the randomised phase, 7/69 vs 2/66. Held; not pooled for SAEs; other endpoints untouched.",
+     "reviewer_page_citation": "narrative p910, Table 3 p912 (journal pagination; not verifiable from the XML)",
+     "inconsistencies": {
+      "narrative_sae_6_vs_2": "Results narrative: SAEs 6 (9%) denosumab vs 2 (3%) placebo",
+      "table3_phase_headings": "Table 3 headings: double-blind phase denosumab n=69, placebo n=66 (then the open-label extension)",
+      "table3_sae_row": "Table 3 SAE row: double-blind 2 (3) vs 1 (2); open-label extension 1 (2) vs 3 (5)"
+     },
+     "source_conflict": {
+      "state": "SOURCE_INTERNALLY_INCONSISTENT",
+      "spans_preserved": {
+       "narrative_sae_6_vs_2": {
+        "span": "SAEs occurred in 6 subjects (9%) in the denosumab group and 2 subjects (3%) in the placebo group",
+        "offset": 19394
+       },
+       "table3_phase_headings": {
+        "span": "Double-blind phase Open-label extension Denosumab (n=69) Placebo (n=66)",
+        "offset": 39792
+       },
+       "table3_sae_row": {
+        "span": "Serious AEs (SAEs) 2 (3) 1 (2) 1 (2) 3 (5)",
+        "offset": 39959
+       }
+      }
+     },
+     "other_source_values": {
+      "registry_results": {
+       "path": "evidence/acquisition_cascade/held/Koh2016/NCT01457950.json",
+       "sha256": "faa6291cf057a4305598b5765fa69d524ea00d929db87fcf0f1565cdc9af9237",
+       "randomized_phase_denosumab": "7/69",
+       "randomized_phase_placebo": "2/66",
+       "event_group_titles": [
+        "Randomized Phase: Denosumab 60 mg",
+        "Randomized Phase: Placebo"
+       ]
+      },
+      "state": "SOURCE_EFFECT_CONFLICT"
+     }
+    }
+   ]
+  }
+ ]
+}
