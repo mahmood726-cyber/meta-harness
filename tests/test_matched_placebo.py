@@ -123,3 +123,17 @@ def test_corpus_n_of_n_matches_the_recorded_measurement():
     assert {k: v["n"] for k, v in m["by_cause"].items()} == {"MATCHED_PLACEBO": 2, "VARIES_WITHIN_ARM": 1, "ABSENT": 3}
     stored = json.load(open(os.path.join(ROOT, "evidence", "matched_placebo", "measure_3876a62d.json"), encoding="utf-8"))
     assert stored["by_cause"] == m["by_cause"]
+
+
+# ------------------------------------------------------------------ arm-parse corpus fixture findings (Codex reading vs parser)
+@pytest.mark.parametrize("label,kws,state", [
+    ("sacubitril/valsartan (LCZ696) matching placebo", ["sacubitril/valsartan", "lcz696"], "MATCHED_PLACEBO"),   # NCT02554890
+    ("Semaglutide 1.34 mg/ml placebo", ["semaglutide"], "MATCHED_PLACEBO"),                                   # NCT05078255
+    ("Balcinrenone/dapagliflozin 15 mg/10 mg and matching placebo for dapagliflozin 10 mg", ["dapagliflozin"], "ACTIVE"),  # MIRO
+    ("Balcinrenone/dapagliflozin 40 mg/10 mg and matching placebo for dapagliflozin 10 mg", ["dapagliflozin"], "ACTIVE"),
+    ("Vitamin D3 + fish oil/fish oil placebo", ["fish oil"], "VARIES_WITHIN_ARM"),                             # the one real level split
+])
+def test_a_slash_is_a_level_split_only_in_the_x_slash_x_placebo_form_and_a_double_dummy_arm_is_exposed(label, kws, state):
+    """Plants from the arm-parse corpus fixture: a fixed combination, a dose and a unit were read as two levels, and a
+    double-dummy arm (active fixed combination + matching placebo for one ingredient) was read as varying, not exposed."""
+    assert arm_parse.exposure(arm_parse.parse_arm(label), kws) == state
