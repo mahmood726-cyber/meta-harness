@@ -289,3 +289,89 @@ After fallback: **13 of 20 CONSISTENT**, **7 of 20 NOT_STATED**, **0 of 20 polar
 Plants in `tests/test_effect_only_multiarm_and_polarity.py` cover effect-only holds under undeclared/count rules, single-arm selection, duplicate comparisons, distinct outcomes/timepoints/populations/trials/controls, and survival-oriented same-HR fallback. Different point, either CI end, measure, incomplete CI or adjacent benefit sentence cannot supply polarity. Existing row polarity takes precedence.
 
 Validation: `python -m pytest -q tests/test_effect_only_multiarm_and_polarity.py tests/test_effect_identity.py tests/test_effect_identity_corpus_fixture.py -p no:cacheprovider` -> **120 passed**. Only these three files were run. Fixture JSON and report were regenerated and their exact recomputation test passes. A second-pass comparison of all 127 fixture identities and rule states confirms only the PMID 32865377 polarity state changes. Additional plants reject equal counts across separate reports and inconsistent counts under one explicit control ID. `git diff --check` passes. No commit or deployment.
+
+## (15) Relative reductions preserve the named measure (3876a62d)
+
+Measured before patching from pinned served data at `3876a62dca66764dff1b4f84d6b43356a1a9e3bb`.
+The pre-patch extractor is retained in git at `32b4f3a314dd0bdc74a9433393930a8bbf0ee342`.
+[Reproduction script](measure_relative_reduction.py), [complete quoted census](relative_reduction_census.md),
+and [machine-readable inventory](relative_reduction_census.json) retain every served row and the included-trial scan.
+
+| Input | Static vs dynamic / hardcode disclosure |
+|---|---|
+| Git pins, lexical screen, synthetic test phrases | Static audit scope and boundary plants; not research findings |
+| Row identities, source quotations, estimates, included records | Dynamic reads of pinned review/topic/cache git objects |
+| Exact complements, denominators, before/after comparisons | Computed from those bytes; no invented effects, CIs, or identifiers |
+
+### Served measurement: every outcome, every row
+
+**2 of 127 served rows** (**2 of 86 reported-effect rows**) derive from reduction phrases, across **97 outcomes / 32 pages**.
+**2 of 2** preserve the correct measure and exactly complement the point and both CI endpoints; **0 of 2** have an incorrect transform.
+The complete list is:
+
+| Row | Source phrase | Named measure | Served tuple | Exact transform? |
+|---|---|---|---|---|
+| colchicine-recurrent-pericarditis / Recurrent pericarditis / PMID 21873705 [outcome 0, row 1] | "relative risk reduction, 0.56 [CI, 0.27 to 0.73]" | RR | RR 0.44 (0.27–0.73) | Yes: 1−0.56; 1−0.73; 1−0.27 |
+| colchicine-recurrent-pericarditis / Symptom persistence at 72 hours / PMID 21873705 [outcome 1, row 0] | "relative risk reduction, 0.56 [CI, 0.27 to 0.74]" | RR | RR 0.44 (0.26–0.73) | Yes: 1−0.56; 1−0.74; 1−0.27 |
+
+The recurrence quotation is truncated mid-CI, so its complete held-abstract sentence supplies the interval. The symptom quotation
+is complete. Their adjacent **absolute** reductions (0.31 and 0.30) are different measures and are not complemented.
+CORP-2's PMID 24694983 remains a separately documented **source-label conflict**, not an explicit reduction phrase.
+
+FREEDOM's PMID 19671655 vertebral, nonvertebral and hip rows contain reduction prose, but explicitly report RR 0.32 (0.26–0.41),
+HR 0.80 (0.67–0.95), and HR 0.60 (0.37–0.97), respectively. Their redundant "relative decrease" percentages (68%, 20%, 40%) have
+no reduction CI; the served tuples are direct ratios, not inferred complements. Similarly, RALES PMID 10471456 serves the
+explicit relative risk 0.70 (0.60–0.82); the separate "30 percent reduction" sentence does not supply a reduction CI.
+
+### Uncaptured reduction phrases in included trials (report only)
+
+Scope is **269 screening-included topic/record pairs**, including trials with no served row. **210 of 269** have held abstracts;
+the **59 of 269** unavailable pairs are named in the census and remain in N. The broad lexical scan returns **224 sentences**;
+**222 of 224** have no captured reduction complement. This deliberately inclusive sentence count includes qualitative statements,
+absolute/continuous changes, direct-ratio prose, endpoint thresholds and trial names; it is **not** a count of missed estimable effects.
+Every sentence, identifier, and baseline effect match is listed in the linked census.
+
+The uncaptured quantitative relative-risk statements are **6 phrases in 4 sentences / 4 held abstracts**:
+
+- **colchicine-recurrent-pericarditis / PMID 23992557 (ICAP):** "relative risk reduction in the colchicine group, 0.56;
+  95% confidence interval, 0.30 to 0.72". Complete RR complement would be 0.44 (0.28–0.70); the label-to-point gap exceeds the
+  extractor's 25-character limit. Not served and not promoted by this patch.
+- **sacubitril-valsartan-hfref / PMID 25176015:** "reduced the risk of hospitalization for heart failure by 21% (P<0.001)".
+  Names risk; no CI for the reduction. No interval is invented.
+- **sglt2-primary-prevention-hf / PMID 26378978:** "death from cardiovascular causes (3.7%, vs. 5.9% in the placebo group;
+  38% relative risk reduction), hospitalization for heart failure (2.7% and 4.1%, respectively; 35% relative risk reduction),
+  and death from any cause (5.7% and 8.3%, respectively; 32% relative risk reduction)". Three risk reductions, no reduction CIs.
+- **spironolactone-hfref-mortality / PMID 10471456:** "This 30 percent reduction in the risk of death among patients in the
+  spironolactone group was attributed to a lower risk of both death from progressive heart failure and sudden death from cardiac
+  causes." Risk named; no CI in this sentence. The separate directly reported ratio is already served.
+
+Absolute-risk statements are also uncaptured as ratios, appropriately: **7 phrases** across PMID **42132185** (29.0%),
+**21873705** (0.31 and 0.30), **39529939** (16%), **30439760** (−5.35%), and **30149135** (−0.07 and −0.05).
+Their full quotations, plus absolute-difference, biomarker, duration, weight, and other reduction wording, remain report-only in the census.
+
+### Patch, regression plants, and served changes
+
+`extract._effect_from_match` now preserves the reduction's explicitly named measure: risk → RR, hazard → HR, odds → OR,
+rate → RATE_RATIO. It accepts named `reduced ... by` and `relative reduction in the ...` forms. Percentages become proportions
+before complementing, and CI endpoints swap: 20% (5%–33%) → 0.80 (0.67–0.95). Decimal arithmetic avoids a four-decimal truncation
+of more precise source values while keeping the existing CORP floats byte-identical. The existing complete effect+CI contract remains;
+point-only statements are not made into effect+CI tuples.
+
+Bare reductions are **MEASURE_NOT_STATED** and return no effect; absolute/ARR/percentage-point reductions return no ratio.
+Unstated units, out-of-order intervals and unsupported signed reduction values fail closed. A rate reduction never borrows a risk
+or recurrent-event type from surrounding prose. Ordinary ratio typing, including the existing IRR rules, stays unchanged.
+`transform_provenance` shares the extractor's transform and requires the served measure as well as all three numbers to agree;
+an HR reduction can no longer receive an RR provenance record just because its numbers match.
+
+**Served rows changed: none (0 of 127).** Every served-row abstract extraction and every source-quotation/held-abstract effect
+match is byte-identical before/after this patch. This is a parser replay, not a pipeline rebuild. The two real CORP tuples have
+explicit byte-equality plants in `tests/test_relative_reduction.py`; synthetic plants cover HR/OR/rate typing, percent CIs,
+endpoint swapping, bare/absolute refusals, zero lower reduction bounds, precision and provenance measure agreement.
+The existing effect-identity fixture recomputes exactly, so no fixture state changes or regeneration are required.
+
+Validation: `python -m pytest -q tests/test_relative_reduction.py tests/test_effect_identity.py tests/test_effect_identity_corpus_fixture.py tests/test_irr_typing.py -p no:cacheprovider`
+→ **141 passed**. Only these four test files were run. The first run was 140 passed / 1 failed because the sparse checkout omitted
+the omega3 and iv-iron served JSON files required by the IRR test. Those two tracked files were materialized from the corpus pin;
+their bytes also exactly equal HEAD. The same four-file rerun passed without changing tests or served data.
+Second-pass review checked the quoted identifiers and numeric claims against pinned records, all 127 row comparisons, and the
+unchanged fixture. `git diff --check` passes. No commit, release-status update, or deployment.

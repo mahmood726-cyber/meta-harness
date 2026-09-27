@@ -132,25 +132,29 @@ def transform_provenance(row: dict[str, Any], abstract: str | None = None) -> di
         return None
     served = (row.get("effect"), row.get("ci_low"), row.get("ci_high"))
     for src, where in ((row.get("source") or "", "row quotation"), (abstract or "", "held abstract")):
-        hit = _transform_in(src, served)
+        hit = _transform_in(extract._norm(src), served, row.get("scale"))
         if hit:
             return {**hit, "read_from": where}
     return None
 
 
-def _transform_in(src: str, served) -> dict[str, Any] | None:
+def _transform_in(src: str, served, scale=None) -> dict[str, Any] | None:
     for m in extract._EFFECT.finditer(src):
         kind = m.group(1).lower()
-        try:
-            pt, lo, hi = float(m.group(2)), float(m.group(3)), float(m.group(4))
-        except (TypeError, ValueError, IndexError):
+        measure = extract._reduction_measure(kind)
+        effect = extract._effect_from_match(m, src) if measure else None
+        if effect is None or None in served or (scale and str(scale).upper() != measure):
             continue
-        if "reduction" in kind:
-            derived = (round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
+        if measure:
+            pt, lo, hi = map(float, extract._reduction_values(m))
+            derived = tuple(effect[1:])
+            reported_measure = {"RR": "RRR", "HR": "RELATIVE_HAZARD_REDUCTION",
+                                "OR": "RELATIVE_ODDS_REDUCTION", "RATE_RATIO": "RELATIVE_RATE_REDUCTION"}[measure]
             if tuple(float(x) for x in served) == derived:
-                return {"reported_measure": "RRR", "reported": {"estimate": pt, "ci_low": lo, "ci_high": hi},
-                        "transform": "RR = 1 - RRR; CI endpoints swapped (RR_low = 1 - RRR_high, RR_high = 1 - RRR_low)",
-                        "derived": {"measure": "RR", "estimate": derived[0], "ci_low": derived[1], "ci_high": derived[2]},
+                return {"reported_measure": reported_measure, "reported": {"estimate": pt, "ci_low": lo, "ci_high": hi},
+                        "transform": (f"{measure} = 1 - {reported_measure}; CI endpoints swapped "
+                                      f"({measure}_low = 1 - {reported_measure}_high, {measure}_high = 1 - {reported_measure}_low)"),
+                        "derived": {"measure": measure, "estimate": derived[0], "ci_low": derived[1], "ci_high": derived[2]},
                         "reported_text": m.group(0),
                         "note": ("the interval is symmetric about 0.5, so its ends look unchanged by the transform"
                                  if abs((lo + hi) - 1) < 1e-9 else None)}
