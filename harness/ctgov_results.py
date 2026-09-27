@@ -95,7 +95,7 @@ def endpoint_weeks(timeframe: str):
     return max(weeks) if weeks else None
 
 
-def _extract_ctgov_continuous(om, interv_l, comp_l):
+def _extract_ctgov_continuous(om, interv_l, comp_l, combine_rule=None):
     """Per-arm mean/SD/n from a MEAN outcome measure with dispersion 'Standard Deviation' → a
     mean-difference input {mean1,sd1,nc1,mean2,sd2,nc2,scale:'MD',source}. Refuses (None) on any
     other dispersion type, missing value/spread/denom, non-positive SD or n, or <2 arms — the number
@@ -113,6 +113,23 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
     _iv = [g for g in groups if any(i in (g.get("title") or "").lower() for i in interv_l)]
     _cp = [g for g in groups if any(c in (g.get("title") or "").lower() for c in comp_l)]
     if len(_iv) > 1 or len(_cp) > 1:
+        # A DECLARED combine-eligible-doses rule (continuous_identity) combines EVERY intervention arm it names against the
+        # one shared comparator, counted once (TRANSFORM-1: 56 mg + 84 mg vs placebo). Without the rule: refuse, as before.
+        if combine_rule and len(_cp) == 1:
+            from harness import continuous_identity
+            comb = continuous_identity.combined_contrast(om, interv_l, comp_l, combine_rule)
+            if comb:
+                tf = (om.get("timeFrame") or om.get("time_frame") or "").strip()
+                popd = (om.get("populationDescription") or "").strip()
+                arms = "; ".join(f"{a['title'][:40]} {a['mean']} (SD {a['sd']}, n={int(a['n'])})"
+                                 for a in comb["multi_arm_combined"]["arms"])
+                comb.update({"timeframe": tf, "timeframe_weeks": endpoint_weeks(tf), "registry_title": om.get("title"),
+                             "source": (f"ClinicalTrials.gov results (structured, continuous; eligible doses COMBINED under "
+                                        f"the declared rule): outcome '{om.get('title','')[:70]}' arms {arms} -> combined "
+                                        f"{comb['mean1']} (SD {comb['sd1']}, n={comb['nc1']}) vs {comb['mean2']} "
+                                        f"(SD {comb['sd2']}, n={comb['nc2']}) [shared comparator, counted once]"
+                                        + (f" — population: {popd[:80]}" if popd else ""))})
+                return comb
         return None
     if len(groups) > 2 and not (len(_iv) == 1 and len(_cp) == 1):
         return None
@@ -127,6 +144,16 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
     for d in om.get("denoms", []):
         for c in d.get("counts", []):
             denoms[c.get("groupId")] = _num(c.get("value"))
+    # n OBSERVED vs n in the ANALYSIS SET (continuous-identity review): when the class the mean/SD is read from carries its
+    # OWN denominators, those are the n behind that mean/SD (STEP 1: class "In-trial observation period" 1212/577 under a
+    # measure-level FAS of 1306/655). The measure-level count is kept as the analysis-set n; it never becomes the SE's n.
+    analysis_set_n = dict(denoms)
+    class_denoms = {}
+    for d in classes[0].get("denoms") or []:
+        for c in d.get("counts", []):
+            class_denoms[c.get("groupId")] = _num(c.get("value"))
+    if class_denoms:
+        denoms = class_denoms
     interv_gid, comp_gid = _classify_arms(groups, interv_l, comp_l)
     if not (interv_gid and comp_gid):
         return None
@@ -145,7 +172,10 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
     tf = (om.get("timeFrame") or om.get("time_frame") or "").strip()
     return {"mean1": mean1, "sd1": sd1, "nc1": int(n1),
             "mean2": mean2, "sd2": sd2, "nc2": int(n2), "scale": "MD",
-            "timeframe": tf, "timeframe_weeks": endpoint_weeks(tf),
+            "timeframe": tf, "timeframe_weeks": endpoint_weeks(tf), "registry_title": om.get("title"),
+            "n_source": "class-level denominators of the class read" if class_denoms else "measure-level denominators",
+            **({"n_analysis_set": {"nc1": analysis_set_n.get(interv_gid), "nc2": analysis_set_n.get(comp_gid)}}
+               if class_denoms and (analysis_set_n.get(interv_gid), analysis_set_n.get(comp_gid)) != (n1, n2) else {}),
             "source": (f"ClinicalTrials.gov results (structured, continuous): outcome "
                        f"'{om.get('title','')[:70]}' mean {mean1} (SD {sd1}, n={int(n1)}) [{gi[:22]}] "
                        f"vs {mean2} (SD {sd2}, n={int(n2)}) [{gc[:22]}]" + (f" {unit}" if unit else "")
@@ -167,7 +197,7 @@ def _is_supplementary_estimand(title: str) -> bool:
 
 
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
-                  judgments=None, declared_components=None):
+                  judgments=None, declared_components=None, combine_rule=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
 
     Chooses the outcome measure whose TITLE contains one of our outcome keywords (so we do not
@@ -246,7 +276,7 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
         # directly; SE/CI/median-range dispersions are REFUSED here (refuse-on-ambiguity — an SE needs
         # n and a range needs a Wan conversion that belongs in the prose extractor, not silently here).
         if ptype == "MEAN":
-            cont = _extract_ctgov_continuous(om, interv_l, comp_l)
+            cont = _extract_ctgov_continuous(om, interv_l, comp_l, combine_rule)
             if cont:
                 return cont
             continue

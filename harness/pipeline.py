@@ -15,6 +15,7 @@ import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import effect_identity as effect_identity_mod
+from . import continuous_identity as continuous_identity_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -1129,6 +1130,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # CONTINUOUS override (mean/SD/n), incl. multi-arm combination: beats the automated CT.gov path,
         # which for a 3-arm trial takes a single arm pair and cannot combine dose arms against the shared
         # placebo (esketamine TRANSFORM-1). Highest-precedence continuous entry for this trial+outcome.
+        _cnct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
+        _crule = continuous_identity_mod.combine_rule(spec)
+        if (_crule and va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
+                and _cnct and _cnct in ctgov_results):
+            # A DECLARED combine rule reproduces the hand-combined arm FROM THE HELD REGISTRY ARMS: the row is the
+            # registry's, not the hand override's (whose computed tuple is in no held document and so never binds).
+            _cg = extract_ctgov(ctgov_results.get(_cnct), spec["keywords"], interv, comp, combine_rule=_crule)
+            if _cg and _cg.get("multi_arm_combined") and all(
+                    abs(float(_cg[k]) - float(va_over.get(k) or 0)) <= 0.01 for k in ("mean1", "sd1", "mean2", "sd2"))                     and (_cg["nc1"], _cg["nc2"]) == (va_over.get("nc1"), va_over.get("nc2")):
+                _cg["provenance"] = "ctgov_results"
+                _cg["hand_override_corroborated"] = {k: va_over.get(k) for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")}
+                trials.append({"label": label, "id": idstr, **_cg})
+                continue
         if (va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
                 and all(va_over.get(k) is not None for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2"))):
             trials.append({"label": label, "id": idstr,
@@ -1613,6 +1627,36 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             "pool": _pool_result(_tte_studies, scale="HR") if len(_tte_studies) >= 2 else None,
             "note": ("published hazard ratios on a risk-ratio outcome: never converted by dividing events by randomised. They are "
                      "reported here as HRs; they join the risk pool only through source-supported risks with ascertained denominators")}
+    _cplan = continuous_identity_mod.analysis_plan(spec)
+    if _cplan.get("state") != "PRIMARY_ANALYSIS_NOT_DECLARED" and any(t.get("mean1") is not None for t in trials):
+        # CONTINUOUS identity (esketamine review f5b8f4cb): the declared PRIMARY analysis (and its missing-data assumption,
+        # reported as NOT DECLARED when the protocol is silent) and the MODEL-BASED sensitivity analysis of reported adjusted
+        # differences, admitted only with an established SE. Never an SE as an arm SD; never CI/3.92 for a flexible CI.
+        _mb = []
+        _declared_proc = spec.get("ci_procedure_declared") or {}
+        for t in trials:
+            _pid = str(t.get("id") or "").replace("PMID ", "")
+            _rec = rec_by_id.get(_pid) or rec_by_id.get(t.get("id")) or {}
+            _nct = (_rec.get("nct") or (_pid if _pid.upper().startswith("NCT") else None) or "").upper()
+            _oms = ctgov_results.get(_nct) or []
+            _om = next((o for o in _oms if o.get("title") == t.get("registry_title")), None)
+            if _om is None:
+                _mb.append({"id": t.get("id"), "label": t.get("label"), "state": "NO_REGISTRY_MEASURE"})
+                continue
+            _held = [(r.get("abstract") or "") for r in rec_by_id.values() if str(r.get("nct") or "").upper() == _nct]
+            _row = continuous_identity_mod.model_based_row(_om, _held, _declared_proc.get(_nct))
+            _mb.append({"id": t.get("id"), "label": t.get("label"), "nct": _nct, **_row})
+        _adm = [r for r in _mb if r.get("state") == "ADMITTED"]
+        out["continuous_analysis"] = {
+            "plan": _cplan,
+            "primary_label": "raw per-arm mean/SD, observed at the timepoint (protocol-declared primary)",
+            "model_based_sensitivity": {
+                "rows": _mb,
+                "pool": (_pool_result([Study(label=r["label"], effect=r["value"], ci_low=r["value"] - 1.959964 * r["se"],
+                                             ci_high=r["value"] + 1.959964 * r["se"], measure="MD") for r in _adm], scale="MD")
+                         if len(_adm) >= 2 else None),
+                "note": (f"{len(_adm)} of {len(_mb)} trials report an adjusted difference with an established SE; "
+                         + ("pooled among themselves" if len(_adm) >= 2 else "too few to pool -- reported per trial only"))}}
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:

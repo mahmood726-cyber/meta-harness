@@ -1919,7 +1919,7 @@ def _outcome_block(o, show_inputs=True, review=None):
         body += _trial_inputs(o)
     if o.get("kind") == "harm":
         body += _harms_ledger_block(o)
-    body += _time_to_event_block(o) + _definition_adjudication_block(o)
+    body += _time_to_event_block(o) + _definition_adjudication_block(o) + _continuous_analysis_block(o)
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 
@@ -1935,6 +1935,42 @@ def _time_to_event_block(o: dict) -> str:
               if pool.get("estimate") is not None else "")
     return ("<div class='absent'><strong>Separate time-to-event analysis (TIME_TO_EVENT_SEPARATE).</strong> " + rows + "." + pooled
             + " " + _e(tte.get("note")) + "</div>")
+
+
+def _continuous_analysis_block(o: dict) -> str:
+    """The declared PRIMARY analysis (and its missing-data assumption, or that none is declared), the combined-dose rows, and
+    the MODEL-BASED sensitivity analysis with every refusal named (continuous-identity review f5b8f4cb)."""
+    ca = o.get("continuous_analysis") or {}
+    if not ca:
+        return ""
+    plan = ca.get("plan") or {}
+    prim = plan.get("primary") or {}
+    mda = prim.get("missing_data_assumption")
+    head = (f"<strong>Primary analysis (protocol):</strong> {_e(ca.get('primary_label'))}; population {_e(prim.get('population'))}. "
+            + (f"Missing-data assumption: {_e(mda)}." if mda else
+               "<strong>Missing-data assumption: NOT DECLARED in the protocol</strong> (an observed-case analysis is valid only "
+               "if missingness is ignorable; the protocol does not say so)."))
+    comb = [t for t in (o.get("trials") or []) if t.get("multi_arm_combined")]
+    comb_txt = "".join(
+        f" <strong>Combined doses ({_e(t.get('label') or t.get('id'))}):</strong> "
+        + "; ".join(f"{_e(a.get('title'))} {_num(a.get('mean'))} (SD {_num(a.get('sd'))}, n={_e(a.get('n'))})"
+                    for a in t["multi_arm_combined"].get("arms") or [])
+        + f" combined against {_e((t['multi_arm_combined'].get('shared_comparator') or {}).get('title'))}, counted once "
+        + ("(prespecified in the trial)." if t["multi_arm_combined"].get("prespecified_in_trial") else
+           "(a review rule, not prespecified in the trial; declared after registration).")
+        for t in comb)
+    mb = ca.get("model_based_sensitivity") or {}
+    rows = "; ".join(
+        f"{_e(x.get('label') or x.get('id'))}: " + (
+            f"adjusted {_num(x.get('value'))} (SE {_num(x.get('se'))}, {_e(x.get('se_basis'))})" if x.get("state") == "ADMITTED"
+            else f"{_e(x.get('state'))}" + (f" -- {_e(x.get('reason'))}" if x.get("reason") else ""))
+        for x in mb.get("rows") or [])
+    pool = mb.get("pool") or {}
+    pooled = (f" Pooled: MD {_num(pool.get('estimate'))} ({_num(pool.get('ci_low'))} to {_num(pool.get('ci_high'))}), k={_e(pool.get('k'))}."
+              if pool.get("estimate") is not None else "")
+    return ("<div class='absent'>" + head + comb_txt + " <strong>Model-based sensitivity analysis (reported adjusted differences, "
+            "SE established only from a stated SE or a standard fixed-level two-sided CI):</strong> " + rows + "." + pooled
+            + " " + _e(mb.get("note")) + "</div>")
 
 
 def _definition_adjudication_block(o: dict) -> str:

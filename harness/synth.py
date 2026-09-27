@@ -166,6 +166,15 @@ class Study:
                 v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
             return y, v
         if self.effect is not None and self.ci_low is not None and self.ci_high is not None and \
+                str(self.measure or "").upper() in ("MD", "SMD"):
+            # ADDITIVE effect + CI (continuous-identity review): the raw difference, SE = width / (2 z). Only a caller that has
+            # established a standard fixed-level two-sided 95% CI (continuous_identity.se_from_ci / difference_se) builds one;
+            # before this path an MD given as effect+CI fell through to the log branch below. No served row uses it (0 of 6).
+            if not self.ci_high > self.ci_low:
+                raise ValueError(f"study {self.label!r}: an additive interval needs ci_high > ci_low")
+            z = _norm.ppf(0.975)
+            return float(self.effect), ((self.ci_high - self.ci_low) / (2 * z)) ** 2
+        if self.effect is not None and self.ci_low is not None and self.ci_high is not None and \
                 (self.effect <= 0 or self.ci_low <= 0 or self.ci_high <= 0):
             # a ratio limit <= 0 has no log: refused explicitly (DPP-4 review) -- never a reflected or invented lower limit
             raise ValueError(f"study {self.label!r}: a non-positive ratio limit ({self.effect}, {self.ci_low}, {self.ci_high}) has no "
