@@ -350,6 +350,7 @@ def _label_definition(prose: str, cand: dict[str, Any]) -> dict[str, Any]:
         d = hits[0]
         return {"binding": te.BINDING_DEFINITION, "endpoint_result_span": cand["text"],
                 "endpoint_definition_span": d["span"], "components": set(d["components"]),
+                "excluded_components": set(d.get("excluded") or ()),
                 "binding_reason": f"table label '{cand['label']}' names an endpoint; one definition span carries the label's words"}
     reason = (f"table label '{cand['label']}' names an endpoint but the held text holds no definition span carrying its words"
               if not sets else f"table label '{cand['label']}' resolves to {len(sets)} different definitions")
@@ -397,7 +398,9 @@ def _ownership(spec: dict[str, Any], cand: dict[str, Any], prose: str, tup: dict
     canon = te.canonical_components(spec)
     own = te._components_from_text(own_text, expand_named_composites=False)
     if own:
-        cls = te._classify(spec, own_text, components=own)
+        # EXCLUDES of the owning clause AND of its document neighbourhood (a footnote after the result): polarity first
+        excl = te.endpoint_relations(own_text, context=te.neighbourhood(prose, cand["text"]))["excludes"]
+        cls = te._classify(spec, own_text, components=own, excluded=excl)
         cls.update({"endpoint_binding": te.BINDING_SELF, "endpoint_result_span": cand["text"],
                     "endpoint_definition_span": own_text,
                     "endpoint_binding_reason": "span names its own component set: " + ", ".join(sorted(own))})
@@ -411,7 +414,8 @@ def _ownership(spec: dict[str, Any], cand: dict[str, Any], prose: str, tup: dict
             out = te._unbound_classification(b)
             out["endpoint_result_span"] = cand["text"]
             return out
-        cls = te._classify(spec, b["endpoint_definition_span"], components=b["components"])
+        cls = te._classify(spec, b["endpoint_definition_span"], components=b["components"],
+                           excluded=b.get("excluded_components"))
         cls.update({"endpoint_binding": b["binding"], "endpoint_result_span": cand["text"],
                     "endpoint_definition_span": b["endpoint_definition_span"],
                     "endpoint_binding_reason": b["binding_reason"],

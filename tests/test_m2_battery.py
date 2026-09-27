@@ -10,8 +10,7 @@ Every case keeps the paired shape: the CONTROL (the committed inputs) admits -> 
 row is refused for the named reason with the trial still visible -> the exact inputs restored admit again and
 give the control's pool. Cases assert a property and a code, never a number or a message string.
 
-Known misses are strict xfails, named: W4a/W4b (an excluded component treated as included: the layer-1 exclusion
-relation, not this object) and W2a/W5b (a canonical span absent from the held document: refused at LOAD for the
+Known misses are strict xfails, named: W2a/W5b (a canonical span absent from the held document: refused at LOAD for the
 whole topic -- right check, wrong scope -- asserted as such so the day it becomes a row refusal is visible).
 """
 import copy
@@ -315,25 +314,45 @@ def test_W2a_and_W5b_refuse_at_load_today():
             "source_level": 1}), __import__("pathlib").Path(CACHE), SOUL, canonical=True)
 
 
-@pytest.mark.xfail(strict=True, reason="W4a: an excluded component treated as included -- the layer-1 exclusion "
-                                       "relation, not the hand-row object")
+# W4a/W4b: strict xfails until lane NR V1.0.1 -- the producer now reads endpoints as INCLUDES/EXCLUDES relations
+# (harness/target_endpoint.endpoint_relations, the verifier's own split_exclusions / analysis_exclusions), so an excluded
+# target component is ENDPOINT_COMPONENT_EXCLUDED and the row is refused on both routes.
 def test_W4a_exclusion_stated_in_the_held_abstract_refuses_the_hand_row(inputs, lane):
-    inp, spec = inputs
-    rec_by_id = edit_abstract(lane, inp, SOUL,
-        "(a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke)",
-        "(a composite of death from cardiovascular causes or nonfatal myocardial infarction; nonfatal stroke was "
-        "excluded from the primary outcome)")
-    out = _build(inp, spec, lane, rec_by_id)
-    assert SOUL not in _pool(out)
+    def edit(lane, inp):
+        return edit_abstract(lane, inp, SOUL,
+            "(a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke)",
+            "(a composite of death from cardiovascular causes or nonfatal myocardial infarction; nonfatal stroke was "
+            "excluded from the primary outcome)")
+    _w4_paired(inputs, lane, SOUL, edit)
 
 
-@pytest.mark.xfail(strict=True, reason="W4b: the same exclusion on the machine (abstract) route")
 def test_W4b_exclusion_stated_in_the_held_abstract_refuses_the_abstract_row(inputs, lane):
+    old = ("The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial "
+           "infarction, or nonfatal stroke.")
+    new = ("The primary composite outcome was the first occurrence of cardiovascular death or nonfatal myocardial "
+           "infarction; nonfatal stroke was excluded from the primary composite outcome.")
+
+    def edit(lane, inp):
+        rec_by_id = edit_abstract(lane, inp, SUSTAIN6, old, new)
+        # SUSTAIN-6's refused GI-events entry QUOTES the whole held abstract as its source_span; a quote of the changed
+        # sentence changes with it, else the loader refuses the topic at LOAD (the W2a/W5b class, not this one)
+        edit_ve(lane, lambda d: [e.update(source_span=e["source_span"].replace(old, new))
+                                 for e in d.get(SUSTAIN6, []) if old in (e.get("source_span") or "")])
+        return rec_by_id
+    _w4_paired(inputs, lane, SUSTAIN6, edit)
+
+
+def _w4_paired(inputs, lane, trial, edit):
+    """The paired shape for an EXCLUDED target component: control admits -> the held abstract's definition excludes
+    nonfatal stroke -> the row is refused as ENDPOINT_COMPONENT_EXCLUDED, trial visible -> restore -> control's pool."""
     inp, spec = inputs
-    rec_by_id = edit_abstract(lane, inp, SUSTAIN6,
-        "The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial "
-        "infarction, or nonfatal stroke.",
-        "The primary composite outcome was the first occurrence of cardiovascular death or nonfatal myocardial "
-        "infarction; nonfatal stroke was excluded from the primary composite outcome.")
-    out = _build(inp, spec, lane, rec_by_id)
-    assert SUSTAIN6 not in _pool(out)
+    control = _control(inp, spec, lane)
+    assert trial in control, control
+    out = _build(inp, spec, lane, edit(lane, inp))
+    assert trial not in _pool(out), f"{trial}: an excluded component was treated as included (POOLED)"
+    absent = _absent(out, trial)
+    assert absent is not None, f"{trial}: vanished instead of staying visible as refused"
+    assert absent.get("reason_code") == "ENDPOINT_COMPONENT_EXCLUDED", (absent.get("reason_code"), absent.get("reason"))
+    for name in COPIED:
+        shutil.copyfile(os.path.join(CACHE, name), lane / "cache" / SLUG / name)
+    assert _pool(_build(inp, spec, lane)) == control, f"{trial}: restored inputs did not give the control's pool"

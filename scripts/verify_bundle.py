@@ -285,7 +285,31 @@ def clause_with_effect(span, values):
 
 
 _EXCLUSION = re.compile(r"\b(excluding|except(?:ing)?|exclusive of|but not|other than|not including|without)\b\s*", re.I)
-_EXCLUSION_STOP = re.compile(r",\s*(?:and|which|that|the|was|were|occurred|did|with|namely|i\.e\.|that is|specifically)\b|;|\(")
+# ', or' ends an exclusion scope like ', and' does: 'nonfatal MI excluding silent infarction, or nonfatal stroke' excludes the
+# silent infarctions, not the stroke that follows (lane NR V1.0.1: without 'or' the stroke was cut and the target refused)
+_EXCLUSION_STOP = re.compile(r",\s*(?:and|or|which|that|the|was|were|occurred|did|with|namely|i\.e\.|that is|specifically)\b|;|\("
+                             r"|(?<!\.)\.(?!\.)\s")                      # a scope never runs past its own sentence
+# a cue directly after a population noun ('in patients without prior stroke') scopes the POPULATION, never the endpoint
+_POPULATION_BEFORE_CUE = re.compile(r"\b(?:patients?|participants?|subjects?|individuals?|persons?|people|those|women|men|adults?|"
+                                    r"children)\s*$", re.I)
+# ... or anywhere earlier in the cue's own clause ('in patients with ... obesity but without diabetes, ...')
+_POPULATION_NOUN = re.compile(r"\b(?:patients?|participants?|subjects?|individuals?|persons?|people|those|women|men|adults?|"
+                              r"children)\b", re.I)
+# 'with or without anemia' / 'with and without HFrEF' contrasts subgroups; it excludes nothing
+_WITH_OR_BEFORE_CUE = re.compile(r"\bwith\s+(?:or|and)\s*$", re.I)
+# 'without (any significant) difference / increase in X', 'without knowledge of X': a result or a method, not an exclusion
+_NOT_AN_EXCLUSION_AFTER = re.compile(r"(?:any\s+)?(?:(?:statistically\s+)?significant\s+)?(?:differences?|increases?|changes?|excess|"
+                                     r"effects?|heterogeneity|interaction|knowledge|regard|awareness|reference|adjustment|access|"
+                                     r"information)\b"
+                                     # a TIME WINDOW is a temporal restriction, not an excluded event ('excluding first 2 years of
+                                     # follow-up', 'excluding events in the first 30 days'): VITAL registry measure #12
+                                     r"|(?:events?\s+(?:in|during|within|occurring\s+in)\s+)?(?:the\s+)?(?:first|initial|last)\s+"
+                                     r"(?:\d+|one|two|three|six|twelve)\s*(?:days?|weeks?|months?|years?)\b", re.I)
+# a scope followed by its OWN result tuple ('but not stroke (RR, 0.86; 95% CI ...)', 'but not stroke alone (1.5% vs. 1.3%, P=0.22)')
+# is a RESULTS contrast about a separate estimate, not an exclusion from the endpoint
+_RESULT_TUPLE_AFTER = re.compile(r"\s*(?:alone\s*)?\(\s*(?:(?:rr|hr|or|irr|hazard ratio|risk ratio|odds ratio|relative risk)\b|\d)", re.I)
+# the short contrast cues end at their own comma ('except for statins, most patients ... after MI')
+_SHORT_CUES = ("except", "excepting", "but not", "without")
 _DEFINES = re.compile(r"(primary (?:composite )?(?:outcome|end ?point)|primary cardiovascular (?:composite )?(?:outcome|end-?point)|composite (?:outcome|end ?point))"
                       r"\s+(?:was|were|is|are|consisted of|consists of|defined as|comprised|comprising|included|includes)\b", re.I)
 # exclusion STATEMENTS anywhere in the span (next sentence, footnote), scoped to the analysis/outcome -- not to the population
@@ -307,31 +331,53 @@ def named_components(text):
     return sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
 
 
-def split_exclusions(text):
+def split_exclusions(text, namer=None):
     """Relational, not a blacklist: every segment governed by an exclusion cue is cut out BEFORE membership is read. Returns
     (included_text, excluded_text). 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' -> included names
     one component, excluded names two; '3-point MACE excluding unstable angina' -> included keeps the target phrase. A cue INSIDE
     a parenthetical is scoped to the parenthetical, and when it qualifies the component it follows ('nonfatal myocardial
-    infarction (excluding silent infarction)') it excludes nothing -- a qualifier on a component is not an exclusion of one."""
+    infarction (excluding silent infarction)') it excludes nothing -- a qualifier on a component is not an exclusion of one.
+    A cue that scopes the POPULATION cuts nothing: right after a population noun ('patients without prior stroke') or with a
+    population noun earlier in its own clause ('in patients with obesity but without diabetes, ...'). Neither does 'with or
+    without X', 'without (any significant) difference in X' / 'without knowledge of X', or a scope followed by its own
+    result tuple ('but not stroke (RR, 0.86; 95% CI ...)': a results contrast). 'except' / 'but not' / 'without' scopes end
+    at their own comma. `namer` maps text to component names (default: this verifier's own vocabulary). The producer
+    (harness/target_endpoint.endpoint_relations) calls this same function with its own vocabulary: ONE exclusion semantics."""
+    named = namer or named_components
     included, excluded, rest = "", "", text
     while True:
         m = _EXCLUSION.search(rest)
         if not m:
             return included + rest, excluded.strip()
         head = rest[:m.start()]
+        cue = re.sub(r"\s+", " ", m.group(1).lower())
+        clause_head = re.split(r"[,;.]", head)[-1]
+        if (_POPULATION_BEFORE_CUE.search(head) or _POPULATION_NOUN.search(clause_head) or _WITH_OR_BEFORE_CUE.search(head)
+                or _NOT_AN_EXCLUSION_AFTER.match(rest, m.end())):
+            included += rest[:m.end()]
+            rest = rest[m.end():]
+            continue
         if head.rstrip().endswith("("):
             close = rest.find(")", m.end())
             scope = rest[m.end():close] if close >= 0 else rest[m.end():]
-            governing = named_components(head.rstrip()[:-1][-60:])
-            if not set(named_components(scope)) <= set(governing):          # names a component the head does not: a real exclusion
+            governing = named(head.rstrip()[:-1][-60:])
+            if not set(named(scope)) <= set(governing):          # names a component the head does not: a real exclusion
                 excluded += " " + scope
             included += head.rstrip()[:-1] + " "
             rest = rest[close + 1:] if close >= 0 else ""
             continue
         stop = _EXCLUSION_STOP.search(rest, m.end())
-        excluded += " " + (rest[m.end():stop.start()] if stop else rest[m.end():])
+        end = stop.start() if stop else len(rest)
+        if cue in _SHORT_CUES:
+            comma = rest.find(",", m.end())
+            end = min(end, comma) if comma >= 0 else end
+        if cue in _SHORT_CUES and _RESULT_TUPLE_AFTER.match(rest, end):
+            included += rest[:m.end()]                    # a results contrast: the scope's component has its own estimate
+            rest = rest[m.end():]
+            continue
+        excluded += " " + rest[m.end():end]
         included += head + " "
-        rest = rest[stop.start():] if stop else ""
+        rest = rest[end:]
 
 
 def analysis_exclusions(text):

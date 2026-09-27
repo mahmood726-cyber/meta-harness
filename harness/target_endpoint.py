@@ -13,11 +13,18 @@ from typing import Any
 from . import extract, hand_binding
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
 
+# ONE exclusion semantics for producer and verifier. The verifier (scripts/verify_bundle.py) must import nothing from this
+# repository (tests/test_bundle_verifier.py), so the relation functions live there and the producer imports them; the
+# certificate's import closure (harness/code_closure.py follows scripts/) then pins the verifier's bytes for every topic.
+from scripts import verify_bundle as _relations  # noqa: E402
+
 EXACT_TARGET = "EXACT_TARGET"
 NEAR_MATCH = "NEAR_MATCH"
 DIFFERENT_OUTCOME = "DIFFERENT_OUTCOME"
 EXACT_TARGET_IN_SOURCE_NOT_HELD = "EXACT_TARGET_IN_SOURCE_NOT_HELD"
 ENDPOINT_UNBOUND = "ENDPOINT_UNBOUND"
+# the bound endpoint EXCLUDES a target component ('nonfatal stroke was excluded from the primary outcome'): refused
+ENDPOINT_COMPONENT_EXCLUDED = "ENDPOINT_COMPONENT_EXCLUDED"
 
 # Endpoint-span binding (external review of served glp1 edaf5f6b, defect 1 -- wrong-endpoint
 # acceptance).  Before this, an abstract candidate was classified against the WHOLE abstract and that
@@ -181,8 +188,53 @@ def _fold(text: str | None) -> str:
     return re.sub(r"\s+", " ", s)
 
 
+def _ws_lower(text: str | None) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip().lower()
+
+
+def endpoint_relations(text: str | None, context: str | None = None,
+                       expand_named_composites: bool = True) -> dict[str, Any]:
+    """The endpoint a span defines, as typed relations: INCLUDES(x) and EXCLUDES(x).
+
+    EXCLUDES comes from exclusion SCOPES in the span ('excluding X', 'other than X', 'X' in '(excluding X)' when it is not a
+    qualifier of the component before it) and exclusion STATEMENTS in the span or its document `context` ('X was excluded
+    from the primary outcome', 'neither X nor Y contributed', a footnote after the result). A POPULATION exclusion
+    ('patients with prior stroke were excluded from enrolment', 'patients without prior stroke') excludes nothing.
+    INCLUDES is read from the span with every excluded scope and statement cut out, so mentioning what is excluded never
+    includes it; a component that is also explicitly excluded is excluded. The relation functions are the verifier's
+    (scripts/verify_bundle.py split_exclusions / analysis_exclusions), called with this producer's vocabulary."""
+    low = _ws_lower(text)
+    namer = lambda t: sorted(_mentions_from_text(t, expand_named_composites=False))  # noqa: E731
+    inc_text, exc_text = _relations.split_exclusions(low, namer=namer)
+    stmt_text, stmts = _relations.analysis_exclusions(low)
+    ctx_text, ctx_stmts = _relations.analysis_exclusions(_ws_lower(context)) if context else ("", [])
+    for st in stmts:                                  # the statement's subject is in the span: cut it before reading INCLUDES
+        inc_text = inc_text.replace(st.lower(), " ")
+    excludes = (_mentions_from_text(exc_text, expand_named_composites=False)
+                | _mentions_from_text(stmt_text, expand_named_composites=False)
+                | _mentions_from_text(ctx_text, expand_named_composites=False))
+    includes = _mentions_from_text(inc_text, expand_named_composites=expand_named_composites) - excludes
+    return {"includes": includes, "excludes": excludes,
+            "exclusion_statements": stmts + [s for s in ctx_stmts if s not in stmts]}
+
+
+def neighbourhood(document: str | None, span: str | None, radius: int = 400) -> str | None:
+    """The document text around a located span (the verifier's document_neighbourhood): where a footnote or the next
+    sentence states an exclusion the span itself does not carry."""
+    if not document or not span:
+        return None
+    return _relations.document_neighbourhood(span, document, radius)
+
+
 def _components_from_text(text: str | None, expand_named_composites: bool = True) -> set[str]:
-    """Components a span NAMES.  With expand_named_composites (default, definition spans) a bare
+    """The components a span INCLUDES: positive relations only (endpoint_relations). A component the span excludes, or
+    names only inside an exclusion, is not in the set."""
+    return endpoint_relations(text, expand_named_composites=expand_named_composites)["includes"]
+
+
+def _mentions_from_text(text: str | None, expand_named_composites: bool = True) -> set[str]:
+    """Every component WORD a span mentions, with no polarity (the vocabulary; read only through endpoint_relations,
+    which cuts the exclusions first).  With expand_named_composites (default, definition spans) a bare
     'MACE' / '3-point MACE' with no enumerated components expands to the canonical 3-point set; a
     RESULT span is read with expansion OFF so that 'MACE occurred in ... (HR ...)' resolves to the
     abstract's definition sentence instead of asserting a component set the sentence never states."""
@@ -287,7 +339,8 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         # (hazard ratio 0.87 ...), with ... hospitalization for heart failure")
         if extract.extract_effect(x) or _EFFECT_RE.search(x) or re.search(r"\d+ of \d+", xl):
             continue
-        comps = _components_from_text(x, expand_named_composites=True)
+        rel = endpoint_relations(x, context=neighbourhood(abstract, x), expand_named_composites=True)
+        comps = rel["includes"]
         if not comps:
             continue
         q = _QUALIFIER_RX.search(xl)
@@ -295,6 +348,7 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         out.append({
             "span": x.strip(),
             "components": comps,
+            "excluded": rel["excludes"],
             "ordinal": ref["ordinal"], "timepoint": ref["timepoint"], "population": ref["population"],
             "primary": bool(q and q.group("pri")) or bool(extract._ANCHOR_RX.search(xl)) or bool(re.search(r"\bprimary (?:[a-z-]+ ){0,3}?(?:measure|variable)s?\b", xl)),
             "secondary": bool(q and q.group("sec")),
@@ -304,6 +358,19 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
 
 
 def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
+    """_bind_result_span, plus the typed EXCLUDES of the bound endpoint: every component the result span or the definition
+    span excludes, in themselves or in their document neighbourhood (endpoint_relations). `components` is already the
+    positive-only INCLUDES set; `excluded_components` is what _classify refuses on when it names a target component."""
+    b = _bind_result_span(abstract, result_span)
+    exc: set[str] = set()
+    if b["binding"] != BINDING_NONE:
+        for span in {b.get("endpoint_result_span"), b.get("endpoint_definition_span")} - {None}:
+            exc |= endpoint_relations(span, context=neighbourhood(abstract, span))["excludes"]
+    b["excluded_components"] = exc
+    return b
+
+
+def _bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
     """Bind one result span to its endpoint-definition span.
 
     Returns {"binding", "endpoint_result_span", "endpoint_definition_span", "components", "binding_reason"}.
@@ -400,7 +467,8 @@ def classify_bound(spec: dict[str, Any], abstract: str, source: str | None) -> d
     binding = bind_result_span(abstract, _result_sentence(abstract, source))
     if binding["binding"] == BINDING_NONE:
         return _unbound_classification(binding)
-    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"])
+    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"],
+                    excluded=binding.get("excluded_components"))
     cls.update({
         "endpoint_binding": binding["binding"],
         "endpoint_result_span": binding["endpoint_result_span"],
@@ -455,7 +523,8 @@ def bind_verified_row(spec: dict[str, Any], abstract: str, row: dict[str, Any]) 
         out = _unbound_classification(binding)
         out["passage_location"] = "abstract"
         return out
-    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"])
+    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"],
+                    excluded=binding.get("excluded_components"))
     cls.update({
         "endpoint_binding": binding["binding"],
         "endpoint_result_span": binding["endpoint_result_span"],
@@ -497,6 +566,11 @@ def _class_verdict(spec: dict[str, Any], cls: str | None, extra, missing, name: 
     if cls == DIFFERENT_OUTCOME:
         return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE",
                 "reason": f"the bound endpoint span defines a different outcome from '{name}'"}
+    if cls == ENDPOINT_COMPONENT_EXCLUDED:
+        return {"admissible": False, "verdict": ENDPOINT_COMPONENT_EXCLUDED,
+                "reason": (f"the bound endpoint EXCLUDES a component of '{name}' (an exclusion scope or statement in the "
+                           "definition, the result span or their document neighbourhood); mentioning what is excluded "
+                           "does not include it -- refused rather than pooled under the composite label")}
     if cls == ENDPOINT_UNBOUND:
         return {"admissible": False, "verdict": "ENDPOINT_UNBOUND",
                 "reason": ("the extracted number could not be bound to an endpoint-definition span in the held "
@@ -530,7 +604,7 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     # A HAND ROW is bound by the hand binder whatever an earlier route wrote in its class field: the abstract
     # route matches digits and resolves the endpoint, it does not check the declared scale / CI level /
     # direction / analysis set, so returning on its class let SOUL pool as an OR (M2 W1b, both trees).
-    if cls in (EXACT_TARGET, NEAR_MATCH, DIFFERENT_OUTCOME, ENDPOINT_UNBOUND) and not hand_binding.is_hand_row(row):
+    if cls in (EXACT_TARGET, NEAR_MATCH, DIFFERENT_OUTCOME, ENDPOINT_UNBOUND, ENDPOINT_COMPONENT_EXCLUDED) and not hand_binding.is_hand_row(row):
         return _class_verdict(spec, cls,
                               row.get("target_endpoint_extra_components") or row.get("extra_components"),
                               row.get("target_endpoint_missing_components") or row.get("missing_components"),
@@ -639,9 +713,27 @@ def _keyword_family_match(spec: dict[str, Any], text: str | None) -> bool:
     return bool(canon and (canon & _components_from_text(text)))
 
 
-def _classify(spec: dict[str, Any], text: str | None, components: set[str] | None = None) -> dict[str, Any]:
+def _classify(spec: dict[str, Any], text: str | None, components: set[str] | None = None,
+              excluded: set[str] | None = None) -> dict[str, Any]:
+    """Classify an endpoint against the target from its typed relations. `components` (INCLUDES) and `excluded`
+    (EXCLUDES) come from the caller's binding when it has one; the relations of `text` itself are always added. A target
+    component the endpoint EXCLUDES is ENDPOINT_COMPONENT_EXCLUDED -- never EXACT, whatever else the span names."""
     canon = set(canonical_components(spec))
-    cand = set(components or _components_from_text(text))
+    rel = endpoint_relations(text)
+    exc = set(excluded or ()) | rel["excludes"]
+    cand = set(components or rel["includes"]) - exc
+    if canon and (exc & canon):
+        return {
+            "target_endpoint_class": ENDPOINT_COMPONENT_EXCLUDED,
+            "target_components": sorted(cand),
+            "excluded_components": sorted(exc),
+            "excluded_target_components": sorted(exc & canon),
+            "exclusion_statements": rel["exclusion_statements"] or None,
+            "extra_components": sorted(cand - canon),
+            "missing_components": sorted(canon - cand),
+            "component_distance": 999,
+        }
+    extra_rel = {"excluded_components": sorted(exc)} if exc else {}
     if not canon:
         cls = EXACT_TARGET if _keyword_family_match(spec, text) else DIFFERENT_OUTCOME
         return {
@@ -650,6 +742,7 @@ def _classify(spec: dict[str, Any], text: str | None, components: set[str] | Non
             "extra_components": [],
             "missing_components": [],
             "component_distance": 0 if cls == EXACT_TARGET else 999,
+            **extra_rel,
         }
     cand_for_match = set(cand)
     if "cardiovascular death" in canon and "coronary heart disease death" in cand:
@@ -671,6 +764,7 @@ def _classify(spec: dict[str, Any], text: str | None, components: set[str] | Non
         "extra_components": extra,
         "missing_components": missing,
         "component_distance": len(extra) + len(missing),
+        **extra_rel,
     }
 
 
