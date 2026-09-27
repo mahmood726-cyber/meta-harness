@@ -1275,6 +1275,27 @@ def _screening(r, neutral):
                  f"<p class='note'><strong>Search limitation:</strong> {_e(sdec.get('search_limitation'))}</p>"
                  "<table class='recs'><tr><th>Trial</th><th>Decision</th><th>Protocol rules (verbatim) and source</th>"
                  "<th>Outcome scope</th></tr>" + srows + "</table>")
+    pc = r.get("protocol_clarifications")
+    if pc:
+        # a RETROSPECTIVE protocol clarification: the verbatim messages, who sent them and how they arrived, and the
+        # explicit eligibility field each trial carries (with its own source span)
+        cl = pc["clarification"]
+        msgs = "".join(f"<li data-clarification-msg='{_e(m.get('status'))}'>&ldquo;{_e(m.get('verbatim'))}&rdquo; &mdash; "
+                       f"{_e(m.get('by'))}, via {_e(m.get('how_it_reached_the_reviewer'))} <code>{_e(m.get('status'))}</code>"
+                       f"<br><span class='muted'>{_e(m.get('reading') or m.get('literal_reading'))}</span></li>"
+                       for m in cl.get("messages") or [])
+        trs = "".join(f"<tr data-eligibility-field='{_e(t['value'])}'><td>{_e(t['trial'])}</td><td><code>{_e(t['value'])}</code><br>"
+                      f"<span class='muted'>{_e(t['meaning'])}</span></td><td>"
+                      + "<br>".join(f"&ldquo;{_e(s)}&rdquo;" for s in t["witnesses"])
+                      + (f"<br><strong>{_e(t['other_rule_conflict']['state'])}</strong>: {_e(t['other_rule_conflict']['why_pending'])}"
+                         if t.get("other_rule_conflict") else "") + "</td></tr>" for t in pc["trials"])
+        sa = pc.get("sensitivity_analysis") or {}
+        flow += (f"<h4>Protocol clarification ({_e(cl.get('label'))})</h4>"
+                 f"<p class='note'><strong>{_e(cl.get('kind'))}</strong> of &ldquo;{_e(pc.get('clarifies_span'))}&rdquo;, "
+                 f"implemented as the eligibility field <code>{_e(cl.get('field'))}</code>, never a keyword.</p><ul>{msgs}</ul>"
+                 "<table class='recs'><tr><th>Trial</th><th>Field value</th><th>Source (verbatim)</th></tr>" + trs + "</table>"
+                 f"<p class='muted'>Sensitivity analysis {_e(sa.get('id'))}: {_e(sa.get('description'))}; members: "
+                 f"{_e(', '.join(sa.get('members') or []) or 'none')}.</p>")
     for mtr in r.get("multi_trial_reports") or []:
         # one article, several registered trials: each trial judged on its own population; combined analyses never used
         trows = "".join(

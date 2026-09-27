@@ -2128,6 +2128,8 @@ def build_review_core(slug, config, records, protocol_sha):
     # MULTI-TRIAL REPORTS: one article, several registrations; each trial's relevance from its own population span
     from . import multi_trial_report as multi_trial_report_mod
     multi_trial_report_mod.attach(review, config)
+    from . import eligibility_field as eligibility_field_mod
+    eligibility_field_mod.attach(review, slug)
     # SOURCE VERSIONS: per-result version chains (original / corrections / regulatory) with a governing decision
     from . import source_versions as source_versions_mod
     source_versions_mod.attach(review)

@@ -809,6 +809,15 @@ def run(all_recs: list, config: dict) -> dict:
         # PROTOCOL CONFLICTS (harness.protocol_conflict): a registry statement that contradicts the protocol (masking
         # SINGLE against double-blind, a dose other than the protocol's) leaves the record UNRESOLVED, never eligible.
         _conflicts = []
+        # RETROSPECTIVE CLARIFICATION FIELDS (harness.eligibility_field): a trial whose declared field qualifies but
+        # which another recorded rule excludes, under a DECLARED conflict, is held UNRESOLVED -- neither excluded by the
+        # rule nor included over it (Takahashi: the phase-2 amendment vs the OAD ruling)
+        if decision == "exclude":
+            from . import eligibility_field
+            _ef = eligibility_field.screen_override(rec, rule, config)
+            if _ef:
+                decision, rule, reason, span = _ef["decision"], _ef["rule_id"], _ef["reason"], _ef["span"]
+                _conflicts = _ef["pending"]
         if decision == "include":
             from . import protocol_conflict
             _conflicts = protocol_conflict.check(rec, config)
