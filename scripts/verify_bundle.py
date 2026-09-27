@@ -308,6 +308,8 @@ _NOT_AN_EXCLUSION_AFTER = re.compile(r"(?:any\s+)?(?:(?:statistically\s+)?signif
 # a scope followed by its OWN result tuple ('but not stroke (RR, 0.86; 95% CI ...)', 'but not stroke alone (1.5% vs. 1.3%, P=0.22)')
 # is a RESULTS contrast about a separate estimate, not an exclusion from the endpoint
 _RESULT_TUPLE_AFTER = re.compile(r"\s*(?:alone\s*)?\(\s*(?:(?:rr|hr|or|irr|hazard ratio|risk ratio|odds ratio|relative risk)\b|\d)", re.I)
+# the parenthetical exclusion STATEMENT: '3-point MACE (nonfatal stroke excluded)', '(stroke not included)'
+_PAREN_EXCL = re.compile(r"\((?P<subj>[^()]{3,80}?)\s+(?:(?:was|were)\s+)?(?:excluded|not\s+included|not\s+counted)\s*\)", re.I)
 # the short contrast cues end at their own comma ('except for statins, most patients ... after MI')
 _SHORT_CUES = ("except", "excepting", "but not", "without")
 _DEFINES = re.compile(r"(primary (?:composite )?(?:outcome|end ?point)|primary cardiovascular (?:composite )?(?:outcome|end-?point)|composite (?:outcome|end ?point))"
@@ -392,6 +394,10 @@ def analysis_exclusions(text):
         if _POPULATION.search(m.group("subj")) or _POPULATION.search(m.group("scope")) or other_frame(m.group(0)):
             continue
         out.append(m.group("subj")); stmts.append(m.group(0).strip())
+    for m in _PAREN_EXCL.finditer(text):          # '3-point MACE (nonfatal stroke excluded)'
+        if _POPULATION.search(m.group("subj")) or other_frame(m.group(0)):
+            continue
+        out.append(m.group("subj")); stmts.append(m.group(0).strip())
     for m in _NEITHER.finditer(text):
         if _POPULATION.search(m.group("a")) or _POPULATION.search(m.group("b")) or other_frame(m.group(0)):
             continue
@@ -450,7 +456,9 @@ def span_target_mention(span, values, definition_span, canonical_components, con
     where = [w for w, xs in (("clause", excluded_c), ("definition", excluded_d), ("span statement", excluded_s), ("document neighbourhood", excluded_x)) if set(xs) & canon]
     base = {"clause": clause, "excluded_components": excluded_all or None, "exclusion_statements": (s_stmts + d_stmts + x_stmts) or None,
             "exclusion_scope_searched": ["clause", "row span", "row definition span"] + (["document neighbourhood (+/-400 code points around the located span)"] if context else [])}
-    if excluded_target and not any(ph in c for ph in TARGET_PHRASES):
+    # EXCLUDES(component) overrides ANY umbrella target label: '3-point MACE (nonfatal stroke excluded)' is not 3-point MACE.
+    # (Until V1.0.1 a target phrase in the clause rescued it -- auditor pass on live d55ed3b8.)
+    if excluded_target:
         return {"state": "ENDPOINT_INCOMPATIBLE", "mention": f"the {' / '.join(where)} EXCLUDES a target component; mentioning what is excluded does not include it",
                 "witness": {"included": comps_c, "excluded": excluded_target}, **base}
     if target and (non_target or lone_component):

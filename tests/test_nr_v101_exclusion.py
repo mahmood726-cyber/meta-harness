@@ -127,3 +127,33 @@ def test_a_temporal_restriction_is_not_a_component_exclusion():
     assert rel["excludes"] == set() and {"myocardial infarction", "stroke", "cardiovascular death"} <= rel["includes"], rel
     assert te._classify(SPEC, t)["target_endpoint_class"] == te.EXACT_TARGET
     assert te.endpoint_relations("MACE, excluding events in the first 30 days after randomization")["excludes"] == set()
+
+
+# ---- auditor pass on live d55ed3b8: EXCLUDES(component) overrides any umbrella target label, in BOTH sides -------------
+CC = ["CARDIOVASCULAR_DEATH", "MYOCARDIAL_INFARCTION", "STROKE"]
+UMBRELLA = [
+    "The primary outcome, 3-point MACE (nonfatal stroke excluded), occurred less often " + T + ".",
+    "3-point MACE occurred less often " + T + ". Nonfatal stroke was excluded from the primary analysis.",
+    "Major adverse cardiovascular events occurred less often " + T + "; nonfatal stroke was not included in the primary outcome.",
+]
+
+
+@pytest.mark.parametrize("span", UMBRELLA)
+def test_an_umbrella_label_never_rescues_an_excluded_component_in_the_producer(span):
+    out = te._classify(SPEC, span)
+    assert out["target_endpoint_class"] == te.ENDPOINT_COMPONENT_EXCLUDED, out
+
+
+@pytest.mark.parametrize("span", UMBRELLA)
+def test_an_umbrella_label_never_rescues_an_excluded_component_in_the_verifier(span):
+    out = vb.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)
+    assert out["state"] == "ENDPOINT_INCOMPATIBLE", out
+
+
+@pytest.mark.parametrize("span", [
+    "The primary outcome was 3-point MACE excluding unstable angina and occurred less often " + T + ".",
+    "3-point MACE (patients with prior stroke excluded) occurred less often " + T + ".",
+])
+def test_umbrella_controls_still_pass_in_both(span):
+    assert te._classify(SPEC, span)["target_endpoint_class"] == te.EXACT_TARGET
+    assert vb.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)["state"] == "PASS"

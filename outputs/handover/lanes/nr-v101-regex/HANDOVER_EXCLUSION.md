@@ -87,3 +87,20 @@ Page content besides numbers:
 - No new result-change notice: no served number moves from this change.
 - New reason code on refused rows: `ENDPOINT_COMPONENT_EXCLUDED` (`reason_code` / `endpoint_admissibility`). No served
   row carries it today.
+
+## Addendum: an umbrella label never rescues an excluded component (auditor pass on live d55ed3b8)
+- **The auditor confirmed** the M2 runner refreshed all dependent integrity metadata, so W4a/W4b were genuine semantic
+  wrong admissions.
+- **The verifier hole.** `span_target_mention` refused an excluded target component only when the effect's clause
+  carried no target phrase ("MACE" / "major adverse cardiovascular"). With the umbrella present it could PASS. Now
+  `EXCLUDES(component)` always wins, in the shared block, so in both copies.
+- **A new statement form in the shared `analysis_exclusions`.** The parenthetical "(X excluded)" / "(X not included)"
+  is now read, with the same population filter: "(patients with prior stroke excluded)" cuts nothing.
+- **Plants** (`UMBRELLA_PRE_FIX.txt`: 4 of 8 failed pre-fix):
+  - "3-point MACE (nonfatal stroke excluded) HR …", "3-point MACE … (HR …). Nonfatal stroke was excluded from the
+    primary analysis." and "Major adverse cardiovascular events … ; nonfatal stroke was not included …" are
+    ENDPOINT_COMPONENT_EXCLUDED in the producer and ENDPOINT_INCOMPATIBLE in the verifier.
+  - Controls: E4 ("3-point MACE excluding unstable angina") and the population parenthetical PASS in both.
+- **Radius.** All 32 topics were rebuilt before and after: 0 of 797 rows flip (`SERVED_X3_vs_X2.json`). Definitions
+  0 of 3,330 and sentences 0 of 37,472 change. The verifier's baseline suites pass, apart from the three served-mirror
+  staleness pins.
