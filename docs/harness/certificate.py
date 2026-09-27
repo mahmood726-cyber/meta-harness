@@ -66,13 +66,16 @@ def _safe(ref):
 DECISION_OBJECTS = ("pmc_links.json", "comparator_identity.json", "comparator_network.json", "comparator_question.json",
                     "comparator_member_inputs.json", "comparator_reported_mismatches.json", "comparator_figures.json",
                     "comparator_member_reports.json", "ghost_pub_links.json", "comparator_pmc_jats.xml",
-                    "family_pub_links.json", "comparator_row_checks.json", "external_checkpoints.json")
+                    "family_pub_links.json", "comparator_row_checks.json", "external_checkpoints.json",
+                    "ascertainment_evidence.json", "ascertainment_pubmed.xml", "ascertainment_aact_rows.json",
+                    "comparator_figure_rows.json", "comparator_figure_g001.png")
 
 
 def _held(cache, review, objects):
     paths = set(cache.glob("ft_*.txt")) | set(cache.glob("aact_*.json"))
     paths |= {cache / n for n in DECISION_OBJECTS if (cache / n).is_file()}
     paths |= set(cache.glob("external_checkpoint_*.xml"))   # held checkpoint texts (external_checkpoints.json)
+    paths |= set(cache.glob("ascertainment_PMC*.xml"))      # held full texts cited by ascertainment_evidence.json
     # Follow explicit local source refs and their source manifest, including PDF/text pairs.
     pending = [review, *objects]
     visited = set()

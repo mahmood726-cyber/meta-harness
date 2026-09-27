@@ -67,6 +67,20 @@ def check_source(root, src: dict) -> None:
         if got != str(src["value"]):
             raise InputsRefused(f"registry cell {src['outcome_title'][:40]} / {src['group_title']} / {src['field']} "
                                 f"is {got!r}, not {src['value']!r}")
+    elif src["kind"] == "registry_field":
+        # V1.0.1 (melatonin review): a text field of a registry outcome (its population description, its description)
+        doc = json.loads((root / src["document_ref"]).read_text(encoding="utf-8"))
+        om = next((o for o in ((doc.get("resultsSection") or {}).get("outcomeMeasuresModule") or {}).get("outcomeMeasures") or []
+                   if o.get("title") == src["outcome_title"]), None)
+        if om is None or src["quote"] not in str(om.get(src["field"]) or ""):
+            raise InputsRefused(f"registry field {src['field']} of {src['outcome_title'][:40]} does not contain the quote")
+    elif src["kind"] == "held_text":
+        # a quote in a held document's text (tags stripped, whitespace normalised on both sides)
+        import html as _h
+        import re as _re
+        norm = lambda s: _re.sub(r"\s+", " ", _h.unescape(_re.sub(r"<[^>]+>", " ", s))).strip()  # noqa: E731
+        if norm(src["quote"]) not in norm((root / src["document_ref"]).read_text(encoding="utf-8")):
+            raise InputsRefused(f"quote not located in {src['document_ref']}: {src['quote'][:60]}")
     else:
         raise InputsRefused(f"unknown source kind {src['kind']}")
 
@@ -83,7 +97,7 @@ def load(root, slug) -> Optional[dict]:
                 check_source(root, src)
             for src in (s.get("counts") or {}).get("sources") or []:
                 check_source(root, src)
-            for dim in ("window", "analysis_set"):
+            for dim in ("window", "analysis_set", "population", "outcome_definition"):
                 d = s.get(dim) or {}
                 if d.get("source"):
                     check_source(root, d["source"])
@@ -95,6 +109,11 @@ def load(root, slug) -> Optional[dict]:
 
 
 def _side_value(t, side, dim):
+    if dim in ("population", "outcome_definition") and (t[side].get(dim) or {}).get("value") is not None:
+        # V1.0.1 (melatonin review): the two sides may use DIFFERENT reports of one trial (Wade 2010 vs Wade 2011), so
+        # population and outcome can be typed per side
+        d = t[side][dim]
+        return d["value"], d.get("state") or ("HELD" if d.get("source") else None)
     if dim in ("population", "outcome_definition"):
         key = "outcome" if dim == "outcome_definition" else dim
         return (t.get(key) or {}).get("value"), "HELD"      # declared once for both sides (same trial report)
@@ -113,9 +132,14 @@ def compare(doc: dict, review: Optional[dict] = None) -> dict:
         if review is not None:
             if row is None:
                 raise InputsRefused(f"{t['name']}: not a row of our served primary pool")
-            if abs(float(row["effect"]) - float(t["ours"]["effect"])) > 1e-9 or row.get("scale") != t["ours"]["scale"]:
-                raise InputsRefused(f"{t['name']}: our side {t['ours']['effect']} {t['ours']['scale']} is not the "
-                                    f"served row {row.get('effect')} {row.get('scale')}")
+            if "effect" in t["ours"]:
+                if abs(float(row["effect"]) - float(t["ours"]["effect"])) > 1e-9 or row.get("scale") != t["ours"]["scale"]:
+                    raise InputsRefused(f"{t['name']}: our side {t['ours']['effect']} {t['ours']['scale']} is not the "
+                                        f"served row {row.get('effect')} {row.get('scale')}")
+            else:   # a continuous row: our side is the served arm summaries
+                keys = ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")
+                if any(row.get(k) != t["ours"].get(k) for k in keys) or row.get("scale") != t["ours"]["scale"]:
+                    raise InputsRefused(f"{t['name']}: our side is not the served row's arm summaries")
         dims = {}
         for dim in DIMENSIONS:
             (a, sa), (b, sb) = _side_value(t, "ours", dim), _side_value(t, "theirs", dim)
@@ -134,9 +158,12 @@ def compare(doc: dict, review: Optional[dict] = None) -> dict:
         trials.append({"family_id": t["family_id"], "name": t["name"], "report_pmid": t["report_pmid"],
                        "dimensions": dims, "inputs": "INPUT_IDENTICAL" if identical else
                        ("INPUT_DIFFERENT" if any(d["state"] == "DIFFERENT" for d in dims.values()) else "NOT_ESTABLISHED"),
-                       "theirs_counts": {k: t["theirs"][k] for k in ("events_int", "n_int", "events_ctl", "n_ctl")},
+                       "theirs_counts": {k: t["theirs"].get(k) for k in ("events_int", "n_int", "events_ctl", "n_ctl")},
                        "theirs_counts_state": t["theirs"]["state"],
-                       "ours_effect": f"{t['ours']['scale']} {t['ours']['effect']}"})
+                       "theirs_input": _input_text(t["theirs"]),
+                       "ours_effect": (f"{t['ours']['scale']} {t['ours']['effect']}" if "effect" in t["ours"] else
+                                       f"{t['ours']['scale']} from {t['ours']['mean1']} (SD {t['ours']['sd1']}, n {t['ours']['nc1']}) vs "
+                                       f"{t['ours']['mean2']} (SD {t['ours']['sd2']}, n {t['ours']['nc2']})")})
     n = len(trials)
     return {"comparator_pmid": doc["comparator_pmid"], "outcome": doc["outcome"], "shared_by_name": n,
             "input_identical": sum(x["inputs"] == "INPUT_IDENTICAL" for x in trials),
@@ -146,6 +173,12 @@ def compare(doc: dict, review: Optional[dict] = None) -> dict:
             "comparator_scope": doc.get("comparator_scope"),
             "rule": "identical membership is not identical inputs: a shared trial is input-identical only when "
                     "population, outcome, window and analysis set are the same on both sides"}
+
+
+def _input_text(side: dict) -> str:
+    if side.get("events_int") is not None:
+        return f"{side['events_int']}/{side['n_int']} vs {side['events_ctl']}/{side['n_ctl']}"
+    return f"{side.get('scale', '')} {side.get('effect')} ({side.get('ci_low')} to {side.get('ci_high')})".strip()
 
 
 def control_rows(doc: dict, use_ours_for=()) -> list:
@@ -171,9 +204,8 @@ def render(m: Optional[dict]) -> str:
             d = t["dimensions"][dim]
             cells.append(f"<td><code>{e(d['state'])}</code>" + (
                 f"<br>ours {e(d.get('ours'))}; theirs {e(d.get('theirs'))}" if d["state"] != "SAME" else "") + "</td>")
-        c = t["theirs_counts"]
-        rows.append(f"<tr><td>{e(t['name'])}</td><td>{e(t['ours_effect'])}</td><td>{e(c['events_int'])}/{e(c['n_int'])} vs "
-                    f"{e(c['events_ctl'])}/{e(c['n_ctl'])} ({e(t['theirs_counts_state'])})</td>{''.join(cells)}"
+        rows.append(f"<tr><td>{e(t['name'])}</td><td>{e(t['ours_effect'])}</td><td>{e(t.get('theirs_input'))} "
+                    f"({e(t['theirs_counts_state'])})</td>{''.join(cells)}"
                     f"<td><strong>{e(t['inputs'])}</strong></td></tr>")
     return ("<div class='outcome-match'><h5>Outcome-level matching of shared trials</h5>"
             f"<p>{e(m['shared_by_name'])} trials shared by name; {e(m['input_identical'])} input-identical, "

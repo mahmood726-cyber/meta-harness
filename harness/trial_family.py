@@ -487,7 +487,7 @@ def screen_family(family, config):
         if not any('placebo' in str(a.get('drug',{}).get('value','')).lower() for a in family['arms']):
             return cell(code='PLACEBO_CONTROL_NOT_PROVEN')
     span = {'design':design,'population':(family['population'].get('conditions') or {}).get('span'),
-            'protocol_requirements':requirements,
+            'protocol_requirements':{k: v for k, v in requirements.items() if k != 'ascertainment'},
             'contrasts':family['randomised_contrasts']}
     if pop is not None:
         span['population_decision'] = _deciding(pop)
@@ -496,6 +496,19 @@ def screen_family(family, config):
         # discloses it and nothing downstream can read this as a pre-specified match.
         span['population_basis'] = 'RETROSPECTIVE_VOCABULARY_CLARIFICATION'
         span['population_clarification'] = clarification
+    if 'ascertainment' in requirements:
+        # V1.0.1 (GLP-1 review): STRUCTURAL_PASS -> FULL_ELIGIBLE only with held evidence for both halves of the
+        # outcome clause; otherwise PENDING (never eligible, never excluded) with a retrieval task
+        from . import ascertainment
+        dec = ascertainment.decide(family.get('family_id'), (family.get('aliases') or {}).get('acronym') or [],
+                                   requirements['ascertainment'].get('evidence'))
+        if dec['state'] != 'MET':
+            out = cell(code='OUTCOME_ASCERTAINMENT_PENDING')
+            out.update(stage='STRUCTURAL_PASS', structural=span, ascertainment=dec)
+            return out
+        out = cell('ELIGIBLE', span)
+        out.update(stage='FULL_ELIGIBLE', ascertainment=dec)
+        return out
     return cell('ELIGIBLE', span)
 
 def population_witness_topic(root, slug, config):
@@ -511,11 +524,9 @@ def population_witness_topic(root, slug, config):
 
 
 def protocol_requirements(root, slug, config):
-    """Apply explicit structured B-prime design/population declarations only.
-
-    The lane instruction excludes outcomes from eligibility, including the
-    protocol's separate ascertainment clause. No inference from a trial name.
-    """
+    """Apply the structured B-prime declarations: design and population, and (V1.0.1, GLP-1 review) the outcome
+    ascertainment clause, which an earlier lane instruction had excluded -- so 'eligible' meant structural pass only.
+    No inference from a trial name."""
     path = Path(root)/'protocols'/f'{slug}.md'
     if not path.exists():
         return config
@@ -523,12 +534,16 @@ def protocol_requirements(root, slug, config):
     line = next((x for x in text.splitlines() if x.startswith('- **Eligibility (B-prime).**')),None)
     if not line:
         return config
-    return dict(config,family_requirements={
+    req = {
         'parallel':'Parallel-group randomised' in line,
         'double_blind':'double-blind, placebo-controlled' in line,
         'adult':'in adults with type 2 diabetes' in line,
         'population':'type 2 diabetes' if 'in adults with type 2 diabetes' in line else None,
-        'span':{'source':f'protocols/{slug}.md','quote':line}})
+        'span':{'source':f'protocols/{slug}.md','quote':line}}
+    from . import ascertainment
+    if ascertainment.clause_required(line):
+        req['ascertainment'] = {'clause': ascertainment.CLAUSE, 'evidence': ascertainment.load(root, slug)}
+    return dict(config, family_requirements=req)
 
 def prepare(root, slug, records, config, ledger=None):
     """Read held family ingredients; registry collection is an explicit offline step."""
@@ -712,10 +727,28 @@ def derive_count_chain(nodes):
     eligible = {f['family_id'] for f in families if f['eligibility']['state']=='ELIGIBLE'}
     contributing = {f['family_id'] for f in families if any(p.get('analysis_input') for p in f['poolability'])}
     primary = {f['family_id'] for f in families if any(s['in_primary_pool']['state']=='YES' for s in f['outcome_status'])}
-    return {'trial_families':len(families),'eligible_families':len(eligible),'contributing':len(contributing),
+    # V1.0.1 (GLP-1 review): with an executable ascertainment clause, 'eligible' is FULL_ELIGIBLE; a structural pass whose
+    # outcome ascertainment is unevidenced is PENDING, and a result is ADMISSIBLE per analysis only for a FULL_ELIGIBLE
+    # family pooled in that analysis
+    staged = [f for f in families if (f['eligibility'] or {}).get('stage')]
+    extra = {}
+    if staged:
+        pending = {f['family_id'] for f in staged if f['eligibility']['stage'] == 'STRUCTURAL_PASS'}
+        admissible = {}
+        for f in families:
+            if f['family_id'] not in eligible:
+                continue
+            for p in f['poolability']:
+                if p.get('analysis_input'):
+                    admissible[p['outcome']] = admissible.get(p['outcome'], 0) + 1
+        extra = {'structural_pass': len(staged), 'ascertainment_pending': len(pending),
+                 'admissible_result': admissible, 'pooled_with_ascertainment_pending': sorted(primary & pending)}
+    # a PENDING family passed STRUCTURE: it is never listed as contributing without structural eligibility
+    structural = eligible | {f['family_id'] for f in staged if f['eligibility']['stage'] == 'STRUCTURAL_PASS'}
+    return {**extra, 'trial_families':len(families),'eligible_families':len(eligible),'contributing':len(contributing),
             'pooled':len(primary),'eligibility_unresolved':sum(f['eligibility']['state']=='UNKNOWN' for f in families),
             'unresolved_report_candidates':len(nodes)-len(families),
-            'contributing_without_structural_eligibility':sorted(contributing-eligible),
+            'contributing_without_structural_eligibility':sorted(contributing-structural),
             'publications_screened':sum(r.get('id_type')!='nct' for f in nodes for r in f['source_records']),
             'registry_records_screened':sum(r.get('id_type')=='nct' for f in nodes for r in f['source_records'])}
 
@@ -729,6 +762,17 @@ def missing_evidence(nodes):
 
 def count_sentence(chain):
     n = chain['trial_families']
+    if 'structural_pass' in chain:
+        adm = '; '.join(f"{k} {v}" for k, v in sorted(chain['admissible_result'].items())) or 'none'
+        return (f"Families screened {n} of {n}; structural pass {chain['structural_pass']} of {n}; FULL_ELIGIBLE (outcome "
+                f"ascertainment evidenced) {chain['eligible_families']} of {n}; PENDING outcome ascertainment "
+                f"{chain['ascertainment_pending']} of {n} (neither eligible nor excluded). ADMISSIBLE_RESULT per analysis: {adm}. "
+                f"Pooled in primary {chain['pooled']} of {n}"
+                + (f", of which PENDING: {', '.join(chain['pooled_with_ascertainment_pending'])} (the pooled result is "
+                   "conditional on them)" if chain['pooled_with_ascertainment_pending'] else "")
+                + f". Unresolved eligibility {chain['eligibility_unresolved']} of {n} (includes the PENDING). "
+                f"Unresolved report-only candidates {chain['unresolved_report_candidates']} (outside family denominator). "
+                'These are separate evidence states, not a nested eligibility funnel.')
     return (f"Families screened {n} of {n}; eligible {chain['eligible_families']} of {n}; "
             f"contributing to any outcome {chain['contributing']} of {n}; pooled in primary {chain['pooled']} of {n}. "
             f"Unresolved eligibility {chain['eligibility_unresolved']} of {n}. "

@@ -393,6 +393,49 @@ def check_comparator_identity_disclosed(review_dir, html=None):
     return out
 
 
+def check_eligibility_states_and_search_execution(review_dir, html=None):
+    """V1.0.1 (GLP-1 review): (1) where a protocol's outcome-ascertainment clause is executed, an ELIGIBLE family is
+    FULL_ELIGIBLE with both halves evidenced, a PENDING family is never ELIGIBLE, the count chain adds up, and the page
+    renders the states (a pooled PENDING family as a condition on the result); (2) every source the protocol declares
+    has an execution record, and the page renders the table."""
+    rev, err = _review_json(review_dir)
+    if err:
+        return ["ELIGIBILITY_STATES: " + err[0]]
+    if not rev:
+        return []
+    out = []
+    fams = rev.get("trial_families") or []
+    staged = [f for f in fams if (f.get("eligibility") or {}).get("stage")]
+    if staged:
+        for f in staged:
+            el = f["eligibility"]
+            a = el.get("ascertainment") or {}
+            if el.get("state") == "ELIGIBLE" and not (el["stage"] == "FULL_ELIGIBLE" and a.get("state") == "MET"
+                                                     and (a.get("prospective") or {}).get("state") == "YES"
+                                                     and (a.get("ascertained") or {}).get("state") == "YES"):
+                out.append(f"ELIGIBILITY_STATES: {f['family_id']} is ELIGIBLE without both halves of the outcome clause")
+            if el["stage"] == "STRUCTURAL_PASS" and (el.get("state") == "ELIGIBLE" or not a.get("retrieval_task")):
+                out.append(f"ELIGIBILITY_STATES: {f['family_id']} is PENDING without a retrieval task (or marked ELIGIBLE)")
+        ch = rev.get("family_count_chain") or {}
+        if ch.get("structural_pass") != (ch.get("eligible_families") or 0) + (ch.get("ascertainment_pending") or 0):
+            out.append("ELIGIBILITY_STATES: structural_pass != FULL_ELIGIBLE + PENDING in the count chain")
+        if html is not None:
+            if "B-prime eligibility states" not in html:
+                out.append("ELIGIBILITY_STATES: the per-state counts are not rendered")
+            for fid in ch.get("pooled_with_ascertainment_pending") or []:
+                if fid not in html:
+                    out.append(f"ELIGIBILITY_STATES: pooled PENDING family {fid} is not rendered")
+    sx = rev.get("search_execution")
+    if sx:
+        names = {r["source"] for r in sx.get("rows") or []}
+        for d in sx.get("declared") or []:
+            if d not in names:
+                out.append(f"SEARCH_EXECUTION: declared source {d!r} has no execution record")
+        if html is not None and "Search execution records" not in html:
+            out.append("SEARCH_EXECUTION: the execution records are not rendered")
+    return out
+
+
 def check_comparator_sets_and_rows(review_dir, html=None):
     """V1.0.1 (esketamine review): (1) every served overlap satisfies shared <= min(ours, theirs) and
     ours_only + shared = ours -- in the page's legacy overlap, its computed relation, and the manifest (the V1 manifest
@@ -1486,6 +1529,7 @@ def gate_page(review_dir):
                + check_funding_label_derived(review_dir, html)
                + check_comparator_identity_disclosed(review_dir, html)
                + check_comparator_sets_and_rows(review_dir, html)
+               + check_eligibility_states_and_search_execution(review_dir, html)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)

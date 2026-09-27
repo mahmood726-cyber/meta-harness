@@ -936,17 +936,18 @@ def stated_trial_count(text):
     over the comparator's abstract AND its held full text (V1.0.1, COVID-corticosteroids review: WHO REACT's 7 was in
     both, and the page said 'not stated')."""
     text = _norm(text or "")
-    for rx in (_K_STATED, _K):
+    for rx in (_K_STATED, _K, _K_STUDIES):
         for m in rx.finditer(text):          # the first match whose count token IS a number ('identify ... trials' is not)
-            if m.start(1) > 0 and text[m.start(1) - 1] == "-":
+            g = next(i for i in range(1, rx.groups + 1) if m.group(i) is not None)   # _K_STUDIES: either branch's count
+            if m.start(g) > 0 and text[m.start(g) - 1] == "-":
                 continue                         # 'Fifty-five RCTs' is not 'five'
-            tok = m.group(1).lower()
+            tok = m.group(g).lower()
             k = int(tok) if tok.isdigit() else _WORDNUM.get(tok)
             if k:
                 lo = text.rfind(". ", 0, m.start())
                 while lo > 0 and re.search(r"(?:\bet al|\be\.g|\bi\.e|\bvs|\bFig|\bRef)$", text[max(0, lo - 6):lo]):
                     lo = text.rfind(". ", 0, lo)     # 'Smith et al. included 12 RCTs': the period of an abbreviation
-                lo = max(lo + 2, 0)
+                lo = lo + 2 if lo >= 0 else 0      # no earlier sentence: start at 0 (was max(-1 + 2, 0) = 1, which cut a letter)
                 hi = text.find(". ", m.end())
                 sent = text[lo: hi + 1 if hi != -1 else len(text)].strip()
                 # a sentence stating SEVERAL trial counts ('6 trials comparing SGLT2i..., eight trials comparing
@@ -1026,3 +1027,13 @@ def extract_meta(abstract, outcome_kws):
                 eff = {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0], "source": s.strip()[:220]}
             break
     return {"primary": eff, "k": _parse_k(abstract)}
+
+
+# V1.0.1 (melatonin review): a comparator that counts STUDIES ('Nineteen studies involving 1683 subjects were included in
+# this meta-analysis', 'We included nineteen studies') had its stated count read as 'not stated'. Only the inclusion
+# forms are read -- a bare 'N studies' is too common to be a count of analysed trials. Defined here (the end of the
+# module) so no line-keyed regex site above moves.
+_K_STUDIES = re.compile(
+    r"\b(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?studies\s+(?:(?:involving|with|comprising|including)\s+"
+    r"[^.]{0,80}?\s+)?were\s+included\b"
+    r"|\b(?:we\s+)?included\s+(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?studies\b", re.I)

@@ -156,6 +156,12 @@ class Study:
                 y = math.log((a / n1) / (c / n2))
                 v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
             return y, v
+        if (self.measure.upper() in ("MD", "SMD") and self.effect is not None and self.ci_low is not None
+                and self.ci_high is not None):
+            # V1.0.1 (melatonin review): an additive effect with its interval is pooled on the RAW scale -- a mean
+            # difference is never log-transformed (a negative MD would otherwise have no logarithm at all)
+            z = _norm.ppf(0.975)
+            return self.effect, ((self.ci_high - self.ci_low) / (2 * z)) ** 2
         if self.effect is not None and self.ci_low and self.ci_high:
             z = _norm.ppf(0.975)
             y = math.log(self.effect)

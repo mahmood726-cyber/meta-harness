@@ -33,13 +33,22 @@ def main(slug, nct, pmid, token, reported_by):
     year = (art.find(".//PubDate/Year").text if art.find(".//PubDate/Year") is not None else None)
     pubtypes = [p.text for p in art.findall(".//PublicationTypeList/PublicationType")]
     recs = json.load(open(os.path.join(ROOT, "cache", slug, "records.json"), encoding="utf-8"))
-    reg = next(r for v in recs.values() if isinstance(v, list) for r in v if isinstance(r, dict) and str(r.get("id")) == nct)
+    reg = next((r for v in recs.values() if isinstance(v, list) for r in v if isinstance(r, dict) and str(r.get("id")) == nct), None)
+    if reg is not None:
+        rq = {"document_ref": f"cache/{slug}/records.json", "record_id": nct, "field": "title", "quote": reg["title"]}
+    else:
+        # a registry-only family held in the family registry (AACT studies row), e.g. PIONEER 8 (V1.0.1, GLP-1 review)
+        sys.path.insert(0, ROOT)
+        from harness.trial_family import load_registry
+        st = ((load_registry(ROOT, slug).get(nct) or {}).get("raw", {}).get("studies") or [{}])[0]
+        field = next((k for k in ("acronym", "brief_title", "official_title") if token in str(st.get(k) or "")), "acronym")
+        rq = {"document_ref": f"cache/{slug}/family_registry.json", "record_id": nct, "field": f"studies.{field}",
+              "quote": st.get(field)}
     paper_text = " ".join([title, abstract, *collective])
-    if token not in str(reg.get("title") or "") or token not in paper_text:
+    if token not in str(rq["quote"] or "") or token not in paper_text:
         raise SystemExit(f"REFUSED: binding token {token!r} not printed by both the registry record and the paper")
     link = {"nct": nct, "pmid": pmid, "binding_token": token,
-            "registry_quote": {"document_ref": f"cache/{slug}/records.json", "record_id": nct, "field": "title",
-                               "quote": reg["title"]},
+            "registry_quote": rq,
             "paper_quote": next(q for q in collective + [title, abstract] if token in q),
             "reported_by": reported_by,
             "request": url, "retrieved_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

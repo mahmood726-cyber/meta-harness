@@ -21,6 +21,7 @@ from pathlib import Path as _Path
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+from .ascertainment import render as _asc_render
 from .funding_typed import render_cells as _funding_typed_cells
 from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
@@ -967,6 +968,9 @@ def _search(r, neutral):
         body += ("<h4>Source status (which adapters ran)</h4><p class='muted'>" + cells +
                  " — RAN_OK = ran and returned records; RAN_ZERO = ran, none matched; RAN_ERROR = "
                  "attempted but failed; NOT_RUN = not attempted for this topic.</p>")
+    if r.get("search_execution"):
+        from .search_execution import render as _search_exec_render
+        body += _search_exec_render(r["search_execution"])
     if s.get("retrieval_class"):
         body += _retrieval_class_html(s["retrieval_class"])
         body += _search_provenance_html(s["retrieval_class"])
@@ -1085,7 +1089,7 @@ def _trial_families(r, legacy_flow=''):
     if show_pop:
         heads.insert(6, 'Entry population (source evidence: registry criteria, primary report, registry conditions)')
     block = ('<section id="trial-families"><h4>Trial families</h4><p class="family-count-chain">'
-            +_e(count_sentence(chain))+'</p><div style="overflow-x:auto"><table class="recs"><thead><tr>'
+            +_e(count_sentence(chain))+'</p>'+_asc_render(nodes, chain)+'<div style="overflow-x:auto"><table class="recs"><thead><tr>'
             +''.join('<th>'+h+'</th>' for h in heads)+'</tr></thead><tbody>'+''.join(rows)
             +'</tbody></table></div></section>'+panel)
     if not legacy_flow:

@@ -2528,6 +2528,11 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import comparator_models as comparator_models_mod
     review["comparator"] = comparator_models_mod.attach_review(review, overlap_relation_mod._panel_entry(review),
                                                                comparator_models_mod.load_reported(ROOT, slug))
+    # V1.0.1 (GLP-1 review): one execution record per source the protocol declares (harness/search_execution.py)
+    from . import search_execution as search_execution_mod
+    _sx = search_execution_mod.build(ROOT, slug, review)
+    if _sx:
+        review["search_execution"] = _sx
     # V1.0.1 (finerenone review): an external checkpoint pooling the same trials -- never a target, never an input
     from . import external_checkpoints as external_checkpoints_mod
     _cps = external_checkpoints_mod.load(ROOT, slug)
@@ -2539,6 +2544,12 @@ def build_review_core(slug, config, records, protocol_sha):
     _rc = comparator_rows_mod.assess(comparator_rows_mod.load(ROOT, slug))
     if _rc:
         review["comparator"] = dict(review["comparator"], row_checks=_rc)
+    # V1.0.1 (melatonin review): the comparator's forest plot re-derived from its own rows -- display errors flagged
+    # separately from the pooled calculation, and its scope stated in its own words (harness/comparator_display.py)
+    from . import comparator_display as comparator_display_mod
+    _dc = comparator_display_mod.assess(comparator_display_mod.load(ROOT, slug))
+    if _dc:
+        review["comparator"] = dict(review["comparator"], display_check=_dc)
     # V1.0.1 (DOAC-VTE review): identical membership is not identical inputs -- per shared trial, population, outcome,
     # window and analysis set on both sides (harness/outcome_match.py)
     from . import outcome_match as outcome_match_mod

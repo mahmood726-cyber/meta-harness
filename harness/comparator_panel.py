@@ -358,6 +358,8 @@ def render(review):
     parts.append(_checkpoints_block(review.get("external_checkpoints")))
     from .comparator_rows import render as _rows_block
     parts.append(_rows_block((review.get("comparator") or {}).get("row_checks")))
+    from .comparator_display import render as _display_block
+    parts.append(_display_block((review.get("comparator") or {}).get("display_check")))
     from .outcome_match import render as _outcome_match_block
     parts.append(_outcome_match_block((review.get("comparator") or {}).get("shared_trial_inputs")))
     from .held_text_identity import render as _held_identity_block

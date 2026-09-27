@@ -20,6 +20,15 @@ SPECS = {
                       "accept": [("pooled data from 7 randomized clinical trials", ("7",)),
                                  ("included 15 RCTs", ("15",)), ("participating in six trials", ("six",))],
                       "refuse": ["6 trials comparing SGLT2i", "we identify trials", "included 3252 patients"]}},
+    # V1.0.1 (melatonin review): Ferracioli-Oda 2013 counts STUDIES ('Nineteen studies involving 1683 subjects were included')
+    "_K_STUDIES": {"kind": "extractor", "fields": ["count", "count"],
+                   "spec": "a study count in an inclusion statement: 'N studies (involving ...) were included' or "
+                           "'(we) included N studies'; a bare 'N studies' is not read",
+                   "trigger": r"studies", "plants": {
+                       "accept": [("Nineteen studies involving 1683 subjects were included in this meta-analysis", ("Nineteen", None)),
+                                  ("We included nineteen studies involving a total of 1683 subjects", (None, "nineteen")),
+                                  ("8 randomized studies were included", ("8", None))],
+                       "refuse": ["Twelve studies examined sleep", "included 1683 subjects", "studies were included"]}},
     "_OTHER_REVIEW": {"kind": "classifier",
                       "spec": "the sentence is about ANOTHER review (et al, another, a/previous/recent meta-analysis), so "
                               "its trial count is not the comparator's",

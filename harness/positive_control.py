@@ -33,6 +33,15 @@ def load(root) -> list:
 
 
 def rows_of(control: dict, root=None) -> list:
+    if control.get("state") == "ROWS_FROM_FIGURE":
+        # V1.0.1 (melatonin review): the comparator's own forest-plot rows, read from its held figure image
+        # (cache/<slug>/comparator_figure_rows.json; image sha256 and every quote verified by comparator_display.load)
+        from . import comparator_display
+        doc = comparator_display.load(root, control["rows_from"]["slug"])
+        if doc is None:
+            raise PendingSource(f"{control.get('id')}: comparator_figure_rows.json not held")
+        return [{"label": r["label"], "effect": r["effect"], "ci_low": r["ci_low"], "ci_high": r["ci_high"],
+                 "state": "HELD"} for r in doc["rows"]]
     if control.get("state") == "ROWS_FROM_MEMBER_INPUTS":
         from . import outcome_match
         rf = control["rows_from"]
@@ -48,7 +57,9 @@ def rows_of(control: dict, root=None) -> list:
 def reproduce(control: dict, root=None) -> dict:
     rows = rows_of(control, root)
     m = control["measure"]
-    studies = [Study(label=r["label"], ai=r["events_int"], n1i=r["n_int"], ci=r["events_ctl"], n2i=r["n_ctl"], measure=m)
+    studies = [Study(label=r["label"], effect=r["effect"], ci_low=r["ci_low"], ci_high=r["ci_high"], measure=m)
+               if "effect" in r else
+               Study(label=r["label"], ai=r["events_int"], n1i=r["n_int"], ci=r["events_ctl"], n2i=r["n_ctl"], measure=m)
                for r in rows]
     res = pool(studies, scale=m)
     k = len(studies)

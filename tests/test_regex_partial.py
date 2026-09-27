@@ -52,7 +52,8 @@ def test_every_extractor_is_covered_by_the_scan():
     assert 'SPECS.items() if s["kind"] == "extractor"' in src
     # 16 since V1.0.1: _K_STATED and _re_counts (stated_trial_count) joined, and the scan covers both -- it caught
     # _re_counts reading '234' out of '1,234 trials' before the lookbehind fix
-    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 16
+    # 17 since the melatonin review: _K_STUDIES (a comparator that counts STUDIES) joined and is scanned too
+    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 17
 
 
 @pytest.mark.parametrize("name,s", [

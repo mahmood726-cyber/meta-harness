@@ -31,11 +31,21 @@ def merge(root, slug, records: dict) -> dict:
     recs = list(out.get("records") or [])
     have = {str(r.get("id")) for r in recs if isinstance(r, dict)}
     by_id = {str(r.get("id")): r for v in records.values() if isinstance(v, list) for r in v if isinstance(r, dict)}
+    fam_reg = None
     for x in lk:
         reg = by_id.get(str(x["nct"])) or {}
+        reg_text = str(reg.get("title") or "")
+        if not reg and (x.get("registry_quote") or {}).get("document_ref", "").endswith("family_registry.json"):
+            # V1.0.1 (GLP-1 review, PIONEER 8): a registry-only FAMILY whose record lives in the held family registry
+            # (AACT studies row), not in records.json -- bound on that row's acronym/titles
+            if fam_reg is None:
+                from .trial_family import load_registry
+                fam_reg = load_registry(root, slug)
+            st = ((fam_reg.get(str(x["nct"])) or {}).get("raw", {}).get("studies") or [{}])[0]
+            reg_text = " ".join(str(st.get(k) or "") for k in ("acronym", "brief_title", "official_title"))
         rec = x["record"]
         paper = " ".join([str(rec.get("title") or ""), str(rec.get("abstract") or ""), *(rec.get("collective_authors") or [])])
-        if x["binding_token"] not in str(reg.get("title") or "") or x["binding_token"] not in paper:
+        if x["binding_token"] not in reg_text or x["binding_token"] not in paper:
             raise LinkRefused(f"{slug}: link {x['nct']} -> {x['pmid']}: binding token not printed by both held texts")
         if str(rec["id"]) not in have:
             recs.append(dict(rec, family_link={"nct": x["nct"], "binding_token": x["binding_token"],
