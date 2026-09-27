@@ -1103,10 +1103,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # selection (which the multi-arm guard still refuses). Verified against its own source span.
         ds = dose_selection.get(d["id"])
         if ds and ds.get("outcome") == spec.get("name") and ds.get("effect") is not None:
+            from .arm_parse import select_regimen
+            dose_record = dict(rec)
+            registry_record = rec_by_id.get(rec.get("nct"), {})
+            dose_record["interventions"] = list(rec.get("interventions") or []) + list(registry_record.get("interventions") or [])
+            selection = select_regimen(ds.get("dose", ""), dose_record)
+            if selection["state"] != "SELECTED":
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent",
+                               "state": "AMBIGUOUS_REGIMEN", "reason_code": "AMBIGUOUS_REGIMEN",
+                               "reason": selection["reason"], "dose": ds.get("dose")})
+                continue
             trials.append({"label": label, "id": idstr, "effect": ds["effect"],
                            "ci_low": ds.get("ci_low"), "ci_high": ds.get("ci_high"),
                            "scale": ds.get("scale", "HR"), "provenance": "pre_specified_dose",
                            "dose": ds.get("dose"),
+                           "regimen": selection["regimen"],
+                           "regimen_frequency_source": selection["frequency_source"],
                            "source": ds.get("source", "pre-specified approved-dose arm (documented rule)")})
             continue
         # HAND-VERIFIED ENDPOINT-CORRECTION OVERRIDE (opt-in, TOP of the hierarchy alongside dose): a

@@ -24,6 +24,114 @@ from typing import Any
 
 NOT_IN_HELD_BYTES = "NOT_IN_HELD_BYTES"
 
+# A daily total is not an administration schedule: 60 mg/day does not say QD.
+_FREQUENCIES = {
+    "BID": r"\btwice[ -](?:daily|a day|per day)\b|\bb\.?i\.?d\.?\b|\bb\.?d\.?\b|\bevery\s*12\s*(?:h|hours?)\b|\bq\s*12\s*h\b",
+    "TID": r"\b(?:three|3)[ -]times[ -](?:daily|a day|per day)\b|\bthrice[ -]daily\b|\bt\.?i\.?d\.?\b|\bevery\s*8\s*(?:h|hours?)\b|\bq\s*8\s*h\b",
+    "QW": r"\bonce[ -](?:weekly|a[ -]week|per week)\b|\bweekly\b|\bq\.?w\.?\b|\bevery\s*7\s*days?\b",
+    "QD": r"\bonce[ -](?:daily|a day|per day)\b|\bq\.?d\.?\b|\bo\.?d\.?\b|\bevery\s*24\s*(?:h|hours?)\b|\bq\s*24\s*h\b",
+}
+_MG = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?\s*-?\s*mg\b", re.I)
+_PER_DAY = re.compile(r"\s*(?:/\s*(?:day|d)\b|per day\b)", re.I)
+_PER_DAY_RATE = {"QD": 1, "BID": 2, "TID": 3, "QW": 1 / 7}
+_UNSUPPORTED_FREQUENCY = re.compile(
+    r"\b(?:twice|thrice|two times|three times)[ -]weekly\b|\b(?:biweekly|fortnightly|monthly)\b|\bevery\s+\d+\s+months?\b", re.I)
+
+
+def regimen_frequencies(text: str) -> set[str]:
+    text = _UNSUPPORTED_FREQUENCY.sub(" ", text or "")
+    found = {code for code, pattern in _FREQUENCIES.items() if re.search(pattern, text or "", re.I)}
+    if re.search(r"\bonce (?:or|and) twice[ -]daily\b", text or "", re.I):
+        found.update(("QD", "BID"))
+    # Bare 'daily' is QD only when it is not part of twice/three-times daily or mg/day.
+    rest = str(text or "")
+    for pattern in _FREQUENCIES.values():
+        rest = re.sub(pattern, " ", rest, flags=re.I)
+    if re.search(r"\bdaily\b", rest, re.I) and not re.search(r"\bdaily (?:total|dose)\b|\btotal daily\b", rest, re.I):
+        found.add("QD")
+    return found
+
+
+def parse_regimen(text: str) -> dict[str, Any]:
+    """Parse ONE agent/regimen label. Unknown or conflicting dimensions remain unknown.
+
+    dose_mg is per administration; mg/day alone supplies neither it nor frequency.
+    QW daily_mg is the arithmetic daily average, not a daily administration.
+    """
+    text = str(text or "").lower().strip().replace("\u00b7", ".")
+    doses = list(_MG.finditer(text))
+    freqs = regimen_frequencies(text)
+    freq = next(iter(freqs)) if len(freqs) == 1 else "NOT_STATED"
+    if _UNSUPPORTED_FREQUENCY.search(text):
+        freq = "NOT_STATED"  # unsupported schedules must not become QW
+    agent = text[:doses[0].start()] if doses else text
+    for pattern in _FREQUENCIES.values():
+        agent = re.sub(pattern, " ", agent, flags=re.I)
+    agent = re.sub(r"\([^)]*\)|\b(?:oral|tablets?|capsules?|daily)\b", " ", agent)
+    agent = " ".join(agent.split()).strip(" -:,") or None
+    dose = None
+    if len(doses) == 1:
+        m = doses[0]
+        amount = float(re.match(r"\d+(?:[.,]\d+)?", m.group()).group().replace(",", "."))
+        total = bool(_PER_DAY.match(text[m.end():]) or re.search(r"\b(?:total daily|daily total|daily dose)\b", text))
+        dose = amount / _PER_DAY_RATE[freq] if total and freq in _PER_DAY_RATE else (None if total else amount)
+        if re.match(r"\s*/\s*(?:kg|ml|m2)\b", text[m.end():]):
+            dose = None  # concentration or body-size dose is not an administration amount
+    return {"agent": agent, "dose_mg": dose, "frequency": freq,
+            "daily_mg": dose * _PER_DAY_RATE[freq] if dose is not None and freq in _PER_DAY_RATE else None}
+
+
+def same_regimen(a, b) -> bool:
+    a = parse_regimen(a) if isinstance(a, str) else a
+    b = parse_regimen(b) if isinstance(b, str) else b
+    return bool(a.get("agent") and a.get("dose_mg") is not None and a.get("frequency") in _PER_DAY_RATE
+                and all(a.get(k) == b.get(k) for k in ("agent", "dose_mg", "frequency")))
+
+
+def select_regimen(rule: str, record: dict[str, Any]) -> dict[str, Any]:
+    """Validate a dose override against held agent-specific schedules, before using its effect.
+
+    Legacy mg-only rules can inherit a SINGLE held frequency. Mixed or missing schedules
+    are refused. Never resolve a mixed-frequency trial by matching daily totals.
+    """
+    selected = parse_regimen(rule)
+    agent = selected["agent"]
+    refusal = {"state": "AMBIGUOUS_REGIMEN", "regimen": selected,
+               "reason": "AMBIGUOUS_REGIMEN: dose selection requires agent, dose per administration and an unambiguous held frequency"}
+    if not agent:
+        return refusal
+    hit = re.compile(r"(?<![a-z0-9])" + re.escape(agent) + r"(?![a-z0-9])", re.I)
+    labels = [s for s in (record.get("interventions") or []) if hit.search(s)
+              and exposure(parse_arm(s), [agent]) == "ACTIVE"]
+    # Sentence boundaries preserve dotted abbreviations and decimal doses.
+    sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", record.get("abstract") or "")
+    spans = labels + [s for s in sentences if hit.search(s)]
+    if any(_UNSUPPORTED_FREQUENCY.search(s) for s in spans):
+        return refusal
+    frequencies = set().union(*(regimen_frequencies(s) for s in spans)) if spans else set()
+    if selected["frequency"] == "NOT_STATED":
+        if len(frequencies) != 1 or selected["dose_mg"] is None:
+            return refusal
+        selected = parse_regimen(rule + " " + next(iter(frequencies)))
+    if selected["dose_mg"] is None or selected["frequency"] not in frequencies:
+        return refusal
+    candidates = [parse_regimen(s) for s in labels]
+    # In prose, bind an explicit dose to its following schedule, never to a daily total.
+    for span in spans:
+        for m in _MG.finditer(span):
+            tail = span[m.end():]
+            stop = _MG.search(tail)
+            tail = tail[:stop.start()] if stop else tail
+            tail = re.split(r"[;,]|\b(?:versus|warfarin|placebo)\b", tail, maxsplit=1, flags=re.I)[0]
+            candidates.append(parse_regimen(agent + " " + m.group() + tail))
+    complete = [c for c in candidates if c["agent"] == agent and c["dose_mg"] is not None
+                and c["frequency"] != "NOT_STATED"]
+    if (len(frequencies) > 1 or complete) and not any(same_regimen(selected, c) for c in complete):
+        return refusal
+    return {"state": "SELECTED", "regimen": selected,
+            "matched_arms": [s for s in labels if same_regimen(selected, parse_regimen(s))],
+            "frequency_source": spans}
+
 _SPLIT = re.compile(r"\s*(?:\+|;|,|\bplus\b|\bwith\b|\band\b)\s*", re.I)
 _PLACEBO_WORD = re.compile(r"(?i)\b(?:placebos?|sham|dummy)\b")
 # words that only say WHICH agent a placebo is matched to

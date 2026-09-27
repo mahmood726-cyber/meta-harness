@@ -19,6 +19,10 @@ _WEEK = re.compile(r"\bweek\s*(\d{1,3})\b|(\d{1,3})[-\s]?week\b", re.I)
 _AGE_RANGE = re.compile(r"\baged?\s+(\d{1,2})\s*(?:to|-|--|through)\s*<?\s*(\d{1,2})\s*years?\b", re.I)
 
 _DRUGS = [
+    "edoxaban",
+    "dabigatran",
+    "apixaban",
+    "rivaroxaban",
     "balcinrenone/dapagliflozin",
     "balanced multielectrolyte solution",
     "balanced crystalloids",
@@ -105,7 +109,16 @@ def _has_any(text: str, terms: list[str]) -> str | None:
 
 def _dose_of(text: str) -> str | None:
     m = _DOSE.search(text or "")
-    return m.group(0).replace(",", ".") if m else None
+    if not m:
+        return None
+    # Keep the original dose display, including a daily-total denominator, and
+    # carry the schedule explicitly (unknown never silently means once daily).
+    end = m.end()
+    denominator = re.match(r"\s*/\s*(?:day|d)\b", text[end:], re.I)
+    if denominator:
+        end += denominator.end()
+    frequency = arm_parse.parse_regimen(text)["frequency"]
+    return text[m.start():end].replace(",", ".") + " " + frequency
 
 
 def _drug_of(text: str) -> str | None:
