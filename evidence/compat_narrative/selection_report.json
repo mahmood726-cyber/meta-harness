@@ -1,0 +1,150 @@
+{
+  "declared_rule": null,
+  "status": "RESULT_SELECTION_RULE_NOT_DECLARED",
+  "protocol_evidence": "# Protocol - PCSK9 inhibitors for major adverse cardiovascular events\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with established ASCVD or title/registry-supported high ASCVD risk.\n- **I** - PCSK9 inhibitor monoclonal antibody therapy: evolocumab or alirocumab.\n- **C** - placebo.\n- **O (primary)** - major adverse cardiovascular events (MACE), as defined by each trial.\n- **O (harms)** - injection-site reactions and adverse events leading to discontinuation.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), PCSK9 inhibitor vs placebo, using published\n  trial effect estimates with 95% confidence intervals when arm-level event-time\n  data are not available in the abstract.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - longest reported trial follow-up for the primary MACE endpoint.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with established ASCVD or title/registry-supported\n  high ASCVD risk;\n- **I3** - evolocumab or alirocumab compared with placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or secondary\n  analysis not indexed as a primary randomised trial record);\n- **X2** - wrong population by title/registry conditions (e.g. kidney disease,\n  chronic kidney disease, heart failure, or venous thromboembolism);\n- **X3** - wrong intervention/comparison (no evolocumab/alirocumab-vs-placebo\n  contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports MACE, or gives\n> arm counts vs only an effect+CI, is recorded as target-result status at extraction,\n> never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: title-level searches for the primary FOURIER and ODYSSEY OUTCOMES reports.\n  Comparator-reference seeding is disabled for this topic because later secondary\n  publications share the same trial NCTs and can supersede the primary outcome\n  reports in the harness deduplication step.\n- ClinicalTrials.gov: condition \"ASCVD\", intervention \"alirocumab\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(HR); **Paule-Mandel** tau^2; **HKSJ** 95% CI\non `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. Trial HRs and 95% CIs are transformed to log\nscale by the harness. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nXiang et al., *Frontiers in Cardiovascular Medicine* 2022, \"Effect of alirocumab\nand evolocumab on all-cause mortality and major cardiovascular events: A\nmeta-analysis focusing on the number needed to treat\" (PMID 36531722, DOI\n10.3389/fcvm.2022.1016802; Unpaywall is_oa=true; PubMed Central available as\nPMC9755489). It reports pooled MACE RR 0.83 (95% CI 0.79-0.87) in patients with\nestablished ASCVD.\n\n## Controls\n- **Positive** - the search must recover and include the canonical large\n  double-blind placebo-controlled outcome trials FOURIER (PMID 28304224) and\n  ODYSSEY OUTCOMES (PMID 30403574).\n- **Negative** - FIDELIO-DKD (finerenone in chronic kidney disease and type 2\n  diabetes; PMID 33264825) must be recovered and EXCLUDED as wrong population and\n  wrong intervention for this topic.\n\n## Amendment 2026-09-16 (external-audit recovery; co-primary endpoint rule)\n**Status: retrospective external-audit recovery before extraction/rebuild.** This\namendment does not make the retrieval systematic and does not rename the pinned\nslug/URL. The page remains STALE for `search_not_executed`: the added records are\nhand-named audit recoveries, not evidence that the original search ran.\n\n- **Added hand-named records.** VESALIUS-CV (PMID 41211925), ODYSSEY LONG TERM\n  (PMID 25773378), and GLAGOV (PMID 27846344) are added through `extra_pmids`\n  with `discovery_capable=false`, source kind `EXTRA_PMIDS`, on the external audit\n  query text `external audit topic 15 (Mahmood, 2026-09-16): VESALIUS-CV;\n  ODYSSEY LONG TERM; GLAGOV`.\n- **Co-primary endpoint rule.** When a trial registers more than one primary MACE\n  definition, pool the prespecified co-primary endpoint whose component set is\n  closest to canonical 3-point MACE: cardiovascular/coronary-heart-disease death,\n  myocardial infarction, and stroke. If component-set closeness is tied, use the\n  co-primary listed first in the registration/publication.\n- **Rule disclosure.** VESALIUS-CV reports both co-primary results in its abstract,\n  so both the 3-point HR 0.75 (95% CI 0.65 to 0.86) and the 4-point HR 0.81\n  (95% CI 0.73 to 0.89) were known when this rule was written. The rule is justified\n  only by component-set closeness to canonical 3-point MACE, never by which result\n  is larger or more precise.\n- **Sensitivity requirement.** The alternative VESALIUS-CV co-primary endpoint is\n  always rendered as a sensitivity row when the selected co-primary is pooled; it is\n  not hidden.\n- **Outcome-layer discipline.** ODYSSEY LONG TERM and GLAGOV screen in on\n  P/I/C/design if the record text supports those axes. ODYSSEY LONG TERM reports a\n  post-hoc MACE analysis and is typed `outcome_post_hoc_not_pooled`; GLAGOV reports\n  surrogate atheroma-volume outcomes and no MACE result and is typed\n  `outcome_not_reported`. Neither is pooled.\n",
+  "per_trial": [
+    {
+      "trial_id": "25773378",
+      "served": false,
+      "inconsistencies": [],
+      "refusal": "outcome_post_hoc_not_pooled",
+      "selections": {
+        "EACH_TRIAL_PRIMARY_COMPOSITE": {
+          "selected": [],
+          "status": "NO_HELD_RESULT",
+          "served_matches": null
+        },
+        "CLOSEST_TO_COMMON_COMPONENT_SET": {
+          "selected": [
+            "25773378:post-hoc"
+          ],
+          "status": "SELECTED",
+          "served_matches": false
+        }
+      },
+      "declared_selection": null,
+      "scoped_co_primary_rule": null
+    },
+    {
+      "trial_id": "27846344",
+      "served": false,
+      "inconsistencies": [],
+      "refusal": "outcome_not_reported",
+      "selections": {
+        "EACH_TRIAL_PRIMARY_COMPOSITE": {
+          "selected": [],
+          "status": "NO_HELD_RESULT",
+          "served_matches": null
+        },
+        "CLOSEST_TO_COMMON_COMPONENT_SET": {
+          "selected": [],
+          "status": "NO_HELD_RESULT",
+          "served_matches": null
+        }
+      },
+      "declared_selection": null,
+      "scoped_co_primary_rule": null
+    },
+    {
+      "trial_id": "28304224",
+      "served": true,
+      "inconsistencies": [
+        {
+          "code": "STALE_NARRATIVE",
+          "original": {
+            "endpoint_definition": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
+            "follow_up_window": "longest reported trial follow-up"
+          },
+          "conflicts": [
+            "component count",
+            "endpoint components in bound span",
+            "endpoint role"
+          ]
+        },
+        {
+          "code": "STALE_NARRATIVE",
+          "original": {
+            "endpoint_definition": "CV_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION | CORONARY_REVASCULARIZATION",
+            "components": [
+              "CV_DEATH",
+              "MI",
+              "STROKE",
+              "UA_HOSP",
+              "CORONARY_REVASCULARIZATION"
+            ]
+          },
+          "conflicts": [
+            "component set"
+          ]
+        }
+      ],
+      "refusal": null,
+      "selections": {
+        "EACH_TRIAL_PRIMARY_COMPOSITE": {
+          "selected": [
+            "28304224:primary"
+          ],
+          "status": "SELECTED",
+          "served_matches": false
+        },
+        "CLOSEST_TO_COMMON_COMPONENT_SET": {
+          "selected": [
+            "28304224:key-secondary"
+          ],
+          "status": "SELECTED",
+          "served_matches": true
+        }
+      },
+      "declared_selection": null,
+      "scoped_co_primary_rule": null
+    },
+    {
+      "trial_id": "30403574",
+      "served": true,
+      "inconsistencies": [],
+      "refusal": null,
+      "selections": {
+        "EACH_TRIAL_PRIMARY_COMPOSITE": {
+          "selected": [
+            "30403574:primary"
+          ],
+          "status": "SELECTED",
+          "served_matches": true
+        },
+        "CLOSEST_TO_COMMON_COMPONENT_SET": {
+          "selected": [
+            "30403574:primary"
+          ],
+          "status": "SELECTED",
+          "served_matches": true
+        }
+      },
+      "declared_selection": null,
+      "scoped_co_primary_rule": null
+    },
+    {
+      "trial_id": "41211925",
+      "served": false,
+      "inconsistencies": [],
+      "refusal": "RESULT_INCOMPATIBLE",
+      "selections": {
+        "EACH_TRIAL_PRIMARY_COMPOSITE": {
+          "selected": [
+            "41211925:3-point"
+          ],
+          "status": "SELECTED",
+          "served_matches": false
+        },
+        "CLOSEST_TO_COMMON_COMPONENT_SET": {
+          "selected": [
+            "41211925:3-point"
+          ],
+          "status": "SELECTED",
+          "served_matches": false
+        }
+      },
+      "declared_selection": null,
+      "scoped_co_primary_rule": "Selected by the 2026-09-16 protocol amendment: prespecified co-primary closest to canonical 3-point MACE; alternative 4-point co-primary rendered as sensitivity."
+    }
+  ]
+}

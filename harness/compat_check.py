@@ -374,6 +374,12 @@ def _is_mismatch(dim: str, asserted: Any, values: list[str]) -> bool:
     return any(v != av for v in vals)
 
 
+def _outcome_spec_for(review: dict[str, Any], outcome: dict[str, Any]) -> dict[str, Any]:
+    topic = _load_json("topics", str(review.get("slug")) + ".json") or {}
+    specs = [topic.get("primary_outcome") or {}, *(topic.get("secondary_outcomes") or []), *(topic.get("harm_outcomes") or [])]
+    return next((sp for sp in specs if sp.get("name") == outcome.get("name")), {})
+
+
 def check(
     review: dict[str, Any],
     records: dict[str, Any] | None = None,
@@ -391,6 +397,19 @@ def check(
             derive_trial_dimensions(review, outcome, trial, records, definition_audit)
             for trial in (outcome.get("trials") or [])
         ]
+        # STALE NARRATIVE (PCSK9 review): an annotation that describes an input differently from the input's own binding (FOURIER
+        # "5-point primary" while the pooled input is its 3-point key secondary) is flagged; the display uses the derived text.
+        from .derived_narrative import audit_trial as _audit_trial
+        _spec = _outcome_spec_for(review, outcome)
+        for trial in outcome.get("trials") or []:
+            _tp = _pid(trial.get("id") or trial.get("label"))
+            _ann = [x for x in [_audit_for_trial(definition_audit, str(outcome.get("name") or ""), _tp),
+                                (_spec.get("trial_annotations") or {}).get(_tp)] if x]
+            for _item in _audit_trial(trial, _ann).get("audit") or []:
+                if _item.get("code") == "STALE_NARRATIVE":
+                    violations.append({"code": "STALE_NARRATIVE", "dimension": "endpoint", "outcome": outcome.get("name"),
+                                       "trial_id": trial.get("id"), "original": _item.get("original"),
+                                       "conflicts": _item.get("conflicts")})
         for dim, key_name in _DIM_TO_KEY.items():
             asserted = ck.get(key_name)
             if asserted in (None, "") or _is_unasserted_value(dim, asserted, ck):
@@ -513,6 +532,15 @@ def _attach_trial_dimensions(
             trial["analysis_set"] = (dims["analysis_set"] or {}).get("value")
             trial["follow_up_window"] = (dims["follow_up_window"] or {}).get("value")
             trial["endpoint_definition"] = (dims["endpoint_definition"] or {}).get("value")
+            # STALE NARRATIVE (PCSK9 review): when the endpoint description contradicts the pooled input's own binding (FOURIER
+            # "5-point primary" for its 3-point key secondary), the stored description is the INPUT-DERIVED one; the original is
+            # kept in narrative_audit. Only this field: follow-up, components and compat verdicts are not rewritten here.
+            from .derived_narrative import audit_trial as _audit_trial
+            _d = _audit_trial(dict(trial), [{"endpoint_definition": trial["endpoint_definition"]}] if trial["endpoint_definition"] else [])
+            _stale = [a for a in _d.get("audit") or [] if a.get("code") == "STALE_NARRATIVE"]
+            if _stale and _d.get("value"):
+                trial["narrative_audit"] = _stale
+                trial["endpoint_definition"] = _d["value"]
             trial["population_age"] = (dims["population_age"] or {}).get("value")
             trial["intervention_ontology"] = dims["intervention_ontology"]
             trial["compat_dimensions"] = dims

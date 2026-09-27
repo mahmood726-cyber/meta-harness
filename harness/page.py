@@ -344,6 +344,8 @@ def _measure_sensitivity_block(o: dict) -> str:
 def _derived_dim(o: dict, dim: str, declared):
     """What the page states about a pooled outcome's window / analysis set: the label DERIVED from its inputs
     (outcome_tiers.derived_label), falling back to the declared value only for an outcome built before tiers existed."""
+    if dim == "follow_up_window" and any(t.get("derived_narrative") for t in o.get("trials", [])):
+        return "; ".join(sorted({t["follow_up_window"] for t in o["trials"]}))
     d = ((o.get("outcome_tiers") or {}).get("derived_label") or {}).get(dim)
     return d.get("label") if isinstance(d, dict) and d.get("label") else declared
 
@@ -1407,6 +1409,9 @@ def _compat_direction_block(o):
 
 
 def _trial_inputs(o):
+    from copy import deepcopy
+    from .derived_narrative import apply_outcome
+    o = apply_outcome(deepcopy(o))
     rows = []
     for t in o.get("trials", []) or []:
         if t.get("ai") is not None:
@@ -1584,6 +1589,10 @@ def _trial_inputs(o):
             details.append(f"background therapy: {t.get('background_therapy')}")
         if t.get("endpoint_definition"):
             details.append(f"endpoint definition: {t.get('endpoint_definition')}")
+        stale = [a for a in t.get("narrative_audit", []) if a.get("code") == "STALE_NARRATIVE"]
+        if stale:
+            details.append("STALE_NARRATIVE: conflicting annotation retained in narrative audit")
+
         if t.get("follow_up_window"):
             details.append(f"follow-up window: {t.get('follow_up_window')}")
         if t.get("analysis_set"):
@@ -1711,6 +1720,9 @@ def _harms_ledger_block(o):
 
 
 def _outcome_block(o, show_inputs=True, review=None):
+    from copy import deepcopy
+    from .derived_narrative import apply_outcome
+    o = apply_outcome(deepcopy(o))
     r = (review or {"outcomes": [o]}) if o.get("primary") else {}
     from . import harms
     if harms.synthesis_incomplete(o):
@@ -1720,6 +1732,13 @@ def _outcome_block(o, show_inputs=True, review=None):
     if reason:
         return f"<h4>{_e(o.get('name'))}</h4>" + _absent_block(reason)
     body = f"<h4>{_e(o.get('name'))}{' (primary)' if o.get('primary') else ''}</h4>"
+    stale_ids = [str(t.get("id") or t.get("label")) for t in o.get("trials", [])
+                 if any(a.get("code") == "STALE_NARRATIVE" for a in t.get("narrative_audit", []))]
+    if stale_ids:
+        body += ("<p class='note'><strong>STALE_NARRATIVE.</strong> Input-derived descriptions replace "
+                 "conflicting annotations for " + _e(", ".join(stale_ids)) +
+                 ". Original text is retained in the narrative audit.</p>")
+
     res = o.get("result")
     rr = _absent(res)
     if rr and isinstance(res, dict) and res.get("state") == "HARMS_INCOMPLETE":
