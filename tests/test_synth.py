@@ -48,8 +48,16 @@ def test_hksj_floor_active_when_underdispersed():
 
 
 def test_zero_cell_continuity_applied_only_to_that_study():
-    # One study has a zero event cell -> 0.5 correction to all four of ITS cells.
-    studies = [Study("z", 0, 100, 10, 100), Study("y", 15, 100, 20, 100)]
+    # SPARSE DATA (PCSK9 review, 2026-09-27): this test used to assert that a zero cell is corrected SILENTLY -- it defended the
+    # defect. A zero cell now needs a DECLARED sparse-data method: without one synth refuses; with CC_0.5 the 0.5 correction goes
+    # to all four cells of THAT study only.
+    from harness.synth import SparseDataMethodNotDeclared
+    try:
+        _effects([Study("z", 0, 100, 10, 100)])
+        raise AssertionError("a zero cell was corrected with no declared sparse-data method")
+    except SparseDataMethodNotDeclared:
+        pass
+    studies = [Study("z", 0, 100, 10, 100, zero_event_method="CC_0.5"), Study("y", 15, 100, 20, 100)]
     yi, vi = _effects(studies)
     # study z log RR uses (0.5/101)/(10.5/101); finite, negative
     assert math.isfinite(yi[0]) and yi[0] < 0

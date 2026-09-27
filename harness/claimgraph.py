@@ -194,6 +194,11 @@ def attach_strands(review: dict[str, Any], root: str) -> None:
                                               f" | not pooled on this outcome; pooled in declared strand(s) "
                                               f"{', '.join(strands)}").strip(" |")
         break
+    # ONE RESULT OBJECT ACROSS ANALYSES (PCSK9 review): every admission decision about a source-bound result, on every
+    # analysis of the page, against one identity; a contradictory admission is recorded here and refused by the gate.
+    from . import result_objects
+    _ledger = result_objects.ledger(review)
+    review["result_objects"] = {"ledger": _ledger, "consistency": result_objects.consistency(_ledger)}
 
 
 def regulatory_fact(root, source, decision, adjudications):

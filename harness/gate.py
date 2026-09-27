@@ -1226,6 +1226,20 @@ def check_certificate(review_dir):
     """Require a certificate whose listed inputs still yield the saved release identity."""
     from .certificate import verify as verify_certificate
     return verify_certificate(review_dir)
+def check_result_object_consistency(review_dir):
+    """PCSK9 review: the same source-bound result may not be ADMITTED in one analysis and REFUSED in another unless the admitting
+    analysis declares that it waives the refusal (requirements.waives + because)."""
+    from . import result_objects
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1(result_object_consistency): cannot inspect review: {exc}"]
+    c = result_objects.consistency(result_objects.ledger(review))
+    return [f"L1(result_object_consistency): result {x['result_id']} is ADMITTED in {x['admitted_in']} and REFUSED in "
+            f"{x['refused_in']} ({x['refusal_code']}) with no declared waiver" for x in c["contradictions"]]
+
+
 def check_narrative_no_ni_inference(review_dir, html):
     """NARRATIVE RULE (DOAC-VTE review, 2026-09-26): the page never INFERS noninferiority or equivalence from a pooled interval --
     the trials used prespecified NI margins a pooled ratio does not test. Such a phrase may appear only as a verbatim quotation of
@@ -1324,6 +1338,7 @@ def gate_page(review_dir):
                + check_certificate(review_dir)
                + check_no_independent_corroboration_claim(review_dir, html)
                + check_narrative_no_ni_inference(review_dir, html)
+               + check_result_object_consistency(review_dir)
                + check_harms_synthesis_gated(review_dir, html)
                + check_adjustment_span_backed(review_dir)
                + check_cache_tracked(manifest)

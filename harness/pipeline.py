@@ -1505,10 +1505,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if _cor:
             t["crude_corroboration"] = _cor
         _zs = zero_cell_state(t.get("ai"), t.get("n1i"), t.get("ci"), t.get("n2i")) if t.get("effect") is None else None
-        if _zs == "SINGLE_ZERO_CELL" and not t.get("continuity_correction"):
-            # the same disclosure harms.py writes for harm rows, for EVERY outcome: a single-zero correction is never silent
-            t["continuity_correction"] = ("0.5 continuity correction applied by synth.Study.yi_vi because this study has at least "
-                                          "one zero cell; correction is per-study and disclosed here.")
+        if _zs == "SINGLE_ZERO_CELL":
+            # SPARSE DATA (PCSK9 review): a zero cell needs an EXPLICITLY DECLARED sparse-data method -- no silent correction.
+            _sdm = str(spec.get("sparse_data_method") or "").upper()
+            if _sdm == "CC_0.5":
+                t["zero_event_method"] = "CC_0.5"
+                t["continuity_correction"] = ("declared sparse-data method CC_0.5 (outcome spec): 0.5 added to all four cells of "
+                                              "this study because it has a zero cell")
+            else:
+                t["sparse_data_hold"] = True
         elif _zs == "DOUBLE_ZERO":
             t["double_zero"] = True
         # OUTCOME POLARITY: which EVENT the effect models; a benefit-event effect in a death pool is held, or re-oriented only
@@ -1533,6 +1538,18 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         time_to_event_rows = []
     # DOUBLE_ZERO: 0 events in both arms -- eligible, outcome OBSERVED, no conventional log-ratio. Out of the pool, counted in the
     # inventory; a zero-event method runs only as a declared, prespecified sensitivity analysis.
+    _sparse_rows = [t for t in trials if t.get("sparse_data_hold")]
+    if _sparse_rows:
+        trials = [t for t in trials if not t.get("sparse_data_hold")]
+        for t in _sparse_rows:
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                           "state": "ZERO_CELL_METHOD_NOT_DECLARED", "reason_code": "ZERO_CELL_METHOD_NOT_DECLARED",
+                           "endpoint_admissibility": "ZERO_CELL_METHOD_NOT_DECLARED",
+                           "counts": [t.get(k) for k in ("ai", "n1i", "ci", "n2i")], "source": t.get("source", ""),
+                           "reason": ("a zero cell (" + "/".join(str(t.get(k)) for k in ("ai", "n1i")) + " vs "
+                                      + "/".join(str(t.get(k)) for k in ("ci", "n2i")) + ") and no declared sparse-data method for "
+                                      "this outcome: no continuity correction is applied silently, so the study is not pooled "
+                                      "until a method is declared (outcome spec sparse_data_method)")})
     double_zero_rows = [t for t in trials if t.get("double_zero")]
     if double_zero_rows:
         trials = [t for t in trials if not t.get("double_zero")]
@@ -1728,6 +1745,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # A refused mixture is still computed here only to record its counterfactual; the numbers are suppressed below.
             pooled_scale = _mdec["label"] if _mdec["state"] in ("DERIVED", "MIXED_BY_POLICY") else (_mlabels[0] or "RR")
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
+                         zero_event_method=t.get("zero_event_method"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
                          ci_high=t.get("ci_high"),
                          e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),

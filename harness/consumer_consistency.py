@@ -573,6 +573,10 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
             if not cand.get("source_has_value"):
                 continue
             current_code = _row_code(row)
+            if row.get("endpoint_admissibility") in ("ZERO_CELL_METHOD_NOT_DECLARED",):
+                # the counts ARE visible and were held by a declared rule (no sparse-data method): a decision, not debt
+                row["source_value_visible"] = {"value_kind": cand.get("value_kind"), "source_span": cand.get("source_span")}
+                continue
             replacement_code = cand.get("reason_code") or KNOWN_REPORTED_NOT_YET_EXTRACTED
             if current_code not in FALSE_ABSENCE_CODES and current_code == replacement_code:
                 continue

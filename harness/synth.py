@@ -156,6 +156,12 @@ class Study:
                 # manufacture pseudo-events. Only a declared zero-event SENSITIVITY analysis may pass (zero_event_method).
                 raise DoubleZero(f"{self.label}: 0 events in both arms -- no conventional log-ratio (DOUBLE_ZERO)")
             if min(a, c, n1 - a, n2 - c) == 0:  # zero cell in THIS study
+                # SPARSE DATA (PCSK9 review): a zero cell needs an explicitly DECLARED sparse-data method; there is no silent
+                # continuity correction. The only method synth implements is 0.5 added to all four cells (CC_0.5).
+                if self.zero_event_method != "CC_0.5":
+                    raise SparseDataMethodNotDeclared(
+                        f"{self.label}: a zero cell ({self.ai}/{self.n1i} vs {self.ci}/{self.n2i}) needs a declared sparse-data "
+                        "method; none is declared, so no continuity correction is applied")
                 a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1.0, n2 + 1.0
             if self.measure.upper() == "OR":
                 b, d = n1 - a, n2 - c          # odds ratio (a*d)/(b*c)
@@ -222,6 +228,10 @@ CI_PROVENANCE = "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
 
 class DoubleZero(ValueError):
     """A study with 0 events in both arms: eligible, outcome observed, no conventional log-ratio (denosumab review)."""
+
+
+class SparseDataMethodNotDeclared(ValueError):
+    """A study with a zero cell reached synth without a declared sparse-data method (PCSK9 review, 2026-09-27)."""
 
 
 def zero_cell_state(ai, n1i, ci, n2i) -> str | None:

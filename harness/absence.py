@@ -273,7 +273,7 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     # EXTRACTION_NOT_PERFORMED here -- the hold reached the reader as "not extracted". It keeps its own code.
     if row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND", "HELD_SOURCE_EFFECT_CONFLICT",
                                               "EVENT_POLARITY_MISMATCH", "MULTI_ARM_SHARED_CONTROL_UNDECLARED",
-                                              "CLINICAL_EVENT_COUNTS_RECOVERED_HR_NOT_ESTABLISHED", "DOUBLE_ZERO",
+                                              "CLINICAL_EVENT_COUNTS_RECOVERED_HR_NOT_ESTABLISHED", "DOUBLE_ZERO", "ZERO_CELL_METHOD_NOT_DECLARED",
                                               "UNCERTAINTY_REPRESENTATION_UNRESOLVED") and row.get("reason_code"):
         span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""
         return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
