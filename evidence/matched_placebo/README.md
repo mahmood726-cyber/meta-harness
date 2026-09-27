@@ -62,9 +62,13 @@ trial with a placebo arm read as "the drug is in every arm".
 ## What moves (a notice, not a landing)
 
 Re-screened with the fixed code, each of the six is now `INCLUDE` at eligibility
-("eligible double-blind/placebo-controlled RCT ..."). That changes the served screening flow on six pages. Whether any
-pooled number moves depends on whether these registry records carry usable results. That needs the six topics rebuilt,
-which is **not yet done**. Every such move is a notice for Mahmood's hash-bound signature.
+("eligible double-blind/placebo-controlled RCT ..."). That changes the served screening flow on six pages.
+
+**Rebuilt** (`scripts/build_topic.py`, each topic on the pre-fix 887fea85 and on the fix f3703fcf, same worktree, every
+build rc=0): each of the six moves X-CONTRAST -> INCLUDE in the screening records, and **no pooled result moves in any
+outcome of the six topics** (estimate, CI, k and the pooled trial ids are identical). None of them contributes a
+poolable row, so the change is to the screening flow and eligibility text only. That is still a served change and a notice for
+Mahmood's hash-bound signature.
 
 ## Tests
 
