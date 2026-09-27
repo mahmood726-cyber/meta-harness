@@ -2437,15 +2437,17 @@
     },
     "overlap": {
       "ours_k": 1,
-      "theirs_k": "not stated in the comparator abstract/full text",
-      "shared_k": 0,
-      "only_ours": [
-        "NCT04381936"
-      ],
+      "theirs_k": 7,
+      "theirs_k_source": {
+        "source": "comparator abstract",
+        "quote": "DESIGN, SETTING, AND PARTICIPANTS: Prospective meta-analysis that pooled data from 7 randomized clinical trials that evaluated the efficacy of corticosteroids in 1703 critically ill patients with COVID-19."
+      },
+      "shared_k": "not computed: comparator trial set not enumerated",
+      "only_ours": [],
       "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): date proof (every pooled family post-dates the comparator)",
-      "note": "Computed overlap relation with the published comparator: DISJOINT (disjoint -- no trial family in common); our pooled trial families 1, shared 0; basis: date proof (every pooled family post-dates the comparator).",
-      "relation": "DISJOINT"
+      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
+      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator trial set is not known well enough to compare); our pooled trial families 1; basis: comparator trial set not enumerated.",
+      "relation": "NOT_ENUMERABLE"
     },
     "overlap_relation": {
       "outcome": "28-day all-cause mortality",
@@ -2463,32 +2465,66 @@
         }
       ],
       "ours_k": 1,
-      "date_proof": {
-        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
-        "comparator_year": 2020,
-        "post_dating": [
-          "NCT04381936 (32678530, 2021)"
-        ],
-        "holds_for_every_pooled_family": true
-      },
+      "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
         "status": "NOT_ENUMERATED",
         "note": "the registered comparator's trial set is not enumerated in a typed, located source"
       },
-      "shared": [],
-      "shared_k": 0,
-      "only_ours": [
-        "NCT04381936"
-      ],
       "theirs_k": null,
+      "shared": null,
+      "shared_k": null,
+      "only_ours": null,
       "only_theirs": null,
-      "relation": "DISJOINT",
-      "label": "disjoint -- no trial family in common",
-      "basis": "date proof (every pooled family post-dates the comparator)",
+      "relation": "NOT_ENUMERABLE",
+      "label": "not enumerable -- the comparator trial set is not known well enough to compare",
+      "basis": "comparator trial set not enumerated",
       "theirs_k_stated": {
-        "value": "not stated in the comparator abstract/full text",
-        "source": null
+        "value": 7,
+        "source": {
+          "source": "comparator abstract",
+          "quote": "DESIGN, SETTING, AND PARTICIPANTS: Prospective meta-analysis that pooled data from 7 randomized clinical trials that evaluated the efficacy of corticosteroids in 1703 critically ill patients with COVID-19."
+        }
+      }
+    },
+    "internal_mismatches": [],
+    "reported_trial_membership": {
+      "state": "REPORTED_NOT_HELD",
+      "reported_by": "external review of the corticosteroids-covid19 topic (27 Sep 2026)",
+      "claim": "WHO REACT's 7 trials include RECOVERY -- analysed as its invasively ventilated SUBGROUP, not the overall population we pool (same trial, different participants) -- and COVID STEROID, whose standalone paper (2021) post-dates the 2020 prospective meta-analysis that already holds its data",
+      "used_for_overlap": false,
+      "why": "the comparator's trial table and forest plot are not held (the publisher disallows XML full text; the JAMA and PMC pages were not readable here), so the computed overlap relation stays NOT_ENUMERABLE; the held text states the count (7 trials) only"
+    },
+    "identity": {
+      "state": "MATCH",
+      "checks": {
+        "pmid": "MATCH",
+        "doi": "MATCH",
+        "title": "MATCH"
+      },
+      "failures": [],
+      "citation_defects": [],
+      "protocol": {
+        "named_author": null,
+        "title": "Association Between Administration of\nSystemic Corticosteroids and Mortality Among Critically Ill Patients With COVID-19:\nA Meta-analysis",
+        "pmids": [
+          "32876694"
+        ],
+        "doi": "10.1001/jama.2020.17023"
+      },
+      "resolved": {
+        "pmid": "32876694",
+        "first_author": "WHO Rapid Evidence Appraisal for COVID-19 Therapies (REACT) Working Group",
+        "n_authors": 39,
+        "title": "Association Between Administration of Systemic Corticosteroids and Mortality Among Critically Ill Patients With COVID-19: A Meta-analysis.",
+        "doi": "10.1001/jama.2020.17023",
+        "journal": "JAMA",
+        "pubdate": "2020 Oct 6"
+      },
+      "held": {
+        "document_ref": "cache/corticosteroids-covid19-mortality/comparator_identity.json",
+        "pubmed_sha256": "f448e45bc35e6ba721f034df12e2f66328bf78a2971a6a613f269da948ac16a4",
+        "crossref_sha256": "6f36d6dc94b26641f1da0cad7c9130ff10553770e887ec7bf09c8abdff8abd12"
       }
     }
   },
@@ -2811,19 +2847,730 @@
   "funding": [
     {
       "id": "PMID 32678530",
-      "type": "public/non-profit",
+      "type": "public funder named; industry tie not established",
       "span": "(Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, <ext-link xmlns:xlink=\"http://www.w3.org/1999/xlink\" xlink:href=\"http://clinicaltrials.gov/show/NCT04381936\" ext-link-type=\"uri\">NCT04381936</ext-link>; ISRCTN number, <ext-link xmlns:xlink=\"http://www.w3.org/1999/xlink\" xlink:href=\"http://www.isrctn.com/ISRCTN50189673\" ext-link-type=\"uri\"",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "NON_INDUSTRY"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32678530",
+        "funders": [
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "full-text funding statement",
+            "span": "(Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, NCT04381936 ; ISRCTN number, 50189673 .) 12 Pulmonary/Critical Care 12_6 Critical Care 18 Infectious Disease 18_1 Infectious Disease General 18_6 Viral Infections 18_9 Global Health UK Research and Innovation http://dx.doi.org/10.13039/100014013 MC_PC_19056 National Institute for Health Research http://dx.doi.org/10.13039/501100000272 MC_PC_19056 pmc-status-qastatus 0 pmc-status-live yes pmc-status-embargo no pmc-status-released yes pmc-prop-open-access yes pmc-prop-olf no pmc-prop-manuscript no pmc-prop-legally-suppressed no pmc-prop-has-pdf yes pmc-prop-has-supplement yes pmc-prop-pdf-only no pmc-prop-suppress-copyright no pmc-prop-is-real-version no pmc-prop-is-scanned-article no pmc-prop-preprint no pmc-prop-in-epmc yes release-date-display-string 2020-07-17T12:00:00-04:00 release-date-year 2020 release-date-month 07 release-date-day 17 release-date-hour 12 release-date-minute 00 release-date-second 00 release-date-time-zone -04:00 Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), the cause of coronavirus disease 2019 (Covid-19), emerged in China in late 2019 from a zoonotic source. 1 The majority of Covid-19 cases either are asymptomatic or result in only mild disease."
+          },
+          {
+            "name": "National Institute for Health Research",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "full-text funding statement",
+            "span": "(Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, NCT04381936 ; ISRCTN number, 50189673 .) 12 Pulmonary/Critical Care 12_6 Critical Care 18 Infectious Disease 18_1 Infectious Disease General 18_6 Viral Infections 18_9 Global Health UK Research and Innovation http://dx.doi.org/10.13039/100014013 MC_PC_19056 National Institute for Health Research http://dx.doi.org/10.13039/501100000272 MC_PC_19056 pmc-status-qastatus 0 pmc-status-live yes pmc-status-embargo no pmc-status-released yes pmc-prop-open-access yes pmc-prop-olf no pmc-prop-manuscript no pmc-prop-legally-suppressed no pmc-prop-has-pdf yes pmc-prop-has-supplement yes pmc-prop-pdf-only no pmc-prop-suppress-copyright no pmc-prop-is-real-version no pmc-prop-is-scanned-article no pmc-prop-preprint no pmc-prop-in-epmc yes release-date-display-string 2020-07-17T12:00:00-04:00 release-date-year 2020 release-date-month 07 release-date-day 17 release-date-hour 12 release-date-minute 00 release-date-second 00 release-date-time-zone -04:00 Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), the cause of coronavirus disease 2019 (Covid-19), emerged in China in late 2019 from a zoonotic source. 1 The majority of Covid-19 cases either are asymptomatic or result in only mild disease."
+          },
+          {
+            "name": "National Institute for Health Research Clinical Research Network",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "full-text funding statement",
+            "span": "Methods Trial Design and Oversight The RECOVERY trial was designed to evaluate the effects of potential treatments in patients hospitalized with Covid-19 at 176 National Health Service organizations in the United Kingdom and was supported by the National Institute for Health Research Clinical Research Network."
+          },
+          {
+            "name": "staff at the NIHR Clinical Research Network",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: NIHR",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "NHS DigiTrials",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Public Health England",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Department of Health",
+            "class": "PUBLIC",
+            "class_basis": "registry category names Department for International Development, United Kingdom",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Social Care",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Intensive Care National Audit",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Research Centre",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Public Health Scotland",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "National Records Service of Scotland",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Secure Anonymised Information Linkage (SAIL) at University of Swansea",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "NHS in England",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Scotland",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Wales",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "Northern Ireland",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
+          },
+          {
+            "name": "grant (MC_PC_19056) to the University of Oxford from UK Research",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "full-text funding statement",
+            "span": "Supported by a grant (MC_PC_19056) to the University of Oxford from UK Research and Innovation and the National Institute for Health Research ( NIHR ); and by core funding provided by NIHR Oxford Biomedical Research Centre, Wellcome, the Bill and Melinda Gates Foundation, the Department for International Development, Health Data Research UK, the Medical Research Council Population Health Research Unit, the NIHR Health Protection Unit in Emerging and Zoonotic Infections, and NIHR Clinical Trials Unit Support Funding."
+          },
+          {
+            "name": "Innovation",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Supported by a grant (MC_PC_19056) to the University of Oxford from UK Research and Innovation and the National Institute for Health Research ( NIHR ); and by core funding provided by NIHR Oxford Biomedical Research Centre, Wellcome, the Bill and Melinda Gates Foundation, the Department for International Development, Health Data Research UK, the Medical Research Council Population Health Research Unit, the NIHR Health Protection Unit in Emerging and Zoonotic Infections, and NIHR Clinical Trials Unit Support Funding."
+          },
+          {
+            "name": "National Institute for Health Research ( NIHR )",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "full-text funding statement",
+            "span": "Supported by a grant (MC_PC_19056) to the University of Oxford from UK Research and Innovation and the National Institute for Health Research ( NIHR ); and by core funding provided by NIHR Oxford Biomedical Research Centre, Wellcome, the Bill and Melinda Gates Foundation, the Department for International Development, Health Data Research UK, the Medical Research Council Population Health Research Unit, the NIHR Health Protection Unit in Emerging and Zoonotic Infections, and NIHR Clinical Trials Unit Support Funding."
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, NCT04381936; ISRCTN number, 50189673.)."
+          },
+          {
+            "name": "National Institute for Health Research",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, NCT04381936; ISRCTN number, 50189673.)."
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "ACF-2016-14-002"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "ACF-2020-11-003"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_PC_20062"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NIHR-INF-1074"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "1790394"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "CL-2018-13-007"
+          },
+          {
+            "name": "United Kingdom Research and Innovation",
+            "class": "PUBLIC",
+            "class_basis": "registry category names Department for International Development, United Kingdom; National Institute for Health Research, United Kingdom",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_PC_19056"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_U137686861"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_UU_00017/3"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MR/K025643/1"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MR/S001751/1"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NIHR201409"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_PC_19056"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "SRF-2015-08-001"
+          },
+          {
+            "name": "Biotechnology and Biological Sciences Research Council",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "BBS/E/D/20002174"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "G0701652"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "HDR-9005"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_U137686860"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_UU_12026/4"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NIHR200268"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NIHR202424"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NIHR300669"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_PC_19056"
+          },
+          {
+            "name": "Kidney Research UK",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "TF_009_20181123"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "11/46/14"
+          },
+          {
+            "name": "Wellcome Trust",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Wellcome",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "222406/Z/21/Z"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "ACF-2017-24-501"
+          },
+          {
+            "name": "Biotechnology and Biological Sciences Research Council",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "BBS/E/D/30002277"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_PC_20029"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_UU_00002/14"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "RP-2014-05-019"
+          },
+          {
+            "name": "Cancer Research UK",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "25350"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "ACF-2019-06-012"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "ACF-2019-13-003"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "ACF-2020-06-012"
+          },
+          {
+            "name": "Academy of Medical Sciences",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "AMS-CSF4-Torok"
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "MC_PC_18033"
+          },
+          {
+            "name": "National Institute for Health Research (NIHR)",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: National Institute for Health Research",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "RP-2016-07-012"
+          },
+          {
+            "name": "Wellcome Trust",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Wellcome",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "University of Oxford",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "UK Research and Innovation",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "National Institute for Health Research, United Kingdom",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Wellcome Trust",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Wellcome",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Bill and Melinda Gates Foundation",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Bill and Melinda Gates",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Department for International Development, United Kingdom",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Health Data Research UK",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Medical Research Council Population Health Research Unit",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "NIHR Health Protection Research Unit in Emerging and Zoonotic Infections",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: NIHR",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Flu Lab",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "UK Research and Innovation",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "National Institute for Health Research, United Kingdom",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Wellcome Trust",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Wellcome",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Bill and Melinda Gates Foundation",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Bill and Melinda Gates",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Department for International Development, United Kingdom",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Health Data Research UK",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Medical Research Council Population Health Research Unit",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "NIHR Health Protection Research Unit in Emerging and Zoonotic Infections",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: NIHR",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Flu Lab",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "University of Oxford",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [
+          {
+            "supplier": "the National Health Service",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full text",
+            "span": "Other medications, including dexamethasone, that were used in the trial were supplied by the National Health Service (NHS)."
+          }
+        ],
+        "funder_role_statement": {
+          "state": "STATED",
+          "quote": "The funders had no role in the analysis of the data, in the preparation or approval of the manuscript, or in the decision to submit the manuscript for publication.",
+          "source": "full text",
+          "roles_excluded": [
+            "analysis",
+            "reporting",
+            "decision to submit"
+          ]
+        },
+        "list_completeness": [
+          {
+            "source": "full-text funding statement",
+            "state": "PARTIAL"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "abstract funding sentence",
+            "state": "PARTIAL"
+          }
+        ],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "the funder list is partial ('and others' in the full-text funding statement); unclassified funder(s): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "NHS DigiTrials",
+          "Public Health England",
+          "Social Care",
+          "Intensive Care National Audit",
+          "Research Centre",
+          "Public Health Scotland",
+          "National Records Service of Scotland",
+          "NHS in England",
+          "Scotland",
+          "Wales",
+          "Northern Ireland",
+          "Innovation",
+          "Biotechnology and Biological Sciences Research Council",
+          "Kidney Research UK",
+          "Biotechnology and Biological Sciences Research Council",
+          "Cancer Research UK",
+          "Academy of Medical Sciences",
+          "UK Research and Innovation",
+          "Health Data Research UK",
+          "Flu Lab",
+          "UK Research and Innovation",
+          "Health Data Research UK",
+          "Flu Lab"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "public/non-profit",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 34138478",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "34138478",
+        "funders": [
+          {
+            "name": "Rigshospitalet, Denmark",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Copenhagen Trial Unit, Center for Clinical Intervention Research",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "University of Copenhagen",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Aarhus University Hospital",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Scandinavian Critical Care Trials Group",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Rigshospitalet, Denmark",
+          "Copenhagen Trial Unit, Center for Clinical Intervention Research",
+          "Scandinavian Critical Care Trials Group"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 32785710",
@@ -2831,31 +3578,265 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32785710",
+        "funders": [
+          {
+            "name": "Fundação de Medicina Tropical Dr. Heitor Vieira Dourado",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Fundação de Medicina Tropical Dr. Heitor Vieira Dourado"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "PMID 32876689",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32876689",
+        "funders": [
+          {
+            "name": "University Hospital, Tours",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "University Hospital, Tours",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 32876695",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "industry tie present",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32876695",
+        "funders": [
+          {
+            "name": "Hospital Israelita Albert Einstein",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Hospital do Coracao",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Brazilian Research In Intensive Care Network",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NETWORK",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Ache Laboratorios Farmaceuticos S.A",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Hospital Sirio-Libanes",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Ache Laboratorios Farmaceuticos S.A (AACT sponsors)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": [
+          "Hospital Israelita Albert Einstein",
+          "Hospital do Coracao",
+          "Hospital Sirio-Libanes"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 32876697",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32876697",
+        "funders": [
+          {
+            "name": "Australian and New Zealand Intensive Care Research Centre",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Medical Research Institute of New Zealand",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Unity Health",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Berry Consultants",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Global Coalition for Adaptive Research",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "University of Pittsburgh Medical Center",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Intensive Care National Audit & Research Centre",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "St. Marianna University School of Medicine",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Nat Intensive Care Surveillance - MORU",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "National University Hospital, Singapore",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "UMC Utrecht",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Australian and New Zealand Intensive Care Research Centre",
+          "Medical Research Institute of New Zealand",
+          "Unity Health",
+          "Berry Consultants",
+          "Global Coalition for Adaptive Research",
+          "Intensive Care National Audit & Research Centre",
+          "Nat Intensive Care Surveillance - MORU",
+          "UMC Utrecht"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "NCT04344730",
@@ -2863,7 +3844,37 @@
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "SOURCE_NOT_RETRIEVED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT04344730",
+        "funders": [
+          {
+            "name": "Assistance Publique - Hôpitaux de Paris",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Assistance Publique - Hôpitaux de Paris",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Assistance Publique - Hôpitaux de Paris"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     }
   ],
   "rob_spancheck": {
@@ -81264,8 +82275,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 1 known</strong> (6 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 32678530</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: (Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://clinicaltrials.gov/show/NCT04381936&quot; ext-link-type=&quot;uri&quot;&gt;NCT04381936&lt;/ext-link&gt;; ISRCTN number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://www.isrctn.com/ISRCTN50189673&quot; ext-link-type=&quot;uri&quot;</td></tr><tr><td>PMID 34138478</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32785710</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876689</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876695</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876697</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT04344730</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
-      "text_sha256": "188b248848e751d2c127357ae0a21a5b307816001fb9a1e7fead4409aafce186",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (6 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 32876695</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Ache Laboratorios Farmaceuticos S.A (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Hospital Israelita Albert Einstein <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Hospital do Coracao <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Brazilian Research In Intensive Care Network <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Ache Laboratorios Farmaceuticos S.A <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Hospital Sirio-Libanes <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Hospital Israelita Albert Einstein; Hospital do Coracao; Hospital Sirio-Libanes</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32678530</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the full-text funding statement); unclassified funder(s): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit<br>list completeness: full-text funding statement: PARTIAL; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; abstract funding sentence: PARTIAL<br>funder-role statement: “The funders had no role in the analysis of the data, in the preparation or approval of the manuscript, or in the decision to submit the manuscript for publication.”<br><em>first-sentence label was: public/non-profit</em></td><td>Medical Research Council <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research Clinical Research Network <code>PUBLIC</code> <em>(full-text funding statement)</em><br>staff at the NIHR Clinical Research Network <code>PUBLIC</code> <em>(full-text funding statement)</em><br>NHS DigiTrials <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Public Health England <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Department of Health <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Social Care <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Intensive Care National Audit <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Research Centre <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Public Health Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Records Service of Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Secure Anonymised Information Linkage (SAIL) at University of Swansea <code>PUBLIC</code> <em>(full-text funding statement)</em><br>NHS in England <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Wales <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Northern Ireland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>grant (MC_PC_19056) to the University of Oxford from UK Research <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Innovation <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Institute for Health Research ( NIHR ) <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research (NIHR) <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>United Kingdom Research and Innovation <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Biotechnology and Biological Sciences Research Council <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Kidney Research UK <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Wellcome Trust <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Cancer Research UK <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Academy of Medical Sciences <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>University of Oxford <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>UK Research and Innovation <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Institute for Health Research, United Kingdom <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Bill and Melinda Gates Foundation <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Department for International Development, United Kingdom <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Health Data Research UK <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Medical Research Council Population Health Research Unit <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>NIHR Health Protection Research Unit in Emerging and Zoonotic Infections <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Flu Lab <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>material support: the National Health Service <code>UNCLASSIFIED</code> &mdash; “Other medications, including dexamethasone, that were used in the trial were supplied by the National Health Service (NHS).”<br><em>unclassified (no registry category, no name marker): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit; Research Centre; Public Health Scotland; National Records Service of Scotland; NHS in England; Scotland; Wales; Northern Ireland; Innovation; Biotechnology and Biological Sciences Research Council; Kidney Research UK; Cancer Research UK; Academy of Medical Sciences; UK Research and Innovation; Health Data Research UK; Flu Lab</em></td><td>full text</td><td><strong>full text</strong>: (Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://clinicaltrials.gov/show/NCT04381936&quot; ext-link-type=&quot;uri&quot;&gt;NCT04381936&lt;/ext-link&gt;; ISRCTN number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://www.isrctn.com/ISRCTN50189673&quot; ext-link-type=&quot;uri&quot;</td></tr><tr><td>PMID 34138478</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Rigshospitalet, Denmark <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Copenhagen Trial Unit, Center for Clinical Intervention Research <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>University of Copenhagen <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Aarhus University Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Scandinavian Critical Care Trials Group <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876689</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>University Hospital, Tours <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876697</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Australian and New Zealand Intensive Care Research Centre <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Medical Research Institute of New Zealand <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Unity Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Berry Consultants <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Global Coalition for Adaptive Research <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>University of Pittsburgh Medical Center <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Intensive Care National Audit &amp; Research Centre <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>St. Marianna University School of Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Nat Intensive Care Surveillance - MORU <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>National University Hospital, Singapore <code>PUBLIC</code> <em>(AACT sponsors)</em><br>UMC Utrecht <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants; Global Coalition for Adaptive Research; Intensive Care National Audit &amp; Research Centre; Nat Intensive Care Surveillance - MORU; UMC Utrecht</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32785710</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado<br>funder-role statement: full text not held</td><td>Fundação de Medicina Tropical Dr. Heitor Vieira Dourado <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT04344730</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Assistance Publique - Hôpitaux de Paris<br>funder-role statement: full text not held</td><td>Assistance Publique - Hôpitaux de Paris <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Assistance Publique - Hôpitaux de Paris</em></td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "a987be7d1908f779722fc05c34fd4839355eff7beb930253c22bd6076c947d7c",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -81514,7 +82525,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
-    "review_sha256": "17e976538bbd186afec382fdc5240dbe8f0882ea3452e92bdd8cee9aafef9ae3",
+    "review_sha256": "41f1c6c9a0e91fa4c0641c759fe2d8a79899d053bc49d5e08a473ba01e878624",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -81526,19 +82537,19 @@
       "slug": "corticosteroids-covid19-mortality",
       "our_k": 1,
       "comparable_comparator_k": 5,
-      "status": "DISJOINT",
+      "status": "NOT_ENUMERABLE",
       "reason": "1/5. Comparator (WHO REACT prospective MA) used investigator-supplied 28-day mortality not in the trial publications. In our committed cached abstracts, only RECOVERY reports 28-day all-cause mortality counts; the other trials report it only in full text, which is not in our committed cache, and their CT.gov results post no mortality table. The PMC full-text adapter did not run in this build, so the refusal rests on absence from the committed abstract, not on a tested access barrier.",
       "parity_relation": {
-        "relation": "DISJOINT",
-        "label": "disjoint -- no trial family in common",
+        "relation": "NOT_ENUMERABLE",
+        "label": "not enumerable -- comparator trial list and k are not exposed",
         "inferred": false,
         "our_k": 1,
         "hand_our_k": 1,
         "hand_our_k_stale": false,
         "their_k": 5,
         "their_k_source": "comparable_comparator_k",
-        "shared_k": 0,
-        "only_ours_n": 1,
+        "shared_k": null,
+        "only_ours_n": 0,
         "only_theirs_n": 0,
         "dominance": null,
         "hand_status": "OVERLAPPING",
@@ -81690,7 +82701,7 @@
         }
       ],
       "config_sha256": "a7c697b15c00b1c9cf40718d24398ee5bc133fb8d4e2aaacf7928265c0698531",
-      "analysis_code_sha256": "c8f814b90b228fce14af833a0be6518d720365b64f94bd4d6fb3f75a1979730b",
+      "analysis_code_sha256": "691c6198d37594baf975e29484b609587f636f327daf6cd4a0cd195b9ab85ae2",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -81707,13 +82718,15 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
+        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
+        "harness/comparator_models.py": "18dbac742d920a835cc70e440a957e188a265c54",
+        "harness/comparator_panel.py": "e429fd8ba38f68a572c20715032fcb91f257ee1a",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "82d57dbcafa7e626f7c3616b3c9f55cfabe25972",
+        "harness/consumer_consistency.py": "9f3122e2278082379bdea3c0922ab9939783c0e0",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
@@ -81722,13 +82735,14 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
+        "harness/extract.py": "55d449875218d206f508e56e7a7bad485507f942",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
+        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
+        "harness/funding_typed.py": "4fe83151865757c6412a8307c577de5f7eb6cd12",
+        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -81743,15 +82757,15 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "29a05e416efa01f49ecbdbaf8e2254ec33cbfba9",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
+        "harness/limitations.py": "6eb374daea2f49bda712d5fcc7e98729162e35c4",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/overlap_relation.py": "e58b752e53d16bc26ad44d2fb2e03eed084fb3fe",
-        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
+        "harness/page.py": "9c272afd67bc4cbc01fcb52d7ecde88fc64e3880",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
+        "harness/pipeline.py": "5b1fc46b6e66241746493c266713db7a9d49460e",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -81791,7 +82805,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "89 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -81805,6 +82819,7 @@
             "harness/honest_ratchet.py",
             "harness/integrity.py",
             "harness/leakscan.py",
+            "harness/positive_control.py",
             "harness/prospective.py",
             "harness/registry_multi.py",
             "harness/search_completeness.py",
@@ -81820,8 +82835,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "34bdca786aab48ff0304aef5c1c621098e457731e23cd2795b8e528ca72baf6d",
-      "review_sha256": "17e976538bbd186afec382fdc5240dbe8f0882ea3452e92bdd8cee9aafef9ae3",
+      "manuscript_sha256": "1d56817b0f111a1068b4630c24375f38b24711bed849f4f8b213181038c1e7c5",
+      "review_sha256": "41f1c6c9a0e91fa4c0641c759fe2d8a79899d053bc49d5e08a473ba01e878624",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/corticosteroids-covid19-mortality.md UTF-8 text, universal newlines",
@@ -81841,7 +82856,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "2177f8ae8e5b48f97bf4c6d4193f3aeb8519906e998aab1693a218079fcf4f5d"
+      "release_sha256": "91d45ab297c4f8117d9b84fc1cdc2061e6d6c5f0039aef3b72c6fdc7dfadca7a"
     }
   }
 }

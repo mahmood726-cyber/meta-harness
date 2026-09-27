@@ -976,10 +976,10 @@
               "validity_critical": false
             }
           },
-          "background_therapy": "standard_care",
           "evidence_unit_detail": "JUPITER",
-          "evidence_unit": "prespecified_subgroup",
           "prior_disease_stage": "primary_prevention",
+          "evidence_unit": "prespecified_subgroup",
+          "background_therapy": "standard_care",
           "study_effect": {
             "effect_estimate": 0.61,
             "standard_error": 0.1474715493077838,
@@ -1095,9 +1095,9 @@
               "validity_critical": false
             }
           },
-          "background_therapy": "standard_care",
-          "evidence_unit": "trial",
           "prior_disease_stage": "primary_prevention",
+          "evidence_unit": "trial",
+          "background_therapy": "standard_care",
           "study_effect": {
             "effect_estimate": 0.7,
             "standard_error": 0.07547214781101398,
@@ -2065,14 +2065,7 @@
         }
       ],
       "ours_k": 2,
-      "date_proof": {
-        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
-        "comparator_year": 2022,
-        "post_dating": [
-          "NCT02099123 (42670961, 2026)"
-        ],
-        "holds_for_every_pooled_family": false
-      },
+      "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
         "status": "ENUMERATED",
@@ -2307,8 +2300,41 @@
       "label": "disjoint -- no trial family in common",
       "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
-        "value": "not stated in the comparator abstract/full text",
+        "value": "not stated in the held comparator text (read: abstract, full text, cache/statins-primary-prevention-elderly/comparator_fulltext.txt)",
         "source": null
+      }
+    },
+    "identity": {
+      "state": "MATCH",
+      "checks": {
+        "pmid": "MATCH",
+        "doi": "MATCH",
+        "title": "MATCH",
+        "author": "FIRST_AUTHOR"
+      },
+      "failures": [],
+      "citation_defects": [],
+      "protocol": {
+        "named_author": "Huang",
+        "title": "Statin use in older\npeople primary prevention on cardiovascular disease: an updated systematic review and\nmeta-analysis",
+        "pmids": [
+          "39076238"
+        ],
+        "doi": "10.31083/j.rcm2304114"
+      },
+      "resolved": {
+        "pmid": "39076238",
+        "first_author": "Huang H",
+        "n_authors": 3,
+        "title": "Statin use in older people primary prevention on cardiovascular disease: an updated systematic review and meta-analysis.",
+        "doi": "10.31083/j.rcm2304114",
+        "journal": "Reviews in cardiovascular medicine",
+        "pubdate": "2022 Apr"
+      },
+      "held": {
+        "document_ref": "cache/statins-primary-prevention-elderly/comparator_identity.json",
+        "pubmed_sha256": "1221c7616d10a480acab63b114d2dcad46ba3fb835187e3f89b96b3f68594d61",
+        "crossref_sha256": "88a4a69e0b40cba5f7d28d70187581bf9f919e6a087adce1842a180648ecaf58"
       }
     }
   },
@@ -2854,27 +2880,205 @@
   "funding": [
     {
       "id": "PMID 20404379",
-      "type": "industry",
+      "type": "industry tie present",
       "span": "PRIMARY FUNDING SOURCE: AstraZeneca.",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "INDUSTRY_SPONSORED"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "20404379",
+        "funders": [
+          {
+            "name": "AstraZeneca",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: AstraZeneca",
+            "source": "abstract funding sentence",
+            "span": "PRIMARY FUNDING SOURCE: AstraZeneca."
+          },
+          {
+            "name": "NIA NIH HHS",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: NIH",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "R01 AG18833"
+          },
+          {
+            "name": "NIA NIH HHS",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: NIH",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "R01 AG018833"
+          },
+          {
+            "name": "NIA NIH HHS",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: NIH",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "R56 AG018833"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [
+          {
+            "source": "abstract funding sentence",
+            "state": "COMPLETE"
+          }
+        ],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: AstraZeneca (abstract funding sentence)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "industry",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 42670961",
-      "type": "public/non-profit",
+      "type": "public funder named; industry tie not established",
       "span": "(Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.).",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NON_INDUSTRY"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "42670961",
+        "funders": [
+          {
+            "name": "National Health",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.)."
+          },
+          {
+            "name": "Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.)."
+          },
+          {
+            "name": "National Health and Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "APP1068146, APP1161503 and APP2006611"
+          },
+          {
+            "name": "National Heart Foundation of Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Foundation",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "Stroke Prevention Grant"
+          },
+          {
+            "name": "Monash University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "National Health and Medical Research Council, Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "National Heart Foundation, Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Foundation",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "National Health and Medical Research Council, Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "National Heart Foundation, Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Foundation",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Monash University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [
+          {
+            "source": "abstract funding sentence",
+            "state": "PARTIAL"
+          }
+        ],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "the funder list is partial ('and others' in the abstract funding sentence); no complete funding statement is held; unclassified funder(s): National Health",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "National Health"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "public/non-profit",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 28531241",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "28531241",
+        "funders": [
+          {
+            "name": "National Heart, Lung, and Blood Institute (NHLBI)",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NIH",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 30251369",
@@ -2882,7 +3086,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "30251369",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     }
   ],
   "definition_audit": {
@@ -47440,8 +47660,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 2 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 20404379</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: PRIMARY FUNDING SOURCE: AstraZeneca.</td></tr><tr><td>PMID 42670961</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.).</td></tr><tr><td>PMID 28531241</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30251369</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "5264408306df5503489964e4ab18703c18db9218470c9b4923d2fb76bc68019e",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 20404379</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>NIA NIH HHS <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em></td><td>abstract</td><td><strong>abstract</strong>: PRIMARY FUNDING SOURCE: AstraZeneca.</td></tr><tr><td>PMID 42670961</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the abstract funding sentence); no complete funding statement is held; unclassified funder(s): National Health<br>list completeness: abstract funding sentence: PARTIAL<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>National Health <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Medical Research Council <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>National Health and Medical Research Council <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>National Heart Foundation of Australia <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Monash University <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Health and Medical Research Council, Australia <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Heart Foundation, Australia <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): National Health</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.).</td></tr><tr><td>PMID 28531241</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>National Heart, Lung, and Blood Institute (NHLBI) <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30251369</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "dbcef747ecaf48fe3ee02b435be8702a0b2f17e4c54ed15a56b7dab78b3ec28d",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -48115,7 +48335,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "1332058f410e0ea69c229f5b4e9a8f1ee85996135515788c390572b4a5e09bb1",
+    "review_sha256": "3257e328cfd0066bb3c636f4c2d451b2e664341d0604c83056e5f6d25ee60835",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -48252,7 +48472,7 @@
         }
       ],
       "config_sha256": "d57b4a7cbe9453a236a5675880c60cb8d64f3a77d78098797096588d715af7dc",
-      "analysis_code_sha256": "c8f814b90b228fce14af833a0be6518d720365b64f94bd4d6fb3f75a1979730b",
+      "analysis_code_sha256": "691c6198d37594baf975e29484b609587f636f327daf6cd4a0cd195b9ab85ae2",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -48269,13 +48489,15 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
+        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
+        "harness/comparator_models.py": "18dbac742d920a835cc70e440a957e188a265c54",
+        "harness/comparator_panel.py": "e429fd8ba38f68a572c20715032fcb91f257ee1a",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "82d57dbcafa7e626f7c3616b3c9f55cfabe25972",
+        "harness/consumer_consistency.py": "9f3122e2278082379bdea3c0922ab9939783c0e0",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
@@ -48284,13 +48506,14 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
+        "harness/extract.py": "55d449875218d206f508e56e7a7bad485507f942",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
+        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
+        "harness/funding_typed.py": "4fe83151865757c6412a8307c577de5f7eb6cd12",
+        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -48305,15 +48528,15 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "29a05e416efa01f49ecbdbaf8e2254ec33cbfba9",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
+        "harness/limitations.py": "6eb374daea2f49bda712d5fcc7e98729162e35c4",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/overlap_relation.py": "e58b752e53d16bc26ad44d2fb2e03eed084fb3fe",
-        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
+        "harness/page.py": "9c272afd67bc4cbc01fcb52d7ecde88fc64e3880",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
+        "harness/pipeline.py": "5b1fc46b6e66241746493c266713db7a9d49460e",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -48353,7 +48576,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "89 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -48367,6 +48590,7 @@
             "harness/honest_ratchet.py",
             "harness/integrity.py",
             "harness/leakscan.py",
+            "harness/positive_control.py",
             "harness/prospective.py",
             "harness/registry_multi.py",
             "harness/search_completeness.py",
@@ -48383,7 +48607,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "862a7ce2d68cf48834e60b688f4eae5224225523a342ca63a4cde85b11f0c01a",
-      "review_sha256": "1332058f410e0ea69c229f5b4e9a8f1ee85996135515788c390572b4a5e09bb1",
+      "review_sha256": "3257e328cfd0066bb3c636f4c2d451b2e664341d0604c83056e5f6d25ee60835",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/statins-primary-prevention-elderly.md UTF-8 text, universal newlines",
@@ -48403,7 +48627,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "3e6cc16b272c4d294e64f4ebf1a552ff931ae03ba77de0274f2e22061c9e50c8"
+      "release_sha256": "9448858ff641ca4be06fecbd315a14c6f69e8a965443f19ed9fabd6f05a4d439"
     }
   }
 }

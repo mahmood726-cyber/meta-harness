@@ -4071,8 +4071,8 @@
         "SALT",
         "Young 2014"
       ],
-      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set + date proof",
-      "note": "Computed overlap relation with the published comparator: DISJOINT (disjoint -- no trial family in common); our pooled trial families 2, comparator trials 5, shared 0; basis: set operation on the enumerated comparator trial set + date proof; unbound comparator trial(s) Young 2015, Verma 2016, Young 2014 cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof).",
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: DISJOINT (disjoint -- no trial family in common); our pooled trial families 2, comparator trials 5, shared 0; basis: set operation on the enumerated comparator trial set.",
       "theirs_k_source": "comparator panel trial_set (cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt, located spans; per-outcome membership bound (mortality)): 5 comparator trial(s) for this outcome; 1 with another endpoint excluded",
       "relation": "DISJOINT"
     },
@@ -4101,18 +4101,8 @@
         }
       ],
       "ours_k": 2,
-      "date_proof": {
-        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
-        "comparator_year": 2018,
-        "post_dating": [
-          "NCT02721654 (35041780, 2022)",
-          "NCT02875873 (34375394, 2021)"
-        ],
-        "holds_for_every_pooled_family": true
-      },
-      "constraints": [
-        "unbound comparator trial(s) Young 2015, Verma 2016, Young 2014 cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof)"
-      ],
+      "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
+      "constraints": [],
       "theirs": {
         "status": "ENUMERATED",
         "source": "comparator panel trial_set (cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt, located spans; per-outcome membership bound (mortality))",
@@ -4120,18 +4110,22 @@
         "members": [
           {
             "name": "Young 2015",
-            "family": null,
-            "alias_ids": [],
-            "identity": "unbound (name only)",
+            "family": "ACTRN12613001370796",
+            "alias_ids": [
+              "26444692"
+            ],
+            "identity": "bound by panel alias",
             "endpoint": "mortality",
             "span": "Young 2015 Multi-center double-blind, cluster randomized, double-crossover trial 90 days after randomizations for all variables Hospital and ICU mortality, AKI and RRT Plasma-Lyte 1152 Saline 1110",
             "bound_to": null
           },
           {
             "name": "Verma 2016",
-            "family": null,
-            "alias_ids": [],
-            "identity": "unbound (name only)",
+            "family": "SYN-ed893fc105c9",
+            "alias_ids": [
+              "27604335"
+            ],
+            "identity": "bound by panel alias",
             "endpoint": "mortality",
             "span": "Verma 2016 Multi-center double-bind randomized controlled trial AKI during the first 4 days while other outcomes till discharge Hospital and ICU mortality, AKI and RRT Plasma-Lyte 33 Saline 34",
             "bound_to": null
@@ -4160,9 +4154,11 @@
           },
           {
             "name": "Young 2014",
-            "family": null,
-            "alias_ids": [],
-            "identity": "unbound (name only)",
+            "family": "NCT01270854",
+            "alias_ids": [
+              "23732264"
+            ],
+            "identity": "bound by panel alias",
             "endpoint": "mortality",
             "span": "Young 2014 Single center randomized, double-blind, parallel-group clinical trial In-hospital mortality at 30 days Hospital mortality Plasma-Lyte 22 Saline 24",
             "bound_to": null
@@ -4185,14 +4181,20 @@
         "rows": [
           {
             "comparator_trial": "Young 2015",
-            "status": "NOT_IN_OUR_RECORDS",
-            "note": "no held record carries this trial's identity",
+            "status": "ELIGIBLE_NOT_POOLED",
+            "family": "ACTRN12613001370796",
+            "record": "26444692",
+            "state": "ENGINE_CANNOT_CONSUME",
+            "reason": "ENGINE_CANNOT_CONSUME(design=cluster_crossover, missing=design_adjusted_effect|ICC): typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC",
             "row_design_as_printed": "double-blind, cluster randomized"
           },
           {
             "comparator_trial": "Verma 2016",
-            "status": "NOT_IN_OUR_RECORDS",
-            "note": "no held record carries this trial's identity"
+            "status": "ELIGIBLE_NOT_POOLED",
+            "family": "SYN-ed893fc105c9",
+            "record": "27604335",
+            "state": "OUTCOME_NOT_IN_SOURCE",
+            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
           },
           {
             "comparator_trial": "SMART",
@@ -4213,13 +4215,15 @@
           },
           {
             "comparator_trial": "Young 2014",
-            "status": "NOT_IN_OUR_RECORDS",
-            "note": "no held record carries this trial's identity"
+            "status": "ELIGIBLE_NOT_POOLED",
+            "family": "NCT01270854",
+            "record": "23732264",
+            "state": "OUTCOME_NOT_IN_SOURCE",
+            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
           }
         ],
         "counts": {
-          "NOT_IN_OUR_RECORDS": 3,
-          "ELIGIBLE_NOT_POOLED": 2
+          "ELIGIBLE_NOT_POOLED": 5
         },
         "note": "comparison with our eligible inventory; separate from the pooled-set relation"
       },
@@ -4238,10 +4242,43 @@
       ],
       "relation": "DISJOINT",
       "label": "disjoint -- no trial family in common",
-      "basis": "set operation on the enumerated comparator trial set + date proof",
+      "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
         "value": 6,
         "source": null
+      }
+    },
+    "identity": {
+      "state": "MATCH",
+      "checks": {
+        "pmid": "MATCH",
+        "doi": "MATCH",
+        "title": "MATCH",
+        "author": "FIRST_AUTHOR"
+      },
+      "failures": [],
+      "citation_defects": [],
+      "protocol": {
+        "named_author": "Zayed",
+        "title": "Balanced crystalloids versus isotonic\nsaline in critically ill patients: systematic review and meta-analysis",
+        "pmids": [
+          "30140441"
+        ],
+        "doi": "10.1186/s40560-018-0320-x"
+      },
+      "resolved": {
+        "pmid": "30140441",
+        "first_author": "Zayed YZM",
+        "n_authors": 7,
+        "title": "Balanced crystalloids versus isotonic saline in critically ill patients: systematic review and meta-analysis.",
+        "doi": "10.1186/s40560-018-0320-x",
+        "journal": "Journal of intensive care",
+        "pubdate": "2018"
+      },
+      "held": {
+        "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/comparator_identity.json",
+        "pubmed_sha256": "d653536634f8625228168c13344c8039add2d907b2b37abb62de2e5f5520fb61",
+        "crossref_sha256": "8229536aa8f00897a97933bd12174cd7c9934f98afa4dd8a633376e966e3ceac"
       }
     }
   },
@@ -4837,11 +4874,120 @@
   "funding": [
     {
       "id": "PMID 35041780",
-      "type": "public/non-profit",
+      "type": "industry tie present",
       "span": "(Funded by the National Health and Medical Research Council of Australia and the Health Research Council of New Zealand; PLUS ClinicalTrials.gov number, NCT02721654.).",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NON_INDUSTRY"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "35041780",
+        "funders": [
+          {
+            "name": "National Health",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the National Health and Medical Research Council of Australia and the Health Research Council of New Zealand; PLUS ClinicalTrials.gov number, NCT02721654.)."
+          },
+          {
+            "name": "Medical Research Council of Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the National Health and Medical Research Council of Australia and the Health Research Council of New Zealand; PLUS ClinicalTrials.gov number, NCT02721654.)."
+          },
+          {
+            "name": "Health Research Council of New Zealand",
+            "class": "PUBLIC",
+            "class_basis": "registry category names Australian and New Zealand Intensive Care Society Clinical Trials Group",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the National Health and Medical Research Council of Australia and the Health Research Council of New Zealand; PLUS ClinicalTrials.gov number, NCT02721654.)."
+          },
+          {
+            "name": "National Health and Medical Research Council",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "177267"
+          },
+          {
+            "name": "Health Research Council of New Zealand",
+            "class": "PUBLIC",
+            "class_basis": "registry category names Australian and New Zealand Intensive Care Society Clinical Trials Group",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "16/009"
+          },
+          {
+            "name": "The George Institute",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "Australian and New Zealand Intensive Care Society Clinical Trials Group",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NETWORK",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Baxter Healthcare Corporation",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Australian and New Zealand Intensive Care Society Clinical Trials Group",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NETWORK",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Baxter Healthcare Corporation",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "The George Institute",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [
+          {
+            "source": "abstract funding sentence",
+            "state": "COMPLETE"
+          }
+        ],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Baxter Healthcare Corporation (AACT sponsors); Baxter Healthcare Corporation (ClinicalTrials.gov sponsor/collaborators (held API record))",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": [
+          "National Health",
+          "The George Institute",
+          "The George Institute"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "public/non-profit",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 34375394",
@@ -4849,15 +4995,86 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "34375394",
+        "funders": [
+          {
+            "name": "Hospital do Coracao",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "Hospital do Coracao",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Hospital do Coracao; Hospital do Coracao",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Hospital do Coracao",
+          "Hospital do Coracao"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "PMID 23732264",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "industry tie present",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "23732264",
+        "funders": [
+          {
+            "name": "Bayer",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "University of California, Davis",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Bayer (AACT sponsors)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 26444692",
@@ -4865,7 +5082,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "26444692",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 27604335",
@@ -4873,23 +5106,193 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "27604335",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 27749094",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "27749094",
+        "funders": [
+          {
+            "name": "Vanderbilt University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 29485925",
-      "type": "not stated (full text scanned)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "29485925",
+        "funders": [
+          {
+            "name": "Vanderbilt Institute for Clinical",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "(Funded by the Vanderbilt Institute for Clinical and Translational Research and others; SMART-MED and SMART-SURG ClinicalTrials.gov numbers, NCT02444988 and NCT02547779 .) pmc-status-qastatus 0 pmc-status-live yes pmc-status-embargo no pmc-status-released yes pmc-prop-open-access no pmc-prop-olf no pmc-prop-manuscript yes pmc-prop-open-manuscript yes pmc-prop-legally-suppressed no pmc-prop-has-pdf yes pmc-prop-has-supplement yes pmc-prop-pdf-only no pmc-prop-suppress-copyright no pmc-prop-is-real-version no pmc-prop-is-scanned-article no pmc-prop-preprint no pmc-prop-in-epmc yes Intravenous crystalloid solutions are commonly administered in critical care, yet the question of whether crystalloid composition affects patient outcomes remains unanswered. 1 Historically, 0.9% sodium chloride (saline) has been the most commonly administered intravenous fluid. 2 , 3 Data suggest that intravenous saline may be associated with hyperchloremic metabolic acidosis, 4 acute kidney injury, 5 and death. 6 , 7 Crystalloid solutions with electrolyte compositions closer to that of plasma (balanced crystalloids, such as lactated Ringer’s solution or Plasma-Lyte A) represent an increasingly used alternative to saline. 8 Several observational studies 6 , 9 , 10 and a before-and-after trial 5 suggested that the use of balanced crystalloids is associated with lower rates of acute kidney injury, renal-replacement therapy, and death."
+          },
+          {
+            "name": "Translational Research",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "(Funded by the Vanderbilt Institute for Clinical and Translational Research and others; SMART-MED and SMART-SURG ClinicalTrials.gov numbers, NCT02444988 and NCT02547779 .) pmc-status-qastatus 0 pmc-status-live yes pmc-status-embargo no pmc-status-released yes pmc-prop-open-access no pmc-prop-olf no pmc-prop-manuscript yes pmc-prop-open-manuscript yes pmc-prop-legally-suppressed no pmc-prop-has-pdf yes pmc-prop-has-supplement yes pmc-prop-pdf-only no pmc-prop-suppress-copyright no pmc-prop-is-real-version no pmc-prop-is-scanned-article no pmc-prop-preprint no pmc-prop-in-epmc yes Intravenous crystalloid solutions are commonly administered in critical care, yet the question of whether crystalloid composition affects patient outcomes remains unanswered. 1 Historically, 0.9% sodium chloride (saline) has been the most commonly administered intravenous fluid. 2 , 3 Data suggest that intravenous saline may be associated with hyperchloremic metabolic acidosis, 4 acute kidney injury, 5 and death. 6 , 7 Crystalloid solutions with electrolyte compositions closer to that of plasma (balanced crystalloids, such as lactated Ringer’s solution or Plasma-Lyte A) represent an increasingly used alternative to saline. 8 Several observational studies 6 , 9 , 10 and a before-and-after trial 5 suggested that the use of balanced crystalloids is associated with lower rates of acute kidney injury, renal-replacement therapy, and death."
+          },
+          {
+            "name": "Vanderbilt Institute for Clinical",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Supplementary Material Supplement1 Supported by the Vanderbilt Institute for Clinical and Translational Research (through grants UL1 TR000445 and UL1TR002243 from the National Center for Advancing Translational Sciences)."
+          },
+          {
+            "name": "Translational Research (through grants UL1 TR000445",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Supplementary Material Supplement1 Supported by the Vanderbilt Institute for Clinical and Translational Research (through grants UL1 TR000445 and UL1TR002243 from the National Center for Advancing Translational Sciences)."
+          },
+          {
+            "name": "UL1TR002243 from the National Center for Advancing Translational Sciences)",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Supplementary Material Supplement1 Supported by the Vanderbilt Institute for Clinical and Translational Research (through grants UL1 TR000445 and UL1TR002243 from the National Center for Advancing Translational Sciences)."
+          },
+          {
+            "name": "National Heart",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Semler was supported in part by grants from the National Heart, Lung, and Blood Institute (NHLBI) (HL087738-09 and K12HL133117)."
+          },
+          {
+            "name": "Lung",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Semler was supported in part by grants from the National Heart, Lung, and Blood Institute (NHLBI) (HL087738-09 and K12HL133117)."
+          },
+          {
+            "name": "Blood Institute (NHLBI) (HL087738-09",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Semler was supported in part by grants from the National Heart, Lung, and Blood Institute (NHLBI) (HL087738-09 and K12HL133117)."
+          },
+          {
+            "name": "K12HL133117)",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Semler was supported in part by grants from the National Heart, Lung, and Blood Institute (NHLBI) (HL087738-09 and K12HL133117)."
+          },
+          {
+            "name": "National Institute of General Medical Sciences (NIGMS) (K23GM110469)",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Self was supported in part by a grant from the National Institute of General Medical Sciences (NIGMS) (K23GM110469)."
+          },
+          {
+            "name": "Vanderbilt University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "NOT_STATED_IN_HELD_FULL_TEXT"
+        },
+        "list_completeness": [
+          {
+            "source": "full-text funding statement",
+            "state": "PARTIAL"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          }
+        ],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "the funder list is partial ('and others' in the full-text funding statement); unclassified funder(s): Vanderbilt Institute for Clinical; Translational Research; Vanderbilt Institute for Clinical; Translational Research (through grants UL1 TR000445",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Vanderbilt Institute for Clinical",
+          "Translational Research",
+          "Vanderbilt Institute for Clinical",
+          "Translational Research (through grants UL1 TR000445",
+          "UL1TR002243 from the National Center for Advancing Translational Sciences)",
+          "National Heart",
+          "Lung",
+          "Blood Institute (NHLBI) (HL087738-09",
+          "K12HL133117)",
+          "National Institute of General Medical Sciences (NIGMS) (K23GM110469)"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "not stated (full text scanned)",
+      "sponsor_class": "public_named_tie_not_established"
     }
   ],
   "rob_spancheck": {
@@ -44614,8 +45017,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 1 known</strong> (6 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 35041780</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health and Medical Research Council of Australia and the Health Research Council of New Zealand; PLUS ClinicalTrials.gov number, NCT02721654.).</td></tr><tr><td>PMID 34375394</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23732264</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26444692</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 27604335</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 27749094</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 29485925</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr></table></div>",
-      "text_sha256": "5314bd28409d0384acc3eca976ed3b615b50bfe4064af91b92ca8ca7ca3707b4",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>2 of 2 known</strong> (5 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 35041780</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Baxter Healthcare Corporation (AACT sponsors); Baxter Healthcare Corporation (ClinicalTrials.gov sponsor/collaborators (held API record))<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>National Health <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Medical Research Council of Australia <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>Health Research Council of New Zealand <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>National Health and Medical Research Council <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>The George Institute <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Australian and New Zealand Intensive Care Society Clinical Trials Group <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Baxter Healthcare Corporation <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): National Health; The George Institute</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health and Medical Research Council of Australia and the Health Research Council of New Zealand; PLUS ClinicalTrials.gov number, NCT02721654.).</td></tr><tr><td>PMID 23732264</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Bayer (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Bayer <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>University of California, Davis <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 27749094</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Vanderbilt University <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 29485925</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the full-text funding statement); unclassified funder(s): Vanderbilt Institute for Clinical; Translational Research; Vanderbilt Institute for Clinical; Translational Research (through grants UL1 TR000445<br>list completeness: full-text funding statement: PARTIAL; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Vanderbilt Institute for Clinical <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Translational Research <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Translational Research (through grants UL1 TR000445 <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>UL1TR002243 from the National Center for Advancing Translational Sciences) <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Heart <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Lung <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Blood Institute (NHLBI) (HL087738-09 <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>K12HL133117) <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Institute of General Medical Sciences (NIGMS) (K23GM110469) <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Vanderbilt University <code>PUBLIC</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Vanderbilt Institute for Clinical; Translational Research; Translational Research (through grants UL1 TR000445; UL1TR002243 from the National Center for Advancing Translational Sciences); National Heart; Lung; Blood Institute (NHLBI) (HL087738-09; K12HL133117); National Institute of General Medical Sciences (NIGMS) (K23GM110469)</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 34375394</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Hospital do Coracao; Hospital do Coracao<br>funder-role statement: full text not held</td><td>Hospital do Coracao <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Hospital do Coracao</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26444692</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 27604335</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "8399cd5bbd2850f2cb58866a2c252de2c48e4cb41a535be1290bd6fcdbcb5b06",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -44889,7 +45292,26 @@
             "end": 7991,
             "quote": "Hospital and ICU mortality, AKI and RRT"
           },
-          "aliases": []
+          "aliases": [
+            {
+              "id": "26444692",
+              "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "f4f410bdc2d350f0a7835809afebebf47a4edc2b842dce6d20d6e4dcc1fe28a9",
+              "span": {
+                "start": 52330,
+                "end": 53405,
+                "quote": "<ref id=\"CR10\"><label>10.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Young</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Bailey</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Beasley</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Henderson</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Mackle</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>McArthur</surname><given-names>C</given-names></name><etal/></person-group><article-title>Effect of a buffered crystalloid solution vs saline on acute kidney injury among patients in the intensive care unit: the SPLIT randomized clinical trial</article-title><source>JAMA</source><year>2015</year><volume>314</volume><fpage>1701</fpage><lpage>1710</lpage><pub-id pub-id-type=\"doi\">10.1001/jama.2015.12334</pub-id><pub-id pub-id-type=\"pmid\">26444692</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR10",
+              "table_row_span": {
+                "start": 26502,
+                "end": 27070,
+                "quote": "<tr><td rowspan=\"2\" colspan=\"1\">Young [<xref ref-type=\"bibr\" rid=\"CR10\">10</xref>]</td><td colspan=\"1\" rowspan=\"1\">Balanced</td><td colspan=\"1\" rowspan=\"1\">60.1 (16.79)</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">64%</td><td colspan=\"1\" rowspan=\"1\">36%</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">0.98 (0.76)</td><td colspan=\"1\" rowspan=\"1\"/><td colspan=\"1\" rowspan=\"1\">4%</td><td colspan=\"1\" rowspan=\"1\">67%</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">29%</td><td colspan=\"1\" rowspan=\"1\">71%</td></tr>"
+              },
+              "bound_by": "JATS table row 'Young [ 10 ]' -> CR10 (year 2015 from the reference)"
+            }
+          ],
+          "name_in_source": "Young"
         },
         {
           "family_id": "Verma 2016",
@@ -44904,7 +45326,26 @@
             "end": 8188,
             "quote": "Hospital and ICU mortality, AKI and RRT"
           },
-          "aliases": []
+          "aliases": [
+            {
+              "id": "27604335",
+              "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "f4f410bdc2d350f0a7835809afebebf47a4edc2b842dce6d20d6e4dcc1fe28a9",
+              "span": {
+                "start": 58461,
+                "end": 59467,
+                "quote": "<ref id=\"CR16\"><label>16.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Verma</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Luethi</surname><given-names>N</given-names></name><name name-style=\"western\"><surname>Cioccari</surname><given-names>L</given-names></name><name name-style=\"western\"><surname>Lloyd-Donald</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Crisman</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Eastwood</surname><given-names>G</given-names></name><etal/></person-group><article-title>A multicentre randomised controlled pilot study of fluid resuscitation with saline or Plasma-Lyte 148 in critically ill patients</article-title><source>Crit Care Resusc</source><year>2016</year><volume>18</volume><fpage>205</fpage><lpage>212</lpage><pub-id pub-id-type=\"pmid\">27604335</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR16",
+              "table_row_span": {
+                "start": 27539,
+                "end": 28118,
+                "quote": "<tr><td rowspan=\"2\" colspan=\"1\">Verma [<xref ref-type=\"bibr\" rid=\"CR16\">16</xref>]</td><td colspan=\"1\" rowspan=\"1\">Balanced</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">62 (45–70)</td><td colspan=\"1\" rowspan=\"1\">62%</td><td colspan=\"1\" rowspan=\"1\">38%</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">0.85 (0.58–1.34)</td><td colspan=\"1\" rowspan=\"1\">46%</td><td colspan=\"1\" rowspan=\"1\">58%</td><td colspan=\"1\" rowspan=\"1\">46%</td><td colspan=\"1\" rowspan=\"1\">58%</td><td colspan=\"1\" rowspan=\"1\">42%</td></tr>"
+              },
+              "bound_by": "JATS table row 'Verma [ 16 ]' -> CR16 (year 2016 from the reference)"
+            }
+          ],
+          "name_in_source": "Verma"
         },
         {
           "family_id": "SMART",
@@ -44971,7 +45412,26 @@
             "end": 8811,
             "quote": "Hospital mortality"
           },
-          "aliases": []
+          "aliases": [
+            {
+              "id": "23732264",
+              "document_ref": "cache/balanced-crystalloids-vs-saline-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "f4f410bdc2d350f0a7835809afebebf47a4edc2b842dce6d20d6e4dcc1fe28a9",
+              "span": {
+                "start": 59467,
+                "end": 60484,
+                "quote": "<ref id=\"CR17\"><label>17.</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Young</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Utter</surname><given-names>GH</given-names></name><name name-style=\"western\"><surname>Schermer</surname><given-names>CR</given-names></name><name name-style=\"western\"><surname>Galante</surname><given-names>JM</given-names></name><name name-style=\"western\"><surname>Phan</surname><given-names>HH</given-names></name><name name-style=\"western\"><surname>Yang</surname><given-names>Y</given-names></name><etal/></person-group><article-title>Saline versus Plasma-Lyte A in initial resuscitation of trauma patients: a randomized trial</article-title><source>Ann Surg</source><year>2014</year><volume>259</volume><fpage>255</fpage><lpage>262</lpage><pub-id pub-id-type=\"doi\">10.1097/SLA.0b013e318295feba</pub-id><pub-id pub-id-type=\"pmid\">23732264</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "CR17",
+              "table_row_span": {
+                "start": 30676,
+                "end": 31227,
+                "quote": "<tr><td rowspan=\"2\" colspan=\"1\">Young [<xref ref-type=\"bibr\" rid=\"CR17\">17</xref>]</td><td colspan=\"1\" rowspan=\"1\">Balanced</td><td colspan=\"1\" rowspan=\"1\">38 (19)</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">73%</td><td colspan=\"1\" rowspan=\"1\">27%</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td><td colspan=\"1\" rowspan=\"1\">–</td></tr>"
+              },
+              "bound_by": "JATS table row 'Young [ 17 ]' -> CR17 (year 2014 from the reference)"
+            }
+          ],
+          "name_in_source": "Young"
         },
         {
           "family_id": "Ratanarat 2017",
@@ -45065,7 +45525,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "f85737aa471079fa1ef93da4ca0caf21c83b77e8",
-    "review_sha256": "fd02bc6b281da6b89ae7b4152c4652e29a99ac61baadebcae4794f7b80787d59",
+    "review_sha256": "130be15ca86f13260f618e90e85926e60c5fca7bc1fabe26ef2a06c12d44c5e2",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -45206,7 +45666,7 @@
         }
       ],
       "config_sha256": "865664b09b13724a1e33df41970da3be4428fe2d608ccd0d892e9e24c5d4367c",
-      "analysis_code_sha256": "c8f814b90b228fce14af833a0be6518d720365b64f94bd4d6fb3f75a1979730b",
+      "analysis_code_sha256": "691c6198d37594baf975e29484b609587f636f327daf6cd4a0cd195b9ab85ae2",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -45223,13 +45683,15 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
+        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
+        "harness/comparator_models.py": "18dbac742d920a835cc70e440a957e188a265c54",
+        "harness/comparator_panel.py": "e429fd8ba38f68a572c20715032fcb91f257ee1a",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "82d57dbcafa7e626f7c3616b3c9f55cfabe25972",
+        "harness/consumer_consistency.py": "9f3122e2278082379bdea3c0922ab9939783c0e0",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
@@ -45238,13 +45700,14 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
+        "harness/extract.py": "55d449875218d206f508e56e7a7bad485507f942",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
+        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
+        "harness/funding_typed.py": "4fe83151865757c6412a8307c577de5f7eb6cd12",
+        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -45259,15 +45722,15 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "29a05e416efa01f49ecbdbaf8e2254ec33cbfba9",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
+        "harness/limitations.py": "6eb374daea2f49bda712d5fcc7e98729162e35c4",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/overlap_relation.py": "e58b752e53d16bc26ad44d2fb2e03eed084fb3fe",
-        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
+        "harness/page.py": "9c272afd67bc4cbc01fcb52d7ecde88fc64e3880",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
+        "harness/pipeline.py": "5b1fc46b6e66241746493c266713db7a9d49460e",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -45307,7 +45770,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "89 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -45321,6 +45784,7 @@
             "harness/honest_ratchet.py",
             "harness/integrity.py",
             "harness/leakscan.py",
+            "harness/positive_control.py",
             "harness/prospective.py",
             "harness/registry_multi.py",
             "harness/search_completeness.py",
@@ -45336,8 +45800,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "6c1479f80623e1cd85316380c8700aa59548e656982641740d19fe63b240ffb8",
-      "review_sha256": "fd02bc6b281da6b89ae7b4152c4652e29a99ac61baadebcae4794f7b80787d59",
+      "manuscript_sha256": "cbb7a73fa7805c66032198ce36a018c86e548312f99bf0da08abd6be11678517",
+      "review_sha256": "130be15ca86f13260f618e90e85926e60c5fca7bc1fabe26ef2a06c12d44c5e2",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/balanced-crystalloids-vs-saline-mortality.md UTF-8 text, universal newlines",
@@ -45357,7 +45821,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "b67891bc654d09339cc4a744574a600f754fdda6d0529d38b2089274de7a0464"
+      "release_sha256": "4384069022d0d4b000a0bc2d6c5efa8361436117a80f510c44270c4ec835999c"
     }
   }
 }

@@ -231,8 +231,12 @@ def test_funding_fraction_excludes_unknown_from_denominator():
         if not fund:
             continue
         html = page._riskofbias(r, False)
-        n_known = sum(1 for x in fund if ((x.get("type") or "").startswith(("industry", "public", "non-profit"))
-                                          or x.get("type") == "mixed" or x.get("note")))
+        # V1.0.1: a row with the typed object is KNOWN for the industry property only when its tie is PRESENT or
+        # proven ABSENT -- 'public funder named; industry tie not established' is unknown (harness/funding_typed.py)
+        n_known = sum(1 for x in fund if (((x.get("typed") or {}).get("industry_tie") in ("PRESENT", "ABSENT"))
+                                          if (x.get("typed") or {}).get("industry_tie") else
+                                          ((x.get("type") or "").startswith(("industry", "public", "non-profit"))
+                                           or x.get("type") == "mixed" or x.get("note"))))
         n_unknown = len(fund) - n_known
         if n_unknown:
             checked += 1

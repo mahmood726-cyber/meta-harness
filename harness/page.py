@@ -21,6 +21,7 @@ from pathlib import Path as _Path
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+from .funding_typed import render_cells as _funding_typed_cells
 from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
@@ -2715,6 +2716,9 @@ def _riskofbias(r, neutral):
                 return 3
             return 4
         def _celltype(f):
+            _typed = _funding_typed_cells(f)
+            if _typed:
+                return _typed[0]
             bits = [f"<strong>{_e(_class(f))}</strong>", _e(f.get("status") or "")]
             if f.get("note"):
                 bits.append(f"<em>{_e(f.get('note'))}</em>")
@@ -2722,6 +2726,9 @@ def _riskofbias(r, neutral):
                 bits.append("<em>industry authors present (not sponsor evidence)</em>")
             return "<br>".join(x for x in bits if x)
         def _sponsor_cell(f):
+            _typed = _funding_typed_cells(f)
+            if _typed:
+                return _typed[1]
             sponsors = f.get("sponsors") or []
             roles = f.get("role") or []
             body = "; ".join(_e(x) for x in sponsors) or "&mdash;"

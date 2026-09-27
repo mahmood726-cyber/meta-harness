@@ -917,6 +917,44 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     return {"absent": True, "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"}
 
 
+_K_STATED = re.compile(
+    r"\b(?:pooled data from|data from|included|including|identified|pooling|a total of|analysis of|meta-analysis of|participating in|enrolled in)\s+(?<![A-Za-z]-)(\d+|[A-Za-z]+)\s+"
+    r"(?:(?:eligible|independent|published|prospective)\s+)?(?:randomi[sz]ed\s+)?(?:controlled\s+)?(?:clinical\s+)?"
+    r"(?:trials|RCTs)\b", re.I)
+
+
+# a sentence about ANOTHER review ('A meta-analysis of five RCTs by Zhang et al.', 'a recent meta-analysis
+# incorporated 40 RCTs') states that review's count, not the comparator's
+_OTHER_REVIEW = re.compile(r"\bet al\b|\banother\b|\b(?:a|previous|prior|recent|earlier|an earlier|one)\s+"
+                           r"(?:systematic review|meta-analys[ie]s|review|pooled analysis)\b", re.I)
+_re_counts = re.compile(r"\b(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?(?:clinical\s+)?(?:trials|RCTs)\b", re.I)
+
+
+def stated_trial_count(text):
+    """(k, quote) for the comparator's OWN statement of how many trials it analysed ('pooled data from 7 randomized
+    clinical trials', 'Fifteen RCTs', 'included 12 trials'), or (None, None). Used before any 'not stated' is declared,
+    over the comparator's abstract AND its held full text (V1.0.1, COVID-corticosteroids review: WHO REACT's 7 was in
+    both, and the page said 'not stated')."""
+    text = _norm(text or "")
+    for rx in (_K_STATED, _K):
+        for m in rx.finditer(text):          # the first match whose count token IS a number ('identify ... trials' is not)
+            if m.start(1) > 0 and text[m.start(1) - 1] == "-":
+                continue                         # 'Fifty-five RCTs' is not 'five'
+            tok = m.group(1).lower()
+            k = int(tok) if tok.isdigit() else _WORDNUM.get(tok)
+            if k:
+                lo = max(text.rfind(". ", 0, m.start()) + 2, 0)
+                hi = text.find(". ", m.end())
+                sent = text[lo: hi + 1 if hi != -1 else len(text)].strip()
+                # a sentence stating SEVERAL trial counts ('6 trials comparing SGLT2i..., eight trials comparing
+                # RASi..., three trials comparing ARNI') states sub-counts, not the total: not read
+                counts = {(int(t) if t.isdigit() else _WORDNUM.get(t.lower())) for t in _re_counts.findall(sent)}
+                if len(counts - {None}) > 1 or _OTHER_REVIEW.search(sent):
+                    continue
+                return k, sent
+    return None, None
+
+
 def _parse_k(abstract):
     m = _K.search(abstract)
     if m:

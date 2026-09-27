@@ -42,24 +42,36 @@ def test_relation_is_a_set_operation_on_bound_families(pooled, members, want):
 
 def test_PLANT_the_count_only_defect_never_says_overlapping():
     # the served balanced-crystalloids object before V1.0.1: ours 2, theirs 6 by count, shared "not verifiable",
-    # only_ours naming both pooled trials -- the count logic called it OVERLAPPING
+    # only_ours naming both pooled trials -- the count logic called it OVERLAPPING. Without an enumeration the
+    # relation is NOT_ENUMERABLE -- never inferred from counts, and never from publication dates.
     ov = {"ours_k": 2, "theirs_k": 6, "shared_k": "not exactly verifiable", "only_ours": ["P1", "P2"], "only_theirs": []}
     obj = _rel(_review([("F1", "P1"), ("F2", "P2")], overlap=ov))
-    assert obj["relation"] == "DISJOINT" and obj["basis"].startswith("date proof") and obj["shared_k"] == 0
-
-
-def test_no_enumeration_and_no_date_proof_is_not_enumerable_never_a_guess():
-    obj = _rel(_review([("F3", "P3"), ("F1", "P1")]))
     assert obj["relation"] == "NOT_ENUMERABLE" and obj["shared_k"] is None
-    assert any("not a subset" in c for c in obj["constraints"])       # what IS known is kept as a constraint
 
 
-def test_unbound_comparator_trial_blocks_a_relation_unless_date_proof_covers_ours():
-    # an unbound member could be F3 (2010, not excluded by date) -> undecidable
+def test_PLANT_a_trial_paper_that_post_dates_the_comparator_is_not_thereby_excluded():
+    """COVID-corticosteroids review: COVID STEROID's own paper is from 2021, but its data are in the 2020 WHO
+    prospective meta-analysis. The publication-year non-overlap rule was invalid and is removed."""
+    obj = _rel(_review([("F1", "P1")]))                                   # P1 = 2021, comparator 2018
+    assert obj["relation"] == "NOT_ENUMERABLE" and "date_proof" not in obj
+    obj = _rel(_review([("F1", "P1")], [("T1", "P1", None)]))             # the comparator DOES analyse F1
+    assert obj["relation"] == "IDENTICAL_SET" and obj["shared"] == ["F1"]
+    assert "never used" in obj["membership_rule"]
+
+
+def test_unbound_comparator_trial_blocks_a_relation_whatever_the_dates():
     assert _rel(_review([("F3", "P3")], [("Smith 2009", None, None)]))["relation"] == "NOT_ENUMERABLE"
-    # the same unbound member cannot be F1 (2021 > 2018) -> decidable, DISJOINT
-    obj = _rel(_review([("F1", "P1")], [("Smith 2009", None, None)]))
-    assert obj["relation"] == "DISJOINT" and "date proof" in obj["basis"]
+    assert _rel(_review([("F1", "P1")], [("Smith 2009", None, None)]))["relation"] == "NOT_ENUMERABLE"
+
+
+def test_PLANT_a_shared_trial_analysed_in_a_subgroup_is_not_the_same_participants():
+    """WHO REACT analysed RECOVERY's invasively ventilated subgroup; a trial-name match is not the same participants."""
+    rev = _review([("F3", "P3")], [("RECOVERY", "P3", None)])
+    rev["comparator_panel"][0]["trial_set"][0]["analysis_population"] = "invasively ventilated subgroup"
+    obj = _rel(rev)
+    assert obj["relation"] == "IDENTICAL_SET"                             # trial identity
+    assert obj["participant_level"][0]["state"] == "SAME_TRIAL_DIFFERENT_PARTICIPANTS"
+    assert any("not the same participants" in c for c in obj["constraints"])
 
 
 def test_other_endpoint_members_are_out_of_scope_not_theirs():
@@ -72,7 +84,7 @@ def test_other_endpoint_members_are_out_of_scope_not_theirs():
 def test_parity_row_reads_the_computed_object_but_validity_verdicts_keep_precedence():
     rev = _review([("F1", "P1"), ("F2", "P2")])
     rev["comparator"]["overlap_relation"] = _rel(rev)
-    assert parity_relation.compute({"status": "OVERLAPPING", "our_k": 2}, rev)["relation"] == "DISJOINT"
+    assert parity_relation.compute({"status": "OVERLAPPING", "our_k": 2}, rev)["relation"] == "NOT_ENUMERABLE"
     assert parity_relation.compute({"status": "COMPARATOR_INVALID", "our_k": 2}, rev)["relation"] == "COMPARATOR_INVALID"
 
 
@@ -85,7 +97,6 @@ def test_PLANT_balanced_crystalloids_is_disjoint_on_every_surface():
     assert obj["relation"] == "DISJOINT" and obj["ours_k"] == 2 and obj["theirs_k"] == 5 and obj["shared_k"] == 0
     assert sorted(m["name"] for m in obj["theirs"]["members"]) == ["SALT", "SMART", "Verma 2016", "Young 2014", "Young 2015"]
     assert [m["name"] for m in obj["theirs"]["out_of_scope"]] == ["Ratanarat 2017"]
-    assert obj["date_proof"]["holds_for_every_pooled_family"] is True
     assert rev["comparator"]["overlap"]["relation"] == "DISJOINT"
     assert rev["reproduction"]["parity"]["parity_relation"]["relation"] == "DISJOINT"
     man = json.load(open(os.path.join(BC, "manifest.json"), encoding="utf-8"))

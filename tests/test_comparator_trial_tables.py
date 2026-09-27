@@ -122,3 +122,32 @@ def test_PLANT_dedup_parent_needs_a_registration_that_is_one_family():
     assert _synthetic("A paper", fams, [dd])["family"] == "NCT00000003"
     assert _synthetic("A paper", fams, [dict(dd, secondary_publication_of="T3 (NCT09999999)")])["family"] == "SYN-x"
     assert _synthetic("A paper", fams)["family"] == "SYN-x"                                       # no decision: no redirect
+
+
+def test_PLANT_name_only_rows_are_bound_through_their_own_citations_not_by_date():
+    """With the publication-year rule removed, a name-only comparator row is identified by the reference it cites:
+    Zayed's 'Young [10]' -> CR10 (2015, PMID 26444692), 'Young [17]' -> CR17 (2014, PMID 23732264); Imazio 2012's
+    'COPE study 1' -> reference 1 -> PubMed ecitmatch PMID 16186437."""
+    bc = json.load(open(os.path.join(ROOT, "cache", "balanced-crystalloids-vs-saline-mortality", "comparators.json"), encoding="utf-8"))
+    got = {m["family_id"]: [a["id"] for a in m.get("aliases") or []] for c in bc for m in c.get("trial_set") or []}
+    assert got["Young 2015"] == ["26444692"] and got["Young 2014"] == ["23732264"] and got["Verma 2016"] == ["27604335"]
+    assert got["Ratanarat 2017"] == []                      # its reference carries no identifier: left unbound, reported
+    pc = json.load(open(os.path.join(ROOT, "cache", "colchicine-recurrent-pericarditis", "comparators.json"), encoding="utf-8"))
+    got = {m["family_id"]: [a["id"] for a in m.get("aliases") or []] for c in pc for m in c.get("trial_set") or []}
+    assert got["COPE (row 2)"] == ["16186437"] and got["CORE (row 3)"] == ["16186468"] and got["Finkelstein (row 1)"] == ["12574898"]
+
+
+def test_PLANT_swapping_the_two_Young_rows_citations_is_refused():
+    import copy
+    bc = json.load(open(os.path.join(ROOT, "cache", "balanced-crystalloids-vs-saline-mortality", "comparators.json"), encoding="utf-8"))
+    c = copy.deepcopy(next(x for x in bc if x.get("trial_set")))
+    rows = {m["family_id"]: m for m in c["trial_set"]}
+    rows["Young 2015"]["aliases"], rows["Young 2014"]["aliases"] = rows["Young 2014"]["aliases"], rows["Young 2015"]["aliases"]
+    with pytest.raises(ValueError, match="table row / reference / year"):
+        comparator_panel.validate(c, ROOT)
+
+
+def test_balanced_crystalloids_is_disjoint_by_identity_alone():
+    rev = json.load(open(os.path.join(ROOT, "docs", "reviews", "balanced-crystalloids-vs-saline-mortality", "review.json"), encoding="utf-8"))
+    o = rev["comparator"]["overlap_relation"]
+    assert o["relation"] == "DISJOINT" and o["shared_k"] == 0 and "date" not in o["basis"]

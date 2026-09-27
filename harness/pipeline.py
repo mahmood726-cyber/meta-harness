@@ -1945,12 +1945,28 @@ def build_review_core(slug, config, records, protocol_sha):
     # text and recorded in the config (with the quote in comparator_k_source), that value is used and
     # the fragile auto-extraction is not.
     ck = config.get("comparator_k")
+    theirs_k_source = None
     if ck is not None:
         theirs_k = ck
     else:
         theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")
-                    or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k")
-                    or "not stated in the comparator abstract/full text")
+                    or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k"))
+        if not theirs_k:
+            # V1.0.1: read every HELD comparator text before declaring the count unavailable -- the abstract and the
+            # committed cache/<slug>/comparator_fulltext.txt (records.json may carry an empty comparator_fulltext)
+            _held_ft = os.path.join(ROOT, "cache", slug, "comparator_fulltext.txt")
+            _ft_file = open(_held_ft, encoding="utf-8").read() if os.path.exists(_held_ft) else ""
+            for _src, _txt in (("comparator abstract", comp_abstract), ("comparator full text (records)", comp_full),
+                               (f"cache/{slug}/comparator_fulltext.txt", _ft_file)):
+                _k, _q = extract.stated_trial_count(_txt)
+                if _k:
+                    theirs_k, theirs_k_source = _k, {"source": _src, "quote": _q}
+                    break
+        if not theirs_k:
+            theirs_k = ("not stated in the held comparator text (read: abstract"
+                        + (", full text" if comp_full else "")
+                        + (f", cache/{slug}/comparator_fulltext.txt" if os.path.exists(os.path.join(ROOT, "cache", slug, "comparator_fulltext.txt")) else "")
+                        + ")")
     oa = records.get("comparator_oa") or {}
     comp_year = comp_rec.get("year")
     ours_k = primary["result"].get("k") if isinstance(primary["result"], dict) and primary["result"].get("k") else len(primary["trials"])
@@ -1972,7 +1988,8 @@ def build_review_core(slug, config, records, protocol_sha):
         "open_access": bool(oa.get("is_oa")), "reported": reported,
         "scope": comp_scope,
         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
-                    **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else {}),
+                    **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else
+                       {"theirs_k_source": theirs_k_source} if theirs_k_source else {}),
                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
                     "only_ours": newer, "only_theirs": [],
                     "method": "publication-date + design identity (comparator trial list not extracted from source)",
@@ -2315,6 +2332,15 @@ def build_review_core(slug, config, records, protocol_sha):
     # overlap counts become a projection of it (harness/overlap_relation.py).
     from . import overlap_relation as overlap_relation_mod
     review["comparator"] = overlap_relation_mod.attach(review, rec_by_id)
+    # V1.0.1: the comparator's model-specific tuples and its internal mismatches (a mixed prose pair is flagged,
+    # never adopted and never used to move our result) -- harness/comparator_models.py
+    from . import comparator_models as comparator_models_mod
+    review["comparator"] = comparator_models_mod.attach_review(review, overlap_relation_mod._panel_entry(review),
+                                                               comparator_models_mod.load_reported(ROOT, slug))
+    # V1.0.1: is the comparator the protocol NAMES the one its PMID/DOI resolve to? (harness/comparator_identity.py)
+    from . import comparator_identity as comparator_identity_mod
+    review["comparator"] = dict(review["comparator"], identity=comparator_identity_mod.check(
+        ROOT, slug, config.get("comparator_pmid")))
     return review
 
 

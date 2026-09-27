@@ -100,6 +100,21 @@ def validate(comparator, root=ROOT):
             if alias["id"] not in alias["span"]["quote"]:
                 raise ValueError("COMPARATOR_PANEL: alias does not bind family and identifier")
             rid = alias.get("linked_rid")
+            if alias.get("table_row_span"):
+                # V1.0.1 (scripts/comparator_row_citations.py jats): a name-only row bound through the comparator's own
+                # JATS table -- the located table row names the row's SURNAME and cites rid; the <ref id=rid> carries
+                # the identifier AND the row's YEAR (two 'Young' rows are told apart by their references' years)
+                alias_text = alias_raw.decode("utf-8")
+                row = alias["table_row_span"]
+                surname = name.split()[0]
+                year = (re.search(r"\b(19|20)\d{2}\b", trial["family_id"]) or [None])[0]
+                row_plain = re.sub(r"<[^>]+>", " ", row.get("quote") or "").lower()
+                if (not rid or not validate_span(alias_text, row) or surname not in row_plain.split()
+                        or not any(rid in m.split() for m in re.findall(r'rid="([^"]+)"', row["quote"]))
+                        or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"])
+                        or (year and year not in alias["span"]["quote"])):
+                    raise ValueError("COMPARATOR_PANEL: alias table row / reference / year not located")
+                continue
             if rid:
                 # bound by the row's own reference link: the located row cites rid, and the alias span IS <ref id=rid>
                 cites = any(rid in m.split() for m in re.findall(r'rid="([^"]+)"', trial["span"]["quote"]))
@@ -174,8 +189,16 @@ def attach(slug, review, root=ROOT):
             raise ValueError("COMPARATOR_PANEL: registered topic source panel missing")
         return []  # Legacy test fixtures need not have a registered panel.
     panel = json.loads(path.read_text(encoding="utf-8"))
+    from . import comparator_models
+    figures = comparator_models.load(root, slug)
+    primary = next((o.get("name") for o in review.get("outcomes") or [] if o.get("primary")), None)
     for c in panel:
         validate(c, root)
+        if figures and (str(figures.get("comparator_pmid")) in str(c.get("citation") or "")
+                        or str(figures.get("comparator_pmid")) == str(c.get("id") or "")):
+            # V1.0.1: model-specific tuples from the comparator's own figure, its internal mismatches, and the
+            # figure panel's outcome-level membership (harness/comparator_models.py) -- applied after validation
+            comparator_models.apply_to_panel(c, figures, primary, root)
         live = overlaps(c, review) if c.get("trial_set") else []
         if "overlaps" in c:
             raise ValueError("COMPARATOR_PANEL: stored overlap prohibited in source panel")
@@ -224,6 +247,13 @@ def render(review):
     # THE relation word (V1.0.1): one computed object, the same one the index, parity row and manuscript read.
     from .overlap_relation import render_block
     parts.append(render_block((review.get("comparator") or {}).get("overlap_relation")))
+    from .comparator_models import render_block as _models_block
+    from .overlap_relation import _panel_entry
+    parts.append(_models_block(_panel_entry(review) or {}))
+    from .comparator_models import render_reported as _reported_block
+    from .comparator_identity import render_block as _identity_block
+    parts.append(_reported_block(review.get("comparator") or {}))
+    parts.append(_identity_block((review.get("comparator") or {}).get("identity") or {}))
     for c in review.get("comparator_panel", []):
         parts.append(f"<article data-comparator='{esc(c['id'])}'><h4>{esc(c['citation'])}</h4><p>{esc(c['scope_note'])}</p>")
         if not c["held"]:

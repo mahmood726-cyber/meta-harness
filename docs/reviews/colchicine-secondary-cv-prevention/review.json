@@ -4,11 +4,11 @@
   "question": "In adults with coronary disease or recent myocardial infarction, does low-dose colchicine reduce major adverse cardiovascular events versus placebo? (Double-blind placebo-controlled RCTs.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
+    "sha": "22d1741a08a4582ac008b468e4ceb9c543c91dd5",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['coronary', 'myocardial infarction', 'acute coronary', 'stable angina', 'atherosclerotic cardiovascular', 'percutaneous coronary intervention', 'stent restenosis', 'bare-metal stent']; and none of ['pericarditis', 'postpericardiotomy', 'post-pericardiotomy', 'post pericardiotomy', 'atrial fibrillation', 'cardiac surgery', 'coronary artery bypass', 'coronary artery bypass grafting', 'cabg', 'postoperative', 'ablation', 'stroke', 'transient ischemic', 'intracerebral', 'covid', 'osteoarthritis', 'hypertension', 'aortic stenosis', 'gout']; randomised intervention is one of ['colchicine'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n"
+    "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n\n## Retrospective protocol erratum (2026-09-27) -- comparator result as quoted above\n**Labelled retrospective: written after data were seen; the sentence above is left unchanged as registered.**\nThe \"Comparator\" section quotes the comparator's result as \"MACE (RR 0.65, 95% CI 0.38-0.77)\". That pair\nrepeats the comparator's own prose, which mixes two models: its Figure 3A (MACE) prints\n**fixed effect (Mantel-Haenszel) RR 0.65 [0.56, 0.75]** and **random effects RR 0.54 [0.38, 0.77]**\n(I2 = 70%), so the quoted point is the fixed-effect row and the quoted interval the random-effects row. The\nsame prose sentence gives the reduction as 46%, which is the random-effects point (1 - 0.54), not 0.65.\nThe comparator's methods select random effects when I2 > 50%.\n- Corrected reading: the comparator's MACE result is model-specific --\n  FE 0.65 (0.56-0.75); RE 0.54 (0.38-0.77). The mixed pair 0.65 (0.38-0.77) is not a result of either model.\n- Source: Figure 3A of PMID 36176989 (PMC9512890), transcribed with the image sha256 in\n  cache/colchicine-secondary-cv-prevention/comparator_figures.json; both rows are reproduced by recomputing\n  the pools from the figure's seven per-trial rows.\n- Scope: this erratum corrects a quotation of the comparator. It changes no eligibility rule, no outcome, no\n  model and no result of this review; our pooled result is not moved toward either comparator row.\n- Recorded as COMPARATOR_INTERNAL_MISMATCH on the page (harness/comparator_models.py).\n"
   },
   "search": {
     "n_records": 120,
@@ -2348,13 +2348,13 @@
             }
           },
           "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
           "components": [
             "cardiovascular death",
             "spontaneous myocardial infarction",
             "ischemic stroke",
             "ischemia-driven coronary revascularization"
           ],
+          "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
           "analysis_set_literal": "ITT",
           "study_effect": {
             "effect_estimate": 0.69,
@@ -6323,6 +6323,17 @@
           "null": 1.0,
           "direction": "benefit",
           "significant_fixed": null
+        },
+        "internal_mismatch": {
+          "code": "COMPARATOR_INTERNAL_MISMATCH",
+          "kind": "PROSE_MIXES_MODELS",
+          "point_from": "fixed effect (Mantel-Haenszel)",
+          "interval_from": "random effects",
+          "figure_rows": [
+            "Total (fixed effect, 95% CI) 0.65 [0.56, 0.75]",
+            "Total (random effects, 95% CI) 0.54 [0.38, 0.77]"
+          ],
+          "note": "kept as printed; the comparator's own figure reports these as two different models -- compare against a model-specific row, never this pair"
         }
       },
       {
@@ -6368,29 +6379,21 @@
     },
     "overlap": {
       "ours_k": 3,
-      "theirs_k": 15,
+      "theirs_k": 7,
+      "theirs_k_source": "comparator panel trial_set (cache/colchicine-secondary-cv-prevention/comparator_pmc_jats.xml, located spans; per-outcome membership bound (MACE (Figure 3A))): 7 comparator trial(s) for this outcome; 8 with another endpoint excluded",
       "shared_k": 2,
       "only_ours": [
         "NCT03048825"
       ],
       "only_theirs": [
-        "O’Keefe et al 1992 [B24]",
         "Raju et al 2012 [B17]",
         "Nidorf et al 2013 [B13]",
-        "Deftereos et al 2013 [B25]",
-        "Gianno 2015 [B18]",
-        "Deftereos et al 2015 [B19]",
-        "Zarpelon et al 2016 [B20]",
-        "Akodad et al 2017 [B15]",
-        "Hennessy et al 2019 [B23]",
         "Mewton et al 2021 [B26]",
         "Tong et al 2020 [B22]",
-        "Shah et al 2020 [B16]",
         "Akrami et al 2021 [B12]"
       ],
       "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
-      "note": "Computed overlap relation with the published comparator: OVERLAPPING (overlapping -- some families shared, each side has trials the other lacks); our pooled trial families 3, comparator trials 15, shared 2; basis: set operation on the enumerated comparator trial set.",
-      "theirs_k_source": "comparator panel trial_set (cache/colchicine-secondary-cv-prevention/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 15 comparator trial(s) for this outcome",
+      "note": "Computed overlap relation with the published comparator: OVERLAPPING (overlapping -- some families shared, each side has trials the other lacks); our pooled trial families 3, comparator trials 7, shared 2; basis: set operation on the enumerated comparator trial set.",
       "relation": "OVERLAPPING"
     },
     "comparator_trial_set": {
@@ -6447,32 +6450,13 @@
         }
       ],
       "ours_k": 3,
-      "date_proof": {
-        "rule": "a pooled family whose earliest held publication report is from a year strictly after the comparator's publication year cannot be in the comparator's trial set",
-        "comparator_year": 2022,
-        "post_dating": [
-          "NCT03048825 (39555823, 2025)"
-        ],
-        "holds_for_every_pooled_family": false
-      },
+      "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
         "status": "ENUMERATED",
-        "source": "comparator panel trial_set (cache/colchicine-secondary-cv-prevention/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
-        "endpoint_for_outcome": null,
+        "source": "comparator panel trial_set (cache/colchicine-secondary-cv-prevention/comparator_pmc_jats.xml, located spans; per-outcome membership bound (MACE (Figure 3A)))",
+        "endpoint_for_outcome": "MACE (Figure 3A)",
         "members": [
-          {
-            "name": "O’Keefe et al 1992 [B24]",
-            "family": "SYN-d85a0bbde567",
-            "alias_ids": [
-              "1593057",
-              "10.1016/0735-1097(92)90624-v"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">O’Keefe et al. (<xref rid=\"B24\" ref-type=\"bibr\">24</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">America</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">CCS patients undergoing angioplasty</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">130</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">67</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\"/><td valign=\"top\" align=\"center\" rowspan=\"1\" colspan=\"1\">62</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">111</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">16</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">8</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Mean coronary artery lumen diameter 2. Recurrent ischemia 3. Adverse reactions 4. All-cause death</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">5.5</td></tr>",
-            "bound_to": null
-          },
           {
             "name": "Raju et al 2012 [B17]",
             "family": "SYN-a88e3e11687d",
@@ -6481,7 +6465,7 @@
               "10.1007/s11239-011-0637-y"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Raju et al. (<xref rid=\"B17\" ref-type=\"bibr\">17</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">40</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">40</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">57.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">34 (85%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">37 (92.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">7 (17.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6 (15%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The blood level of hs-CRP 2. platelet function 3. Death 4. myocardial infarction 5. stroke 6. Adverse events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1.03</td></tr>",
             "bound_to": null
           },
@@ -6493,80 +6477,8 @@
               "10.1016/j.jacc.2012.10.027"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Nidorf et al. (<xref rid=\"B13\" ref-type=\"bibr\">13</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Stable coronary disease</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">282</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">250</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">66 ± 9.6</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">67 ± 9.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">222 (89%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">251 (89%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">69 (28%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">92 (33%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Acute coronary syndrome 2. Out-of-hospital cardiac arrest 3. Non-cardiac ischemic stroke 4. Death</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">36</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Deftereos et al 2013 [B25]",
-            "family": "SYN-c342236445a3",
-            "alias_ids": [
-              "23500260",
-              "10.1016/j.jacc.2013.01.055"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Deftereos et al. (<xref rid=\"B25\" ref-type=\"bibr\">25</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Diabetic ACS and CCS patients undergoing PCI with BMS</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">100</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">96</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63.6 ± 6.9</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63.7 ± 7.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63 (63%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65 (68%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">100 (100%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">96 (100%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Angio-ISR 2, IVUS-ISR 3, angiographic and IVUS parameters of lumen loss and in-stent neointimal hyperplasia 4. Death events 5. Coronary revascularization 6. Adverse reactions</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Gianno 2015 [B18]",
-            "family": "NCT02122484",
-            "alias_ids": [
-              "25784519",
-              "10.1016/j.amjcard.2015.02.036"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Gianno<break/>poulos et al. (<xref rid=\"B18\" ref-type=\"bibr\">18</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing CABG</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">30</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">29</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">64.9 ± 10.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.6 ± 9.5</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">21 (70%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">20 (69%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">11 (38%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">14 (47%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.6 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Maximal hsTnT concentration within 48 h after surgery 2. Maximal CK-MB levels and area 3. Adverse reactions</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">8 days after surgery.</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Deftereos et al 2015 [B19]",
-            "family": "NCT01936285",
-            "alias_ids": [
-              "26265659",
-              "10.1161/CIRCULATIONAHA.115.017611"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Deftereos et al. (<xref rid=\"B19\" ref-type=\"bibr\">19</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">77</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">74</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">52 (68%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">52 (70%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">19 (26%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">13 (17%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. CK-MB 2. hs-TnT 3. Left ventricular ejection fraction 4. Adverse reactions 5. Death events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Lasting 5 days</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Zarpelon et al 2016 [B20]",
-            "family": "SYN-26e29e7237f6",
-            "alias_ids": [
-              "27223641",
-              "10.5935/abc.20160082"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Zarpelon et al. (<xref rid=\"B20\" ref-type=\"bibr\">20</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Brazil</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing AF-POMR</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">71</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">69</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61.5 ± 10.3</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.3 ± 8.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">49 (69%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">46 (66.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">42 (59.2%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">30 (43.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, AF-POMR rate 2, death from any cause 3, hospital length of stay 4, postoperative infection.</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Hospitali<break/>zation time</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Akodad et al 2017 [B15]",
-            "family": "SYN-4fbf04df23a1",
-            "alias_ids": [
-              "28065445",
-              "10.1016/j.acvd.2016.10.004"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Akodad et al. (<xref rid=\"B15\" ref-type=\"bibr\">15</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">France</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">23</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">21</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.1 ± 13.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59.7 ± 11.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">19 (82.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">16 (76.2%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">3 (13%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">3 (14.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, CRP peak value during the index hospitalization 2, troponin peak 3, tolerance of colchicine 4, hospitalization duration, 5, major adverse cardiac events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Hennessy et al 2019 [B23]",
-            "family": "SYN-0f3c5be6ea20",
-            "alias_ids": [
-              "31284074",
-              "10.1016/j.ahj.2019.06.003"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Hennessy et al. (<xref rid=\"B23\" ref-type=\"bibr\">23</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">119</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">118</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">89 (75%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">93 (79%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">27 (23%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">25 (21%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The proportion of patients with a residual CRP level ≥ 2 mg/L at 30 days 2. 30-day CRP changes 3. The proportion of recruited patients completing the study; 4. Adverse events; 5. Participant-reported compliance with study medications; 6. Death and major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
             "bound_to": null
           },
           {
@@ -6577,7 +6489,7 @@
               "10.1161/CIRCULATIONAHA.121.056177"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Mewton et al. (<xref rid=\"B26\" ref-type=\"bibr\">26</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Iran</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">101</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">91</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, Thrombolysis in myocardial infarction (TIMI) score; 2, TMPG; 3, TFC; 4, MACE</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
             "bound_to": null
           },
@@ -6589,7 +6501,7 @@
               "10.1056/NEJMoa1912388"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Tardif et al. (<xref rid=\"B8\" ref-type=\"bibr\">8</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Canada</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Multicenter, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,366</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,379</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.6 ± 10.7</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.5 ± 10.6</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1,894 (80.1%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1,942 (81.6%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">462 (19.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">497 (20.9%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The proportion of patients with a residual CRP level ≥ 2 mg/L at 30 days 2. 30 days CRP change 3. the proportion of recruited patients completing the study; 4. adverse events; 5. participant-reported compliance with study medications; 6. death and major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">22.6</td></tr>",
             "bound_to": "NCT02551094"
           },
@@ -6601,20 +6513,8 @@
               "10.1161/CIRCULATIONAHA.120.050771"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Tong et al. (<xref rid=\"B22\" ref-type=\"bibr\">22</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Multicenter, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or CCS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">396</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">399</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59.7 ± 10.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.0 ± 10.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">322 (81%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">310 (78%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">75 (19%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">76 (19%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">A residual CRP level ≥ 2 mg/L at 30 days 2. 30 days CRP change 3. the proportion of recruited patients completing</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">12</td></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "Shah et al 2020 [B16]",
-            "family": "SYN-3e026ec3103a",
-            "alias_ids": [
-              "32295417",
-              "10.1161/CIRCINTERVENTIONS.119.008717"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Shah et al. (<xref rid=\"B16\" ref-type=\"bibr\">16</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Germany</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or suspected ischemic heart disease patients with possible PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">206</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">194</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.9 ± 9.9</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">66.6 ± 10.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">193 (93.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">181 (93.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">114 (55.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">117 (60.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1.8 mg before under<break/>went PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">The study; 4. adverse events; 5. participant-reported</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
             "bound_to": null
           },
           {
@@ -6625,7 +6525,7 @@
               "10.1056/NEJMoa2021372"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Nidorf et al. (<xref rid=\"B7\" ref-type=\"bibr\">7</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Multicenter, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or CCS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,762</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,760</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.8 ± 8.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.9 ± 8.7</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,305 (83.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,371 (85.9%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">492 (17.8%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">515 (18.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Compliance with study medications; 6. death and</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">28.6</td></tr>",
             "bound_to": "ACTRN12614000093684"
           },
@@ -6637,24 +6537,113 @@
               "10.1186/s12872-021-02393-9"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "MACE (Figure 3A)",
             "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Akrami et al. (<xref rid=\"B12\" ref-type=\"bibr\">12</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Iran</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI or medical treatment</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">120</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">129</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">56.9 ± 7.56</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">56.89 ± 7.45</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">86 (71.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">87 (67.4%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">27 (22.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">32 (24.8%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6</td></tr>",
             "bound_to": null
           }
         ],
-        "out_of_scope": []
+        "out_of_scope": [
+          {
+            "name": "O’Keefe et al 1992 [B24]",
+            "family": "SYN-d85a0bbde567",
+            "alias_ids": [
+              "1593057",
+              "10.1016/0735-1097(92)90624-v"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">O’Keefe et al. (<xref rid=\"B24\" ref-type=\"bibr\">24</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">America</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">CCS patients undergoing angioplasty</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">130</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">67</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\"/><td valign=\"top\" align=\"center\" rowspan=\"1\" colspan=\"1\">62</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">111</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">16</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">8</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Mean coronary artery lumen diameter 2. Recurrent ischemia 3. Adverse reactions 4. All-cause death</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">5.5</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Deftereos et al 2013 [B25]",
+            "family": "SYN-c342236445a3",
+            "alias_ids": [
+              "23500260",
+              "10.1016/j.jacc.2013.01.055"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Deftereos et al. (<xref rid=\"B25\" ref-type=\"bibr\">25</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Diabetic ACS and CCS patients undergoing PCI with BMS</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">100</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">96</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63.6 ± 6.9</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63.7 ± 7.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63 (63%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65 (68%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">100 (100%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">96 (100%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Angio-ISR 2, IVUS-ISR 3, angiographic and IVUS parameters of lumen loss and in-stent neointimal hyperplasia 4. Death events 5. Coronary revascularization 6. Adverse reactions</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Gianno 2015 [B18]",
+            "family": "NCT02122484",
+            "alias_ids": [
+              "25784519",
+              "10.1016/j.amjcard.2015.02.036"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Gianno<break/>poulos et al. (<xref rid=\"B18\" ref-type=\"bibr\">18</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing CABG</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">30</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">29</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">64.9 ± 10.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.6 ± 9.5</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">21 (70%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">20 (69%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">11 (38%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">14 (47%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.6 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Maximal hsTnT concentration within 48 h after surgery 2. Maximal CK-MB levels and area 3. Adverse reactions</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">8 days after surgery.</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Deftereos et al 2015 [B19]",
+            "family": "NCT01936285",
+            "alias_ids": [
+              "26265659",
+              "10.1161/CIRCULATIONAHA.115.017611"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Deftereos et al. (<xref rid=\"B19\" ref-type=\"bibr\">19</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">77</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">74</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">52 (68%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">52 (70%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">19 (26%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">13 (17%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. CK-MB 2. hs-TnT 3. Left ventricular ejection fraction 4. Adverse reactions 5. Death events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Lasting 5 days</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Zarpelon et al 2016 [B20]",
+            "family": "SYN-26e29e7237f6",
+            "alias_ids": [
+              "27223641",
+              "10.5935/abc.20160082"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Zarpelon et al. (<xref rid=\"B20\" ref-type=\"bibr\">20</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Brazil</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing AF-POMR</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">71</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">69</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61.5 ± 10.3</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.3 ± 8.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">49 (69%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">46 (66.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">42 (59.2%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">30 (43.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, AF-POMR rate 2, death from any cause 3, hospital length of stay 4, postoperative infection.</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Hospitali<break/>zation time</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Akodad et al 2017 [B15]",
+            "family": "SYN-4fbf04df23a1",
+            "alias_ids": [
+              "28065445",
+              "10.1016/j.acvd.2016.10.004"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Akodad et al. (<xref rid=\"B15\" ref-type=\"bibr\">15</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">France</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">23</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">21</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.1 ± 13.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59.7 ± 11.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">19 (82.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">16 (76.2%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">3 (13%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">3 (14.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, CRP peak value during the index hospitalization 2, troponin peak 3, tolerance of colchicine 4, hospitalization duration, 5, major adverse cardiac events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Hennessy et al 2019 [B23]",
+            "family": "SYN-0f3c5be6ea20",
+            "alias_ids": [
+              "31284074",
+              "10.1016/j.ahj.2019.06.003"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Hennessy et al. (<xref rid=\"B23\" ref-type=\"bibr\">23</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">119</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">118</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">89 (75%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">93 (79%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">27 (23%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">25 (21%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The proportion of patients with a residual CRP level ≥ 2 mg/L at 30 days 2. 30-day CRP changes 3. The proportion of recruited patients completing the study; 4. Adverse events; 5. Participant-reported compliance with study medications; 6. Death and major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Shah et al 2020 [B16]",
+            "family": "SYN-3e026ec3103a",
+            "alias_ids": [
+              "32295417",
+              "10.1161/CIRCINTERVENTIONS.119.008717"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in MACE (Figure 3A)",
+            "span": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Shah et al. (<xref rid=\"B16\" ref-type=\"bibr\">16</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Germany</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or suspected ischemic heart disease patients with possible PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">206</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">194</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.9 ± 9.9</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">66.6 ± 10.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">193 (93.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">181 (93.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">114 (55.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">117 (60.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1.8 mg before under<break/>went PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">The study; 4. adverse events; 5. participant-reported</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>",
+            "bound_to": null
+          }
+        ]
       },
-      "theirs_k": 15,
+      "theirs_k": 7,
       "inventory_comparison": {
         "rows": [
-          {
-            "comparator_trial": "O’Keefe et al 1992 [B24]",
-            "status": "ELIGIBLE_NOT_POOLED",
-            "family": "SYN-d85a0bbde567",
-            "record": "1593057",
-            "state": "OUTCOME_NOT_IN_SOURCE",
-            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-          },
           {
             "comparator_trial": "Raju et al 2012 [B17]",
             "status": "SCREENED_OUT",
@@ -6670,54 +6659,6 @@
             "record": "23265346",
             "rule": "X2",
             "reason": "population not on-topic: title/conditions do not mention any of ['coronary', 'myocardial infarction', 'acute coronary', 'stable angina', 'atherosclerotic cardiovascular', 'percutaneous coronary intervention', 'stent restenosis', 'bare-metal stent'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "Deftereos et al 2013 [B25]",
-            "status": "ELIGIBLE_NOT_POOLED",
-            "family": "SYN-c342236445a3",
-            "record": "23500260",
-            "state": "OUTCOME_NOT_IN_SOURCE",
-            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-          },
-          {
-            "comparator_trial": "Gianno 2015 [B18]",
-            "status": "SCREENED_OUT",
-            "family": "NCT02122484",
-            "record": "25784519",
-            "rule": "X2",
-            "reason": "wrong population: title/conditions mention 'coronary artery bypass'."
-          },
-          {
-            "comparator_trial": "Deftereos et al 2015 [B19]",
-            "status": "ELIGIBLE_NOT_POOLED",
-            "family": "NCT01936285",
-            "record": "26265659",
-            "state": "OUTCOME_NOT_IN_SOURCE",
-            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-          },
-          {
-            "comparator_trial": "Zarpelon et al 2016 [B20]",
-            "status": "SCREENED_OUT",
-            "family": "SYN-26e29e7237f6",
-            "record": "27223641",
-            "rule": "X2",
-            "reason": "wrong population: title/conditions mention 'atrial fibrillation'."
-          },
-          {
-            "comparator_trial": "Akodad et al 2017 [B15]",
-            "status": "SCREENED_OUT",
-            "family": "SYN-4fbf04df23a1",
-            "record": "28065445",
-            "rule": "X3",
-            "reason": "no eligible comparator (none of ['placebo'])."
-          },
-          {
-            "comparator_trial": "Hennessy et al 2019 [B23]",
-            "status": "ELIGIBLE_NOT_POOLED",
-            "family": "SYN-0f3c5be6ea20",
-            "record": "31284074",
-            "state": "OUTCOME_NOT_IN_SOURCE",
-            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
           },
           {
             "comparator_trial": "Mewton et al 2021 [B26]",
@@ -6741,14 +6682,6 @@
             "reason": "source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence"
           },
           {
-            "comparator_trial": "Shah et al 2020 [B16]",
-            "status": "ELIGIBLE_NOT_POOLED",
-            "family": "SYN-3e026ec3103a",
-            "record": "32295417",
-            "state": "OUTCOME_NOT_IN_SOURCE",
-            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-          },
-          {
             "comparator_trial": "Nidorf et al 2020 [B7]",
             "status": "POOLED",
             "family": "ACTRN12614000093684"
@@ -6763,8 +6696,8 @@
           }
         ],
         "counts": {
-          "ELIGIBLE_NOT_POOLED": 8,
-          "SCREENED_OUT": 5,
+          "SCREENED_OUT": 2,
+          "ELIGIBLE_NOT_POOLED": 3,
           "POOLED": 2
         },
         "note": "comparison with our eligible inventory; separate from the pooled-set relation"
@@ -6778,26 +6711,116 @@
         "NCT03048825"
       ],
       "only_theirs": [
-        "O’Keefe et al 1992 [B24]",
         "Raju et al 2012 [B17]",
         "Nidorf et al 2013 [B13]",
-        "Deftereos et al 2013 [B25]",
-        "Gianno 2015 [B18]",
-        "Deftereos et al 2015 [B19]",
-        "Zarpelon et al 2016 [B20]",
-        "Akodad et al 2017 [B15]",
-        "Hennessy et al 2019 [B23]",
         "Mewton et al 2021 [B26]",
         "Tong et al 2020 [B22]",
-        "Shah et al 2020 [B16]",
         "Akrami et al 2021 [B12]"
       ],
       "relation": "OVERLAPPING",
       "label": "overlapping -- some families shared, each side has trials the other lacks",
       "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
-        "value": "not stated in the comparator abstract/full text",
-        "source": null
+        "value": 15,
+        "source": {
+          "source": "comparator abstract",
+          "quote": "RESULTS: This meta-analysis included 15 clinical RCTs, including 13,539 subjects."
+        }
+      }
+    },
+    "model_tuples": [
+      {
+        "model": "fixed effect (Mantel-Haenszel)",
+        "point": 0.65,
+        "ci_low": 0.56,
+        "ci_high": 0.75,
+        "figure": "Figure 3",
+        "panel": "A",
+        "panel_title": "MACE",
+        "figure_row": "Total (fixed effect, 95% CI)",
+        "document_sha256": "e594d595e389c88854ab0d691a02e05d3a6c679e1f5597c09d3dbcaf0c21a83b",
+        "document_url": "https://www.frontiersin.org/files/Articles/947959/xml-images/fcvm-09-947959-g003.webp",
+        "read_by": "model transcription of the rendered image (claude-opus-5-5, in-app browser)"
+      },
+      {
+        "model": "random effects",
+        "point": 0.54,
+        "ci_low": 0.38,
+        "ci_high": 0.77,
+        "figure": "Figure 3",
+        "panel": "A",
+        "panel_title": "MACE",
+        "figure_row": "Total (random effects, 95% CI)",
+        "document_sha256": "e594d595e389c88854ab0d691a02e05d3a6c679e1f5597c09d3dbcaf0c21a83b",
+        "document_url": "https://www.frontiersin.org/files/Articles/947959/xml-images/fcvm-09-947959-g003.webp",
+        "read_by": "model transcription of the rendered image (claude-opus-5-5, in-app browser)"
+      }
+    ],
+    "internal_mismatches": [
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "PROSE_MIXES_MODELS",
+        "prose": {
+          "point": 0.65,
+          "ci_low": 0.38,
+          "ci_high": 0.77,
+          "quote": "Compared with controls, treatment with colchicine reduced the risk of MACE by 46% (RR: 0.65; 95% CI: 0.38–0.77, p for heterogeneity < 0.01; I2 = 70%; p < 0.01) and stroke by 52% (RR: 0.48; 95% CI: 0.30–0.76; p for heterogeneity = 0.52; I2 = 0%; p < 0.01), a 40% reduction in risk of MI (RR: 0.60; 95% CI: 0.43–0.83; p for heterogeneity = 0.01; I2 = 59%; p < 0.01), a 32% reduction in risk of incidence of revascularization (RR: 0.68; 95% CI: 0.56–0.83; p for heterogeneity = 0.17; I2 = 40%; p < 0.01)."
+        },
+        "point_from": "fixed effect (Mantel-Haenszel)",
+        "interval_from": "random effects",
+        "figure": "Figure 3A (MACE)",
+        "figure_rows": [
+          "Total (fixed effect, 95% CI) 0.65 [0.56, 0.75]",
+          "Total (random effects, 95% CI) 0.54 [0.38, 0.77]"
+        ]
+      },
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "FIGURE_ROW_YEAR_DIFFERS_FROM_TABLE",
+        "figure_row": "Mehdi Akrami-2012",
+        "figure_year": "2012",
+        "table_row": "Akrami et al 2021 [B12]",
+        "table_year": "2021"
+      },
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "FIGURE_ROW_YEAR_DIFFERS_FROM_TABLE",
+        "figure_row": "Mewton N-2019",
+        "figure_year": "2019",
+        "table_row": "Mewton et al 2021 [B26]",
+        "table_year": "2021"
+      }
+    ],
+    "identity": {
+      "state": "MATCH",
+      "checks": {
+        "pmid": "MATCH",
+        "doi": "MATCH",
+        "title": "MATCH"
+      },
+      "failures": [],
+      "citation_defects": [],
+      "protocol": {
+        "named_author": null,
+        "title": "Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials",
+        "pmids": [
+          "36176989"
+        ],
+        "doi": "10.3389/fcvm.2022.947959"
+      },
+      "resolved": {
+        "pmid": "36176989",
+        "first_author": "Ma Z",
+        "n_authors": 4,
+        "title": "Colchicine and coronary heart disease risks: A meta-analysis of randomized controlled clinical trials.",
+        "doi": "10.3389/fcvm.2022.947959",
+        "journal": "Frontiers in cardiovascular medicine",
+        "pubdate": "2022"
+      },
+      "held": {
+        "document_ref": "cache/colchicine-secondary-cv-prevention/comparator_identity.json",
+        "pubmed_sha256": "53e8414ea8cdc8c96b027d48339bc48f54c00e032157b321846560d71b4249fb",
+        "crossref_sha256": "ef9ddef2316b604e26ce2a1f75e59a28258392ba59030cf1a7a23b9f9fba3370"
       }
     }
   },
@@ -7622,27 +7645,344 @@
   "funding": [
     {
       "id": "PMID 31733140",
-      "type": "public/non-profit",
+      "type": "public funder named; industry tie not established",
       "span": "(Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NON_INDUSTRY"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "31733140",
+        "funders": [
+          {
+            "name": "Government of Quebec",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Government",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.)."
+          },
+          {
+            "name": "Government of Quebec",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Government",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "Canadian Institutes of Health Research",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Canadian Institutes of Health",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "Montreal Heart Institute",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "Montreal Heart Institute",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [
+          {
+            "source": "abstract funding sentence",
+            "state": "PARTIAL"
+          }
+        ],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "the funder list is partial ('and others' in the abstract funding sentence); no complete funding statement is held; unclassified funder(s): Montreal Heart Institute; Montreal Heart Institute",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Montreal Heart Institute",
+          "Montreal Heart Institute"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "public/non-profit",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 32865380",
-      "type": "public/non-profit",
+      "type": "industry tie present",
       "span": "(Funded by the National Health Medical Research Council of Australia and others; LoDoCo2 Australian New Zealand Clinical Trials Registry number, ACTRN12614000093684.).",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NON_INDUSTRY"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32865380",
+        "funders": [
+          {
+            "name": "National Health Medical Research Council of Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the National Health Medical Research Council of Australia and others; LoDoCo2 Australian New Zealand Clinical Trials Registry number, ACTRN12614000093684.)."
+          },
+          {
+            "name": "the National Health Medical Research Council of Australia",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Medical Research Council",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NHMRC project grant APP1088455"
+          },
+          {
+            "name": "the Withering Foundation the Netherlands",
+            "class": "PUBLIC",
+            "class_basis": "registry category names Withering Stichting Nederland",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "United States",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "Grantnr. 848015014"
+          },
+          {
+            "name": "Research Advisory Committee of Sir Charles Gairdner Hospital and Osborne ParkGroup and Charlies Foundation for Research",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Foundation",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "Teva, Haarlem, Disphar, Baarn and Tiofarma, Oud-Beijerland",
+            "class": "INDUSTRY",
+            "class_basis": "registry category Commercial sector/Industry names Disphar; Teva; Tiofarma",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "the Netherlands Heart Foundation",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Foundation",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "the Netherlands Organization for Health Research and Development",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "Grantnr. 848015014"
+          },
+          {
+            "name": "United States",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)",
+            "grant_id": "NHMRC project grant APP1088455"
+          },
+          {
+            "name": "Aspen, Australia",
+            "class": "INDUSTRY",
+            "class_basis": "registry category Commercial sector/Industry names Aspen Pharamcare Australia",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "National Health and Medical Research Coucil of Australia",
+            "class": "PUBLIC",
+            "class_basis": "registry category: Government body",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "Aspen Pharamcare Australia",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: Commercial sector/Industry",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "GenesisCare",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: Commercial sector/Industry",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "ZonMW",
+            "class": "PUBLIC",
+            "class_basis": "registry category: Government body",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "Withering Stichting Nederland",
+            "class": "PUBLIC",
+            "class_basis": "registry category: Charities/Societies/Foundations",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "Teva",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: Commercial sector/Industry",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "Disphar",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: Commercial sector/Industry",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "Tiofarma",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: Commercial sector/Industry",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          },
+          {
+            "name": "Nederlandse Hartstichting",
+            "class": "PUBLIC",
+            "class_basis": "registry category: Charities/Societies/Foundations",
+            "source": "ANZCTR Funding & Sponsors (held registry page)",
+            "role": "funding source"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [
+          {
+            "source": "abstract funding sentence",
+            "state": "PARTIAL"
+          }
+        ],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Aspen Pharamcare Australia (ANZCTR Funding & Sponsors (held registry page)); Aspen, Australia (publisher funding metadata (Europe PMC core grantsList)); Disphar (ANZCTR Funding & Sponsors (held registry page)); GenesisCare (ANZCTR Funding & Sponsors (held registry page)); Teva (ANZCTR Funding & Sponsors (held registry page)); Teva, Haarlem, Disphar, Baarn and Tiofarma, Oud-Beijerland (publisher funding metadata (Europe PMC core grantsList)); Tiofarma (ANZCTR Funding & Sponsors (held registry page))",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": [
+          "United States",
+          "the Netherlands Organization for Health Research and Development",
+          "United States"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "public/non-profit",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 39555823",
-      "type": "public/non-profit",
+      "type": "industry tie present",
       "span": "(Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NON_INDUSTRY"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "39555823",
+        "funders": [
+          {
+            "name": "Canadian Institutes of Health Research",
+            "class": "PUBLIC",
+            "class_basis": "registry category names Canadian Institutes of Health Research (CIHR)",
+            "source": "abstract funding sentence",
+            "span": "(Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.)."
+          },
+          {
+            "name": "Boston Scientific Corporation",
+            "class": "INDUSTRY",
+            "class_basis": "registry category Commercial sector/Industry names Boston Scientific Corporation",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "Institute of Circulatory and Respiratory Health",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "publisher funding metadata (Europe PMC core grantsList)"
+          },
+          {
+            "name": "Population Health Research Institute",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "lead sponsor"
+          },
+          {
+            "name": "Boston Scientific Corporation",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Canadian Institutes of Health Research (CIHR)",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "ClinicalTrials.gov sponsor/collaborators (held API record)",
+            "role": "collaborator"
+          },
+          {
+            "name": "Boston Scientific Corporation",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Canadian Institutes of Health Research (CIHR)",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Population Health Research Institute",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [
+          {
+            "source": "abstract funding sentence",
+            "state": "PARTIAL"
+          }
+        ],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Boston Scientific Corporation (AACT sponsors); Boston Scientific Corporation (ClinicalTrials.gov sponsor/collaborators (held API record)); Boston Scientific Corporation (publisher funding metadata (Europe PMC core grantsList))",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": [
+          "Institute of Circulatory and Respiratory Health",
+          "Population Health Research Institute",
+          "Population Health Research Institute"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "public/non-profit",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 34876021",
@@ -7650,7 +7990,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "34876021",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 1593057",
@@ -7658,7 +8014,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "1593057",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 23500260",
@@ -7666,7 +8038,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "23500260",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 26265659",
@@ -7674,7 +8062,37 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "26265659",
+        "funders": [
+          {
+            "name": "G.Gennimatas General Hospital",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): G.Gennimatas General Hospital",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "G.Gennimatas General Hospital"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "PMID 31284074",
@@ -7682,15 +8100,193 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "31284074",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 32295417",
-      "type": "not stated (full text scanned)",
+      "type": "industry tie present",
       "span": "",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32295417",
+        "funders": [
+          {
+            "name": "Veterans Affairs (VA) Office of Research",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "The trial was funded by the Veterans Affairs (VA) Office of Research and Development and the American Heart Association."
+          },
+          {
+            "name": "Development",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "The trial was funded by the Veterans Affairs (VA) Office of Research and Development and the American Heart Association."
+          },
+          {
+            "name": "American Heart Association",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "The trial was funded by the Veterans Affairs (VA) Office of Research and Development and the American Heart Association."
+          },
+          {
+            "name": "several strengths of the study design",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Prior reports have also demonstrated a difference in the concentration and rise in concentrations of inflammatory markers by sampling source. 5 , 40 However, another report of 25 patients predominantly with acute coronary syndromes demonstrated only a 1.5-fold increase in median IL-6 concentration from baseline to one hour post-PCI, while at 24 hours post-PCI, there was a 3.2-fold increase in median IL-6 concentration, paralleling the trend in relative change in median IL-6 concentrations post-PCI in the current trial. 6 Limitations The current findings are supported by several strengths of the study design and execution, including the double-blind, placebo-controlled randomized study design and high adherence to study procedures."
+          },
+          {
+            "name": "execution",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Prior reports have also demonstrated a difference in the concentration and rise in concentrations of inflammatory markers by sampling source. 5 , 40 However, another report of 25 patients predominantly with acute coronary syndromes demonstrated only a 1.5-fold increase in median IL-6 concentration from baseline to one hour post-PCI, while at 24 hours post-PCI, there was a 3.2-fold increase in median IL-6 concentration, paralleling the trend in relative change in median IL-6 concentrations post-PCI in the current trial. 6 Limitations The current findings are supported by several strengths of the study design and execution, including the double-blind, placebo-controlled randomized study design and high adherence to study procedures."
+          },
+          {
+            "name": "including the double-blind",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Prior reports have also demonstrated a difference in the concentration and rise in concentrations of inflammatory markers by sampling source. 5 , 40 However, another report of 25 patients predominantly with acute coronary syndromes demonstrated only a 1.5-fold increase in median IL-6 concentration from baseline to one hour post-PCI, while at 24 hours post-PCI, there was a 3.2-fold increase in median IL-6 concentration, paralleling the trend in relative change in median IL-6 concentrations post-PCI in the current trial. 6 Limitations The current findings are supported by several strengths of the study design and execution, including the double-blind, placebo-controlled randomized study design and high adherence to study procedures."
+          },
+          {
+            "name": "placebo-controlled randomized study design",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Prior reports have also demonstrated a difference in the concentration and rise in concentrations of inflammatory markers by sampling source. 5 , 40 However, another report of 25 patients predominantly with acute coronary syndromes demonstrated only a 1.5-fold increase in median IL-6 concentration from baseline to one hour post-PCI, while at 24 hours post-PCI, there was a 3.2-fold increase in median IL-6 concentration, paralleling the trend in relative change in median IL-6 concentrations post-PCI in the current trial. 6 Limitations The current findings are supported by several strengths of the study design and execution, including the double-blind, placebo-controlled randomized study design and high adherence to study procedures."
+          },
+          {
+            "name": "high adherence to study procedures",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Prior reports have also demonstrated a difference in the concentration and rise in concentrations of inflammatory markers by sampling source. 5 , 40 However, another report of 25 patients predominantly with acute coronary syndromes demonstrated only a 1.5-fold increase in median IL-6 concentration from baseline to one hour post-PCI, while at 24 hours post-PCI, there was a 3.2-fold increase in median IL-6 concentration, paralleling the trend in relative change in median IL-6 concentrations post-PCI in the current trial. 6 Limitations The current findings are supported by several strengths of the study design and execution, including the double-blind, placebo-controlled randomized study design and high adherence to study procedures."
+          },
+          {
+            "name": "American Heart Association Clinical Research Program (13CRP14520000)",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Funding Sources The study was partially funded by the American Heart Association Clinical Research Program (13CRP14520000) and the VA Office of Research and Development (iK2CX001074)."
+          },
+          {
+            "name": "VA Office of Research",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Funding Sources The study was partially funded by the American Heart Association Clinical Research Program (13CRP14520000) and the VA Office of Research and Development (iK2CX001074)."
+          },
+          {
+            "name": "Development (iK2CX001074)",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Funding Sources The study was partially funded by the American Heart Association Clinical Research Program (13CRP14520000) and the VA Office of Research and Development (iK2CX001074)."
+          },
+          {
+            "name": "NYU Langone Health",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "VA Office of Research and Development",
+            "class": "PUBLIC",
+            "class_basis": "registry category: FED",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [
+          {
+            "supplier": "URL Pharma, Inc from the time of study initiation until a change in company ownership on September 30, 2016",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Pharma",
+            "source": "full text",
+            "span": "The rationale for this stratification was to decrease the potential confounding effects of acute high-intensity statin pre-treatment on PCI-related myocardial injury. 24 Colchicine study drug and placebo were supplied by URL Pharma, Inc from the time of study initiation until a change in company ownership on September 30, 2016."
+          },
+          {
+            "supplier": "the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full text",
+            "span": "Thereafter, study drug and placebo were supplied by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy."
+          },
+          {
+            "supplier": "Takeda Pharmaceuticals, and then by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Takeda",
+            "source": "full text",
+            "span": "Drug was initially supplied by Takeda Pharmaceuticals, and then by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy."
+          }
+        ],
+        "funder_role_statement": {
+          "state": "NOT_STATED_IN_HELD_FULL_TEXT"
+        },
+        "list_completeness": [
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
+          }
+        ],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Takeda Pharmaceuticals, and then by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy (full text); URL Pharma, Inc from the time of study initiation until a change in company ownership on September 30, 2016 (full text)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
+        "needs_proposal": [
+          "Veterans Affairs (VA) Office of Research",
+          "Development",
+          "American Heart Association",
+          "several strengths of the study design",
+          "execution",
+          "including the double-blind",
+          "placebo-controlled randomized study design",
+          "high adherence to study procedures",
+          "American Heart Association Clinical Research Program (13CRP14520000)",
+          "VA Office of Research",
+          "Development (iK2CX001074)",
+          "NYU Langone Health"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "not stated (full text scanned)",
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 32862667",
@@ -7698,7 +8294,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "32862667",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 34420373",
@@ -7706,7 +8318,37 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "34420373",
+        "funders": [
+          {
+            "name": "Hospices Civils de Lyon",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Hospices Civils de Lyon",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Hospices Civils de Lyon"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "PMID 39115262",
@@ -7714,15 +8356,57 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "39115262",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 39166327",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "39166327",
+        "funders": [
+          {
+            "name": "Union Hospital, Tongji Medical College, Huazhong University of Science and Technology",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "PMID 39189611",
@@ -7730,7 +8414,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "39189611",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 40263680",
@@ -7738,7 +8438,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "40263680",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 41605493",
@@ -7746,7 +8462,23 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "41605493",
+        "funders": [],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": null,
+        "funding_state": null,
+        "sponsor_class": null,
+        "needs_proposal": []
+      }
     },
     {
       "id": "PMID 41670023",
@@ -7754,7 +8486,37 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "41670023",
+        "funders": [
+          {
+            "name": "Lundquist Institute for Biomedical Innovation at Harbor-UCLA Medical Center",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Lundquist Institute for Biomedical Innovation at Harbor-UCLA Medical Center",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Lundquist Institute for Biomedical Innovation at Harbor-UCLA Medical Center"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "NCT00754819",
@@ -7762,39 +8524,212 @@
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "SOURCE_NOT_RETRIEVED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT00754819",
+        "funders": [
+          {
+            "name": "Hamilton Health Sciences Corporation",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Hamilton Health Sciences Corporation",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Hamilton Health Sciences Corporation"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "NCT01709981",
-      "type": "not stated (full text scanned)",
+      "type": "industry tie present",
       "span": "",
       "source": "linked full text PMID 32295417",
       "scanned": "linked full text PMID 32295417",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+      "funding_state": "INDUSTRY_TIE_PRESENT",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT01709981",
+        "funders": [
+          {
+            "name": "Takeda",
+            "class": "INDUSTRY",
+            "class_basis": "registry category: INDUSTRY",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "NYU Langone Health",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Takeda (AACT sponsors)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "industry",
+        "needs_proposal": [
+          "NYU Langone Health"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "not stated (full text scanned)",
+      "sponsor_class": "industry"
     },
     {
       "id": "NCT02095522",
-      "type": "source not retrieved",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT02095522",
+        "funders": [
+          {
+            "name": "Tel Aviv Medical Center",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Tel-Aviv Sourasky Medical Center",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Tel Aviv Medical Center",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Tel Aviv Medical Center"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "source not retrieved",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "NCT05739929",
-      "type": "source not retrieved",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT05739929",
+        "funders": [
+          {
+            "name": "Helwan University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "source not retrieved",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "NCT05850091",
-      "type": "source not retrieved",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT05850091",
+        "funders": [
+          {
+            "name": "National Heart, Lung, and Blood Institute (NHLBI)",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NIH",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Massachusetts General Hospital",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Massachusetts General Hospital",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Massachusetts General Hospital"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "source not retrieved",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "NCT06215989",
@@ -7802,23 +8737,118 @@
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "SOURCE_NOT_RETRIEVED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT06215989",
+        "funders": [
+          {
+            "name": "Beijing Anzhen Hospital",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Beijing Anzhen Hospital",
+        "label": null,
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": null,
+        "needs_proposal": [
+          "Beijing Anzhen Hospital"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      }
     },
     {
       "id": "NCT07143136",
-      "type": "source not retrieved",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT07143136",
+        "funders": [
+          {
+            "name": "Assiut University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "source not retrieved",
+      "sponsor_class": "public_named_tie_not_established"
     },
     {
       "id": "NCT07704164",
-      "type": "source not retrieved",
+      "type": "public funder named; industry tie not established",
       "span": "",
       "source": "",
       "scanned": "",
-      "funding_state": "SOURCE_NOT_RETRIEVED"
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT07704164",
+        "funders": [
+          {
+            "name": "Instituto de Salud Carlos III",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Instituto de Investigación Hospital Universitario La Paz",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Instituto de Investigación Hospital Universitario La Paz",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Instituto de Investigación Hospital Universitario La Paz"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "source not retrieved",
+      "sponsor_class": "public_named_tie_not_established"
     }
   ],
   "definition_audit": {
@@ -111823,8 +112853,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 3 known</strong> (22 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 31733140</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).</td></tr><tr><td>PMID 32865380</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health Medical Research Council of Australia and others; LoDoCo2 Australian New Zealand Clinical Trials Registry number, ACTRN12614000093684.).</td></tr><tr><td>PMID 39555823</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).</td></tr><tr><td>PMID 34876021</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 1593057</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23500260</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26265659</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 31284074</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32295417</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 32862667</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 34420373</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39115262</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39166327</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39189611</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 40263680</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41605493</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41670023</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT00754819</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT01709981</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>linked full text PMID 32295417</td><td><strong>linked full text PMID 32295417</strong>: </td></tr><tr><td>NCT02095522</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05739929</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05850091</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06215989</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07143136</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07704164</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
-      "text_sha256": "b0a377669b2f02623c4f0bd231c2c0114476ae6cc4eac9da8930261dae8a9898",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>4 of 4 known</strong> (21 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>NCT01709981</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Takeda (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Takeda <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>NYU Langone Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): NYU Langone Health</em></td><td>linked full text PMID 32295417</td><td><strong>linked full text PMID 32295417</strong>: </td></tr><tr><td>PMID 32865380</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Aspen Pharamcare Australia (ANZCTR Funding &amp; Sponsors (held registry page)); Aspen, Australia (publisher funding metadata (Europe PMC core grantsList)); Disphar (ANZCTR Funding &amp; Sponsors (held registry page)); GenesisCare (ANZCTR Funding &amp; Sponsors (held registry page)); Teva (ANZCTR Funding &amp; Sponsors (held registry page)); Teva, Haarlem, Disphar, Baarn and Tiofarma, Oud-Beijerland (publisher funding metadata (Europe PMC core grantsList)); Tiofarma (ANZCTR Funding &amp; Sponsors (held registry page))<br>list completeness: abstract funding sentence: PARTIAL<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>National Health Medical Research Council of Australia <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>the National Health Medical Research Council of Australia <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>the Withering Foundation the Netherlands <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>United States <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Research Advisory Committee of Sir Charles Gairdner Hospital and Osborne ParkGroup and Charlies Foundation for Research <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Teva, Haarlem, Disphar, Baarn and Tiofarma, Oud-Beijerland <code>INDUSTRY</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>the Netherlands Heart Foundation <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>the Netherlands Organization for Health Research and Development <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Aspen, Australia <code>INDUSTRY</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>National Health and Medical Research Coucil of Australia <code>PUBLIC</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>Aspen Pharamcare Australia <code>INDUSTRY</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>GenesisCare <code>INDUSTRY</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>ZonMW <code>PUBLIC</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>Withering Stichting Nederland <code>PUBLIC</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>Teva <code>INDUSTRY</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>Disphar <code>INDUSTRY</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>Tiofarma <code>INDUSTRY</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br>Nederlandse Hartstichting <code>PUBLIC</code> <em>(ANZCTR Funding &amp; Sponsors (held registry page))</em><br><em>unclassified (no registry category, no name marker): United States; the Netherlands Organization for Health Research and Development</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health Medical Research Council of Australia and others; LoDoCo2 Australian New Zealand Clinical Trials Registry number, ACTRN12614000093684.).</td></tr><tr><td>PMID 39555823</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Boston Scientific Corporation (AACT sponsors); Boston Scientific Corporation (ClinicalTrials.gov sponsor/collaborators (held API record)); Boston Scientific Corporation (publisher funding metadata (Europe PMC core grantsList))<br>list completeness: abstract funding sentence: PARTIAL<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>Canadian Institutes of Health Research <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>Boston Scientific Corporation <code>INDUSTRY</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Institute of Circulatory and Respiratory Health <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Population Health Research Institute <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Canadian Institutes of Health Research (CIHR) <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Institute of Circulatory and Respiratory Health; Population Health Research Institute</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).</td></tr><tr><td>PMID 32295417</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Takeda Pharmaceuticals, and then by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy (full text); URL Pharma, Inc from the time of study initiation until a change in company ownership on September 30, 2016 (full text)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Veterans Affairs (VA) Office of Research <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Development <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>American Heart Association <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>several strengths of the study design <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>execution <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>including the double-blind <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>placebo-controlled randomized study design <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>high adherence to study procedures <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>American Heart Association Clinical Research Program (13CRP14520000) <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>VA Office of Research <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Development (iK2CX001074) <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>NYU Langone Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>VA Office of Research and Development <code>PUBLIC</code> <em>(AACT sponsors)</em><br>material support: URL Pharma, Inc from the time of study initiation until a change in company ownership on September 30, 2016 <code>INDUSTRY</code> &mdash; “The rationale for this stratification was to decrease the potential confounding effects of acute high-intensity statin pre-treatment on PCI-related myocardial injury. 24 Colchicine study drug and placebo were supplied by URL Pharma, Inc from the time of study initiation until a change in company ownership on September 30, 2016.”<br>material support: the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy <code>UNCLASSIFIED</code> &mdash; “Thereafter, study drug and placebo were supplied by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy.”<br>material support: Takeda Pharmaceuticals, and then by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy <code>INDUSTRY</code> &mdash; “Drug was initially supplied by Takeda Pharmaceuticals, and then by the VA New York Harbor Healthcare System, Manhattan Campus Research Pharmacy.”<br><em>unclassified (no registry category, no name marker): Veterans Affairs (VA) Office of Research; Development; American Heart Association; several strengths of the study design; execution; including the double-blind; placebo-controlled randomized study design; high adherence to study procedures; American Heart Association Clinical Research Program (13CRP14520000); VA Office of Research; Development (iK2CX001074); NYU Langone Health</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 31733140</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the abstract funding sentence); no complete funding statement is held; unclassified funder(s): Montreal Heart Institute; Montreal Heart Institute<br>list completeness: abstract funding sentence: PARTIAL<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>Government of Quebec <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>Canadian Institutes of Health Research <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Montreal Heart Institute <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Montreal Heart Institute</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).</td></tr><tr><td>PMID 39166327</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Union Hospital, Tongji Medical College, Huazhong University of Science and Technology <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT02095522</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Tel Aviv Medical Center<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Tel Aviv Medical Center <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Tel-Aviv Sourasky Medical Center <code>PUBLIC</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Tel Aviv Medical Center</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05739929</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Helwan University <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05850091</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Massachusetts General Hospital<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>National Heart, Lung, and Blood Institute (NHLBI) <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Massachusetts General Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Massachusetts General Hospital</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07143136</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Assiut University <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07704164</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Instituto de Investigación Hospital Universitario La Paz<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Instituto de Salud Carlos III <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Instituto de Investigación Hospital Universitario La Paz <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Instituto de Investigación Hospital Universitario La Paz</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 34876021</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 1593057</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23500260</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26265659</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): G.Gennimatas General Hospital<br>funder-role statement: full text not held</td><td>G.Gennimatas General Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): G.Gennimatas General Hospital</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 31284074</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32862667</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 34420373</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Hospices Civils de Lyon<br>funder-role statement: full text not held</td><td>Hospices Civils de Lyon <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Hospices Civils de Lyon</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39115262</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39189611</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 40263680</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41605493</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41670023</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Lundquist Institute for Biomedical Innovation at Harbor-UCLA Medical Center<br>funder-role statement: full text not held</td><td>Lundquist Institute for Biomedical Innovation at Harbor-UCLA Medical Center <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Lundquist Institute for Biomedical Innovation at Harbor-UCLA Medical Center</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT00754819</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Hamilton Health Sciences Corporation<br>funder-role statement: full text not held</td><td>Hamilton Health Sciences Corporation <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Hamilton Health Sciences Corporation</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06215989</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Beijing Anzhen Hospital<br>funder-role statement: full text not held</td><td>Beijing Anzhen Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Beijing Anzhen Hospital</em></td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "887305d6a97de210f88cf57b13181586e490754c024a087d8367450567e3521a",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -112051,7 +113081,7 @@
             "end": 24325,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">O’Keefe et al. (<xref rid=\"B24\" ref-type=\"bibr\">24</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">America</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">CCS patients undergoing angioplasty</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">130</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">67</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\"/><td valign=\"top\" align=\"center\" rowspan=\"1\" colspan=\"1\">62</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">111</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">16</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">8</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Mean coronary artery lumen diameter 2. Recurrent ischemia 3. Adverse reactions 4. All-cause death</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">5.5</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "1593057",
@@ -112088,7 +113118,7 @@
             "end": 25498,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Raju et al. (<xref rid=\"B17\" ref-type=\"bibr\">17</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">40</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">40</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">57.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">34 (85%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">37 (92.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">7 (17.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6 (15%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The blood level of hs-CRP 2. platelet function 3. Death 4. myocardial infarction 5. stroke 6. Adverse events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1.03</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "21918905",
@@ -112125,7 +113155,7 @@
             "end": 26685,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Nidorf et al. (<xref rid=\"B13\" ref-type=\"bibr\">13</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Stable coronary disease</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">282</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">250</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">66 ± 9.6</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">67 ± 9.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">222 (89%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">251 (89%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">69 (28%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">92 (33%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Acute coronary syndrome 2. Out-of-hospital cardiac arrest 3. Non-cardiac ischemic stroke 4. Death</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">36</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "23265346",
@@ -112162,7 +113192,7 @@
             "end": 27986,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Deftereos et al. (<xref rid=\"B25\" ref-type=\"bibr\">25</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Diabetic ACS and CCS patients undergoing PCI with BMS</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">100</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">96</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63.6 ± 6.9</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63.7 ± 7.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">63 (63%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65 (68%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">100 (100%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">96 (100%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Angio-ISR 2, IVUS-ISR 3, angiographic and IVUS parameters of lumen loss and in-stent neointimal hyperplasia 4. Death events 5. Coronary revascularization 6. Adverse reactions</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "23500260",
@@ -112199,7 +113229,7 @@
             "end": 29231,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Gianno<break/>poulos et al. (<xref rid=\"B18\" ref-type=\"bibr\">18</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing CABG</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">30</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">29</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">64.9 ± 10.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.6 ± 9.5</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">21 (70%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">20 (69%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">11 (38%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">14 (47%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.6 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. Maximal hsTnT concentration within 48 h after surgery 2. Maximal CK-MB levels and area 3. Adverse reactions</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">8 days after surgery.</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "25784519",
@@ -112236,7 +113266,7 @@
             "end": 30400,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Deftereos et al. (<xref rid=\"B19\" ref-type=\"bibr\">19</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Greece</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">77</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">74</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">58</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">52 (68%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">52 (70%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">19 (26%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">13 (17%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. CK-MB 2. hs-TnT 3. Left ventricular ejection fraction 4. Adverse reactions 5. Death events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Lasting 5 days</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "26265659",
@@ -112273,7 +113303,7 @@
             "end": 31632,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Zarpelon et al. (<xref rid=\"B20\" ref-type=\"bibr\">20</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Brazil</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing AF-POMR</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">71</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">69</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61.5 ± 10.3</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.3 ± 8.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">49 (69%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">46 (66.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">42 (59.2%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">30 (43.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5mg twice daily</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, AF-POMR rate 2, death from any cause 3, hospital length of stay 4, postoperative infection.</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Hospitali<break/>zation time</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "27223641",
@@ -112310,7 +113340,7 @@
             "end": 32878,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Akodad et al. (<xref rid=\"B15\" ref-type=\"bibr\">15</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">France</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">23</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">21</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.1 ± 13.1</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59.7 ± 11.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">19 (82.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">16 (76.2%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">3 (13%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">3 (14.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, CRP peak value during the index hospitalization 2, troponin peak 3, tolerance of colchicine 4, hospitalization duration, 5, major adverse cardiac events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "28065445",
@@ -112347,7 +113377,7 @@
             "end": 34219,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Hennessy et al. (<xref rid=\"B23\" ref-type=\"bibr\">23</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">119</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">118</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">61</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">89 (75%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">93 (79%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">27 (23%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">25 (21%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The proportion of patients with a residual CRP level ≥ 2 mg/L at 30 days 2. 30-day CRP changes 3. The proportion of recruited patients completing the study; 4. Adverse events; 5. Participant-reported compliance with study medications; 6. Death and major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "31284074",
@@ -112384,7 +113414,7 @@
             "end": 35332,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Mewton et al. (<xref rid=\"B26\" ref-type=\"bibr\">26</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Iran</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, double-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">101</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">91</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">NC</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1, Thrombolysis in myocardial infarction (TIMI) score; 2, TMPG; 3, TFC; 4, MACE</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "34420373",
@@ -112421,7 +113451,7 @@
             "end": 36728,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Tardif et al. (<xref rid=\"B8\" ref-type=\"bibr\">8</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Canada</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Multicenter, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS and CCS patients undergoing PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,366</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,379</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.6 ± 10.7</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.5 ± 10.6</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1,894 (80.1%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1,942 (81.6%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">462 (19.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">497 (20.9%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1. The proportion of patients with a residual CRP level ≥ 2 mg/L at 30 days 2. 30 days CRP change 3. the proportion of recruited patients completing the study; 4. adverse events; 5. participant-reported compliance with study medications; 6. death and major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">22.6</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "31733140",
@@ -112458,7 +113488,7 @@
             "end": 37926,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Tong et al. (<xref rid=\"B22\" ref-type=\"bibr\">22</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Multicenter, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or CCS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">396</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">399</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">59.7 ± 10.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">60.0 ± 10.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">322 (81%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">310 (78%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">75 (19%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">76 (19%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">A residual CRP level ≥ 2 mg/L at 30 days 2. 30 days CRP change 3. the proportion of recruited patients completing</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">12</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "32862667",
@@ -112495,7 +113525,7 @@
             "end": 39140,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Shah et al. (<xref rid=\"B16\" ref-type=\"bibr\">16</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Germany</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or suspected ischemic heart disease patients with possible PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">206</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">194</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.9 ± 9.9</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">66.6 ± 10.2</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">193 (93.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">181 (93.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">114 (55.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">117 (60.3%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1.8 mg before under<break/>went PCI</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">The study; 4. adverse events; 5. participant-reported</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">1</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "not in MACE (Figure 3A)",
           "aliases": [
             {
               "id": "32295417",
@@ -112532,7 +113562,7 @@
             "end": 40289,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Nidorf et al. (<xref rid=\"B7\" ref-type=\"bibr\">7</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Australia</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Multicenter, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS or CCS patients</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,762</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,760</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.8 ± 8.4</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">65.9 ± 8.7</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,305 (83.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">2,371 (85.9%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">492 (17.8%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">515 (18.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Compliance with study medications; 6. death and</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">28.6</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "32865380",
@@ -112569,7 +113599,7 @@
             "end": 41435,
             "quote": "<tr><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Akrami et al. (<xref rid=\"B12\" ref-type=\"bibr\">12</xref>)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Iran</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Single center, triple-blind RCTs</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">ACS patients undergoing PCI or medical treatment</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">120</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">129</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">56.9 ± 7.56</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">56.89 ± 7.45</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">86 (71.7%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">87 (67.4%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">27 (22.5%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">32 (24.8%)</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">0.5 mg per day</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">Major cardiovascular events</td><td valign=\"top\" align=\"left\" rowspan=\"1\" colspan=\"1\">6</td></tr>"
           },
-          "endpoint": null,
+          "endpoint": "MACE (Figure 3A)",
           "aliases": [
             {
               "id": "34876021",
@@ -112611,6 +113641,119 @@
         "fetched_utc": "2026-09-26T21:13:30Z",
         "table_caption": "Main characteristics of included RCTs."
       },
+      "outcome_endpoints": {
+        "Trial-defined major coronary/cardiovascular composite": "MACE (Figure 3A)"
+      },
+      "outcome_membership_source": "Figure 3A rows bound to the included-trial table (7 of 15 table trials in this panel)",
+      "figure_model_tuples": [
+        {
+          "model": "fixed effect (Mantel-Haenszel)",
+          "point": 0.65,
+          "ci_low": 0.56,
+          "ci_high": 0.75,
+          "figure": "Figure 3",
+          "panel": "A",
+          "panel_title": "MACE",
+          "figure_row": "Total (fixed effect, 95% CI)",
+          "document_sha256": "e594d595e389c88854ab0d691a02e05d3a6c679e1f5597c09d3dbcaf0c21a83b",
+          "document_url": "https://www.frontiersin.org/files/Articles/947959/xml-images/fcvm-09-947959-g003.webp",
+          "read_by": "model transcription of the rendered image (claude-opus-5-5, in-app browser)"
+        },
+        {
+          "model": "random effects",
+          "point": 0.54,
+          "ci_low": 0.38,
+          "ci_high": 0.77,
+          "figure": "Figure 3",
+          "panel": "A",
+          "panel_title": "MACE",
+          "figure_row": "Total (random effects, 95% CI)",
+          "document_sha256": "e594d595e389c88854ab0d691a02e05d3a6c679e1f5597c09d3dbcaf0c21a83b",
+          "document_url": "https://www.frontiersin.org/files/Articles/947959/xml-images/fcvm-09-947959-g003.webp",
+          "read_by": "model transcription of the rendered image (claude-opus-5-5, in-app browser)"
+        }
+      ],
+      "internal_mismatches": [
+        {
+          "code": "COMPARATOR_INTERNAL_MISMATCH",
+          "kind": "PROSE_MIXES_MODELS",
+          "prose": {
+            "point": 0.65,
+            "ci_low": 0.38,
+            "ci_high": 0.77,
+            "quote": "Compared with controls, treatment with colchicine reduced the risk of MACE by 46% (RR: 0.65; 95% CI: 0.38–0.77, p for heterogeneity < 0.01; I2 = 70%; p < 0.01) and stroke by 52% (RR: 0.48; 95% CI: 0.30–0.76; p for heterogeneity = 0.52; I2 = 0%; p < 0.01), a 40% reduction in risk of MI (RR: 0.60; 95% CI: 0.43–0.83; p for heterogeneity = 0.01; I2 = 59%; p < 0.01), a 32% reduction in risk of incidence of revascularization (RR: 0.68; 95% CI: 0.56–0.83; p for heterogeneity = 0.17; I2 = 40%; p < 0.01)."
+          },
+          "point_from": "fixed effect (Mantel-Haenszel)",
+          "interval_from": "random effects",
+          "figure": "Figure 3A (MACE)",
+          "figure_rows": [
+            "Total (fixed effect, 95% CI) 0.65 [0.56, 0.75]",
+            "Total (random effects, 95% CI) 0.54 [0.38, 0.77]"
+          ]
+        },
+        {
+          "code": "COMPARATOR_INTERNAL_MISMATCH",
+          "kind": "FIGURE_ROW_YEAR_DIFFERS_FROM_TABLE",
+          "figure_row": "Mehdi Akrami-2012",
+          "figure_year": "2012",
+          "table_row": "Akrami et al 2021 [B12]",
+          "table_year": "2021"
+        },
+        {
+          "code": "COMPARATOR_INTERNAL_MISMATCH",
+          "kind": "FIGURE_ROW_YEAR_DIFFERS_FROM_TABLE",
+          "figure_row": "Mewton N-2019",
+          "figure_year": "2019",
+          "table_row": "Mewton et al 2021 [B26]",
+          "table_year": "2021"
+        }
+      ],
+      "figure_row_bindings": [
+        {
+          "figure_row": "Mehdi Akrami-2012",
+          "table_row": "Akrami et al 2021 [B12]",
+          "note": {
+            "code": "COMPARATOR_INTERNAL_MISMATCH",
+            "kind": "FIGURE_ROW_YEAR_DIFFERS_FROM_TABLE",
+            "figure_row": "Mehdi Akrami-2012",
+            "figure_year": "2012",
+            "table_row": "Akrami et al 2021 [B12]",
+            "table_year": "2021"
+          }
+        },
+        {
+          "figure_row": "Nidorf SM, et al.-2013",
+          "table_row": "Nidorf et al 2013 [B13]"
+        },
+        {
+          "figure_row": "Stefan M Nidorf-2020",
+          "table_row": "Nidorf et al 2020 [B7]"
+        },
+        {
+          "figure_row": "Mewton N-2019",
+          "table_row": "Mewton et al 2021 [B26]",
+          "note": {
+            "code": "COMPARATOR_INTERNAL_MISMATCH",
+            "kind": "FIGURE_ROW_YEAR_DIFFERS_FROM_TABLE",
+            "figure_row": "Mewton N-2019",
+            "figure_year": "2019",
+            "table_row": "Mewton et al 2021 [B26]",
+            "table_year": "2021"
+          }
+        },
+        {
+          "figure_row": "Nina C Raju-2012",
+          "table_row": "Raju et al 2012 [B17]"
+        },
+        {
+          "figure_row": "Jean-Claude Tardif-2019",
+          "table_row": "Tardif et al 2019 [B8]"
+        },
+        {
+          "figure_row": "Tong DC-2020",
+          "table_row": "Tong et al 2020 [B22]"
+        }
+      ],
       "overlaps": [
         {
           "pool": "Trial-defined major coronary/cardiovascular composite",
@@ -112638,11 +113781,11 @@
           ],
           "jaccard": 0.125,
           "contains_pool": false,
-          "endpoint_compatible_overlap": [],
-          "endpoint_unknown": [
+          "endpoint_compatible_overlap": [
             "Nidorf et al 2020 [B7]",
             "Tardif et al 2019 [B8]"
           ],
+          "endpoint_unknown": [],
           "harness_k": 3,
           "comparator_k": 15
         },
@@ -112713,14 +113856,14 @@
   ],
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "c34320a77f6cd302da6d4722b5c3ffa2e1ad37624feebc849e858983c2bfc790",
+    "protocol_sha": "22d1741a08a4582ac008b468e4ceb9c543c91dd5",
+    "review_sha256": "0bd27b69c32d60185e8710d3ff0a8fa8bc43423e682f96d53e838587716ebcb9",
     "from_cache": true,
     "preregistration": {
-      "prospective": false,
-      "sha": null,
-      "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9"
+      "prospective": true,
+      "sha": "22d1741a08a4582ac008b468e4ceb9c543c91dd5",
+      "kind": "protocol-file (earliest, protocol-only)",
+      "build_sha": "22d1741a08a4582ac008b468e4ceb9c543c91dd5"
     },
     "refusals": [
       {
@@ -112833,8 +113976,8 @@
     "certificate": {
       "schema_version": 1,
       "slug": "colchicine-secondary-cv-prevention",
-      "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-      "protocol_text_sha256": "3ef33aac77e6f8765d63802bd957a0d8457c6ac91b3cd5b7a16eeddcd4efb40a",
+      "protocol_sha": "22d1741a08a4582ac008b468e4ceb9c543c91dd5",
+      "protocol_text_sha256": "7a1baf3b90d0e15e5c6c241745cd33b54f2ed58224dc418248ac8d58e89d38b5",
       "search_query_sha256": "ae6c51fc72470cdf67edb4a80681ae42933b2018d337c213ff5ddfc764fa7f70",
       "retrieved_corpus_sha256": "2d3b2a35b98780285a14879c3dfd3f920efc74bb38fa6452d159b175ee61c874",
       "records_file_sha256": "55b6233afecd0d4449c4997e2b803fab331a8ecd75869ba14fee9291090fd96d",
@@ -112862,7 +114005,7 @@
         }
       ],
       "config_sha256": "ce5daab70cc053271f088b14e44a9a7941fa5e183a91eb1020b277d1e2cc6ef3",
-      "analysis_code_sha256": "c8f814b90b228fce14af833a0be6518d720365b64f94bd4d6fb3f75a1979730b",
+      "analysis_code_sha256": "691c6198d37594baf975e29484b609587f636f327daf6cd4a0cd195b9ab85ae2",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -112879,13 +114022,15 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_panel.py": "dc6960af130ddd18cf609ecb33b590942ccf5eb0",
+        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
+        "harness/comparator_models.py": "18dbac742d920a835cc70e440a957e188a265c54",
+        "harness/comparator_panel.py": "e429fd8ba38f68a572c20715032fcb91f257ee1a",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "82d57dbcafa7e626f7c3616b3c9f55cfabe25972",
+        "harness/consumer_consistency.py": "9f3122e2278082379bdea3c0922ab9939783c0e0",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
@@ -112894,13 +114039,14 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
+        "harness/extract.py": "55d449875218d206f508e56e7a7bad485507f942",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "c848cca2c16d4e7ec8ea57b4d389fdb84ebe7559",
+        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
+        "harness/funding_typed.py": "4fe83151865757c6412a8307c577de5f7eb6cd12",
+        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -112915,15 +114061,15 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "29a05e416efa01f49ecbdbaf8e2254ec33cbfba9",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
+        "harness/limitations.py": "6eb374daea2f49bda712d5fcc7e98729162e35c4",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/overlap_relation.py": "e58b752e53d16bc26ad44d2fb2e03eed084fb3fe",
-        "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
+        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
+        "harness/page.py": "9c272afd67bc4cbc01fcb52d7ecde88fc64e3880",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
+        "harness/pipeline.py": "5b1fc46b6e66241746493c266713db7a9d49460e",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -112963,7 +114109,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "86 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "89 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -112977,6 +114123,7 @@
             "harness/honest_ratchet.py",
             "harness/integrity.py",
             "harness/leakscan.py",
+            "harness/positive_control.py",
             "harness/prospective.py",
             "harness/registry_multi.py",
             "harness/search_completeness.py",
@@ -112992,8 +114139,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "1d10e5b5ec8672efe4ba618e689c145568fe84869e4e89f0fc6bfe83760c6e75",
-      "review_sha256": "c34320a77f6cd302da6d4722b5c3ffa2e1ad37624feebc849e858983c2bfc790",
+      "manuscript_sha256": "df73a2367e17615d5693946bbe46b40d0fba1e8e87737375b792a37ca1717315",
+      "review_sha256": "0bd27b69c32d60185e8710d3ff0a8fa8bc43423e682f96d53e838587716ebcb9",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-secondary-cv-prevention.md UTF-8 text, universal newlines",
@@ -113013,7 +114160,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "873ad74e54a62ab5adaaf010d6164654e6fabab1985e0de9e05835f771bcf928"
+      "release_sha256": "3ed5dd7d64e05beb6005cc18e325f70daddaa895124b0ebc975d7c0b24daa6db"
     }
   }
 }

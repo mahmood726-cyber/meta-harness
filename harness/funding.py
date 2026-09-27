@@ -430,6 +430,11 @@ def scan_pooled(
 
 
 def funding_known(item: dict[str, Any]) -> bool:
+    typed = item.get("typed") or {}
+    if typed.get("industry_tie"):
+        # V1.0.1: known for the industry property only when the tie is PRESENT or proven ABSENT; a public funder
+        # named 'and others' is NOT_ESTABLISHED and stays unknown (harness/funding_typed.py)
+        return typed["industry_tie"] in ("PRESENT", "ABSENT")
     typ = item.get("type") or ""
     return (
         item.get("sponsor_class") in {CLASS_INDUSTRY, CLASS_PUBLIC, CLASS_MIXED}
@@ -442,6 +447,9 @@ def funding_known(item: dict[str, Any]) -> bool:
 
 
 def industry_tied(item: dict[str, Any]) -> bool:
+    typed = item.get("typed") or {}
+    if typed.get("industry_tie"):
+        return typed["industry_tie"] == "PRESENT"
     typ = item.get("type") or ""
     return item.get("sponsor_class") in {CLASS_INDUSTRY, CLASS_MIXED} or typ.startswith("industry") or typ == "mixed" or bool(item.get("note"))
 

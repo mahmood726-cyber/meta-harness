@@ -618,9 +618,37 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
             row["source"] = cand.get("source") or row.get("source")
             row["scanned"] = cand.get("source") or row.get("scanned")
         row["funding_state"] = cand.get("funding_state")
+    type_funding_rows(slug, list(by_id.values()), recs, fulltexts)
     if by_id:
         review["funding"] = list(by_id.values())
     return review
+
+
+def type_funding_rows(slug: str, rows: list[dict[str, Any]], recs: dict[str, dict[str, Any]],
+                      fulltexts: dict[str, str]) -> None:
+    """V1.0.1: attach the typed funding object and DERIVE the served label from it (harness/funding_typed.py).
+    The first-funding-sentence label is kept as `label_from_first_sentence`, so a reader sees what changed; a
+    public funder named 'and others' no longer reads as 'public/non-profit'."""
+    from . import aact_cache, funding_typed
+    sources = funding_typed.load_sources(ROOT, slug)
+    proposals = funding_typed.load_proposals(ROOT, slug)
+    try:
+        aact = aact_cache.values("sponsors", slug) or {}
+    except Exception:  # noqa: BLE001 -- a topic without an AACT measurement has no sponsor rows
+        aact = {}
+    for row in rows:
+        tid = _norm_id(row.get("id"))
+        rec = recs.get(tid) or {}
+        nct = _nct_for(tid, rec) or ""
+        typed = funding_typed.build(tid, " ".join(x for x in (rec.get("title"), rec.get("abstract")) if x),
+                                    fulltexts.get(tid) or "", sources.get(tid) or [],
+                                    ((aact.get(nct) or {}).get("sponsors") or []) if nct else [], proposals)
+        row["typed"] = typed
+        if typed["label"]:
+            row["label_from_first_sentence"] = row.get("type")
+            row["type"] = typed["label"]
+            row["funding_state"] = typed["funding_state"]
+            row["sponsor_class"] = typed["sponsor_class"]
 
 
 def included_trial_ids(review: dict[str, Any]) -> list[str]:
