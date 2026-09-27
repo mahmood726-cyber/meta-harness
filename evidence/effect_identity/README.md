@@ -158,3 +158,22 @@ counts; the held abstract gives only percentages over 137 / 146 / 101, so this i
   entered as two independent comparisons.
 - Both new codes are preserved by the absence layer, so they reach the reader. Served today: 0 shared-control groups among 127
   pooled rows.
+
+## (9) Counts under an HR target (dapagliflozin HFmrEF/HFpEF review)
+
+PRESERVED-HF reports HF events descriptively (HF hospitalisation or urgent HF visit 9/162 vs 9/162, 12-week treatment).
+- `count_only_under_hr()`: a count-only row in an HR-target outcome gets state **CLINICAL_EVENT_COUNTS_RECOVERED_HR_NOT_ESTABLISHED**.
+- Its count-RR (**1.000, 0.4074-2.4545**; the review's 0.407-2.454) is recorded as `is_hazard_ratio: false`. It is never labelled
+  an HR and never enters the HR primary.
+- It enters only an explicitly defined `secondary_count_analysis` (with its definition); otherwise it is reported, held visible,
+  and its code survives the absence layer.
+- The held abstract carries only KCCQ-CS and adverse events, so for the held bytes PRESERVED-HF stays OUTCOME_NOT_IN_SOURCE. The
+  9/162 counts are the review's, used as a synthetic fixture. Served today: 0 count-only rows among 55 pooled rows in HR-target
+  outcomes.
+
+## (10) CI provenance is derived from the computation
+
+The served adverse-events pool is k=1 (44/162 vs 38/162, RR 1.157895 (0.795441-1.685505)), yet it carried the PM-tau2+HKSJ token.
+At k=1 `synth.pool` computes no tau2 and no HKSJ, only the study's own z-based Wald interval. It now stamps
+`synth.pool:k=1:single-study-log-ratio-Wald-z(no-tau2,no-HKSJ):v1` (or the additive twin for MD/SMD) and keeps PM/HKSJ for k>=2.
+The census gate's allow-list gains exactly these tokens.

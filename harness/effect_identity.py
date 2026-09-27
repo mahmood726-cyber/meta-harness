@@ -387,3 +387,27 @@ def apply_multi_arm_rule(trials: list[dict[str, Any]], spec: dict[str, Any] | No
                                     "control would be counted {k} times. Held until the outcome declares multi_arm_rule "
                                     "(COMBINE_ARMS or SPLIT_CONTROL)").replace("{k}", str(k))})
     return out, held
+
+
+# (9) COUNTS UNDER AN HR TARGET (dapagliflozin HFpEF review): PRESERVED-HF reports HF events descriptively (HF hospitalisation or
+# urgent HF visit 9/162 vs 9/162, 12-week treatment). A count-RR (1.000, 0.407-2.454) is NOT a hazard ratio: it is never labelled
+# one and never mixed into an HR primary. State: clinical-event counts recovered; protocol-compatible HR not established. The
+# count-RR may enter only an EXPLICITLY DEFINED secondary analysis (spec.secondary_count_analysis with its definition).
+COUNTS_HR_NOT_ESTABLISHED = "CLINICAL_EVENT_COUNTS_RECOVERED_HR_NOT_ESTABLISHED"
+
+
+def count_only_under_hr(row: dict[str, Any], target: str | None, spec: dict[str, Any] | None) -> dict[str, Any] | None:
+    if "HR" not in str(target or "").upper().replace("/", " ").split():
+        return None
+    if row.get("effect") is not None or row.get("ai") is None:
+        return None
+    rr = counts_tuple(row.get("ai"), row.get("n1i"), row.get("ci"), row.get("n2i"), "RR")
+    sec = (spec or {}).get("secondary_count_analysis")
+    defined = isinstance(sec, dict) and bool(sec.get("definition"))
+    return {"state": COUNTS_HR_NOT_ESTABLISHED, "counts": [row.get(k) for k in ("ai", "n1i", "ci", "n2i")],
+            "count_rr": rr and {k: round(v, 4) for k, v in rr.items()}, "is_hazard_ratio": False,
+            "allowed_in": "SECONDARY_COUNT_ANALYSIS" if defined else None,
+            "reason": ("clinical-event counts recovered; a protocol-compatible HR is not established. The count-based RR is not a "
+                       "hazard ratio and does not enter the HR primary"
+                       + ("; it enters the explicitly defined secondary count analysis" if defined else
+                          "; no secondary count analysis is defined for this outcome, so it is reported, not pooled"))}

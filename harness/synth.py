@@ -195,6 +195,12 @@ class PoolResult:
 
 # The one token that certifies an interval as engine-produced. Bump the version if the method changes.
 CI_PROVENANCE = "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
+# k=1 computes NO tau2 and NO HKSJ: the interval is the single study's own Wald interval with a normal quantile (the z fallback in
+# pool() below). The token names that computation (dapagliflozin HFpEF review, 2026-09-26: a single-study RR from 44/162 vs 38/162
+# carried the PM/HKSJ token).
+CI_PROVENANCE_K1_RATIO = "synth.pool:k=1:single-study-log-ratio-Wald-z(no-tau2,no-HKSJ):v1"
+CI_PROVENANCE_K1_ADDITIVE = "synth.pool:k=1:single-study-difference-Wald-z(no-tau2,no-HKSJ):v1"
+CI_PROVENANCES = (CI_PROVENANCE, CI_PROVENANCE_K1_RATIO, CI_PROVENANCE_K1_ADDITIVE)
 
 
 def _wmean(yi, vi, tau2):
@@ -304,7 +310,9 @@ def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05,
         Q=Q, estimate=bt(mu),
         per_study=[(s.label, y, v) for s, (y, v) in zip(studies, yv)],
         ci_low_fixed=bt(ci_low_fixed), ci_high_fixed=bt(ci_high_fixed), estimate_fixed=bt(mu0),
-        ci_provenance=CI_PROVENANCE,
+        # the token names what was COMPUTED: at k=1 there is no tau2 and no HKSJ, only the study's own z-based Wald interval
+        ci_provenance=(CI_PROVENANCE if k > 1 else
+                       CI_PROVENANCE_K1_ADDITIVE if scale.upper() in ("MD", "SMD") else CI_PROVENANCE_K1_RATIO),
     )
 
 

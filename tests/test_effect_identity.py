@@ -294,3 +294,37 @@ def test_the_new_holds_reach_the_reader_with_their_own_codes():
     from harness import absence
     _, held = ei.apply_multi_arm_rule([dict(a) for a in _ARMS], {})
     assert absence.classify_reason(["mortality"], "", row=held[0])["reason_code"] == "MULTI_ARM_SHARED_CONTROL_UNDECLARED"
+
+
+# ------------------------------------------------------------------ dapagliflozin HFpEF: counts under an HR target; k=1 CI provenance
+from harness import synth   # noqa: E402
+
+# PRESERVED-HF's HF events (9/162 vs 9/162) are the REVIEW'S counts: the held abstract reports KCCQ-CS and adverse events only, so
+# the served row is (correctly) OUTCOME_NOT_IN_SOURCE for the held bytes. This is a synthetic fixture for the rule.
+_PHF = {"id": "PMID 34711976", "label": "PRESERVED-HF", "ai": 9, "n1i": 162, "ci": 9, "n2i": 162}
+
+
+def test_counts_under_an_hr_target_are_never_an_hr_and_never_enter_the_hr_primary():
+    c = ei.count_only_under_hr(dict(_PHF), "HR", {})
+    assert c["state"] == "CLINICAL_EVENT_COUNTS_RECOVERED_HR_NOT_ESTABLISHED" and c["is_hazard_ratio"] is False
+    assert c["count_rr"] == {"estimate": 1.0, "ci_low": 0.4074, "ci_high": 2.4545} and c["allowed_in"] is None   # review: 1.000 (0.407-2.454)
+    defined = {"secondary_count_analysis": {"definition": "HF hospitalisation or urgent HF visit, count-based RR"}}
+    assert ei.count_only_under_hr(dict(_PHF), "HR", defined)["allowed_in"] == "SECONDARY_COUNT_ANALYSIS"
+    assert ei.count_only_under_hr(dict(_PHF), "RR", {}) is None                               # an RR target is not this rule
+
+
+def test_plant_the_served_k1_single_study_rr_carries_the_pm_hksj_token():
+    rev = _git_json("docs/reviews/dapagliflozin-hfpef-hosp/review.json")
+    res = next(o for o in rev["outcomes"] if o["name"] == "Adverse events")["result"]
+    assert res["k"] == 1 and res["ci_provenance"].startswith("synth.pool:PM-tau2+HKSJ")        # the defect, in the served bytes
+
+
+def test_k1_ci_provenance_names_the_single_study_wald_computation():
+    r = synth.pool([synth.Study(label="AE", ai=44, n1i=162, ci=38, n2i=162, measure="RR")], scale="RR")
+    assert (round(r.estimate, 6), round(r.ci_low, 6), round(r.ci_high, 6)) == (1.157895, 0.795441, 1.685505)
+    assert r.ci_provenance == synth.CI_PROVENANCE_K1_RATIO and "HKSJ" not in r.ci_provenance.replace("no-HKSJ", "")
+    two = synth.pool([synth.Study(label="a", ai=44, n1i=162, ci=38, n2i=162, measure="RR"),
+                      synth.Study(label="b", ai=30, n1i=150, ci=35, n2i=150, measure="RR")], scale="RR")
+    assert two.ci_provenance == synth.CI_PROVENANCE
+    from harness import census
+    assert synth.CI_PROVENANCE_K1_RATIO in census._VALID_CI_PROVENANCE and "made-up-token" not in census._VALID_CI_PROVENANCE

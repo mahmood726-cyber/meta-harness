@@ -1474,6 +1474,20 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         time_to_event_rows = list(_tte)
     else:
         time_to_event_rows = []
+    # COUNTS UNDER AN HR TARGET: a count-only row never enters an HR pool (it is not an HR); it goes to an explicitly defined
+    # secondary count analysis, or is reported with its typed state
+    secondary_count_rows = []
+    for t in list(trials):
+        _co = effect_identity_mod.count_only_under_hr(t, spec.get("estimand"), spec)
+        if _co:
+            trials.remove(t)
+            t["counts_under_hr"] = _co
+            if _co["allowed_in"]:
+                secondary_count_rows.append(t)
+            else:
+                absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
+                               "state": _co["state"], "reason_code": _co["state"], "endpoint_admissibility": _co["state"],
+                               "counts_under_hr": _co, "source": t.get("source", ""), "reason": _co["reason"]})
     _pol = [t for t in trials if (t.get("event_polarity") or {}).get("state") == "EVENT_POLARITY_MISMATCH"]
     if _pol:
         trials = [t for t in trials if t not in _pol]
@@ -1512,6 +1526,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    if secondary_count_rows:
+        _sec = spec.get("secondary_count_analysis") or {}
+        out["secondary_count_analysis"] = {
+            "definition": _sec.get("definition"), "decided_by": _sec.get("decided_by"),
+            "rows": [{k: t.get(k) for k in ("id", "label", "ai", "n1i", "ci", "n2i", "counts_under_hr")} for t in secondary_count_rows],
+            "pool": _pool_result([Study(label=t["label"], ai=t["ai"], n1i=t["n1i"], ci=t["ci"], n2i=t["n2i"], measure="RR")
+                                  for t in secondary_count_rows], scale="RR"),
+            "note": "count-based RRs in an explicitly defined SECONDARY analysis; not hazard ratios and not part of the HR primary"}
     if time_to_event_rows:
         # a SEPARATELY SPECIFIED time-to-event analysis: the HRs are kept as HRs; pooled among themselves only when there are >=2
         _tte_studies = [Study(label=t["label"], effect=t.get("effect"), ci_low=t.get("ci_low"), ci_high=t.get("ci_high"),
