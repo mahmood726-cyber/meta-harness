@@ -18,7 +18,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REASON_VS_SPAN", "FAMILY_VS_LEDGER")
+BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REASON_VS_SPAN", "FAMILY_VS_LEDGER",
+            "OMISSION_VS_RECORD", "OMISSION_VS_PROTOCOL")
 ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
@@ -47,7 +48,18 @@ def fill_admissibility(review: dict[str, Any]) -> None:
             per.setdefault(_rid(t.get("id")), {})[name] = {"state": "POOLED"}
         for a in o.get("declared_absent_trials") or []:
             per.setdefault(_rid(a.get("id")), {})[name] = {
-                "state": "DECLARED_ABSENT", "code": a.get("reason_code") or a.get("state") or a.get("absent_kind")}
+                "state": "DECLARED_ABSENT", "code": a.get("reason_code") or a.get("state") or a.get("absent_kind"),
+                "reason": (a.get("reason") or "")[:400]}
+    # an internally-inconsistent held source marks ONLY its scoped endpoints (the whole document when unscoped)
+    from .invalidation import SOURCE_INTERNALLY_INCONSISTENT, inconsistency_scope, missing_state
+    names = [o.get("name") for o in review.get("outcomes") or []]
+    for fact in review.get("held_regulatory_facts") or []:
+        if missing_state(fact) != SOURCE_INTERNALLY_INCONSISTENT:
+            continue
+        rid = _rid(fact.get("trial_key") or fact.get("trial"))
+        for name in (inconsistency_scope(fact) or names):
+            per.setdefault(rid, {})[name] = {"state": SOURCE_INTERNALLY_INCONSISTENT,
+                                             "spans": sorted(s.get("kind") for s in fact.get("spans") or [])}
     for r in _rows(review):
         sr = r.get("screening_record")
         if not sr:
@@ -117,6 +129,40 @@ def _prose(review):
     return [(k, v) for k, v in items if isinstance(v, str) and v]
 
 
+# An omission reason that says the POPULATION is wrong: "population is ACUTE ... pericarditis, NOT the recurrent ..."
+_POP_OMISSION = re.compile(r"population (?:is|was|:)\s*(?P<pop>[^,;.]{3,90}?)\s*(?:,\s*)?(?:NOT|not)\b"
+                           r"|wrong population[:\s]+(?P<pop2>[^,;.]{3,90})", re.S)
+
+
+def _omission_statements(review):
+    """(report id, field, text) for every statement the page makes about why a report is left out."""
+    rows = {_rid(r.get("id")): r for r in _rows(review)}
+    acronym = {}
+    for r in _rows(review):
+        rid = str(r.get("id") or "")
+        if "·" in rid:
+            acronym[rid.split("·")[0].strip().lower()] = _rid(rid)
+    out = []
+    for o in review.get("outcomes") or []:
+        for a in o.get("declared_absent_trials") or []:
+            out.append((_rid(a.get("id")), f"declared_absent[{o.get('name')}]", a.get("reason") or ""))
+        for km in ((o.get("known_missing_sensitivity") or {}).get("rows") or []):
+            key = str(km.get("trial_key") or km.get("name") or "")
+            rid = _rid(key) if _rid(key) in rows else acronym.get(key.strip().lower())
+            text = " ".join(str(km.get(k) or "") for k in ("why_eligible", "note", "verify_basis"))
+            if not rid:
+                named = sorted({i for i in _PMID.findall(text) if i in rows})
+                rid = named[0] if len(named) == 1 else None      # the row's own text names exactly one screened report
+            if rid:
+                out.append((rid, "known_missing_sensitivity", text))
+    return out
+
+
+def _population_omission(text):
+    m = _POP_OMISSION.search(text or "")
+    return (m.group("pop") or m.group("pop2") or "").strip() if m else None
+
+
 def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     """Every disagreement between ledger, record, family object, narrative and adjudicator about one report.
     Kinds in BLOCKING fail the gate; ADJUDICATOR_VS_LEDGER is a recorded open question (advisory)."""
@@ -159,6 +205,23 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
                 add("FAMILY_VS_LEDGER", rid, f"family {fam.get('family_id')} lists it as a {rep.get('role')} report of a "
                                              "registered trial; the ledger rejects it as not an RCT")
 
+    # OMISSION reasons belong to the same record: a report whose record says its parent trial is ELIGIBLE may not be
+    # explained anywhere on the page as left out for its POPULATION, and a population refusal must not name a
+    # population the protocol's own include rules admit (ICAP, colchicine-recurrent-pericarditis: "population is ACUTE
+    # (first-episode) pericarditis, NOT the recurrent-pericarditis population" against a protocol that includes acute
+    # first episodes -- beside a caveat saying ICAP is eligible and not refused for population).
+    inc = _protocol_include(review)
+    for rid, field, text in _omission_statements(review):
+        pop = _population_omission(text)
+        if not pop or rid not in rows:
+            continue
+        sr = rows[rid].get("screening_record") or {}
+        if (sr.get("parent_eligibility") or {}).get("state") == "ELIGIBLE" or rows[rid].get("decision") == "include":
+            add("OMISSION_VS_RECORD", rid, f"{field}: omitted for population '{pop}', but the screening record says the "
+                                           f"parent trial is eligible ({rows[rid].get('decision')}/{rows[rid].get('rule_id')})")
+        if inc and _in_protocol_population(pop, inc):
+            add("OMISSION_VS_PROTOCOL", rid, f"{field}: refused for population '{pop}', which the protocol's include rules "
+                                             f"admit (population_any {inc.get('population_any')})")
     for field, text in _prose(review):
         for sent in re.split(r"(?<=[.;])\s+", text):
             ids = [i for i in _PMID.findall(sent) if i in rows]
@@ -172,6 +235,28 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
                 if says_out and dec == "include":
                     add("NARRATIVE_VS_LEDGER", rid, f"{field}: '{sent.strip()[:160]}' vs ledger include")
     return probs
+
+
+def _protocol_include(review):
+    """The protocol's stated scope: the include rules the screen enforces, stamped on the review at build time
+    (screening.protocol_include); for a review built before that stamp, the topic config the screen reads."""
+    inc = (review.get("screening") or {}).get("protocol_include")
+    if inc:
+        return inc
+    import json, os
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "topics", f"{review.get('slug')}.json")
+    try:
+        return json.load(open(p, encoding="utf-8")).get("include") or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _in_protocol_population(pop: str, inc: dict) -> bool:
+    """The population named in a refusal is inside the protocol's stated scope: it matches population_any and no
+    population_none term (the same matcher the screen uses)."""
+    from . import screen
+    any_terms = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    return bool(any_terms and screen._has(pop.lower(), any_terms) and not screen._has(pop.lower(), inc.get("population_none")))
 
 
 def gate_reasons(review: dict[str, Any]) -> list[str]:

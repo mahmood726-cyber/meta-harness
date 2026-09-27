@@ -45,11 +45,25 @@ EXTRACTED_NOT_ADMISSIBLE = "EXTRACTED_NOT_ADMISSIBLE"
 POOLABLE = "POOLABLE"
 
 
-def missing_state(fact=None, *, discovered=True):
+def inconsistency_scope(fact):
+    """The outcomes an internally-inconsistent source is inconsistent FOR; None = the whole document (arm denominators
+    cannot be read at all, Mashayekhi 2020). ICAP's discontinuation (14 vs 10 in Table 3, 14 vs 12 in the flow diagram)
+    is scoped to that endpoint only; its recurrence and GI rows stay usable."""
+    d = (fact or {}).get("decision") or {}
+    if d.get("decision") != SOURCE_INTERNALLY_INCONSISTENT:
+        return None
+    return list(d.get("scope_outcomes") or []) or None
+
+
+def missing_state(fact=None, *, discovered=True, outcome=None):
     if not fact:
         return DISCOVERED_NOT_RETRIEVED if discovered else NOT_DISCOVERED
     decision = fact.get("decision") or {}
     if decision.get("decision") == SOURCE_INTERNALLY_INCONSISTENT:
+        scope = inconsistency_scope(fact)
+        if scope and outcome is not None and outcome not in scope:
+            # the SAME held document, judged for an endpoint the inconsistency does not touch: held, not yet extracted
+            return SOURCE_RETRIEVED_NOT_EXTRACTED
         return SOURCE_INTERNALLY_INCONSISTENT
     if decision.get("source_conflict"):
         return EXTRACTED_SOURCE_CONFLICT
@@ -357,7 +371,9 @@ def assess(core, signals=None):
     for fact in held:
         state = missing_state(fact)
         if state != POOLABLE:
+            _scope = inconsistency_scope(fact)
             reasons.append({"code": state, "trial": fact["trial"],
+                            **({"scope_outcomes": _scope} if _scope else {}),
                             "detail": f"{fact['trial']}: committed source held; extraction/adjudication pending; not pooled",
                             "document_path": fact["document_path"], "document_sha256": fact["document_sha256"]})
     if kem:

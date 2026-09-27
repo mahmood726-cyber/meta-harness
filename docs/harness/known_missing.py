@@ -252,7 +252,8 @@ def build(review: dict[str, Any], signals: dict[str, Any],
         fact = next((f for f in review.get("held_regulatory_facts", [])
                      if row["trial_key"] in {f.get("trial"), f.get("trial_key"), f.get("nct")}), None)
         if fact:
-            row.update(value_status=missing_state(fact), missing_class=missing_state(fact),
+            _st = missing_state(fact, outcome=primary.get("name"))
+            row.update(value_status=_st, missing_class=_st,
                        held_fact=fact, name=fact["trial"],
                        verify_basis="held document digest verified; proposed adjudication is not admission",
                        why_eligible="eligible trial with a held regulatory source; not pooled pending adjudication")

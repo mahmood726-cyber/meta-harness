@@ -2042,6 +2042,9 @@ def build_review_core(slug, config, records, protocol_sha):
                    **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),
                    **({"ghost": _gh} if (_gh := _load_ghost(slug)) else {})},
         "screening": {"records": screening_records,
+                      # the protocol's stated scope, stamped so omission reasons are checked against the scope this page
+                      # was built under (harness.screening_record OMISSION_VS_PROTOCOL)
+                      "protocol_include": config.get("include", {}),
                       "positive_control": scr["positive_control"], "negative_control": scr["negative_control"],
                       "dual": _with_model_adjudication(slug, screen.run_dual(merged, config), scr["decisions"]),
                       **({"adjudicator_pending": _adj["pending"]} if _adj.get("pending") else {})},
