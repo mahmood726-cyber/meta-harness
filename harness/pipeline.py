@@ -16,6 +16,7 @@ import re
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import outcome_tiers as outcome_tiers_mod
 from . import composite_rule as composite_rule_mod
+from . import narrative_rules as narrative_rules_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -1624,6 +1625,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"]["suppressed_reason"] = "pooled effect SUPPRESSED: " + _mdec["reason"] + ". The per-trial estimates and the per-group analyses are shown."
         elif _mdec["state"] == "MIXED_BY_POLICY":
             out["result"]["scale"] = _mdec["label"]
+            # the mixed pool is shown beside a SENSITIVITY analysis restricted to the majority measure (DOAC-VTE: the five HRs)
+            _rm = _mdec.get("sensitivity_restricted_to")
+            _rs = [s for s, lab in zip(studies, _mlabels) if lab == _rm] if _rm else []
+            if _rm and len(_rs) >= 1 and len(_rs) < len(studies):
+                out["result"]["measure_sensitivity"] = {"restricted_to": _rm, "excluded_measures": sorted(set(_mlabels) - {_rm}),
+                                                        **_pool_result(_rs, scale=_rm)}
         if _incompat:
             # FAIL CLOSED (audit 23, DETECTED-INVALID-BUT-PUBLISHED): a pool that mixes incompatible
             # estimand classes is NOT a valid summary, so we must SUPPRESS every derived number -- pooled
@@ -2296,6 +2303,17 @@ def build_review_core(slug, config, records, protocol_sha):
                                               source=t.get("source", ""), derivation=t.get("derivation", ""))
                                         for t in _sub], scale=_scale) if _sub else None
         _o["outcome_tiers"] = _t
+        # NARRATIVE RULES: each pooled trial names the treatment STRATEGY its held abstract states (parenteral lead-in then X /
+        # X alone), and the analysis populations it states verbatim -- never a bare drug name or an assumed population
+        _agents = sorted((config.get("intervention_agents") or {}).keys(), key=len, reverse=True)
+        for _tr in _trials:
+            _ab = (rec_by_id.get(str(_tr.get("id", "")).replace("PMID ", "")) or {}).get("abstract", "")
+            _drug = next((a for a in _agents if re.search(rf"(?i)\b{re.escape(a)}\b", _ab or "")), None)
+            if _drug:
+                _tr["treatment_strategy"] = narrative_rules_mod.strategy_label(_ab, _drug)
+            _pops = narrative_rules_mod.populations_stated(_ab)
+            if _pops:
+                _tr["analysis_populations_stated"] = _pops
         _o["served_tier"] = "PRIMARY" if _pt.get("state") == "POLICY_APPLIED" else "EXPLORATORY"
         _o["served_title"] = (_o.get("name") if _o["served_tier"] == "PRIMARY" else _t["exploratory"]["title"])
         # PREREGISTRATION (dapagliflozin HFpEF review): a harm / secondary outcome the protocol does not name, and no dated

@@ -143,8 +143,21 @@ def mixture_policy(spec: dict | None) -> dict | None:
     return {**p, "allow": allow}
 
 
-def mixed_label(labels) -> str:
-    return "mixed ratio (" + "+".join(sorted(labels)) + ")"
+def mixed_label(labels, policy: dict | None = None) -> str:
+    """'mixed ratio (HR+RR)'; when the mixture is permitted by the PROTOCOL as an approximation (DOAC-VTE: five HRs + AMPLIFY's RR),
+    the label says so: 'mixed ratio (HR+RR, approximation per protocol)'."""
+    core = "+".join(sorted(labels))
+    return f"mixed ratio ({core}, approximation per protocol)" if (policy or {}).get("basis") == "protocol" else f"mixed ratio ({core})"
+
+
+def majority_measure(labels: list) -> str | None:
+    """The measure most inputs carry (ties -> None): the restriction a mixed pool's sensitivity analysis uses."""
+    counts = {x: labels.count(x) for x in set(labels) if x}
+    if not counts:
+        return None
+    top = max(counts.values())
+    winners = [k for k, v in counts.items() if v == top]
+    return winners[0] if len(winners) == 1 else None
 
 
 def pool_measure_decision(labels: list, adjustments: list, policy: dict | None) -> dict:
@@ -161,7 +174,7 @@ def pool_measure_decision(labels: list, adjustments: list, policy: dict | None) 
     if len(got) == 1:
         dec = {**out, "state": "DERIVED", "label": got[0]}
     elif policy and set(got) == set(policy["allow"]):
-        dec = {**out, "state": "MIXED_BY_POLICY", "label": mixed_label(got)}
+        dec = {**out, "state": "MIXED_BY_POLICY", "label": mixed_label(got, policy), "sensitivity_restricted_to": majority_measure(labels)}
     else:
         return {**out, "state": "REFUSED", "code": "POOL_MEASURE_MIXED", "label": mixed_label(got),
                 "reason": (f"the admitted inputs are {' and '.join(got)} ({out['input_measures']}): different effect measures are not one "

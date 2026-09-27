@@ -1226,6 +1226,30 @@ def check_certificate(review_dir):
     """Require a certificate whose listed inputs still yield the saved release identity."""
     from .certificate import verify as verify_certificate
     return verify_certificate(review_dir)
+def check_narrative_no_ni_inference(review_dir, html):
+    """NARRATIVE RULE (DOAC-VTE review, 2026-09-26): the page never INFERS noninferiority or equivalence from a pooled interval --
+    the trials used prespecified NI margins a pooled ratio does not test. Such a phrase may appear only as a verbatim quotation of
+    held source text (a trial's own conclusion). Held text = the topic's cached abstracts (docs/cache or cache)."""
+    from . import narrative_rules
+    slug = os.path.basename(os.path.normpath(review_dir))
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(review_dir))))
+    held = []
+    for rel in (("docs", "cache", slug, "records.json"), ("cache", slug, "records.json")):
+        p = os.path.join(root, *rel)
+        if os.path.exists(p):
+            try:
+                held = [(r.get("abstract", "") or "") + " " + (r.get("title", "") or "")
+                        for r in (json.load(open(p, encoding="utf-8")).get("records") or [])]
+            except (OSError, ValueError):
+                held = []
+            break
+    bad = narrative_rules.check_ni_inference(html or "", held)
+    if bad:
+        return [f"L1: generated narrative infers noninferiority/equivalence (not a quotation of held source): "
+                + "; ".join(f"{b['phrase']!r} in {b['sentence'][:140]!r}" for b in bad[:4])]
+    return []
+
+
 def check_no_independent_corroboration_claim(review_dir, html):
     from . import comparator_panel
     try:
@@ -1299,6 +1323,7 @@ def gate_page(review_dir):
                + check_stale_heterogeneity_surfaces(review_dir)
                + check_certificate(review_dir)
                + check_no_independent_corroboration_claim(review_dir, html)
+               + check_narrative_no_ni_inference(review_dir, html)
                + check_harms_synthesis_gated(review_dir, html)
                + check_adjustment_span_backed(review_dir)
                + check_cache_tracked(manifest)

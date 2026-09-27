@@ -332,6 +332,15 @@ def _effect_label(res) -> str:
     return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
 
 
+def _measure_sensitivity_block(o: dict) -> str:
+    ms = ((o.get("result") or {}).get("measure_sensitivity") or {})
+    if ms.get("estimate") is None:
+        return ""
+    return ("<div class='note'><strong>Sensitivity: " + _e(ms.get("restricted_to")) + " only</strong> (excludes "
+            + _e(", ".join(ms.get("excluded_measures") or [])) + "): " + _num(ms.get("estimate")) + " (" + _num(ms.get("ci_low"))
+            + "-" + _num(ms.get("ci_high")) + "), k=" + _e(ms.get("k")) + ". The headline pools a declared mixture of measures.</div>")
+
+
 def _derived_dim(o: dict, dim: str, declared):
     """What the page states about a pooled outcome's window / analysis set: the label DERIVED from its inputs
     (outcome_tiers.derived_label), falling back to the declared value only for an outcome built before tiers existed."""
@@ -1952,6 +1961,7 @@ def _outcome_block(o, show_inputs=True, review=None):
         body += _trial_inputs(o)
     if o.get("kind") == "harm":
         body += _harms_ledger_block(o)
+    body += _measure_sensitivity_block(o)
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 
