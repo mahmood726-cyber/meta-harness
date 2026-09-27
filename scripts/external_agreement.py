@@ -11,7 +11,7 @@ import sys
 
 sys.path.insert(0, ROOT := os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from harness import parity_relation  # noqa: E402
+from harness import parity_relation, comparator_truth  # noqa: E402
 
 # divergences (|log-ratio| >= 0.12) adjudicated against the record: why our pooled differs from theirs.
 ADJUDICATION = {
@@ -55,6 +55,11 @@ def build():
         prel = parity_relation.compute(prow, r) if prow else {}
         rows.append(_classify(slug, ours, osc, theirs, tsc, rep.get("outcome"),
                               prel.get("relation"), prel.get("label")))
+        audit = rep.get("continuous_sign") or comparator_truth.continuous_comparison(rep, {})
+        if audit:
+            rows[-1]["continuous_sign"] = audit
+            rows[-1]["their_orientation"] = audit["orientation"]
+            rows[-1]["adjudication"] = comparator_truth.continuous_display(audit)
     n = len(rows)
     same_agree = sum(1 for x in rows if x["category"] == "same_estimand_agree")
     same_replication = sum(1 for x in rows if x["category"] == "same_estimand_replication")

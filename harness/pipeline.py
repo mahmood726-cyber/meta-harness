@@ -2195,7 +2195,7 @@ def build_review_core(slug, config, records, protocol_sha):
         eff = extract.comparator_effect(comp_abstract, comp_full, co["keywords"])
         if eff:
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
-                             "ci_low": eff["ci_low"], "ci_high": eff["ci_high"]})
+                             "ci_low": eff["ci_low"], "ci_high": eff["ci_high"], "source_clause": eff.get("source")})
     # comparator_k: a SOURCE-VERIFIED override for the comparator's trial count. The auto-extraction
     # below reads a number out of the comparator abstract with the topic's outcome keywords and is
     # unreliable (an external audit found it wrong on 4 topics: it grabbed a subgroup or a cited meta's
@@ -2246,6 +2246,12 @@ def build_review_core(slug, config, records, protocol_sha):
         comparator = comparator_truth.annotate_comparator(
             slug, comparator, primary.get("trials") or [], config, _comp_text
         )
+    for rep in comparator.get("reported", []):
+        audit = comparator_truth.continuous_comparison(
+            rep, comparator_truth.continuous_pool(primary), config, comp_full or comp_abstract)
+        if audit is not None:
+            rep["orientation"] = audit["orientation"]
+            rep["continuous_sign"] = audit
     comparator_scope_note = config.get("comparator_scope_note")
     if (primary.get("result") or {}).get("design_refusal"):
         refused_names = ", ".join(

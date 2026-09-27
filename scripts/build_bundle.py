@@ -1334,6 +1334,14 @@ def _analysis_identity(t: dict, review: dict, ee: dict, oc: dict | None = None) 
                       "producer_fields": {"method": se.get("estimator_method"), "reported_label": (t.get("effect_object") or {}).get("reported_label"),
                                           "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand")}},
     }
+    if "orientation" in (oc or {}):
+        cd = ident["comparator_direction"]
+        cd.update(value=oc["orientation"], orientation=oc["orientation"])
+        cd.pop("effect_less_than_1_favours", None)
+        cd["basis"] = "STATED_IN_OWNING_EVIDENCE" if oc["orientation"] != "NOT_STATED" else "NOT_STATED"
+        cd["orientation_witness"] = oc["direction_witness"]
+        cd["observed"] = ({"value": oc["orientation"], "witness": oc["direction_witness"]}
+                          if oc["orientation"] != "NOT_STATED" else None)
     ident["analysis_identity_key"] = " | ".join(f"{k}={ident[k]['value']}[{ident[k]['basis'][:3]}]" for k in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
     ident["rule"] = "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
     return ident
@@ -1389,7 +1397,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         cov = (doc.get("coverage_status") or {}).get("value")
         located = loc["match"] in ("VERBATIM", "NORMALISED")
         ee = estimand_evidence(parsed, eff_clause)
-        oc = contrast_order.ordered_contrast(eff_clause, values, vocab, fam)
+        oc = contrast_order.ordered_contrast(eff_clause, values, vocab, fam, scale=effect["scale"])
         predicates = {
             "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
@@ -1790,6 +1798,7 @@ def registered_estimand(slug: str) -> dict:
         "contrast": _registered_contrast(line),
         "contrast_basis": "read from the protocol's estimand line ('assignment to <A> versus <B>'); UNSTATED when the line names no ordered pair",
         "contrast_normalisation": {"reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED",
+                                   "negation_for_additive_measures": "FORBIDDEN",
                                    "registered_in_protocol": False,
                                    "decided_by": "Mahmood Ahmad, 2026-09-25 (lane OC brief: 'declared reciprocal normalisation (permitted, per my decision)')",
                                    "basis": "a decision of the review's author, not a protocol statement, and recorded as one. For HR/OR/RR/IRR, A/B = 1/(B/A) "

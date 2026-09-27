@@ -2182,6 +2182,11 @@ def _comparator(r, neutral):
     ])
     for rep in ([] if r.get("comparator_panel") else c.get("reported", []) or []):
         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
+        from .comparator_truth import continuous_comparison, continuous_display
+        # Old artefacts with no source-bound annotation remain explicitly unknown.
+        audit = rep.get("continuous_sign") or continuous_comparison(rep, {})
+        if audit:
+            body += "<p>" + _e(continuous_display(audit)) + "</p>"
     sc = c.get("scope") or {}
     if sc:
         note_l = str(sc.get("note") or "").lower()

@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 
 from .membership import canonical_trial_key
+from . import comparator_truth
+from scripts import contrast_order
 
 ROOT = Path(__file__).resolve().parents[1]
 FORBIDDEN = re.compile(r"independent\s+corroboration|independently\s+corroborat\w*|external\s+validation\s+confirms|\breplicat\w*", re.I)
@@ -148,7 +150,29 @@ def attach(slug, review, root=ROOT):
         if "overlaps" in c:
             raise ValueError("COMPARATOR_PANEL: stored overlap prohibited in source panel")
         c["overlaps"] = live
+        c["continuous_comparisons"] = continuous_comparisons(c, review)
     return panel
+
+
+def continuous_comparisons(c, review):
+    effect = c.get("effect") or {}
+    clause = (effect.get("span") or {}).get("quote", "")
+    scale = contrast_order.scale_measure(c.get("scale")) or contrast_order.clause_measure(clause)["measure"]
+    outcomes = [o for o in review.get("outcomes", [])
+                if contrast_order.scale_measure((o.get("result") or {}).get("scale") or o.get("estimand")) in contrast_order.ADDITIVE_MEASURES]
+    if scale in contrast_order.ADDITIVE_MEASURES:
+        outcomes = review.get("outcomes", [])
+    if not effect or (scale not in contrast_order.ADDITIVE_MEASURES and not outcomes):
+        return []
+    # An untyped comparator beside a continuous pool cannot use ratio adjudication.
+    if scale not in contrast_order.ADDITIVE_MEASURES:
+        return [{"pool": o.get("name"), "orientation": "NOT_STATED", "status": "NOT_STATED",
+                 "original": {"estimate": effect.get("value")}, "departures": ["CONTINUOUS_MEASURE_NOT_STATED"]} for o in outcomes]
+    ci = (c.get("ci") or {}).get("value") or [None, None]
+    rep = {"scale": scale, "estimate": effect.get("value"), "ci_low": ci[0], "ci_high": ci[1],
+           "source_clause": clause, "normalisation": c.get("normalisation")}
+    return [dict(comparator_truth.continuous_comparison(rep, comparator_truth.continuous_pool(o),
+                 c.get("orientation_config"), clause), pool=o.get("name")) for o in outcomes]
 
 
 def high_overlap(c, review):
@@ -156,6 +180,8 @@ def high_overlap(c, review):
 
 
 def adjudication(c):
+    if c.get("continuous_comparisons") or contrast_order.scale_measure(c.get("scale")) in contrast_order.ADDITIVE_MEASURES or contrast_order.clause_measure(((c.get("effect") or {}).get("span") or {}).get("quote", ""))["measure"] in contrast_order.ADDITIVE_MEASURES:
+        return "Continuous comparison requires a stated orientation and any declared negation; trial overlap alone establishes no numeric agreement."
     effect = c.get("effect")
     return ADJUDICATION.format(x=f"{effect['value']:.2f}") if effect else None
 
@@ -201,6 +227,9 @@ def render(review):
                      if f else "NOT EXTRACTED from held text")
             parts.append(f"<dt>{esc(key)}</dt><dd>{value}</dd>")
         parts.append("</dl>")
+        audits = continuous_comparisons(c, review)
+        for audit in audits:
+            parts.append("<p>" + esc(audit["pool"]) + ": " + esc(comparator_truth.continuous_display(audit)) + "</p>")
         if c.get("trial_set"):
             parts.append("<table><tr><th>Pool / strand</th><th>Shared</th><th>Harness-only</th><th>Comparator-only</th><th>Jaccard</th><th>Endpoint-compatible overlap</th><th>Endpoint unknown</th></tr>")
             for o in overlaps(c, review):
@@ -208,7 +237,7 @@ def render(review):
                 parts.append("<tr>" + "".join(f"<td>{esc(v)}</td>" for v in values) + "</tr>")
             parts.append("</table>")
             if high_overlap(c, review):
-                parts.append("<p>" + esc(adjudication(c) or "Overlapping evidence sets: agreement is sensitivity to analytic membership.") + "</p>")
+                parts.append("<p>" + esc(adjudication(dict(c, continuous_comparisons=audits)) or "Overlapping evidence sets: agreement is sensitivity to analytic membership.") + "</p>")
         else:
             parts.append("<p>Trial set NOT ENUMERATED; overlap unknown.</p>")
         parts.append("</article>")

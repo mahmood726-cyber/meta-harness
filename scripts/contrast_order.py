@@ -18,10 +18,20 @@ import math
 import re
 
 RATIO_MEASURES = ("HR", "OR", "RR", "IRR")
+ADDITIVE_MEASURES = ("MD", "SMD")
+ADDITIVE_ORIENTATIONS = ("INTERVENTION_MINUS_COMPARATOR", "COMPARATOR_MINUS_INTERVENTION",
+                         "REDUCTION_POSITIVE_FAVOURS_INTERVENTION", "NOT_STATED")
 _CLAUSE_MEASURE = (("HR", r"hazard ratio|(?-i:\bHR\b)"), ("OR", r"odds ratio|(?-i:\bOR\b)"),
                    ("RR", r"relative risk|risk ratio|(?-i:\bRR\b)"), ("IRR", r"(?:incidence[- ])?rate ratio|(?-i:\bIRR\b)"))
 _ESTIMATOR_MEASURE = {"hazard ratio": "HR", "odds ratio": "OR", "risk ratio": "RR", "rate ratio": "IRR"}
 _SCALE_ALIASES = {"HR": "HR", "OR": "OR", "RR": "RR", "IRR": "IRR", "RATE RATIO": "IRR", "RISK RATIO": "RR", "HAZARD RATIO": "HR", "ODDS RATIO": "OR"}
+_SCALE_ALIASES.update({"MD": "MD", "WMD": "MD", "SMD": "SMD", "MEAN DIFFERENCE": "MD",
+                       "WEIGHTED MEAN DIFFERENCE": "MD", "STANDARDIZED MEAN DIFFERENCE": "SMD",
+                       "STANDARDISED MEAN DIFFERENCE": "SMD"})
+_CLAUSE_MEASURE += (("MD", r"(?<!standardized )(?<!standardised )\bmean difference|\bW?MD\b"),
+                    ("SMD", r"standardi[sz]ed mean difference|\bSMD\b"))
+_ESTIMATOR_MEASURE.update({"standardized mean difference": "SMD", "standardised mean difference": "SMD",
+                           "mean difference": "MD"})
 # the object of a comparison is the REFERENCE arm: "... than in the placebo group", "compared with placebo", "A versus B"
 _REFERENCE_MARK = re.compile(r"\b(?:as\s+)?(?:compared\s+(?:with|to)|versus|vs\.?|relative\s+to|than|(?:non-?)?inferior\s+to|superior\s+to)\s+"
                              r"(?:(?:in|on|with|among|receiving|assigned\s+to(?:\s+receive)?|those|patients|participants|the)\s+){0,4}$", re.I)
@@ -132,7 +142,7 @@ def rate_witness(clause, ms, num_side, estimate):
     return dict(out, state="AGREES" if (crude < 1) == (float(estimate) < 1) else "CONTRADICTS")
 
 
-def ordered_contrast(clause, values, vocab, fam=None):
+def ordered_contrast(clause, values, vocab, fam=None, scale=None):
     """Recompute the ordered contrast from the tuple's own clause.
     Rule 0 (NUMERATOR_NAMED): 'hazard ratio for X' names X as the numerator.
     Rule 1 (COMPARATIVE_CONNECTIVE): an arm introduced by 'than (in the)', 'compared with', 'versus', 'relative to',
@@ -144,6 +154,15 @@ def ordered_contrast(clause, values, vocab, fam=None):
     out = {"measure": clause_measure(clause), "experimental_arm": None, "reference_arm": None, "numerator_side": None,
            "estimate": values[0] if values else None, "ci_low": values[1] if values else None, "ci_high": values[2] if values else None,
            "direction_witness": None, "rate_witness": None, "state": "UNORDERED"}
+    if (scale_measure(scale) in ADDITIVE_MEASURES or out["measure"]["measure"] in ADDITIVE_MEASURES
+            or (scale_measure(scale) not in RATIO_MEASURES and out["measure"]["state"] == "UNSTATED"
+                and continuous_orientation(clause, vocab)["orientation"] != "NOT_STATED")):
+        witness = continuous_orientation(clause, vocab)
+        out.update(orientation=witness["orientation"], direction_witness=witness,
+                   state="ORDERED" if witness["orientation"] != "NOT_STATED" else "UNORDERED")
+        if out["state"] == "UNORDERED":
+            out["reason"] = "continuous orientation NOT_STATED in the owning clause"
+        return out
     if not clause:
         out["reason"] = "no result clause holds the effect tuple"
         return out
@@ -208,10 +227,11 @@ def served_orientation(cd, vocab):
     return None
 
 
-def normalisation_policy(regd):
+def normalisation_policy(regd, measure=None):
     """The registered policy for re-orienting a ratio. Absent -> FORBIDDEN (a reversal nobody permitted is refused)."""
     pol = (regd or {}).get("contrast_normalisation") or {}
-    return str(pol.get("reciprocal_for_ratio_measures") or "FORBIDDEN").upper()
+    key = "negation_for_additive_measures" if scale_measure(measure) in ADDITIVE_MEASURES else "reciprocal_for_ratio_measures"
+    return str(pol.get(key) or "FORBIDDEN").upper()
 
 
 def _dec(x):
@@ -231,8 +251,103 @@ def reciprocal_reproduces(src, dst):
     return True
 
 
+def continuous_orientation(clause, vocab=None):
+    """Read subtraction or a positive benefit convention, never infer it from a sign or 'vs'.
+
+    Conflicting witnesses fail closed. REDUCTION is a benefit-coded convention;
+    callers must establish that lower values benefit the endpoint before negating it.
+    """
+    text = clause or ""
+    vocab = vocab or {}
+    terms = {"experimental": list(vocab.get("experimental", [])) + ["intervention", "experimental", "treatment"],
+             "reference": list(vocab.get("reference", [])) + ["comparator", "placebo", "control"]}
+    mentions = arm_mentions(text, terms)
+    hits = []
+    for a, b in zip(mentions, mentions[1:]):
+        if a[2] != b[2] and re.fullmatch(r"\s*(?:change\s*)?(?:minus|[-\u2212])\s*(?:the\s+)?", text[a[1]:b[0]], re.I):
+            hits.append(("INTERVENTION_MINUS_COMPARATOR" if a[2] == "EXPERIMENTAL" else "COMPARATOR_MINUS_INTERVENTION", a[0], b[1]))
+    for m in re.finditer(r"\bpositive\s+(?:values?\s+)?favou?rs?\s+", text, re.I):
+        if any(a[0] == m.end() and a[2] == "EXPERIMENTAL" for a in mentions):
+            hits.append(("REDUCTION_POSITIVE_FAVOURS_INTERVENTION", m.start(), next(a[1] for a in mentions if a[0] == m.end())))
+    # Explicit magnitude-of-benefit language. 'Reduced risk' cannot enter this branch for ratios.
+    for m in re.finditer(r"\b(?:reduc(?:ed|tion)|improv(?:ed|ement))\b[^.;!?]{0,100}?\b(?:by|of)\s+(?:over\s+)?[+\-\u2212]?\d", text, re.I):
+        prefix = text[:m.start()]
+        if re.search(r"\b(?:not|no)\s*$", prefix, re.I):
+            continue
+        preceding = [a for a in mentions if a[1] <= m.start()]
+        if preceding and preceding[-1][2] == "REFERENCE":
+            continue
+        hits.append(("REDUCTION_POSITIVE_FAVOURS_INTERVENTION", m.start(), m.end()))
+    orientations = {h[0] for h in hits}
+    if len(orientations) != 1:
+        return {"orientation": "NOT_STATED", "rule": "CONFLICTING_OR_ABSENT_ORIENTATION", "text": None,
+                "clause_start": None, "clause_end": None}
+    orientation, start, end = hits[0]
+    return {"orientation": orientation, "rule": "CONTINUOUS_CLAUSE", "text": text[start:end],
+            "clause_start": start, "clause_end": end}
+
+
+def negation_reproduces(src, dst):
+    """Exact negation rounded to SOURCE precision, with CI endpoints exchanged.
+
+    Decimal strings retain trailing-zero precision; no absolute-value comparison,
+    relative tolerance, destination-precision widening, or non-finite values.
+    """
+    from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
+    try:
+        for obj in (src, dst):
+            vals = [Decimal(str(obj[k])) for k in ("estimate", "ci_low", "ci_high")]
+            if not all(v.is_finite() for v in vals) or not vals[1] <= vals[0] <= vals[2]:
+                return False
+        for sk, dk in (("estimate", "estimate"), ("ci_high", "ci_low"), ("ci_low", "ci_high")):
+            s, d = Decimal(str(src[sk])), Decimal(str(dst[dk]))
+            unit = Decimal(1).scaleb(s.as_tuple().exponent)
+            if d.quantize(unit, rounding=ROUND_HALF_EVEN) != -s:
+                return False
+    except (KeyError, TypeError, ValueError, InvalidOperation):
+        return False
+    return True
+
+
+def additive_normalisation(src, measure, regd=None, normalisation=None):
+    """Validate a declaration and retain the original; no implicit sign changes.
+
+    Registration must explicitly type the target orientation. Benefit-coded
+    reductions are opposite to intervention-minus-comparator only for a declared
+    lower-is-better endpoint (higher-is-better improvements are already aligned).
+    """
+    original = {k: src.get(k) for k in ("orientation", "estimate", "ci_low", "ci_high")}
+    target = (regd or {}).get("orientation", "NOT_STATED")
+    current = src.get("orientation", "NOT_STATED")
+    out = {"original": original, "pooled": dict(original), "departures": [], "normalisation": None}
+    sign = {"INTERVENTION_MINUS_COMPARATOR": 1, "COMPARATOR_MINUS_INTERVENTION": -1}
+    lower = (regd or {}).get("lower_is_better")
+    if isinstance(lower, bool):
+        sign["REDUCTION_POSITIVE_FAVOURS_INTERVENTION"] = -1 if lower else 1
+    if current not in sign or target not in sign:
+        out["departures"].append("CONTINUOUS_ORIENTATION_NOT_STATED")
+        return out
+    if normalisation:
+        if str(normalisation.get("operation", "")).upper() != "NEGATION" or scale_measure(measure) not in ADDITIVE_MEASURES:
+            out["departures"].append("CONTRAST_NORMALISATION_UNKNOWN")
+        elif normalisation_policy(regd, measure) != "PERMITTED_WHEN_DECLARED":
+            out["departures"].append("CONTRAST_NORMALISATION_NOT_PERMITTED")
+        elif (normalisation.get("orientation") not in sign
+              or sign[normalisation["orientation"]] != -sign[current]
+              or not negation_reproduces(src, normalisation)):
+            out["departures"].append("CONTRAST_NORMALISATION_NOT_REPRODUCED")
+        else:
+            out["pooled"] = {k: normalisation.get(k) for k in original}
+            out["normalisation"] = {"operation": "NEGATION", "original": original, "result": dict(out["pooled"])}
+    if sign.get(out["pooled"]["orientation"]) != sign[target]:
+        out["departures"].append("CONTINUOUS_ORIENTATION_DEPARTURE")
+    return out
+
+
 def contrast_value(oc):
     """The served comparator_direction value for an ORDERED contrast: '<numerator arm> vs <reference arm>'."""
+    if "orientation" in oc:
+        return oc["orientation"]
     if oc.get("state") != "ORDERED":
         return None
     e = (oc.get("experimental_arm") or {}).get("term") or "the experimental arm"
@@ -244,6 +359,14 @@ def registered_departures(oc, scale, regd, vocab, normalisation=None):
     """P11's contrast and estimator departures, producer side: what enters the pool must be the registered orientation and measure.
     A declared RECIPROCAL (policy permitting) moves the pooled orientation; an undeclared reversal cannot."""
     out = []
+    if scale_measure(scale) in ADDITIVE_MEASURES:
+        checked = additive_normalisation(oc, scale, regd, normalisation)
+        out.extend(("contrast", code) for code in checked["departures"])
+        permitted = (regd or {}).get("estimators_permitted") or []
+        cm = (oc.get("measure") or {}).get("measure")
+        if (permitted and scale_measure(scale) not in [scale_measure(s) for s in permitted]) or (cm and cm != scale_measure(scale)):
+            out.append(("estimator", "continuous measure disagrees with source or registration"))
+        return out
     num = oc.get("numerator_side") if oc.get("state") == "ORDERED" else None
     if normalisation and str(normalisation.get("operation") or "").upper() == "RECIPROCAL" and normalisation_policy(regd).startswith("PERMITTED"):
         n2 = served_orientation({"value": normalisation.get("orientation")}, vocab)

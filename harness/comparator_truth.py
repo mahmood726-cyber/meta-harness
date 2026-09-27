@@ -9,8 +9,95 @@ import os
 import re
 from typing import Any, Iterable
 
+from scripts import contrast_order
+
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def continuous_comparison(reported, ours, config=None, text=""):
+    """Source-bound sign audit; the original is never overwritten by its normalisation.
+
+    A declaration is supplied on reported.normalisation and authorised by
+    config.contrast_normalisation. Missing or ambiguous clauses stay NOT_STATED.
+    """
+    config = config or {}
+    scale = contrast_order.scale_measure(reported.get("scale"))
+    if scale not in contrast_order.ADDITIVE_MEASURES:
+        return None
+    vocab = contrast_order.contrast_vocabulary(config)
+    from decimal import Decimal, InvalidOperation
+
+    def holds_tuple(clause):
+        numbers = [Decimal(m.group()) for m in re.finditer(
+            r"(?<![\w.])[+\-]?\d+(?:\.\d+)?(?![\w.])", clause.replace("\u2212", "-").replace("\u2010", "-"))]
+        try:
+            return reported.get("estimate") is not None and all(
+                Decimal(str(reported[k])) in numbers for k in ("estimate", "ci_low", "ci_high") if reported.get(k) is not None)
+        except InvalidOperation:
+            return False
+
+    quote = reported.get("source_clause") or ""
+    if not quote or quote not in text or not holds_tuple(quote):
+        # Bind all three numbers to ONE sentence, not an arbitrary nearby window.
+        candidates = []
+        for sentence in _sentences(text):
+            if holds_tuple(sentence):
+                candidates.append(sentence)
+        quote = candidates[0] if len(candidates) == 1 else ""
+    witness = contrast_order.continuous_orientation(quote, vocab)
+    src = {k: reported.get(k) for k in ("estimate", "ci_low", "ci_high")}
+    src["orientation"] = witness["orientation"]
+    reg = {"orientation": ours.get("orientation", "NOT_STATED"),
+           "lower_is_better": ours.get("lower_is_better"),
+           "contrast_normalisation": config.get("contrast_normalisation", {})}
+    source_measure = contrast_order.clause_measure(quote)
+    wrong_measure = (source_measure["state"] == "UNRESOLVED" or
+                     (source_measure["state"] == "STATED" and source_measure["measure"] != scale))
+    checked = contrast_order.additive_normalisation(src, scale, reg, None if wrong_measure else reported.get("normalisation"))
+    checked.update(orientation=witness["orientation"], source_clause=quote or None, witness=witness,
+                   status="NOT_COMPARABLE", equal=None)
+    if wrong_measure:
+        checked["departures"].append("CONTINUOUS_SOURCE_MEASURE_MISMATCH")
+    if contrast_order.scale_measure(ours.get("scale")) != scale:
+        checked["departures"].append("CONTINUOUS_MEASURE_MISMATCH")
+    if checked["departures"]:
+        checked["status"] = "NOT_STATED" if "CONTINUOUS_ORIENTATION_NOT_STATED" in checked["departures"] else "DEPARTURE"
+    else:
+        aligned = checked["original"]
+        try:
+            reverse = {"estimate": str(-Decimal(str(aligned["estimate"]))), "ci_low": str(-Decimal(str(aligned["ci_high"]))),
+                       "ci_high": str(-Decimal(str(aligned["ci_low"])))}
+        except (TypeError, ValueError, InvalidOperation):
+            return checked
+        if all(ours.get(k) is not None for k in ("estimate", "ci_low", "ci_high")):
+            # A declaration cannot relax the precision of the original source.
+            checked["equal"] = contrast_order.negation_reproduces(aligned if checked["normalisation"] else reverse, ours)
+            checked["status"] = "EQUAL_AT_SOURCE_PRECISION" if checked["equal"] else "DIFFERENT_AFTER_ORIENTATION_CHECK"
+    return checked
+
+
+def continuous_display(audit):
+    """Plain text for every comparator display, including explicit unknowns."""
+    if not audit:
+        return ""
+    value = f"Orientation: {audit['orientation']}; {audit['status']}. Original: {audit['original']}."
+    if audit.get("normalisation"):
+        value += f" Declared NEGATION: {audit['normalisation']['result']}."
+    if audit.get("departures"):
+        value += " " + ", ".join(audit["departures"]) + "; numeric agreement/disagreement withheld."
+    return value
+
+
+def continuous_pool(outcome):
+    """The engine's mean1-minus-mean2 contract is evidence for a reconstructed pool."""
+    result = dict(outcome.get("result") or {})
+    trials = outcome.get("trials") or []
+    if trials and all(t.get("mean1") is not None and t.get("mean2") is not None for t in trials):
+        result["orientation"] = "INTERVENTION_MINUS_COMPARATOR"
+    result.setdefault("orientation", "NOT_STATED")
+    result["lower_is_better"] = outcome.get("lower_is_better")
+    return result
 
 _WS = re.compile(r"\s+")
 _N_LVEF40 = re.compile(r"LVEF\s*(?:<=|\u2264)\s*40.{0,100}?n\s*=\s*([\d, ]+)", re.I)
