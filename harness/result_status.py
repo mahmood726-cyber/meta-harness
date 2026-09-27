@@ -165,6 +165,17 @@ def derive(review: dict[str, Any], keywords: dict[str, list[str]] | None = None)
             abridged = (a.get("source_coverage") or {}).get("coverage") in ("EXCERPT", "ALTERED")
             a["result_status"] = status_of(a, False, pend, mentioned=_pid(a.get("id")) in mentioned,
                                            verbatim_mentions=abridged and source_coverage.mentions(_pid(a.get("id")), kws))
+            # a HELD, examined registry result declared for this outcome (docs/multi_trial_reports.json per_outcome)
+            # upgrades 'not yet retrieved': the source IS retrieved, and says what it says. Only that upgrade: a
+            # declaration never overrides a state a held extraction or a pool decided.
+            decl = (((a.get("multi_trial_report") or {}).get("registry_results") or {}).get("per_outcome") or {}).get(o.get("name"))
+            if decl and a["result_status"].get("state") == NOT_YET_RETRIEVED and decl.get("state") in (
+                    RETRIEVED_NOT_REPORTED, REPORTED_UNRESOLVED, NOT_MEASURED):
+                a["result_status"] = {"state": decl["state"], "coverage": decl.get("coverage"), "basis": decl.get("basis"),
+                                      "source": {k: a["multi_trial_report"]["registry_results"].get(k) for k in ("path", "sha256")},
+                                      "supersedes": a["result_status"],
+                                      "statement": (f"{a.get('id')}: {o.get('name')} -- {decl['state']}: {decl.get('basis')} "
+                                                    f"(coverage: {decl.get('coverage')})")}
         res = o.get("result")
         # rebuild ONLY the generic sentence the false-absence guard wrote; a reason another mechanism set (e.g. a
         # HARMS_INCOMPLETE reason naming the unresolved report) is never replaced

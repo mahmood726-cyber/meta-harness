@@ -889,44 +889,48 @@ _NOT_YET_STATUS = {"NOT_YET_RECRUITING"}
 _COMPLETED_STATUS = {"COMPLETED", "TERMINATED", "WITHDRAWN", "SUSPENDED", "UNKNOWN"}
 
 
-def _completeness_for_record(rec, dates):
-    rid = str((rec or {}).get("id") or "")
+def _completeness_for_record(rec, dates, source_date=None):
+    """A publication (PMID) is a completed, reported trial. A registration's lifecycle is typed from its held AACT row
+    (harness.lifecycle): a future planned completion never yields 'completed', an unknown status never defaults to it."""
+    from . import lifecycle as lifecycle_mod
     nct = screen._nct_id(rec or {})
-    d = dates.get(nct or "") if nct else {}
-    status = str((d or {}).get("overall_status") or (rec or {}).get("overall_status") or (rec or {}).get("status") or "").upper()
-    has_results = bool((rec or {}).get("has_results") or (d or {}).get("results_first_posted_date"))
-    if status in _NOT_YET_STATUS:
-        state = "eligible+not_yet_recruiting"
-    elif status in _ONGOING_STATUS:
-        state = "eligible+ongoing"
-    elif (rec or {}).get("id_type") == "pmid" or status in _COMPLETED_STATUS or has_results:
-        state = "eligible+completed+results_available" if (has_results or (rec or {}).get("id_type") == "pmid") else "eligible+completed+results_unavailable"
-    else:
-        state = "eligible+completed+results_unavailable"
+    d = (dates.get(nct or "") if nct else None) or {}
+    has_results = bool((rec or {}).get("has_results") or d.get("results_first_posted_date"))
+    if (rec or {}).get("id_type") == "pmid":
+        return {"completeness_state": "eligible+completed+results_available",
+                "completeness_basis": "a published report of the trial"}
+    row = d or {"overall_status": (rec or {}).get("overall_status") or (rec or {}).get("status"),
+                "completion_date": (rec or {}).get("completion_date")}
+    lc = lifecycle_mod.lifecycle(row, source_date if d else None,
+                                 source=("AACT studies row (held, digest-matched in cache/<slug>/aact_inputs.json)" if d
+                                         else "committed CT.gov record (no held AACT row)"))
     return {
-        "completeness_state": state,
-        "registry_status": status or None,
-        "results_first_posted_date": (d or {}).get("results_first_posted_date") or None,
-        "completion_date": (d or {}).get("completion_date") or None,
-        "completeness_basis": "CT.gov status/results dates from local AACT snapshot" if nct and d else "publication record / committed cache metadata",
+        "completeness_state": lifecycle_mod.completeness_state(lc, has_results),
+        "lifecycle": lc,
+        "registry_status": lc["recruitment_status"]["value"],
+        "results_first_posted_date": d.get("results_first_posted_date") or None,
+        "completion_date": lc["completion_date"]["value"],
+        "completeness_basis": ("CT.gov status/results dates from the held AACT snapshot" if d
+                               else "no held registry lifecycle row: lifecycle UNKNOWN"),
     }
 
 
 def _annotate_completeness(review, rec_by_id):
     ncts = [screen._nct_id(r) for r in rec_by_id.values()]
     dates = aact_cache.values("study_dates") if any(ncts) else {}
+    source_date = aact_cache.snapshot()
 
     def annotate(item):
         rec = rec_by_id.get(_clean_record_id(item.get("id")))
         if not rec:
             return
-        ann = _completeness_for_record(rec, dates)
+        ann = _completeness_for_record(rec, dates, source_date)
         for k, v in ann.items():
             if v not in (None, "", []):
                 item.setdefault(k, v)
 
     for row in (review.get("screening") or {}).get("records") or []:
-        if row.get("decision") == "include":
+        if row.get("decision") in ("include", "awaiting_classification"):
             annotate(row)
     for outcome in review.get("outcomes") or []:
         for row in outcome.get("declared_absent_trials") or []:

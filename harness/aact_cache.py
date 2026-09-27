@@ -38,6 +38,14 @@ def values(kind, slug=None):
     return (doc or {}).get("values", {}).get(kind, {})
 
 
+def snapshot(slug=None):
+    """The date of the held AACT snapshot the current build reads (the source date of every registry lifecycle)."""
+    doc = _current.get()
+    if doc is None and slug:
+        doc = load(slug)
+    return (doc or {}).get("snapshot")
+
+
 def cache_only_build(function):
     @wraps(function)
     def wrapped(slug, *args, **kwargs):

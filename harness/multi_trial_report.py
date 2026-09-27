@@ -41,11 +41,30 @@ def _relevance(root: str, trial: dict[str, Any], config: dict[str, Any]) -> dict
     return {"relevant": False, "basis": f"its own population ({pop!r}) names none of this review's populations"}
 
 
+def _verify_raw(root: str, w: dict[str, Any]) -> None:
+    """A witness of a JSON NUMBER field (e.g. seriousNumAffected): the span is checked in the file's raw bytes."""
+    import hashlib
+    raw = open(os.path.join(root, w["path"]), "rb").read()
+    if hashlib.sha256(raw).hexdigest() != w.get("sha256"):
+        raise ValueError(f"multi-trial report witness digest mismatch: {w['path']}")
+    if w["span"] not in raw.decode("utf-8"):
+        raise ValueError(f"multi-trial report witness span not in the held bytes: {w['path']}: {w['span'][:80]!r}")
+
+
 def resolve(root: str, config: dict[str, Any]) -> list[dict[str, Any]]:
     out = []
     for rep in load(root):
         for c in rep.get("combined_analyses") or []:
             _verified(root, c)
+        for t in rep.get("trials") or []:
+            if t.get("report_population"):
+                _verified(root, t["report_population"])
+            for x in ((t.get("registry_results") or {}).get("exploratory_harms") or {}).get("rows") or []:
+                for w in x.get("witnesses") or []:
+                    if w.get("representation") == "raw bytes":
+                        _verify_raw(root, w)
+                    else:
+                        _verified(root, {"witness": w})
         trials = [{"label": t["label"], "registration": t["registration"], "n_randomised": t.get("n_randomised"),
                    "population": (_verified(root, t.get("population")) or {}).get("text"),
                    **_relevance(root, t, config),

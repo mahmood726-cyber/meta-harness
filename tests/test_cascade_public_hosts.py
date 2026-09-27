@@ -31,3 +31,17 @@ def test_a_redirect_to_a_non_public_host_is_refused():
 def test_public_hosts_pass_the_check():
     assert ac._public_url("https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=x")
     assert ac._public_url("https://publicatio.bibl.u-szeged.hu/27237/1/Rosenstock.pdf")
+
+
+def test_a_screening_target_holds_the_registration_without_posted_results(tmp_path, monkeypatch):
+    """FIVE-STAR / CONFIDENCE: no posted results, but the registration is the evidence of a screening gap. Only a
+    target that asks for it (hold_registration) holds it; the default still holds posted results only."""
+    import json as _j
+    held = {}
+    monkeypatch.setattr(ac, "_get", lambda url, accept=None: (200, _j.dumps({"hasResults": False, "protocolSection": {}}).encode()))
+    monkeypatch.setattr(ac, "_record", lambda *a, **k: None)
+    monkeypatch.setattr(ac, "_hold", lambda rel, body, meta: held.setdefault(rel, meta))
+    ac.route_registry({"trial": "X", "nct": "NCT05887817"})
+    assert held == {}
+    ac.route_registry({"trial": "X", "nct": "NCT05887817", "hold_registration": True})
+    assert list(held) == ["X/NCT05887817.json"] and "registration record" in held["X/NCT05887817.json"]["what"]

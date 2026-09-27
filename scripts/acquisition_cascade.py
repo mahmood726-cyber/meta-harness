@@ -263,10 +263,14 @@ def route_registry(t):
     url = f"https://clinicaltrials.gov/api/v2/studies/{nct}"
     st, b = _get(url)
     has = json.loads(b).get("hasResults") if b else None
-    _record("registry_results", t["trial"], url, st if has else ("NO_POSTED_RESULTS" if b else st), b if has else b"",
-            note=f"hasResults={has}")
-    if has:
-        _hold(f"{t['trial']}/{nct}.json", b, {"source": url, "route": "registry", "tier_document": "PRIMARY", "trial": t["trial"]})
+    # a SCREENING target (hold_registration) holds the registration itself even with no posted results: for a trial
+    # missing from the inventory, its design, arms, dates and status ARE the evidence (FIVE-STAR, CONFIDENCE)
+    keep = bool(b) and (has or t.get("hold_registration"))
+    _record("registry_results", t["trial"], url, st if keep else ("NO_POSTED_RESULTS" if b else st), b if keep else b"",
+            note=f"hasResults={has}" + ("; held as the registration record" if keep and not has else ""))
+    if keep:
+        _hold(f"{t['trial']}/{nct}.json", b, {"source": url, "route": "registry", "tier_document": "PRIMARY", "trial": t["trial"],
+                                             **({} if has else {"what": "registration record (no posted results)"})})
 
 
 def route_regulatory(t, drug, indication):

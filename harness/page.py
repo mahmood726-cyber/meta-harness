@@ -1284,6 +1284,18 @@ def _screening(r, neutral):
             f"<td>{_e(((t.get('registry_results') or {}).get('state')) or '')}"
             + "".join(f"<br><span class='muted'>{_e(k.replace('_', ' '))}: {_e(v)}</span>"
                       for k, v in sorted(((t.get('registry_results') or {}).get('findings') or {}).items()))
+            + "".join(f"<br><span data-mtr-outcome-state='{_e(v.get('state'))}'>{_e(k)}: <code>{_e(v.get('state'))}</code> "
+                      f"&mdash; {_e(v.get('basis'))} (coverage: {_e(v.get('coverage'))})</span>"
+                      for k, v in sorted(((t.get('registry_results') or {}).get('per_outcome') or {}).items()))
+            + (("<br><strong>Exploratory harms</strong> <span class='muted'>("
+                + _e(((t.get('registry_results') or {}).get('exploratory_harms') or {}).get('_policy')) + ")</span>"
+                + "".join(f"<br><span data-mtr-exploratory='{_e(x.get('state'))}'>{_e(x.get('outcome'))}: <code>{_e(x.get('state'))}</code> "
+                          + (f"{_e(x['values'].get('ai'))}/{_e(x['values'].get('n1i'))} vs {_e(x['values'].get('ci'))}/{_e(x['values'].get('n2i'))} "
+                             f"({_e(x.get('arm_order'))}; {_e(x.get('timeframe'))})" if x.get('values') else _e(x.get('why')))
+                          + "</span>"
+                          for x in sorted((((t.get('registry_results') or {}).get('exploratory_harms') or {}).get('rows') or []),
+                                          key=lambda y: str(y.get('outcome')))))
+               if ((t.get('registry_results') or {}).get('exploratory_harms') or {}).get('rows') else "")
             + "</td></tr>" for t in mtr.get("trials") or [])
         comb = "; ".join(f"{_e(c.get('label'))} (n={_e(c.get('n'))}): {_e(c.get('policy'))}" for c in mtr.get("combined_analyses") or [])
         flow += (f"<h4>One article, several trials: {_e(mtr.get('report_id'))}</h4>"
