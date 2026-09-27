@@ -331,11 +331,13 @@
               },
               "Injection-site reactions": {
                 "state": "DECLARED_ABSENT",
-                "code": "REFUSED_ON_EVIDENCE"
+                "code": "REFUSED_ON_EVIDENCE",
+                "reason": "The abstract gives injection-site reaction percentages without event counts or a harm effect with confidence interval; local AACT either omits this below-threshold non-serious outcome or supplies only serious reactions, not the overall outcome."
               },
               "Adverse events leading to discontinuation": {
                 "state": "DECLARED_ABSENT",
-                "code": "SIGNAL_SPURIOUS"
+                "code": "SIGNAL_SPURIOUS",
+                "reason": "The fired sentence compares adverse-event incidence and injection-site reactions, not adverse events causing treatment discontinuation; no discontinuation result is stated in the abstract or linked outcome tables."
               }
             }
           },
@@ -379,11 +381,13 @@
               },
               "Injection-site reactions": {
                 "state": "DECLARED_ABSENT",
-                "code": "REFUSED_ON_EVIDENCE"
+                "code": "REFUSED_ON_EVIDENCE",
+                "reason": "The abstract gives injection-site reaction percentages without event counts or a harm effect with confidence interval; local AACT either omits this below-threshold non-serious outcome or supplies only serious reactions, not the overall outcome."
               },
               "Adverse events leading to discontinuation": {
                 "state": "DECLARED_ABSENT",
-                "code": "SIGNAL_SPURIOUS"
+                "code": "SIGNAL_SPURIOUS",
+                "reason": "The fired sentence compares adverse-event incidence and injection-site reactions, not adverse events causing treatment discontinuation; no discontinuation result is stated in the abstract or linked outcome tables."
               }
             }
           },
@@ -486,15 +490,18 @@
             "per_outcome": {
               "Major adverse cardiovascular events": {
                 "state": "DECLARED_ABSENT",
-                "code": "RESULT_INCOMPATIBLE"
+                "code": "RESULT_INCOMPATIBLE",
+                "reason": "the bound endpoint span lacks component(s) of the declared composite (cardiovascular death): a component or subset result is not the composite 'Major adverse cardiovascular events'; refused rather than pooled under the composite label"
               },
               "Injection-site reactions": {
                 "state": "DECLARED_ABSENT",
-                "code": "OUTCOME_NOT_IN_SOURCE"
+                "code": "OUTCOME_NOT_IN_SOURCE",
+                "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
               },
               "Adverse events leading to discontinuation": {
                 "state": "DECLARED_ABSENT",
-                "code": "OUTCOME_NOT_IN_SOURCE"
+                "code": "OUTCOME_NOT_IN_SOURCE",
+                "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
               }
             }
           },
@@ -535,15 +542,18 @@
             "per_outcome": {
               "Major adverse cardiovascular events": {
                 "state": "DECLARED_ABSENT",
-                "code": "outcome_post_hoc_not_pooled"
+                "code": "outcome_post_hoc_not_pooled",
+                "reason": "MACE effect is explicitly post hoc; eligibility is P/I/C/design, but a post-hoc outcome is not pooled as the prespecified topic outcome."
               },
               "Injection-site reactions": {
                 "state": "DECLARED_ABSENT",
-                "code": "ENDPOINT_UNBOUND"
+                "code": "ENDPOINT_UNBOUND",
+                "reason": "the hand-extracted number is not bound to an endpoint in the held document (held document cache/pcsk9-mace/harms_aact_held.json changed since the approval (sha256 142c68c1dd5a != approved 108efeb5ed7e): the approval is stale); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication"
               },
               "Adverse events leading to discontinuation": {
                 "state": "DECLARED_ABSENT",
-                "code": "SIGNAL_SPURIOUS"
+                "code": "SIGNAL_SPURIOUS",
+                "reason": "The fired sentence describes tolerated background statin therapy before randomization, not adverse events leading to discontinuation of randomized alirocumab or placebo."
               }
             }
           },
@@ -584,15 +594,18 @@
             "per_outcome": {
               "Major adverse cardiovascular events": {
                 "state": "DECLARED_ABSENT",
-                "code": "outcome_not_reported"
+                "code": "outcome_not_reported",
+                "reason": "GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect."
               },
               "Injection-site reactions": {
                 "state": "DECLARED_ABSENT",
-                "code": "OUTCOME_NOT_IN_SOURCE"
+                "code": "OUTCOME_NOT_IN_SOURCE",
+                "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
               },
               "Adverse events leading to discontinuation": {
                 "state": "DECLARED_ABSENT",
-                "code": "OUTCOME_NOT_IN_SOURCE"
+                "code": "OUTCOME_NOT_IN_SOURCE",
+                "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
               }
             }
           },
@@ -716,6 +729,38 @@
         "publication_role": "primary"
       }
     ],
+    "protocol_include": {
+      "population_any": [
+        "cardiovascular disease",
+        "atherosclerotic cardiovascular disease",
+        "acute coronary syndrome",
+        "coronary disease",
+        "coronary heart disease",
+        "cardiovascular risk",
+        "myocardial infarction",
+        "peripheral artery disease",
+        "ascvd"
+      ],
+      "population_none": [
+        "heart failure",
+        "kidney disease",
+        "chronic kidney disease",
+        "venous thromboembolism"
+      ],
+      "intervention_any": [
+        "evolocumab",
+        "alirocumab",
+        "PCSK9 inhibitor",
+        "PCSK9 inhibitors",
+        "PCSK9 inhibition"
+      ],
+      "intervention_in_title": true,
+      "comparator_any": [
+        "placebo"
+      ],
+      "design_double_blind": true,
+      "prevention": true
+    },
     "positive_control": "Recovered & included the canonical trials ['28304224', '30403574'] that a comparator includes; none missed.",
     "negative_control": "Cross-topic trial(s) ['33264825'] recovered by the search and correctly EXCLUDED ['33264825'] by rule (same drug/design, wrong topic).",
     "dual": {
@@ -31154,7 +31199,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dd2403f56a1025c011e6d6a601d25817aab3c9e7",
-    "review_sha256": "c2ec53d4896b2d763ccc4165f8e08dd4bc54fb4d05b31e5a588c7e8887258229",
+    "review_sha256": "d00a82c08ed43ac6c33db3cbbf0af6832ced75f891b9f38f270a09db19d86fca",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -31360,7 +31405,7 @@
       "retrieved_corpus_sha256": "2804ee5b78dc7981da8c409728db9b0f0a63619fb89cb6c3b1680843e02ab41f",
       "records_file_sha256": "abcc569c2a4e159d5f7ae08b2adabb96c2fa1946f28b0fe7fd86414f41448a39",
       "retrieval_ledger_sha256": "a2b21c1dbe65987d57093c77f364ea19aada315810e8edb1560d76ed28784b50",
-      "screening_ledger_sha256": "a01dfcc11f803458aec879a3e096e15d68891615de8e00069ecb5b5b2be3a19f",
+      "screening_ledger_sha256": "1b481701792d67e0c8aa98cebde50f6e3313bdcb46f6ccd2a959e6d5369ee6ba",
       "extraction_objects_sha256": "d50e6c3bd1163f53bff2514bc7f22f60972560e4f04a569d34182c4805e81f20",
       "trial_family_map_sha256": "3d8c9c2b22b57ad3fdd487ff97b8aea080be7aef30c7bad8ad24aabe71a2330b",
       "rob_object_sha256": "c774ee1aafa7962ca7566f06c61ce9a6d3ede658e73b4a4d34500c5f7744fe9f",
@@ -31375,7 +31420,7 @@
         }
       ],
       "config_sha256": "d4a0c9b2985287d75b845c4798201150d2092bd9250480e969dc95cdede68a46",
-      "analysis_code_sha256": "88ee7e33fef107cd4192997b4985541d7878299232fddf7c4badb953fdd8d7cc",
+      "analysis_code_sha256": "ea88b125cb0e9b88433c1993366f9c49b8452ea6b66fd7b02116ebb1aad057e9",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -31423,9 +31468,9 @@
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
         "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
-        "harness/invalidation.py": "5ff80411630e43851c281b1f230773cf6cc4e552",
+        "harness/invalidation.py": "0b1f410061948cf8c2f3be70726d89666b0cbe07",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-        "harness/known_missing.py": "676b460e9dabad14ab6cf1645e6dcd17c93d968b",
+        "harness/known_missing.py": "97b060258ab48b71cc95b436155840c0d96bd8e5",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
         "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
@@ -31434,7 +31479,7 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/page.py": "5e70040ce4738b6c59d205d2f5de7b4a2cb40e4f",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "601a92e870b840852c3b95e6ef5cddcff7856c75",
+        "harness/pipeline.py": "605f2e0d615d4fd84d602f43c6405626fa22b054",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -31449,7 +31494,7 @@
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "58d0c7637b01d797c8e62b75b3b7c7a17eabba37",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/screening_record.py": "699e351a63e4fec4e857f75b65b9623b52c17da3",
+        "harness/screening_record.py": "54251147c855a4d4abad3b42fb48c3f8b5e168ba",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
@@ -31505,7 +31550,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "627609d7fa475bd895a6b205d5812d034237be1cd121515602093f7dee9669ed",
-      "review_sha256": "c2ec53d4896b2d763ccc4165f8e08dd4bc54fb4d05b31e5a588c7e8887258229",
+      "review_sha256": "d00a82c08ed43ac6c33db3cbbf0af6832ced75f891b9f38f270a09db19d86fca",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/pcsk9-mace.md UTF-8 text, universal newlines",
@@ -31525,7 +31570,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "3870625be0e034e9a9db10f2d660fd682c2965904873e2b756907253fb41a5fe"
+      "release_sha256": "a99b05ac6d01c0c461fcebfef77b8874ad1789e219b5f9a1dfd65c50ea55d2c4"
     }
   }
 }
