@@ -70,7 +70,7 @@ interval stops including 0.
 | TRANSFORM-3 | SE_NOT_ESTABLISHED: stage-weighted CI |
 | TRANSFORM-1 | PER_DOSE_ADJUSTED_ONLY: no combined adjusted difference is reported, and none is constructed |
 
-  Pooled k=2: -2.76 (-16.00 to 10.48). That is correct under PM + HKSJ with t on 1 df, and it says little.
+  Pooled k=2: MD -2.76; the interval is **withheld** under the harness's K2_SINGLE_DF rule, the same rule as the primary. The computed PM + HKSJ interval on t(1), -16.00 to 10.48, is kept in the JSON for audit only.
 - `synth` gained an additive effect+CI path for MD/SMD. Before this, an MD given as effect+CI fell into the log branch.
   0 of 6 served MD rows use it, so no served number moves from that change.
 

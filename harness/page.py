@@ -1966,8 +1966,13 @@ def _continuous_analysis_block(o: dict) -> str:
             else f"{_e(x.get('state'))}" + (f" -- {_e(x.get('reason'))}" if x.get("reason") else ""))
         for x in mb.get("rows") or [])
     pool = mb.get("pool") or {}
-    pooled = (f" Pooled: MD {_num(pool.get('estimate'))} ({_num(pool.get('ci_low'))} to {_num(pool.get('ci_high'))}), k={_e(pool.get('k'))}."
-              if pool.get("estimate") is not None else "")
+    if pool.get("estimate") is not None and pool.get("ci_low") is not None:
+        pooled = f" Pooled: MD {_num(pool.get('estimate'))} ({_num(pool.get('ci_low'))} to {_num(pool.get('ci_high'))}), k={_e(pool.get('k'))}."
+    elif pool.get("estimate") is not None:
+        pooled = (f" Pooled: MD {_num(pool.get('estimate'))}, k={_e(pool.get('k'))}; interval withheld "
+                  f"({_e((pool.get('pooled_ci_refused') or {}).get('code'))}: {_e((pool.get('pooled_ci_refused') or {}).get('detail'))}).")
+    else:
+        pooled = ""
     return ("<div class='absent'>" + head + comb_txt + " <strong>Model-based sensitivity analysis (reported adjusted differences, "
             "SE established only from a stated SE or a standard fixed-level two-sided CI):</strong> " + rows + "." + pooled
             + " " + _e(mb.get("note")) + "</div>")

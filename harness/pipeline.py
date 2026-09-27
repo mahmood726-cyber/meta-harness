@@ -1654,8 +1654,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             "primary_label": "raw per-arm mean/SD, observed at the timepoint (protocol-declared primary)",
             "model_based_sensitivity": {
                 "rows": _mb,
-                "pool": (_pool_result([Study(label=r["label"], effect=r["value"], ci_low=r["value"] - 1.959964 * r["se"],
-                                             ci_high=r["value"] + 1.959964 * r["se"], measure="MD") for r in _adm], scale="MD")
+                # the same k=2 rule as the primary: a PM/HKSJ interval on t(1) is withheld (K2_SINGLE_DF), computed value kept
+                "pool": (k2_mod.refuse_k2_ci(_pool_result([Study(label=r["label"], effect=r["value"],
+                                                                 ci_low=r["value"] - 1.959964 * r["se"],
+                                                                 ci_high=r["value"] + 1.959964 * r["se"], measure="MD")
+                                                           for r in _adm], scale="MD"))
                          if len(_adm) >= 2 else None),
                 "note": (f"{len(_adm)} of {len(_mb)} trials report an adjusted difference with an established SE; "
                          + ("pooled among themselves" if len(_adm) >= 2 else "too few to pool -- reported per trial only"))}}
