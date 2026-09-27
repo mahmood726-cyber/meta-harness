@@ -38,3 +38,21 @@ The comparator is Wei et al., "Efficacy and safety of pharmacologic therapies fo
 ## Controls
 - Positive control: FREEDOM, PMID 19671655.
 - Negative control: denosumab in men receiving androgen-deprivation therapy for prostate cancer, PMID 19671656.
+
+## Retrospective protocol erratum (2026-09-27) -- comparator result as quoted above
+**Labelled retrospective: written after data were seen; the sentence above is left unchanged as registered.**
+The "Comparator" section quotes the comparator's result as "RR 0.33 with 95% CI 0.14 to 0.61". That pair is copied
+from the comparator's ABSTRACT ("denosumab (RR, 0.33; [95% CI, 0.14 to 0.61])"). The comparator's own results section
+(3.2, vertebral-fracture network meta-analysis, Fig. 3A) prints the same estimate as
+**"denosumab (RR, 0.30; [95% CI, 0.14 to 0.61])"**: same interval, different point.
+- Corrected reading: the comparator is internally inconsistent on this estimate (abstract 0.33, results 0.30, both
+  with 0.14 to 0.61). Neither value is adopted as the comparator's truth; both are shown with their quotes.
+- The comparator is a network meta-analysis: 92 RCTs across all outcomes, 55 RCTs (n = 104 580) in the
+  vertebral-fracture network. Its estimate is a network estimate for denosumab vs placebo; the trials in the DIRECT
+  denosumab-vs-placebo comparison are listed only in its Supplement, which is not held. Network counts are not
+  trials missing from this review.
+- Source: PMID 36852077 (PMC9958453): abstract in cache/denosumab-vertebral-fracture/records.json; results section in
+  cache/denosumab-vertebral-fracture/comparator_fulltext.txt.
+- Scope: this erratum corrects a quotation of the comparator. It changes no eligibility rule, no outcome, no model
+  and no result of this review; our pooled result is not moved toward either comparator value.
+- Recorded as COMPARATOR_INTERNAL_MISMATCH (ABSTRACT_VS_RESULTS_TUPLE) on the page (harness/comparator_models.py).
