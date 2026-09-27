@@ -2308,7 +2308,10 @@ def build_review_core(slug, config, records, protocol_sha):
     # sentence rebuilt FROM those states (a trial holding an extraction is never called not extractable). Signature
     # state is outside the core (docs/result_changes.json): the page overlays ADMITTED_PENDING_SIGNATURE at render.
     from . import result_status as result_status_mod
-    result_status_mod.derive(review)
+    # SOURCE COVERAGE first: what each absent row's inspected record actually is (verbatim abstract / abridged excerpt)
+    from . import source_coverage as source_coverage_mod
+    source_coverage_mod.attach(review, rec_by_id)
+    result_status_mod.derive(review, {s.get("name"): list(s.get("keywords") or []) for s, _k in _outcome_specs(config)})
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

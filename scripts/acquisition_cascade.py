@@ -90,7 +90,9 @@ def _hold(rel, body, meta):
     open(p, "wb").write(body)
     led = os.path.join(HELD, "HELD.json")
     ledger = json.load(open(led, encoding="utf-8")) if os.path.exists(led) else {}
-    ledger[rel] = {**meta, "sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body)}
+    # the ORIGINAL retrieved bytes, held verbatim: their hash, source and retrieval time (excerpts are separate files)
+    ledger[rel] = {**meta, "sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body), "retrieved_utc": _now(),
+                   "representation": "ORIGINAL_VERBATIM"}
     json.dump(ledger, open(led, "w", encoding="utf-8", newline="\n"), indent=1, sort_keys=True, ensure_ascii=False)
 
 
