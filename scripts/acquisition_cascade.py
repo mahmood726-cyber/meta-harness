@@ -40,7 +40,10 @@ D = os.path.join(ROOT, "evidence", "acquisition_cascade")
 HELD = os.path.join(D, "held")
 ATTEMPTS = os.path.join(D, "ATTEMPTS.jsonl")
 UA = "meta-harness-evidence-lane/1 (acquisition cascade; mailto:mahmood726@gmail.com)"
-CHALLENGE = (b"Just a moment", b"Performing security verification", b"cf-challenge", b"captcha", b"Access Denied")
+# bot checks: recorded as BLOCKED_CHALLENGE_PAGE and never solved or worked around (PMC's file links answer 200 with a
+# proof-of-work page, 'POW_CHALLENGE'; that is a block, not a document)
+CHALLENGE = (b"Just a moment", b"Performing security verification", b"cf-challenge", b"captcha", b"Access Denied",
+             b"POW_CHALLENGE", b"Preparing to download ...")
 
 
 def _now():
@@ -77,8 +80,13 @@ def _record(route, target, url, status, body, note=""):
 def _hold(rel, body, meta):
     p = os.path.join(HELD, rel)
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    if os.path.exists(p) and hashlib.sha256(open(p, "rb").read()).hexdigest() != hashlib.sha256(body).hexdigest():
-        raise SystemExit(f"REFUSED: {rel} is held with different bytes; written once, never overwritten")
+    digest = hashlib.sha256(body).hexdigest()
+    if os.path.exists(p) and hashlib.sha256(open(p, "rb").read()).hexdigest() != digest:
+        # written once, never overwritten: a LATER, different response (a live API record whose citation counts moved)
+        # is held beside it under its own content address; both stay in the ledger
+        stem, ext = os.path.splitext(rel)
+        rel = f"{stem}.{digest[:12]}{ext}"
+        p = os.path.join(HELD, rel)
     open(p, "wb").write(body)
     led = os.path.join(HELD, "HELD.json")
     ledger = json.load(open(led, encoding="utf-8")) if os.path.exists(led) else {}
@@ -107,6 +115,25 @@ def route_unpaywall(t):
                 _hold(f"{t['trial']}/unpaywall{ext}", b2, {"source": u, "route": "unpaywall", "licence": loc.get("license"),
                                                            "tier_document": "PRIMARY", "trial": t["trial"]})
                 return
+            # a free full-text HTML page on PMC (the NIH host) is the article itself: held as served
+            # (only a page that IS the article: it carries the article's citation_title meta; an interstitial does not)
+            if (b2 and re.match(r"https?://(www\.ncbi\.nlm\.nih\.gov/pmc|pmc\.ncbi\.nlm\.nih\.gov)/", u)
+                    and b'name="citation_title"' in b2):
+                _hold(f"{t['trial']}/pmc_article.html", b2, {"source": u, "route": "unpaywall_pmc_html",
+                                                             "licence": loc.get("license"), "tier_document": "PRIMARY",
+                                                             "trial": t["trial"], "what": "PMC full-text HTML page"})
+            # a repository landing page names its own PDF in the standard citation_pdf_url meta tag: followed ONCE
+            elif b2 and loc.get("host_type") == "repository":
+                m = re.search(rb'<meta[^>]+name=["\']citation_pdf_url["\'][^>]+content=["\']([^"\']+)', b2, re.I)
+                if m:
+                    pu = html.unescape(m.group(1).decode("utf-8", "replace"))
+                    st3, b3 = _get(pu)
+                    _record("repository_pdf", t["trial"], pu, st3, b3, note=f"citation_pdf_url of {u}; licence={loc.get('license')}")
+                    if b3 and b3.startswith(b"%PDF"):
+                        _hold(f"{t['trial']}/repository.pdf", b3, {"source": pu, "route": "repository_pdf",
+                                                                   "licence": loc.get("license"), "tier_document": "PRIMARY",
+                                                                   "trial": t["trial"], "what": f"repository copy ({loc.get('version')})"})
+                        return
 
 
 def route_europepmc(t):
@@ -136,6 +163,53 @@ def route_europepmc(t):
         _record("europepmc_fulltext", t["trial"], url, "NOT_OPEN_ACCESS", b"",
                 note=f"pmcid={r.get('pmcid')} isOpenAccess={r.get('isOpenAccess')}")
     return r
+
+
+def route_discover(t, query):
+    """A report known only by description (a platform domain's report, a trial paper whose PMID is not in the cache):
+    one recorded Europe PMC search; the hits are LISTED in the record (pmid, doi, title, OA flag), nothing is held
+    and nothing is chosen here -- a hit becomes a report only when a declaration names it."""
+    url = ("https://www.ebi.ac.uk/europepmc/webservices/rest/search?format=json&resultType=lite&pageSize=25&query="
+           + urllib.parse.quote(query))
+    st, b = _get(url)
+    hits = ((json.loads(b).get("resultList") or {}).get("result") or []) if b else []
+    _record("discover", t["trial"], url, st, b, note=" || ".join(
+        f"{h.get('pmid')}|{h.get('doi')}|{h.get('pubYear')}|OA={h.get('isOpenAccess')}|{(h.get('title') or '')[:110]}"
+        for h in hits[:12]))
+    return hits
+
+
+def route_supplements(t, pmcid):
+    """Supplementary material of an OPEN-ACCESS article (Europe PMC supplementaryFiles, a zip of the deposited files).
+    The protocol-preferred analysis is sometimes only there (METCOVID: ITT-as-randomised in Supplementary Table 2)."""
+    url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/supplementaryFiles"
+    st, b = _get(url)
+    _record("supplements", t["trial"], url, st, b, note=f"pmcid={pmcid}")
+    if b and b[:2] == b"PK":
+        _hold(f"{t['trial']}/{pmcid}_supplementary.zip", b, {"source": url, "route": "supplements",
+                                                              "tier_document": "PRIMARY", "trial": t["trial"],
+                                                              "what": "supplementary files (zip)"})
+    return st, b
+
+
+def route_pmc_bin_supplements(t):
+    """Supplements linked from a HELD PMC article page (its own /bin/ files on the NIH host), each fetched once. This is
+    where a protocol-preferred analysis or a period-specific result often sits (COVIDICUS eTables in Supplement 2)."""
+    page = os.path.join(HELD, t["trial"], "pmc_article.html")
+    if not os.path.exists(page):
+        return
+    b = open(page, "rb").read()
+    base = re.search(rb'<link rel="canonical" href="(https://[^"]+)"', b)
+    pmcid = re.search(rb"/articles/(?:instance/)?(?:PMC)?(\d{6,8})", b)
+    for href in sorted({m.decode() for m in re.findall(rb'href="(/articles/instance/\d+/bin/[^"]+)"', b)}):
+        u = "https://pmc.ncbi.nlm.nih.gov" + href
+        st, body = _get(u)
+        _record("pmc_bin_supplement", t["trial"], u, st, body, note=f"linked from the held PMC page {t['trial']}/pmc_article.html")
+        if body and (body.startswith(b"%PDF") or body[:2] == b"PK"):
+            _hold(f"{t['trial']}/supplement_{os.path.basename(href)}", body,
+                  {"source": u, "route": "pmc_bin_supplement", "tier_document": "PRIMARY", "trial": t["trial"],
+                   "what": "supplementary file linked from the PMC article page"})
+    return base, pmcid
 
 
 def route_registry(t):
@@ -254,8 +328,14 @@ def main(argv=None):
         for t in trials:
             if only and t["trial"] not in only:
                 continue
+            for q in t.get("discovery_queries") or []:
+                route_discover(t, q)
             route_unpaywall(t)
-            route_europepmc(t)
+            epmc = route_europepmc(t) or {}
+            if t.get("want_supplements") and epmc.get("pmcid") and epmc.get("isOpenAccess") == "Y":
+                route_supplements(t, epmc["pmcid"])
+            if t.get("want_supplements"):
+                route_pmc_bin_supplements(t)
             route_registry(t)
             if not spec.get("skip_regulatory"):
                 route_regulatory(t, spec["drug"], spec["indication"])

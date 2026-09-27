@@ -1,0 +1,150 @@
+"""Result-status vocabulary and one-paper-two-trials (V1.0.1), dapagliflozin HFmrEF/HFpEF review. Written BEFORE
+harness/result_status.py and harness/multi_trial_report.py.
+
+(1) The page said DELIVER's primary result was "reported but not extractable" while DELIVER's own absent row held the
+extraction HR 0.82 (0.73-0.92) with its verbatim span. One derived, mutually exclusive state per trial x outcome; a
+page may not call a result not extractable when an extraction exists.
+(2) McMurray et al., Circulation 2024 (PMID 38059368) reports DETERMINE-Preserved (n=504, NCT03877224) and
+DETERMINE-Reduced (n=313, NCT03877237) plus an exploratory combined analysis: link the article to BOTH registrations,
+keep Preserved only for this review, never import the combined population.
+"""
+import copy
+import json
+import os
+
+import pytest
+
+from harness import pipeline
+
+ROOT = pipeline.ROOT
+DAPA = "dapagliflozin-hfpef-hosp"
+V1 = json.load(open(os.path.join(ROOT, "docs", "reviews", DAPA, "review.json"), encoding="utf-8"))
+
+
+def _rs():
+    from harness import result_status
+    return result_status
+
+
+def _mtr():
+    from harness import multi_trial_report
+    return multi_trial_report
+
+
+def _deliver(rev):
+    return next(a for a in rev["outcomes"][0]["declared_absent_trials"] if a["id"] == "PMID 36027570")
+
+
+# ------------------------------------------------------------------------------------------------ (1) status
+def test_deliver_holds_an_extraction_so_its_state_is_extracted_not_admitted():
+    rs = _rs()
+    rev = copy.deepcopy(V1)
+    rs.derive(rev)
+    st = _deliver(rev)["result_status"]
+    assert st["state"] == rs.EXTRACTED_NOT_ADMITTED
+    assert (st["extraction"]["effect"], st["extraction"]["ci_low"], st["extraction"]["ci_high"]) == (0.82, 0.73, 0.92)
+    assert st["withdrawn"]["value"]["effect"] == 0.88          # the withdrawn CV-death-only value is kept as HISTORY
+
+
+def test_the_outcome_sentence_is_rebuilt_from_the_states():
+    rs = _rs()
+    rev = copy.deepcopy(V1)
+    rs.derive(rev)
+    reason = rev["outcomes"][0]["result"]["reason"]
+    assert "EXTRACTED BUT NOT ADMITTED: 36027570 (HR 0.82 [0.73, 0.92] held" in reason
+    assert "not extracted as a pooled value: 34711976, 37534453" in reason
+    assert rs.problems(rev) == []
+
+
+def test_the_served_v1_sentence_is_refused():
+    rs = _rs()
+    rev = copy.deepcopy(V1)
+    for o in rev["outcomes"]:                         # stamp states but keep the served (V1) sentence
+        for t in o["trials"] + o["declared_absent_trials"]:
+            t["result_status"] = rs.status_of(t, t in o["trials"], set())
+    probs = rs.problems(rev)
+    assert [(p["kind"], p["report_id"]) for p in probs] == [("STATUS_VS_EXTRACTION", "36027570")]
+
+
+def test_states_are_exclusive_and_ordered():
+    rs = _rs()
+    row = {"id": "PMID 1234567", "observed_effect": {"effect": 0.8, "ci_low": 0.7, "ci_high": 0.9, "span": "s"},
+           "withdrawn_effect": {"effect": 0.9}, "absent_kind": "result_withdrawn", "reason": "r"}
+    assert rs.status_of(row, True, set())["state"] == rs.ADMITTED
+    assert rs.status_of(row, True, {"1234567"})["state"] == rs.ADMITTED_PENDING_SIGNATURE
+    assert rs.status_of(row, False, set())["state"] == rs.EXTRACTED_NOT_ADMITTED
+    row2 = {k: v for k, v in row.items() if k != "observed_effect"}
+    assert rs.status_of(row2, False, set())["state"] == rs.WITHDRAWN
+    assert rs.status_of({"id": "NCT01234567", "reason_code": "SOURCE_NOT_RETRIEVED"}, False, set())["state"] == rs.SOURCE_ABSENT
+    assert rs.status_of({"id": "PMID 7654321", "reason_code": "OUTCOME_NOT_IN_SOURCE"}, False, set())["state"] \
+        == rs.SOURCE_HELD_RESULT_NOT_EXTRACTED
+
+
+def test_status_kinds_block_the_screening_gate():
+    from harness import screening_record
+    assert {"STATUS_VS_EXTRACTION", "STATUS_MISSING", "REPORT_TRIAL_UNLINKED",
+            "COMBINED_POPULATION_IMPORTED"} <= set(screening_record.BLOCKING)
+
+
+def test_pending_signature_is_a_page_overlay_not_a_core_field():
+    rs = _rs()
+    rev = {"outcomes": [{"name": "m", "trials": [{"id": "PMID 32876695", "result_status": {"state": rs.ADMITTED}}]}],
+           "reproduction": {"result_changes": [{"outcome": "m", "entered_pool": ["PMID 32876695"],
+                                                "reviewer_countersignature": {"state": "OPEN"}}]}}
+    assert rs.effective_state(rev["outcomes"][0]["trials"][0], rev, "m") == rs.ADMITTED_PENDING_SIGNATURE
+    rev["reproduction"]["result_changes"][0]["reviewer_countersignature"]["state"] = "SEEN_AND_SIGNED"
+    assert rs.effective_state(rev["outcomes"][0]["trials"][0], rev, "m") == rs.ADMITTED
+
+
+# ------------------------------------------------------------------------------------------------ (2) DETERMINE
+def _config():
+    return json.load(open(os.path.join(ROOT, "topics", DAPA + ".json"), encoding="utf-8"))
+
+
+def test_the_article_is_linked_to_both_registrations_and_preserved_only_is_relevant():
+    rep = _mtr().resolve(ROOT, _config())[0]
+    t = {x["registration"]: x for x in rep["trials"]}
+    assert set(t) == {"NCT03877224", "NCT03877237"}
+    assert t["NCT03877224"]["relevant"] is True and t["NCT03877224"]["n_randomised"] == 504
+    assert t["NCT03877237"]["relevant"] is False and t["NCT03877237"]["n_randomised"] == 313
+    assert rep["combined_analyses"] == [{"label": "DETERMINE-Pooled", "n": 817, "policy": "NEVER_IMPORTED"}]
+
+
+def test_the_combined_population_is_never_imported():
+    m = _mtr()
+    rev = {"outcomes": [{"name": "AE", "trials": [{"id": "NCT03877224", "n1i": 409, "n2i": 408}],
+                         "declared_absent_trials": []}], "trial_families": [{"family_id": "NCT03877224"}]}
+    m.attach(rev, _config())
+    assert [p["kind"] for p in m.problems(rev)] == ["COMBINED_POPULATION_IMPORTED"]
+
+
+def test_a_row_from_the_trial_this_review_excludes_is_refused_and_preserved_only_passes():
+    m = _mtr()
+    bad = {"outcomes": [{"name": "AE", "trials": [{"id": "NCT03877237", "n1i": 157, "n2i": 156}],
+                         "declared_absent_trials": []}], "trial_families": [{"family_id": "NCT03877237"}]}
+    m.attach(bad, _config())
+    assert m.problems(bad)
+    ok = {"outcomes": [{"name": "AE", "trials": [{"id": "NCT03877224", "n1i": 252, "n2i": 249}],
+                        "declared_absent_trials": []}], "trial_families": [{"family_id": "NCT03877224"}]}
+    m.attach(ok, _config())
+    assert m.problems(ok) == []
+    assert ok["trial_families"][0]["multi_trial_report"]["shared_with"] == ["NCT03877237"]
+
+
+def test_preserved_registry_results_are_examined_not_admitted():
+    t = next(x for x in _mtr().resolve(ROOT, _config())[0]["trials"] if x["registration"] == "NCT03877224")
+    rr = t["registry_results"]
+    assert rr["state"] == "SOURCE_HELD_EXAMINED_NOT_ADMITTED"
+    assert rr["findings"]["serious_adverse_events"].startswith("26/252 vs 19/249")
+    held = json.load(open(os.path.join(ROOT, rr["path"]), encoding="utf-8"))
+    ae = {g["id"]: g for g in held["resultsSection"]["adverseEventsModule"]["eventGroups"]}
+    assert (ae["EG000"]["seriousNumAffected"], ae["EG000"]["seriousNumAtRisk"],
+            ae["EG001"]["seriousNumAffected"], ae["EG001"]["seriousNumAtRisk"]) == (26, 252, 19, 249)
+
+
+def test_a_tampered_population_witness_fails_closed():
+    m = _mtr()
+    rep = copy.deepcopy(m.load(ROOT)[0])
+    rep["trials"][0]["population"]["witness"]["span"] = "504 patients with HF with reduced ejection fraction"
+    with pytest.raises(ValueError, match="witness span not in"):
+        m._relevance(ROOT, rep["trials"][0], _config())

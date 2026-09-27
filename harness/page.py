@@ -21,6 +21,32 @@ from pathlib import Path as _Path
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+
+# outcome name -> ids whose pool entry awaits a countersignature (filled per render by render_page)
+_PENDING_SIGNATURE: dict[str, set] = {}
+
+
+def _status_html(t, o) -> str:
+    """A row's derived result status (harness.result_status), with the extraction it holds when not admitted."""
+    rs = t.get("result_status") or {}
+    st = rs.get("state")
+    if not st:
+        return ""
+    m = re.search(r"(\d{7,8}|NCT\d{8})", str(t.get("id") or ""))
+    if st == "ADMITTED" and m and m.group(1) in _PENDING_SIGNATURE.get(o.get("name"), set()):
+        st = "ADMITTED_PENDING_SIGNATURE"
+    bits = [f"<code data-result-status='{_e(st)}'>{_e(st)}</code>"]
+    ex = rs.get("extraction")
+    if ex:
+        val = (f"{_e(ex.get('scale') or 'ratio')} {_e(ex.get('effect'))} ({_e(ex.get('ci_low'))}&ndash;{_e(ex.get('ci_high'))})"
+               if ex.get("kind") == "effect" else
+               (f"{_e(ex.get('ai'))}/{_e(ex.get('n1i'))} vs {_e(ex.get('ci'))}/{_e(ex.get('n2i'))}" if ex.get("ai") is not None
+                else _e(ex.get("value_text"))))
+        bits.append(f"extraction held: {val}; not admitted: {_e(rs.get('not_admitted_because'))}")
+    if rs.get("withdrawn"):
+        w = rs["withdrawn"].get("value") or {}
+        bits.append(f"earlier served value WITHDRAWN ({_e(w.get('scale'))} {_e(w.get('effect'))}): {_e(rs['withdrawn'].get('reason'))}")
+    return "<br><span class='muted'>result status: " + " &mdash; ".join(bits) + "</span>"
 from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
@@ -1163,18 +1189,58 @@ def _screening(r, neutral):
     )
     n_identified = ((r.get("search") or {}).get("n_records")) or len(recs)
     excl_bits = " · ".join(f"{rid} {n}" for rid, n in sorted(rule_counts.items()))
+    n_awaiting = sum(1 for x in recs if x.get("decision") == "awaiting_classification")
     flow = ("<h4>Study selection flow (PRISMA 2020)</h4>"
             "<table class='recs'><tr><th>Stage</th><th>n</th></tr>"
             f"<tr><td>Records identified (committed search)</td><td>{_e(n_identified)}</td></tr>"
             f"<tr><td>Records screened (deduplicated)</td><td>{_e(len(recs))}</td></tr>"
             f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
-            f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(eligible_display)}</td></tr>"
+            + (f"<tr><td>Awaiting classification (platform / multi-comparison registrations judged per comparison; "
+               f"pending decisions named below)</td><td>{_e(n_awaiting)}</td></tr>" if n_awaiting else "")
+            + f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(eligible_display)}</td></tr>"
             f"<tr><td><strong>Pooled in the primary outcome (k)</strong></td><td><strong>{_e(pooled_k)}</strong></td></tr>"
             + refused_row
             + f"<tr><td>Eligible but outcome not extracted from the abstract (full-text pass pending)</td><td>{_e(not_extracted_display)}</td></tr>"
             "</table>"
             "<p class='note'>Every excluded record's rule id, reason and verbatim span are listed below "
             "(PRISMA item 16b: exclusions with reasons).</p>")
+    for fam in r.get("comparison_families") or []:
+        # one registration, several comparisons: each screened on its OWN population and comparator (quoted spans)
+        crow = "".join(
+            f"<tr data-comparison='{_e(c.get('comparison_id'))}'><td>{_e(c.get('comparison_id'))}</td>"
+            f"<td>&ldquo;{_e(c.get('population'))}&rdquo;</td><td>&ldquo;{_e(c.get('comparator') or 'not assessed')}&rdquo;</td>"
+            f"<td>{_e(', '.join(f'{k} {v}' for k, v in (c.get('arms') or {}).items()))}</td>"
+            f"<td><code>{_e(c.get('eligibility'))}</code>"
+            + "".join(f"<br><span class='muted'>{_e(f.get('rule'))}: {_e(f.get('why'))}</span>" for f in c.get("fails") or [])
+            + f"</td><td><code>{_e(c.get('primary_pool_eligibility'))}</code>"
+            + "".join(f"<br><span class='muted'>pending {_e(p.get('decision'))}: {_e(p.get('detail'))}</span>"
+                      for p in c.get("primary_pool_pending") or [])
+            + f"</td><td>{_e(c.get('result_state'))}<br><span class='muted'>{_e(c.get('result_basis'))}</span></td></tr>"
+            for c in fam.get("comparisons") or [])
+        flow += (f"<h4>Registration {_e(fam.get('registration'))}: judged per comparison "
+                 f"({_e(fam.get('decision'))}, {_e(fam.get('rule_id'))})</h4>"
+                 "<p class='muted'>A platform or multi-period registration lists every comparison's population in its "
+                 "condition labels; each comparison is screened on its own witnessed population and comparator instead, "
+                 "and a whole-trial result that spans comparators is never pooled.</p>"
+                 "<table class='recs'><tr><th>Comparison</th><th>Population (source)</th><th>Comparator (source)</th>"
+                 "<th>Arms</th><th>Eligibility</th><th>Primary pool</th><th>Result</th></tr>" + crow + "</table>")
+    for mtr in r.get("multi_trial_reports") or []:
+        # one article, several registered trials: each trial judged on its own population; combined analyses never used
+        trows = "".join(
+            f"<tr data-mtr-trial='{_e(t.get('registration'))}'><td>{_e(t.get('label'))} ({_e(t.get('registration'))})</td>"
+            f"<td>{_e(t.get('n_randomised'))}</td><td>&ldquo;{_e(t.get('population'))}&rdquo;</td>"
+            f"<td><code>{'RELEVANT' if t.get('relevant') else 'NOT THIS REVIEW'}</code><br><span class='muted'>{_e(t.get('basis'))}</span></td>"
+            f"<td>{_e(((t.get('registry_results') or {}).get('state')) or '')}"
+            + "".join(f"<br><span class='muted'>{_e(k.replace('_', ' '))}: {_e(v)}</span>"
+                      for k, v in ((t.get('registry_results') or {}).get('findings') or {}).items())
+            + "</td></tr>" for t in mtr.get("trials") or [])
+        comb = "; ".join(f"{_e(c.get('label'))} (n={_e(c.get('n'))}): {_e(c.get('policy'))}" for c in mtr.get("combined_analyses") or [])
+        flow += (f"<h4>One article, several trials: {_e(mtr.get('report_id'))}</h4>"
+                 f"<p class='muted'>{_e(mtr.get('citation'))}. Linked to every registration it reports; each trial is "
+                 f"judged on its own population; combined analyses are never imported ({comb}). Full text: "
+                 f"{_e(mtr.get('full_text_state'))}</p>"
+                 "<table class='recs'><tr><th>Trial</th><th>n</th><th>Population (source)</th><th>This review</th>"
+                 "<th>Trial-specific registry results</th></tr>" + trows + "</table>")
     dual = s.get("dual")
     if dual:
         flow += ("<h4>Dual independent screening (PRISMA item 8)</h4>"
@@ -1505,6 +1571,7 @@ def _trial_inputs(o):
                     f"{_e(cc_state)}"
                     + (f" - {_e(t.get('source_warning'))}" if t.get("source_warning") else "")
                     + "</div>")
+        inp += _status_html(t, o)
         if t.get("provenance_tier") == "SECONDARY_SOURCE":
             # counts read from a citing paper, never shown as if they were the trial's own table (provenance_tiers)
             sw = t.get("secondary_witness") or {}
@@ -1610,6 +1677,13 @@ def _trial_inputs(o):
             )
         if span:
             reason_detail += f"<br><span class='muted'>span: {_e(span)}</span>"
+        reason_detail += _status_html(t, o)
+        if isinstance(t.get("acquisition_state"), dict):
+            acq = t["acquisition_state"]
+            reason_detail += ("<br><span class='muted'>acquisition: <code>" + _e(" · ".join(acq.get("states") or []))
+                              + "</code> &mdash; " + _e(acq.get("basis"))
+                              + "".join(f"; {_e(k.replace('_', ' '))}: {_e(v)}" for k, v in (acq.get("analysis_sets") or {}).items())
+                              + "</span>")
         if t.get("conflict_locations"):
             # an internally-inconsistent held source: every conflicting location, each as the document states it
             reason_detail += ("<br><span class='muted'>conflicting locations in the held source ("
@@ -3148,6 +3222,12 @@ _R["verify"] = _verify   # registered here: _R is built above, before this funct
 
 
 def render_page(review: dict, neutral: bool = False) -> str:
+    # result status as the page shows it: the derived state, raised to ADMITTED_PENDING_SIGNATURE for a row whose
+    # entry is in an OPEN result-change notice (notices are outside the review core)
+    from . import result_status as _rs
+    _PENDING_SIGNATURE.clear()
+    for _o in review.get("outcomes") or []:
+        _PENDING_SIGNATURE[_o.get("name")] = _rs._pending_ids(review, _o.get("name"))
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\',1)">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
     body = ("<div class='absent'><strong>AACT_NOT_MEASURED</strong>: registry inputs have not "

@@ -74,7 +74,9 @@ def evaluate(trial: dict[str, Any], target: dict[str, Any], candidates: list[dic
         if not _label_ok(text, target):
             refused.append({**base, "reason": f"row label does not name the target endpoint /{target.get('row_label_must_match')}/"})
             continue
-        if len(pairs) >= 2 and pairs[0][1] == pairs[1][1]:
+        # two arm-level pairs on the trial's OWN arm denominators (arms may differ in size: SONIA 1089 vs 1091); with no
+        # declared arm sizes, the two denominators must at least agree
+        if len(pairs) >= 2 and ((arms and {pairs[0][1], pairs[1][1]} <= arms) or pairs[0][1] == pairs[1][1]):
             accepted.append({**base, "counts": [list(pairs[0]), list(pairs[1])]})
         else:
             pcts = [_num(p) for p in _PCT.findall(text)]

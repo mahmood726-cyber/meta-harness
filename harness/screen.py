@@ -692,6 +692,10 @@ def _link_and_record(decisions: list, all_recs: list, report_family: dict | None
         rule, dec = d["rule_id"], d["decision"]
         if dec == "include" or rule == "X-LINKED":
             elig = {"state": "ELIGIBLE", "basis": "this report's screen passed every eligibility rule"}
+        elif dec == "awaiting_classification":
+            # a platform / multi-comparison registration: eligible on no decided basis yet, excluded on none either
+            elig = {"state": "UNRESOLVED", "basis": "judged per comparison; pending decisions named",
+                    "rule": rule, "pending": [p.get("decision") for p in d.get("pending_decisions") or []]}
         elif rule in ("X-NO-RESULTS", "X-DEDUP"):
             elig = {"state": "NOT_ASSESSED",
                     "basis": ("a no-results report does not decide its parent's eligibility" if rule == "X-NO-RESULTS"
@@ -752,7 +756,34 @@ def run(all_recs: list, config: dict) -> dict:
                                         f"trial; its parent is handled separately.",
                               "span": (rec.get("title") or "")[:120]})
             continue
-        decision, rule, reason, span = screen_record(rec, inc, neg)
+        # PLATFORM / MULTI-COMPARISON registrations are judged per comparison (domain, recruitment period) on that
+        # comparison's own population and comparator -- never on the registration's condition labels, which list every
+        # domain's population (harness.comparison_family). Not eligible at any comparison -> recorded here; eligible ->
+        # the ordinary checks below still run, and the row carries its comparisons.
+        from . import comparison_family
+        _cf = comparison_family.screen_registration(rec, config)
+        if _cf is not None and _cf["decision"] != "include":
+            row = {"id": rec["id"], "id_type": rec["id_type"], "label": rec.get("acronym") or "",
+                   "decision": _cf["decision"], "rule_id": _cf["rule_id"], "reason": _cf["reason"], "span": _cf["span"],
+                   "comparisons": _cf["comparisons"],
+                   **({"pending_decisions": _cf["pending"]} if _cf["pending"] else {})}
+            screen_entry.annotate_decision(row, rec, config)
+            decisions.append(row)
+            continue
+        if _cf is None and comparison_family.is_undeclared_platform(rec):
+            # undeclared platform: screened WITHOUT its condition labels (they list every domain's population)
+            _dec = screen_record({**rec, "conditions": []}, inc, neg)
+            _aw = comparison_family.undeclared_platform_population(rec, tuple(_dec), config)
+            if _aw:
+                row = {"id": rec["id"], "id_type": rec["id_type"], "label": rec.get("acronym") or "",
+                       "decision": _aw["decision"], "rule_id": _aw["rule_id"], "reason": _aw["reason"],
+                       "span": _aw["span"], "pending_decisions": _aw["pending"]}
+                screen_entry.annotate_decision(row, rec, config)
+                decisions.append(row)
+                continue
+            decision, rule, reason, span = _dec
+        else:
+            decision, rule, reason, span = screen_record(rec, inc, neg)
         arm_obj = None
         hidden = []
         arm_refusal = None
@@ -781,6 +812,8 @@ def run(all_recs: list, config: dict) -> dict:
             mi = matched_intervention(rec, inc)
             if mi:
                 row["matched_intervention"] = mi
+        if _cf is not None:
+            row["comparisons"] = _cf["comparisons"]
         screen_entry.annotate_decision(row, rec, config)
         decisions.append(row)
     _link_and_record(decisions, all_recs, config.get("_report_family") or {})

@@ -90,6 +90,60 @@ unchanged; interval withheld at k=2 as before). Notice appended to `docs/result_
 Tests: `tests/test_report_family_and_scoped_hold.py` (11; 8 failed with the fix removed, recorded in
 evidence/screening_roles/TESTS_PREFIX.txt).
 
+## Fixtures added 2026-09-27 (CAP- and COVID-corticosteroids reviews)
+
+### Platform / multi-comparison registrations: `harness/comparison_family.py`, `docs/comparison_families.json`
+- A registration's condition labels list EVERY comparison's population, so they are never used to screen one
+  comparison. A declared family is screened per comparison, each on its own witnessed spans (the span is the only
+  text judged; a declared field cannot add a term; a tampered witness or a declared timepoint the span does not state
+  fails closed).
+- **REMAP-CAP (NCT02735707), CAP review**: was X2 "title/conditions mention 'covid'". Now judged per domain:
+  - non-pandemic corticosteroid domain (fixed-duration hydrocortisone vs control; PMID 40261382, CC BY-NC, held):
+    population "patients with severe community-acquired pneumonia"; COVID is the domain's OWN exclusion ("known or
+    presumed COVID-19 infection"), so not a veto; 658 randomised (536 vs 122); day-90 mortality 78/521 vs 12/122;
+    Bayesian adjusted OR 1.52-1.63 across influenza x shock strata → **awaiting classification** (new PRISMA row),
+    primary-pool eligibility UNRESOLVED pending MIXED_POPULATION_STRATUM (the protocol excludes influenza; the domain
+    randomises it as a stratum), TIMEPOINT (day 90 vs the protocol's 30-day), ADJUSTED_ESTIMATE.
+  - COVID-19 corticosteroid domain (PMID 32876697): INELIGIBLE in the CAP review on its OWN population.
+- **COVIDICUS (NCT04344730), COVID review**: comparisons per recruitment period. P1 (to 2020-09-17): high-dose
+  dexamethasone 36 vs placebo 37 → ELIGIBLE; primary pool pending TIMEPOINT (60-day primary). Its own mortality is
+  NOT in the main text (the period effect is only a model covariate) and Supplement 2 is behind PMC's proof-of-work
+  check (recorded, not solved; publisher 403) → DISCOVERED_NOT_RETRIEVED. P2: high-dose vs standard-dose dexamethasone
+  234 vs 239 → INELIGIBLE (X3, active comparator). The whole-trial 60-day HR 0.96 (0.69-1.33) is recorded as
+  REFUSED_WHOLE_TRIAL_ACROSS_COMPARISONS, and `hold_whole_trial` holds any whole-trial row of a multi-comparison
+  family out of every pool.
+- **Undeclared platforms**: screened with their condition labels removed; design / intervention / comparator rules
+  stand (COPPER, I-SPY COVID stay X3); a population failure the title does not settle → awaiting classification
+  (A-PLATFORM-DOMAINS-UNDECLARED): Precision T1D Platform NCT07594145 in finerenone-ckd-t2d-renal.
+- **Corpus (served V1 ledger at HEAD)**: 4 of 4 platform registrations screened across 32 topics were rejected; 2 of
+  those on a population term read off the registration's condition labels (REMAP-CAP 'covid'; NCT07594145 'heart
+  failure'). `scripts/platform_registration_audit.py`. The detector finds registrations whose own title/acronym says
+  platform, so N is a lower bound (RECOVERY's registration title does not say so).
+
+### Recovered rows and acquisition states
+- **CoDEX (PMID 32876695)**: 28-day all-cause mortality 85/151 vs 91/148, Table 2 "28-Day results" row, a SECONDARY
+  outcome in CoDEX and exactly this review's outcome and timepoint. The PMC page is free to read but not openly
+  licensed, so it stays local; the harness binds to a committed verbatim EXCERPT (table caption, header rows, the
+  section row and the result row; header names the page sha256). Binder: BOUND, EXACT_TARGET. `timepoint_span` must sit
+  in the same held document (new load check). **Served-number change: COVID primary k=1 0.83 → k=2 0.85** (notice).
+- **CAPE COVID (PMID 32876689)**: deaths 11 vs 20 at DAY 21 (committed abstract; 76 vs 73 randomised) → typed refusal
+  TIMEPOINT_MISMATCH: no window policy is declared, so day 21 is never substituted for day 28. The reviewer's 75
+  analysed is in the full text, not held. A window policy is a protocol decision owed to Mahmood.
+  (Correction on the way: PMID 32876697, first fetched under the CAPE label, is the REMAP-CAP COVID domain report.)
+- **METCOVID (PMID 32785710)**: acquisition state MAIN_RESULT_NOT_HELD · PROTOCOL_PREFERRED_ANALYSIS_IN_SUPPLEMENT ·
+  SUPPLEMENT_NOT_HELD (`docs/acquisition_states.json`, rendered on its absent row). The requested state "main result
+  recovered" is NOT what happened: the publisher PDF is 403, the PMC page is abstract-only and its PDF is behind the
+  proof-of-work check, Europe PMC returned 500, and the repository copy's PDF link points at localhost.
+- **SONIA (PMID 41159889), CAP review**: already a known-eligible-missing trial (search vocabulary gap). The cascade
+  holds its CC BY full text; PRIMARY row day 30: 246/1089 vs 284/1091 (HR 0.84, 0.73-0.97). Open-label is a RoB
+  matter here (the CAP protocol sets design_double_blind false). Entry enriched; nothing pooled.
+- Defect found by the SONIA fixture and fixed: `provenance_tiers.evaluate` required equal denominators for a two-arm
+  witness (an unstated equal-arms assumption); it now requires each denominator to be one of the trial's arm sizes.
+
+### Legitimate-route limits met in this batch (recorded, not worked around)
+PMC answers its PDF and supplement links with a proof-of-work bot check ("POW_CHALLENGE"); the cascade now records
+that as BLOCKED_CHALLENGE_PAGE. JAMA / OUP publisher PDFs: 403.
+
 SERVED_DIFF_PLACEHOLDER
 
 ## Committed / not committed

@@ -1,6 +1,6 @@
 # Acquisition cascade report: colchicine-recurrent-pericarditis fixtures
 
-224 recorded attempts; 119 held open-access documents ({'SECONDARY_SOURCE': 119}). Legitimate open routes only; every attempt is in `ATTEMPTS.jsonl` with URL, time, status and sha256.
+346 recorded attempts; 146 held open-access documents ({'PRIMARY': 26, None: 1, 'SECONDARY_SOURCE': 119}). Legitimate open routes only; every attempt is in `ATTEMPTS.jsonl` with URL, time, status and sha256.
 
 | Trial | Target | Status | Tier served | Counts | Conflict | Reviewer expected |
 |---|---|---|---|---|---|---|
@@ -49,3 +49,14 @@ The abstract prints 'relative risk 0.49; 95% CI 0.24-0.65' beside 26/120 vs 51/1
 - ICAP: ema_search:BLOCKED_HTTP_401 ×2; europepmc_fulltext:NOT_OPEN_ACCESS ×2; europepmc_record:200 ×2; fda_label_search:404 ×2; nice_search:200 ×2; registry_results:NO_POSTED_RESULTS ×2; secondary_fulltext:200 ×159; secondary_search:200 ×5; unpaywall:200 ×2; unpaywall_location:BLOCKED_HTTP_403 ×4
 - CORP: ema_search:BLOCKED_HTTP_401 ×2; europepmc_fulltext:NOT_OPEN_ACCESS ×2; europepmc_record:200 ×2; fda_label_search:404 ×2; nice_search:200 ×2; registry_results:NO_POSTED_RESULTS ×2; secondary_search:200 ×5; unpaywall:200 ×2; unpaywall_location:BLOCKED_HTTP_403 ×4
 - CORP-2: ema_search:BLOCKED_HTTP_401 ×2; europepmc_fulltext:NOT_OPEN_ACCESS ×2; europepmc_record:200 ×2; fda_label_search:404 ×2; nice_search:200 ×2; registry_results:NO_POSTED_RESULTS ×2; secondary_search:200 ×5; unpaywall:200 ×2
+- COPS: europepmc_fulltext:NOT_OPEN_ACCESS ×1; europepmc_record:200 ×1; unpaywall:200 ×1; unpaywall_location:BLOCKED_HTTP_403 ×2
+- COPS#24m: europepmc_fulltext:NOT_OPEN_ACCESS ×1; europepmc_record:200 ×1; figshare_api:200 ×1; unpaywall:200 ×1; unpaywall_location:202 ×1; unpaywall_location:BLOCKED_HTTP_403 ×2
+- Akrami: europepmc_figure:BLOCKED_HTTP_403 ×1; europepmc_fulltext:200 ×1; europepmc_record:200 ×1; publisher_figure:200 ×1; unpaywall:200 ×1; unpaywall_location:200 ×5; unpaywall_location:202 ×2; unpaywall_location:BLOCKED_HTTP_403 ×1
+- REMAP-CAP-corticosteroid-domain: discover:200 ×5; europepmc_fulltext:200 ×1; europepmc_record:200 ×1; registry_results:NO_POSTED_RESULTS ×3; supplements:200 ×1; unpaywall:200 ×1; unpaywall_location:200 ×6
+- SONIA: europepmc_fulltext:200 ×1; europepmc_record:200 ×1
+- COVIDICUS: discover:200 ×3; europepmc_fulltext:NOT_OPEN_ACCESS ×1; europepmc_record:200 ×1; pmc_bin_supplement:200 ×5; registry_results:NO_POSTED_RESULTS ×3; unpaywall:200 ×1; unpaywall_location:200 ×1; unpaywall_location:500 ×1; unpaywall_location:BLOCKED_HTTP_403 ×2
+- METCOVID: europepmc_fulltext:500 ×2; europepmc_record:200 ×3; pmc_pdf:BLOCKED_CHALLENGE_PAGE ×1; repository_pdf:ERROR URLError ×2; supplements:200 ×2; unpaywall:200 ×2; unpaywall_location:200 ×6; unpaywall_location:BLOCKED_HTTP_403 ×4
+- CoDEX: europepmc_fulltext:NOT_OPEN_ACCESS ×2; europepmc_record:200 ×2; pmc_bin_supplement:200 ×4; unpaywall:200 ×1; unpaywall_location:200 ×1; unpaywall_location:BLOCKED_HTTP_403 ×2
+- CAPE-COVID: europepmc_fulltext:NOT_OPEN_ACCESS ×2; europepmc_record:200 ×2; unpaywall:200 ×1; unpaywall_location:BLOCKED_CHALLENGE_PAGE ×1; unpaywall_location:BLOCKED_HTTP_403 ×2
+- COVIDICUS#bayes-reanalysis: europepmc_fulltext:200 ×1; europepmc_record:200 ×1; unpaywall:200 ×1; unpaywall_location:200 ×3
+- REMAP-CAP-COVID-corticosteroid-domain: europepmc_fulltext:NOT_OPEN_ACCESS ×1; europepmc_record:200 ×1; registry_results:NO_POSTED_RESULTS ×1; repository_pdf:BLOCKED_HTTP_403 ×2; unpaywall:200 ×1; unpaywall_location:200 ×3; unpaywall_location:BLOCKED_HTTP_403 ×2

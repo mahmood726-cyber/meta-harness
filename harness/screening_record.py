@@ -19,7 +19,8 @@ import re
 from typing import Any
 
 BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REASON_VS_SPAN", "FAMILY_VS_LEDGER",
-            "OMISSION_VS_RECORD", "OMISSION_VS_PROTOCOL", "FAMILY_DOUBLE_COUNT", "FAMILY_TIMEPOINT_UNLABELLED")
+            "OMISSION_VS_RECORD", "OMISSION_VS_PROTOCOL", "FAMILY_DOUBLE_COUNT", "FAMILY_TIMEPOINT_UNLABELLED",
+            "STATUS_VS_EXTRACTION", "STATUS_MISSING", "REPORT_TRIAL_UNLINKED", "COMBINED_POPULATION_IMPORTED")
 ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
@@ -238,6 +239,17 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     from . import report_family
     for p in report_family.problems(review):
         add(p["kind"], p["report_id"], p["detail"])
+    # MULTI-TRIAL REPORTS: an article linked to every registration it reports; a combined analysis never imported
+    from . import multi_trial_report
+    for p in multi_trial_report.problems(review):
+        add(p["kind"], p["report_id"], p["detail"])
+    # RESULT STATUS: the page's words about a trial's result agree with its derived state
+    from . import result_status
+    if any(o.get("trials") or o.get("declared_absent_trials") for o in review.get("outcomes") or []) and \
+            any("result_status" in t for o in review.get("outcomes") or []
+                for t in (o.get("trials") or []) + (o.get("declared_absent_trials") or [])):
+        for p in result_status.problems(review):
+            add(p["kind"], p["report_id"], p["detail"])
     return probs
 
 
