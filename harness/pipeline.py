@@ -1476,7 +1476,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         _us_row = effect_identity_mod.uncertainty_state(t.get("source") or "") if t.get("effect") is not None else None
         if _us_row:
             t["typed_uncertainty"] = _us_row
-        _pc = effect_identity_mod.polarity_check(t, spec.get("name"), spec)
+        _pc = effect_identity_mod.polarity_check(t, spec.get("name"), spec, ab)
         if _pc:
             t["event_polarity"] = _pc
             if _pc.get("state") == "NORMALISED":

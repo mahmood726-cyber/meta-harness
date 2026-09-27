@@ -170,11 +170,11 @@ def evaluate(row, spec, pool, abstract, intervention, comparator, abstract_reaso
             out["DoubleZero"] = result("DOUBLE_ZERO", True, str(exc))
         except (ValueError, TypeError, ZeroDivisionError) as exc:
             out["DoubleZero"] = unknown(f"Study.yi_vi refused before a DoubleZero verdict: {exc}")
-    pc = ei.polarity_check(t, spec.get("name"), spec)
+    pc = ei.polarity_check(t, spec.get("name"), spec, abstract)
     out["polarity_check"] = (result(pc["state"], pc["state"] in ("EVENT_POLARITY_MISMATCH", "NORMALISED"), pc)
                              if pc else na("not a reported effect on a death/survival outcome"))
     if pc and pc["state"] == "NOT_STATED":
-        out["polarity_check"] = unknown("event orientation not stated in row quotation", pc)
+        out["polarity_check"] = unknown("event orientation not stated in row quotation or unambiguous same-estimate held sentence", pc)
     # Preserve object membership for hr_route's identity exclusion and group lookup.
     groups = ei.multi_arm_groups(pool)
     group = next((g for g in groups if any(x is row for x in g)), None)
@@ -182,7 +182,7 @@ def evaluate(row, spec, pool, abstract, intervention, comparator, abstract_reaso
     out["multi_arm_groups"] = result("SHARED_CONTROL" if group else "NO_SHARED_CONTROL", bool(group),
                                     [x.get("id") for x in group] if group else None)
     rule = str(spec.get("multi_arm_rule") or "").upper()
-    held_group = bool(group and rule not in ("COMBINE_ARMS", "SPLIT_CONTROL"))
+    held_group = bool(group and any(any(a.get("id") == row.get("id") for a in h["multi_arm"]["arms"]) for h in held))
     out["apply_multi_arm_rule"] = result("MULTI_ARM_SHARED_CONTROL_UNDECLARED" if held_group else
         rule if group else "NO_SHARED_CONTROL", held_group,
         {"output_rows": len(resolved), "held": held} if group else None)
@@ -229,9 +229,9 @@ def controls():
             elif rule == "polarity_check":
                 row["source"] = "odds of improvement" if positive else "deaths"
             elif rule in ("multi_arm_groups", "apply_multi_arm_rule"):
-                row = dict(counts, trial_family_id="__control_family")
+                row = dict(counts, trial_family_id="__control_family", trial_id="__control_trial")
                 if positive:
-                    peers = [dict(counts, id="__control_peer", trial_family_id="__control_family", ai=15)]
+                    peers = [dict(counts, id="__control_peer", trial_family_id="__control_family", trial_id="__control_trial", ai=15)]
             elif rule == "count_only_under_hr":
                 spec["estimand"] = "HR"
                 row = dict(counts) if positive else dict(pub, scale="HR")

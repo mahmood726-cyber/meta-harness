@@ -304,7 +304,7 @@ def definition_class(row: dict[str, Any]) -> str:
 # is inverted in meaning. It is refused (EVENT_POLARITY_MISMATCH) unless the outcome DECLARES the normalisation
 # (spec.polarity_normalisation.reciprocal_for_benefit_event: true), in which case the reciprocal is applied and recorded.
 _BENEFIT_EVENT = __import__("re").compile(
-    r"(?i)odds\s+of\s+(?:improvement|a\s+better\s+outcome|better\s+outcomes?|survival|being\s+alive|recovery)|"
+    r"(?i)(?:hazard\s+ratio\s+for|hazard\s+of|probability\s+of)\s+(?:survival|being\s+alive|recovery)\b|odds\s+of\s+(?:improvement|a\s+better\s+outcome|better\s+outcomes?|survival|being\s+alive|recovery)|"
     r"(?:probabilit(?:y|ies)\s+of\s+)?superiority\s+with\s+regard\s+to\s+the\s+odds\s+of\s+improvement|"
     r"odds\s+ratio\s+greater\s+than\s+1\s*\(?\s*(?:threshold\s+for\s+)?(?:trial\s+conclusion\s+of\s+)?superiority")
 _DEATH_EVENT = __import__("re").compile(r"(?i)\b(?:died|deaths?|mortality|dead)\b")
@@ -320,21 +320,57 @@ def event_modelled(text: str | None) -> str:
     return "NOT_STATED"
 
 
-def polarity_check(row: dict[str, Any], outcome_name: str | None, spec: dict[str, Any] | None) -> dict[str, Any] | None:
-    """None when the outcome is not a death outcome or the row states death. A benefit-event effect in a death pool is refused,
+# The extractor's short label-to-point gap misses explicitly named endpoints
+# (e.g. "hazard ratio for cardiovascular death or hospitalization for heart failure").
+_POLARITY_EFFECT = __import__("re").compile(
+    extract._EFFECT.pattern.replace("{0,25}", "{0,160}"), extract._EFFECT.flags)
+
+
+def matching_effect_sentences(row: dict[str, Any], abstract: str | None) -> list[str]:
+    """Bind sentence evidence to the same measure, point AND both CI ends.
+
+    No rounding slack, adjacent sentence, or incomplete interval is evidence.
+    Keep original sentence text for audit; decimal normalisation is parse-only.
+    """
+    wanted = tuple(row.get(k) for k in ("effect", "ci_low", "ci_high"))
+    if None in wanted:
+        return []
+    found = []
+    for sentence in extract._sentences(abstract or ""):
+        for match in _POLARITY_EFFECT.finditer(extract._norm(sentence)):
+            effect = extract._effect_from_match(match, sentence)
+            if (effect and effect.scale == str(row.get("scale") or "").upper()
+                    and tuple(effect[1:]) == wanted):
+                found.append(sentence)
+                break
+    return found
+
+
+def polarity_check(row: dict[str, Any], outcome_name: str | None, spec: dict[str, Any] | None,
+                   abstract: str | None = None) -> dict[str, Any] | None:
+    """None outside reported effects on death outcomes; otherwise record polarity. A benefit-event effect in a death pool is refused,
     or -- only under a declared normalisation -- re-oriented by the reciprocal (CI ends swapped) with the original kept."""
     if row.get("effect") is None or not _DEATH_OUTCOME.search(outcome_name or ""):
         return None
     ev = event_modelled(row.get("source"))
+    evidence = {}
+    if ev == "NOT_STATED":
+        sentences = matching_effect_sentences(row, abstract)
+        if sentences:
+            events = {event_modelled(sentence) for sentence in sentences}
+            # Conflicting or unidentified matching sentences never resolve by
+            # selecting whichever one supplies the desired orientation.
+            ev = next(iter(events)) if len(events) == 1 else "NOT_STATED"
+            evidence = {"read_from": "held abstract", "sentences": sentences}
     if ev != "BENEFIT_EVENT":
-        return {"event_modelled": ev, "state": "CONSISTENT" if ev == "DEATH" else "NOT_STATED"}
+        return {**evidence, "event_modelled": ev, "state": "CONSISTENT" if ev == "DEATH" else "NOT_STATED"}
     decl = ((spec or {}).get("polarity_normalisation") or {}).get("reciprocal_for_benefit_event") is True
     if not decl:
-        return {"event_modelled": ev, "state": "EVENT_POLARITY_MISMATCH", "resolution": "HOLD",
+        return {**evidence, "event_modelled": ev, "state": "EVENT_POLARITY_MISMATCH", "resolution": "HOLD",
                 "reason": ("the effect models a BENEFIT event (>1 favours the intervention) and this is a death outcome; pooled as it "
                            "stands its direction is inverted. Refused: no declared polarity normalisation")}
     e, lo, hi = float(row["effect"]), float(row["ci_low"]), float(row["ci_high"])
-    return {"event_modelled": ev, "state": "NORMALISED", "resolution": "RECIPROCAL_DECLARED",
+    return {**evidence, "event_modelled": ev, "state": "NORMALISED", "resolution": "RECIPROCAL_DECLARED",
             "original": {"effect": e, "ci_low": lo, "ci_high": hi},
             "normalised": {"effect": round(1 / e, 4), "ci_low": round(1 / hi, 4), "ci_high": round(1 / lo, 4)}}
 
@@ -344,20 +380,70 @@ def polarity_check(row: dict[str, Any], outcome_name: str | None, spec: dict[str
 # (spec.multi_arm_rule) resolves it before pooling: COMBINE_ARMS (one comparison, experimental arms summed) or SPLIT_CONTROL (the
 # control's events and patients divided equally among the comparisons, Cochrane Handbook 23.3.4). Undeclared -> the group is HELD.
 def _family(t: dict[str, Any]) -> str:
-    return str(t.get("trial_family_id") or t.get("trial_id") or t.get("id") or "").split("#")[0]
+    return str(t.get("trial_family_id") or t.get("family_id") or t.get("trial_id") or t.get("id") or "").split("#")[0]
+
+
+def _comparison_scope(t: dict[str, Any]) -> tuple:
+    """A family/program is not itself a shared control. Partition explicit scope.
+
+    Production calls this within one outcome. Fields below additionally protect
+    callers passing mixed endpoints, follow-up windows, or populations. A concrete
+    trial/report identity is required when no explicit control identity is held.
+    """
+    fields = ("outcome", "outcome_id", "endpoint_definition", "timepoint",
+              "follow_up_window", "registry_selected_timepoint", "registry_timeframe", "timeframe", "timeframe_weeks",
+              "population", "population_id", "population_age", "registry_population", "analysis_set",
+              "analysis_population", "comparator", "comparator_id")
+    return tuple(str(t.get(k) or "") for k in fields)
 
 
 def multi_arm_groups(trials: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """Shared-control candidates, including effect-only arm comparisons.
+
+    Distinct arm rows in the same concrete trial and scope are held conservatively
+    when no control counts exist. Family membership alone (across trials or
+    populations) is insufficient. Explicit control IDs distinguish controls.
+    """
     by: dict[tuple, list] = {}
     for t in trials:
-        if t.get("ai") is None or t.get("ci") is None:
+        family = _family(t)
+        if not family:
             continue
-        by.setdefault((_family(t), t.get("ci"), t.get("n2i")), []).append(t)
-    return [g for g in by.values() if len(g) >= 2]
+        control = t.get("shared_control_id") or t.get("control_arm_id")
+        trial = str(t.get("trial_id") or t.get("report_id") or t.get("id") or "").split("#")[0]
+        if not trial and not control:
+            continue
+        counts = all(t.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))
+        if not counts and t.get("effect") is None:
+            continue
+        # Concrete trial identity also partitions count groups: equal counts
+        # across separate trials do not establish one shared control.
+        identity = ("control", str(control), trial) if control else (
+            ("counts", t["ci"], t["n2i"], trial)
+            if counts else ("trial", trial))
+        by.setdefault((family, _comparison_scope(t), identity), []).append(t)
+    groups = []
+    for g in by.values():
+        if len(g) < 2:
+            continue
+        # Repeated copies of one effect-only comparison are not separate arms -- but only an IDENTICAL copy (same estimate):
+        # two dose arms under one id with different estimates are two comparisons against one control, and are held.
+        if all(t.get("ai") is None for t in g):
+            contrasts = {tuple(str(t.get(key) or "") for key in ("id", "arm_id", "dose", "dose_regimen", "effect", "ci_low", "ci_high"))
+                         for t in g}
+            if len(contrasts) < 2:
+                continue
+        groups.append(g)
+    return groups
 
 
 def apply_multi_arm_rule(trials: list[dict[str, Any]], spec: dict[str, Any] | None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Returns (trials to pool, held records). Rows outside any shared-control group pass through unchanged."""
+    """Return pool rows and visible holds; never infer effect correlations.
+
+    SELECT_ARM with multi_arm_selected_id is applicable to effects: a single
+    prespecified comparison contributes. Count algebra requires count-only rows;
+    modifying counts underneath a published effect would not change its weight.
+    """
     rule = str((spec or {}).get("multi_arm_rule") or "").upper()
     groups = multi_arm_groups(trials)
     if not groups:
@@ -367,25 +453,40 @@ def apply_multi_arm_rule(trials: list[dict[str, Any]], spec: dict[str, Any] | No
     held = []
     for g in groups:
         k = len(g)
-        shared = {"ci": g[0]["ci"], "n2i": g[0]["n2i"]}
-        record = {"rule": rule or None, "arms": [{"id": t.get("id"), "label": t.get("label"), "ai": t["ai"], "n1i": t["n1i"]} for t in g],
+        count_only = all(t.get("effect") is None and all(t.get(f) is not None
+                         for f in ("ai", "n1i", "ci", "n2i")) for t in g)
+        count_ready = count_only and len({(t["ci"], t["n2i"]) for t in g}) == 1
+        shared = {"ci": g[0].get("ci"), "n2i": g[0].get("n2i"),
+                  "id": g[0].get("shared_control_id") or g[0].get("control_arm_id")}
+        record = {"rule": rule or None, "arms": [{key: t.get(key) for key in
+                  ("id", "label", "ai", "n1i", "effect", "ci_low", "ci_high", "scale")} for t in g],
                   "shared_control": shared}
-        if rule == "COMBINE_ARMS":
+        selected = [t for t in g if t.get("id") == (spec or {}).get("multi_arm_selected_id")]
+        if rule == "SELECT_ARM" and (spec or {}).get("multi_arm_selected_id") and len(selected) == 1:
+            out.append(dict(selected[0], multi_arm=dict(record, applied="SELECT_ARM")))
+        elif rule == "COMBINE_ARMS" and count_ready:
             row = dict(g[0])
             row.update(ai=sum(t["ai"] for t in g), n1i=sum(t["n1i"] for t in g), multi_arm=dict(record, applied="COMBINE_ARMS"))
             out.append(row)
-        elif rule == "SPLIT_CONTROL":
+        elif rule == "SPLIT_CONTROL" and count_ready:
             for t in g:
                 r = dict(t)
                 r.update(ci=shared["ci"] / k, n2i=shared["n2i"] / k, multi_arm=dict(record, applied="SPLIT_CONTROL", split_into=k))
                 out.append(r)
         else:
+            reason = (f"{k} arm comparisons share a control within one trial and scope; they cannot enter independently. "
+                      "Held until an applicable multi_arm_rule is declared. ")
+            if not count_only:
+                reason += ("COMBINE_ARMS and SPLIT_CONTROL require complete count-only inputs; "
+                           "effect-only/published-effect rows cannot use count algebra. No correlation is guessed. ")
+            if count_only and not count_ready:
+                reason += "The shared control has inconsistent counts; count rules cannot be applied. "
+            if rule == "SELECT_ARM":
+                reason += "multi_arm_selected_id must identify exactly one comparison in this group."
             held.append({"label": g[0].get("label"), "id": g[0].get("id"), "absent_kind": "machine_absent",
                          "state": "MULTI_ARM_SHARED_CONTROL_UNDECLARED", "reason_code": "MULTI_ARM_SHARED_CONTROL_UNDECLARED",
                          "endpoint_admissibility": "MULTI_ARM_SHARED_CONTROL_UNDECLARED", "multi_arm": record,
-                         "reason": (f"{k} comparisons share one control ({shared['ci']}/{shared['n2i']}); entered independently the "
-                                    "control would be counted {k} times. Held until the outcome declares multi_arm_rule "
-                                    "(COMBINE_ARMS or SPLIT_CONTROL)").replace("{k}", str(k))})
+                         "reason": reason.strip()})
     return out, held
 
 

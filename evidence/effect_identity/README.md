@@ -225,3 +225,67 @@ as **OUTCOME_NOT_IN_SOURCE**, which is false: the outcome is reported, and the e
 - **Count RR is a different measure.** EXAMINE's count RR (0.9573, 0.8257-1.1100 from 305/2701 vs 316/2679) cannot be rebuilt from
   held bytes, because the abstract gives only the 5380 total and the per-arm n are in the full text. The reconstruction refuses with
   that reason, and a count RR never enters the HR pool under the HR label. The review's counts are a synthetic fixture.
+
+## (14) Effect-only shared controls and same-estimate polarity fallback (3876a62d)
+
+Offline measurement uses the immutable served corpus at `3876a62dca66764dff1b4f84d6b43356a1a9e3bb`, before patching; no pipeline rebuild or live source substitution.
+
+| Input | Static vs dynamic / hardcode disclosure |
+|---|---|
+| Pin and synthetic boundary plants | Static; plants are not research observations |
+| Rows, identifiers, abstract sentences and estimates | Dynamic reads of pinned review/topic/cache git objects |
+| Counts and rule states | Computed from those inputs; no invented effects, correlations or source identifiers |
+
+### Gap 1 measurement: every same-family group within each outcome
+
+Inspected all **127 rows across 97 outcomes on 32 served pages**. All 127 carry `trial_family_id`, `family_id` and `trial_id`; these are real fields in the rows, not assumed schema. `trial_family_label` exists on only 3 rows. Each identity field was checked independently within outcomes (arm suffixes after `#` removed), as were available labels. The existing `_family` prefers `trial_family_id`, then `trial_id`, then `id`; the patch also accepts `family_id` when the first field is absent.
+
+**0 of 127 within-outcome family buckets contain >=2 rows** (also zero for `family_id` and `trial_id` separately). Thus **0 of 127 rows** belong to repeated-family groups: **0 of 35 rows with direct binary counts**, **0 of 86 effect-only rows**, and **0 of 6 other continuous-input rows**. Alternative count records do not turn an effect-only input into a direct-count input.
+
+Complete group inventory: **none**. There is consequently no group abstract to classify as separate arms versus one comparison. No served shared-control state changes. This zero result is a corpus measurement, not evidence that effect-only grouping was safe; synthetic arm plants exercise the previously uncovered path.
+
+Grouping now partitions endpoint, follow-up, population, comparator and concrete trial/control identity. Same program membership alone cannot join separate trials. Effect-only candidates are HELD with `MULTI_ARM_SHARED_CONTROL_UNDECLARED`; `COMBINE_ARMS` and `SPLIT_CONTROL` cannot release published effects by changing unused/missing counts. Their hold explains the count requirement. `SELECT_ARM` plus an exact `multi_arm_selected_id` retains one prespecified comparison and records all original arms; missing/ambiguous selections stay held. No correlation is inferred.
+
+### Gap 2 measurement: all eight original NOT_STATED rows
+
+Baseline: **8 of 20** reported-effect rows on death/mortality/survival-labelled outcomes were NOT_STATED. Matching the measure, point and both CI ends finds a held sentence for **7 of 8**: **1 of 8 DEATH**, **0 of 8 BENEFIT_EVENT**, **7 of 8 still NOT_STATED** (six sentences name no event; one abstract is absent). Composite VTE outcomes are included because the existing death-outcome guard matches their word "death"; that guard is unchanged.
+
+The exact sentence is retained below. No preceding endpoint-definition sentence is borrowed. The matcher extends the extractor's label-to-point text allowance to handle an explicitly named endpoint, but requires exact numeric equality and the same measure. Conflicting matching sentence orientations remain NOT_STATED.
+
+- **doac-vte-recurrence / Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death) / PMID 19966341 [outcome 0, row 1]**: HR 1.1 (0.65-1.84); **NOT_STATED**.
+
+> The hazard ratio with dabigatran was 1.10 (95% CI, 0.65 to 1.84).
+
+- **doac-vte-recurrence / Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death) / PMID 22449293 [outcome 0, row 2]**: HR 1.12 (0.75-1.68); **NOT_STATED**.
+
+> RESULTS: Rivaroxaban was noninferior to standard therapy (noninferiority margin, 2.0; P=0.003) for the primary efficacy outcome, with 50 events in the rivaroxaban group (2.1%) versus 44 events in the standard-therapy group (1.8%) (hazard ratio, 1.12; 95% confidence interval [CI], 0.75 to 1.68).
+
+- **doac-vte-recurrence / Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death) / PMID 21128814 [outcome 0, row 3]**: HR 0.68 (0.44-1.04); **NOT_STATED**.
+
+> Rivaroxaban had noninferior efficacy with respect to the primary outcome (36 events [2.1%], vs. 51 events with enoxaparin-vitamin K antagonist [3.0%]; hazard ratio, 0.68; 95% confidence interval [CI], 0.44 to 1.04; P<0.001).
+
+- **doac-vte-recurrence / Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death) / PMID 23991658 [outcome 0, row 4]**: HR 0.89 (0.7-1.13); **NOT_STATED**.
+
+> Edoxaban was noninferior to warfarin with respect to the primary efficacy outcome, which occurred in 130 patients in the edoxaban group (3.2%) and 146 patients in the warfarin group (3.5%) (hazard ratio, 0.89; 95% confidence interval [CI], 0.70 to 1.13; P<0.001 for noninferiority).
+
+- **doac-vte-recurrence / Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death) / PMID 23808982 [outcome 0, row 5]**: RR 0.84 (0.6-1.18); **NOT_STATED**.
+
+> RESULTS: The primary efficacy outcome occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2635 (2.7%) in the conventional-therapy group (relative risk, 0.84; 95% confidence interval [CI], 0.60 to 1.18; difference in risk [apixaban minus conventional therapy], -0.4 percentage points; 95% CI, -1.3 to 0.4).
+
+- **sacubitril-valsartan-hfref / Composite cardiovascular death or heart-failure hospitalization / NCT02468232 [outcome 0, row 1]**: HR 1.0881 (0.6501-1.8212); **NOT_STATED**.
+
+No held record matching pipeline ID `NCT02468232`; no sentence can be quoted or substituted. Its registry quotation is not a held abstract.
+
+- **sglt2-hfref-hosp-cvdeath / Composite cardiovascular death or hospitalisation for heart failure / PMID 32865377 [outcome 0, row 1]**: HR 0.75 (0.65-0.86); **DEATH**.
+
+> RESULTS: During a median of 16 months, a primary outcome event occurred in 361 of 1863 patients (19.4%) in the empagliflozin group and in 462 of 1867 patients (24.7%) in the placebo group (hazard ratio for cardiovascular death or hospitalization for heart failure, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001).
+
+- **spironolactone-hfref-mortality / All-cause mortality / PMID 28824029 [outcome 0, row 2]**: HR 0.85 (0.53-1.36); **NOT_STATED**.
+
+> The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].
+
+After fallback: **13 of 20 CONSISTENT**, **7 of 20 NOT_STATED**, **0 of 20 polarity mismatches**. The sole served-input state change is **sglt2-hfref-hosp-cvdeath / Composite cardiovascular death or hospitalisation for heart failure / PMID 32865377**, NOT_STATED -> DEATH / CONSISTENT (fixture UNEVALUABLE -> CONSISTENT). The six matched but unstated rows gain sentence provenance without a state change. No served numerical estimate changes; deployed artifacts were not rebuilt.
+
+Plants in `tests/test_effect_only_multiarm_and_polarity.py` cover effect-only holds under undeclared/count rules, single-arm selection, duplicate comparisons, distinct outcomes/timepoints/populations/trials/controls, and survival-oriented same-HR fallback. Different point, either CI end, measure, incomplete CI or adjacent benefit sentence cannot supply polarity. Existing row polarity takes precedence.
+
+Validation: `python -m pytest -q tests/test_effect_only_multiarm_and_polarity.py tests/test_effect_identity.py tests/test_effect_identity_corpus_fixture.py -p no:cacheprovider` -> **120 passed**. Only these three files were run. Fixture JSON and report were regenerated and their exact recomputation test passes. A second-pass comparison of all 127 fixture identities and rule states confirms only the PMID 32865377 polarity state changes. Additional plants reject equal counts across separate reports and inconsistent counts under one explicit control ID. `git diff --check` passes. No commit or deployment.
