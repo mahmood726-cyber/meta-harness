@@ -394,3 +394,29 @@ failed harmlessly; the guard makes it impossible).
   and restored before anything was committed.
 - Two repository pages advertised `citation_pdf_url` on a local host (localhost:4000, *.cpd.local). The requests
   failed harmlessly; the cascade now refuses them (REFUSED_NONPUBLIC_HOST).
+
+### Rebuild on the word-level classifier and the held verbatim abstracts (all 32 topics)
+- All 32 rebuilt. Every review.json, CERTIFICATE.json, EXECUTION_RECORD.json and page was checked present and
+  parseable: an exit code is not the probe.
+- Gate 25/32; the 7 refusals are the same designed holds.
+- Served diff vs 7e70759a: the same 5 topics and 7 outcomes move, each with one OPEN notice; no pooled state change.
+- Absent-row states vs 9727c3d8/22240c2d:
+  - 514 absences move from UNVERIFIED to VERBATIM coverage (the lanes' verbatim abstracts);
+  - 5 false ALTERED grades return to VERBATIM;
+  - SOUL (40162642) GI adverse events and discontinuation move RETRIEVED_NOT_REPORTED → NOT_YET_RETRIEVED: the
+    cached abstract is abridged, so the page no longer says the publication omits them;
+  - CoDEX (32785710) SAE moves NOT_YET_RETRIEVED → RETRIEVED_NOT_REPORTED: its abstract is now verified verbatim, so
+    the absence is scoped, with coverage named.
+- `scripts/verify_lane_result.py` is now in the repository, with `tests/test_verify_lane_result.py`. It plants 9 XML
+  and 4 PDF cases; the PDF cases skip visibly where the local-only manuscript is absent. It verifies PDF spans
+  against its OWN pypdf page text, with header and row on the same page; HTML against tag-stripped text; XML
+  against raw bytes and the same table's <thead>.
+
+### Lane round 2 (stopped by the disk gate, as designed)
+Free space on F: fell from ~1.4 GB to ~0.3 GB during the rebuild. The lanes hold about 120 MB, pytest about 1 MB,
+and my scratch files are unchanged, so the cause is outside this lane's writes (not identified; nothing I did not
+create was deleted).
+- Lane B stopped before any work.
+- Lane A re-examined its 13 failed FOUND rows (7 FOUND, 4 REPORTED_ZERO_EVENTS, 2 REPORTED_NOT_EXTRACTABLE per the
+  lane) and stopped before fetching.
+- Resume point: acq-a/.lane/RESULT_R2.json `resume_at`. The lane outputs are not yet verified or merged.
