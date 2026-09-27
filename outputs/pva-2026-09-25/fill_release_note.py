@@ -278,7 +278,10 @@ def main():
             f"*Measured on the SERVED V1 bytes: {record or 'production record: NOT MEASURED'}. "
             + (f"Archive: `{Path(arch['zip']).name}`, sha256 `{arch['sha256']}`, {arch['bytes']:,} B, offline check rc {arch['check_rc']}. "
                if arch else "Archive: NOT BUILT. ")
-            + "Artefacts: served/scorecard.json, tabs.json, producer.txt, f6.json.*\n\n")
+            + "Artefacts: " + (", ".join(n for n in ("served/scorecard.json", "tabs.json", "producer.txt", "f6.json")
+                                         if (work / n).is_file()) or "none")
+            + ("; not measured: " + ", ".join(f"{k} ({v.split(': ', 1)[-1][:90]})" for k, v in sorted(R["refused"].items()))
+               if R.get("refused") else "") + ".*\n\n")
     # header first, so the draft header's own '**V1:**' is never taken for a marker
     text, nh = re.subn(r"\A# .*?\n\n\*.*?\*\n\n", lambda m: head, text, count=1, flags=re.S)
     if nh != 1:
