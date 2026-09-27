@@ -182,13 +182,21 @@ def endpoint_canonical(o: dict[str, Any], slug: str | None = None) -> dict[str, 
         status = "HETEROGENEOUS_DECLARED" if (
             "trial-defined" in name or "components differ" in name or "cardiorenal" in name
         ) else "HETEROGENEOUS"
-    return {
+    out = {
         "label": _label(slug, o),
         "event_time": _event_time(o, slug),
         "components": all_components,
         "component_sets": component_sets,
         "status": status,
     }
+    od = o.get("outcome_definition")
+    if isinstance(od, dict) and od.get("status"):
+        # a single component token ("OVULATION" for every trial) cannot make an endpoint homogeneous: the status is DERIVED from
+        # each trial's definition record (criterion, denominator, sequence, stopping, observation) -- metformin-PCOS review
+        out["component_status"] = status
+        out["status"] = od["status"]
+        out["definition_record"] = {k: od.get(k) for k in ("status", "fields", "basis")}
+    return out
 
 
 def _normal_analysis_literal(x: Any) -> str | None:

@@ -386,6 +386,20 @@ def describe_eligibility(inc: dict) -> str:
             + ". Excluded (rule id + verbatim span on each record): " + " · ".join(excl) + ".")
 
 
+def _arm_based_comparator(rec, inc):
+    """A CLEAN contrast for the intervention against a PLACEBO arm, from the record's structured arm list (registry) or the arms
+    its abstract names ("randomly assigned ... to receive A, B, or C"). None when neither lists arms or no clean placebo contrast
+    exists -- a confounded contrast (metformin + placebo vs clomiphene + placebo) is never a comparator."""
+    terms = list(inc.get("intervention_any") or [])
+    if not terms:
+        return None
+    arms = arm_parse.abstract_arms(rec.get("abstract") or "")
+    if len(arms) >= 2:
+        return arm_parse.arm_based_comparator(arms, terms, labels_are_arms=True)
+    interventions = [str(x) for x in (rec.get("interventions") or []) if str(x or "").strip()]
+    return arm_parse.arm_based_comparator(interventions, terms, labels_are_arms=False) if len(interventions) >= 2 else None
+
+
 def screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""
@@ -462,6 +476,12 @@ def screen_record(rec, inc, neg_pmids):
     comp = _has(text, comparator_any)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
+        # ARM-BASED comparator (metformin review): the phrase list misses a placebo arm the record names as an ARM ("clomiphene
+        # citrate plus placebo" -- Legro 2007). A CLEAN contrast against a placebo arm, read by arm parsing, is the comparator.
+        _abc = _arm_based_comparator(rec, inc)
+        if _abc:
+            comp_override = {"term": "placebo arm: '" + _abc["comparator_arm"] + "'", "arm_based": _abc}
+    if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
                 f"examined: “{_quote(raw_all)}”")
     comp_term = comp or (comp_override or {}).get("term")
@@ -530,7 +550,7 @@ def screen_record_2(rec, inc):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
     if (comparator_any and not _has(text, comparator_any)
-            and not screen_entry.comparator_override(rec, inc)):
+            and not screen_entry.comparator_override(rec, inc) and not _arm_based_comparator(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):
         return "exclude"

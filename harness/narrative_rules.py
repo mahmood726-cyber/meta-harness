@@ -121,3 +121,51 @@ def population_literal(abstract: str | None, row: dict[str, Any] | None = None) 
             return {"population": f"analysed {sum(dens)} of {n_all} randomised (not all randomised)", "basis": r.group(0),
                     "all_randomised": False}
     return None
+
+
+
+# (5) ODDS RATIOS AND MAGNITUDE (metformin-PCOS review, 2026-09-27, hash f1643a71). An OR is a ratio of ODDS, not of
+# probabilities: "twice as many women ovulated" / "2-fold more likely" describes a risk ratio the page does not have. And an
+# interval such as 0.09 to 46.6 supports no magnitude claim at all. Generated text only; a verbatim quotation of held text is not
+# the page's claim. "doubling of serum creatinine" is an endpoint name, never a claim.
+_PROB_RATIO = re.compile(r"(?i)\b(?:twice|thrice|three\s+times|\d+(?:\.\d+)?\s*-?\s*(?:times|fold))\s+(?:as\s+many|more|as\s+likely|"
+                         r"more\s+likely|higher|the\s+(?:chance|probability|proportion|rate|risk))\b|\b(?:doubled|tripled|halved)\b")
+_MAGNITUDE = re.compile(r"(?i)\b(?:large|substantial|marked|strong(?:ly)?|important|major|clinically\s+(?:meaningful|important|relevant)|"
+                        r"considerabl[ey]|dramatic(?:ally)?|twice|doubled|halved)\s+(?:increase|reduction|effect|benefit|improvement|"
+                        r"difference|rise|gain)?")
+_ENDPOINT_TERM = re.compile(r"(?i)doubling\s+of\s+(?:the\s+)?(?:serum\s+)?creatinine")
+
+
+def uninformative_interval(lo, hi, ratio_limit: float = 10.0) -> bool:
+    """A ratio interval spanning more than `ratio_limit`-fold (0.09 to 46.6 spans 518-fold) supports no magnitude claim."""
+    try:
+        return float(lo) > 0 and float(hi) / float(lo) >= ratio_limit
+    except (TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
+def check_or_narrative(page_html: str, held_texts: Iterable[str], pooled: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Refuse (a) probability-ratio wording anywhere the page pools an OR, and (b) any magnitude word when a pooled interval is
+    uninformative. A phrase inside a verbatim window of held text is a quotation and passes."""
+    corpus = "\n".join(_norm(t) for t in held_texts if t)
+    has_or = any(str(p.get("scale") or "").upper() in ("OR", "ODDS_RATIO") for p in pooled)
+    wide = [p for p in pooled if uninformative_interval(p.get("ci_low"), p.get("ci_high"))]
+    bad = []
+    for sent in page_sentences(page_html):
+        if _ENDPOINT_TERM.search(sent):
+            sent_chk = _ENDPOINT_TERM.sub(" ", sent)
+        else:
+            sent_chk = sent
+        checks = []
+        if has_or:
+            checks.append(("OR_AS_PROBABILITY_RATIO", _PROB_RATIO))
+        if wide:
+            checks.append(("MAGNITUDE_CLAIM_ON_UNINFORMATIVE_INTERVAL", _MAGNITUDE))
+        for code, rx in checks:
+            for m in rx.finditer(sent_chk):
+                left = sent_chk[max(0, m.start() - 40):m.end()].strip(" .;:,")
+                right = sent_chk[m.start():min(len(sent_chk), m.end() + 40)].strip(" .;:,")
+                if left in corpus or right in corpus:
+                    continue
+                bad.append({"code": code, "phrase": m.group(0), "sentence": sent[:300]})
+    return bad

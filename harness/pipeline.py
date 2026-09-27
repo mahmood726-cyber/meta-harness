@@ -15,6 +15,7 @@ import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import effect_identity as effect_identity_mod
+from . import outcome_definition as outcome_definition_mod
 from . import continuous_identity as continuous_identity_mod
 from . import outcome_tiers as outcome_tiers_mod
 from . import composite_rule as composite_rule_mod
@@ -1621,6 +1622,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    if spec.get("outcome_definition"):
+        # OUTCOME DEFINITION RECORD (metformin-PCOS review f1643a71): criterion, denominator, sequence, stopping rules and
+        # observation period read per trial from its held text; the endpoint's HOMOGENEOUS label is derived from them.
+        _fields = tuple(spec["outcome_definition"].get("fields") or outcome_definition_mod.FIELDS)
+        _recs = {}
+        for t in trials:
+            _pid = str(t.get("id") or "").replace("PMID ", "")
+            _txt = ((rec_by_id.get(_pid) or {}).get("abstract") or "") + " " + str((fulltext_by_pmid or {}).get(_pid) or "")
+            t["outcome_definition"] = outcome_definition_mod.definition_record(_txt)
+            _recs[_pid] = t["outcome_definition"]
+        out["outcome_definition"] = {**outcome_definition_mod.derive_status(_recs, _fields), "declared": spec["outcome_definition"]}
     _zes = spec.get("zero_event_sensitivity") or {}
     if double_zero_rows and _zes.get("predeclared") is True and _zes.get("method") == "CC_0.5":
         _zrows = trials + double_zero_rows

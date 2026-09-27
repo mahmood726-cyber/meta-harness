@@ -1250,6 +1250,38 @@ def check_narrative_no_ni_inference(review_dir, html):
     return []
 
 
+def check_narrative_or_magnitude(review_dir, html):
+    """NARRATIVE RULE (metformin-PCOS review, 2026-09-27): an OR is never worded as a probability ratio ("twice as many women"),
+    and an uninformative interval (e.g. 0.09 to 46.6) carries no magnitude word. Quotations of held text pass."""
+    from . import narrative_rules
+    slug = os.path.basename(os.path.normpath(review_dir))
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(review_dir))))
+    held = []
+    for rel in (("docs", "cache", slug, "records.json"), ("cache", slug, "records.json")):
+        p = os.path.join(root, *rel)
+        if os.path.exists(p):
+            try:
+                held = [(r.get("abstract", "") or "") + " " + (r.get("title", "") or "")
+                        for r in (json.load(open(p, encoding="utf-8")).get("records") or [])]
+            except (OSError, ValueError):
+                held = []
+            break
+    pooled = []
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            for o in json.load(f).get("outcomes") or []:
+                r = o.get("result") or {}
+                if r.get("estimate") is not None:
+                    pooled.append({"scale": r.get("scale"), "ci_low": r.get("ci_low"), "ci_high": r.get("ci_high")})
+    except (OSError, ValueError):
+        pooled = []
+    bad = narrative_rules.check_or_narrative(html or "", held, pooled)
+    if bad:
+        return [f"L1: generated narrative misreads an odds ratio or claims magnitude on an uninformative interval: "
+                + "; ".join(f"{b['code']} {b['phrase']!r} in {b['sentence'][:140]!r}" for b in bad[:4])]
+    return []
+
+
 def check_no_independent_corroboration_claim(review_dir, html):
     from . import comparator_panel
     try:
@@ -1324,6 +1356,7 @@ def gate_page(review_dir):
                + check_certificate(review_dir)
                + check_no_independent_corroboration_claim(review_dir, html)
                + check_narrative_no_ni_inference(review_dir, html)
+               + check_narrative_or_magnitude(review_dir, html)
                + check_harms_synthesis_gated(review_dir, html)
                + check_adjustment_span_backed(review_dir)
                + check_cache_tracked(manifest)

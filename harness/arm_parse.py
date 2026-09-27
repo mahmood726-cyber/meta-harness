@@ -100,11 +100,21 @@ def exposure(arm: dict[str, Any], keywords) -> str:
     return "ABSENT"
 
 
+# formulation / salt / connective words that do not change WHICH agent an arm gives: "clomiphene citrate" and "a combination of ...
+# clomiphene" hold the same agent constant (Legro 2007)
+_CANON_DROP = re.compile(r"(?i)\b(?:a|an|the|combination|of|extended[- ]release|immediate[- ]release|sustained[- ]release|"
+                         r"xr|er|sr|citrate|hydrochloride|hcl)\b")
+
+
+def _canon(agent: str) -> str:
+    return " ".join(_CANON_DROP.sub(" ", agent or "").split()).lower()
+
+
 def _other_actives(arm: dict[str, Any], kws) -> tuple[str, ...]:
     out = []
     for c in arm["components"]:
         if c["kind"] == "ACTIVE" and not _hit(c["agent"], kws):
-            out.append(c["agent"])
+            out.append(_canon(c["agent"]))
         elif c["kind"] == "LEVELS_WITHIN_ARM":
             out.append("levels:" + c["text"].lower())
     return tuple(sorted(out))
@@ -159,3 +169,58 @@ def design_object(registry_row: dict[str, Any] | None) -> dict[str, Any]:
     else:
         obj["within_person"] = False
     return obj
+
+
+# --------------------------------------------------------------------------- arm-based comparator recognition (metformin review)
+# Legro 2007 (PMID 17287476) was excluded X3 "no eligible comparator" because the screen matched phrases ("placebo group",
+# "placebo-controlled") and the abstract names its arms instead: "clomiphene citrate plus placebo, extended-release metformin plus
+# placebo, or a combination of metformin and clomiphene". "X plus placebo" establishes a placebo arm; the eligible contrast is the
+# CLEAN one (metformin + clomiphene vs placebo + clomiphene, clomiphene held constant) -- metformin vs clomiphene is not.
+_ASSIGNED = re.compile(r"(?i)\b(?:randomly\s+assigned|randomi[sz]ed|allocated)\b[^.;]{0,120}?\bto\s+(?:receive\s+|take\s+|either\s+)*"
+                       r"(?P<arms>[^.;]{8,320}?)(?=\s+for\s+(?:up\s+to\s+)?\d|\s+(?:daily|nightly|twice|once)\b|[.;]|$)")
+_ARM_SPLIT = re.compile(r"\s*,\s*(?:or\s+)?|\s+or\s+|\s+versus\s+|\s+vs\.?\s+", re.I)
+
+
+def abstract_arms(text: str | None) -> list[str]:
+    """The randomised arm labels a held abstract lists ("randomly assigned ... to receive A, B, or C"); [] when it lists none."""
+    m = _ASSIGNED.search(text or "")
+    if not m:
+        return []
+    arms = [a.strip(" ,") for a in _ARM_SPLIT.split(m.group("arms")) if a.strip(" ,")]
+    return arms if len(arms) >= 2 else []
+
+
+def arm_based_comparator(labels, keywords, labels_are_arms: bool = True) -> dict[str, Any] | None:
+    """A placebo comparator for the agent, read from the arms -- or None.
+
+    ARM labels (a held abstract's "randomly assigned ... to receive A, B, or C"): a CLEAN ordered contrast whose comparator arm
+    carries a placebo; a confounded contrast (metformin + placebo vs clomiphene + placebo) never counts.
+    A registry INTERVENTION list is not a list of arms (NCT02792400 lists LY2403021, its placebo, a liquid meal, linagliptin, its
+    placebo, empagliflozin, its placebo): pairing its entries as arms invents contrasts. From such a list only a placebo MATCHED to
+    the agent, or a two-entry list of the agent and a plain placebo, is a comparator. Either way a matched placebo is preferred."""
+    kws = _kws(keywords)
+    parsed = {a: parse_arm(a) for a in labels or []}
+
+    def _matched_to_agent(arm):
+        return any(x["kind"] == "MATCHED_PLACEBO" and _hit(x.get("matched_to"), kws) for x in arm["components"])
+
+    if not labels_are_arms:
+        for lab, arm in parsed.items():
+            if _matched_to_agent(arm) and exposure(arm, kws) == "MATCHED_PLACEBO":
+                return {"comparator_arm": lab, "experimental_arm": None, "held_constant": [],
+                        "basis": "registry intervention list: a placebo matched to the agent"}
+        if len(parsed) == 2:
+            (la, a), (lb, b) = parsed.items()
+            for act, (lp, pl) in ((a, (lb, b)), (b, (la, a))):
+                if exposure(act, kws) == "ACTIVE" and all(x["kind"] == "PLACEBO" for x in pl["components"]):
+                    return {"comparator_arm": lp, "experimental_arm": act["label"], "held_constant": [],
+                            "basis": "registry intervention list of two: the agent and a plain placebo"}
+        return None
+    clean = [c for c in ordered_contrasts(labels, keywords) if c["state"] == "CLEAN"
+             and any(x["kind"] in ("PLACEBO", "MATCHED_PLACEBO") for x in parsed[c["comparator_arm"]]["components"])]
+    clean.sort(key=lambda c: 0 if _matched_to_agent(parsed[c["comparator_arm"]]) else 1)
+    if not clean:
+        return None
+    c = clean[0]
+    return {"experimental_arm": c["experimental_arm"], "comparator_arm": c["comparator_arm"],
+            "held_constant": c["held_constant"], "basis": "arm parsing: a CLEAN contrast against a placebo arm"}
