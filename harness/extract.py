@@ -4,13 +4,14 @@ Fails CLOSED: if a number is not corroborated it is declared absent, never guess
   * arm-level counts: "N (P%) of M ... <intervention> ... N2 (P2%) of M2 ... <comparator>"
     accepted only when P ~= N/M (within 1.5 percentage points) for BOTH arms, and the
     number is not immediately negated ("not"/"non"/"never").
-  * effect+CI fallback: "RR/OR/HR [reduction] X (95% CI L-U)"; a stated relative-risk
-    *reduction* is converted RRR -> RR = 1-X, CI flipped.
+  * effect+CI fallback: "RR/OR/HR X (95% CI L-U)"; a named relative reduction
+    is complemented on its own measure, with percentage units normalised and CI flipped.
 No hand-typed numbers: everything comes from the cached source text.
 """
 from __future__ import annotations
 import itertools
 import re
+from decimal import Decimal
 
 from harness.extract_values import (ArmCounts, ArmHit, ArmPercentHit, ContinuousArms, Effect,  # noqa: E402  R1 typed values
                                      MeanSDHit, RateArms, RateHit)
@@ -56,9 +57,12 @@ _EFFECT = re.compile(
     # capitalise them, and matching them case-insensitively let the CONJUNCTION "or" in
     # "CV death or HF hospitalisation (RR 0.83...)" be read as an odds-ratio scale label,
     # mislabelling a comparator RR as OR. The full words stay case-insensitive.
-    r"(relative risk reduction|relative risk|risk ratio|incidence rate ratio|rate ratio|(?-i:\bRR\b)|odds ratio|(?-i:\bOR\b)|hazard ratio|(?-i:\bHR\b))"
+    r"(relative\s+(?:risk|hazard|odds|rate)\s+reduction|(?:hazard|odds|rate)\s+reduction"
+    r"|relative\s+reduction\s+in\s+(?:the\s+)?(?:risk|hazard|odds|rate)"
+    r"|reduced\s+(?:the\s+)?(?:risk|hazard|odds|rate)\s+by"
+    r"|relative risk|risk ratio|incidence rate ratio|rate ratio|(?-i:\bRR\b)|odds ratio|(?-i:\bOR\b)|hazard ratio|(?-i:\bHR\b))"
     r"[^0-9]{0,25}?(\d+(?:\.\d+)?)[^0-9]{0,28}?(?:\d{2}\s*(?:%|percent|per cent)\s*)?(?:confidence intervals?|\bCI\b)"
-    r"[^0-9]{0,10}?(\d+(?:\.\d+)?)\s*(?:to|[-–—,])\s*(\d+(?:\.\d+)?)", re.I)
+    r"[^0-9]{0,10}?(\d+(?:\.\d+)?)(?:\s*(?:%|percent\b|per cent\b))?\s*(?:to|[-–—,])\s*(\d+(?:\.\d+)?)(?:\s*(?:%|percent\b|per cent\b))?", re.I)
 _K = re.compile(r"(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+(?:controlled\s+)?trials|controlled\s+(?:clinical\s+)?trials|RCTs)", re.I)
 
 
@@ -257,14 +261,53 @@ _RECURRENT_PERSONTIME = re.compile(
     re.I)
 
 
+def _reduction_measure(kind):
+    """A complement preserves the explicitly named measure; bare prose has none."""
+    if not re.search(r"\breduc(?:tion|ed)\b", kind, re.I):
+        return None
+    for word, scale in (("hazard", "HR"), ("odds", "OR"), ("rate", "RATE_RATIO"), ("risk", "RR")):
+        if re.search(rf"\b{word}\b", kind, re.I):
+            return scale
+    return None  # MEASURE_NOT_STATED -- never default a reduction to RR
+
+
+def _reduction_values(m):
+    """Read proportions with decimal arithmetic, including an explicit percent unit.
+
+    The point's percent unit also governs unmarked CI endpoints. Absolute
+    reductions and unsupported signed values are refused, never made positive.
+    """
+    prefix = m.string[max(0, m.start() - 30):m.start()]
+    if (re.search(r"\babsolute\s*$", prefix, re.I)
+            or re.search(r"\babsolute\b|percentage\s+points?", m.group(0), re.I)
+            or re.match(r"\s*percentage\s+points?", m.string[m.end():], re.I)):
+        return None
+    percent = [bool(re.match(r"\s*(?:%|percent\b|per cent\b)", m.string[m.end(i):], re.I))
+               for i in (2, 3, 4)]
+    if any(percent[1:]) and not percent[0]:
+        return None  # no inference of an unstated point unit
+    if any(re.search(r"[-−]\s*$", m.string[m.end(i - 1):m.start(i)]) for i in (2, 3)):
+        return None
+    divisor = Decimal(100) if percent[0] else Decimal(1)
+    values = tuple(Decimal(m.group(i)) / divisor for i in (2, 3, 4))
+    pt, lo, hi = values
+    return values if 0 <= lo <= pt <= hi < 1 and lo < hi else None
+
+
 def _effect_from_match(m, context=""):
     kind, pt, lo, hi = m.group(1).lower(), float(m.group(2)), float(m.group(3)), float(m.group(4))
+    reduction_scale = _reduction_measure(kind)
+    if reduction_scale:
+        values = _reduction_values(m)
+        if values is None:
+            return None
+        pt, lo, hi = values
+        return Effect(reduction_scale, float(1 - pt), float(1 - hi), float(1 - lo))
     if not (lo < hi and lo > 0 and pt > 0):
         return None
-    if "reduction" in kind:  # RRR -> RR
-        if not (0 < pt < 1 and 0 < lo < 1 and 0 < hi < 1):
-            return None
-        return Effect("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
+    # A percentage-bearing ratio is not an ordinary reported ratio.
+    if any(re.match(r"\s*(?:%|percent\b|per cent\b)", m.string[m.end(i):], re.I) for i in (2, 3, 4)):
+        return None
     if "incidence rate" in kind:
         scale = "IRR"   # explicit person-time incidence-rate ratio
     elif "rate ratio" in kind:
