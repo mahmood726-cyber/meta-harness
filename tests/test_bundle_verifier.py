@@ -62,7 +62,8 @@ def test_pool_reproduced_without_the_harness(baseline):
     assert abs(p["recomputed"]["estimate"] - 0.8559934175938467) < 1e-9
     assert abs(p["recomputed"]["tau2"] - 0.00004447972517261924) < 1e-9
     assert abs(p["t_crit_recomputed"] - 2.3646242515927853) < 1e-9   # t_{0.975, 7}
-    assert p["k_declared"] == 8 and p["admissible_rows"] == 7
+    # 8 of 8 since V1.0.1: HARMONY (PMID 30291013) passes P5 once its population is established on source evidence
+    assert p["k_declared"] == 8 and p["admissible_rows"] == 8
 
 
 def test_absence_claims_judged_from_recomputed_preservation(baseline):
@@ -127,14 +128,26 @@ def test_PLANT_one_corrupted_limb_refuses_that_admissible_row_for_the_intended_r
     assert restored["final"] == "ADMISSIBLE" and restored["predicates"] == base_row["predicates"]
 
 
-def test_control_a_row_already_refused_at_baseline_cannot_serve_as_a_mutation_target(baseline):
-    """The hole the old assertion had, kept as a control: corrupting HARMONY (INADMISSIBLE at baseline on
-    P5_family_eligible) leaves the set of refused rows unchanged, so a set-union assertion passes without the
-    corruption having been shown to do anything. The positive-control test above refuses such a target by name."""
-    harmony = next(r for r in baseline["rows"] if r["pmid"] == "30291013")
+def test_control_a_row_already_refused_at_baseline_cannot_serve_as_a_mutation_target(tmp_path):
+    """The hole the old assertion had, kept as a control: corrupting a row that is ALREADY refused at baseline leaves
+    the set of refused rows unchanged, so a set-union assertion passes without the corruption having been shown to do
+    anything. The positive-control test above refuses such a target by name.
+
+    Until V1.0.1 this control used the live corpus, where HARMONY (PMID 30291013) was INADMISSIBLE on P5 -- a control
+    anchored to a live defect, which retired itself when HARMONY's population was established on source evidence. It
+    now builds its own baseline: a copy of the served tree in which HARMONY's certified family eligibility is UNKNOWN."""
+    bundle = json.load(open(os.path.join(ROOT, "docs", "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
+    root = str(tmp_path / "site")
+    _copy_served_tree(bundle, root)
+    fpath = os.path.join(root, "cache", SLUG, "families.json")
+    fam = json.load(open(fpath, encoding="utf-8"))
+    next(f for f in fam["families"] if f["family_id"] == "NCT02465515")["eligibility"] = {"state": "UNKNOWN"}
+    open(fpath, "wb").write(json.dumps(fam, ensure_ascii=False, indent=2).encode("utf-8"))
+    base = _verify(root)
+    harmony = next(r for r in base["rows"] if r["pmid"] == "30291013")
     assert harmony["final"] == "INADMISSIBLE" and not harmony["predicates"]["P5_family_eligible"]
-    base_bad = {r["pmid"] for r in baseline["rows"] if r["final"] == "INADMISSIBLE"}
-    rep = _run("--corrupt", "30291013", "span")
+    base_bad = {r["pmid"] for r in base["rows"] if r["final"] == "INADMISSIBLE"}
+    rep = _verify(root, "--corrupt", "30291013", "span")
     now_bad = {r["pmid"] for r in rep["rows"] if r["final"] == "INADMISSIBLE"}
     assert now_bad == base_bad | {"30291013"} and now_bad == base_bad   # the old form: satisfied, and uninformative
 
@@ -438,7 +451,7 @@ def test_h1a_sustain6_deleted_safety_sentence_is_caught_although_it_carries_no_n
     an = next(a for a in rep["anchors"] if a["pmid"] == "27633186")
     assert an["preservation"]["verdict"] == "FAILURE" and an["coverage_recomputed"] == "EXCERPT_ONLY" and an["coverage_recorded"] == "COMPLETE_ABSTRACT"
     assert rep["verdict"] == "FAIL" and any(f.startswith("ANCHOR_PRESERVATION_FAILURE 27633186") for f in rep["failures"])
-    assert rep["pool"]["admissible_rows"] == 7   # the positive claims stand; the coverage claim does not
+    assert rep["pool"]["admissible_rows"] == 8   # the positive claims stand; the coverage claim does not (8 since V1.0.1: HARMONY P5)
 
 
 def test_m11_rewritten_fragment_is_a_selector_mismatch(tmp_path):

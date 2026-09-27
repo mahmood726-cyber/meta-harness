@@ -1024,6 +1024,18 @@ def _trial_families(r, legacy_flow=''):
     nodes = r['trial_families']
     chain = derive_count_chain(nodes)
     rows = []
+    show_pop = any(f.get('population_decision') for f in nodes)
+
+    def _pop(f):
+        # V1.0.1: the entry-population axis read from source evidence, each witness with its verbatim quote
+        d = f.get('population_decision') or {}
+        if not d:
+            return ''
+        return d['state'] + ''.join(
+            ' | ' + w['source'] + ': ' + w['verdict'] + ' (' + w['why'] + ')'
+            + (' "' + w['quote'] + '"' if isinstance(w.get('quote'), str) else
+               (' ' + '; '.join(map(str, w['quote'])) if w.get('quote') else ''))
+            for w in d.get('witnesses') or [])
     for f in nodes:
         values = [f['family_id'] + ('' if f.get('is_trial_family') else ' (unresolved report candidate)'),
                   ', '.join(f['aliases']['acronym']),
@@ -1033,6 +1045,8 @@ def _trial_families(r, legacy_flow=''):
                   json.dumps(f['eligibility'],ensure_ascii=False,sort_keys=True),
                   json.dumps({k:v.get('value',v.get('absence_code')) for k,v in f['lifecycle'].items()},ensure_ascii=False,sort_keys=True),
                   '; '.join(p['outcome']+': '+p['state'] for p in f.get('poolability',[]))]
+        if show_pop:
+            values.insert(6, _pop(f))
         rows.append('<tr>'+''.join('<td>'+_e(v)+'</td>' for v in values)+'</tr>')
     missing = missing_evidence(nodes)
     panel = ('<section id="family-missing-evidence"><h4>Missing evidence in eligible families</h4>'
@@ -1040,6 +1054,8 @@ def _trial_families(r, legacy_flow=''):
              + ''.join('<li>'+_e(x['family_id']+' / '+x['outcome']+' / '+x['state'])+'</li>' for x in missing)
              + '</ul>' + ('<p>None.</p>' if not missing else '') + '</section>')
     heads = ['Family ID','Acronym','Reports by role','Arms','Contrasts','Eligibility','Lifecycle','Per-outcome status']
+    if show_pop:
+        heads.insert(6, 'Entry population (source evidence: registry criteria, primary report, registry conditions)')
     block = ('<section id="trial-families"><h4>Trial families</h4><p class="family-count-chain">'
             +_e(count_sentence(chain))+'</p><div style="overflow-x:auto"><table class="recs"><thead><tr>'
             +''.join('<th>'+h+'</th>' for h in heads)+'</tr></thead><tbody>'+''.join(rows)

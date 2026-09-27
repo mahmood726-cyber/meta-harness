@@ -56,8 +56,14 @@ def test_family_table_in_live_browser():
                 table = tab.locator('#trial-families')
                 assert table.is_visible()
                 assert table.locator('tbody tr').count()==len(fs)
+                # V1.0.1: a protocol that declares its entry population (GLP-1 B-prime) adds the population column,
+                # read from source evidence, between Eligibility and Lifecycle
                 assert table.locator('th').all_text_contents()==[
-                    'Family ID','Acronym','Reports by role','Arms','Contrasts','Eligibility','Lifecycle','Per-outcome status']
+                    'Family ID','Acronym','Reports by role','Arms','Contrasts','Eligibility',
+                    'Entry population (source evidence: registry criteria, primary report, registry conditions)',
+                    'Lifecycle','Per-outcome status']
+                elixa = table.locator('tbody tr').filter(has_text='NCT01147250')
+                assert 'ESTABLISHED' in elixa.inner_text() and 'Participants with a history of type 2 diabetes' in elixa.inner_text()
                 assert table.locator('.family-count-chain').inner_text()==trial_family.count_sentence(review['family_count_chain'])
                 assert table.locator('tbody tr').filter(has_text='NCT03819153').count()==1
                 assert table.locator('tbody tr').filter(has_text='NCT01455896').count()==1
