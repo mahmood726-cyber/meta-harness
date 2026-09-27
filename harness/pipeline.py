@@ -2277,6 +2277,12 @@ def build_review_core(slug, config, records, protocol_sha):
         _trials = _o.get("trials") or []
         if not _trials:
             continue
+        # POPULATIONS LITERALLY, before the derived label is computed: what the held text + the row's own denominators support
+        for _tr in _trials:
+            _lit = narrative_rules_mod.population_literal(
+                (rec_by_id.get(str(_tr.get("id", "")).replace("PMID ", "")) or {}).get("abstract", ""), _tr)
+            if _lit:
+                _tr["analysis_population_literal"] = _lit
         _t = outcome_tiers_mod.tiers(_o, _trials, _spec_by_name.get(_o.get("name")))
         # ONE component rule for admitted and composite-refused rows alike (colchicine-secondary review, 2026-09-26)
         _abs = {str(k): (v or {}).get("abstract", "") for k, v in rec_by_id.items()}

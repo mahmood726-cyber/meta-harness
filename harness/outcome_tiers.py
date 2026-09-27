@@ -53,6 +53,11 @@ def input_dimensions(trial: dict[str, Any], ck_per_trial: dict[str, dict[str, An
     tid = str(trial.get("id") or trial.get("label") or "").replace("PMID ", "")
     own = (ck_per_trial or {}).get(tid) or {}
     for d in DIMENSIONS:
+        lit = trial.get("analysis_population_literal") if d == "analysis_set" else None
+        if isinstance(lit, dict) and lit.get("population"):
+            # the population the held text states literally (mITT, "analysed M of N randomised") -- DERIVED, never the declared ITT
+            out[d] = {"value": lit["population"], "source": "held abstract population statement", "derived": True}
+            continue
         p = own.get(d)
         if p is not None and p.get("value") not in (None, "not_stated"):
             out[d] = {"value": p.get("value"), "source": "compat_key per-input derivation", "derived": True, "verdict": p.get("verdict")}

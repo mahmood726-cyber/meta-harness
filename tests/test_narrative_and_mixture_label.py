@@ -121,3 +121,46 @@ def test_the_ni_check_passes_every_served_page_and_lets_a_negation_through():
         assert nr.check_ni_inference(_show(f"docs/reviews/{slug}/index.html"), held) == [], slug
     page = _show(f"docs/reviews/{SLUG}/index.html").replace("</body>", "<p>DOACs are not noninferior on this evidence.</p></body>")
     assert nr.check_ni_inference(page, [r.get("abstract", "") for r in _records().values()]) == []
+
+
+# ------------------------------------------------------------------ DPP-4: populations literally (mITT, never an assumed "all randomised")
+from harness import outcome_tiers as ot   # noqa: E402
+
+
+def _dpp4():
+    o = next(x for x in json.loads(_show("docs/reviews/dpp4-mace-t2d/review.json"))["outcomes"] if x.get("primary"))
+    recs = {str(r["id"]): r for r in json.loads(_show("cache/dpp4-mace-t2d/records.json"))["records"]}
+    return o, recs
+
+
+def test_plant_served_dpp4_rows_assert_intention_to_treat_copied_from_the_declared_population():
+    o, _ = _dpp4()
+    for t in o["trials"]:
+        assert t["analysis_set"] == "intention-to-treat"
+        assert t["compat_dimensions"]["analysis_set"]["source"] == "study_effect.analysis_population"     # the label, copied
+
+
+@pytest.mark.parametrize("pmid,expected", [
+    ("30418475", "mITT: received at least 1 dose (6979 of 6991 randomised)"),       # CARMELINA
+    ("28893244", "analysed 4192 of 4202 randomised (not all randomised)"),          # OMNeON: 2092 + 2100 of 4202 assigned
+])
+def test_populations_are_stated_literally(pmid, expected):
+    o, recs = _dpp4()
+    t = next(x for x in o["trials"] if x["id"] == f"PMID {pmid}")
+    assert nr.population_literal(recs[pmid]["abstract"], t)["population"] == expected
+
+
+def test_nothing_is_asserted_where_the_source_states_nothing_and_the_label_uses_the_literal_population():
+    o, recs = _dpp4()
+    savor = next(x for x in o["trials"] if x["id"] == "PMID 23992601")
+    assert nr.population_literal(recs["23992601"]["abstract"], savor) is None
+    trials = [dict(t) for t in o["trials"]]
+    for t in trials:
+        lit = nr.population_literal(recs[t["id"].replace("PMID ", "")]["abstract"], t)
+        if lit:
+            t["analysis_population_literal"] = lit
+    lab = ot.tiers(o, trials, {})["derived_label"]["analysis_set"]
+    assert lab["state"] == "NOT_SHOWN" and "not shown for 1 of 3" in lab["label"]        # SAVOR's ITT is still only declared
+    dims = ot.input_dimensions(next(t for t in trials if t["id"] == "PMID 30418475"))
+    assert dims["analysis_set"] == {"value": "mITT: received at least 1 dose (6979 of 6991 randomised)",
+                                    "source": "held abstract population statement", "derived": True}

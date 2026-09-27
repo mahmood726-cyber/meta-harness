@@ -86,3 +86,38 @@ _POP = re.compile(r"(?i)(?:efficacy|safety|primary)\s+(?:analysis|outcome)?\s*(?
 def populations_stated(abstract: str | None) -> list[str]:
     """The analysis populations the held abstract states, VERBATIM -- for literal display; empty when it states none."""
     return [m.group(0).strip() for m in _POP.finditer(abstract or "")]
+
+
+# (4) POPULATIONS LITERALLY (DPP-4 review): CARMELINA ("Of 6991 enrollees, 6979 ... received at least 1 dose") and OMNeON (4202
+# assigned; 2092 + 2100 = 4192 analysed) exclude never-dosed randomised patients -- mITT, not "all randomised". Stated only as far as
+# the held text and the row's own denominators support it; never assumed.
+# CARMELINA: "Of 6991 enrollees, 6979 (mean age, 65.9 years; eGFR, 54.6 mL/min/1.73 m2; ...) received at least 1 dose" -- the
+# parenthetical carries decimal points, so it is matched as a unit
+_MITT = re.compile(r"(?i)of\s+(\d[\d,]*)\s+(?:enrollees|randomi[sz]ed\s+(?:patients|participants)|patients\s+randomi[sz]ed|participants)"
+                   r"\s*,?\s*(\d[\d,]*)\s*(?:\([^)]{0,300}\))?\s*(?:patients\s+|participants\s+)?received\s+at\s+least\s+(?:1|one)\s+dose")
+_RANDOMISED = re.compile(r"(?i)(\d[\d,]*)\s+(?:patients|participants|adults)\b[^.]{0,120}?(?:were\s+)?(?:assigned|randomi[sz]ed|underwent\s+randomi[sz]ation)")
+_DENOM = re.compile(r"(\d[\d,]*)\s*(?:/|of)\s*(\d[\d,]{2,})")
+
+
+def _int(s: str) -> int:
+    return int(s.replace(",", ""))
+
+
+def population_literal(abstract: str | None, row: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    a = abstract or ""
+    m = _MITT.search(a)
+    if m:
+        n_all, n_dosed = _int(m.group(1)), _int(m.group(2))
+        return {"population": f"mITT: received at least 1 dose ({n_dosed} of {n_all} randomised)", "basis": m.group(0), "all_randomised": n_dosed == n_all}
+    r = _RANDOMISED.search(a)
+    if r and row:
+        dens = []
+        for d in _DENOM.finditer(str(row.get("source") or "")):
+            dens.append(_int(d.group(2)))
+        if row.get("n1i") and row.get("n2i"):
+            dens = [int(row["n1i"]), int(row["n2i"])]
+        n_all = _int(r.group(1))
+        if len(dens) == 2 and sum(dens) < n_all:
+            return {"population": f"analysed {sum(dens)} of {n_all} randomised (not all randomised)", "basis": r.group(0),
+                    "all_randomised": False}
+    return None

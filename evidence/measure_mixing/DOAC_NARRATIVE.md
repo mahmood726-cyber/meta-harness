@@ -32,3 +32,20 @@ The primary pool mixes 5 HRs with AMPLIFY's RR under the label "HR" (`scale_mixe
   The derived label already refuses to assert an unstated "intention-to-treat".
 
 Not built end to end: both drives are below the 3 GB regeneration floor.
+
+## Populations literally -- DPP-4 review (2026-09-27)
+
+The served dpp4-mace-t2d rows (3876a62d) all carry `analysis_set: "intention-to-treat"`, sourced from
+`study_effect.analysis_population` -- the declared label, copied. The held abstracts say otherwise for two of three:
+
+| trial | held text | stated population |
+|---|---|---|
+| CARMELINA (PMID 30418475) | "Of 6991 enrollees, 6979 (...) received at least 1 dose" | mITT: received at least 1 dose (6979 of 6991 randomised) |
+| OMNeON (PMID 28893244) | 4202 assigned; row denominators 2092 + 2100 | analysed 4192 of 4202 randomised (not all randomised) |
+| SAVOR (PMID 23992601) | nothing on the analysis population | nothing asserted (label stays NOT_SHOWN for 1 of 3) |
+
+`narrative_rules.population_literal` reads this; `outcome_tiers.input_dimensions` now uses it as the DERIVED
+`analysis_set` value (source "held abstract population statement") ahead of any declared label. It states only what the held
+text and the row's own denominators support -- it never asserts ITT and never fills a gap.
+Tests: `tests/test_narrative_and_mixture_label.py` (plant = the served copied-ITT label). Served number moved: none (a label
+dimension, not an estimate); the page label changes only on regeneration, which needs Mahmood's signature.
