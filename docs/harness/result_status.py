@@ -78,8 +78,10 @@ def _scope(row: dict[str, Any]) -> str:
     return "the held sources"
 
 
-def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentioned: bool = False) -> dict[str, Any]:
-    """`mentioned`: the outcome is named in this trial's held source (the outcome's reported_by)."""
+def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentioned: bool = False,
+              verbatim_mentions: bool = False) -> dict[str, Any]:
+    """`mentioned`: the outcome is named in this trial's held source (the outcome's reported_by).
+    `verbatim_mentions`: the held VERBATIM original names it (matters when the inspected record is abridged)."""
     wd = None
     if row.get("absent_kind") == "result_withdrawn" or row.get("withdrawn_effect"):
         wd = {"value": row.get("withdrawn_effect"), "reason": row.get("reason")}
@@ -111,10 +113,22 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
             or "PROTOCOL_PREFERRED_ANALYSIS_IN_SUPPLEMENT" in (acq.get("states") or [])):
         return {"state": REPORTED_UNRESOLVED, "basis": code or row.get("absent_kind"),
                 **({"span": row["reported_unresolved_span"]} if row.get("reported_unresolved_span") else {})}
+    cov = (row.get("source_coverage") or {}).get("coverage")
+    if cov in ("EXCERPT", "ALTERED"):
+        # the inspected text is an abridged excerpt of the publication: it can support no absence claim at all
+        if verbatim_mentions:
+            return {"state": REPORTED_UNRESOLVED, "basis": code or row.get("absent_kind"), "coverage": cov,
+                    "statement": (f"the inspected record is {cov} (not the verbatim abstract); the verbatim original "
+                                  "held by the cascade reports this outcome")}
+        return {"state": NOT_YET_RETRIEVED, "basis": code or row.get("absent_kind"), "coverage": cov,
+                "statement": f"only an abridged ({cov}) record was inspected; the publication itself was not"}
     if row.get("not_measured_span"):
         return {"state": NOT_MEASURED, "span": row["not_measured_span"]}
+    cov_note = {"VERBATIM": "verbatim", "UNVERIFIED": "coverage UNVERIFIED: no verbatim original held"}.get(cov or "")
     return {"state": RETRIEVED_NOT_REPORTED, "scope": _scope(row), "basis": code or row.get("absent_kind"),
-            "statement": f"not found in {_scope(row)} (a scoped statement, not a claim about the trial's design)"}
+            **({"coverage": cov} if cov else {}),
+            "statement": (f"not found in {_scope(row)}" + (f" ({cov_note})" if cov_note else "")
+                          + " (a scoped statement, not a claim about the trial's design)")}
 
 
 def _pending_ids(review: dict[str, Any], outcome: str) -> set[str]:
@@ -137,15 +151,20 @@ def effective_state(row: dict[str, Any], review: dict[str, Any], outcome: str) -
     return st
 
 
-def derive(review: dict[str, Any]) -> None:
-    """Stamp `result_status` on every trial row and rebuild each outcome's not-extracted sentence FROM the states."""
+def derive(review: dict[str, Any], keywords: dict[str, list[str]] | None = None) -> None:
+    """Stamp `result_status` on every trial row and rebuild each outcome's not-extracted sentence FROM the states.
+    `keywords`: outcome name -> its keywords, to ask whether a held verbatim original names the outcome."""
+    from . import source_coverage
     for o in review.get("outcomes") or []:
         pend = _pending_ids(review, o.get("name"))
         mentioned = {_pid(x) for x in ((o.get("result") or {}).get("reported_by") or [])}
+        kws = (keywords or {}).get(o.get("name")) or [o.get("name") or ""]
         for t in o.get("trials") or []:
             t["result_status"] = status_of(t, True, pend)
         for a in o.get("declared_absent_trials") or []:
-            a["result_status"] = status_of(a, False, pend, mentioned=_pid(a.get("id")) in mentioned)
+            abridged = (a.get("source_coverage") or {}).get("coverage") in ("EXCERPT", "ALTERED")
+            a["result_status"] = status_of(a, False, pend, mentioned=_pid(a.get("id")) in mentioned,
+                                           verbatim_mentions=abridged and source_coverage.mentions(_pid(a.get("id")), kws))
         res = o.get("result")
         # rebuild ONLY the generic sentence the false-absence guard wrote; a reason another mechanism set (e.g. a
         # HARMS_INCOMPLETE reason naming the unresolved report) is never replaced
@@ -198,6 +217,11 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
                 out.append({"kind": "DESIGN_ABSENCE_VS_HELD_RESULT", "report_id": _pid(t.get("id")),
                             "detail": f"{o.get('name')}: {t.get('id')} is claimed not measured / absent by design while "
                                       "a held source holds or reports its result"})
+            cov = (t.get("source_coverage") or {}).get("coverage")
+            if st in (RETRIEVED_NOT_REPORTED, NOT_MEASURED) and cov in ("EXCERPT", "ALTERED"):
+                out.append({"kind": "ABSENCE_ON_EXCERPT", "report_id": _pid(t.get("id")),
+                            "detail": f"{o.get('name')}: {t.get('id')} is stated {st} on an inspected record that is "
+                                      f"{cov}, not the publication"})
         texts = [str((o.get("result") or {}).get("reason") or "")]
         texts += [str(a.get("reason") or "") for a in o.get("declared_absent_trials") or []]
         for text in texts:

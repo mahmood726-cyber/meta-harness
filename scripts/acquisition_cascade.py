@@ -50,19 +50,61 @@ def _now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+class NonPublicHost(Exception):
+    pass
+
+
+def _public_url(url):
+    """True only for an http(s) URL whose host is a public name or a global IP literal. URLs arrive from REMOTE
+    metadata (Unpaywall locations, a repository's citation_pdf_url: one advertised http://localhost:4000/...), so a
+    loopback / private / link-local / reserved address or a local name is never requested."""
+    import ipaddress
+    try:
+        p = urllib.parse.urlsplit(url)
+    except ValueError:
+        return False
+    host = (p.hostname or "").rstrip(".").lower()
+    if p.scheme not in ("http", "https") or not host:
+        return False
+    if host == "localhost" or host.endswith((".localhost", ".local", ".internal", ".lan", ".home.arpa")) or "." not in host.strip("[]"):
+        try:
+            ipaddress.ip_address(host.strip("[]"))
+        except ValueError:
+            return False
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_global
+    except ValueError:
+        return True
+
+
+class _PublicOnlyRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _public_url(newurl):
+            raise NonPublicHost(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open(req, timeout):
+    return urllib.request.build_opener(_PublicOnlyRedirect).open(req, timeout=timeout)
+
+
 def _get(url, accept=None):
     """One honest request. Returns (status, bytes). Never retried with another client identity."""
+    if not _public_url(url):
+        return "REFUSED_NONPUBLIC_HOST", b""
     headers = {"User-Agent": UA}
     if accept:
         headers["Accept"] = accept
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=90) as r:
+        with _open(urllib.request.Request(url, headers=headers), timeout=90) as r:
             body = r.read()
             if any(c.lower() in body[:20000].lower() for c in CHALLENGE):
                 return "BLOCKED_CHALLENGE_PAGE", b""
             return r.status, body
     except urllib.error.HTTPError as e:
         return (f"BLOCKED_HTTP_{e.code}" if e.code in (401, 402, 403, 429, 451) else e.code), b""
+    except NonPublicHost:
+        return "REFUSED_NONPUBLIC_HOST", b""
     except Exception as e:  # noqa: BLE001
         return f"ERROR {type(e).__name__}", b""
 

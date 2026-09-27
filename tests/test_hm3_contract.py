@@ -103,8 +103,49 @@ def test_all_hm3_decisions_have_verbatim_source_and_digits():
         for field in ('ai','n1i','ci','n2i','effect','ci_low','ci_high'):
             if field in e:
                 assert str(e[field]) in span or format(e[field], '.2f') in span
-        cached = json.loads((root/'cache'/d['topic']/d['file']).read_text(encoding='utf-8'))
-        from harness.verified_inputs import normalise
-        canonical = normalise(e)
-        canonical.setdefault('source_span', span)
-        assert canonical in entries(cached[d['trial']])
+        assert _decision_present_or_declared_superseded(root, d, e, span), (d['topic'], d['trial'], e.get('outcome'))
+
+
+def _decision_present_or_declared_superseded(root, d, e, span):
+    """The requirement: an HM3 decision is either still in the cache verbatim, or it was superseded BY DECLARATION --
+    named in the supersession file for its page AND the cache carries the superseding row, which points back to the
+    decision it replaced (supersedes.provenance) and carries the declared values. An undeclared removal fails.
+    (FREEDOM serious infection: REFUSED_ON_EVIDENCE superseded by the pooled companion-report row, 2026-09-27.)"""
+    from harness.verified_inputs import normalise
+    cached = json.loads((root/'cache'/d['topic']/d['file']).read_text(encoding='utf-8'))
+    canonical = normalise(e)
+    canonical.setdefault('source_span', span)
+    if d['trial'] in cached and canonical in entries(cached[d['trial']]):
+        return True
+    p = root/'docs/evidence/hm3-held-source-audit/screening_roles_supersession.json'
+    sup = json.loads(p.read_text(encoding='utf-8')) if p.exists() else {}
+    declared = ((sup.get('pages') or {}).get(d['topic']) or {}).get('harm_decisions_superseded') or {}
+    decl = declared.get(f"{e.get('outcome')}|{d['trial']}")
+    if not decl or not str(decl.get('before', '')).startswith(str(e.get('provenance'))):
+        return False
+    for fname in ('verified_arms.json', 'verified_effects.json'):
+        f = root/'cache'/d['topic']/fname
+        if not f.exists():
+            continue
+        for r in entries(json.loads(f.read_text(encoding='utf-8')).get(d['trial']) or []):
+            if (r.get('outcome') == e.get('outcome') and (r.get('supersedes') or {}).get('provenance') == e.get('provenance')
+                    and all(r.get(k) == v for k, v in (decl.get('values_after') or {}).items())):
+                return True
+    return False
+
+
+def test_an_undeclared_removal_of_an_hm3_decision_fails(tmp_path):
+    # PLANT: the superseded FREEDOM decision with its declaration removed -> must fail; with it -> passes
+    import shutil
+    root = Path(__file__).resolve().parents[1]
+    decisions = json.loads((root/'docs/evidence/hm3-held-source-audit/decisions.json').read_text(encoding='utf-8'))
+    d = next(x for x in decisions if x['trial'] == '19671655')
+    (tmp_path/'docs/evidence/hm3-held-source-audit').mkdir(parents=True)
+    (tmp_path/'docs/evidence/hm3-held-source-audit/screening_roles_supersession.json').write_text('{"pages": {}}', encoding='utf-8')
+    (tmp_path/'cache'/d['topic']).mkdir(parents=True)
+    for fname in ('verified_arms.json', 'verified_effects.json'):
+        shutil.copyfile(root/'cache'/d['topic']/fname, tmp_path/'cache'/d['topic']/fname)
+    e = d['entry']
+    span = e.get('source_span') or e['source']
+    assert _decision_present_or_declared_superseded(root, d, e, span)
+    assert not _decision_present_or_declared_superseded(tmp_path, d, e, span)

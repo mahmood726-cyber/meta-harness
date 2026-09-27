@@ -310,3 +310,46 @@ Committed: targets, ATTEMPTS.jsonl (contact address redacted to `<contact>`; res
 REPORT, HELD.json (sha256 of every held document), and the two CC-BY documents that witness a scored row
 (PMC6720402 CC BY 4.0, PMC9531702 CC BY 3.0). The other 117 held full texts stay local (gitignored; 19 carry no licence
 statement) and are re-fetchable and verifiable by their recorded sha256.
+
+## DPP-4 round (2026-09-27): source preservation, TECOS 3-point MACE, OMNeON / CARMELINA HHF
+
+### Source preservation and coverage (`harness/source_coverage.py`)
+- Every held original carries `sha256`, `source`, `retrieved_utc` and `representation: ORIGINAL_VERBATIM` in HELD.json
+  (54 earlier entries backfilled from ATTEMPTS by sha256, none unmatched). Excerpts are separate files, labelled.
+- Each absent row is stamped with `source_coverage` against the verbatim Europe PMC record: VERBATIM / EXCERPT /
+  ALTERED / UNVERIFIED. On an EXCERPT or ALTERED record an absence is never a publication-level claim: it becomes
+  REPORTED_UNRESOLVED (the verbatim original mentions the outcome) or NOT_YET_RETRIEVED. RETRIEVED_NOT_REPORTED names
+  its coverage in its statement. New blocking kind ABSENCE_ON_EXCERPT.
+- Plant: OMNeON (PMID 28893244), whose committed abstract is ALTERED (10 sentences, including both hHF results,
+  missing). Corpus count after the rebuild: 8 absent rows rest on 3 ALTERED records (32862667, 32785710, 28893244),
+  none served as "not reported"; 202 records remain UNVERIFIED (no verbatim original held yet; the acquisition lanes'
+  first step holds them).
+
+### Served changes (both OPEN notices, countersignature owed)
+| Outcome | Before | After | Why |
+|---|---|---|---|
+| 3-point MACE (primary) | k 3, 1.0074 (0.8391-1.2094) | k 4, 1.0007 (0.8998-1.1129) | TECOS 745/7,332 vs 746/7,339, HR 0.99 (0.89-1.10), EMA SmPC Table 3, ITT, Cox stratified by region; version chain DECIDED on the regulator's table (article full text not open) |
+| Hospitalization for heart failure | k 1, 1.00 (0.83-1.20) | k 3, 0.8929 (0.5434-1.4672) | OMNeON 20/2092 vs 33/2100, HR 0.60 (0.35-1.05) from the verbatim CC-BY publication; CARMELINA 209/3494 vs 226/3485, HR 0.90 (0.74-1.08) from the accepted manuscript (one-sentence excerpt committed; the manuscript itself stays local) |
+
+Final check on this state: 32/32 rebuilt; gate 25/32 (7 designed holds: 5 pages with OPEN notices, 2 pre-existing
+HARMS_INCOMPLETE); served diff vs 7e70759a: 5 topics / 7 outcomes moved, each with exactly one OPEN notice and no
+notice without a move. The signed 2026-09-20 DPP-4 HHF notice is kept unchanged.
+
+### Cascade hardening
+`_get` refuses any URL that is not http(s) to a public host, directly or by redirect (REFUSED_NONPUBLIC_HOST): a
+DSpace repository advertised `citation_pdf_url` http://localhost:4000/... and a lane's cascade requested it (it
+failed harmlessly; the guard makes it impossible).
+
+## Codex acquisition lanes (2026-09-27, running)
+- Two sparse detached worktrees `F:/mh-lanes-wt/acq-a`, `acq-b` (13 MB each: harness/, the cascade script, topics/,
+  protocols/, evidence/acquisition_cascade/, docs/*.json); lane files excluded via info/exclude (`**/*.log`, .lane/).
+- Worklist: 640 served rows (REPORTED_UNRESOLVED 104, NOT_YET_RETRIEVED 137, RETRIEVED_NOT_REPORTED 399 not on a
+  verbatim abstract), 261 distinct reports, 31 topics, split by load. Codex runs the cascade (open routes only) and
+  writes `.lane/RESULT.json`; it does not commit.
+- Verification (`verify_lane`): document hash = lane's claim = HELD.json; span occurs in the held bytes; every value
+  is a token inside the verified span; an absence names coverage the lane actually holds; request hosts audited.
+  Proven on planted rows (wrong value, paraphrased span, wrong hash, absence without the abstract held: each refused;
+  the true row passes).
+- Known: Codex's global AGENTS.md made both lanes READ F:/ProjectIndex/INDEX.md and the E156 workbook at start,
+  despite the brief. The sandbox confines writes to the worktree; reads outside it are a brief violation to fix at
+  the next launch.
