@@ -46,7 +46,24 @@ def _status_html(t, o) -> str:
     if rs.get("withdrawn"):
         w = rs["withdrawn"].get("value") or {}
         bits.append(f"earlier served value WITHDRAWN ({_e(w.get('scale'))} {_e(w.get('effect'))}): {_e(rs['withdrawn'].get('reason'))}")
-    return "<br><span class='muted'>result status: " + " &mdash; ".join(bits) + "</span>"
+    return "<br><span class='muted'>result status: " + " &mdash; ".join(bits) + "</span>" + _chain_html(t)
+
+
+def _chain_html(t) -> str:
+    """A result's source-version chain: every version, whether it is held, and the governing decision with its reason."""
+    ch = t.get("version_chain")
+    if not isinstance(ch, dict):
+        return ""
+    gov = ch.get("governing") or {}
+    items = "".join(
+        f"<li>{_e(v.get('version_id'))} &mdash; {_e(v.get('kind'))}, {_e(v.get('date'))}: {_e(v.get('source'))}; "
+        f"{'held' if v.get('held') else 'NOT HELD (' + _e(v.get('not_held_reason')) + ')'}"
+        + (f"; value {_e(json.dumps(v.get('value')))}" if v.get("value") else "")
+        + (f"; cells {_e(json.dumps(v.get('cells'), ensure_ascii=False))}" if v.get("cells") else "") + "</li>"
+        for v in ch.get("versions") or [])
+    return (f"<div class='ident' data-version-chain='{_e(ch.get('chain_id'))}'><em>source versions "
+            f"(governing: <code>{_e(gov.get('version_id'))}</code>, {_e(gov.get('state'))}):</em> {_e(gov.get('reason'))}"
+            f"<ul>{items}</ul></div>")
 from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
@@ -1234,6 +1251,30 @@ def _screening(r, neutral):
                  "and a whole-trial result that spans comparators is never pooled.</p>"
                  "<table class='recs'><tr><th>Comparison</th><th>Population (source)</th><th>Comparator (source)</th>"
                  "<th>Arms</th><th>Eligibility</th><th>Primary pool</th><th>Result</th></tr>" + crow + "</table>")
+    _on_rows = {(t.get("version_chain") or {}).get("chain_id") for o_ in (r.get("outcomes") or [])
+                for t in (o_.get("trials") or []) + (o_.get("declared_absent_trials") or [])}
+    _unattached = [c for c in r.get("source_versions") or [] if c.get("chain_id") not in _on_rows]
+    if _unattached:
+        # chains for trials that have no row on this page (outside the committed search): shown, never dropped
+        flow += ("<h4>Source versions for trials outside the pool</h4>"
+                 + "".join(f"<div><strong>{_e(c.get('trial_id'))}</strong> &mdash; {_e(c.get('outcome'))}"
+                           + _chain_html({"version_chain": c}) + "</div>" for c in _unattached))
+    sdec = r.get("scope_decisions") or {}
+    if sdec.get("decisions"):
+        # trials placed in or out of scope from the protocol's own text (never a comparator's trial list)
+        srows = "".join(
+            f"<tr><td>{_e(d.get('trial'))}<br><span class='muted'>{_e(', '.join(d.get('ids') or []))}</span></td>"
+            f"<td><code>{_e(d.get('decision'))}</code><br><span class='muted'>{_e(d.get('basis'))}</span></td>"
+            f"<td>" + "".join(f"<div>{_e(c.get('rule'))}: &ldquo;{_e(c.get('protocol_span'))}&rdquo; "
+                               f"{'(in protocol)' if c.get('in_protocol') else '(NOT IN PROTOCOL)'}"
+                               + (f" &mdash; source: &ldquo;{_e(c.get('evidence'))}&rdquo;" if c.get("evidence") else "")
+                               + "</div>" for c in d.get("criteria") or [])
+            + f"</td><td>{_e(d.get('outcome_note'))}<br><span class='muted'>not a reason: {_e(d.get('not_a_reason'))}</span></td></tr>"
+            for d in sdec["decisions"])
+        flow += ("<h4>Scope decisions from the protocol's own text</h4>"
+                 f"<p class='note'><strong>Search limitation:</strong> {_e(sdec.get('search_limitation'))}</p>"
+                 "<table class='recs'><tr><th>Trial</th><th>Decision</th><th>Protocol rules (verbatim) and source</th>"
+                 "<th>Outcome scope</th></tr>" + srows + "</table>")
     for mtr in r.get("multi_trial_reports") or []:
         # one article, several registered trials: each trial judged on its own population; combined analyses never used
         trows = "".join(

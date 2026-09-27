@@ -172,6 +172,51 @@ that as BLOCKED_CHALLENGE_PAGE. JAMA / OUP publisher PDFs: 403.
   cardiac-failure SAEs 2 vs 4 (acute 1 vs 2, congestive 2 vs 0). No CV-death/worsening-HF outcome measure (16-week
   trial). Examined, NOT admitted (it would change a served number: a decision for Mahmood).
 
+## Fixtures added 2026-09-27 (denosumab review, hash 9503a92d)
+
+### Status vocabulary refined (`harness/result_status.py`, `harness/unextracted.py`)
+Order = exclusivity: ADMITTED_PENDING_SIGNATURE · ADMITTED · REPORTED_ZERO_EVENTS · EXTRACTED_NOT_ADMITTED · WITHDRAWN ·
+REPORTED_UNRESOLVED · NOT_MEASURED (only from a witnessed `not_measured_span`) · RETRIEVED_NOT_REPORTED (always scoped:
+"not found in the inspected abstract / full text") · NOT_YET_RETRIEVED (the former SOURCE_ABSENT; one state, one
+string). The former SOURCE_HELD_RESULT_NOT_EXTRACTED is split into the three REPORTED_* / RETRIEVED_* states.
+- Root cause of FREEDOM "ABSENT_BY_DESIGN": `unextracted._is_design_absent` counted REFUSED_ON_EVIDENCE (a statement
+  about what the inspected ABSTRACT says) as a design absence. Removed; ABSENT_BY_DESIGN is no longer emitted. A test
+  that asserted a timepoint mismatch was "absent by design" defended the defect and is rewritten to the requirement.
+- Plant: DESIGN_ABSENCE_VS_HELD_RESULT blocks a not-measured / absent-by-design claim on a row whose held source holds
+  or reports the result.
+
+### FREEDOM (PMID 19671655, NCT00089791)
+- Serious infection: **159/3,886 vs 133/3,876**, bound (EXACT_TARGET) to Table 1 of the trial's own infection report
+  (Watts et al., Osteoporos Int 2012, PMID 21892677, CC BY-NC, held) — a companion report of FREEDOM, one trial. The
+  earlier typed refusal (true of the abstract and the registry's unaggregated terms) is kept as `supersedes`.
+- SAE: **1,004/3,886 vs 972/3,876**, bound to a committed excerpt of the trial's posted registry results (public
+  domain). NEJM Table 3 is not held (publisher 403; the CC BY repository copy exposes no file link).
+- Safety population labelled **as treated** on both rows: "Seven participants who were randomized to placebo but
+  received denosumab in error are summarized in the denosumab arm" (registry; the infection report says the same).
+- Both are new served results (k=None → k=1): notices OPEN.
+
+### Koh 2016 (PMID 27189284, NCT01457950) — not in the committed search; known-eligible-missing
+- Phases split (docs/comparison_families.json): double-blind 6-month denosumab vs placebo 69 vs 66 ELIGIBLE;
+  open-label extension (every participant on denosumab, 60 vs 63) INELIGIBLE (X3).
+- SAE: SOURCE_INTERNALLY_INCONSISTENT scoped to SAE: narrative 6 (9%) vs 2 (3%); Table 3 double-blind 2 (3) vs 1 (2)
+  under n=69/66; and the trial's registry gives a THIRD value, 7/69 vs 2/66 (recorded as a source conflict). The
+  reviewer's page citations (p910, p912) are journal pagination, not verifiable from the XML.
+- Vertebral fracture: RETRIEVED_NOT_REPORTED, scoped to the inspected full text ('fracture' only in the background).
+
+### Nakamura 2012 (PMID 21927920) — not in the committed search; known-eligible-missing
+- Held abstract: 226 randomised to denosumab 14/60/100 mg or placebo for 12 months; "No new vertebral fracture was
+  observed on spinal radiographs in either group." → **REPORTED_ZERO_EVENTS** (witness re-verified; never "not
+  reported"; not estimable on a ratio scale). Full text not open.
+
+### Defects found and fixed on the way
+- The screening-ledger whitelist in pipeline.py dropped `comparisons`/`pending_decisions`, so no comparison table
+  ever rendered (my page test used a hand-built review; a served-page test now guards it). The known-missing candidate
+  list dropped declared states the same way.
+- A companion-report folder named `FREEDOM#infection-report` was cut at `#` (the document-reference fragment
+  separator); the cascade now uses `__`.
+- docs/refusals.json refused CoDEX "until its spans are committed"; once they were, the build refused itself
+  (REFUSED_AND_POOLED). CoDEX was removed from that refusal (Metcovid, still unheld, remains) with a `superseded` record.
+
 SERVED_DIFF_PLACEHOLDER
 
 ## Committed / not committed
