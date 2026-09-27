@@ -1919,7 +1919,31 @@ def _outcome_block(o, show_inputs=True, review=None):
         body += _trial_inputs(o)
     if o.get("kind") == "harm":
         body += _harms_ledger_block(o)
+    body += _time_to_event_block(o) + _definition_adjudication_block(o)
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
+
+
+def _time_to_event_block(o: dict) -> str:
+    """A published HR routed out of a risk pool is SHOWN, as an HR, where the reader looks -- a routed row must not vanish."""
+    tte = o.get("time_to_event_analysis") or {}
+    if not tte.get("rows"):
+        return ""
+    rows = "; ".join(f"{_e(x.get('label') or x.get('id'))}: HR {_num(x.get('effect'))} ({_num(x.get('ci_low'))}-{_num(x.get('ci_high'))})"
+                     for x in tte["rows"])
+    pool = tte.get("pool") or {}
+    pooled = (f" Pooled among themselves: HR {_num(pool.get('estimate'))} ({_num(pool.get('ci_low'))}-{_num(pool.get('ci_high'))})."
+              if pool.get("estimate") is not None else "")
+    return ("<div class='absent'><strong>Separate time-to-event analysis (TIME_TO_EVENT_SEPARATE).</strong> " + rows + "." + pooled
+            + " " + _e(tte.get("note")) + "</div>")
+
+
+def _definition_adjudication_block(o: dict) -> str:
+    da = ((o.get("result") or {}).get("definition_adjudication") or {})
+    if da.get("state") != "PENDING":
+        return ""
+    per = "; ".join(f"{_e(k)}: {_e(v)}" for k, v in sorted((da.get("per_input") or {}).items()))
+    return ("<div class='absent'><strong>Endpoint-definition compatibility PENDING adjudication.</strong> " + per + ". "
+            + _e(da.get("reason")) + "</div>")
 
 
 def _definition_audit_block(r):

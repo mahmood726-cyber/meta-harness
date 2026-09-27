@@ -1432,6 +1432,21 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # EFFECT IDENTITY BEFORE SOURCE PREFERENCE (external review, 2026-09-26): what the source REPORTED when the served
         # effect is a transform of it (CORP's RRR 0.56 served as RR 0.44), and whether a published ratio agrees with its own
         # counts (CORP-2's "relative risk 0.49" is the RRR of 26/120 vs 51/120). A conflict is never relabelled: it is HELD.
+        if str(t.get("scale") or "").upper() == "OR" and t.get("effect") is not None and str(spec.get("estimand") or "").upper() == "RR":
+            # RECONSTRUCTION ROUTE (CAP-corticosteroids review): an OR on an RR outcome is incompatible; when the arm counts are
+            # held and corroborate their own percentages, the RR is rebuilt from them and the published OR is kept alongside
+            _rc = effect_identity_mod.reconstruct_from_counts(t, ab, list(interv or []), list(comp or []))
+            if _rc and _rc.get("state") == "RECONSTRUCTED":
+                _pub = dict(_rc["published_effect_retained"])
+                for _k in ("effect", "ci_low", "ci_high", "scale"):
+                    t[_k] = None
+                t.update({k: _rc[k] for k in ("ai", "n1i", "ci", "n2i")})
+                t.update(derivation="RECONSTRUCTED_FROM_COUNTS", selected_estimator="reconstructed",
+                         selection_rule="RECONSTRUCTED_FROM_COUNTS_PUBLISHED_OR_RETAINED", published_effect_retained=_pub,
+                         reconstruction=_rc)
+                t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+            elif _rc:
+                t["reconstruction_refused"] = _rc
         _tp = effect_identity_mod.transform_provenance(t, ab)
         if _tp:
             t["effect_transform"] = _tp
@@ -1441,6 +1456,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         _cc = effect_identity_mod.conflict_check(t, effect_identity_mod.adjusted_documented(t))
         if _cc:
             t["effect_conflict"] = _cc
+    _tte = [t for t in trials if (effect_identity_mod.hr_route(t, spec.get("estimand"), trials) or {}).get("route") == "TIME_TO_EVENT_SEPARATE"]
+    if _tte:
+        # an HR stays an HR (SONIA rule): never converted to a risk ratio; it enters a separately specified time-to-event analysis
+        trials = [t for t in trials if t not in _tte]
+        for t in _tte:
+            t["hr_route"] = effect_identity_mod.hr_route(t, spec.get("estimand"), None)
+        time_to_event_rows = list(_tte)
+    else:
+        time_to_event_rows = []
     _held = [t for t in trials if (t.get("effect_conflict") or {}).get("resolution") == "HOLD"]
     if _held:
         trials = [t for t in trials if t not in _held]
@@ -1467,6 +1491,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    if time_to_event_rows:
+        # a SEPARATELY SPECIFIED time-to-event analysis: the HRs are kept as HRs; pooled among themselves only when there are >=2
+        _tte_studies = [Study(label=t["label"], effect=t.get("effect"), ci_low=t.get("ci_low"), ci_high=t.get("ci_high"),
+                              source=t.get("source", ""), measure="HR") for t in time_to_event_rows]
+        out["time_to_event_analysis"] = {
+            "rows": [{k: t.get(k) for k in ("id", "label", "effect", "ci_low", "ci_high", "scale", "source", "hr_route")} for t in time_to_event_rows],
+            "pool": _pool_result(_tte_studies, scale="HR") if len(_tte_studies) >= 2 else None,
+            "note": ("published hazard ratios on a risk-ratio outcome: never converted by dividing events by randomised. They are "
+                     "reported here as HRs; they join the risk pool only through source-supported risks with ascertained denominators")}
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
@@ -1597,6 +1630,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 t["effect_object"]["transformed_to"] = t["effect_transform"]["derived"]["measure"]
         _compat = estmeasure.pool_compatibility([t["effect_object"] for t in trials])
         out["result"]["estmeasure"] = _compat
+        # (5) ENDPOINT-DEFINITION COMPATIBILITY IS ADJUDICATED, NOT ASSUMED: inputs whose own quotations define the endpoint
+        # differently (insulin-requiring vs a definition not stated) do not pool until spec.definition_adjudication says so
+        _defs = {str(t.get("id")): effect_identity_mod.definition_class(t) for t in trials}
+        if len(set(_defs.values())) > 1 and not spec.get("definition_adjudication"):
+            out["result"]["definition_adjudication"] = {"state": "PENDING", "per_input": _defs,
+                                                        "reason": "the inputs define the endpoint differently; compatibility is adjudicated, not assumed"}
+            out["result"]["counterfactual"] = {"reason_code": "DEFINITION_ADJUDICATION_PENDING",
+                                               "would_be_estimate": out["result"].get("estimate"), "would_be_ci_low": out["result"].get("ci_low"),
+                                               "would_be_ci_high": out["result"].get("ci_high"),
+                                               "note": "shown only so the hold is auditable; not a result"}
+            for _kpop in ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed", "ci_high_fixed", "pi_low", "pi_high",
+                          "leave_one_out", "pi_note", "fixed_note", "ci_note"):
+                out["result"].pop(_kpop, None)
+            out["result"]["suppressed_incompatible"] = True
+            out["result"]["suppressed_reason"] = ("pooled effect HELD: the inputs define the endpoint differently ("
+                                                  + ", ".join(f"{k}: {v}" for k, v in sorted(_defs.items()))
+                                                  + "); definition compatibility is adjudicated, not assumed")
         _incompat = _compat["status"] == "incompatible"
         if _incompat:
             # FAIL CLOSED (audit 23, DETECTED-INVALID-BUT-PUBLISHED): a pool that mixes incompatible

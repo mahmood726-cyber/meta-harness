@@ -181,3 +181,94 @@ def held_absence(t: dict[str, Any]) -> dict[str, Any]:
             "reason": c.get("reason"),
             "recovery": ("a reviewer records a typed resolution with evidence (which number the source means, and why), or the "
                          "published effect is shown to come from a documented adjusted model")}
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# (3) A PUBLISHED HR STAYS AN HR (CAP-corticosteroids review, 2026-09-26). SONIA (NEJM 2025, PMID 41159889) reports a site-
+# stratified Cox HR 0.84 (0.73-0.97) with 98 (4.5%) missing day-30 vital status. Dividing deaths by randomised would produce an
+# "RR" the trial never estimated, over denominators that are not ascertained. A published HR on an RR outcome is never
+# re-expressed from counts: it routes to a separately specified TIME-TO-EVENT analysis, or waits until source-supported 30-day
+# risks with ASCERTAINED denominators exist (a typed `ascertained_denominators` record with its span; never inferred).
+def _input_measure(t: dict[str, Any]) -> str | None:
+    if t.get("effect") is not None and t.get("scale"):
+        return str(t["scale"]).upper()
+    if t.get("e1i") is not None:
+        return "IRR"
+    if t.get("mean1") is not None:
+        return "MD"
+    return "RR" if t.get("ai") is not None else None
+
+
+def hr_route(row: dict[str, Any], outcome_estimand: str | None, pool: list[dict[str, Any]] | None = None) -> dict[str, Any] | None:
+    """Only when the pool IS a risk pool: the declared estimand does not name HR, AND another admitted input of the same pool is a
+    non-HR ratio. A pool of HRs alone is already a time-to-event analysis (omega3, statins); moving its HRs out would empty a
+    coherent pool for nothing. `pool` None = judge the row alone (a trial not yet in any pool, e.g. SONIA)."""
+    if str(row.get("scale") or "").upper() != "HR" or row.get("effect") is None:
+        return None
+    if "HR" in str(outcome_estimand or "").upper().replace("/", " ").split():
+        return None
+    if pool is not None and not any(_input_measure(t) in ("RR", "OR") for t in pool if t is not row):
+        return None
+    asc = row.get("ascertained_denominators")
+    if isinstance(asc, dict) and asc.get("span") and asc.get("n1") and asc.get("n2"):
+        return {"route": "RISK_FROM_ASCERTAINED_DENOMINATORS", "hr_retained": {k: row.get(k) for k in ("effect", "ci_low", "ci_high")},
+                "ascertained_denominators": asc}
+    return {"route": "TIME_TO_EVENT_SEPARATE", "hr_retained": {k: row.get(k) for k in ("effect", "ci_low", "ci_high")},
+            "reason": (f"a published hazard ratio on an {outcome_estimand} outcome: never converted to a risk ratio by dividing events "
+                       "by randomised (the trial did not estimate it, and outcome ascertainment is not shown complete). It enters a "
+                       "separately specified time-to-event analysis, or waits for source-supported risks with ascertained denominators")}
+
+
+# (4) RECONSTRUCTION ROUTE for an incompatible published OR whose arm counts are held (STEP hyperglycaemia needing insulin:
+# 76 [19%] vs 43 [11%], OR 1.96 (1.31-2.93), arms n=392 / n=393 -> RR 1.772 (1.253-2.507)). Counts come from the effect's OWN
+# sentence, denominators from the held abstract's randomisation sentence, arms matched by the topic's terms, and every count is
+# corroborated against its own stated percentage; any failure refuses the reconstruction (the row stays as published).
+_PAIR = __import__("re").compile(r"\(\s*(\d{1,6})\s*\[\s*(\d{1,3}(?:\.\d+)?)\s*%\s*\]\s*vs\.?\s*(\d{1,6})\s*\[\s*(\d{1,3}(?:\.\d+)?)\s*%\s*\]")
+_ARM_N = r"(?:the\s+)?{term}\s+group\s*\(\s*n\s*=\s*(\d{{1,6}})\s*\)"
+
+
+def _arm_n(abstract: str, terms: list[str]) -> int | None:
+    import re as _re
+    hits = set()
+    for term in terms:
+        for m in _re.finditer(_ARM_N.format(term=_re.escape(term)), abstract or "", _re.I):
+            hits.add(int(m.group(1)))
+    return hits.pop() if len(hits) == 1 else None
+
+
+def reconstruct_from_counts(row: dict[str, Any], abstract: str | None, interv: list[str], comp: list[str]) -> dict[str, Any] | None:
+    import re as _re
+    src = (row.get("source") or "").replace("·", ".")
+    m = _PAIR.search(src)
+    if not m:
+        return {"state": "NOT_RECONSTRUCTED", "why": "the effect's own sentence gives no 'n [p%] vs n [p%]' arm counts"}
+    a, pa, c, pc = int(m.group(1)), m.group(2), int(m.group(3)), m.group(4)     # percentages kept AS WRITTEN: their precision is the source's
+    first_is_interv = bool(_re.search("|".join(_re.escape(t) for t in interv), src[:m.start()], _re.I)) if interv else False
+    first_is_comp = bool(_re.search("|".join(_re.escape(t) for t in comp), src[:m.start()], _re.I)) if comp else False
+    if first_is_interv == first_is_comp:
+        return {"state": "NOT_RECONSTRUCTED", "why": ("the sentence names " + ("both arms" if first_is_interv else "no arm this topic's vocabulary knows")
+                + " before the counts, so which count is which arm is not stated -- check the topic's intervention/comparator terms")}
+    n_i, n_c = _arm_n(abstract or "", interv), _arm_n(abstract or "", comp)
+    if not n_i or not n_c:
+        return {"state": "NOT_RECONSTRUCTED", "why": "no single '<arm> group (n=N)' denominator for each arm in the held abstract"}
+    ai, ci = (a, c) if first_is_interv else (c, a)
+    p_i, p_c = (pa, pc) if first_is_interv else (pc, pa)
+    dec = lambda p: len(p.split(".")[1]) if "." in p else 0
+    if round(100 * ai / n_i, dec(p_i)) != float(p_i) or round(100 * ci / n_c, dec(p_c)) != float(p_c):
+        return {"state": "NOT_RECONSTRUCTED", "why": f"a count does not reproduce its own stated percentage ({ai}/{n_i} vs {p_i}%, {ci}/{n_c} vs {p_c}%)"}
+    rr = counts_tuple(ai, n_i, ci, n_c, "RR")
+    if rr is None:
+        return {"state": "NOT_RECONSTRUCTED", "why": "a zero cell"}
+    return {"state": "RECONSTRUCTED", "derivation": "RECONSTRUCTED_FROM_COUNTS", "ai": ai, "n1i": n_i, "ci": ci, "n2i": n_c,
+            "rr": {k: round(v, 4) for k, v in rr.items()},
+            "published_effect_retained": {k: row.get(k) for k in ("effect", "ci_low", "ci_high", "scale")},
+            "corroboration": f"{ai}/{n_i} = {p_i}% and {ci}/{n_c} = {p_c}% as stated; denominators from the held randomisation sentence"}
+
+
+# (5) ENDPOINT-DEFINITION COMPATIBILITY IS ADJUDICATED, NOT ASSUMED: once measures agree, rows whose own quotations define the
+# endpoint differently (insulin-requiring vs laboratory-defined hyperglycaemia) do not pool until an adjudication record says so.
+_INSULIN = __import__("re").compile(r"(?i)(?:needing|requiring|required|treated\s+with)\s+insulin|insulin[- ](?:requiring|treated|dependent)")
+
+
+def definition_class(row: dict[str, Any]) -> str:
+    return "INSULIN_REQUIRING" if _INSULIN.search(row.get("source") or "") else "DEFINITION_NOT_STATED_IN_QUOTATION"

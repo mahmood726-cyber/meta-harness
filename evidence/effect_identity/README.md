@@ -63,3 +63,55 @@ RRR->RR, `KEEP_REPORTED_EFFECT`, labelled RR.
 
 A reviewer's typed resolution (which number the source means, with evidence) releases a held row. For RECOVERY, holding the full
 text that documents the age-adjusted model would resolve it as KEEP_DISCLOSED.
+
+## (3) A published HR stays an HR -- SONIA's rule (CAP-corticosteroids review)
+
+SONIA (NEJM 2025, PMID 41159889; held only in the search snapshot, not yet in any served pool): 246 (22.6%) vs 284 (26.0%) deaths,
+**HR 0.84 (0.73-0.97)**, site-stratified Cox, 98 missing day-30 vital status (the full text; not held).
+- `hr_route()`: a published HR on an outcome whose declared estimand is not HR, **in a pool that is actually a risk pool** (another
+  admitted input is an RR or OR), is never converted by dividing events by randomised. It goes to `time_to_event_analysis`: kept as
+  an HR, pooled with other HRs only when there are two or more, and shown on the page.
+- It joins the risk pool only through a typed `ascertained_denominators` record with its span, never inferred.
+- A pool of HRs alone is untouched: it already is a time-to-event analysis (omega3, statins, sglt2-hfref).
+
+**Corpus: 2 served rows** are HRs inside genuine risk pools:
+- BaSICS 34375394 in balanced-crystalloids' primary, beside PLUS's count RR;
+- the ticagrelor major-bleeding HR 26376600, beside a count RR.
+A first count said 17. It included pools made of HRs alone and was corrected before reporting.
+
+## (4) Reconstruction route for an incompatible published OR (STEP)
+
+`reconstruct_from_counts()` rebuilds the RR:
+- counts from the effect's own sentence ("76 [19%] vs 43 [11%]");
+- denominators from the held abstract's randomisation sentence ("the prednisone group (n=392) ... the placebo group (n=393)");
+- arms matched by the topic's terms;
+- each count corroborated against its stated percentage, at the precision the source wrote.
+
+Result: **RR 1.772 (1.2526-2.5066)**, the review's 1.772 (1.253-2.507). The row is labelled `RECONSTRUCTED_FROM_COUNTS`, with
+`published_effect_retained` = OR 1.96 (1.31-2.93). A failure returns a typed reason (no arm named / no denominators / a
+count off its own percentage / a zero cell); the row then stays as published. **Corpus: 1 of 1** published OR in an RR outcome is
+reconstructed.
+
+## (5) Endpoint-definition compatibility is adjudicated, not assumed
+
+Once measures agree, the hyperglycaemia pool is homogeneous RR. But STEP's quotation defines the endpoint as insulin-requiring, and
+Torres' and the others' quotations state no definition. The pool is therefore held: `definition_adjudication` PENDING, the
+counterfactual kept (would-be RR 2.07), and the page shows the per-input definitions. It stays held until the topic records
+`definition_adjudication`.
+
+## Verified with real builds (throwaway trees)
+
+- balanced-crystalloids: BaSICS routed to the time-to-event block (HR 0.97, shown on the page). PLUS remains alone; with SMART
+  design-refused, the existing design-refusal rule serves no number at k=1.
+- corticosteroids-cap: STEP reconstructed; hyperglycaemia measures homogeneous; definition adjudication PENDING, shown on the page.
+
+A mistake of mine, caught by a test: I first said the topic lacks "prednisone" (I had printed only the first 8 terms). It lists
+prednisone in both intervention_terms and intervention_agents, and STEP reconstructs on the real topic.
+
+## Notices if landed
+
+| topic | outcome | now | after |
+|---|---|---|---|
+| balanced-crystalloids | primary | 0.9774 (HR label, HR+RR) | BaSICS to a separate time-to-event analysis; with SMART design-refused, PLUS alone (k=1): no pooled number |
+| ticagrelor-vs-clopidogrel | major bleeding | 1.1658 (HR+RR) | the HR row routed to time-to-event; the count RR alone |
+| corticosteroids-cap | hyperglycaemia | suppressed (OR+RR incompatible) | still no number: held for definition adjudication; STEP now RR 1.772 with its OR retained |

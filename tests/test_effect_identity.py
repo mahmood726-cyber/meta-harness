@@ -138,3 +138,76 @@ def test_the_hold_reaches_the_reader_the_absence_layer_does_not_relabel_it():
     a = ei.held_absence(t)
     got = absence.classify_reason(["recurrent pericarditis"], _abstract("24694983"), row=a)
     assert got["reason_code"] == "SOURCE_EFFECT_CONFLICT" and got["state"] == "HELD_SOURCE_EFFECT_CONFLICT"
+
+
+# ------------------------------------------------------------------ (3) an HR stays an HR; (4) OR reconstruction route; (5) definitions
+def _snapshot_abstract(slug, snap, pmid):
+    d = _git_json(f"cache/{slug}/snapshots/{snap}/records.json")
+    rs = d["records"] if isinstance(d, dict) else d
+    return next(r for r in rs if str(r.get("id") or r.get("pmid")) == pmid)["abstract"]
+
+
+def test_sonia_hr_is_never_converted_and_routes_to_time_to_event():
+    ab = _snapshot_abstract("corticosteroids-cap-mortality", "2026-09-15r2-search_v2", "41159889")
+    assert "hazard ratio, 0.84; 95% confidence interval, 0.73 to 0.97" in ab and "246 patients (22.6%)" in ab
+    sonia = {"id": "PMID 41159889", "effect": 0.84, "ci_low": 0.73, "ci_high": 0.97, "scale": "HR", "source": ab}
+    r = ei.hr_route(sonia, "RR")                                        # not yet in any pool: judged alone
+    assert r["route"] == "TIME_TO_EVENT_SEPARATE" and r["hr_retained"] == {"effect": 0.84, "ci_low": 0.73, "ci_high": 0.97}
+    asc = dict(sonia, ascertained_denominators={"n1": 1089, "n2": 1092, "span": "day-30 vital status ascertained in ..."})
+    assert ei.hr_route(asc, "RR")["route"] == "RISK_FROM_ASCERTAINED_DENOMINATORS"   # only with a typed, source-spanned record
+
+
+def test_plant_pre_fix_balanced_pools_an_hr_with_a_count_rr_and_the_route_takes_the_hr_out():
+    rev = _git_json("docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json")
+    o = next(x for x in rev["outcomes"] if x.get("primary"))
+    basics = next(t for t in o["trials"] if t["id"] == "PMID 34375394")
+    assert basics["scale"] == "HR" and o["result"]["scale"] == "HR"          # served: HR pooled beside PLUS's counts
+    assert ei.hr_route(basics, o["estimand"], o["trials"])["route"] == "TIME_TO_EVENT_SEPARATE"
+
+
+def test_a_pool_of_hrs_alone_is_left_alone():
+    o = next(x for x in _git_json("docs/reviews/omega3-cardiovascular-events/review.json")["outcomes"] if x.get("primary"))
+    assert o["estimand"] == "RR" and all(t.get("scale") == "HR" for t in o["trials"])
+    assert all(ei.hr_route(t, o["estimand"], o["trials"]) is None for t in o["trials"])
+
+
+def _step():
+    rev = _git_json("docs/reviews/corticosteroids-cap-mortality/review.json")
+    o = next(x for x in rev["outcomes"] if x["name"].startswith("Hyperglyc"))
+    recs = {str(r["id"]): r.get("abstract", "") for r in _git_json("cache/corticosteroids-cap-mortality/records.json")["records"]}
+    return o, next(t for t in o["trials"] if t["id"] == "PMID 25608756"), recs
+
+
+def test_plant_pre_fix_step_is_an_incompatible_or_and_the_pool_is_suppressed():
+    o, t, _ = _step()
+    assert (t["effect"], t["ci_low"], t["ci_high"], t["scale"]) == (1.96, 1.31, 2.93, "OR") and t["alternatives"] == []
+    assert o["result"]["estmeasure"]["status"] == "incompatible"
+
+
+def test_step_reconstructs_the_rr_from_its_held_counts_and_keeps_the_or():
+    _, t, recs = _step()
+    r = ei.reconstruct_from_counts(t, recs["25608756"], ["prednisone"], ["placebo"])
+    assert r["state"] == "RECONSTRUCTED" and (r["ai"], r["n1i"], r["ci"], r["n2i"]) == (76, 392, 43, 393)
+    assert r["rr"] == {"estimate": 1.772, "ci_low": 1.2526, "ci_high": 2.5066}                # the review's 1.772 (1.253-2.507)
+    assert r["published_effect_retained"] == {"effect": 1.96, "ci_low": 1.31, "ci_high": 2.93, "scale": "OR"}
+
+
+def test_step_reconstructs_with_the_topics_own_vocabulary():
+    _, t, recs = _step()
+    topic = _git_json("topics/corticosteroids-cap-mortality.json")
+    interv = sorted(set(topic.get("intervention_terms") or []) | set(topic.get("intervention_class_terms") or []))
+    assert ei.reconstruct_from_counts(t, recs["25608756"], interv, topic.get("comparator_terms") or [])["state"] == "RECONSTRUCTED"
+
+
+def test_the_reconstruction_refuses_with_a_reason_it_never_guesses():
+    _, t, recs = _step()
+    r = ei.reconstruct_from_counts(t, recs["25608756"], ["dexamethasone"], ["placebo"])     # an arm term the sentence does not use
+    assert r["state"] == "NOT_RECONSTRUCTED" and "vocabulary" in r["why"]
+    bad = dict(t, source=t["source"].replace("76 [19%]", "76 [21%]"))
+    assert "percentage" in ei.reconstruct_from_counts(bad, recs["25608756"], ["prednisone"], ["placebo"])["why"]
+
+
+def test_endpoint_definitions_are_classified_not_assumed_compatible():
+    o, _, _ = _step()
+    classes = {t["id"]: ei.definition_class(t) for t in o["trials"]}
+    assert classes["PMID 25608756"] == "INSULIN_REQUIRING" and classes["PMID 25688779"] == "DEFINITION_NOT_STATED_IN_QUOTATION"
