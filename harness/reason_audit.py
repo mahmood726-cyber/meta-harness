@@ -275,6 +275,20 @@ def _expects_value(code: str, row: dict[str, Any]) -> bool:
     )
 
 
+_NUMERIC_RESULT = re.compile(r"\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*(?:to|-|–)\s*\d+(?:\.\d+)?")
+
+
+def _cited_value_present(row: dict[str, Any], sources: list[dict[str, str]]) -> dict[str, str] | None:
+    """The row's OWN cited span, found verbatim in a held source and carrying a numeric result."""
+    span = " ".join(str(row.get("verbatim_span") or row.get("source_span") or "").split())
+    if not span or not _NUMERIC_RESULT.search(span):
+        return None
+    for s in sources or []:
+        if span in " ".join(str(s.get("text") or "").split()):
+            return {"source_id": s.get("source_id") or s.get("source_kind") or "held source", "span": span}
+    return None
+
+
 def _source_not_retrieved_wrong(code: str, sources: list[dict[str, str]]) -> bool:
     if code != absence.SOURCE_NOT_RETRIEVED:
         return False
@@ -308,6 +322,13 @@ def audit_reason_row(
             "source_contains": found["span"],
             **({"value_text": found["value_text"]} if found.get("value_text") else {}),
         }
+    cited = _cited_value_present(row, sources)
+    if cited and _expects_value(code, row):
+        # the value IS in the held source, in a form the count/ratio finder does not read (a risk difference, a bare
+        # percentage pair): a value-present code is then consistent, never 'value absent'
+        return {"verdict": REASON_TRUE,
+                "detail": f"value present in the held source in another estimand class: \"{cited['span'][:200]}\"",
+                "stated_reason_code": code, "source_id": cited["source_id"], "source_span": cited["span"]}
     if _expects_value(code, row) or _source_not_retrieved_wrong(code, sources):
         return {
             "verdict": REASON_WRONG_KIND,

@@ -96,13 +96,16 @@ def _fam_ncts(f: dict[str, Any]) -> set[str]:
 def attach(review: dict[str, Any], config: dict[str, Any], root: str = _ROOT) -> None:
     """review['multi_trial_reports'] for any declared report touching this review, and the report link on each
     registration's family object and absent/pooled rows."""
+    # a trial is found by its registration OR by its own report PMIDs (a trial with no registry link -- Lemoine's
+    # constituent RCTs -- is keyed by its publication)
+    keys = lambda t: {t["registration"]} | {_pid(p) for p in t.get("reports") or []}
     regs = set()
     for o in review.get("outcomes") or []:
         for t in (o.get("trials") or []) + (o.get("declared_absent_trials") or []):
-            regs.add(_nct(t.get("id")) or _nct(t.get("nct")))
+            regs |= {x for x in (_nct(t.get("id")) or _nct(t.get("nct")), _pid(t.get("id"))) if x}
     for f in review.get("trial_families") or []:
-        regs |= _fam_ncts(f)
-    rel = [r for r in resolve(root, config) if any(t["registration"] in regs for t in r["trials"])]
+        regs |= _fam_ncts(f) | {_pid(r.get("report_id")) for r in f.get("reports") or []}
+    rel = [r for r in resolve(root, config) if any(keys(t) & regs for t in r["trials"])]
     if not rel:
         return
     review["multi_trial_reports"] = rel
@@ -112,11 +115,11 @@ def attach(review: dict[str, Any], config: dict[str, Any], root: str = _ROOT) ->
             link = {"report_id": r["report_id"], "shared_with": [s for s in shared if s != t["registration"]],
                     "relevant_to_this_review": t["relevant"], "basis": t["basis"]}
             for f in review.get("trial_families") or []:
-                if t["registration"] in _fam_ncts(f):
+                if keys(t) & (_fam_ncts(f) | {_pid(x.get("report_id")) for x in f.get("reports") or []}):
                     f["multi_trial_report"] = {**link, "registration": t["registration"]}
             for o in review.get("outcomes") or []:
                 for row in (o.get("trials") or []) + (o.get("declared_absent_trials") or []):
-                    if (_nct(row.get("id")) or _nct(row.get("nct"))) == t["registration"]:
+                    if {x for x in ((_nct(row.get("id")) or _nct(row.get("nct"))), _pid(row.get("id"))) if x} & keys(t):
                         row["multi_trial_report"] = {**link, **({"registry_results": t["registry_results"]}
                                                                if t.get("registry_results") else {})}
 

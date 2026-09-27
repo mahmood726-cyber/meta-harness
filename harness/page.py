@@ -1275,6 +1275,23 @@ def _screening(r, neutral):
                  f"<p class='note'><strong>Search limitation:</strong> {_e(sdec.get('search_limitation'))}</p>"
                  "<table class='recs'><tr><th>Trial</th><th>Decision</th><th>Protocol rules (verbatim) and source</th>"
                  "<th>Outcome scope</th></tr>" + srows + "</table>")
+    for alc in r.get("arm_label_conflicts") or []:
+        locs = "".join(f"<li>{_e(l['location'])}: " + ", ".join(f"n={_e(k)} &rarr; {_e(v)}" for k, v in sorted(l["says"].items()))
+                       + (" (held)" if l.get("held") else f" <span class='muted'>(not held: {_e(l.get('basis'))})</span>") + "</li>"
+                       for l in alc["locations"])
+        cors = "".join(f"<li>{_e(x['source'])}: " + ", ".join(f"n={_e(k)} &rarr; {_e(v)}" for k, v in sorted(x["says"].items()))
+                       + (" <em>(independent of the article)</em>" if x.get("independent_of_article") else " <em>(the article itself: does not count)</em>")
+                       + "</li>" for x in alc["corroboration"])
+        flow += (f"<h4 data-arm-label-conflict='{_e(alc['state'])}'>Arm-label source conflict: {_e(alc['trial_id'])}</h4>"
+                 f"<p class='note'>{_e(alc['what'])}. Identical counts across formats never establish identical arm ownership; "
+                 f"nothing is auto-flipped. State: <code>{_e(alc['state'])}</code> &mdash; {_e(alc['basis'])}</p>"
+                 f"<ul>{locs}</ul><p class='muted'>Corroboration:</p><ul>{cors}</ul>")
+    ao = {k: v for k, v in sorted((r.get("fulltext_coverage") or {}).items()) if v.get("coverage") == "ABSTRACT_ONLY"}
+    if ao:
+        flow += ("<p class='note' data-fulltext-coverage='ABSTRACT_ONLY'><strong>Held 'full texts' that are front matter and "
+                 "abstract only</strong> (every statement about them is an abstract-level statement; 'not found' there never "
+                 "means the article lacks it): " + "; ".join(f"PMID {_e(k)} &mdash; {_e(v['basis'])}" for k, v in ao.items())
+                 + "</p>")
     cbo = r.get("completeness_by_outcome") or []
     if cbo:
         # completeness is a claim about ONE outcome; a trial that cannot yet report makes it PROVISIONAL, not incomplete

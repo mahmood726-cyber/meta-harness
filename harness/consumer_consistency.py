@@ -78,12 +78,12 @@ def fulltexts_by_id(slug: str, records_blob: dict[str, Any]) -> dict[str, str]:
     out = {str(k): str(v) for k, v in (records_blob.get("fulltext_by_pmid") or {}).items() if v}
     cache_dir = ROOT / "cache" / slug
     if cache_dir.exists():
+        from . import fulltext_coverage
         for path in cache_dir.glob("ft_*.txt"):
             pid = path.stem.replace("ft_", "", 1)
-            try:
-                out[pid] = path.read_text(encoding="utf-8")
-            except OSError:
-                pass
+            text, _cov = fulltext_coverage.read(str(path))
+            if text is not None:            # an ABSTRACT_ONLY file is never handed on as a full text
+                out[pid] = text
         for path in cache_dir.glob("pmc_*_fulltext.txt"):
             pid = path.stem.replace("pmc_", "", 1).replace("_fulltext", "")
             try:

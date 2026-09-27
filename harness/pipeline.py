@@ -2138,6 +2138,8 @@ def build_review_core(slug, config, records, protocol_sha):
     multi_trial_report_mod.attach(review, config)
     from . import eligibility_field as eligibility_field_mod
     eligibility_field_mod.attach(review, slug)
+    from . import arm_label_conflict as arm_label_conflict_mod
+    arm_label_conflict_mod.attach(review, slug)
     # SOURCE VERSIONS: per-result version chains (original / corrections / regulatory) with a governing decision
     from . import source_versions as source_versions_mod
     source_versions_mod.attach(review)
@@ -2233,10 +2235,8 @@ def build_review_core(slug, config, records, protocol_sha):
             _ftp = os.path.join(ROOT, "cache", slug, f"ft_{_pid}.txt")
             _ft = None
             if os.path.exists(_ftp):
-                try:
-                    _ft = open(_ftp, encoding="utf-8").read()
-                except OSError:
-                    _ft = None
+                from . import fulltext_coverage as _ftc
+                _ft, _ = _ftc.read(_ftp)       # an ABSTRACT_ONLY file is not a full text: classified on the abstract
             _ann = absence_mod.classify_reason(
                 _kws, _ab, _ft,
                 outcome_name=_o.get("name"),
@@ -2333,6 +2333,10 @@ def build_review_core(slug, config, records, protocol_sha):
     # COMPLETENESS PER OUTCOME, from the derived row states and the typed lifecycles (never a topic-wide count)
     from . import completeness as completeness_mod
     completeness_mod.attach(review, slug)
+    # what each committed 'full text' actually covers (ABSTRACT_ONLY when the publisher withholds the XML body)
+    from . import fulltext_coverage as fulltext_coverage_mod
+    if (_ftcov := fulltext_coverage_mod.coverage_map(slug)):
+        review["fulltext_coverage"] = _ftcov
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:
