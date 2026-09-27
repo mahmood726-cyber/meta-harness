@@ -50,7 +50,9 @@ def test_every_extractor_is_covered_by_the_scan():
     from regex_layer import partial
     src = open(partial.__file__, encoding="utf-8").read()
     assert 'SPECS.items() if s["kind"] == "extractor"' in src
-    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 14
+    # 16 since V1.0.1: _K_STATED and _re_counts (stated_trial_count) joined, and the scan covers both -- it caught
+    # _re_counts reading '234' out of '1,234 trials' before the lookbehind fix
+    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 16
 
 
 @pytest.mark.parametrize("name,s", [

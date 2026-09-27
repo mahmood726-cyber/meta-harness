@@ -189,6 +189,76 @@ def _journal_year_features(query: str) -> list[str]:
     return [f"journal_year_seed:{journal}+{year}" for journal in journals for year in years]
 
 
+_TITLE_TERM_RE = re.compile(r'(?:"([^"]+)"|([^\s()"\[\]][^()"\[\]]*?))\s*\[(?:title|ti)(?:/[^\]]+)?\]', re.IGNORECASE)
+_BOOL_PREFIX_RE = re.compile(r"^(?:(?:AND|OR|NOT)\s+)+", re.IGNORECASE)
+
+
+def title_field_terms(query) -> list:
+    """The terms a query restricts to the TITLE field ('"esketamine"[Title]' -> ['esketamine'])."""
+    out = []
+    for m in _TITLE_TERM_RE.finditer(str(query or "")):
+        t = _BOOL_PREFIX_RE.sub("", (m.group(1) or m.group(2) or "").strip()).strip()
+        if t:
+            out.append(t)
+    return out
+
+
+def _title_terms_seed(terms, exempt=()) -> list:
+    """V1.0.1 (esketamine review): a TITLE field is seeding only when what it holds names a known report -- a trial
+    acronym, a quoted title of five or more words, or four or more title-field terms that rebuild one paper's title.
+    One or two treatment/condition concepts in the title field are a (possibly insensitive) concept search that can
+    retrieve an unknown trial."""
+    why = []
+    for t in terms:
+        acr = [a for a in _trial_acronym_tokens(t) if a.lower() not in exempt]
+        if acr:
+            why.append(f"trial_name_in_title:{acr[0]}")
+        elif len(t.split()) >= 5:
+            why.append(f"paper_title_in_title_field:{t[:40]}")
+    if len(terms) >= 4:
+        why.append(f"title_reconstruction:{len(terms)}_title_terms")
+    return why
+
+
+def query_matches(query, record) -> bool:
+    """Minimal PubMed-style matcher for PLANTS: AND/OR/NOT over quoted or bare terms, [Title]/[ti] restricting a term
+    to the title, any other term matching title or abstract (case-insensitive, hyphen/space insensitive). Used to
+    prove that a query CAN retrieve an unseen record; it is not a search engine."""
+    def norm(s):
+        return re.sub(r"[\s\-]+", " ", str(s or "").lower())
+    title, text = norm(record.get("title")), norm(str(record.get("title") or "") + " " + str(record.get("abstract") or ""))
+    q = str(query or "")
+    toks = re.findall(r'\(|\)|"[^"]+"(?:\[[^\]]+\])?|\bAND\b|\bOR\b|\bNOT\b|[^\s()"]+(?:\[[^\]]+\])?', q)
+    pos = 0
+
+    def atom(tok):
+        m = re.match(r'"?([^"\[]+)"?(?:\[([^\]]+)\])?$', tok)
+        term, field = norm(m.group(1)).strip(), (m.group(2) or "").lower()
+        return term in (title if field.startswith(("ti", "title")) else text)
+
+    def expr():
+        nonlocal pos
+        val = term_()
+        while pos < len(toks) and toks[pos].upper() in ("AND", "OR", "NOT") or (pos < len(toks) and toks[pos] not in (")",)):
+            op = toks[pos].upper() if toks[pos].upper() in ("AND", "OR", "NOT") else "AND"
+            if op in ("AND", "OR", "NOT") and toks[pos].upper() == op:
+                pos += 1
+            rhs = term_()
+            val = (val and rhs) if op == "AND" else (val or rhs) if op == "OR" else (val and not rhs)
+        return val
+
+    def term_():
+        nonlocal pos
+        if toks[pos] == "(":
+            pos += 1
+            v = expr()
+            pos += 1
+            return v
+        pos += 1
+        return atom(toks[pos - 1])
+    return bool(toks) and expr()
+
+
 def _query_classification(query, exempt_tokens=None):
     """Classify a query string. `exempt_tokens` (lower-cased) are acronym-shaped tokens that come from a topic's
     SEALED registered vocabulary (docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md; the v2 engine is the
@@ -222,7 +292,13 @@ def _query_classification(query, exempt_tokens=None):
     elif any(f.startswith(("doi_literal:", "pmid_literal:", "nct_literal:")) for f in features):
         kind = "IDENTIFIER_SEEDED"
     elif any(f.startswith("title_field_tag:") for f in features):
-        kind = "TITLE_ANCHORED"
+        seeds = _title_terms_seed(title_field_terms(text), exempt)
+        if seeds:
+            features.extend(seeds)
+            kind = "TITLE_ANCHORED"
+        else:
+            features.append("title_restricted_concept")
+            kind = "TITLE_RESTRICTED_CONCEPT"
     elif any(f.startswith(("trial_acronym_token:", "journal_year_seed:")) for f in features):
         kind = "NAME_SEEDED"
     else:
@@ -249,6 +325,29 @@ def _search_provenance_object(cls, registry_first_status):
         "class_statement": class_statement,
         "discovery_statement": discovery_statement,
         "retraction": RETRIEVAL_RETRACTION,
+    }
+
+
+def retrieval_axes(basis, ledger=None) -> dict:
+    """V1.0.1 (esketamine review): three separate questions, never folded into one label.
+      can_retrieve_unknown_trial -- does ANY executed query search a concept rather than name known reports?
+      execution_documented       -- is every source's execution recorded (state + hit count), not just its text?
+      coverage_adequate          -- only a measured recall can say YES; otherwise NOT_ESTABLISHED."""
+    concept = [r["query"] for r in basis if r.get("kind") in ("FREE_TEXT_KEYWORD", "TITLE_RESTRICTED_CONCEPT", "CONCEPT")]
+    srcs = (ledger or {}).get("sources") or []
+    ran = [s for s in srcs if s.get("state") in ("RAN_OK", "RAN_ZERO") and s.get("run_utc")]
+    counted = [s for s in ran if ((s.get("funnel") or {}).get("hits")) is not None]
+    return {
+        "can_retrieve_unknown_trial": {"answer": "YES" if concept else "NO",
+                                       "basis": (f"{len(concept)} of {len(basis)} queries search a concept "
+                                                 "(free text or a title-restricted concept)") if concept else
+                                                "every query names known reports (identifiers, trial names or titles)"},
+        "execution_documented": {"answer": ("YES" if srcs and len(counted) == len(srcs) else
+                                            "PARTIAL" if ran else "NO"),
+                                 "basis": (f"{len(ran)} of {len(srcs)} ledger sources record a run state and date; "
+                                           f"{len(counted)} record the hit count") if srcs else "no retrieval ledger"},
+        "coverage_adequate": {"answer": "NOT_ESTABLISHED",
+                              "basis": "no measured recall against an independent reference set is attached to this search"},
     }
 
 
@@ -288,7 +387,8 @@ def classify_retrieval(config, ledger=None, registry_first_status=None):
         cls = "KNOWN_ITEM_RETRIEVAL"
         label = KNOWN_ITEM_RETRIEVAL_LABEL
         retrieval_auditable = False
-    elif basis and all(row.get("kind") in ("PMID_ENUMERATION", "FREE_TEXT_KEYWORD") for row in basis):
+    elif basis and all(row.get("kind") in ("PMID_ENUMERATION", "FREE_TEXT_KEYWORD", "TITLE_RESTRICTED_CONCEPT")
+                       for row in basis):
         cls = "HAND_WRITTEN_KEYWORD_SEARCH"
         label = HAND_WRITTEN_KEYWORD_SEARCH_LABEL
         retrieval_auditable = False
@@ -302,6 +402,7 @@ def classify_retrieval(config, ledger=None, registry_first_status=None):
         "basis": basis,
         "screening_auditable": True,
         "retrieval_auditable": retrieval_auditable,
+        "axes": retrieval_axes(basis, ledger),
     }
     if not retrieval_auditable:
         out["distinction"] = RETRIEVAL_UNAUDITABLE_DISTINCTION
@@ -1983,6 +2084,9 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import held_text_identity as _hti
     # V1.0.1 (DOAC-VTE review): a held comparator full text is read only when proved to be the comparator's own text
     records = _hti.sanitize(ROOT, slug, records)
+    # V1.0.1 (finerenone review): recorded registry -> publication links for registry-only families
+    from . import family_pub_links as _fpl
+    records = _fpl.merge(ROOT, slug, records)
     _inp = outcome_inputs(slug, config, records)
     config = _inp["config"]
     merged, retrieval_ledger, family_nodes = _inp["merged"], _inp["retrieval_ledger"], _inp["family_nodes"]
@@ -2052,6 +2156,13 @@ def build_review_core(slug, config, records, protocol_sha):
     comp_scope = scope.assess(config, comp_rec.get("title") or "", comp_abstract)
     if invalid_note := parity_relation.invalid_scope_override(ROOT, slug):
         comp_scope = {**comp_scope, "scope_valid": False, "note": invalid_note}
+    # V1.0.1 (DPP-4 review): "same question" also requires control, endpoint and effect measure to agree
+    from . import same_question as same_question_mod
+    _measure = same_question_mod.effect_measure(
+        (primary.get("result") or {}).get("scale") if isinstance(primary.get("result"), dict) else None,
+        reported, primary.get("name"))
+    comp_scope = same_question_mod.apply_to_scope(
+        comp_scope, same_question_mod.decide(same_question_mod.load(ROOT, slug), _measure))
     comparator = {
         **({"fulltext_identity": records["comparator_fulltext_identity"]}
            if records.get("comparator_fulltext_identity") else {}),
@@ -2417,6 +2528,17 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import comparator_models as comparator_models_mod
     review["comparator"] = comparator_models_mod.attach_review(review, overlap_relation_mod._panel_entry(review),
                                                                comparator_models_mod.load_reported(ROOT, slug))
+    # V1.0.1 (finerenone review): an external checkpoint pooling the same trials -- never a target, never an input
+    from . import external_checkpoints as external_checkpoints_mod
+    _cps = external_checkpoints_mod.load(ROOT, slug)
+    if _cps:
+        review["external_checkpoints"] = external_checkpoints_mod.attach(review, _cps)
+    # V1.0.1 (esketamine review): comparator rows checked against the trials they cite; an implausible row withholds
+    # numerical validation against the comparator
+    from . import comparator_rows as comparator_rows_mod
+    _rc = comparator_rows_mod.assess(comparator_rows_mod.load(ROOT, slug))
+    if _rc:
+        review["comparator"] = dict(review["comparator"], row_checks=_rc)
     # V1.0.1 (DOAC-VTE review): identical membership is not identical inputs -- per shared trial, population, outcome,
     # window and analysis set on both sides (harness/outcome_match.py)
     from . import outcome_match as outcome_match_mod
@@ -2429,6 +2551,11 @@ def build_review_core(slug, config, records, protocol_sha):
              if os.path.exists(os.path.join(ROOT, _body_ref)) else "")
     review["comparator"] = comparator_models_mod.flag_reported_rows(
         review["comparator"], comparator_models_mod.abstract_body_mismatches(comp_abstract, _body, _body_ref))
+    # V1.0.1 (finerenone review): a printed ratio CI that is not symmetric on the log scale is internally inconsistent
+    _asym = comparator_models_mod.log_scale_asymmetry(review["comparator"].get("reported"))
+    if _asym:
+        review["comparator"] = dict(review["comparator"], internal_mismatches=list(
+            review["comparator"].get("internal_mismatches") or []) + _asym)
     # V1.0.1: is the comparator the protocol NAMES the one its PMID/DOI resolve to? (harness/comparator_identity.py)
     from . import comparator_identity as comparator_identity_mod
     review["comparator"] = dict(review["comparator"], identity=comparator_identity_mod.check(

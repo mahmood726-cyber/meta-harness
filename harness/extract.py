@@ -927,7 +927,7 @@ _K_STATED = re.compile(
 # incorporated 40 RCTs') states that review's count, not the comparator's
 _OTHER_REVIEW = re.compile(r"\bet al\b|\banother\b|\b(?:a|previous|prior|recent|earlier|an earlier|one)\s+"
                            r"(?:systematic review|meta-analys[ie]s|review|pooled analysis)\b", re.I)
-_re_counts = re.compile(r"\b(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?(?:clinical\s+)?(?:trials|RCTs)\b", re.I)
+_re_counts = re.compile(r"\b(?<![\d.,])(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?(?:clinical\s+)?(?:trials|RCTs)\b", re.I)
 
 
 def stated_trial_count(text):

@@ -16,13 +16,28 @@ file holds the rows.
 
 | Change | n of N | File |
 |---|---|---|
-| Funding labels (typed funders / material support / funder-role statement) | 167 of 272 rows, 31 topics | `FUNDING_LABEL_CHANGES.json` |
+| Funding labels (typed funders / material support / funder-role statement) | 171 of 273 rows, 31 topics | `FUNDING_LABEL_CHANGES.json` |
 | X2 comorbidity exclusions that flip | 6 of 539 (2 now included, 4 now excluded on X3, the comparator axis) | `COUNTS.json` |
 | Registry IDs resolved to a publication before any results-only / ghost label | 59 NCTs in 13 topics | `COUNTS.json` |
 | Comparator full texts refused (a citing article held under the comparator's PMID) | 3 of 32 | `COUNTS.json` |
 
-- **Funding.** No row loses an industry tie. 121 rows carry an established tie, and no row is labelled "no industry
-  tie": a public funder named "and others" never establishes absence.
+- **Funding.** Against V1, no row whose V1 label was industry loses its tie. 126 rows carry an established tie, and no
+  row is labelled "no industry tie": a public funder named "and others" never establishes absence.
+- **Funding audit** (`FUNDING_AUDIT.json`). Four codex lanes read the funding evidence independently. Every quote
+  was located, and every disagreement was traced to a root cause.
+  - On the 61 held full texts, 11 of 12 missed industry ties are recovered. The misses came from a reach cap, the
+    sentence splitter, RX-OL9, author-contribution lines, and missing statement and supply phrasings. The twelfth
+    (a branded product named in the methods) is not a tie, by decision.
+  - One served row goes from PRESENT to NOT_ESTABLISHED: tocilizumab PMID 33472855. Its PRESENT rested only on
+    author disclosures read as funders.
+  - Author disclosures now stay out of funder lists. An author's company directorship blocks "no industry tie".
+  - On the 222 rows without full text, a registry non-industry class now outranks a bare company suffix
+    (TriHealth Inc. is a non-profit hospital system).
+  - Open question for the captain: the Novo Nordisk Foundation is classed as industry by name (semaglutide PMID
+    42070571).
+- **ARTS-DN Japan harms.** Linking Katayama 2017 exposed its hyperkalaemia statement to the harm panel: "no patients
+  developed hyperkalemia", across seven doses and a shared placebo. It is recorded as a sourced typed refusal
+  (RETRIEVED_INCOMPATIBLE_STRUCTURE, as for ARTS-DN), not as an open HARMS_INCOMPLETE.
 - **X2 flips.** CARDIA-STIFF (NCT04739215, dapagliflozin) and NCT05057806 (empagliflozin) are included at screening;
   neither is pooled.
 - **Colchicine-secondary: flip deferred.** The comorbidity rule is checked there, and Raju 2012 would be included.

@@ -73,6 +73,20 @@
       ],
       "screening_auditable": true,
       "retrieval_auditable": false,
+      "axes": {
+        "can_retrieve_unknown_trial": {
+          "answer": "NO",
+          "basis": "every query names known reports (identifiers, trial names or titles)"
+        },
+        "execution_documented": {
+          "answer": "PARTIAL",
+          "basis": "4 of 4 ledger sources record a run state and date; 0 record the hit count"
+        },
+        "coverage_adequate": {
+          "answer": "NOT_ESTABLISHED",
+          "basis": "no measured recall against an independent reference set is attached to this search"
+        }
+      },
       "distinction": "an auditable screening ledger attached to an unauditable retrieval process",
       "retraction": "We retract any claim of a registry-first or systematic search for this topic.",
       "search_provenance": {
@@ -478,9 +492,9 @@
         "id": "NCT00770302",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['compared with placebo', 'as compared with placebo', 'placebo group', 'placebo groups', 'or placebo', 'and placebo']).",
-        "span": "examined: “Assess Pharmacokinetics, Safety and Tolerability in Healthy Chinese Volunteers After Oral …”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT00770302).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -4050,22 +4064,125 @@
       "comparator_is_class": true,
       "intervention_level_match": true,
       "population_match": true,
-      "scope_valid": true,
-      "note": "same-question comparator (matching intervention level and population)"
+      "scope_valid": false,
+      "note": "related: trial-inventory map -- differs on control, endpoint, effect_measure. Class and population match; that alone is not the same question",
+      "same_question": {
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "control": "NO",
+          "endpoint": "NO",
+          "effect_measure": "NO",
+          "population": "YES",
+          "intervention": "YES"
+        },
+        "differs": [
+          "control",
+          "endpoint",
+          "effect_measure"
+        ],
+        "not_established": [],
+        "dimensions": {
+          "control": {
+            "ours": "placebo; active-comparator DPP-4 CVOTs excluded (X3)",
+            "theirs": "placebo, and glimepiride (an active comparator) in CAROLINA",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "protocols/dpp4-mace-t2d.md",
+                "quote": "- **C** - placebo."
+              },
+              {
+                "document_ref": "protocols/dpp4-mace-t2d.md",
+                "quote": "- **X3** - wrong intervention/comparison, including active-comparator DPP-4 CVOTs"
+              },
+              {
+                "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+                "quote": "Effect of Linagliptin vs Glimepiride on Major Adverse Cardiovascular Outcomes in Patients With Type 2 Diabetes: The CAROLINA Randomized Clinical Trial"
+              }
+            ]
+          },
+          "endpoint": {
+            "ours": "3-point MACE",
+            "theirs": "individual outcomes pooled separately (MI, stroke, HF hospitalisation, unstable angina, revascularisation, CV mortality); no 3-point MACE",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "protocols/dpp4-mace-t2d.md",
+                "quote": "# Protocol - DPP-4 inhibitors for 3-point MACE in type 2 diabetes"
+              },
+              {
+                "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+                "quote": "A: Fatal and non-fatal myocardial infarction; B: Fatal and non-fatal stroke; C: Hospitalization for heart failure; D: Hospitalization due to unstable angina; E: Hospitalization for coronary revascularization; F: Cardiovascular mortality."
+              }
+            ]
+          },
+          "effect_measure": {
+            "ours": "HR",
+            "theirs": "RR (Mantel-Haenszel, random effects)",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "protocols/dpp4-mace-t2d.md",
+                "quote": "- **Estimand** - hazard ratio (HR), DPP-4 inhibitor vs placebo, pooled on the log"
+              },
+              {
+                "document_ref": "cache/dpp4-mace-t2d/records.json",
+                "field": "comparator_fulltext",
+                "quote": "differences were calculated with the use of risk ratio (RR), with 95% confidence interval (CI), after implementation of the Mantel-Haenszel random effects formula"
+              }
+            ]
+          },
+          "population": {
+            "ours": "adults with type 2 diabetes",
+            "theirs": "patients with type 2 diabetes",
+            "agrees": "YES",
+            "evidence": [
+              {
+                "document_ref": "protocols/dpp4-mace-t2d.md",
+                "quote": "- **P** - adults with type 2 diabetes."
+              },
+              {
+                "document_ref": "cache/dpp4-mace-t2d/records.json",
+                "record_id": "34754403",
+                "quote": "We pooled data from 6 trials in a total of 52520 patients with T2DM"
+              }
+            ]
+          },
+          "intervention": {
+            "ours": "DPP-4 inhibitors (class)",
+            "theirs": "DPP-4 inhibitors (class)",
+            "agrees": "YES",
+            "evidence": [
+              {
+                "document_ref": "protocols/dpp4-mace-t2d.md",
+                "quote": "- **I** - DPP-4 inhibitors, including sitagliptin, saxagliptin, alogliptin, and"
+              },
+              {
+                "document_ref": "cache/dpp4-mace-t2d/records.json",
+                "record_id": "34754403",
+                "quote": "assigned either to DPP-4 inhibitor or placebo"
+              }
+            ]
+          }
+        },
+        "why": "differs on control, endpoint, effect_measure"
+      }
     },
     "overlap": {
       "ours_k": 3,
       "theirs_k": 6,
-      "theirs_k_source": {
-        "source": "comparator abstract",
-        "quote": "RESULTS: We pooled data from 6 trials in a total of 52520 patients with T2DM assigned either to DPP-4 inhibitor or placebo."
-      },
-      "shared_k": "not computed: comparator trial set not enumerated",
+      "theirs_k_source": "comparator panel trial_set (cache/dpp4-mace-t2d/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 6 comparator trial(s) for this outcome",
+      "shared_k": 3,
       "only_ours": [],
-      "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
-      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator trial set is not known well enough to compare); our pooled trial families 3; basis: comparator trial set not enumerated.",
-      "relation": "NOT_ENUMERABLE"
+      "only_theirs": [
+        "TECOS",
+        "CAROLINA",
+        "EXAMINE"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: SUBSET (subset -- every pooled family is in the comparator set); our pooled trial families 3, comparator trials 6, shared 3; basis: set operation on the enumerated comparator trial set.",
+      "relation": "SUBSET"
     },
     "overlap_relation": {
       "outcome": "3-point major adverse cardiovascular events",
@@ -4104,17 +4221,144 @@
       "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
-        "status": "NOT_ENUMERATED",
-        "note": "the registered comparator's trial set is not enumerated in a typed, located source"
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/dpp4-mace-t2d/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
+        "endpoint_for_outcome": null,
+        "members": [
+          {
+            "name": "TECOS",
+            "family": "NCT00790205",
+            "alias_ids": [
+              "26052984"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<ref id=\"B10\"><label>10</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Green</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Bethel</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Armstrong</surname><given-names>PW</given-names></name><name name-style=\"western\"><surname>Buse</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Engel</surname><given-names>SS</given-names></name><name name-style=\"western\"><surname>Garg</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Josse</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Kaufman</surname><given-names>KD</given-names></name><name name-style=\"western\"><surname>Koglin</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Korn</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Lachin</surname><given-names>JM</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Pencina</surname><given-names>MJ</given-names></name><name name-style=\"western\"><surname>Standl</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Stein</surname><given-names>PP</given-names></name><name name-style=\"western\"><surname>Suryawanshi</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Van</surname><given-names>de Werf F</given-names></name><name name-style=\"western\"><surname>Peterson</surname><given-names>ED</given-names></name><name name-style=\"western\"><surname>Holman</surname><given-names>RR</given-names></name></person-group><collab>TECOS Study Group</collab><article-title>Effect of Sitagliptin on Cardiovascular Outcomes in Type 2 Diabetes</article-title><source>N Engl J Med</source><year>2015</year><volume>373</volume><fpage>232</fpage><lpage>242</lpage><pub-id pub-id-type=\"pmid\">26052984</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1501352</pub-id></element-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "CAROLINA",
+            "family": "NCT01243424",
+            "alias_ids": [
+              "31536101"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<ref id=\"B11\"><label>11</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rosenstock</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Kahn</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Johansen</surname><given-names>OE</given-names></name><name name-style=\"western\"><surname>Zinman</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Espeland</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Woerle</surname><given-names>HJ</given-names></name><name name-style=\"western\"><surname>Pfarr</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Keller</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Mattheus</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Baanstra</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Meinicke</surname><given-names>T</given-names></name><name name-style=\"western\"><surname>George</surname><given-names>JT</given-names></name><name name-style=\"western\"><surname>von</surname><given-names>Eynatten M</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Marx</surname><given-names>N</given-names></name></person-group><collab>CAROLINA Investigators</collab><article-title>Effect of Linagliptin <italic toggle=\"yes\">vs</italic> Glimepiride on Major Adverse Cardiovascular Outcomes in Patients With Type 2 Diabetes: The CAROLINA Randomized Clinical Trial</article-title><source>JAMA</source><year>2019</year><volume>322</volume><fpage>1155</fpage><lpage>1166</lpage><pub-id pub-id-type=\"pmid\">31536101</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2019.13772</pub-id><pub-id pub-id-type=\"pmcid\">PMC6763993</pub-id></element-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "CARMELINA",
+            "family": "NCT01897532",
+            "alias_ids": [
+              "30418475"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<ref id=\"B12\"><label>12</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rosenstock</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Perkovic</surname><given-names>V</given-names></name><name name-style=\"western\"><surname>Johansen</surname><given-names>OE</given-names></name><name name-style=\"western\"><surname>Cooper</surname><given-names>ME</given-names></name><name name-style=\"western\"><surname>Kahn</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Marx</surname><given-names>N</given-names></name><name name-style=\"western\"><surname>Alexander</surname><given-names>JH</given-names></name><name name-style=\"western\"><surname>Pencina</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Toto</surname><given-names>RD</given-names></name><name name-style=\"western\"><surname>Wanner</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Zinman</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Woerle</surname><given-names>HJ</given-names></name><name name-style=\"western\"><surname>Baanstra</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Pfarr</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Schnaidt</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Meinicke</surname><given-names>T</given-names></name><name name-style=\"western\"><surname>George</surname><given-names>JT</given-names></name><name name-style=\"western\"><surname>von</surname><given-names>Eynatten M</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name></person-group><collab>CARMELINA Investigators</collab><article-title>Effect of Linagliptin <italic toggle=\"yes\">vs</italic> Placebo on Major Cardiovascular Events in Adults With Type 2 Diabetes and High Cardiovascular and Renal Risk: The CARMELINA Randomized Clinical Trial</article-title><source>JAMA</source><year>2019</year><volume>321</volume><fpage>69</fpage><lpage>79</lpage><pub-id pub-id-type=\"pmid\">30418475</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2018.18269</pub-id><pub-id pub-id-type=\"pmcid\">PMC6583576</pub-id></element-citation></ref>",
+            "bound_to": "NCT01897532"
+          },
+          {
+            "name": "omarigliptin",
+            "family": "NCT01703208",
+            "alias_ids": [
+              "28893244"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<ref id=\"B13\"><label>13</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Gantz</surname><given-names>I</given-names></name><name name-style=\"western\"><surname>Chen</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Suryawanshi</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Ntabadde</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Shah</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>O'Neill</surname><given-names>EA</given-names></name><name name-style=\"western\"><surname>Engel</surname><given-names>SS</given-names></name><name name-style=\"western\"><surname>Kaufman</surname><given-names>KD</given-names></name><name name-style=\"western\"><surname>Lai</surname><given-names>E</given-names></name></person-group><article-title>A randomized, placebo-controlled study of the cardiovascular safety of the once-weekly DPP-4 inhibitor omarigliptin in patients with type 2 diabetes mellitus</article-title><source>Cardiovasc Diabetol</source><year>2017</year><volume>16</volume><fpage>112</fpage><pub-id pub-id-type=\"pmid\">28893244</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1186/s12933-017-0593-8</pub-id><pub-id pub-id-type=\"pmcid\">PMC5594521</pub-id></element-citation></ref>",
+            "bound_to": "NCT01703208"
+          },
+          {
+            "name": "SAVOR-TIMI",
+            "family": "NCT01107886",
+            "alias_ids": [
+              "23992601"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<ref id=\"B14\"><label>14</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Scirica</surname><given-names>BM</given-names></name><name name-style=\"western\"><surname>Bhatt</surname><given-names>DL</given-names></name><name name-style=\"western\"><surname>Braunwald</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Steg</surname><given-names>PG</given-names></name><name name-style=\"western\"><surname>Davidson</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Hirshberg</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Ohman</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Frederich</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Wiviott</surname><given-names>SD</given-names></name><name name-style=\"western\"><surname>Hoffman</surname><given-names>EB</given-names></name><name name-style=\"western\"><surname>Cavender</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Udell</surname><given-names>JA</given-names></name><name name-style=\"western\"><surname>Desai</surname><given-names>NR</given-names></name><name name-style=\"western\"><surname>Mosenzon</surname><given-names>O</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Ray</surname><given-names>KK</given-names></name><name name-style=\"western\"><surname>Leiter</surname><given-names>LA</given-names></name><name name-style=\"western\"><surname>Raz</surname><given-names>I</given-names></name></person-group><collab>SAVOR-TIMI 53 Steering Committee and Investigators</collab><article-title>Saxagliptin and cardiovascular outcomes in patients with type 2 diabetes mellitus</article-title><source>N Engl J Med</source><year>2013</year><volume>369</volume><fpage>1317</fpage><lpage>1326</lpage><pub-id pub-id-type=\"pmid\">23992601</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1307684</pub-id></element-citation></ref>",
+            "bound_to": "NCT01107886"
+          },
+          {
+            "name": "EXAMINE",
+            "family": "NCT00968708",
+            "alias_ids": [
+              "23992602"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<ref id=\"B15\"><label>15</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>White</surname><given-names>WB</given-names></name><name name-style=\"western\"><surname>Cannon</surname><given-names>CP</given-names></name><name name-style=\"western\"><surname>Heller</surname><given-names>SR</given-names></name><name name-style=\"western\"><surname>Nissen</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Bergenstal</surname><given-names>RM</given-names></name><name name-style=\"western\"><surname>Bakris</surname><given-names>GL</given-names></name><name name-style=\"western\"><surname>Perez</surname><given-names>AT</given-names></name><name name-style=\"western\"><surname>Fleck</surname><given-names>PR</given-names></name><name name-style=\"western\"><surname>Mehta</surname><given-names>CR</given-names></name><name name-style=\"western\"><surname>Kupfer</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Wilson</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Cushman</surname><given-names>WC</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name></person-group><collab>EXAMINE Investigators</collab><article-title>Alogliptin after acute coronary syndrome in patients with type 2 diabetes</article-title><source>N Engl J Med</source><year>2013</year><volume>369</volume><fpage>1327</fpage><lpage>1335</lpage><pub-id pub-id-type=\"pmid\">23992602</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1305889</pub-id></element-citation></ref>",
+            "bound_to": null
+          }
+        ],
+        "out_of_scope": []
       },
-      "theirs_k": null,
-      "shared": null,
-      "shared_k": null,
-      "only_ours": null,
-      "only_theirs": null,
-      "relation": "NOT_ENUMERABLE",
-      "label": "not enumerable -- the comparator trial set is not known well enough to compare",
-      "basis": "comparator trial set not enumerated",
+      "theirs_k": 6,
+      "inventory_comparison": {
+        "rows": [
+          {
+            "comparator_trial": "TECOS",
+            "status": "ELIGIBLE_NOT_POOLED",
+            "family": "NCT00790205",
+            "record": "26052984",
+            "state": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
+            "reason": "declared absent (estimand mismatch): TECOS's abstract reports its primary as a FOUR-point composite (cardiovascular death, nonfatal myocardial infarction, nonfatal stroke, OR hospitalization for unstable angina), HR 0.98 (0.88-1.09). Our outcome is 3-point MACE (no unstable-angina hospitalization); TECOS's 3-point HR (~0.99) is not in the committed abstract (full text/supplement only). Refuse rather than pool a 4-point estimate under a 3-point label. Surfaced by cross-family (Fable) QA on a page that had passed every internal gate."
+          },
+          {
+            "comparator_trial": "CAROLINA",
+            "status": "SCREENED_OUT",
+            "family": "NCT01243424",
+            "record": "31536101",
+            "rule": "X3",
+            "reason": "no eligible comparator (none of ['compared with placebo', 'as compared with placebo', 'placebo group', 'placebo groups', 'or placebo', 'and placebo'])."
+          },
+          {
+            "comparator_trial": "CARMELINA",
+            "status": "POOLED",
+            "family": "NCT01897532"
+          },
+          {
+            "comparator_trial": "omarigliptin",
+            "status": "POOLED",
+            "family": "NCT01703208"
+          },
+          {
+            "comparator_trial": "SAVOR-TIMI",
+            "status": "POOLED",
+            "family": "NCT01107886"
+          },
+          {
+            "comparator_trial": "EXAMINE",
+            "status": "ELIGIBLE_NOT_POOLED",
+            "family": "NCT00968708",
+            "record": "23992602",
+            "state": "OUTCOME_NOT_IN_SOURCE",
+            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+          }
+        ],
+        "counts": {
+          "ELIGIBLE_NOT_POOLED": 2,
+          "SCREENED_OUT": 1,
+          "POOLED": 3
+        },
+        "note": "comparison with our eligible inventory; separate from the pooled-set relation"
+      },
+      "shared": [
+        "NCT01107886",
+        "NCT01703208",
+        "NCT01897532"
+      ],
+      "shared_k": 3,
+      "only_ours": [],
+      "only_theirs": [
+        "TECOS",
+        "CAROLINA",
+        "EXAMINE"
+      ],
+      "relation": "SUBSET",
+      "label": "subset -- every pooled family is in the comparator set",
+      "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
         "value": 6,
         "source": {
@@ -4123,7 +4367,53 @@
         }
       }
     },
-    "internal_mismatches": [],
+    "internal_mismatches": [
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "PARTICIPANT_COUNT_STATED_VS_FIGURE_TOTALS",
+        "sides": [
+          {
+            "where": "abstract",
+            "value": 52520,
+            "quote": "We pooled data from 6 trials in a total of 52520 patients with T2DM",
+            "state": "HELD",
+            "document_ref": "cache/dpp4-mace-t2d/records.json",
+            "record_id": "34754403"
+          },
+          {
+            "where": "cardiovascular-mortality forest plot (Figure 1F), arm totals",
+            "value": 53520,
+            "as_reported": "26,807 + 26,713 = 53,520",
+            "state": "REPORTED_NOT_HELD",
+            "reported_by": "external review of the dpp4-mace-t2d topic (27 Sep 2026)",
+            "why_not_held": "the arm totals are printed inside the figure image; the held PMC JATS carries only the figure caption"
+          }
+        ],
+        "evidence_state": "ONE_SIDE_HELD"
+      },
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "STATED_CONTROL_VS_INCLUDED_TRIAL",
+        "sides": [
+          {
+            "where": "abstract",
+            "value": "placebo",
+            "quote": "assigned either to DPP-4 inhibitor or placebo",
+            "state": "HELD",
+            "document_ref": "cache/dpp4-mace-t2d/records.json",
+            "record_id": "34754403"
+          },
+          {
+            "where": "reference 11, one of the six trials cited by its stated-k sentence (CAROLINA)",
+            "value": "glimepiride (active comparator)",
+            "quote": "Effect of Linagliptin vs Glimepiride on Major Adverse Cardiovascular Outcomes in Patients With Type 2 Diabetes: The CAROLINA Randomized Clinical Trial",
+            "state": "HELD",
+            "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml"
+          }
+        ],
+        "evidence_state": "BOTH_SIDES_HELD"
+      }
+    ],
     "identity": {
       "state": "MATCH",
       "checks": {
@@ -4134,6 +4424,11 @@
       },
       "failures": [],
       "citation_defects": [],
+      "governing": {
+        "state": "GOVERNING",
+        "governing_pmid": "34754403",
+        "served_pmid": "34754403"
+      },
       "protocol": {
         "named_author": "Patoulias",
         "title": "Cardiovascular efficacy and\nsafety of dipeptidyl peptidase-4 inhibitors: A meta-analysis of cardiovascular\noutcome trials",
@@ -5093,35 +5388,7 @@
         "trial": "30418475",
         "funders": [
           {
-            "name": "Johansen",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Obtained funding: Johansen, Woerle, George."
-          },
-          {
-            "name": "Woerle",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Obtained funding: Johansen, Woerle, George."
-          },
-          {
-            "name": "George",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Obtained funding: Johansen, Woerle, George."
-          },
-          {
-            "name": "Sanofi/Regeneron",
-            "class": "INDUSTRY",
-            "class_basis": "industry name marker: Sanofi",
-            "source": "full-text funding statement",
-            "span": "Dr Pencina reported receipt of grants and personal fees from Boehringer Ingelheim and Merck and grants from Sanofi/Regeneron."
-          },
-          {
-            "name": "Funding/Support: This study was sponsored by Boehringer Ingelheim",
+            "name": "Boehringer Ingelheim",
             "class": "INDUSTRY",
             "class_basis": "registry category Commercial sector/Industry names Boehringer Ingelheim",
             "source": "full-text funding statement",
@@ -5184,30 +5451,14 @@
           {
             "source": "full-text funding statement",
             "state": "COMPLETE"
-          },
-          {
-            "source": "full-text funding statement",
-            "state": "COMPLETE"
-          },
-          {
-            "source": "full-text funding statement",
-            "state": "COMPLETE"
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: Boehringer Ingelheim (AACT sponsors); Boehringer Ingelheim (ClinicalTrials.gov sponsor/collaborators (held API record)); Eli Lilly (full-text funding statement); Eli Lilly and Company (AACT sponsors); Eli Lilly and Company (ClinicalTrials.gov sponsor/collaborators (held API record)); Funding/Support: This study was sponsored by Boehringer Ingelheim (full-text funding statement); Sanofi/Regeneron (full-text funding statement)",
+        "industry_tie_basis": "industry named by: Boehringer Ingelheim (AACT sponsors); Boehringer Ingelheim (ClinicalTrials.gov sponsor/collaborators (held API record)); Boehringer Ingelheim (full-text funding statement); Eli Lilly (full-text funding statement); Eli Lilly and Company (AACT sponsors); Eli Lilly and Company (ClinicalTrials.gov sponsor/collaborators (held API record))",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "mixed",
-        "needs_proposal": [
-          "Johansen",
-          "Woerle",
-          "George"
-        ],
-        "proposal": {
-          "state": "PROPOSAL_NOT_REQUESTED",
-          "applied": false
-        }
+        "needs_proposal": []
       },
       "label_from_first_sentence": "not stated (full text scanned)",
       "sponsor_class": "mixed"
@@ -80672,8 +80923,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 4 PMID-enumeration queries; 0 title/name-seeded queries; 0 free-text keyword queries.</div>",
-      "text_sha256": "81aa1d72609c4ea036cef310ac4644f0c6460739dcf81c0f52f393b3a33fe3ca",
+      "rendered_text": "<div class='absent'><strong>KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 4 PMID-enumeration queries; 0 title/name-seeded queries; 0 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>NO</strong> &mdash; every query names known reports (identifiers, trial names or titles)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 4 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "23b2088074cfc44f0e6d71f596003452d61a5b6bd0119207483604a4fee12312",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -80967,8 +81218,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>5 of 5 known</strong> (0 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 23992601</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors); AstraZeneca (ClinicalTrials.gov sponsor/collaborators (held API record)); AstraZeneca (abstract funding sentence); Bristol-Myers Squibb (AACT sponsors); Bristol-Myers Squibb (ClinicalTrials.gov sponsor/collaborators (held API record)); Bristol-Myers Squibb (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Bristol-Myers Squibb <code>INDUSTRY</code> <em>(abstract funding sentence)</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by AstraZeneca and Bristol-Myers Squibb; SAVOR-TIMI 53 ClinicalTrials.gov number, NCT01107886.).</td></tr><tr><td>PMID 28893244</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Merck (publisher funding metadata (Europe PMC core grantsList)); Merck Sharp &amp; Dohme LLC (AACT sponsors); Merck Sharp &amp; Dohme LLC (ClinicalTrials.gov sponsor/collaborators (held API record))<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Merck <code>INDUSTRY</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Merck Sharp &amp; Dohme LLC <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26052984</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Dohme (abstract funding sentence); Merck Sharp &amp; Dohme LLC (AACT sponsors); Merck Sharp &amp; Dohme LLC (ClinicalTrials.gov sponsor/collaborators (held API record)); Merck Sharp (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>Merck Sharp <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Dohme <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Merck Sharp &amp; Dohme LLC <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Duke Clinical Research Institute, Oxford Diabetes Trials Unit <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Duke Clinical Research Institute, Oxford Diabetes Trials Unit</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by Merck Sharp &amp; Dohme; TECOS ClinicalTrials.gov number, NCT00790205.).</td></tr><tr><td>PMID 23992602</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Takeda (AACT sponsors); Takeda Development Center Americas (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>Takeda Development Center Americas <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Takeda <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by Takeda Development Center Americas; EXAMINE ClinicalTrials.gov number, NCT00968708.).</td></tr><tr><td>PMID 30418475</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Boehringer Ingelheim (AACT sponsors); Boehringer Ingelheim (ClinicalTrials.gov sponsor/collaborators (held API record)); Eli Lilly (full-text funding statement); Eli Lilly and Company (AACT sponsors); Eli Lilly and Company (ClinicalTrials.gov sponsor/collaborators (held API record)); Funding/Support: This study was sponsored by Boehringer Ingelheim (full-text funding statement); Sanofi/Regeneron (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>funder-role statement: “The decision to submit the manuscript for publication was taken by the academic leadership of the steering committee, and the sponsor had no veto right to publish or to control the decision to which journal to submit.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Johansen <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Woerle <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>George <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Sanofi/Regeneron <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Funding/Support: This study was sponsored by Boehringer Ingelheim <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Eli Lilly <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>NIDDK NIH HHS <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Boehringer Ingelheim <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Eli Lilly and Company <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Johansen; Woerle; George</em></td><td>full text</td><td><strong>full text</strong>: </td></tr></table></div>",
-      "text_sha256": "6612399893673db13291c6562129583dc5855e28830a913b07a5cf3ab8b37e01",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>5 of 5 known</strong> (0 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 23992601</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors); AstraZeneca (ClinicalTrials.gov sponsor/collaborators (held API record)); AstraZeneca (abstract funding sentence); Bristol-Myers Squibb (AACT sponsors); Bristol-Myers Squibb (ClinicalTrials.gov sponsor/collaborators (held API record)); Bristol-Myers Squibb (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Bristol-Myers Squibb <code>INDUSTRY</code> <em>(abstract funding sentence)</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by AstraZeneca and Bristol-Myers Squibb; SAVOR-TIMI 53 ClinicalTrials.gov number, NCT01107886.).</td></tr><tr><td>PMID 28893244</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Merck (publisher funding metadata (Europe PMC core grantsList)); Merck Sharp &amp; Dohme LLC (AACT sponsors); Merck Sharp &amp; Dohme LLC (ClinicalTrials.gov sponsor/collaborators (held API record))<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Merck <code>INDUSTRY</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Merck Sharp &amp; Dohme LLC <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26052984</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Dohme (abstract funding sentence); Merck Sharp &amp; Dohme LLC (AACT sponsors); Merck Sharp &amp; Dohme LLC (ClinicalTrials.gov sponsor/collaborators (held API record)); Merck Sharp (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>Merck Sharp <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Dohme <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Merck Sharp &amp; Dohme LLC <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Duke Clinical Research Institute, Oxford Diabetes Trials Unit <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Duke Clinical Research Institute, Oxford Diabetes Trials Unit</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by Merck Sharp &amp; Dohme; TECOS ClinicalTrials.gov number, NCT00790205.).</td></tr><tr><td>PMID 23992602</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Takeda (AACT sponsors); Takeda Development Center Americas (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>Takeda Development Center Americas <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Takeda <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by Takeda Development Center Americas; EXAMINE ClinicalTrials.gov number, NCT00968708.).</td></tr><tr><td>PMID 30418475</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Boehringer Ingelheim (AACT sponsors); Boehringer Ingelheim (ClinicalTrials.gov sponsor/collaborators (held API record)); Boehringer Ingelheim (full-text funding statement); Eli Lilly (full-text funding statement); Eli Lilly and Company (AACT sponsors); Eli Lilly and Company (ClinicalTrials.gov sponsor/collaborators (held API record))<br>list completeness: full-text funding statement: COMPLETE<br>funder-role statement: “The decision to submit the manuscript for publication was taken by the academic leadership of the steering committee, and the sponsor had no veto right to publish or to control the decision to which journal to submit.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Boehringer Ingelheim <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Eli Lilly <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>NIDDK NIH HHS <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Eli Lilly and Company <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em></td><td>full text</td><td><strong>full text</strong>: </td></tr></table></div>",
+      "text_sha256": "20623bdbfe7bf312f95252e9e9948dd510e4a7e74b471f807d08bf02e611c6db",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -81183,7 +81434,182 @@
       "held": true,
       "document_ref": "cache/dpp4-mace-t2d/records.json",
       "document_sha256": "0aa7fcfaafc8b7b22eff8d8727ab53a8027dda217628d723306adf161b9723ab",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "TECOS",
+          "name_in_source": "TECOS",
+          "span": {
+            "start": 39344,
+            "end": 41534,
+            "quote": "<ref id=\"B10\"><label>10</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Green</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Bethel</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Armstrong</surname><given-names>PW</given-names></name><name name-style=\"western\"><surname>Buse</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Engel</surname><given-names>SS</given-names></name><name name-style=\"western\"><surname>Garg</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Josse</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Kaufman</surname><given-names>KD</given-names></name><name name-style=\"western\"><surname>Koglin</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Korn</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Lachin</surname><given-names>JM</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Pencina</surname><given-names>MJ</given-names></name><name name-style=\"western\"><surname>Standl</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Stein</surname><given-names>PP</given-names></name><name name-style=\"western\"><surname>Suryawanshi</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Van</surname><given-names>de Werf F</given-names></name><name name-style=\"western\"><surname>Peterson</surname><given-names>ED</given-names></name><name name-style=\"western\"><surname>Holman</surname><given-names>RR</given-names></name></person-group><collab>TECOS Study Group</collab><article-title>Effect of Sitagliptin on Cardiovascular Outcomes in Type 2 Diabetes</article-title><source>N Engl J Med</source><year>2015</year><volume>373</volume><fpage>232</fpage><lpage>242</lpage><pub-id pub-id-type=\"pmid\">26052984</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1501352</pub-id></element-citation></ref>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "26052984",
+              "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+              "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad",
+              "span": {
+                "start": 39344,
+                "end": 41534,
+                "quote": "<ref id=\"B10\"><label>10</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Green</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Bethel</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Armstrong</surname><given-names>PW</given-names></name><name name-style=\"western\"><surname>Buse</surname><given-names>JB</given-names></name><name name-style=\"western\"><surname>Engel</surname><given-names>SS</given-names></name><name name-style=\"western\"><surname>Garg</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Josse</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Kaufman</surname><given-names>KD</given-names></name><name name-style=\"western\"><surname>Koglin</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Korn</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Lachin</surname><given-names>JM</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Pencina</surname><given-names>MJ</given-names></name><name name-style=\"western\"><surname>Standl</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Stein</surname><given-names>PP</given-names></name><name name-style=\"western\"><surname>Suryawanshi</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Van</surname><given-names>de Werf F</given-names></name><name name-style=\"western\"><surname>Peterson</surname><given-names>ED</given-names></name><name name-style=\"western\"><surname>Holman</surname><given-names>RR</given-names></name></person-group><collab>TECOS Study Group</collab><article-title>Effect of Sitagliptin on Cardiovascular Outcomes in Type 2 Diabetes</article-title><source>N Engl J Med</source><year>2015</year><volume>373</volume><fpage>232</fpage><lpage>242</lpage><pub-id pub-id-type=\"pmid\">26052984</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1501352</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B10",
+              "stated_k_span": {
+                "start": 18556,
+                "end": 18711,
+                "quote": "p>We finally pooled data from six trials in a total of 52520 patients[<xref rid=\"B10\" ref-type=\"bibr\">10</xref>-<xref rid=\"B15\" ref-type=\"bibr\">15</xref>]."
+              },
+              "bound_by": "the comparator's stated-k sentence cites B10-B15; B10 carries PMID 26052984"
+            }
+          ]
+        },
+        {
+          "family_id": "CAROLINA",
+          "name_in_source": "CAROLINA",
+          "span": {
+            "start": 41534,
+            "end": 43539,
+            "quote": "<ref id=\"B11\"><label>11</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rosenstock</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Kahn</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Johansen</surname><given-names>OE</given-names></name><name name-style=\"western\"><surname>Zinman</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Espeland</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Woerle</surname><given-names>HJ</given-names></name><name name-style=\"western\"><surname>Pfarr</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Keller</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Mattheus</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Baanstra</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Meinicke</surname><given-names>T</given-names></name><name name-style=\"western\"><surname>George</surname><given-names>JT</given-names></name><name name-style=\"western\"><surname>von</surname><given-names>Eynatten M</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Marx</surname><given-names>N</given-names></name></person-group><collab>CAROLINA Investigators</collab><article-title>Effect of Linagliptin <italic toggle=\"yes\">vs</italic> Glimepiride on Major Adverse Cardiovascular Outcomes in Patients With Type 2 Diabetes: The CAROLINA Randomized Clinical Trial</article-title><source>JAMA</source><year>2019</year><volume>322</volume><fpage>1155</fpage><lpage>1166</lpage><pub-id pub-id-type=\"pmid\">31536101</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2019.13772</pub-id><pub-id pub-id-type=\"pmcid\">PMC6763993</pub-id></element-citation></ref>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "31536101",
+              "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+              "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad",
+              "span": {
+                "start": 41534,
+                "end": 43539,
+                "quote": "<ref id=\"B11\"><label>11</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rosenstock</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Kahn</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Johansen</surname><given-names>OE</given-names></name><name name-style=\"western\"><surname>Zinman</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Espeland</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Woerle</surname><given-names>HJ</given-names></name><name name-style=\"western\"><surname>Pfarr</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Keller</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Mattheus</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Baanstra</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Meinicke</surname><given-names>T</given-names></name><name name-style=\"western\"><surname>George</surname><given-names>JT</given-names></name><name name-style=\"western\"><surname>von</surname><given-names>Eynatten M</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Marx</surname><given-names>N</given-names></name></person-group><collab>CAROLINA Investigators</collab><article-title>Effect of Linagliptin <italic toggle=\"yes\">vs</italic> Glimepiride on Major Adverse Cardiovascular Outcomes in Patients With Type 2 Diabetes: The CAROLINA Randomized Clinical Trial</article-title><source>JAMA</source><year>2019</year><volume>322</volume><fpage>1155</fpage><lpage>1166</lpage><pub-id pub-id-type=\"pmid\">31536101</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2019.13772</pub-id><pub-id pub-id-type=\"pmcid\">PMC6763993</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B11",
+              "stated_k_span": {
+                "start": 18556,
+                "end": 18711,
+                "quote": "p>We finally pooled data from six trials in a total of 52520 patients[<xref rid=\"B10\" ref-type=\"bibr\">10</xref>-<xref rid=\"B15\" ref-type=\"bibr\">15</xref>]."
+              },
+              "bound_by": "the comparator's stated-k sentence cites B10-B15; B11 carries PMID 31536101"
+            }
+          ]
+        },
+        {
+          "family_id": "CARMELINA",
+          "name_in_source": "CARMELINA",
+          "span": {
+            "start": 43539,
+            "end": 45917,
+            "quote": "<ref id=\"B12\"><label>12</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rosenstock</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Perkovic</surname><given-names>V</given-names></name><name name-style=\"western\"><surname>Johansen</surname><given-names>OE</given-names></name><name name-style=\"western\"><surname>Cooper</surname><given-names>ME</given-names></name><name name-style=\"western\"><surname>Kahn</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Marx</surname><given-names>N</given-names></name><name name-style=\"western\"><surname>Alexander</surname><given-names>JH</given-names></name><name name-style=\"western\"><surname>Pencina</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Toto</surname><given-names>RD</given-names></name><name name-style=\"western\"><surname>Wanner</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Zinman</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Woerle</surname><given-names>HJ</given-names></name><name name-style=\"western\"><surname>Baanstra</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Pfarr</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Schnaidt</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Meinicke</surname><given-names>T</given-names></name><name name-style=\"western\"><surname>George</surname><given-names>JT</given-names></name><name name-style=\"western\"><surname>von</surname><given-names>Eynatten M</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name></person-group><collab>CARMELINA Investigators</collab><article-title>Effect of Linagliptin <italic toggle=\"yes\">vs</italic> Placebo on Major Cardiovascular Events in Adults With Type 2 Diabetes and High Cardiovascular and Renal Risk: The CARMELINA Randomized Clinical Trial</article-title><source>JAMA</source><year>2019</year><volume>321</volume><fpage>69</fpage><lpage>79</lpage><pub-id pub-id-type=\"pmid\">30418475</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2018.18269</pub-id><pub-id pub-id-type=\"pmcid\">PMC6583576</pub-id></element-citation></ref>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "30418475",
+              "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+              "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad",
+              "span": {
+                "start": 43539,
+                "end": 45917,
+                "quote": "<ref id=\"B12\"><label>12</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rosenstock</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Perkovic</surname><given-names>V</given-names></name><name name-style=\"western\"><surname>Johansen</surname><given-names>OE</given-names></name><name name-style=\"western\"><surname>Cooper</surname><given-names>ME</given-names></name><name name-style=\"western\"><surname>Kahn</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Marx</surname><given-names>N</given-names></name><name name-style=\"western\"><surname>Alexander</surname><given-names>JH</given-names></name><name name-style=\"western\"><surname>Pencina</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Toto</surname><given-names>RD</given-names></name><name name-style=\"western\"><surname>Wanner</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Zinman</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Woerle</surname><given-names>HJ</given-names></name><name name-style=\"western\"><surname>Baanstra</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Pfarr</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Schnaidt</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Meinicke</surname><given-names>T</given-names></name><name name-style=\"western\"><surname>George</surname><given-names>JT</given-names></name><name name-style=\"western\"><surname>von</surname><given-names>Eynatten M</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name></person-group><collab>CARMELINA Investigators</collab><article-title>Effect of Linagliptin <italic toggle=\"yes\">vs</italic> Placebo on Major Cardiovascular Events in Adults With Type 2 Diabetes and High Cardiovascular and Renal Risk: The CARMELINA Randomized Clinical Trial</article-title><source>JAMA</source><year>2019</year><volume>321</volume><fpage>69</fpage><lpage>79</lpage><pub-id pub-id-type=\"pmid\">30418475</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2018.18269</pub-id><pub-id pub-id-type=\"pmcid\">PMC6583576</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B12",
+              "stated_k_span": {
+                "start": 18556,
+                "end": 18711,
+                "quote": "p>We finally pooled data from six trials in a total of 52520 patients[<xref rid=\"B10\" ref-type=\"bibr\">10</xref>-<xref rid=\"B15\" ref-type=\"bibr\">15</xref>]."
+              },
+              "bound_by": "the comparator's stated-k sentence cites B10-B15; B12 carries PMID 30418475"
+            }
+          ]
+        },
+        {
+          "family_id": "omarigliptin",
+          "name_in_source": "omarigliptin",
+          "span": {
+            "start": 45917,
+            "end": 47315,
+            "quote": "<ref id=\"B13\"><label>13</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Gantz</surname><given-names>I</given-names></name><name name-style=\"western\"><surname>Chen</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Suryawanshi</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Ntabadde</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Shah</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>O'Neill</surname><given-names>EA</given-names></name><name name-style=\"western\"><surname>Engel</surname><given-names>SS</given-names></name><name name-style=\"western\"><surname>Kaufman</surname><given-names>KD</given-names></name><name name-style=\"western\"><surname>Lai</surname><given-names>E</given-names></name></person-group><article-title>A randomized, placebo-controlled study of the cardiovascular safety of the once-weekly DPP-4 inhibitor omarigliptin in patients with type 2 diabetes mellitus</article-title><source>Cardiovasc Diabetol</source><year>2017</year><volume>16</volume><fpage>112</fpage><pub-id pub-id-type=\"pmid\">28893244</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1186/s12933-017-0593-8</pub-id><pub-id pub-id-type=\"pmcid\">PMC5594521</pub-id></element-citation></ref>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "28893244",
+              "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+              "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad",
+              "span": {
+                "start": 45917,
+                "end": 47315,
+                "quote": "<ref id=\"B13\"><label>13</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Gantz</surname><given-names>I</given-names></name><name name-style=\"western\"><surname>Chen</surname><given-names>M</given-names></name><name name-style=\"western\"><surname>Suryawanshi</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Ntabadde</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Shah</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>O'Neill</surname><given-names>EA</given-names></name><name name-style=\"western\"><surname>Engel</surname><given-names>SS</given-names></name><name name-style=\"western\"><surname>Kaufman</surname><given-names>KD</given-names></name><name name-style=\"western\"><surname>Lai</surname><given-names>E</given-names></name></person-group><article-title>A randomized, placebo-controlled study of the cardiovascular safety of the once-weekly DPP-4 inhibitor omarigliptin in patients with type 2 diabetes mellitus</article-title><source>Cardiovasc Diabetol</source><year>2017</year><volume>16</volume><fpage>112</fpage><pub-id pub-id-type=\"pmid\">28893244</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1186/s12933-017-0593-8</pub-id><pub-id pub-id-type=\"pmcid\">PMC5594521</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B13",
+              "stated_k_span": {
+                "start": 18556,
+                "end": 18711,
+                "quote": "p>We finally pooled data from six trials in a total of 52520 patients[<xref rid=\"B10\" ref-type=\"bibr\">10</xref>-<xref rid=\"B15\" ref-type=\"bibr\">15</xref>]."
+              },
+              "bound_by": "the comparator's stated-k sentence cites B10-B15; B13 carries PMID 28893244"
+            }
+          ]
+        },
+        {
+          "family_id": "SAVOR-TIMI",
+          "name_in_source": "SAVOR-TIMI",
+          "span": {
+            "start": 47315,
+            "end": 49465,
+            "quote": "<ref id=\"B14\"><label>14</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Scirica</surname><given-names>BM</given-names></name><name name-style=\"western\"><surname>Bhatt</surname><given-names>DL</given-names></name><name name-style=\"western\"><surname>Braunwald</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Steg</surname><given-names>PG</given-names></name><name name-style=\"western\"><surname>Davidson</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Hirshberg</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Ohman</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Frederich</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Wiviott</surname><given-names>SD</given-names></name><name name-style=\"western\"><surname>Hoffman</surname><given-names>EB</given-names></name><name name-style=\"western\"><surname>Cavender</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Udell</surname><given-names>JA</given-names></name><name name-style=\"western\"><surname>Desai</surname><given-names>NR</given-names></name><name name-style=\"western\"><surname>Mosenzon</surname><given-names>O</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Ray</surname><given-names>KK</given-names></name><name name-style=\"western\"><surname>Leiter</surname><given-names>LA</given-names></name><name name-style=\"western\"><surname>Raz</surname><given-names>I</given-names></name></person-group><collab>SAVOR-TIMI 53 Steering Committee and Investigators</collab><article-title>Saxagliptin and cardiovascular outcomes in patients with type 2 diabetes mellitus</article-title><source>N Engl J Med</source><year>2013</year><volume>369</volume><fpage>1317</fpage><lpage>1326</lpage><pub-id pub-id-type=\"pmid\">23992601</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1307684</pub-id></element-citation></ref>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "23992601",
+              "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+              "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad",
+              "span": {
+                "start": 47315,
+                "end": 49465,
+                "quote": "<ref id=\"B14\"><label>14</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Scirica</surname><given-names>BM</given-names></name><name name-style=\"western\"><surname>Bhatt</surname><given-names>DL</given-names></name><name name-style=\"western\"><surname>Braunwald</surname><given-names>E</given-names></name><name name-style=\"western\"><surname>Steg</surname><given-names>PG</given-names></name><name name-style=\"western\"><surname>Davidson</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Hirshberg</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Ohman</surname><given-names>P</given-names></name><name name-style=\"western\"><surname>Frederich</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Wiviott</surname><given-names>SD</given-names></name><name name-style=\"western\"><surname>Hoffman</surname><given-names>EB</given-names></name><name name-style=\"western\"><surname>Cavender</surname><given-names>MA</given-names></name><name name-style=\"western\"><surname>Udell</surname><given-names>JA</given-names></name><name name-style=\"western\"><surname>Desai</surname><given-names>NR</given-names></name><name name-style=\"western\"><surname>Mosenzon</surname><given-names>O</given-names></name><name name-style=\"western\"><surname>McGuire</surname><given-names>DK</given-names></name><name name-style=\"western\"><surname>Ray</surname><given-names>KK</given-names></name><name name-style=\"western\"><surname>Leiter</surname><given-names>LA</given-names></name><name name-style=\"western\"><surname>Raz</surname><given-names>I</given-names></name></person-group><collab>SAVOR-TIMI 53 Steering Committee and Investigators</collab><article-title>Saxagliptin and cardiovascular outcomes in patients with type 2 diabetes mellitus</article-title><source>N Engl J Med</source><year>2013</year><volume>369</volume><fpage>1317</fpage><lpage>1326</lpage><pub-id pub-id-type=\"pmid\">23992601</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1307684</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B14",
+              "stated_k_span": {
+                "start": 18556,
+                "end": 18711,
+                "quote": "p>We finally pooled data from six trials in a total of 52520 patients[<xref rid=\"B10\" ref-type=\"bibr\">10</xref>-<xref rid=\"B15\" ref-type=\"bibr\">15</xref>]."
+              },
+              "bound_by": "the comparator's stated-k sentence cites B10-B15; B14 carries PMID 23992601"
+            }
+          ]
+        },
+        {
+          "family_id": "EXAMINE",
+          "name_in_source": "EXAMINE",
+          "span": {
+            "start": 49465,
+            "end": 51136,
+            "quote": "<ref id=\"B15\"><label>15</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>White</surname><given-names>WB</given-names></name><name name-style=\"western\"><surname>Cannon</surname><given-names>CP</given-names></name><name name-style=\"western\"><surname>Heller</surname><given-names>SR</given-names></name><name name-style=\"western\"><surname>Nissen</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Bergenstal</surname><given-names>RM</given-names></name><name name-style=\"western\"><surname>Bakris</surname><given-names>GL</given-names></name><name name-style=\"western\"><surname>Perez</surname><given-names>AT</given-names></name><name name-style=\"western\"><surname>Fleck</surname><given-names>PR</given-names></name><name name-style=\"western\"><surname>Mehta</surname><given-names>CR</given-names></name><name name-style=\"western\"><surname>Kupfer</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Wilson</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Cushman</surname><given-names>WC</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name></person-group><collab>EXAMINE Investigators</collab><article-title>Alogliptin after acute coronary syndrome in patients with type 2 diabetes</article-title><source>N Engl J Med</source><year>2013</year><volume>369</volume><fpage>1327</fpage><lpage>1335</lpage><pub-id pub-id-type=\"pmid\">23992602</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1305889</pub-id></element-citation></ref>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "23992602",
+              "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+              "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad",
+              "span": {
+                "start": 49465,
+                "end": 51136,
+                "quote": "<ref id=\"B15\"><label>15</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>White</surname><given-names>WB</given-names></name><name name-style=\"western\"><surname>Cannon</surname><given-names>CP</given-names></name><name name-style=\"western\"><surname>Heller</surname><given-names>SR</given-names></name><name name-style=\"western\"><surname>Nissen</surname><given-names>SE</given-names></name><name name-style=\"western\"><surname>Bergenstal</surname><given-names>RM</given-names></name><name name-style=\"western\"><surname>Bakris</surname><given-names>GL</given-names></name><name name-style=\"western\"><surname>Perez</surname><given-names>AT</given-names></name><name name-style=\"western\"><surname>Fleck</surname><given-names>PR</given-names></name><name name-style=\"western\"><surname>Mehta</surname><given-names>CR</given-names></name><name name-style=\"western\"><surname>Kupfer</surname><given-names>S</given-names></name><name name-style=\"western\"><surname>Wilson</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Cushman</surname><given-names>WC</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name></person-group><collab>EXAMINE Investigators</collab><article-title>Alogliptin after acute coronary syndrome in patients with type 2 diabetes</article-title><source>N Engl J Med</source><year>2013</year><volume>369</volume><fpage>1327</fpage><lpage>1335</lpage><pub-id pub-id-type=\"pmid\">23992602</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1305889</pub-id></element-citation></ref>"
+              },
+              "linked_rid": "B15",
+              "stated_k_span": {
+                "start": 18556,
+                "end": 18711,
+                "quote": "p>We finally pooled data from six trials in a total of 52520 patients[<xref rid=\"B10\" ref-type=\"bibr\">10</xref>-<xref rid=\"B15\" ref-type=\"bibr\">15</xref>]."
+              },
+              "bound_by": "the comparator's stated-k sentence cites B10-B15; B15 carries PMID 23992602"
+            }
+          ]
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
@@ -81191,13 +81617,127 @@
       "pi": null,
       "method": null,
       "document_field": "comparator_fulltext",
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+        "document_sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad"
+      },
+      "overlaps": [
+        {
+          "pool": "3-point major adverse cardiovascular events",
+          "shared": [
+            "CARMELINA",
+            "SAVOR-TIMI",
+            "omarigliptin"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "CAROLINA",
+            "EXAMINE",
+            "TECOS"
+          ],
+          "jaccard": 0.5,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CARMELINA",
+            "SAVOR-TIMI",
+            "omarigliptin"
+          ],
+          "harness_k": 3,
+          "comparator_k": 6
+        },
+        {
+          "pool": "Adverse events",
+          "shared": [
+            "CARMELINA"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "CAROLINA",
+            "EXAMINE",
+            "SAVOR-TIMI",
+            "TECOS",
+            "omarigliptin"
+          ],
+          "jaccard": 0.16666666666666666,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CARMELINA"
+          ],
+          "harness_k": 1,
+          "comparator_k": 6
+        },
+        {
+          "pool": "Hypoglycemia",
+          "shared": [
+            "CARMELINA"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "CAROLINA",
+            "EXAMINE",
+            "SAVOR-TIMI",
+            "TECOS",
+            "omarigliptin"
+          ],
+          "jaccard": 0.16666666666666666,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CARMELINA"
+          ],
+          "harness_k": 1,
+          "comparator_k": 6
+        },
+        {
+          "pool": "Acute pancreatitis",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "CARMELINA",
+            "CAROLINA",
+            "EXAMINE",
+            "SAVOR-TIMI",
+            "TECOS",
+            "omarigliptin"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 6
+        },
+        {
+          "pool": "Hospitalization for heart failure",
+          "shared": [
+            "TECOS"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "CARMELINA",
+            "CAROLINA",
+            "EXAMINE",
+            "SAVOR-TIMI",
+            "omarigliptin"
+          ],
+          "jaccard": 0.16666666666666666,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "TECOS"
+          ],
+          "harness_k": 1,
+          "comparator_k": 6
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "0fb7f9f4cd617ae16e470371a271bccbba9e9c86",
-    "review_sha256": "566d62f7f424a83a66c8b197abf3da939e4f4f6c7ff159604b5cf2a8507b7431",
+    "review_sha256": "c95c4062291c002a6f1b8634602e189ad2d95f18351ce0807a4e5a6004a72e04",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -81316,7 +81856,7 @@
       "retrieved_corpus_sha256": "81256a4acb69828f733e44872815726f03b7598d4cc9a312fe129ff6bb473b82",
       "records_file_sha256": "0ba17e6c2b6ab66a2868b9487776ad8ce94ca480018dc026f0ad902fe9de04ed",
       "retrieval_ledger_sha256": "94dfce65a5453948aca7312d511b6531fe9ce92bd0a1771bfd1f7b00049d51b1",
-      "screening_ledger_sha256": "bbea7277701dc17eb7f3a4182805de6d789cb201ed8bf78143463f828461ad65",
+      "screening_ledger_sha256": "96eb6bbca7e1ac15ed236f03ef05d785905792ec2d928c9cb3d74481a6d51d03",
       "extraction_objects_sha256": "998a1185addb12fbb16dcc968eb97ef50c93d8bdcc09f46360bb644ac910c791",
       "trial_family_map_sha256": "ac57d2aae59fdc2bf9a1116e186c1ff6462101c101b9348cd625e3d28b718a54",
       "rob_object_sha256": "78fa64ae4ae795ec7ec61faeecd5400201015a56e2a1644f76bc8e85404b14b2",
@@ -81326,8 +81866,28 @@
           "sha256": "d68ed8fcfbf7c50fbabad980c61d08f2182446be8507d3e9a163ae1e3b5131c6"
         },
         {
+          "ref": "cache/dpp4-mace-t2d/comparator_identity.json",
+          "sha256": "c464b66c0e01e3cc34a000b5c18d39ab76eced0fa7f281095375af12eb4acff8"
+        },
+        {
+          "ref": "cache/dpp4-mace-t2d/comparator_pmc_jats.xml",
+          "sha256": "af716019446483c13f8cccc47c967f727c7167062788c7b653868506e86c75ad"
+        },
+        {
+          "ref": "cache/dpp4-mace-t2d/comparator_question.json",
+          "sha256": "ce5515a10217f4b9e7d75707a13ae82c55a772f1781f9cad4c2b8163607ba64a"
+        },
+        {
+          "ref": "cache/dpp4-mace-t2d/comparator_reported_mismatches.json",
+          "sha256": "b512201709b69db7c48c9c8fa304f59e4296ba61716d2d7711c704221b2200d3"
+        },
+        {
           "ref": "cache/dpp4-mace-t2d/ft_30418475.txt",
           "sha256": "b1fe2a61e664db3c6302cfbcffd65739b37059cdf696faa180dc0d716cfffc1e"
+        },
+        {
+          "ref": "cache/dpp4-mace-t2d/pmc_links.json",
+          "sha256": "d9dd7fabbc7efd3c46b5d07c5b03b93a1bd85bf73f78bed38e5a569df42cdfcc"
         },
         {
           "ref": "outputs/handover/in3/aact/reported_event_totals.txt",
@@ -81339,7 +81899,7 @@
         }
       ],
       "config_sha256": "c28c1f5e5c6ecc139d7d59f5fcc236b6f9b29e0ec7495527534b35288db4a3b9",
-      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
+      "analysis_code_sha256": "1f4fcf9a4342fea66cb546ff66219d756418b95fe68cee1709e2926f9a40b923",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -81352,14 +81912,15 @@
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
+        "harness/certificate.py": "430d848edba702b6078df670f33960ea6be90065",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
+        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
+        "harness/comparator_panel.py": "20756375fd7e4fb83c17646fa93e127f63ef51d6",
+        "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -81374,14 +81935,16 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
+        "harness/external_checkpoints.py": "bdecfa029cbdabc8edfbd817ab65f8ac7ef22e01",
+        "harness/extract.py": "4951913bee9e53b6bc5e68ae26bbc0a21f98cd31",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
+        "harness/family_pub_links.py": "884d9af36ed6db09abce7689e47c83a4a204996c",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
-        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
+        "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
+        "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
+        "harness/gate.py": "5049d4f2e2e322cd13daacdae9ac6ccad86119fe",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -81403,11 +81966,11 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
-        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
+        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/page.py": "ada8163e2530d3dad0fceb34459bd322b9ace212",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
-        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
+        "harness/pipeline.py": "bfc50236227b2d7ee9cfe338ffeb0551561592a1",
+        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -81418,16 +81981,17 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
+        "harness/screen.py": "c964462aa664b6e8b064be1299261e8f5be09a54",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
+        "harness/trial_family.py": "04a0ad5b157e3fe5d07b108f48bb5d84981a2a2e",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -81447,7 +82011,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "97 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -81477,8 +82041,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "a64d432d1cc221e62b8b007f43ed7f0bf93c26cbe4b014119f9ee55268a94465",
-      "review_sha256": "566d62f7f424a83a66c8b197abf3da939e4f4f6c7ff159604b5cf2a8507b7431",
+      "manuscript_sha256": "3c299d39f657b0d3ae4fa0aa8d99a8df53309aab34438928398da35fa8c497c3",
+      "review_sha256": "c95c4062291c002a6f1b8634602e189ad2d95f18351ce0807a4e5a6004a72e04",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/dpp4-mace-t2d.md UTF-8 text, universal newlines",
@@ -81490,7 +82054,7 @@
         "extraction_objects_sha256": "canonical ref-to-JSON map: cache/dpp4-mace-t2d/verified_arms.json, cache/dpp4-mace-t2d/verified_effects.json",
         "trial_family_map_sha256": "cache/dpp4-mace-t2d/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/dpp4-mace-t2d/rob2.json canonical JSON",
-        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
         "config_sha256": "canonical topics/<slug>.json",
         "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
         "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",
@@ -81498,7 +82062,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "a058a96671fe5420ee2611e586e66f2420fe72277032d1d389150fa474281a04"
+      "release_sha256": "987ef249ee2c81b9c041e7c70879811704c9c339b599017619e0ef1b435d869c"
     }
   }
 }

@@ -350,13 +350,18 @@ DETECTS.update({
     "funding.py:sub:7b4eac99d8": _fmt("whitespace normalisation in _clean; matches formatting, not meaning", _FUND_DOC),
     "funding.py:search:a4601f97a8": _fmt("sentence-boundary finder for the funding window; matches formatting, not meaning",
                                          _FUND_DOC),
-    "funding.py:sub:7282f3a795": {
+    "funding.py:sub:a0e3686642": {
         "detects": "the span opens its sponsor list with a funding lead-in (funded by / funding: / grants from / supported by)",
-        "trigger": r"fund|grant|support", "text_source": _FUND_SPAN, "lowercased": False},
+        "trigger": r"fund|grant|support|financ|sponsor", "text_source": _FUND_SPAN, "lowercased": False},
+    "funding.py:sub:773daa9f1a": {
+        "detects": "the span's sponsor list opens with a sentence lead-in ('this study was sponsored by')",
+        "trigger": r"funded|sponsored|supported|financed", "text_source": _FUND_SPAN, "lowercased": False},
+    "funding.py:sub:cfa0df94ca": _fmt("drops a parenthetical gloss from a sponsor list; matches formatting, not meaning",
+                                      _FUND_SPAN),
     "funding.py:sub:70a43250a0": {
         "detects": "the span begins 'this study / trial / work / research was funded by'",
         "trigger": r"funded", "text_source": _FUND_SPAN, "lowercased": False},
-    "funding.py:split:88ba5636a3": _fmt("finds where the sponsor list ends (;, sentence end, registration statement); "
+    "funding.py:split:7ea9958262": _fmt("finds where the sponsor list ends (;, sentence end, registration statement); "
                                         "a boundary, not a statement", _FUND_SPAN),
     "funding.py:sub:a8c5be7f86": {
         "detects": "the sponsor list ends with an unnamed remainder ('and others')",

@@ -190,20 +190,32 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_sentence_window: end the window at the next sentence boundary",
         "plants": {"accept": [("Funded by Pfizer. The trial was", None), ("was it funded? (No)", None)],
                    "refuse": ["Pfizer Inc. and Merck", "a dose of 10.5 mg"]}},
-    "funding.py:sub:7282f3a795": {
+    "funding.py:sub:a0e3686642": {
         "kind": "search", "what": "_split_sponsors: strip everything up to the funding lead-in (funded by / funding: / grants from / supported by)",
         "plants": {"accept": [("Funded by Novo Nordisk", None), ("This work was supported by the NIHR", None),
-                              ("Funding: Wellcome", None)],
+                              ("Funding: Wellcome", None), ("The study was financed by CSL Vifor", None),
+                              ("Funding/Support: Pfizer", None), ("EMPA-KIDNEY is sponsored by Boehringer", None)],
                    "refuse": ["Novo Nordisk", "The sponsor had no role"]}},
+    "funding.py:sub:773daa9f1a": {
+        "kind": "search", "what": "_split_sponsors: strip a sentence lead-in left after a heading ('This study was sponsored by')",
+        "plants": {"accept": [("This study was sponsored by Boehringer Ingelheim", None),
+                              ("The STRENGTH trial was funded by AstraZeneca AB", None)],
+                   "refuse": ["Boehringer Ingelheim", "Pfizer sponsored the trial"]}},
+    "funding.py:sub:cfa0df94ca": {
+        "kind": "search", "what": "_split_sponsors: drop a parenthetical gloss so it is not read as a separate funder",
+        "plants": {"accept": [("CSL Vifor (an unrestricted grant and free drug)", None), ("NHLBI (HL087738)", None)],
+                   "refuse": ["CSL Vifor", "Pfizer, Inc"]}},
     "funding.py:sub:70a43250a0": {
         "kind": "search", "what": "_split_sponsors: strip a leading 'this study/trial/work/research was funded by'",
         "plants": {"accept": [("This study was funded by Pfizer", None), ("this trial was funded by the MRC", None)],
                    "refuse": ["Pfizer funded this study", "The study was funded by Pfizer"]}},
-    "funding.py:split:88ba5636a3": {
+    "funding.py:split:7ea9958262": {
         "kind": "split", "what": "_split_sponsors: the sponsor list ends at ; a sentence end or a trial-registration statement",
         "plants": {"accept": [("Novo Nordisk; LEADER", ["Novo Nordisk", " LEADER"]),
-                              ("the NIHR. The trial", ["the NIHR", "The trial"])],
-                   "refuse": ["Novo Nordisk and Pfizer", "Janssen Research & Development, LLC"]}},
+                              ("the NIHR. The trial", ["the NIHR", "The trial"]),
+                              ("Novo Nordisk A/S. 1 INTRODUCTION", ["Novo Nordisk A/S", "1 INTRODUCTION"])],
+                   "refuse": ["Novo Nordisk and Pfizer", "Janssen Research & Development, LLC",
+                              "Yakult Honsha Co. Ltd", "F. Hoffmann-La Roche"]}},
     "funding.py:sub:a8c5be7f86": {
         "kind": "search", "what": "_split_sponsors: drop an unnamed remainder 'and others'",
         "plants": {"accept": [("Pfizer and others", None), ("the NIH, and others", None)],

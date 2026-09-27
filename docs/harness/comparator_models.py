@@ -198,10 +198,17 @@ def load_reported(root, slug) -> Optional[dict]:
             raise FigureRefused("REPORTED: unknown code")
         for side in m.get("sides") or []:
             if side.get("state") == "HELD":
-                recs = json.loads((Path(root) / side["document_ref"]).read_text(encoding="utf-8"))
-                text = next((str(r.get("abstract") or "") for v in recs.values() if isinstance(v, list) for r in v
-                             if isinstance(r, dict) and str(r.get("id")) == str(side["record_id"])), "")
-                if side["quote"] not in text:
+                raw = (Path(root) / side["document_ref"]).read_text(encoding="utf-8")
+                if side.get("field") and not side.get("record_id"):   # e.g. records.json comparator_fulltext
+                    text = str(json.loads(raw).get(side["field"]) or "")
+                elif side.get("record_id"):
+                    recs = json.loads(raw)
+                    text = next((str(r.get("abstract") or "") for v in recs.values() if isinstance(v, list) for r in v
+                                 if isinstance(r, dict) and str(r.get("id")) == str(side["record_id"])), "")
+                else:   # V1.0.1 (DPP-4 review): a held document other than a record abstract, e.g. the comparator JATS
+                    text = raw
+                _n = lambda s: re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s)).strip()  # noqa: E731
+                if side["quote"] not in text and _n(side["quote"]) not in _n(text):   # tags/whitespace on BOTH sides
                     raise FigureRefused(f"REPORTED: HELD side quote not located in {side['document_ref']}")
             elif side.get("state") != "REPORTED_NOT_HELD" or not side.get("reported_by"):
                 raise FigureRefused("REPORTED: a side must be HELD or REPORTED_NOT_HELD with who reported it")
@@ -336,3 +343,30 @@ def flag_reported_rows(comp: dict, mismatches: list) -> dict:
                                             "note": "kept as printed in the abstract; the comparator's results section "
                                                     "prints a different tuple for the same estimate"}
     return comp
+
+
+def log_scale_asymmetry(reported: list, max_ratio: float = 2.5) -> list:
+    """V1.0.1 (finerenone review): a ratio's 95% CI is (near-)symmetric on the log scale. A printed tuple whose two
+    log-scale half-widths differ by more than max_ratio is internally inconsistent -- Ghosal & Sinha print hyperkalaemia
+    RR 2.22 (1.93-2.24), whose symmetric upper bound is 2.55 (its forest plot prints 2.54). Derived from the printed
+    numbers alone; neither number is corrected."""
+    import math as _m
+    out = []
+    for r in reported or []:
+        if r.get("scale") not in ("RR", "OR", "HR"):
+            continue
+        pt, lo, hi = r.get("estimate"), r.get("ci_low"), r.get("ci_high")
+        if not all(isinstance(v, (int, float)) and v > 0 for v in (pt, lo, hi)) or not (lo < pt < hi):
+            continue
+        a, b = _m.log(pt) - _m.log(lo), _m.log(hi) - _m.log(pt)
+        if max(a, b) / min(a, b) > max_ratio and max(a, b) > 0.03:
+            sym_hi, sym_lo = _m.exp(_m.log(pt) + a), _m.exp(_m.log(pt) - b)
+            out.append({"code": MISMATCH, "kind": "CI_ASYMMETRIC_ON_LOG_SCALE", "outcome": r.get("outcome"),
+                        "evidence_state": "ONE_SIDE_HELD",
+                        "sides": [{"where": "printed tuple", "value": f"{r['scale']} {pt} ({lo} to {hi})", "state": "HELD",
+                                   "reported_by": "the comparator's reported row", "why_not_held": "as extracted"},
+                                  {"where": "log-scale arithmetic", "state": "DERIVED",
+                                   "value": f"a symmetric interval around {pt} would be {sym_lo:.2f} to {sym_hi:.2f}",
+                                   "reported_by": "harness arithmetic (comparator_models.log_scale_asymmetry)",
+                                   "why_not_held": f"log half-widths {a:.3f} below vs {b:.3f} above the point"}]})
+    return out

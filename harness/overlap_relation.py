@@ -109,6 +109,15 @@ def _family_index(review: dict) -> dict:
     return idx
 
 
+# V1.0.1 (esketamine review): a generic row label ('Trial A', 'Study 2', 'RCT 3') is never an identity; only a cited
+# identifier or a real trial name binds a comparator row to one of our families
+_GENERIC = re.compile(r"^\s*(?i:trial|study|rct|cohort|arm|comparison)\s*(?:[A-Z]{1,2}|\d{1,3})\b(?:\s*\(\d{4}\))?")
+
+
+def generic_label(name) -> bool:
+    return bool(_GENERIC.match(str(name or "")))
+
+
 def _members(review, panel, prim_name, acr_idx, ours_keys):
     """(source, in_scope members, out_of_scope members, endpoint) from the best typed enumeration, or None.
     A member is {name, family (ANY family of our ledger it is, or None), alias_ids, identity, endpoint, span};
@@ -194,7 +203,7 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
         return None
     ins = []
     for n in named:
-        fams = acr_idx.get(norm_name(n["name"])) or set()
+        fams = set() if generic_label(n["name"]) else (acr_idx.get(norm_name(n["name"])) or set())
         ins.append({"name": n["name"], "family": (next(iter(fams)) if len(fams) == 1 else None), "alias_ids": [],
                     "identity": ("bound by acronym" if len(fams) == 1 else
                                  "ambiguous acronym (several families)" if fams else "unbound (name only)"),
@@ -341,10 +350,27 @@ def _inventory(review: dict, members: list) -> dict:
             "note": "comparison with our eligible inventory; separate from the pooled-set relation"}
 
 
+def set_invariant(ours_k, theirs_k, shared_k, only_ours_n=None) -> list:
+    """V1.0.1 (esketamine review): arithmetic every served overlap must satisfy -- shared <= min(ours, theirs) and
+    ours_only + shared = ours. The V1 manifest served ours=3, theirs=4, shared=4."""
+    bad = []
+    if all(isinstance(v, int) for v in (ours_k, theirs_k, shared_k)) and shared_k > min(ours_k, theirs_k):
+        bad.append(f"shared {shared_k} > min(ours {ours_k}, theirs {theirs_k})")
+    if isinstance(ours_k, int) and isinstance(shared_k, int) and isinstance(only_ours_n, int) and only_ours_n + shared_k != ours_k:
+        bad.append(f"ours_only {only_ours_n} + shared {shared_k} != ours {ours_k}")
+    return bad
+
+
 def _finish(out: dict, relation: str, basis: str) -> dict:
     assert relation in RELATIONS, relation
     for k in ("theirs_k", "shared", "shared_k", "only_ours", "only_theirs"):
         out.setdefault(k, None)
+    bad = set_invariant(out.get("ours_k"), out.get("theirs_k"), out.get("shared_k"),
+                        len(out["only_ours"]) if isinstance(out.get("only_ours"), list) else None)
+    if bad:   # fail closed: an impossible set is never served as a relation
+        out["constraints"] = list(out.get("constraints") or []) + ["SET_INVARIANT_VIOLATED: " + "; ".join(bad)]
+        out.update(shared=None, shared_k=None, only_ours=None, only_theirs=None)
+        relation, basis = "NOT_ENUMERABLE", "set invariant violated -- " + "; ".join(bad)
     out.update(relation=relation, label=LABELS[relation], basis=basis)
     return out
 

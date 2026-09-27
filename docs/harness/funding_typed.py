@@ -43,8 +43,13 @@ LABELS = {
 }
 _PARTIAL = re.compile(r"\b(?:and|among) others\b|\bamong other (?:sources|funders)\b|\bet al\b|\binter alia\b", re.I)
 _STATEMENT = re.compile(
-    r"(?:\bfunded by\b|\bsupported by\b|\bfunding(?: source)?\s*:|\bfinancial support\b|\bgrants? from\b|\bsponsored by\b"
+    r"(?:\bfunded by\b|\bsupported by\b|\bfunding(?:/support| source)?\s*:|\bfinancial support\b|\bgrants? from\b"
+    r"|\bsponsored by\b|\bfinanced by\b|\bfunding (?:was|is) provided by\b"
+    r"|(?<!writing )(?<!editorial )\bsupport (?:was|is) provided by\b"
     r"|\bthis (?:study|trial|work|research) was (?:funded|supported|sponsored)\b|\bfunding for this)", re.I)
+# an author-contribution line ("Obtained funding: Hermine, Mariette.") names who raised money, not who gave it
+# ... and "Funding: HABF, BV." lists authors by initials under a contributions heading
+_CONTRIB = re.compile(r"\bobtained funding\s*:|^funding\s*:\s*(?-i:[A-Z]{2,5})(?:\s*(?:,|and)\s*(?-i:[A-Z]{2,5}))*\.?$", re.I)
 _ROLE = re.compile(
     r"[^.]*\b(?:funders?|sponsors?|funding (?:source|sources|bod(?:y|ies)|agenc(?:y|ies)|organi[sz]ations?)|"
     r"compan(?:y|ies)|consortium|manufacturers?)\b[^.]*\b(?:no|not|nor|without)\b[^.]*"
@@ -53,18 +58,35 @@ _ROLE_WORDS = (("design", r"\bdesign"), ("conduct", r"\bconduct"), ("data collec
                ("analysis", r"\banaly[sz]"), ("interpretation", r"\binterpret"),
                ("reporting", r"\breport|\bwriting|\bmanuscript|\bpreparation"),
                ("decision to submit", r"\bsubmi|\bpublication"))
-_SUPPLY = re.compile(r"(?:provided|supplied|donated|manufactured|furnished|gifted)\s+(?:free of charge\s+)?by\s+([^.;()]+)",
-                     re.I)
-# active voice: "Roche provided the drug and its distribution to the centers"
-_SUPPLY_ACTIVE = re.compile(r"\b([A-Z][\w&.'-]*(?:\s+[A-Z][\w&.'-]*){0,4})\s+(?:kindly\s+|generously\s+)?(?:provided|supplied|"
-                            r"donated|manufactured|furnished)\s+(?:the\s+|all\s+)?(?:study\s+|trial\s+|active\s+)?"
-                            r"(?:drugs?|medications?|tablets|capsules|placebo|colchicine|products?)\b")
+# "provided free of charge for this study by Roche"; a company suffix or initial keeps its period ("Wecare Probiotics
+# Co. Ltd.", "Winclove Probiotics B.V")
+_SUPPLY = re.compile(r"(?:provided|supplied|donated|manufactured|furnished|gifted)\s+"
+                     r"(?:(?:free of charge|for (?:this|the) (?:study|trial)|for study purposes)\s+){0,3}by\s+"
+                     r"((?:[^.;()]|(?<=\bCo)\.|(?<=\bLtd)\.|(?<=(?<![\w/])[A-Z])\.|(?<=\bB\.V)\.){1,200})", re.I)
+_PRODUCT = re.compile(r"drug|medication|tablet|capsule|placebo|colchicine|product|device|kit|supplies|\bagents?\b|probiotic"
+                      r"|\bstrains?\b|study drink|supplement", re.I)
+# active voice: "Roche provided the drug and its distribution to the centers"; "Novo Nordisk A/S provided the
+# investigational drug"; "BASF (Omacor fish oil) donated the study agents"; "AbbVie contributed some supplies of ..."
+_SUPPLY_ACTIVE = re.compile(r"\b([A-Z][\w&.'/+-]*(?:\s+[A-Z][\w&.'/+-]*){0,4})(?:\s+\([^()]{1,60}\))?\s+(?:kindly\s+|generously\s+)?"
+                            r"(?:(?:provided|supplied|manufactured|furnished)\s+(?:the\s+|all\s+|free\s+)?"
+                            r"(?:study\s+|trial\s+|active\s+|investigational\s+|matching\s+){0,2}"
+                            r"(?:drugs?|medications?|tablets|capsules|placebos?|colchicine|products?|agents?|LcS)\b"
+                            r"|donated\b|contributed\s+(?:some\s+)?supplies\b)")
 # an author's conflict-of-interest disclosure is not the trial's funding statement
 # author-level disclosures only: the word 'disclosure' alone is often a SECTION HEADING that tag-stripping merges into
 # the funding sentence ("Acknowledgment/disclosure All the studies ... were supported by Neurim Pharmaceuticals")
 _COI = re.compile(r"\breported (?:receiving|grants|personal|consult)|\bdisclosed (?:receiving|that)|\bhas (?:received|served)"
-                  r"|\bhonorari|\bspeaker(?:s'? bureau| fees)|\badvisory board|\bstock(?:holder| ownership)", re.I)
+                  r"|\bhonorari|\bspeaker(?:s'? bureau| fees)|\badvisory board|\bstock(?:holder| ownership)"
+                  # V1.0.1 funding audit: with every matching sentence now read, author disclosures that name companies
+                  # must not become the trial's funders ("personal fees from Bayer", "... outside the submitted work")
+                  r"|\boutside (?:of )?the submitted work|\bpersonal fees\b|\b(?:lecture|consult(?:ing|ancy)?) fees\b"
+                  r"|\bfunds for lectures\b|\breports? (?:receiving|grants|personal|consult|financial support|research support"
+                  r"|nonfinancial|non-financial|equipment)|\breported\s+(?:\w+\s+){0,3}?(?:grants?|fees|funding|support|honoraria)\b"
+                  r"|\bequipment, drugs,? or supplies\b"
+                  # an author named by initials: "LKD receives a research grant from ...", "OB received grants from ..."
+                  r"|(?-i:\b[A-Z]{2,4}\s+(?:receives|received|reports|reported|declares|declared|serves|served)\b)", re.I)
 _WORD = re.compile(r"[A-Za-z][A-Za-z&'-]{3,}")
+_SUFFIX_ONLY = re.compile(r"Inc|Incorporated|Ltd\.?|GmbH|LLC|B\.V|A/S|Co\.,? Ltd", re.I)
 
 
 def _clean(s: Any) -> str:
@@ -72,7 +94,30 @@ def _clean(s: Any) -> str:
 
 
 def _sentences(text: str):
-    return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z(])", text or "") if s.strip()]
+    # a company suffix or an initial is not a sentence end ("Yakult Honsha Co. Ltd.", "Funded by F. Hoffmann-La Roche")
+    # a tag-stripped section heading is a boundary whatever precedes it ("... from Winclove B.V. Funding/Support: Both
+    # the placebo ..." would otherwise merge an author's disclosure into the funding statement)
+    return [s.strip() for s in re.split(r"(?<=[.!?])(?<!\bCo\.)(?<!(?<![\w/])[A-Z]\.)\s+(?=[A-Z(])"
+                                        r"|\s+(?=(?:Funding(?:/Support)?|Role of the (?:Funder|Sponsor)(?:/Sponsor)?"
+                                        r"|Conflict of Interest Disclosures|Author Contributions)\s*:)"
+                                        r"|\s+(?=(?:Competing [Ii]nterests?|Conflicts? of [Ii]nterests?"
+                                        r"|Declaration of (?:[Cc]ompeting )?[Ii]nterests?)\b)", text or "")
+            if s.strip()]
+
+
+# V1.0.1 COI lane (COI-C1): a sentence that OPENS an author-disclosure section, or whose subject is one author ("Semler
+# was supported in part by grants from the NHLBI", "WGH was funded by an MRC award"), is not the trial's funding
+_COI_HEAD = re.compile(r"(?:Competing interests?|Conflicts? of interests?|Declaration of (?:competing )?interests?"
+                       r"|Conflict of Interest Disclosures)\b", re.I)
+_AUTHOR_SUBJECT = re.compile(r"(?:Dr\.?\s+)?(?:[A-Z][a-z]+|[A-Z]{2,3})(?:\s+(?:and|&)\s+(?:[A-Z][a-z]+|[A-Z]{2,3}))?"
+                             r"\s+(?:is|are|was|were)\s+(?:supported|funded)\b")
+# an author's company role blocks ABSENT: "Sue Plummer is a Director of Cultech Ltd." (the trial's funder may be public)
+_AUTHOR_ROLE = re.compile(r"\b(?:is|are|was|were)\s+(?:an?\s+|the\s+)?(?:[Mm]anaging\s+)?(?:[Dd]irector|[Ee]mployee|"
+                          r"[Ss]hareholder|[Ff]ounder|[Cc]o-founder|[Ss]tockholder)s?\s+(?:of|at|for)\s+([A-Z][^.;]{2,80})")
+
+
+def _disclosure(s: str) -> bool:
+    return bool(_COI.search(s) or _COI_HEAD.match(s) or _AUTHOR_SUBJECT.match(s))
 
 
 def statement(fulltext: str) -> dict:
@@ -81,11 +126,16 @@ def statement(fulltext: str) -> dict:
     import html as _h
     text = _clean(_h.unescape(re.sub(r"<[^>]+>", " ", fulltext or "")))       # held JATS/HTML: tags are not text
     sents = _sentences(text)
-    fund = [s for s in sents if _STATEMENT.search(s) and not _ROLE.fullmatch(s) and not _COI.search(s)]
+    fund = [s for s in sents if _STATEMENT.search(s) and not _ROLE.fullmatch(s) and not _disclosure(s)
+            and not _CONTRIB.search(s)]
     role = [_clean(m.group(0)) for m in _ROLE.finditer(text)]
-    supply = [s for s in sents if not _COI.search(s) and (_SUPPLY_ACTIVE.search(s) or (
-        _SUPPLY.search(s) and re.search(r"drug|medication|tablet|capsule|placebo|colchicine|product|device|kit|supplies", s, re.I)))]
-    return {"funding_sentences": fund[:4], "role_sentences": role[:2], "supply_sentences": supply[:3]}
+    supply = [s for s in sents if not _disclosure(s) and (_SUPPLY_ACTIVE.search(s) or (
+        _SUPPLY.search(s) and (_PRODUCT.search(s) or _f._INDUSTRY.search(re.split(r",|\band\b", _SUPPLY.search(s).group(1))[0]))))]
+    # every matching sentence is kept: a fixed cap is a reach limit, and a real statement after the cap was silently
+    # dropped (EMPA-KIDNEY's 'sponsored by Boehringer Ingelheim' was the 5th match; COLCHICINE-PCI's supplier the 4th)
+    roles = [s for s in sents if any(_f._INDUSTRY.search(m.group(1)) for m in _AUTHOR_ROLE.finditer(s))]
+    return {"funding_sentences": fund, "role_sentences": role[:2], "supply_sentences": supply,
+            "author_industry_roles": roles}
 
 
 def _registry_index(sources: list) -> dict:
@@ -142,6 +192,12 @@ def build(trial_id: str, abstract: str, fulltext: str, sources: list, aact_rows:
         if len(name) < 3:
             return
         cls, basis = (_category(category), "registry category: " + str(category)) if _category(category) else classify(name, reg_idx)
+        mk = re.match(r"industry name marker: (.*)$", basis or "")
+        if cls == "INDUSTRY" and category and mk and _SUFFIX_ONLY.fullmatch(mk.group(1).strip()):
+            # FUND-F3: the registry classes the sponsor non-industry (AACT 'OTHER'); a bare company suffix does not
+            # overrule it ("TriHealth Inc." is a non-profit hospital system). A named company still does.
+            cls, basis = "UNCLASSIFIED", (f"registry class {category} against the company suffix '{mk.group(1)}': "
+                                          "neither settles it")
         funders.append({"name": name, "class": cls or "UNCLASSIFIED", "class_basis": basis if cls else "no category",
                         "source": source, **({"span": span} if span else {}), **({"role": role} if role else {}),
                         **({"grant_id": grant} if grant else {})})
@@ -153,9 +209,20 @@ def build(trial_id: str, abstract: str, fulltext: str, sources: list, aact_rows:
                 add(n, "full-text funding statement", s)
             completeness.append(("full-text funding statement", "PARTIAL" if _PARTIAL.search(s) else "COMPLETE", s))
         for s in ft["supply_sentences"]:
-            m = _SUPPLY_ACTIVE.search(s) or _SUPPLY.search(s)
+            active = _SUPPLY_ACTIVE.search(s)
+            m = active or _SUPPLY.search(s)
             who = _clean(m.group(1))
             cls, basis = classify(who, reg_idx)
+            if cls == "UNCLASSIFIED" and active:
+                # a list of donors is the verb's whole subject ("Pharmavite LLC ... and BASF (Omacor fish oil) donated"):
+                # the regex keeps the last name only, so the subject clause is classified too
+                subj = _clean(re.split(r"[;:]|\.\s", s[max(0, m.start() - 200):m.start(1)] + who)[-1])
+                c2, b2 = classify(subj, reg_idx)
+                if c2 == "INDUSTRY":
+                    who, cls, basis = subj, c2, b2
+            elif cls == "UNCLASSIFIED" and re.search(r"\bmanufactured\b", s[max(0, m.start() - 40):m.start(1)], re.I):
+                # "manufactured and supplied by BioGaia": the supplier is named as the product's manufacturer
+                cls, basis = "INDUSTRY", "named as the manufacturer of the study product"
             supply.append({"supplier": who, "class": cls, "class_basis": basis, "source": "full text", "span": s})
     # the sentence classifier's full-text reading is a witness too: the typed object must never know LESS than the
     # legacy label did (a missed statement would silently drop an industry tie)
@@ -200,6 +267,12 @@ def build(trial_id: str, abstract: str, fulltext: str, sources: list, aact_rows:
     if industry:
         tie = PRESENT
         why = "industry named by: " + "; ".join(sorted({f"{x.get('name') or x.get('supplier')} ({x['source']})" for x in industry}))
+    elif complete and not partial and funders and all(x["class"] == "PUBLIC" for x in funders) \
+            and not any(x["class"] != "PUBLIC" for x in supply) and ft and ft.get("author_industry_roles"):
+        # public money, but an author holds a company role: "no industry tie" would be false
+        tie = NOT_ESTABLISHED
+        why = ("every named funder is non-industry, but the held text gives an author a company role: '"
+               + ft["author_industry_roles"][0][:200] + "'")
     elif complete and not partial and funders and all(x["class"] == "PUBLIC" for x in funders) \
             and not any(x["class"] != "PUBLIC" for x in supply):
         tie, why = ABSENT, "complete full-text funding statement; every named funder is non-industry"

@@ -38,7 +38,12 @@ _WITH_OR_WITHOUT = re.compile(r"with or without[^.;:~]{0,40}$")
 _QUALIFIER = re.compile(r"\b(?:uncontrolled|poorly controlled|inadequately controlled|decompensated|insulin|treated with|"
                         r"treatment with|requiring|on (?:insulin|treatment)|hba1c|a1c|glucose|complications?|nephropathy|"
                         r"retinopathy|neuropathy|gastroparesis|ketoacidosis|hypoglyc|severe|advanced|brittle|unstable|"
-                        r"newly diagnosed|recently diagnosed|duration)\b")
+                        r"newly diagnosed|recently diagnosed|duration|"
+                        # V1.0.1 (population validation, IV iron): a RECENT or ACUTE event within a time window is a
+                        # qualified subset, not the population -- 'acute heart failure ... in the preceding 15 days'
+                        # does not exclude heart-failure patients from a heart-failure trial
+                        r"within|preceding|previous|prior|past|last|recent|recently|acute|acutely|"
+                        r"hospitali[sz]ed for|hospitali[sz]ation for|admitted for|admission for)\b")
 # diabetes phrases that are NOT the type 2 population
 _OTHER_DIABETES = re.compile(r"\b(?:type (?:1|i)\b(?! or)|type-1|gestational|insipidus|pre-?diabet\w*|latent autoimmune|"
                              r"lada|mody|secondary diabet\w*|(?:special|other|rare|specific) (?:types?|forms?) of diabet\w*|monogenic|steroid[- ]induced|diabetic (?:ketoacidosis|retinopathy|"

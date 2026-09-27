@@ -369,14 +369,62 @@ def check_comparator_identity_disclosed(review_dir, html=None):
     if err:
         return ["COMPARATOR_IDENTITY: " + err[0]]
     ident = ((rev or {}).get("comparator") or {}).get("identity") or {}
-    if ident.get("state") != "COMPARATOR_IDENTITY_MISMATCH" or html is None:
-        return []
     out = []
+    # V1.0.1 (empagliflozin-HFpEF review): the served surfaces carry ONE comparator -- the page's review, its manifest and
+    # the governing record agree -- and an unrecorded replacement of the protocol's comparator is stated on the page
+    served = str(((rev or {}).get("comparator") or {}).get("pmid"))
+    mp = os.path.join(review_dir, "manifest.json")
+    if os.path.exists(mp):
+        man = str(((json.load(open(mp, encoding="utf-8")) or {}).get("comparator") or {}).get("pmid"))
+        if man != served:
+            out.append(f"COMPARATOR_IDENTITY: manifest comparator PMID {man} is not the page's {served}")
+    gov = ident.get("governing") or {}
+    if gov and gov.get("served_pmid") not in (None, served):
+        out.append(f"COMPARATOR_IDENTITY: the governing record names served PMID {gov.get('served_pmid')}, the page {served}")
+    if gov.get("state") == "UNRECORDED_REPLACEMENT" and html is not None and "UNRECORDED_REPLACEMENT" not in html:
+        out.append("COMPARATOR_IDENTITY: an unrecorded replacement of the protocol's comparator is not rendered")
+    if ident.get("state") != "COMPARATOR_IDENTITY_MISMATCH" or html is None:
+        return out
     if "COMPARATOR_IDENTITY_MISMATCH" not in html:
         out.append("COMPARATOR_IDENTITY: the identity mismatch is not rendered")
     fa = (ident.get("resolved") or {}).get("first_author")
     if fa and fa not in html:
         out.append(f"COMPARATOR_IDENTITY: the resolved first author {fa!r} is not rendered")
+    return out
+
+
+def check_comparator_sets_and_rows(review_dir, html=None):
+    """V1.0.1 (esketamine review): (1) every served overlap satisfies shared <= min(ours, theirs) and
+    ours_only + shared = ours -- in the page's legacy overlap, its computed relation, and the manifest (the V1 manifest
+    served ours=3, theirs=4, shared=4); (2) a comparator with a COMPARATOR_ROW_IMPLAUSIBLE row has its numerical
+    validation WITHHELD on the page and carries no agreement/adjudication sentence."""
+    from .overlap_relation import set_invariant
+    from .comparator_panel import ADJUDICATION
+    rev, err = _review_json(review_dir)
+    if err:
+        return ["COMPARATOR_SETS: " + err[0]]
+    comp = (rev or {}).get("comparator") or {}
+    out = []
+    surfaces = [("page overlap", comp.get("overlap") or {}), ("computed relation", comp.get("overlap_relation") or {})]
+    mp = os.path.join(review_dir, "manifest.json")
+    if os.path.exists(mp):
+        surfaces.append(("manifest overlap", ((json.load(open(mp, encoding="utf-8")) or {}).get("comparator") or {}).get("overlap") or {}))
+    for name, ov in surfaces:
+        oo = ov.get("only_ours")
+        for b in set_invariant(ov.get("ours_k"), ov.get("theirs_k"), ov.get("shared_k"),
+                               len(oo) if isinstance(oo, list) else None):
+            out.append(f"COMPARATOR_SETS: {name}: {b}")
+    for outcome, st in (((comp.get("row_checks") or {}).get("numerical_validation_by_outcome")) or {}).items():
+        if st.get("state") == "WITHHELD" and html is not None and f"is WITHHELD for {outcome}" not in html:
+            out.append(f"COMPARATOR_SETS: validation withheld for {outcome} (definition mix) but not rendered")
+    nv = ((comp.get("row_checks") or {}).get("numerical_validation") or {})
+    if nv.get("state") == "WITHHELD" and html is not None:
+        if "Numerical validation against this comparator is WITHHELD" not in html:
+            out.append("COMPARATOR_SETS: implausible comparator rows but the withheld validation is not rendered")
+        stem = ADJUDICATION.split("{")[0].strip()
+        if stem and stem in html:
+            out.append("COMPARATOR_SETS: an agreement/adjudication sentence is served against a comparator whose "
+                       "numerical validation is withheld")
     return out
 
 
@@ -1437,6 +1485,7 @@ def gate_page(review_dir):
                + check_comparator_internal_mismatch_kept(review_dir, html)
                + check_funding_label_derived(review_dir, html)
                + check_comparator_identity_disclosed(review_dir, html)
+               + check_comparator_sets_and_rows(review_dir, html)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)

@@ -59,8 +59,20 @@ def _safe(ref):
     return path
 
 
+# V1.0.1: source objects the pipeline READS to decide served content (which held text is the comparator's own, its
+# identity, network vs direct counts, the same-question record, per-trial comparator inputs, reported internal
+# mismatches, registry->publication links). Each is pinned whenever it exists: a page must not change with an
+# unpinned input.
+DECISION_OBJECTS = ("pmc_links.json", "comparator_identity.json", "comparator_network.json", "comparator_question.json",
+                    "comparator_member_inputs.json", "comparator_reported_mismatches.json", "comparator_figures.json",
+                    "comparator_member_reports.json", "ghost_pub_links.json", "comparator_pmc_jats.xml",
+                    "family_pub_links.json", "comparator_row_checks.json", "external_checkpoints.json")
+
+
 def _held(cache, review, objects):
     paths = set(cache.glob("ft_*.txt")) | set(cache.glob("aact_*.json"))
+    paths |= {cache / n for n in DECISION_OBJECTS if (cache / n).is_file()}
+    paths |= set(cache.glob("external_checkpoint_*.xml"))   # held checkpoint texts (external_checkpoints.json)
     # Follow explicit local source refs and their source manifest, including PDF/text pairs.
     pending = [review, *objects]
     visited = set()
@@ -227,7 +239,7 @@ def compute(slug, review, protocol_sha):
             "extraction_objects_sha256": "canonical ref-to-JSON map: " + ", ".join(extraction),
             "trial_family_map_sha256": _ref(family) + " canonical JSON, else NOT_PRESENT",
             "rob_object_sha256": _ref(cache / "rob2.json") + " canonical JSON",
-            "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+            "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
             "config_sha256": "canonical topics/<slug>.json",
             "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
             "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",

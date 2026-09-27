@@ -1,0 +1,122 @@
+{
+ "schema": "funding-audit-v1",
+ "what": "Independent codex readings of the funding evidence (full texts, candidate sentences, abstracts+registry rows), each quote verified by Claude, compared with the typed funding objects; every disagreement traced to a root cause and fixed at the extractor or recorded as a decision.",
+ "lanes": {
+  "FUND-F1": {
+   "model": "gpt-6-astra",
+   "tokens_used": "108262",
+   "done_sha256": "663acb2eec8f567c32ddf185d5a5863d83ef9d80f6a6620695ee718ba3208142",
+   "utc": "2026-09-27T17:19:03Z"
+  },
+  "FUND-F2": {
+   "model": "gpt-6-astra",
+   "tokens_used": "102383",
+   "done_sha256": "23e0d535e2efb47bc731f4ce854aeb8da05e555cd52a3a2653f4c07ee5d4b439",
+   "utc": "2026-09-27T17:19:13Z"
+  },
+  "COI-C1": {
+   "model": "gpt-6-astra",
+   "tokens_used": "52699",
+   "done_sha256": "dfc280d28d6f107e791bf49b8e5167a23ab76d146dc513cf3533a1818d0f11d6",
+   "utc": "2026-09-27T17:54:59Z"
+  },
+  "FUND-F3": {
+   "model": "gpt-6-astra",
+   "tokens_used": "74938",
+   "done_sha256": "2619b41b4a014cb47bdbf07402b295435c12d3955ff3f7b6c5d5dba2f8bb01f2",
+   "utc": "2026-09-27T18:03:51Z"
+  }
+ },
+ "full_text_lanes_FUND_F1_F2": {
+  "texts": 61,
+  "industry_tie_misses_before": 12,
+  "recovered": 11,
+  "not_recovered_by_decision": [
+   {
+    "id": "melatonin-primary-insomnia-sol PMID 27559258",
+    "why": "the text names the commercial brands used (Meloset from Aristo pharmaceuticals; Supradyn from Abbott); buying a branded product is not a donation, supply agreement or funding, and the text states financial support 'Nil'"
+   }
+  ],
+  "root_causes": [
+   "a fixed reach cap: only the first 4 funding and 3 supply sentences were read (EMPA-KIDNEY's 'sponsored by Boehringer Ingelheim' was the 5th match)",
+   "the sentence splitter broke 'Co. Ltd.' and 'F. Hoffmann'",
+   "RX-OL9: the industry marker for Inc ended in a word boundary after its period, so it could never match at the end of a name (BIO K+ International Inc.)",
+   "an author-contribution line ('Obtained funding: S.') was read as the funding statement",
+   "'financed by', 'Funding/Support:', 'funding was provided by' and 'support was provided by' were not statement lead-ins",
+   "passive supply with qualifiers ('provided free of charge for this study by Roche'), active supply with a donor list or a parenthetical ('BASF (Omacor fish oil) donated'), 'A/S' and 'free LcS' were not read",
+   "a supplier named only as the manufacturer ('manufactured and supplied by BioGaia') was unclassified",
+   "a tag-stripped disclosure section merged into the next funding heading"
+  ],
+  "industry_tie_changes_on_the_61_texts": {
+   "NOT_ESTABLISHED_to_PRESENT": 11,
+   "PRESENT_to_NOT_ESTABLISHED": 2
+  },
+  "reviewed_losses": [
+   {
+    "id": "tocilizumab-covid19-mortality PMID 33472855",
+    "served_before": "PRESENT",
+    "served_after": "NOT_ESTABLISHED",
+    "why": "the served PRESENT rested only on author disclosures read as funders ('Sanofi Aventis outside the submitted work', 'LKD receives a research grant from ...'); the trial's own funding statement names participating hospitals and research institutes, and the lane's tie (Fleury Laboratory, which funded an exploratory laboratory analysis) is a company only by outside knowledge, so the honest state is NOT_ESTABLISHED, never ABSENT"
+   },
+   {
+    "id": "probiotics-aad-prevention PMID 22559011",
+    "served_before": "no served funding row",
+    "served_after": "no served funding row",
+    "why": "full-text-only reading moves PRESENT (from a 'Competing interests' sentence) to NOT_ESTABLISHED; an author's company directorship ('Sue Plummer is a Director of Cultech Ltd.') now blocks ABSENT"
+   }
+  ]
+ },
+ "sentence_lane_COI_C1": {
+  "candidate_sentences": 234,
+  "before_fix": {
+   "disclosures_kept": 15,
+   "trial_funding_rejected": 4
+  },
+  "after_fix": {
+   "disclosures_kept": 1,
+   "trial_funding_rejected": 2
+  },
+  "remaining_by_decision": [
+   "2 open-access publication-fee lines ('Open access funding provided by ...') stay rejected: paying a publication fee is not funding the trial",
+   "1 journal-template fragment ('NO SALARY WAS PAID BY FUNDERS. d) If you did not receive any funding ...') is kept; it names no funder and cannot establish a tie"
+  ],
+  "kept_on_purpose": "industry-funded medical writing ('writing support ... funded by F. Hoffmann-La Roche') is a company tie to the report; every such trial is industry-sponsored anyway"
+ },
+ "no_full_text_lane_FUND_F3": {
+  "rows": 222,
+  "quotes_located": "all",
+  "agree": 214,
+  "lane_ABSENT_ours_NOT_ESTABLISHED": 3,
+  "lane_PRESENT_ours_NOT_ESTABLISHED": [
+   {
+    "id": "colchicine-secondary-cv-prevention NCT00754819",
+    "decision": "lane wrong: Hamilton Health Sciences Corporation is a public hospital network; AACT class OTHER"
+   },
+   {
+    "id": "probiotics-aad-prevention NCT02589964",
+    "decision": "lane wrong: TriHealth Inc. is a non-profit hospital system (AACT OTHER); and the RX-OL9 fix would have made it industry, so a registry non-industry class now outranks a bare company suffix"
+   },
+   {
+    "id": "omega3-cardiovascular-events PMID 23656645",
+    "decision": "kept NOT_ESTABLISHED: 'Funded by Societa Prodotti Antibiotici and others' names a company only by outside knowledge (no suffix, not a listed firm), and the list is partial"
+   }
+  ],
+  "lane_NOT_ESTABLISHED_ours_PRESENT": [
+   {
+    "id": "finerenone-ckd-t2d-renal PMID 28025025",
+    "decision": "ours right: Bayer sponsors ARTS-DN Japan (AACT); the lane bundle lacked the family-link merge that production applies"
+   },
+   {
+    "id": "semaglutide-obesity-weight PMID 42070571",
+    "decision": "OPEN: served PRESENT comes only from the name marker Novo Nordisk matching the Novo Nordisk Foundation, a grant-making foundation that controls the manufacturer of the trial drug; the lane read it as non-profit. Not changed in this batch; flagged for the release captain as a classification question, not a verified tie"
+   }
+  ],
+  "served_tie_changes_from_the_new_code_on_these_rows": 0
+ },
+ "served_corpus_after_rebuild_vs_branch_head": {
+  "NOT_ESTABLISHED_to_PRESENT": 5,
+  "new_row_PRESENT": 1,
+  "PRESENT_to_NOT_ESTABLISHED": 1
+ },
+ "plants": "tests/test_v101_funding_audit.py (synthetic text only; no corpus page is a control)"
+}

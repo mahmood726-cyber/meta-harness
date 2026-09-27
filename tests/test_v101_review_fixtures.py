@@ -13,6 +13,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from harness import (comparator_models, comparator_network, extract, pipeline, population_witness as pw,  # noqa: E402
@@ -196,3 +198,37 @@ def test_colchicine_secondary_flip_is_deferred_until_Raju_harms_are_held():
     assert cfg["include"].get("population_none_entry_condition_only_source") is None
     d = _decision("colchicine-secondary-cv-prevention", "21918905")
     assert d["decision"] == "exclude" and d["rule_id"] == "X2"
+
+
+# ---------------------------------------------------------------- empagliflozin-HFpEF review
+def test_NCT05139472_is_excluded_on_design_not_on_comparator():
+    # an 8-person single-arm open-label pilot: allocation NA, SINGLE_GROUP -- excluded as not an RCT (X1), with that
+    # reason, rather than falling to X3 ('no eligible comparator') or being included
+    d = _decision("empagliflozin-hfpef-hosp", "NCT05139472")
+    assert d["decision"] == "exclude" and d["rule_id"] == "X1", d
+
+
+@pytest.mark.parametrize("alloc,is_rct", [("RANDOMIZED", True), ("NA", False), ("NON_RANDOMIZED", False), ("", True)])
+def test_PLANT_registry_allocation_decides_the_design_axis(alloc, is_rct):
+    rec = {"id": "NCT00000000", "id_type": "nct", "study_type": "INTERVENTIONAL", "allocation": alloc}
+    assert screen._is_rct(rec) is is_rct
+
+
+def test_empagliflozin_governing_comparator_is_the_protocols():
+    from harness import comparator_identity as ci
+    g = ci.check(str(ROOT), "empagliflozin-hfpef-hosp", "37773799")["governing"]
+    assert g["state"] == "UNRECORDED_REPLACEMENT" and g["governing_pmid"] == "36914068" and g["served_pmid"] == "37773799"
+    assert ci.check(str(ROOT), "dapagliflozin-hfpef-hosp", "36914068")["governing"]["state"] == "GOVERNING"
+
+
+@pytest.mark.parametrize("item,excludes", [
+    ("Myocardial infarction, acute heart failure or life-threatening arrhythmias in the preceding 15 days", False),
+    ("Hospitalized for heart failure within 3 months", False),
+    ("Heart failure", True),
+])
+def test_PLANT_a_recent_or_acute_event_is_a_qualified_subset_not_the_population(item, excludes):
+    # found by the codex population-validation lane (IV iron, NCT04974021): the exclusion names the target term only
+    # inside a time window, so it does not exclude the heart-failure population
+    from harness import lexicon
+    got = pw._exclusion_names_population(lexicon.fold(item), ["heart failure"])
+    assert bool(got) is excludes, got

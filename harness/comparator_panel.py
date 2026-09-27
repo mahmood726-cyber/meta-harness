@@ -26,6 +26,27 @@ def span(text, quote):
     return {"start": start, "end": start + len(quote), "quote": quote}
 
 
+_XREF = re.compile(r'<xref rid="([A-Za-z_-]*?)(\d+)"[^>]*>[^<]*</xref>')
+
+
+def stated_k_range(fragment: str):
+    """The reference ids a JATS sentence cites, when it cites them as ONE citation: a range ('<xref B10>10</xref>-
+    <xref B15>15</xref>' -> B10..B15) or a comma list. None when the sentence cites nothing, or mixes prefixes."""
+    xs = list(_XREF.finditer(fragment or ""))
+    if not xs or len({x.group(1) for x in xs}) != 1:
+        return None
+    pre = xs[0].group(1)
+    out = []
+    for i, x in enumerate(xs):
+        n = int(x.group(2))
+        prev = xs[i - 1] if i else None
+        if prev and re.fullmatch(r"\s*[-–—]\s*", fragment[prev.end():x.start()]):
+            out += [f"{pre}{j}" for j in range(int(prev.group(2)) + 1, n + 1)]
+        else:
+            out.append(f"{pre}{n}")
+    return out if len(out) == len(set(out)) else None
+
+
 def validate_span(text, source):
     return (isinstance(source, dict) and isinstance(source.get("start"), int)
             and isinstance(source.get("end"), int) and source["start"] >= 0
@@ -115,6 +136,19 @@ def validate(comparator, root=ROOT):
                         or (year and year not in alias["span"]["quote"])):
                     raise ValueError("COMPARATOR_PANEL: alias table row / reference / year not located")
                 continue
+            if alias.get("stated_k_span"):
+                # V1.0.1 (DPP-4 review; scripts/comparator_stated_k_members.py): a member of the comparator's OWN stated
+                # trial list -- the located sentence states k and cites one reference range containing rid, and the
+                # alias span IS <ref id=rid> (it carries the PMID and the member's printed name)
+                sk = alias["stated_k_span"]
+                from .extract import stated_trial_count
+                k_st, _q = stated_trial_count(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", sk.get("quote") or "")))
+                rng = stated_k_range(sk.get("quote")) or []
+                if (not rid or not validate_span(alias_raw.decode("utf-8"), sk) or not k_st or rid not in rng
+                        or len(rng) != k_st or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"])
+                        or name not in re.sub(r"<[^>]+>", " ", alias["span"]["quote"]).lower()):
+                    raise ValueError("COMPARATOR_PANEL: stated-k member not in the comparator's cited range")
+                continue
             if rid:
                 # bound by the row's own reference link: the located row cites rid, and the alias span IS <ref id=rid>
                 cites = any(rid in m.split() for m in re.findall(r'rid="([^"]+)"', trial["span"]["quote"]))
@@ -182,6 +216,57 @@ def overlaps(comparator, review):
     return out
 
 
+def _fold(s) -> str:
+    import unicodedata
+    return re.sub(r"[^a-z]", "", unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode().lower())
+
+
+def refuse_misbound_rows(c) -> None:
+    """V1.0.1 (esketamine/omega-3 reviews): a row bound to a trial through its OWN citation (linked_rid) is refused when
+    the row prints a SURNAME that is not in the cited reference. The omega-3 comparator's table cites every study one
+    reference early ('Burr 1989 [23]' -> reference 23 is Begg & Mazumdar; Burr is 24), so all 28 bindings named the
+    wrong trial. Acronym rows (HEART-FID) and generic labels ('Trial A') are not surnames; accents are folded
+    (Garzon/Garzon). The alias is moved to binding_refused -- never re-guessed -- and the row stays unbound."""
+    from .overlap_relation import generic_label
+    checked = refused_n = 0
+    for m in c.get("trial_set") or []:
+        name = (m.get("name_in_source") or m.get("family_id") or "").split()
+        first = name[0] if name else ""
+        surname = (not generic_label(" ".join(name)) and re.search(r"[a-z]", first) and not re.fullmatch(r"[A-Z0-9-]+", first))
+        if not surname:
+            continue
+        keep, refused = [], []
+        for a in m.get("aliases") or []:
+            if a.get("linked_rid") and not a.get("table_row_span") and not a.get("stated_k_span"):
+                ref = re.sub(r"<[^>]+>", " ", (a.get("span") or {}).get("quote") or "")
+                checked += 1
+                if _fold(first) and _fold(first) not in _fold(ref):
+                    refused_n += 1
+                    refused.append({"id": a["id"], "linked_rid": a["linked_rid"],
+                                    "why": f"the row prints '{first}' but its cited reference {a['linked_rid']} does not "
+                                           f"name that author: '{re.sub(chr(92) + 's+', ' ', ref).strip()[:90]}'"})
+                    continue
+            keep.append(a)
+        if refused:
+            m["aliases"] = keep
+            m["binding_refused"] = refused
+    # a panel whose checkable surname rows MOSTLY cite another author has an unreliable citation column: every
+    # citation-bound row in it is refused, acronym rows included (omega-3: 'GISSI-P [25]' -> reference 25 is Eritsland)
+    if checked >= 3 and refused_n * 2 >= checked:
+        c["citation_column"] = {"state": "UNRELIABLE", "surname_rows_checked": checked, "citing_another_author": refused_n}
+        for m in c.get("trial_set") or []:
+            keep = []
+            for a in m.get("aliases") or []:
+                if a.get("linked_rid") and not a.get("table_row_span") and not a.get("stated_k_span"):
+                    m.setdefault("binding_refused", []).append(
+                        {"id": a["id"], "linked_rid": a["linked_rid"],
+                         "why": f"the comparator's table citations are unreliable: {refused_n} of {checked} surname rows "
+                                "cite a reference by another author"})
+                    continue
+                keep.append(a)
+            m["aliases"] = keep
+
+
 def attach(slug, review, root=ROOT):
     path = Path(root) / "cache" / slug / "comparators.json"
     if not path.exists():
@@ -207,6 +292,13 @@ def attach(slug, review, root=ROOT):
             # V1.0.1: model-specific tuples from the comparator's own figure, its internal mismatches, and the
             # figure panel's outcome-level membership (harness/comparator_models.py) -- applied after validation
             comparator_models.apply_to_panel(c, figures, primary, root)
+        refuse_misbound_rows(c)
+        from . import comparator_rows
+        _rows = comparator_rows.assess(comparator_rows.load(root, slug))
+        if _rows and str(c.get("id")) == str(json.loads((Path(root) / "cache" / slug / "comparator_row_checks.json")
+                                                          .read_text(encoding="utf-8")).get("comparator_pmid")):
+            # V1.0.1 (esketamine review): the comparator's result for OUR outcome pools only some of its rows
+            comparator_rows.apply_to_panel(c, _rows, primary)
         live = overlaps(c, review) if c.get("trial_set") else []
         if "overlaps" in c:
             raise ValueError("COMPARATOR_PANEL: stored overlap prohibited in source panel")
@@ -262,6 +354,10 @@ def render(review):
     from .comparator_identity import render_block as _identity_block
     parts.append(_reported_block(review.get("comparator") or {}))
     parts.append(_identity_block((review.get("comparator") or {}).get("identity") or {}))
+    from .external_checkpoints import render as _checkpoints_block
+    parts.append(_checkpoints_block(review.get("external_checkpoints")))
+    from .comparator_rows import render as _rows_block
+    parts.append(_rows_block((review.get("comparator") or {}).get("row_checks")))
     from .outcome_match import render as _outcome_match_block
     parts.append(_outcome_match_block((review.get("comparator") or {}).get("shared_trial_inputs")))
     from .held_text_identity import render as _held_identity_block
@@ -277,6 +373,15 @@ def render(review):
                                f"&mdash; {e(m['note'])}.</li>" for m in mp) + "</ul></div>")
     for c in review.get("comparator_panel", []):
         parts.append(f"<article data-comparator='{esc(c['id'])}'><h4>{esc(c['citation'])}</h4><p>{esc(c['scope_note'])}</p>")
+        cc = c.get("citation_column") or {}
+        refused = [m for m in c.get("trial_set") or [] if m.get("binding_refused")]
+        if cc.get("state") == "UNRELIABLE":
+            parts.append(f"<p><strong>Citation column UNRELIABLE</strong>: {esc(cc['citing_another_author'])} of "
+                         f"{esc(cc['surname_rows_checked'])} rows that print an author cite a reference by another author; "
+                         f"no row of this comparator is bound to a trial through its citation ({esc(len(refused))} refused).</p>")
+        elif refused:
+            parts.append("<p>Row bindings refused (the row's printed author is not in its cited reference): "
+                         + esc("; ".join(m["family_id"] for m in refused)) + ".</p>")
         if not c["held"]:
             parts.append("<p><strong>NOT HELD — identity only</strong>"
                          + (f" (held text refused: {esc(c['held_refused']['why'])})" if c.get("held_refused") else "")
@@ -295,7 +400,9 @@ def render(review):
                 values = [o[k] for k in ("pool", "shared", "harness_only", "comparator_only", "jaccard", "endpoint_compatible_overlap", "endpoint_unknown")]
                 parts.append("<tr>" + "".join(f"<td>{esc(v)}</td>" for v in values) + "</tr>")
             parts.append("</table>")
-            if high_overlap(c, review):
+            withheld = (((review.get("comparator") or {}).get("row_checks") or {}).get("numerical_validation")
+                        or {}).get("state") == "WITHHELD"
+            if high_overlap(c, review) and not withheld:
                 parts.append("<p>" + esc(adjudication(c) or "Overlapping evidence sets: agreement is sensitivity to analytic membership.") + "</p>")
         else:
             parts.append("<p>Trial set NOT ENUMERATED; overlap unknown.</p>")

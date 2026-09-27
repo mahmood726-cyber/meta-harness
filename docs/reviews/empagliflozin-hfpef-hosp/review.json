@@ -53,6 +53,20 @@
       ],
       "screening_auditable": true,
       "retrieval_auditable": false,
+      "axes": {
+        "can_retrieve_unknown_trial": {
+          "answer": "NO",
+          "basis": "every query names known reports (identifiers, trial names or titles)"
+        },
+        "execution_documented": {
+          "answer": "PARTIAL",
+          "basis": "2 of 2 ledger sources record a run state and date; 0 record the hit count"
+        },
+        "coverage_adequate": {
+          "answer": "NOT_ESTABLISHED",
+          "basis": "no measured recall against an independent reference set is attached to this search"
+        }
+      },
       "distinction": "an auditable screening ledger attached to an unauditable retrieval process",
       "retraction": "We retract any claim of a registry-first or systematic search for this topic.",
       "search_provenance": {
@@ -1548,9 +1562,9 @@
         "id": "ICDDTKZ26 · NCT07303556",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
-        "span": "examined title/conditions: “Improving Cardiovascular Disease Diagnosis and Treatment in Kazakhstan Using Metabolic Cor…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: ICDDTKZ26).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -1566,9 +1580,9 @@
         "id": "NCT06046612",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'matching placebo']).",
-        "span": "examined: “Empagliflozin for Peripheral Microvascular Dysfunction in Heart Failure With Preserved Eje…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT06046612).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -1638,9 +1652,9 @@
         "id": "NCT05139472",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'matching placebo']).",
-        "span": "examined: “Impact of Empagliflozin on Functional Capacity in Heart Failure with Preserved Ejection Fr…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT05139472).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -2104,7 +2118,66 @@
       "intervention_level_match": false,
       "population_match": true,
       "scope_valid": false,
-      "note": "comparator is a DRUG-CLASS meta-analysis while this topic is a single agent — a PICO scope mismatch (single-drug review vs class-level review); the k difference vs this comparator is a scope difference, not unretrieved evidence"
+      "note": "comparator is a DRUG-CLASS meta-analysis while this topic is a single agent — a PICO scope mismatch (single-drug review vs class-level review); the k difference vs this comparator is a scope difference, not unretrieved evidence",
+      "same_question": {
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "control": "NOT_ESTABLISHED",
+          "endpoint": "NOT_ESTABLISHED",
+          "effect_measure": "NOT_ESTABLISHED",
+          "population": "NOT_ESTABLISHED",
+          "intervention": "NO"
+        },
+        "differs": [
+          "intervention"
+        ],
+        "not_established": [
+          "control",
+          "endpoint",
+          "effect_measure",
+          "population"
+        ],
+        "dimensions": {
+          "control": {
+            "ours": "placebo, matching placebo",
+            "theirs": "Placebo",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "endpoint": {
+            "ours": "Composite cardiovascular death or worsening heart failure",
+            "theirs": "CV mortality or first HF hospitalization",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "effect_measure": {
+            "ours": "HR",
+            "theirs": "HR",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "population": {
+            "ours": "In adults with heart failure and preserved or mildly reduced ejection fraction, does empagliflozin reduce the composite of cardiovascular death or hospitalisation for heart failure versus placebo? (Double-blind placebo-controlled RCTs.)",
+            "theirs": "HF with preserved/mildly reduced EF",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "intervention": {
+            "ours": "empagliflozin, Jardiance",
+            "theirs": "SGLT2 inhibitor class",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "topics/empagliflozin-hfpef-hosp.json",
+                "quote": "question\": \"In adults with heart failure and preserved or mildly reduced ejection fraction, does empagliflozin reduce the composite of cardiovascular death or hospitalisation for heart failure versus placebo? (Double-blind placebo-controll"
+              },
+              {
+                "document_ref": "cache/empagliflozin-hfpef-hosp/records.json",
+                "record_id": "37773799",
+                "quote": "ion was 2.24 years. SGLT2 inhibitors reduced composite cardiovascular mortality or first hospitalization for heart failure (HR, 0.80 [95% CI: 0.74-0.87], P < .001, I2 = 0%), heart failure hospitalization (HR, 0.74 [95% CI: 0.67-0.82], P < .001, I2 = 0%) compar"
+              }
+            ]
+          }
+        },
+        "why": "differs on intervention; not established: control, endpoint, effect_measure, population"
+      }
     },
     "overlap": {
       "ours_k": 0,
@@ -2144,7 +2217,32 @@
         }
       }
     },
-    "internal_mismatches": [],
+    "internal_mismatches": [
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "STATED_POPULATION_VS_ANALYSED_POPULATION",
+        "sides": [
+          {
+            "where": "first statement (abstract)",
+            "value": "Reduced ejection fraction",
+            "quote": "BJECTIVE: We aim to evaluate the SGLT2 inhibitor effect among patients with heart failure with reduced ejection fraction, including DELIVER and EMPEROR-Preserved trials. METHODS: We performed a systematic literature search using the PubMed, Embase, Scopus, and",
+            "state": "HELD",
+            "document_ref": "cache/empagliflozin-hfpef-hosp/records.json",
+            "record_id": "37773799"
+          },
+          {
+            "where": "second statement (fulltext)",
+            "value": "Preserved ejection fraction",
+            "quote": "at this study adds: Among patients with HFpEF, SGLT2 inhibitors significantly reduced primary composite endpoints and heart failure hospitalization with the largest sample size thus far. How this study might affect research, practice, or policy: SGLT2 inhibito",
+            "state": "HELD",
+            "document_ref": "cache/empagliflozin-hfpef-hosp/comparator_fulltext.txt"
+          }
+        ],
+        "note": "Objective wording conflicts with the substantive HFpEF analysis; candidate wording error only.",
+        "found_by": "codex comparator lane (gpt-6-astra), reviewed by Claude Opus 5.5",
+        "evidence_state": "BOTH_SIDES_HELD"
+      }
+    ],
     "identity": {
       "state": "COMPARATOR_IDENTITY_MISMATCH",
       "checks": {
@@ -2160,6 +2258,12 @@
         "author: NOT_AMONG_RESOLVED: 'Pal' is not one of the 18 authors (first: Jaiswal A)"
       ],
       "citation_defects": [],
+      "governing": {
+        "state": "UNRECORDED_REPLACEMENT",
+        "governing_pmid": "36914068",
+        "served_pmid": "37773799",
+        "why": "the protocol names PMID 36914068 but the pages serve PMID 37773799, and no replacement is recorded; the protocol's comparator governs and the served one is not it"
+      },
       "protocol": {
         "named_author": "Pal",
         "title": "SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis",
@@ -58477,8 +58581,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 2 PMID-enumeration queries; 0 title/name-seeded queries; 0 free-text keyword queries.</div>",
-      "text_sha256": "2de29f80d50de3a08d226ddd11d498bb2e05003522a55a50c21b10ffcc5baf11",
+      "rendered_text": "<div class='absent'><strong>KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 2 PMID-enumeration queries; 0 title/name-seeded queries; 0 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>NO</strong> &mdash; every query names known reports (identifiers, trial names or titles)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 2 of 2 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "d14c2122d105518f1539f9a07d74f5cb72591a44b4c7dfd83ff57c1af6fea2ba",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -58963,7 +59067,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
-    "review_sha256": "c4018921de292517120ce4a4cb5fd6f977ebef50aeed1f55c1fdbbd393b76126",
+    "review_sha256": "be6c111aca27ec014630a34ffbd8649f817e9bb3f6b9d05aa30d9a3a2c73da81",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -59053,7 +59157,7 @@
       "retrieved_corpus_sha256": "5ef3f171568c76c524eeae33b4fa04cd0bb406c987eacbf297f5344572def505",
       "records_file_sha256": "55e4cf4827d909602ea1c278358f57cd6e866c9f426ac27464e5d725b7bdcfd5",
       "retrieval_ledger_sha256": "eb4b9351cf402c55d99f008a32e26c490cdb087ed9640c79b588dd511f81df0a",
-      "screening_ledger_sha256": "b6bcdc5fdf93c8f4fb7c9e59562f8964a8dba0aca11047e308ffe7bbddb8fd59",
+      "screening_ledger_sha256": "b67d3721db1add9e3c7e5bc91adfc8a5cb460125a935a50cdedb7b0961d031ca",
       "extraction_objects_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
       "trial_family_map_sha256": "7cea8632edc62bea7c535cdf766c3b7d62a57dbe5ea387423d65613a19cecff4",
       "rob_object_sha256": "69ddfd227082b6a4ba0880f4892a88efc5e8d0a4d6a9c71ebad90a2aed10cbfd",
@@ -59065,10 +59169,30 @@
         {
           "ref": "cache/empagliflozin-hfpef-hosp/comparator_fulltext.txt",
           "sha256": "4bb4a780e94ff7bd0901c77ea478509e33839e42a7c73c6efd81425461b5e1b9"
+        },
+        {
+          "ref": "cache/empagliflozin-hfpef-hosp/comparator_identity.json",
+          "sha256": "c3a0b3700b6828ab6314a5204bc632570131998961ef9b9b35a264d915ff2224"
+        },
+        {
+          "ref": "cache/empagliflozin-hfpef-hosp/comparator_question.json",
+          "sha256": "de82528e21bf46fb0c4997f48c487f6e9dc354dd5dd9b5c3fdf29fc39ef21e17"
+        },
+        {
+          "ref": "cache/empagliflozin-hfpef-hosp/comparator_reported_mismatches.json",
+          "sha256": "e4c403cd54b657f12c88b3c92f61dedc320ee8d5782aa440dc46863e7277d7fa"
+        },
+        {
+          "ref": "cache/empagliflozin-hfpef-hosp/ghost_pub_links.json",
+          "sha256": "f93b3f2e93f817cfe75fe94f240989f31f2a317d0fa61e2cfd832944d83f16d0"
+        },
+        {
+          "ref": "cache/empagliflozin-hfpef-hosp/pmc_links.json",
+          "sha256": "e71222e1d570bc2164ee4b6a45243c8affa5d55a49c8e623d8b60fedef2dd220"
         }
       ],
       "config_sha256": "c71fc0b0cc1f664c32f1f98957285293704cec685bfcdbc25787e8c2e8964a73",
-      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
+      "analysis_code_sha256": "1f4fcf9a4342fea66cb546ff66219d756418b95fe68cee1709e2926f9a40b923",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -59081,14 +59205,15 @@
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
+        "harness/certificate.py": "430d848edba702b6078df670f33960ea6be90065",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
+        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
+        "harness/comparator_panel.py": "20756375fd7e4fb83c17646fa93e127f63ef51d6",
+        "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -59103,14 +59228,16 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
+        "harness/external_checkpoints.py": "bdecfa029cbdabc8edfbd817ab65f8ac7ef22e01",
+        "harness/extract.py": "4951913bee9e53b6bc5e68ae26bbc0a21f98cd31",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
+        "harness/family_pub_links.py": "884d9af36ed6db09abce7689e47c83a4a204996c",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
-        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
+        "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
+        "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
+        "harness/gate.py": "5049d4f2e2e322cd13daacdae9ac6ccad86119fe",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -59132,11 +59259,11 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
-        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
+        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/page.py": "ada8163e2530d3dad0fceb34459bd322b9ace212",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
-        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
+        "harness/pipeline.py": "bfc50236227b2d7ee9cfe338ffeb0551561592a1",
+        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -59147,16 +59274,17 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
+        "harness/screen.py": "c964462aa664b6e8b064be1299261e8f5be09a54",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
+        "harness/trial_family.py": "04a0ad5b157e3fe5d07b108f48bb5d84981a2a2e",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -59176,7 +59304,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "97 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -59207,7 +59335,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "d697af0cfe24e14982bff0964ef9ac2989cca61f15eb15179f14732cd1342df0",
-      "review_sha256": "c4018921de292517120ce4a4cb5fd6f977ebef50aeed1f55c1fdbbd393b76126",
+      "review_sha256": "be6c111aca27ec014630a34ffbd8649f817e9bb3f6b9d05aa30d9a3a2c73da81",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/empagliflozin-hfpef-hosp.md UTF-8 text, universal newlines",
@@ -59219,7 +59347,7 @@
         "extraction_objects_sha256": "canonical ref-to-JSON map: ",
         "trial_family_map_sha256": "cache/empagliflozin-hfpef-hosp/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/empagliflozin-hfpef-hosp/rob2.json canonical JSON",
-        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
         "config_sha256": "canonical topics/<slug>.json",
         "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
         "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",
@@ -59227,7 +59355,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "334487cbc281e66e6b18fd8d04caf9b7fa50b379f39777f1c0c41200ee14682e"
+      "release_sha256": "09669d6c0b8638ce70fcbf243872bade81b0d0db24a65a833489dda8e6709f6c"
     }
   }
 }

@@ -229,7 +229,13 @@ def _is_rct(rec) -> bool:
         if _QUASI.search(text) or _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
             return False
         return _title_says_rct(rec) or _body_says_rct(rec)
-    return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
+    # V1.0.1 (empagliflozin-HFpEF review): the registry's ALLOCATION decides. NCT05139472 is interventional but
+    # 'allocation NA, SINGLE_GROUP, single arm, open label' -- it passed as an RCT and fell out later under X3 with the
+    # wrong reason. Only a registration that does not state its allocation keeps the interventional fallback.
+    alloc = (rec.get("allocation", "") or "").upper()
+    if alloc in ("NA", "N/A", "NON_RANDOMIZED", "NON-RANDOMIZED"):
+        return False
+    return alloc == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
 
 
 def _double_blind(rec, text) -> bool:

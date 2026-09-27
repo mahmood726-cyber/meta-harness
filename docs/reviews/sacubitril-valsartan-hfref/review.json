@@ -54,7 +54,8 @@
           "kind": "TITLE_ANCHORED",
           "features": [
             "title_field_tag:[Title]",
-            "trial_acronym_token:Angiotensin-neprilysin"
+            "trial_acronym_token:Angiotensin-neprilysin",
+            "trial_name_in_title:Angiotensin-neprilysin"
           ]
         },
         {
@@ -63,7 +64,8 @@
           "features": [
             "title_field_tag:[Title/Abstract]",
             "trial_acronym_token:PARADIGM-HF",
-            "trial_acronym_token:LCZ696"
+            "trial_acronym_token:LCZ696",
+            "trial_name_in_title:PARADIGM-HF"
           ]
         },
         {
@@ -81,6 +83,20 @@
       ],
       "screening_auditable": true,
       "retrieval_auditable": false,
+      "axes": {
+        "can_retrieve_unknown_trial": {
+          "answer": "NO",
+          "basis": "every query names known reports (identifiers, trial names or titles)"
+        },
+        "execution_documented": {
+          "answer": "PARTIAL",
+          "basis": "4 of 4 ledger sources record a run state and date; 0 record the hit count"
+        },
+        "coverage_adequate": {
+          "answer": "NOT_ESTABLISHED",
+          "basis": "no measured recall against an independent reference set is attached to this search"
+        }
+      },
       "distinction": "an auditable screening ledger attached to an unauditable retrieval process",
       "retraction": "We retract any claim of a registry-first or systematic search for this topic.",
       "search_provenance": {
@@ -1252,9 +1268,9 @@
         "id": "NCT07814482",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['enalapril', 'ACE inhibitor', 'ACE inhibitors', 'angiotensin-converting enzyme inhibitor', 'angiotensin converting enzyme inhibitor', 'angiotensin receptor blocker', 'ARB', 'ramipril', 'RAS inhibitor', 'RAS inhibitors', 'RAS inhibition']).",
-        "span": "examined: “Effect of Sacubitril-Valsartan on Estimated Pulmonary Artery Systolic Pressure in Patients…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT07814482).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -1364,9 +1380,9 @@
         "id": "PARASAIL · NCT02690974",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['enalapril', 'ACE inhibitor', 'ACE inhibitors', 'angiotensin-converting enzyme inhibitor', 'angiotensin converting enzyme inhibitor', 'angiotensin receptor blocker', 'ARB', 'ramipril', 'RAS inhibitor', 'RAS inhibitors', 'RAS inhibition']).",
-        "span": "examined: “Description of Tolerability of LCZ696 (Sacubitril / Valsartan) in Heart Failure With Reduc…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: PARASAIL).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -2325,7 +2341,49 @@
       "intervention_level_match": false,
       "population_match": true,
       "scope_valid": false,
-      "note": "comparator is a DRUG-CLASS meta-analysis while this topic is a single agent — a PICO scope mismatch (single-drug review vs class-level review); the k difference vs this comparator is a scope difference, not unretrieved evidence"
+      "note": "comparator is a DRUG-CLASS meta-analysis while this topic is a single agent — a PICO scope mismatch (single-drug review vs class-level review); the k difference vs this comparator is a scope difference, not unretrieved evidence",
+      "same_question": {
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "control": "NOT_ESTABLISHED",
+          "endpoint": "NOT_ESTABLISHED",
+          "effect_measure": "NO",
+          "population": "NOT_ESTABLISHED",
+          "intervention": "NOT_ESTABLISHED"
+        },
+        "differs": [
+          "effect_measure"
+        ],
+        "not_established": [
+          "control",
+          "endpoint",
+          "population",
+          "intervention"
+        ],
+        "dimensions": {
+          "control": {
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "endpoint": {
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "effect_measure": {
+            "ours": "HR",
+            "theirs": "RR",
+            "agrees": "NO",
+            "derived": true,
+            "why": "our served pooled HR vs the comparator's reported RR (Composite cardiovascular death or heart-failure hospitalization versus RAS inhibitors in HFrEF)"
+          },
+          "population": {
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "intervention": {
+            "agrees": "NOT_ESTABLISHED"
+          }
+        },
+        "why": "differs on effect_measure; not established: control, endpoint, population, intervention"
+      }
     },
     "overlap": {
       "ours_k": 2,
@@ -2388,7 +2446,32 @@
         "source": null
       }
     },
-    "internal_mismatches": [],
+    "internal_mismatches": [
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "SAME_ESTIMATE_DIFFERENT_CONTROL",
+        "sides": [
+          {
+            "where": "first statement (abstract)",
+            "value": "ARNI versus placebo; RR 0.83 (0.77-0.89)",
+            "quote": "In patients with HFrEF, ARNI led to a reduced risk of a composite outcome of CV death or HHF when compared with placebo (RR = 0.83, 95% CI 0.77-0.89). Similar trends were observed when focusing on the outcome of CV death or HHF alone. In patients with HFpEF, S",
+            "state": "HELD",
+            "document_ref": "cache/sacubitril-valsartan-hfref/records.json",
+            "record_id": "36722326"
+          },
+          {
+            "where": "second statement (fulltext)",
+            "value": "ARNI versus RASi; RR 0.83 (0.77-0.89)",
+            "quote": "Compared with RASi, ARNI significantly decreased the occurrence of CV death or HHF (RR = 0.83, 95% CI 0.77–0.89). The composite CV effects were no different in the treatment of RASi and ARNI when compared with SGLT2i ( Figure 3A ). SUCRA score showed that the ",
+            "state": "HELD",
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt"
+          }
+        ],
+        "note": "The same HFrEF estimate and CI are assigned to different controls; neither is corrected.",
+        "found_by": "codex comparator lane (gpt-6-astra), reviewed by Claude Opus 5.5",
+        "evidence_state": "BOTH_SIDES_HELD"
+      }
+    ],
     "identity": {
       "state": "MATCH",
       "checks": {
@@ -2399,6 +2482,11 @@
       },
       "failures": [],
       "citation_defects": [],
+      "governing": {
+        "state": "GOVERNING",
+        "governing_pmid": "36722326",
+        "served_pmid": "36722326"
+      },
       "protocol": {
         "named_author": "Ji",
         "title": "The cardiovascular effects of SGLT2 inhibitors,\nRAS inhibitors, and ARN inhibitors in heart failure",
@@ -110554,8 +110642,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 2 PMID-enumeration queries; 2 title/name-seeded queries; 0 free-text keyword queries.</div>",
-      "text_sha256": "114311ed2523f2995a9e6b639f7bdfcce5c802966cd99de374d25aaa14abec99",
+      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 2 PMID-enumeration queries; 2 title/name-seeded queries; 0 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>NO</strong> &mdash; every query names known reports (identifiers, trial names or titles)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 4 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "65a3cb81d5c09ac3b160a3304b86b7b7f51a2f7d626661150fedc243be448e80",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -111074,7 +111162,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "12273bb766f27c6bbc24cd2ff1888a5b097fe034227d86bb21c1427a91ea327e",
+    "review_sha256": "a0368f22d5df9742fff0cf3b47015283bdae6d755d16351d903713ff227c9a62",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -111182,7 +111270,7 @@
       "retrieved_corpus_sha256": "58f1709cb53a4ba28d47922f3890957c55219b78280fb23ec6b10b4afab3eda1",
       "records_file_sha256": "ae47a4ab38a12c0a99beb3861132b5f868f2db88e13eb8bc9227f906fc607d96",
       "retrieval_ledger_sha256": "76e4e7b5a14cf196313a987ff65423d620c1c5b380c2be7b6a0a65ace6b1fd9d",
-      "screening_ledger_sha256": "82984ae5e346c1ec0946142837a7b0a41fa0bb7138b2898eb5a9c525c7e7efb2",
+      "screening_ledger_sha256": "9697c241975853c87c977bd8b3a4b2d12185365bd5d20e3dfa58ca441b6bc932",
       "extraction_objects_sha256": "b3c5bf8cc8bdb5d1a0223d14b97d76e5286c32cec67ace866a04dcaae0730f6f",
       "trial_family_map_sha256": "86718e80a65796e15b6e87379c08ac6d702118d19eeb448c4fce26e7daeae1fa",
       "rob_object_sha256": "b5c383491a1066307dbe0eb7e3745616558f92839a52c246e6cf3f200e3f9e2d",
@@ -111194,10 +111282,22 @@
         {
           "ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
           "sha256": "443774bc1d6a4b95b6a98122dc3605e86f9630a239b4e7184ccbaff94413f202"
+        },
+        {
+          "ref": "cache/sacubitril-valsartan-hfref/comparator_identity.json",
+          "sha256": "569c1174f8473f639a2145b9a50be7f249eb38f95fd2b0daac32e390294b5b99"
+        },
+        {
+          "ref": "cache/sacubitril-valsartan-hfref/comparator_reported_mismatches.json",
+          "sha256": "534da522eecd33a70d7aafdf15b7f98607bdf3db51f947b01507c197f1f62690"
+        },
+        {
+          "ref": "cache/sacubitril-valsartan-hfref/pmc_links.json",
+          "sha256": "4c9504f84e4af07c2a756bc27550c8b053950b1e786862a7a6b36610d48f4dd4"
         }
       ],
       "config_sha256": "8d60f4c9562d433b56ac455ba3a174ea57250169898cc79ac824a6ae0bfd6130",
-      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
+      "analysis_code_sha256": "1f4fcf9a4342fea66cb546ff66219d756418b95fe68cee1709e2926f9a40b923",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -111210,14 +111310,15 @@
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
+        "harness/certificate.py": "430d848edba702b6078df670f33960ea6be90065",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
+        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
+        "harness/comparator_panel.py": "20756375fd7e4fb83c17646fa93e127f63ef51d6",
+        "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -111232,14 +111333,16 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
+        "harness/external_checkpoints.py": "bdecfa029cbdabc8edfbd817ab65f8ac7ef22e01",
+        "harness/extract.py": "4951913bee9e53b6bc5e68ae26bbc0a21f98cd31",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
+        "harness/family_pub_links.py": "884d9af36ed6db09abce7689e47c83a4a204996c",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
-        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
+        "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
+        "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
+        "harness/gate.py": "5049d4f2e2e322cd13daacdae9ac6ccad86119fe",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -111261,11 +111364,11 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
-        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
+        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/page.py": "ada8163e2530d3dad0fceb34459bd322b9ace212",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
-        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
+        "harness/pipeline.py": "bfc50236227b2d7ee9cfe338ffeb0551561592a1",
+        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -111276,16 +111379,17 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
+        "harness/screen.py": "c964462aa664b6e8b064be1299261e8f5be09a54",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
+        "harness/trial_family.py": "04a0ad5b157e3fe5d07b108f48bb5d84981a2a2e",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -111305,7 +111409,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "97 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -111336,7 +111440,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "b4e4ffcad3070986100f1d4b070bcc32fe85c60d494c296234f2f9100793cca6",
-      "review_sha256": "12273bb766f27c6bbc24cd2ff1888a5b097fe034227d86bb21c1427a91ea327e",
+      "review_sha256": "a0368f22d5df9742fff0cf3b47015283bdae6d755d16351d903713ff227c9a62",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sacubitril-valsartan-hfref.md UTF-8 text, universal newlines",
@@ -111348,7 +111452,7 @@
         "extraction_objects_sha256": "canonical ref-to-JSON map: cache/sacubitril-valsartan-hfref/verified_effects.json",
         "trial_family_map_sha256": "cache/sacubitril-valsartan-hfref/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/sacubitril-valsartan-hfref/rob2.json canonical JSON",
-        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
         "config_sha256": "canonical topics/<slug>.json",
         "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
         "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",
@@ -111356,7 +111460,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "2afc61ce82decdfce22f5a5cbcfbabe0098937349fc841adefeb2ad8491c5ccc"
+      "release_sha256": "e77d0687c40ec4a6a86689fa94a0352e44b250068fe79efdc119e0696a604bf1"
     }
   }
 }

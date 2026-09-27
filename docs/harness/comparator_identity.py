@@ -64,6 +64,26 @@ def _surname(pubmed_name: str) -> str:
     return fold(" ".join(parts))
 
 
+def governing(root, slug: str, protocol_pmids, served_pmid) -> dict:
+    """V1.0.1 (empagliflozin-HFpEF review): ONE governing comparator. The registered protocol governs; the comparator
+    the pages serve (topic config -> review -> manifest) must be it, or a replacement recorded in
+    registry/comparator_replacements.json (who, when, why). Otherwise the page states UNRECORDED_REPLACEMENT."""
+    served = str(served_pmid) if served_pmid is not None else None
+    if not protocol_pmids:
+        return {"state": "PROTOCOL_DOES_NOT_NAME", "governing_pmid": served, "served_pmid": served}
+    if served in protocol_pmids:
+        return {"state": "GOVERNING", "governing_pmid": served, "served_pmid": served}
+    p = Path(root) / "registry" / "comparator_replacements.json"
+    recs = (json.loads(p.read_text(encoding="utf-8")).get("replacements") or {}) if p.exists() else {}
+    r = recs.get(slug) or {}
+    if str(r.get("from_pmid")) in protocol_pmids and str(r.get("to_pmid")) == served and r.get("why") and r.get("recorded_by"):
+        return {"state": "REPLACED_RECORDED", "governing_pmid": served, "protocol_pmid": str(r["from_pmid"]),
+                "served_pmid": served, "record": r}
+    return {"state": "UNRECORDED_REPLACEMENT", "governing_pmid": protocol_pmids[0], "served_pmid": served,
+            "why": ("the protocol names PMID " + ", ".join(protocol_pmids) + f" but the pages serve PMID {served}, and no "
+                    "replacement is recorded; the protocol's comparator governs and the served one is not it")}
+
+
 def check(root, slug: str, comparator_pmid) -> dict:
     root = Path(root)
     held = root / "cache" / slug / "comparator_identity.json"
@@ -101,6 +121,7 @@ def check(root, slug: str, comparator_pmid) -> dict:
         (notes if v.startswith(NOT_FIRST) else fails).append(f"{k}: {v}")
     state = (MISMATCH if fails else "PROTOCOL_DOES_NOT_NAME" if not checks else "MATCH")
     return {"state": state, "checks": checks, "failures": fails, "citation_defects": notes,
+            "governing": governing(root, slug, pmids, comparator_pmid),
             "protocol": {"named_author": na, "title": ptitle and ptitle.strip(), "pmids": pmids, "doi": pdoi},
             "resolved": {"pmid": pm.get("uid"), "first_author": authors[0] if authors else None, "n_authors": len(authors),
                          "title": pm.get("title"), "doi": rdoi, "journal": pm.get("fulljournalname") or pm.get("source"),
@@ -112,8 +133,9 @@ def check(root, slug: str, comparator_pmid) -> dict:
 
 def render_block(identity: dict) -> str:
     import html as _h
+    gov = (identity or {}).get("governing") or {}
     if not identity or identity.get("state") in (None, "NOT_HELD", "MATCH", "PROTOCOL_DOES_NOT_NAME") \
-            and not identity.get("citation_defects"):
+            and not identity.get("citation_defects") and gov.get("state") in (None, "GOVERNING", "PROTOCOL_DOES_NOT_NAME"):
         return ""
     e = lambda s: _h.escape(str(s), quote=True)  # noqa: E731
     r = identity.get("resolved") or {}
@@ -122,6 +144,13 @@ def render_block(identity: dict) -> str:
             f"al.</strong>, &ldquo;{e(r.get('title'))}&rdquo; ({e(r.get('journal'))}, {e(r.get('pubdate'))}). Every comparator "
             "number on this page is read from that resolved paper.</p>" if identity["state"] == MISMATCH else "")
     items = "".join(f"<li>{e(x)}</li>" for x in (identity.get("failures") or []) + (identity.get("citation_defects") or []))
+    if gov.get("state") == "UNRECORDED_REPLACEMENT":
+        head += (f"<p><code>UNRECORDED_REPLACEMENT</code>: governing comparator PMID {e(gov['governing_pmid'])} (the "
+                 f"protocol's); served comparator PMID {e(gov['served_pmid'])}. {e(gov['why'])}.</p>")
+    elif gov.get("state") == "REPLACED_RECORDED":
+        rr = gov["record"]
+        head += (f"<p><code>REPLACED_RECORDED</code>: the protocol's PMID {e(gov['protocol_pmid'])} was replaced by PMID "
+                 f"{e(gov['served_pmid'])} ({e(rr.get('recorded_by'))}, {e(rr.get('when'))}): {e(rr.get('why'))}.</p>")
     return ("<div class='comparator-identity'><h5>Comparator identity (protocol name vs resolved PMID/DOI)</h5>" + head
             + f"<ul>{items}</ul><p class='small'>Resolved metadata held in {e(identity['held']['document_ref'])} "
               f"(PubMed sha256 {e(identity['held']['pubmed_sha256'])}).</p></div>")

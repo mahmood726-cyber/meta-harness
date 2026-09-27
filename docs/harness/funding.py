@@ -36,7 +36,7 @@ _STRONG_ANCHOR = re.compile(
 _WEAK_ANCHOR = re.compile(r"supported by", re.I)
 
 _INDUSTRY = re.compile(
-    r"\b(pharmaceutical|pharmaceuticals|biopharmaceutical|Inc\.|Incorporated|Ltd\.?|GmbH|LLC"
+    r"\b(pharmaceutical|pharmaceuticals|biopharmaceutical|Inc|Incorporated|Ltd\.?|GmbH|LLC|Farma|B\.V|A/S"
     r"|Co\.,? Ltd|manufacturer|Novo Nordisk|Pfizer|Janssen|Johnson\s*&\s*Johnson|AstraZeneca"
     r"|Boehringer|Novartis|Bayer|Merck|MSD|Sanofi|GlaxoSmithKline|GSK|Eli Lilly|Lilly"
     r"|AbbVie|Amgen|Bristol[- ]Myers|Takeda|Roche|Genentech|Gilead|Servier|Daiichi"
@@ -45,7 +45,7 @@ _INDUSTRY = re.compile(
     r"|Therapeutics\b|Biosciences\b|Biotech|Laboratories\b|Sciences, Inc"
     r"|(?-i:[A-Z][A-Za-z]+ AG))\b",
     re.I,
-)
+)  # RX-OL9 fixed (V1.0.1): 'Inc' carries no period, so the closing \b sits after it and 'X Inc.' marks industry
 
 _PUBLIC = re.compile(
     r"\b(National Institutes of Health|NIH\b|NIHR|National Institute for Health(?: and Care)? Research"
@@ -141,14 +141,21 @@ def _legacy_type(status: str, sponsor_class: str, scanned: str = "") -> str:
 def _split_sponsors(span: str) -> list[str]:
     text = _clean(span)
     text = re.sub(
-        r"^.*?(?:this (?:study|trial|work|research) was funded by|funded by|funding(?: source)?\s*:"
-        r"|grants?\s+from|supported by)\s*",
+        r"^.*?(?:this (?:study|trial|work|research) was funded by|funded by|financed by|sponsored by"
+        r"|funding(?:/support| source)?\s*:|grants?\s+from|supported by)\s*",
         "",
         text,
         flags=re.I,
     )
     text = re.sub(r"^this (?:study|trial|work|research) was funded by\s*", "", text, flags=re.I)
-    text = re.split(r";|\.\s|ClinicalTrials\.gov|trial registration", text, maxsplit=1, flags=re.I)[0]
+    # a heading then a sentence ("Funding/Support: This study was sponsored by Boehringer Ingelheim"; "Funding: The
+    # STRENGTH trial was funded by AstraZeneca AB"): the heading strip leaves the sentence's own lead-in
+    text = re.sub(r"^(?:the|this)\s+(?:[\w-]+\s+){0,3}?(?:is|was)\s+(?:funded|sponsored|supported|financed)\s+by\s+", "", text,
+                  flags=re.I)
+    text = re.sub(r"\s*\([^()]{0,200}\)", "", text)     # a parenthetical is a gloss, not a separate funder
+    # a company suffix or an initial ('Yakult Honsha Co. Ltd.', 'F. Hoffmann-La Roche') does not end the funder list
+    text = re.split(r";|(?<!\bCo)(?<!(?<![\w/])[A-Z])\.\s|ClinicalTrials\.gov|trial registration", text,
+                    maxsplit=1, flags=re.I)[0]
     text = re.sub(r"\band others\b", "", text, flags=re.I)
     parts = re.split(r",|\band\b|&", text)
     out = []

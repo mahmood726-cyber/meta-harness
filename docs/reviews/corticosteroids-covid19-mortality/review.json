@@ -44,18 +44,20 @@
       "basis": [
         {
           "query": "Dexamethasone[Title] Covid-19[Title] randomized controlled trial mortality usual care",
-          "kind": "TITLE_ANCHORED",
+          "kind": "TITLE_RESTRICTED_CONCEPT",
           "features": [
             "title_field_tag:[Title]",
-            "title_field_tag:[Title]"
+            "title_field_tag:[Title]",
+            "title_restricted_concept"
           ]
         },
         {
           "query": "Hydrocortisone[Title] COVID-19[Title] randomized clinical trial mortality",
-          "kind": "TITLE_ANCHORED",
+          "kind": "TITLE_RESTRICTED_CONCEPT",
           "features": [
             "title_field_tag:[Title]",
-            "title_field_tag:[Title]"
+            "title_field_tag:[Title]",
+            "title_restricted_concept"
           ]
         },
         {
@@ -70,12 +72,28 @@
             "title_field_tag:[Title]",
             "title_field_tag:[Title]",
             "title_field_tag:[Title]",
-            "title_field_tag:[Title]"
+            "title_field_tag:[Title]",
+            "paper_title_in_title_field:randomized controlled trial mortality us",
+            "title_reconstruction:4_title_terms"
           ]
         }
       ],
       "screening_auditable": true,
       "retrieval_auditable": false,
+      "axes": {
+        "can_retrieve_unknown_trial": {
+          "answer": "YES",
+          "basis": "3 of 4 queries search a concept (free text or a title-restricted concept)"
+        },
+        "execution_documented": {
+          "answer": "PARTIAL",
+          "basis": "1 of 4 ledger sources record a run state and date; 0 record the hit count"
+        },
+        "coverage_adequate": {
+          "answer": "NOT_ESTABLISHED",
+          "basis": "no measured recall against an independent reference set is attached to this search"
+        }
+      },
       "distinction": "an auditable screening ledger attached to an unauditable retrieval process",
       "retraction": "We retract any claim of a registry-first or systematic search for this topic.",
       "search_provenance": {
@@ -871,9 +889,9 @@
         "id": "NCT04380818",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify).",
-        "span": "examined: “Low Dose Anti-inflammatory Radiotherapy for the Treatment of Pneumonia by COVID-19 Pneumon…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT04380818).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -1231,9 +1249,9 @@
         "id": "NCT05279391",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard care', 'standard therapy', 'standard treatment', 'no hydrocortisone']).",
-        "span": "examined: “Combination of Inhaled DNase, Baricitinib and Tocilizumab in Severe COVID-19 COVID-19 Seve…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT05279391).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -2528,8 +2546,50 @@
       "comparator_is_class": true,
       "intervention_level_match": true,
       "population_match": true,
-      "scope_valid": true,
-      "note": "same-question comparator (matching intervention level and population)"
+      "scope_valid": false,
+      "note": "related: trial-inventory map -- differs on effect_measure; not established: control, endpoint, population, intervention. Class and population match; that alone is not the same question",
+      "same_question": {
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "control": "NOT_ESTABLISHED",
+          "endpoint": "NOT_ESTABLISHED",
+          "effect_measure": "NO",
+          "population": "NOT_ESTABLISHED",
+          "intervention": "NOT_ESTABLISHED"
+        },
+        "differs": [
+          "effect_measure"
+        ],
+        "not_established": [
+          "control",
+          "endpoint",
+          "population",
+          "intervention"
+        ],
+        "dimensions": {
+          "control": {
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "endpoint": {
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "effect_measure": {
+            "ours": "RR",
+            "theirs": "OR",
+            "agrees": "NO",
+            "derived": true,
+            "why": "our served pooled RR vs the comparator's reported OR (28-day all-cause mortality)"
+          },
+          "population": {
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "intervention": {
+            "agrees": "NOT_ESTABLISHED"
+          }
+        },
+        "why": "differs on effect_measure; not established: control, endpoint, population, intervention"
+      }
     },
     "overlap": {
       "ours_k": 1,
@@ -2600,6 +2660,11 @@
       },
       "failures": [],
       "citation_defects": [],
+      "governing": {
+        "state": "GOVERNING",
+        "governing_pmid": "32876694",
+        "served_pmid": "32876694"
+      },
       "protocol": {
         "named_author": null,
         "title": "Association Between Administration of\nSystemic Corticosteroids and Mortality Among Critically Ill Patients With COVID-19:\nA Meta-analysis",
@@ -2943,11 +3008,11 @@
   "funding": [
     {
       "id": "PMID 32678530",
-      "type": "public funder named; industry tie not established",
+      "type": "industry tie present",
       "span": "(Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, <ext-link xmlns:xlink=\"http://www.w3.org/1999/xlink\" xlink:href=\"http://clinicaltrials.gov/show/NCT04381936\" ext-link-type=\"uri\">NCT04381936</ext-link>; ISRCTN number, <ext-link xmlns:xlink=\"http://www.w3.org/1999/xlink\" xlink:href=\"http://www.isrctn.com/ISRCTN50189673\" ext-link-type=\"uri\"",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "funding_state": "INDUSTRY_TIE_PRESENT",
       "typed": {
         "schema": "funding-typed-v1",
         "trial": "32678530",
@@ -3037,7 +3102,7 @@
             "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
           },
           {
-            "name": "Secure Anonymised Information Linkage (SAIL) at University of Swansea",
+            "name": "Secure Anonymised Information Linkage at University of Swansea",
             "class": "PUBLIC",
             "class_basis": "public/non-profit name marker: University",
             "source": "full-text funding statement",
@@ -3072,7 +3137,7 @@
             "span": "Guidelines issued by the U.K. chief medical officers and by the National Institutes of Health in the United States have already been updated to recommend the use of glucocorticoids in patients hospitalized with Covid-19. 27 , 39 We thank the thousands of patients who participated in this trial; the doctors, nurses, pharmacists, other allied health professionals, and research administrators at 176 NHS hospital organizations across the United Kingdom, supported by staff at the NIHR Clinical Research Network, NHS DigiTrials, Public Health England, Department of Health and Social Care, the Intensive Care National Audit and Research Centre, Public Health Scotland, National Records Service of Scotland, the Secure Anonymised Information Linkage (SAIL) at University of Swansea, and the NHS in England, Scotland, Wales, and Northern Ireland; and the members of the independent data monitoring committee: Peter Sandercock, Janet Darbyshire, David DeMets, Robert Fowler, David Lalloo, Ian Roberts, and Janet Wittes."
           },
           {
-            "name": "grant (MC_PC_19056) to the University of Oxford from UK Research",
+            "name": "grant to the University of Oxford from UK Research",
             "class": "PUBLIC",
             "class_basis": "public/non-profit name marker: University",
             "source": "full-text funding statement",
@@ -3086,7 +3151,7 @@
             "span": "Supported by a grant (MC_PC_19056) to the University of Oxford from UK Research and Innovation and the National Institute for Health Research ( NIHR ); and by core funding provided by NIHR Oxford Biomedical Research Centre, Wellcome, the Bill and Melinda Gates Foundation, the Department for International Development, Health Data Research UK, the Medical Research Council Population Health Research Unit, the NIHR Health Protection Unit in Emerging and Zoonotic Infections, and NIHR Clinical Trials Unit Support Funding."
           },
           {
-            "name": "National Institute for Health Research ( NIHR )",
+            "name": "National Institute for Health Research",
             "class": "PUBLIC",
             "class_basis": "public/non-profit name marker: National Institute for Health Research",
             "source": "full-text funding statement",
@@ -3535,6 +3600,20 @@
         ],
         "material_support": [
           {
+            "supplier": "Roche",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Roche",
+            "source": "full text",
+            "span": "Tocilizumab was provided free of charge for this study by Roche."
+          },
+          {
+            "supplier": "AbbVie",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: AbbVie",
+            "source": "full text",
+            "span": "AbbVie contributed some supplies of lopinavir–ritonavir for use in the trial."
+          },
+          {
             "supplier": "the National Health Service",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
@@ -3574,11 +3653,11 @@
             "state": "PARTIAL"
           }
         ],
-        "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "the funder list is partial ('and others' in the full-text funding statement); unclassified funder(s): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit",
-        "label": "public funder named; industry tie not established",
-        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
-        "sponsor_class": "public_named_tie_not_established",
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: AbbVie (full text); Roche (full text)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
         "needs_proposal": [
           "NHS DigiTrials",
           "Public Health England",
@@ -3610,7 +3689,7 @@
         }
       },
       "label_from_first_sentence": "public/non-profit",
-      "sponsor_class": "public_named_tie_not_established"
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 34138478",
@@ -82182,8 +82261,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 3 title/name-seeded queries; 1 free-text keyword queries.</div>",
-      "text_sha256": "0fe788cb26dd58fefa94269ca9999115f0941699fa59109aba16869ff6d67ab3",
+      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 1 title/name-seeded queries; 3 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>YES</strong> &mdash; 3 of 4 queries search a concept (free text or a title-restricted concept)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 1 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "c63fc8c197c1fb8d7db6889435c317f2b73dd7ce5e69ed6f1b553b3e0375e029",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -82385,8 +82464,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (6 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 32876695</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Ache Laboratorios Farmaceuticos S.A (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Hospital Israelita Albert Einstein <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Hospital do Coracao <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Brazilian Research In Intensive Care Network <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Ache Laboratorios Farmaceuticos S.A <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Hospital Sirio-Libanes <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Hospital Israelita Albert Einstein; Hospital do Coracao; Hospital Sirio-Libanes</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32678530</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the full-text funding statement); unclassified funder(s): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit<br>list completeness: full-text funding statement: PARTIAL; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; abstract funding sentence: PARTIAL<br>funder-role statement: “The funders had no role in the analysis of the data, in the preparation or approval of the manuscript, or in the decision to submit the manuscript for publication.”<br><em>first-sentence label was: public/non-profit</em></td><td>Medical Research Council <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research Clinical Research Network <code>PUBLIC</code> <em>(full-text funding statement)</em><br>staff at the NIHR Clinical Research Network <code>PUBLIC</code> <em>(full-text funding statement)</em><br>NHS DigiTrials <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Public Health England <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Department of Health <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Social Care <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Intensive Care National Audit <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Research Centre <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Public Health Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Records Service of Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Secure Anonymised Information Linkage (SAIL) at University of Swansea <code>PUBLIC</code> <em>(full-text funding statement)</em><br>NHS in England <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Wales <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Northern Ireland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>grant (MC_PC_19056) to the University of Oxford from UK Research <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Innovation <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Institute for Health Research ( NIHR ) <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research (NIHR) <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>United Kingdom Research and Innovation <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Biotechnology and Biological Sciences Research Council <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Kidney Research UK <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Wellcome Trust <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Cancer Research UK <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Academy of Medical Sciences <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>University of Oxford <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>UK Research and Innovation <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Institute for Health Research, United Kingdom <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Bill and Melinda Gates Foundation <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Department for International Development, United Kingdom <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Health Data Research UK <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Medical Research Council Population Health Research Unit <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>NIHR Health Protection Research Unit in Emerging and Zoonotic Infections <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Flu Lab <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>material support: the National Health Service <code>UNCLASSIFIED</code> &mdash; “Other medications, including dexamethasone, that were used in the trial were supplied by the National Health Service (NHS).”<br><em>unclassified (no registry category, no name marker): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit; Research Centre; Public Health Scotland; National Records Service of Scotland; NHS in England; Scotland; Wales; Northern Ireland; Innovation; Biotechnology and Biological Sciences Research Council; Kidney Research UK; Cancer Research UK; Academy of Medical Sciences; UK Research and Innovation; Health Data Research UK; Flu Lab</em></td><td>full text</td><td><strong>full text</strong>: (Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://clinicaltrials.gov/show/NCT04381936&quot; ext-link-type=&quot;uri&quot;&gt;NCT04381936&lt;/ext-link&gt;; ISRCTN number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://www.isrctn.com/ISRCTN50189673&quot; ext-link-type=&quot;uri&quot;</td></tr><tr><td>PMID 34138478</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Rigshospitalet, Denmark <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Copenhagen Trial Unit, Center for Clinical Intervention Research <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>University of Copenhagen <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Aarhus University Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Scandinavian Critical Care Trials Group <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876689</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>University Hospital, Tours <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876697</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Australian and New Zealand Intensive Care Research Centre <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Medical Research Institute of New Zealand <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Unity Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Berry Consultants <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Global Coalition for Adaptive Research <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>University of Pittsburgh Medical Center <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Intensive Care National Audit &amp; Research Centre <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>St. Marianna University School of Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Nat Intensive Care Surveillance - MORU <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>National University Hospital, Singapore <code>PUBLIC</code> <em>(AACT sponsors)</em><br>UMC Utrecht <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants; Global Coalition for Adaptive Research; Intensive Care National Audit &amp; Research Centre; Nat Intensive Care Surveillance - MORU; UMC Utrecht</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32785710</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado<br>funder-role statement: full text not held</td><td>Fundação de Medicina Tropical Dr. Heitor Vieira Dourado <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT04344730</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Assistance Publique - Hôpitaux de Paris<br>funder-role statement: full text not held</td><td>Assistance Publique - Hôpitaux de Paris <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Assistance Publique - Hôpitaux de Paris</em></td><td></td><td><strong></strong>: </td></tr></table></div>",
-      "text_sha256": "a987be7d1908f779722fc05c34fd4839355eff7beb930253c22bd6076c947d7c",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>2 of 2 known</strong> (5 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 32678530</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AbbVie (full text); Roche (full text)<br>list completeness: full-text funding statement: PARTIAL; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; abstract funding sentence: PARTIAL<br>funder-role statement: “The funders had no role in the analysis of the data, in the preparation or approval of the manuscript, or in the decision to submit the manuscript for publication.”<br><em>first-sentence label was: public/non-profit</em></td><td>Medical Research Council <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research <code>PUBLIC</code> <em>(full-text funding statement)</em><br>National Institute for Health Research Clinical Research Network <code>PUBLIC</code> <em>(full-text funding statement)</em><br>staff at the NIHR Clinical Research Network <code>PUBLIC</code> <em>(full-text funding statement)</em><br>NHS DigiTrials <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Public Health England <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Department of Health <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Social Care <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Intensive Care National Audit <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Research Centre <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Public Health Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Records Service of Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Secure Anonymised Information Linkage at University of Swansea <code>PUBLIC</code> <em>(full-text funding statement)</em><br>NHS in England <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Scotland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Wales <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Northern Ireland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>grant to the University of Oxford from UK Research <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Innovation <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>National Institute for Health Research (NIHR) <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>United Kingdom Research and Innovation <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Biotechnology and Biological Sciences Research Council <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Kidney Research UK <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Wellcome Trust <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Cancer Research UK <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Academy of Medical Sciences <code>UNCLASSIFIED</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>University of Oxford <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>UK Research and Innovation <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Institute for Health Research, United Kingdom <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Bill and Melinda Gates Foundation <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Department for International Development, United Kingdom <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Health Data Research UK <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Medical Research Council Population Health Research Unit <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>NIHR Health Protection Research Unit in Emerging and Zoonotic Infections <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Flu Lab <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>material support: Roche <code>INDUSTRY</code> &mdash; “Tocilizumab was provided free of charge for this study by Roche.”<br>material support: AbbVie <code>INDUSTRY</code> &mdash; “AbbVie contributed some supplies of lopinavir–ritonavir for use in the trial.”<br>material support: the National Health Service <code>UNCLASSIFIED</code> &mdash; “Other medications, including dexamethasone, that were used in the trial were supplied by the National Health Service (NHS).”<br><em>unclassified (no registry category, no name marker): NHS DigiTrials; Public Health England; Social Care; Intensive Care National Audit; Research Centre; Public Health Scotland; National Records Service of Scotland; NHS in England; Scotland; Wales; Northern Ireland; Innovation; Biotechnology and Biological Sciences Research Council; Kidney Research UK; Cancer Research UK; Academy of Medical Sciences; UK Research and Innovation; Health Data Research UK; Flu Lab</em></td><td>full text</td><td><strong>full text</strong>: (Funded by the Medical Research Council and National Institute for Health Research and others; RECOVERY ClinicalTrials.gov number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://clinicaltrials.gov/show/NCT04381936&quot; ext-link-type=&quot;uri&quot;&gt;NCT04381936&lt;/ext-link&gt;; ISRCTN number, &lt;ext-link xmlns:xlink=&quot;http://www.w3.org/1999/xlink&quot; xlink:href=&quot;http://www.isrctn.com/ISRCTN50189673&quot; ext-link-type=&quot;uri&quot;</td></tr><tr><td>PMID 32876695</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Ache Laboratorios Farmaceuticos S.A (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Hospital Israelita Albert Einstein <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Hospital do Coracao <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Brazilian Research In Intensive Care Network <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Ache Laboratorios Farmaceuticos S.A <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Hospital Sirio-Libanes <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Hospital Israelita Albert Einstein; Hospital do Coracao; Hospital Sirio-Libanes</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 34138478</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Rigshospitalet, Denmark <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Copenhagen Trial Unit, Center for Clinical Intervention Research <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>University of Copenhagen <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Aarhus University Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Scandinavian Critical Care Trials Group <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Rigshospitalet, Denmark; Copenhagen Trial Unit, Center for Clinical Intervention Research; Scandinavian Critical Care Trials Group</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876689</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>University Hospital, Tours <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32876697</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Australian and New Zealand Intensive Care Research Centre <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Medical Research Institute of New Zealand <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Unity Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Berry Consultants <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Global Coalition for Adaptive Research <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>University of Pittsburgh Medical Center <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Intensive Care National Audit &amp; Research Centre <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>St. Marianna University School of Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Nat Intensive Care Surveillance - MORU <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>National University Hospital, Singapore <code>PUBLIC</code> <em>(AACT sponsors)</em><br>UMC Utrecht <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Australian and New Zealand Intensive Care Research Centre; Medical Research Institute of New Zealand; Unity Health; Berry Consultants; Global Coalition for Adaptive Research; Intensive Care National Audit &amp; Research Centre; Nat Intensive Care Surveillance - MORU; UMC Utrecht</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32785710</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado<br>funder-role statement: full text not held</td><td>Fundação de Medicina Tropical Dr. Heitor Vieira Dourado <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Fundação de Medicina Tropical Dr. Heitor Vieira Dourado</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT04344730</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Assistance Publique - Hôpitaux de Paris<br>funder-role statement: full text not held</td><td>Assistance Publique - Hôpitaux de Paris <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Assistance Publique - Hôpitaux de Paris</em></td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "1ac05b6afbcc2d053498a044a2399e1b82d093ae527288634abd9f957c4d6d9f",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -82635,7 +82714,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
-    "review_sha256": "edee0cfcdf716d414cf817e21010ebedf382b1011244e67e1307ac13c179467f",
+    "review_sha256": "9c81113a64361b99cfa8e9b24d54bcb67400da4a7771d28d144788eab5cdcffc",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -82792,7 +82871,7 @@
       "retrieved_corpus_sha256": "78f98d299b6b85ffbeb62e06bfcb8907d02ca55988756034de58707af94069db",
       "records_file_sha256": "ce20eb6ad9c48de58eb217007f52e81405eb6ea3b13e981254fbfa7a2ed187c6",
       "retrieval_ledger_sha256": "cda45b72e7d45b1a0d8c53db73e38ad55c0451b6de3ee375b7f5eecb996eeb06",
-      "screening_ledger_sha256": "0a67e67acfda43417337deaf84b7a0664c375962bf29c08211ae2ad4b8916d78",
+      "screening_ledger_sha256": "dceee6679f4aa7a90a944173869915681379844beba59883376a0189a2b66ae2",
       "extraction_objects_sha256": "f4aedcd14c315200f6592ababa928a1069a1d8aa15973cc6dcbdc4b03b204033",
       "trial_family_map_sha256": "f6b424838bd1a23f77b817666ce45af55b83872a2f69eed516d283d7e7f8cc2f",
       "rob_object_sha256": "0c587d2d04f3869e193e8233f10770826648682c589b02ece67aea6822c37c65",
@@ -82806,12 +82885,28 @@
           "sha256": "c4af947077a8e0521f209f3a00ab83471e38e606294c7ded770c90e28c240ec9"
         },
         {
+          "ref": "cache/corticosteroids-covid19-mortality/comparator_identity.json",
+          "sha256": "7fe392b5a6df41bec4b58c1fc0ec293bfb3b4a0a0bdb1c68f75b4638b0e6cb96"
+        },
+        {
+          "ref": "cache/corticosteroids-covid19-mortality/comparator_reported_mismatches.json",
+          "sha256": "cbb7f7e1b4536d102cde2529ea8241a2ebb7bf573c41676e8dbed9f50346beb8"
+        },
+        {
           "ref": "cache/corticosteroids-covid19-mortality/ft_32678530.txt",
           "sha256": "9b432353a5e8d57fce6dfec263d0dfa134412754a1153f9988037528b8bc3db1"
+        },
+        {
+          "ref": "cache/corticosteroids-covid19-mortality/ghost_pub_links.json",
+          "sha256": "93fa99cf897afe1c1d964b4be62d53ca0edec5cfbe89076e7c26d93bcc82687b"
+        },
+        {
+          "ref": "cache/corticosteroids-covid19-mortality/pmc_links.json",
+          "sha256": "a40ba0d097d7b3f82f81792839a0e905ef024000509b50133508395bcf20e764"
         }
       ],
       "config_sha256": "a7c697b15c00b1c9cf40718d24398ee5bc133fb8d4e2aaacf7928265c0698531",
-      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
+      "analysis_code_sha256": "1f4fcf9a4342fea66cb546ff66219d756418b95fe68cee1709e2926f9a40b923",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -82824,14 +82919,15 @@
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
+        "harness/certificate.py": "430d848edba702b6078df670f33960ea6be90065",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
+        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
+        "harness/comparator_panel.py": "20756375fd7e4fb83c17646fa93e127f63ef51d6",
+        "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -82846,14 +82942,16 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
+        "harness/external_checkpoints.py": "bdecfa029cbdabc8edfbd817ab65f8ac7ef22e01",
+        "harness/extract.py": "4951913bee9e53b6bc5e68ae26bbc0a21f98cd31",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
+        "harness/family_pub_links.py": "884d9af36ed6db09abce7689e47c83a4a204996c",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
-        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
+        "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
+        "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
+        "harness/gate.py": "5049d4f2e2e322cd13daacdae9ac6ccad86119fe",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -82875,11 +82973,11 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
-        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
+        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/page.py": "ada8163e2530d3dad0fceb34459bd322b9ace212",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
-        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
+        "harness/pipeline.py": "bfc50236227b2d7ee9cfe338ffeb0551561592a1",
+        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -82890,16 +82988,17 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
+        "harness/screen.py": "c964462aa664b6e8b064be1299261e8f5be09a54",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
+        "harness/trial_family.py": "04a0ad5b157e3fe5d07b108f48bb5d84981a2a2e",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -82919,7 +83018,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "97 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -82950,7 +83049,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "1d56817b0f111a1068b4630c24375f38b24711bed849f4f8b213181038c1e7c5",
-      "review_sha256": "edee0cfcdf716d414cf817e21010ebedf382b1011244e67e1307ac13c179467f",
+      "review_sha256": "9c81113a64361b99cfa8e9b24d54bcb67400da4a7771d28d144788eab5cdcffc",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/corticosteroids-covid19-mortality.md UTF-8 text, universal newlines",
@@ -82962,7 +83061,7 @@
         "extraction_objects_sha256": "canonical ref-to-JSON map: cache/corticosteroids-covid19-mortality/verified_arms.json, cache/corticosteroids-covid19-mortality/verified_effects.json",
         "trial_family_map_sha256": "cache/corticosteroids-covid19-mortality/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/corticosteroids-covid19-mortality/rob2.json canonical JSON",
-        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
         "config_sha256": "canonical topics/<slug>.json",
         "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
         "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",
@@ -82970,7 +83069,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "428241a084d59a7e7c802633e3826162d46a8da0aa9d7e4b09b8be9f4e05a5a1"
+      "release_sha256": "1e74f9352e6c9bdd0cd3df2b26227f5eeb5b3947c79c282a7ff42ede72e176f0"
     }
   }
 }

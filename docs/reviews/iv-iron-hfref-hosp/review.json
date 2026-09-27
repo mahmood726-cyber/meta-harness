@@ -81,6 +81,20 @@
       ],
       "screening_auditable": true,
       "retrieval_auditable": false,
+      "axes": {
+        "can_retrieve_unknown_trial": {
+          "answer": "NO",
+          "basis": "every query names known reports (identifiers, trial names or titles)"
+        },
+        "execution_documented": {
+          "answer": "PARTIAL",
+          "basis": "1 of 4 ledger sources record a run state and date; 0 record the hit count"
+        },
+        "coverage_adequate": {
+          "answer": "NOT_ESTABLISHED",
+          "basis": "no measured recall against an independent reference set is attached to this search"
+        }
+      },
       "distinction": "an auditable screening ledger attached to an unauditable retrieval process",
       "retraction": "We retract any claim of a registry-first or systematic search for this topic.",
       "search_provenance": {
@@ -656,9 +670,9 @@
         "id": "Iron Turtle · NCT03079518",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard care', 'standard of care', 'control', 'no treatment']).",
-        "span": "examined: “Intravenous Iron in paTients With Heart failURe and Reduced Ejection fracTion (HFREF) pLus…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: Iron Turtle).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -2550,8 +2564,67 @@
       "comparator_is_class": false,
       "intervention_level_match": true,
       "population_match": true,
-      "scope_valid": true,
-      "note": "same-question comparator (matching intervention level and population)"
+      "scope_valid": false,
+      "note": "related: trial-inventory map -- differs on intervention; not established: control, endpoint, effect_measure, population. Class and population match; that alone is not the same question",
+      "same_question": {
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "control": "NOT_ESTABLISHED",
+          "endpoint": "NOT_ESTABLISHED",
+          "effect_measure": "NOT_ESTABLISHED",
+          "population": "NOT_ESTABLISHED",
+          "intervention": "NO"
+        },
+        "differs": [
+          "intervention"
+        ],
+        "not_established": [
+          "control",
+          "endpoint",
+          "effect_measure",
+          "population"
+        ],
+        "dimensions": {
+          "control": {
+            "ours": "placebo, usual care, standard care, standard of care, control, no treatment",
+            "theirs": "Placebo or standard of care",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "endpoint": {
+            "ours": "Heart-failure hospitalization",
+            "theirs": "Total HF hospitalizations",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "effect_measure": {
+            "ours": "RR",
+            "theirs": "OR",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "population": {
+            "ours": "In adults with heart failure with reduced ejection fraction and iron deficiency, does intravenous iron reduce heart-failure hospitalization versus placebo or standard care?",
+            "theirs": "HFrEF with ID/IDA",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "intervention": {
+            "ours": "ferric carboxymaltose, ferric derisomaltose, iron sucrose",
+            "theirs": "Intravenous ferric carboxymaltose only",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "topics/iv-iron-hfref-hosp.json",
+                "quote": "question\": \"In adults with heart failure with reduced ejection fraction and iron deficiency, does intravenous iron reduce heart-failure hospitalization versus placebo or standard care?"
+              },
+              {
+                "document_ref": "cache/iv-iron-hfref-hosp/records.json",
+                "record_id": "39727669",
+                "quote": "the severity of HF. Intravenous ferric carboxymaltose (FCM) has been associated with improvements in clinical outcomes, functional capacity, and quality of life (QoL) in patients with HF and ID. However, while earlier studies showed favorable results, more rec"
+              }
+            ]
+          }
+        },
+        "why": "differs on intervention; not established: control, endpoint, effect_measure, population"
+      }
     },
     "overlap": {
       "ours_k": 2,
@@ -2747,6 +2820,11 @@
         "author: NOT_AMONG_RESOLVED: 'Parmananda' is not one of the 5 authors (first: Padda I)"
       ],
       "citation_defects": [],
+      "governing": {
+        "state": "GOVERNING",
+        "governing_pmid": "39727669",
+        "served_pmid": "39727669"
+      },
       "protocol": {
         "named_author": "Parmananda",
         "title": "The Efficacy and Safety of Ferric\nCarboxymaltose in Heart Failure with Reduced Ejection Fraction and Iron Deficiency:\nAn Updated Systematic Review and Meta-Analysis of Randomized Controlled Trials",
@@ -3300,15 +3378,36 @@
   "funding": [
     {
       "id": "PMID 40159390",
-      "type": "public funder named; industry tie not established",
+      "type": "industry tie present",
       "span": "",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "funding_state": "INDUSTRY_TIE_PRESENT",
       "typed": {
         "schema": "funding-typed-v1",
         "trial": "40159390",
         "funders": [
+          {
+            "name": "German Center for Cardiovascular Research",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Funding/Support: The study was financed by the German Center for Cardiovascular Research (Deutsches Zentrum für Herz-Kreislauf-Forschung eV), CSL Vifor (an unrestricted scientific grant and free provision of 0.9% saline and ferric carboxymaltose), and the German Heart Foundation (Deutsche Herzstiftung eV)."
+          },
+          {
+            "name": "CSL Vifor",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: CSL",
+            "source": "full-text funding statement",
+            "span": "Funding/Support: The study was financed by the German Center for Cardiovascular Research (Deutsches Zentrum für Herz-Kreislauf-Forschung eV), CSL Vifor (an unrestricted scientific grant and free provision of 0.9% saline and ferric carboxymaltose), and the German Heart Foundation (Deutsche Herzstiftung eV)."
+          },
+          {
+            "name": "German Heart Foundation",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: Foundation",
+            "source": "full-text funding statement",
+            "span": "Funding/Support: The study was financed by the German Center for Cardiovascular Research (Deutsches Zentrum für Herz-Kreislauf-Forschung eV), CSL Vifor (an unrestricted scientific grant and free provision of 0.9% saline and ferric carboxymaltose), and the German Heart Foundation (Deutsche Herzstiftung eV)."
+          },
           {
             "name": "Universitätsklinikum Hamburg-Eppendorf",
             "class": "UNCLASSIFIED",
@@ -3373,12 +3472,13 @@
             "state": "COMPLETE"
           }
         ],
-        "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "unclassified funder(s): Universitätsklinikum Hamburg-Eppendorf; Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK); Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK); Universitätsklinikum Hamburg-Eppendorf",
-        "label": "public funder named; industry tie not established",
-        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
-        "sponsor_class": "public_named_tie_not_established",
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: CSL Vifor (full-text funding statement)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "mixed",
         "needs_proposal": [
+          "German Center for Cardiovascular Research",
           "Universitätsklinikum Hamburg-Eppendorf",
           "Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK)",
           "Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK)",
@@ -3390,7 +3490,7 @@
         }
       },
       "label_from_first_sentence": "not stated (full text scanned)",
-      "sponsor_class": "public_named_tie_not_established"
+      "sponsor_class": "mixed"
     },
     {
       "id": "PMID 25176939",
@@ -3643,7 +3743,7 @@
         "trial": "28701470",
         "funders": [
           {
-            "name": "Sources of Funding The study was sponsored by Vifor Pharma",
+            "name": "Vifor Pharma",
             "class": "INDUSTRY",
             "class_basis": "industry name marker: Vifor",
             "source": "full-text funding statement",
@@ -3657,7 +3757,7 @@
             "span": "Sources of Funding The study was sponsored by Vifor Pharma, Switzerland."
           },
           {
-            "name": "Sources of Funding The study was sponsored by Vifor Pharma",
+            "name": "Vifor Pharma",
             "class": "INDUSTRY",
             "class_basis": "industry name marker: Vifor",
             "source": "full-text funding sentence (sentence classifier)",
@@ -3689,7 +3789,7 @@
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: Sources of Funding The study was sponsored by Vifor Pharma (full-text funding sentence (sentence classifier)); Sources of Funding The study was sponsored by Vifor Pharma (full-text funding statement); Vifor Pharma (AACT sponsors)",
+        "industry_tie_basis": "industry named by: Vifor Pharma (AACT sponsors); Vifor Pharma (full-text funding sentence (sentence classifier)); Vifor Pharma (full-text funding statement)",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "industry",
@@ -3797,48 +3897,6 @@
             "span": "Funding The AFFIRM-AHF trial was funded by Vifor Pharma."
           },
           {
-            "name": "Astra Zeneca",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "M.K. reports grants from Astra Zeneca, Boehringer Ingelheim; personal fees from Amgen, Applied Therapeutics, Astra Zeneca, Bayer, Boehringer Ingelheim, Eli Lilly, Janssen, Merck (Diabetes), Novo Nordisk, Sanofi and Vifor Pharma."
-          },
-          {
-            "name": "Boehringer Ingelheim",
-            "class": "INDUSTRY",
-            "class_basis": "industry name marker: Boehringer",
-            "source": "full-text funding statement",
-            "span": "M.K. reports grants from Astra Zeneca, Boehringer Ingelheim; personal fees from Amgen, Applied Therapeutics, Astra Zeneca, Bayer, Boehringer Ingelheim, Eli Lilly, Janssen, Merck (Diabetes), Novo Nordisk, Sanofi and Vifor Pharma."
-          },
-          {
-            "name": "Abbott",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "F.R. reports personal fees from Vifor for his role in the Clinical Event Adjudication Committee for Vifor in 2016, during the conduct of the study; F.R. has not received personal payments by pharmaceutical companies or device manufacturers in the last 3 years (remuneration for the time spent in activities, such as participation in and steering committee member of clinical trials, were made directly to the University of Zurich); the Department of Cardiology (University Hospital of Zurich/University of Zurich) reports research-, educational-, and/or travel grants from Abbott, Amgen, Astra Zeneca, Bayer, B."
-          },
-          {
-            "name": "Amgen",
-            "class": "INDUSTRY",
-            "class_basis": "industry name marker: Amgen",
-            "source": "full-text funding statement",
-            "span": "F.R. reports personal fees from Vifor for his role in the Clinical Event Adjudication Committee for Vifor in 2016, during the conduct of the study; F.R. has not received personal payments by pharmaceutical companies or device manufacturers in the last 3 years (remuneration for the time spent in activities, such as participation in and steering committee member of clinical trials, were made directly to the University of Zurich); the Department of Cardiology (University Hospital of Zurich/University of Zurich) reports research-, educational-, and/or travel grants from Abbott, Amgen, Astra Zeneca, Bayer, B."
-          },
-          {
-            "name": "Astra Zeneca",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "F.R. reports personal fees from Vifor for his role in the Clinical Event Adjudication Committee for Vifor in 2016, during the conduct of the study; F.R. has not received personal payments by pharmaceutical companies or device manufacturers in the last 3 years (remuneration for the time spent in activities, such as participation in and steering committee member of clinical trials, were made directly to the University of Zurich); the Department of Cardiology (University Hospital of Zurich/University of Zurich) reports research-, educational-, and/or travel grants from Abbott, Amgen, Astra Zeneca, Bayer, B."
-          },
-          {
-            "name": "Bayer",
-            "class": "INDUSTRY",
-            "class_basis": "industry name marker: Bayer",
-            "source": "full-text funding statement",
-            "span": "F.R. reports personal fees from Vifor for his role in the Clinical Event Adjudication Committee for Vifor in 2016, during the conduct of the study; F.R. has not received personal payments by pharmaceutical companies or device manufacturers in the last 3 years (remuneration for the time spent in activities, such as participation in and steering committee member of clinical trials, were made directly to the University of Zurich); the Department of Cardiology (University Hospital of Zurich/University of Zurich) reports research-, educational-, and/or travel grants from Abbott, Amgen, Astra Zeneca, Bayer, B."
-          },
-          {
             "name": "Vifor Pharma",
             "class": "INDUSTRY",
             "class_basis": "industry name marker: Vifor",
@@ -3858,30 +3916,14 @@
           {
             "source": "full-text funding statement",
             "state": "COMPLETE"
-          },
-          {
-            "source": "full-text funding statement",
-            "state": "COMPLETE"
-          },
-          {
-            "source": "full-text funding statement",
-            "state": "COMPLETE"
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: Amgen (full-text funding statement); Bayer (full-text funding statement); Boehringer Ingelheim (full-text funding statement); Vifor Pharma (full-text funding sentence (sentence classifier)); Vifor Pharma (full-text funding statement)",
+        "industry_tie_basis": "industry named by: Vifor Pharma (full-text funding sentence (sentence classifier)); Vifor Pharma (full-text funding statement)",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "industry",
-        "needs_proposal": [
-          "Astra Zeneca",
-          "Abbott",
-          "Astra Zeneca"
-        ],
-        "proposal": {
-          "state": "PROPOSAL_NOT_REQUESTED",
-          "applied": false
-        }
+        "needs_proposal": []
       },
       "label_from_first_sentence": "industry",
       "sponsor_class": "industry"
@@ -34429,8 +34471,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 4 title/name-seeded queries; 0 free-text keyword queries.</div>",
-      "text_sha256": "a8488b742c6310fa80ead89f07178619335265a9f972636486bfe6eb0934dc60",
+      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 4 title/name-seeded queries; 0 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>NO</strong> &mdash; every query names known reports (identifiers, trial names or titles)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 1 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "719f353c24711f00d1dd203d726258a7afffd2bac45a7ce6e8e7ec93b3b8b099",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -34773,8 +34815,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>7 of 7 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 25176939</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: ICON Clinical Research (AACT sponsors); ICON Clinical Research (ClinicalTrials.gov sponsor/collaborators (held API record)); Vifor Pharma (AACT sponsors); Vifor Pharma (ClinicalTrials.gov sponsor/collaborators (held API record)); Vifor Pharma Ltd (full-text funding sentence (sentence classifier)); Vifor Pharma Ltd (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>good safety profile <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>was well-tolerated <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Vifor Pharma Ltd <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Glattbrugg <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Switzerland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Vifor Pharma <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>ICON Clinical Research <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): good safety profile; was well-tolerated; Glattbrugg; Switzerland</em></td><td>full text</td><td><strong>full text</strong>: &lt;/ext-link&gt;&lt;/p&gt;&lt;/sec&gt;&lt;sec id=&quot;s6&quot;&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;This work was supported by Vifor Pharma Ltd., Glattbrugg, Switzerland.&lt;/p&gt;&lt;p&gt;&lt;bold&gt;Conflict of interest:&lt;/bold&gt; P.P. received honoraria from Vifor Pharma Ltd. as member of the CONFIRM-HF Steering Committee, is a consultant and has received honoraria for speaking from Vifor Pharma Ltd. and Amgen, Inc.</td></tr><tr><td>PMID 19920054</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: ClinStar, LLC (AACT sponsors); Vifor Pharma (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Syneos Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>ClinStar, LLC <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Vifor Pharma <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Syneos Health</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 28701470</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Sources of Funding The study was sponsored by Vifor Pharma (full-text funding sentence (sentence classifier)); Sources of Funding The study was sponsored by Vifor Pharma (full-text funding statement); Vifor Pharma (AACT sponsors)<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>Sources of Funding The study was sponsored by Vifor Pharma <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Switzerland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Vifor Pharma <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Switzerland</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/sec&gt;&lt;sec&gt;&lt;title&gt;Sources of Funding&lt;/title&gt;&lt;p&gt;The study was sponsored by Vifor Pharma, Switzerland.</td></tr><tr><td>PMID 33197395</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Cytel Inc (AACT sponsors); Vifor (International) Inc (AACT sponsors); Vifor Pharma (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>Vifor Pharma <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Worldwide Clinical Trials <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Cytel Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Vifor (International) Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Worldwide Clinical Trials</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Vifor Pharma.</td></tr><tr><td>PMID 34080008</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Amgen (full-text funding statement); Bayer (full-text funding statement); Boehringer Ingelheim (full-text funding statement); Vifor Pharma (full-text funding sentence (sentence classifier)); Vifor Pharma (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>Vifor Pharma <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Astra Zeneca <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Boehringer Ingelheim <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Abbott <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Amgen <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Bayer <code>INDUSTRY</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Astra Zeneca; Abbott</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/caption&gt;&lt;/media&gt;&lt;/supplementary-material&gt;&lt;/sec&gt;&lt;/body&gt;&lt;back&gt;&lt;ack id=&quot;ack1&quot;&gt;&lt;title&gt;Acknowledgements&lt;/title&gt;&lt;p&gt;We are grateful to the patients, their families, and the investigators for their participation in this study; Dr Teba Haboubi, Dr Emanuele Noseda, and the respective study teams for study monitoring and management; and Dr Bridget-Anne Kirwan, Ms Caroline Gombault, Mr Robin Wegmüller (SOCAR Research), and Ms Helen Sims (AXON Communications) who provided editorial assistance with the preparation of the tables and figures, funded by Vifor Pharma.&lt;/p&gt;&lt;sec&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;The AFFIRM-AHF trial was funded by Vifor Pharma.&lt;/p&gt;&lt;p&gt; &lt;bold&gt;Conflict of interest:&lt;/bold&gt; E.A.J. has received research grants and personal fees from Vifor Pharma (co-PI of the AFFIRM trial); personal fees from Bayer, Novartis, Abbott, Boehringer Ingelheim, Pfizer, Servier, AstraZeneca, Berlin Chemie, Cardiac Dimensions, Fresenius, and Gedeon Richter.</td></tr><tr><td>PMID 37632463</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: American Regent, Inc (AACT sponsors); Daiichi Sankyo Group company (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>American Regent <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Daiichi Sankyo Group company <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Duke Clinical Research Institute <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>American Regent, Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): American Regent; Duke Clinical Research Institute</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by American Regent, a Daiichi Sankyo Group company; HEART-FID ClinicalTrials.gov number, NCT03037931.).</td></tr><tr><td>PMID 36347265</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Pharmacosmos A/S (AACT sponsors)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>British Heart Foundation <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>Pharmacosmos <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>NHS Greater Glasgow and Clyde <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Pharmacosmos A/S <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>University of Glasgow <code>PUBLIC</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Pharmacosmos; NHS Greater Glasgow and Clyde</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: British Heart Foundation and Pharmacosmos.</td></tr><tr><td>PMID 40159390</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): Universitätsklinikum Hamburg-Eppendorf; Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK); Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK); Universitätsklinikum Hamburg-Eppendorf<br>list completeness: full-text funding statement: COMPLETE<br>funder-role statement: “Role of the Funder/Sponsor: The funders/sponsors had no role in the design and conduct of the study; collection, management, analysis, and interpretation of the data; preparation, review, or approval of the manuscript; and decision to submit the manuscript for publication.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Universitätsklinikum Hamburg-Eppendorf <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK) <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Charite University, Berlin, Germany <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): Universitätsklinikum Hamburg-Eppendorf; Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK)</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 18191732</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Wexham Park Hospital; 4th Military Clinical Hospital with Polyclinic, Poland; National Heart and Lung Institute<br>funder-role statement: full text not held</td><td>Wexham Park Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>4th Military Clinical Hospital with Polyclinic, Poland <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>National Heart and Lung Institute <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Wexham Park Hospital; 4th Military Clinical Hospital with Polyclinic, Poland; National Heart and Lung Institute</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "7c3fc9cd6ba9691bf3809c8241a4378e9f34b57dcd85b366ce94006932f1b3b4",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>8 of 8 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 25176939</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: ICON Clinical Research (AACT sponsors); ICON Clinical Research (ClinicalTrials.gov sponsor/collaborators (held API record)); Vifor Pharma (AACT sponsors); Vifor Pharma (ClinicalTrials.gov sponsor/collaborators (held API record)); Vifor Pharma Ltd (full-text funding sentence (sentence classifier)); Vifor Pharma Ltd (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>good safety profile <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>was well-tolerated <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Vifor Pharma Ltd <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Glattbrugg <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Switzerland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Vifor Pharma <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>ICON Clinical Research <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): good safety profile; was well-tolerated; Glattbrugg; Switzerland</em></td><td>full text</td><td><strong>full text</strong>: &lt;/ext-link&gt;&lt;/p&gt;&lt;/sec&gt;&lt;sec id=&quot;s6&quot;&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;This work was supported by Vifor Pharma Ltd., Glattbrugg, Switzerland.&lt;/p&gt;&lt;p&gt;&lt;bold&gt;Conflict of interest:&lt;/bold&gt; P.P. received honoraria from Vifor Pharma Ltd. as member of the CONFIRM-HF Steering Committee, is a consultant and has received honoraria for speaking from Vifor Pharma Ltd. and Amgen, Inc.</td></tr><tr><td>PMID 19920054</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: ClinStar, LLC (AACT sponsors); Vifor Pharma (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Syneos Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>ClinStar, LLC <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Vifor Pharma <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Syneos Health</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 28701470</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Vifor Pharma (AACT sponsors); Vifor Pharma (full-text funding sentence (sentence classifier)); Vifor Pharma (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>Vifor Pharma <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Switzerland <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Switzerland</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/sec&gt;&lt;sec&gt;&lt;title&gt;Sources of Funding&lt;/title&gt;&lt;p&gt;The study was sponsored by Vifor Pharma, Switzerland.</td></tr><tr><td>PMID 33197395</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Cytel Inc (AACT sponsors); Vifor (International) Inc (AACT sponsors); Vifor Pharma (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>Vifor Pharma <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Worldwide Clinical Trials <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Cytel Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Vifor (International) Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Worldwide Clinical Trials</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Vifor Pharma.</td></tr><tr><td>PMID 34080008</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Vifor Pharma (full-text funding sentence (sentence classifier)); Vifor Pharma (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>Vifor Pharma <code>INDUSTRY</code> <em>(full-text funding statement)</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/caption&gt;&lt;/media&gt;&lt;/supplementary-material&gt;&lt;/sec&gt;&lt;/body&gt;&lt;back&gt;&lt;ack id=&quot;ack1&quot;&gt;&lt;title&gt;Acknowledgements&lt;/title&gt;&lt;p&gt;We are grateful to the patients, their families, and the investigators for their participation in this study; Dr Teba Haboubi, Dr Emanuele Noseda, and the respective study teams for study monitoring and management; and Dr Bridget-Anne Kirwan, Ms Caroline Gombault, Mr Robin Wegmüller (SOCAR Research), and Ms Helen Sims (AXON Communications) who provided editorial assistance with the preparation of the tables and figures, funded by Vifor Pharma.&lt;/p&gt;&lt;sec&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;The AFFIRM-AHF trial was funded by Vifor Pharma.&lt;/p&gt;&lt;p&gt; &lt;bold&gt;Conflict of interest:&lt;/bold&gt; E.A.J. has received research grants and personal fees from Vifor Pharma (co-PI of the AFFIRM trial); personal fees from Bayer, Novartis, Abbott, Boehringer Ingelheim, Pfizer, Servier, AstraZeneca, Berlin Chemie, Cardiac Dimensions, Fresenius, and Gedeon Richter.</td></tr><tr><td>PMID 37632463</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: American Regent, Inc (AACT sponsors); Daiichi Sankyo Group company (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>American Regent <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Daiichi Sankyo Group company <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>Duke Clinical Research Institute <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>American Regent, Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): American Regent; Duke Clinical Research Institute</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by American Regent, a Daiichi Sankyo Group company; HEART-FID ClinicalTrials.gov number, NCT03037931.).</td></tr><tr><td>PMID 40159390</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: CSL Vifor (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE<br>funder-role statement: “Role of the Funder/Sponsor: The funders/sponsors had no role in the design and conduct of the study; collection, management, analysis, and interpretation of the data; preparation, review, or approval of the manuscript; and decision to submit the manuscript for publication.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>German Center for Cardiovascular Research <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>CSL Vifor <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>German Heart Foundation <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Universitätsklinikum Hamburg-Eppendorf <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK) <code>UNCLASSIFIED</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Charite University, Berlin, Germany <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): German Center for Cardiovascular Research; Universitätsklinikum Hamburg-Eppendorf; Deutsches Zentrum für Herz-Kreislauf-Forschung (DZHK)</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 36347265</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Pharmacosmos A/S (AACT sponsors)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>British Heart Foundation <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>Pharmacosmos <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>NHS Greater Glasgow and Clyde <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Pharmacosmos A/S <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>University of Glasgow <code>PUBLIC</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Pharmacosmos; NHS Greater Glasgow and Clyde</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: British Heart Foundation and Pharmacosmos.</td></tr><tr><td>PMID 18191732</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Wexham Park Hospital; 4th Military Clinical Hospital with Polyclinic, Poland; National Heart and Lung Institute<br>funder-role statement: full text not held</td><td>Wexham Park Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>4th Military Clinical Hospital with Polyclinic, Poland <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>National Heart and Lung Institute <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Wexham Park Hospital; 4th Military Clinical Hospital with Polyclinic, Poland; National Heart and Lung Institute</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "d2348bb2c17ed7f32ec8a4e1b92b11cabb4e4b62ec12ab9193409675f0cab4ab",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -35351,7 +35393,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "c97f0b67c2671f2fa2959d0e12c5785c17f1dce358a5b3b960f267628bbee237",
+    "review_sha256": "39ac021288c54d0e48588358544f77b55301eea9cb5d5400bf58ff383f0ee561",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -35497,7 +35539,7 @@
       "retrieved_corpus_sha256": "242ba9983fe96544b88c97fb43584672b215b077524a2168bff0b7783ccee051",
       "records_file_sha256": "d147cd17fecfdc75a99f6518acf682444108f1901274afdb28cb7789f5b9cc1f",
       "retrieval_ledger_sha256": "ad0e01ca49f119e15f4611b66042558f16d62fc866dc7f2e89ecb0f047fc949c",
-      "screening_ledger_sha256": "278f07fedbd77ce7ae94ba9332ba09f08395ad741205fa2a07bcf47493aa86c7",
+      "screening_ledger_sha256": "c63cef3c0cd770cbe8a4f75288f67c70c0f4ea45d6ceaa0e936732050b22926d",
       "extraction_objects_sha256": "0ff977d0db2510dfb4ec6db72fe981055f7c39b5a46ea4ce160b7e2141ebbf98",
       "trial_family_map_sha256": "a8ad60051b4dbf50636fd8a0ecc50ca77c7c4ed473acfb7f3b1147e928dcb916",
       "rob_object_sha256": "02a961fd0b5297a2f2a19b2756be2dd1d11d61118c016a466542b70cf8d556e8",
@@ -35509,6 +35551,18 @@
         {
           "ref": "cache/iv-iron-hfref-hosp/comparator_fulltext.txt",
           "sha256": "1ad28889226f9ad0726ec30f61a2c0fce6fe70f44bde9f0f509601aafb5373b7"
+        },
+        {
+          "ref": "cache/iv-iron-hfref-hosp/comparator_identity.json",
+          "sha256": "a75d1d65a8d55a4bcca07d95716f3af8f8375962e5d965bc7cf186a76416eeba"
+        },
+        {
+          "ref": "cache/iv-iron-hfref-hosp/comparator_pmc_jats.xml",
+          "sha256": "fb7df5eea630f9318d50d45308a4996bee55f395c38884f936bf3b4e24b293ee"
+        },
+        {
+          "ref": "cache/iv-iron-hfref-hosp/comparator_question.json",
+          "sha256": "9b2f035ca4d23fe09d84a24205b83865cf5c8271aebd47a9426fa7cc1593333d"
         },
         {
           "ref": "cache/iv-iron-hfref-hosp/ft_25176939.txt",
@@ -35525,10 +35579,14 @@
         {
           "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
           "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661"
+        },
+        {
+          "ref": "cache/iv-iron-hfref-hosp/pmc_links.json",
+          "sha256": "ab86d1cbbf3a908c3a22b4bd48a2c9c1b115fbd061c601ccf6c77bf8fd7f0469"
         }
       ],
       "config_sha256": "f09cda80d6a994f59d417d8384380d846eab17f9fa1828dad1ae2c37d17272c2",
-      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
+      "analysis_code_sha256": "1f4fcf9a4342fea66cb546ff66219d756418b95fe68cee1709e2926f9a40b923",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -35541,14 +35599,15 @@
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
+        "harness/certificate.py": "430d848edba702b6078df670f33960ea6be90065",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
+        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
+        "harness/comparator_panel.py": "20756375fd7e4fb83c17646fa93e127f63ef51d6",
+        "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -35563,14 +35622,16 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
+        "harness/external_checkpoints.py": "bdecfa029cbdabc8edfbd817ab65f8ac7ef22e01",
+        "harness/extract.py": "4951913bee9e53b6bc5e68ae26bbc0a21f98cd31",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
+        "harness/family_pub_links.py": "884d9af36ed6db09abce7689e47c83a4a204996c",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
-        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
+        "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
+        "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
+        "harness/gate.py": "5049d4f2e2e322cd13daacdae9ac6ccad86119fe",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -35592,11 +35653,11 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
-        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
+        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/page.py": "ada8163e2530d3dad0fceb34459bd322b9ace212",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
-        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
+        "harness/pipeline.py": "bfc50236227b2d7ee9cfe338ffeb0551561592a1",
+        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -35607,16 +35668,17 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
+        "harness/screen.py": "c964462aa664b6e8b064be1299261e8f5be09a54",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
+        "harness/trial_family.py": "04a0ad5b157e3fe5d07b108f48bb5d84981a2a2e",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -35636,7 +35698,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "97 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -35667,7 +35729,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "1cfbb1fa5b33d3fad822e2edf6e645ad64ed825fd45429fd75e862b8dc336d61",
-      "review_sha256": "c97f0b67c2671f2fa2959d0e12c5785c17f1dce358a5b3b960f267628bbee237",
+      "review_sha256": "39ac021288c54d0e48588358544f77b55301eea9cb5d5400bf58ff383f0ee561",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -35679,7 +35741,7 @@
         "extraction_objects_sha256": "canonical ref-to-JSON map: cache/iv-iron-hfref-hosp/verified_effects.json",
         "trial_family_map_sha256": "cache/iv-iron-hfref-hosp/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/iv-iron-hfref-hosp/rob2.json canonical JSON",
-        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
         "config_sha256": "canonical topics/<slug>.json",
         "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
         "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",
@@ -35687,7 +35749,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "74a4dce10111dfb62cbd402d78ea4d774136996a16c77e7c4151f4b293bef81b"
+      "release_sha256": "015dcc9bd9bbd79d3bd40714068095e38b9c34ae3ab76e0b09661de8a13b145a"
     }
   }
 }

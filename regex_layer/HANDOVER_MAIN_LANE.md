@@ -30,7 +30,7 @@ never a gate on your commits: a pattern you change is skipped as STALE (`regex_l
 | RX-OL15 | funding.py | sponsor split on '&' ('Johnson & Johnson' becomes two sponsors; 9 lists) |
 | RX-OL17 | hand_binding.py | table rows with attributes dropped (17 rows) |
 | RX-OL32 | consumer_consistency.py | abbreviated 'OR 0.34, 95% CI' not counted as a published effect |
-| RX-OL9 | funding.py | 'Inc.' before a space never matches; 2 documents change class |
+| RX-OL9 | funding.py | FIXED in V1.0.1 by the funding audit ('Inc.' now marks industry; plant passes, xfail removed) |
 
 The full list, including the latent ones, is in `regex_layer/defects.py` (every RX-OL entry says latent or
 reachable).

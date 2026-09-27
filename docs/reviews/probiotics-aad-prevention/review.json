@@ -65,6 +65,20 @@
       ],
       "screening_auditable": true,
       "retrieval_auditable": false,
+      "axes": {
+        "can_retrieve_unknown_trial": {
+          "answer": "YES",
+          "basis": "4 of 4 queries search a concept (free text or a title-restricted concept)"
+        },
+        "execution_documented": {
+          "answer": "PARTIAL",
+          "basis": "1 of 4 ledger sources record a run state and date; 0 record the hit count"
+        },
+        "coverage_adequate": {
+          "answer": "NOT_ESTABLISHED",
+          "basis": "no measured recall against an independent reference set is attached to this search"
+        }
+      },
       "distinction": "an auditable screening ledger attached to an unauditable retrieval process",
       "retraction": "We retract any claim of a registry-first or systematic search for this topic.",
       "search_provenance": {
@@ -6246,9 +6260,9 @@
         "id": "NCT00748748",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'control', 'no treatment', 'usual care', 'standard care', 'no probiotic', 'not receive', 'not receiving']).",
-        "span": "examined: “Effect of Lactobacillus Probiotic on Healthy Adults Antibiotic-associated Diarrhea Culture…”",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT00748748).",
+        "span": "publication types: (no publication types)",
         "found_by": [
           "UNRECORDED"
         ],
@@ -17054,6 +17068,65 @@
       "population_match": false,
       "scope_valid": false,
       "note": "adult-only comparator vs a pool containing paediatric trials; population scope does not match even though the broad topic label is similar",
+      "same_question": {
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "control": "NOT_ESTABLISHED",
+          "endpoint": "NOT_ESTABLISHED",
+          "effect_measure": "YES",
+          "population": "NO",
+          "intervention": "NOT_ESTABLISHED"
+        },
+        "differs": [
+          "population"
+        ],
+        "not_established": [
+          "control",
+          "endpoint",
+          "intervention"
+        ],
+        "dimensions": {
+          "control": {
+            "ours": "Placebo or no probiotic",
+            "theirs": "Placebo or no treatment in overall analysis; dose comparisons in secondary analyses",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "endpoint": {
+            "ours": "Antibiotic-associated diarrhoea",
+            "theirs": "Incidence of antibiotic-associated diarrhoea",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "effect_measure": {
+            "ours": "RR",
+            "theirs": "RR",
+            "agrees": "YES",
+            "derived": true,
+            "why": "our served pooled RR vs the comparator's reported RR (Antibiotic-associated diarrhoea)"
+          },
+          "population": {
+            "ours": "Patients receiving antibiotics (no age restriction stated)",
+            "theirs": "Adults receiving antibiotics; paediatric studies excluded",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "topics/probiotics-aad-prevention.json",
+                "quote": "question\": \"In patients receiving antibiotics, do probiotics reduce antibiotic-associated diarrhoea versus placebo or no probiotic?"
+              },
+              {
+                "document_ref": "cache/probiotics-aad-prevention/comparator_fulltext.txt",
+                "quote": "Studies of paediatric populations were excluded. The primary outcome measure was incidence of AAD, as defined by authors, during the antibiotic treatment or follow-up phases. Studies were excluded if they examined probiotics only for treatment, rather than pre"
+              }
+            ]
+          },
+          "intervention": {
+            "ours": "Probiotics",
+            "theirs": "Probiotics co-administered with antibiotics",
+            "agrees": "NOT_ESTABLISHED"
+          }
+        },
+        "why": "differs on population; not established: control, endpoint, intervention"
+      },
       "topic_intervention_level": "intervention_class",
       "topic_intervention_class": "probiotic preparations",
       "comparator_intervention_level": "intervention_class",
@@ -17710,7 +17783,54 @@
         "source": "Comparator (Goodman 2021, PMID 34385227), verbatim: \"the complete case analysis of 42 studies\" comparing probiotics with any control for antibiotic-associated diarrhoea."
       }
     },
-    "internal_mismatches": [],
+    "internal_mismatches": [
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "TABLE_ROW_TOTAL_VS_ARM_COUNTS",
+        "sides": [
+          {
+            "where": "first statement (fulltext)",
+            "value": "20 total participants",
+            "quote": "Plummer et al 62 20 (69:69) Inpatient >18 L. acidophilus , B. bifidum 20×10 9 20 days Placebo Not noted Pozzoni et al 63 204 (106:98) Inpatient >50 S. boulardii 10×10 9 Duration of antibiotic+7 days Placebo ≥3 loose stools (5–7 Bristol Stool Scale) for ≥2 days",
+            "state": "HELD",
+            "document_ref": "cache/probiotics-aad-prevention/comparator_fulltext.txt"
+          },
+          {
+            "where": "second statement (fulltext)",
+            "value": "69 + 69 = 138 participants",
+            "quote": "Plummer et al 62 20 (69:69) Inpatient >18 L. acidophilus , B. bifidum 20×10 9 20 days Placebo Not noted Pozzoni et al 63 204 (106:98) Inpatient >50 S. boulardii 10×10 9 Duration of antibiotic+7 days Placebo ≥3 loose stools (5–7 Bristol Stool Scale) for ≥2 days",
+            "state": "HELD",
+            "document_ref": "cache/probiotics-aad-prevention/comparator_fulltext.txt"
+          }
+        ],
+        "note": "Same row labels total as 20 and arm totals as 69:69; candidate transcription inconsistency, not corrected.",
+        "found_by": "codex comparator lane (gpt-6-astra), reviewed by Claude Opus 5.5",
+        "evidence_state": "BOTH_SIDES_HELD"
+      },
+      {
+        "code": "COMPARATOR_INTERNAL_MISMATCH",
+        "kind": "TABLE_ROW_TOTAL_VS_ARM_COUNTS",
+        "sides": [
+          {
+            "where": "first statement (fulltext)",
+            "value": "86 total participants",
+            "quote": "Wright et al 74 86 (41:46) Inpatient >65 L. casei Shirota (Yakult) 13×10 9 Duration of admission Placebo ≥3 loose stools (5–7 Bristol Stool Scale) for ≥2 days Wu et al 31 196 (65:67:64) (high:low:nothing) Inpatient >18 B. longum , L. acidophilus , E. faecalis ",
+            "state": "HELD",
+            "document_ref": "cache/probiotics-aad-prevention/comparator_fulltext.txt"
+          },
+          {
+            "where": "second statement (fulltext)",
+            "value": "41 + 46 = 87 participants",
+            "quote": "Wright et al 74 86 (41:46) Inpatient >65 L. casei Shirota (Yakult) 13×10 9 Duration of admission Placebo ≥3 loose stools (5–7 Bristol Stool Scale) for ≥2 days Wu et al 31 196 (65:67:64) (high:low:nothing) Inpatient >18 B. longum , L. acidophilus , E. faecalis ",
+            "state": "HELD",
+            "document_ref": "cache/probiotics-aad-prevention/comparator_fulltext.txt"
+          }
+        ],
+        "note": "Same row total and arm sum differ.",
+        "found_by": "codex comparator lane (gpt-6-astra), reviewed by Claude Opus 5.5",
+        "evidence_state": "BOTH_SIDES_HELD"
+      }
+    ],
     "identity": {
       "state": "MATCH",
       "checks": {
@@ -17721,6 +17841,11 @@
       },
       "failures": [],
       "citation_defects": [],
+      "governing": {
+        "state": "GOVERNING",
+        "governing_pmid": "34385227",
+        "served_pmid": "34385227"
+      },
       "protocol": {
         "named_author": "Goodman",
         "title": "Probiotics for the prevention of\nantibiotic-associated diarrhoea: a systematic review and meta-analysis",
@@ -21139,7 +21264,7 @@
     {
       "id": "PMID 35727573",
       "type": "industry tie present",
-      "span": "",
+      "span": "</p><p><italic toggle=\"yes\">Obtained funding:</italic> de Meij, Szajewska.</p><p><italic toggle=\"yes\">Administrative, technical, or material support:</italic> Dierikx, Besseling-van der Vaart, de Meij.</p><p><italic toggle=\"yes\">Supervision:</italic> de Meij, Szajewska.</p><p content-type=\"COI-statement\"><bold>Conflict of Interest Disclosures:</bold> Dr Łukasik reported nonfinancial support from Winclove Probiotics B.V.",
       "source": "full text",
       "scanned": "full text",
       "funding_state": "INDUSTRY_TIE_PRESENT",
@@ -21148,18 +21273,25 @@
         "trial": "35727573",
         "funders": [
           {
-            "name": "de Meij",
+            "name": "Both the placebo",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
             "source": "full-text funding statement",
-            "span": "Obtained funding: de Meij, Szajewska."
+            "span": "Funding/Support: Both the placebo and the probiotic preparation were manufactured and provided for study purposes by Winclove Probiotics B.V ."
           },
           {
-            "name": "Szajewska",
+            "name": "probiotic preparation were manufactured",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
             "source": "full-text funding statement",
-            "span": "Obtained funding: de Meij, Szajewska."
+            "span": "Funding/Support: Both the placebo and the probiotic preparation were manufactured and provided for study purposes by Winclove Probiotics B.V ."
+          },
+          {
+            "name": "provided for study purposes by Winclove Probiotics B.V",
+            "class": "INDUSTRY",
+            "class_basis": "registry category Commercial sector/Industry names Winclove Probiotics B.V.",
+            "source": "full-text funding statement",
+            "span": "Funding/Support: Both the placebo and the probiotic preparation were manufactured and provided for study purposes by Winclove Probiotics B.V ."
           },
           {
             "name": "Medical University of Warsaw",
@@ -21190,7 +21322,15 @@
             "role": "lead"
           }
         ],
-        "material_support": [],
+        "material_support": [
+          {
+            "supplier": "Winclove Probiotics B.V",
+            "class": "INDUSTRY",
+            "class_basis": "registry category Commercial sector/Industry names Winclove Probiotics B.V.",
+            "source": "full text",
+            "span": "Funding/Support: Both the placebo and the probiotic preparation were manufactured and provided for study purposes by Winclove Probiotics B.V ."
+          }
+        ],
         "funder_role_statement": {
           "state": "STATED",
           "quote": "Role of the Funder/Sponsor: The funders had no role in the design and conduct of the study; collection, management, analysis, and interpretation of the data; preparation, review, or approval of the manuscript; and decision to submit the manuscript for publication.",
@@ -21212,20 +21352,20 @@
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: Winclove Probiotics B.V (AACT sponsors); Winclove Probiotics B.V (ClinicalTrials.gov sponsor/collaborators (held API record))",
+        "industry_tie_basis": "industry named by: Winclove Probiotics B.V (AACT sponsors); Winclove Probiotics B.V (ClinicalTrials.gov sponsor/collaborators (held API record)); Winclove Probiotics B.V (full text); provided for study purposes by Winclove Probiotics B.V (full-text funding statement)",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "mixed",
         "needs_proposal": [
-          "de Meij",
-          "Szajewska"
+          "Both the placebo",
+          "probiotic preparation were manufactured"
         ],
         "proposal": {
           "state": "PROPOSAL_NOT_REQUESTED",
           "applied": false
         }
       },
-      "label_from_first_sentence": "not stated (full text scanned)",
+      "label_from_first_sentence": "industry",
       "sponsor_class": "mixed"
     },
     {
@@ -21548,7 +21688,7 @@
             "span": "This hypothesis is supported by the participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users, 9.1% and 0.51% respectively, (p=0.004)This study suggests that prescribing short-course, narrow spectrum antibiotics can reduce microbiome disruptions, concomitant AAD, and the need for probiotic intervention. ."
           },
           {
-            "name": "(p=0.004)This study suggests that prescribing short-course",
+            "name": "This study suggests that prescribing short-course",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
             "source": "full-text funding statement",
@@ -21576,7 +21716,7 @@
             "span": "This hypothesis is supported by the participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users, 9.1% and 0.51% respectively, (p=0.004)This study suggests that prescribing short-course, narrow spectrum antibiotics can reduce microbiome disruptions, concomitant AAD, and the need for probiotic intervention. ."
           },
           {
-            "name": "observed significant difference ( p = 0.004) in the rates of diarrhea in participants taking more narrow spectrum ( N = 195) versus broad spectrum antibiotics ( N = 15)",
+            "name": "observed significant difference in the rates of diarrhea in participants taking more narrow spectrum versus broad spectrum antibiotics",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
             "source": "full-text funding statement",
@@ -21602,6 +21742,20 @@
             "class_basis": "no registry category and no name marker",
             "source": "full-text funding statement",
             "span": "Funding The research reported in this publication was supported by the Eunice Kennedy Shriver National Institute of Child Health and Human Development of the National Institutes of Health under Award Number 7772608, IND #13691."
+          },
+          {
+            "name": "Additional support was provided by the University of Maryland School of Medicine",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "full-text funding statement",
+            "span": "Additional support was provided by the University of Maryland School of Medicine, Institute for Genome Sciences."
+          },
+          {
+            "name": "Institute for Genome Sciences",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "Additional support was provided by the University of Maryland School of Medicine, Institute for Genome Sciences."
           }
         ],
         "material_support": [],
@@ -21620,10 +21774,14 @@
           {
             "source": "full-text funding statement",
             "state": "COMPLETE"
+          },
+          {
+            "source": "full-text funding statement",
+            "state": "COMPLETE"
           }
         ],
         "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "unclassified funder(s): participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users; 9.1%; 0.51% respectively; (p=0.004)This study suggests that prescribing short-course",
+        "industry_tie_basis": "unclassified funder(s): participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users; 9.1%; 0.51% respectively; This study suggests that prescribing short-course",
         "label": "public funder named; industry tie not established",
         "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
         "sponsor_class": "public_named_tie_not_established",
@@ -21631,13 +21789,14 @@
           "participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users",
           "9.1%",
           "0.51% respectively",
-          "(p=0.004)This study suggests that prescribing short-course",
+          "This study suggests that prescribing short-course",
           "narrow spectrum antibiotics can reduce microbiome disruptions",
           "concomitant AAD",
           "need for probiotic intervention",
-          "observed significant difference ( p = 0.004) in the rates of diarrhea in participants taking more narrow spectrum ( N = 195) versus broad spectrum antibiotics ( N = 15)",
+          "observed significant difference in the rates of diarrhea in participants taking more narrow spectrum versus broad spectrum antibiotics",
           "Eunice Kennedy Shriver National Institute of Child Health",
-          "IND #13691"
+          "IND #13691",
+          "Institute for Genome Sciences"
         ],
         "proposal": {
           "state": "PROPOSAL_NOT_REQUESTED",
@@ -21731,18 +21890,18 @@
         "trial": "34541475",
         "funders": [
           {
-            "name": "Yakult Honsha Co",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
+            "name": "Yakult Honsha Co. Ltd",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Co. Ltd",
             "source": "full-text funding statement",
-            "span": "Participants who had a SNST score ≤10 were considered at low risk, and all those with a SNST score ≥ 11 were considered at increased risk. 3 Role of funding source This study was funded by Yakult Honsha Co."
+            "span": "Participants who had a SNST score ≤10 were considered at low risk, and all those with a SNST score ≥ 11 were considered at increased risk. 3 Role of funding source This study was funded by Yakult Honsha Co. Ltd."
           },
           {
-            "name": "Yakult Honsha Co",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
+            "name": "Yakult Honsha Co. Ltd",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Co. Ltd",
             "source": "full-text funding statement",
-            "span": "Funding This study was funded by Yakult Honsha Co."
+            "span": "Funding This study was funded by Yakult Honsha Co. Ltd. , reference number: 13UK-1-SMH-AAD2 with the title “Efficacy of Consuming LcS In Spinal cord injury Patients (ECLISP): Effect of Lactobacillus Casei Shirota in preventing antibiotic associated diarrhoea (AAD) including Clostridioides Difficile infection (CDI) in patients with spinal cord injuries: a multicentre, randomised, double-blind, placebo-controlled trial”."
           },
           {
             "name": "Yakult Honsha Co",
@@ -21761,9 +21920,16 @@
         ],
         "material_support": [
           {
-            "supplier": "the manufacturing company, Yakult Europe B",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
+            "supplier": "Yakult Europe B.V.",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: B.V",
+            "source": "full text",
+            "span": "Yakult Europe B.V. provided free LcS/Placebo and the necessary equipment to maintain the cold chain."
+          },
+          {
+            "supplier": "the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: B.V",
             "source": "full text",
             "span": "The study drink and placebo were provided by the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan."
           }
@@ -21796,13 +21962,11 @@
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: Ltd (abstract funding sentence)",
+        "industry_tie_basis": "industry named by: Ltd (abstract funding sentence); Yakult Europe B.V. (full text); Yakult Honsha Co. Ltd (full-text funding statement); the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan (full text)",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "industry",
         "needs_proposal": [
-          "Yakult Honsha Co",
-          "Yakult Honsha Co",
           "Yakult Honsha Co"
         ],
         "proposal": {
@@ -22126,20 +22290,27 @@
     },
     {
       "id": "PMID 22371721",
-      "type": "not stated (full text scanned)",
-      "span": "",
+      "type": "industry tie present",
+      "span": "</p><p>The study was funded by a grant-in-aid of research from BIO K+ International Inc.</p></sec><ref-list><title>References</title><ref id=\"CIT0001\"><label>1</label><element-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Högenauer</surname><given-names>C</given-names></name><name name-style=\"western\"><surname>Hammer</surname><given-names>HF</given-names></name><name name",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "funding_state": "INDUSTRY_TIE_PRESENT",
       "typed": {
         "schema": "funding-typed-v1",
         "trial": "22371721",
         "funders": [
           {
             "name": "grant-in-aid of research from BIO K+ International Inc",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Inc",
             "source": "full-text funding statement",
+            "span": "The study was funded by a grant-in-aid of research from BIO K+ International Inc."
+          },
+          {
+            "name": "grant-in-aid of research from BIO K+ International Inc",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Inc",
+            "source": "full-text funding sentence (sentence classifier)",
             "span": "The study was funded by a grant-in-aid of research from BIO K+ International Inc."
           }
         ],
@@ -22153,19 +22324,15 @@
             "state": "COMPLETE"
           }
         ],
-        "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "unclassified funder(s): grant-in-aid of research from BIO K+ International Inc",
-        "label": null,
-        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
-        "sponsor_class": null,
-        "needs_proposal": [
-          "grant-in-aid of research from BIO K+ International Inc"
-        ],
-        "proposal": {
-          "state": "PROPOSAL_NOT_REQUESTED",
-          "applied": false
-        }
-      }
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: grant-in-aid of research from BIO K+ International Inc (full-text funding sentence (sentence classifier)); grant-in-aid of research from BIO K+ International Inc (full-text funding statement)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "industry",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "industry",
+      "sponsor_class": "industry"
     },
     {
       "id": "PMID 22472744",
@@ -22289,9 +22456,23 @@
             "span": "This investigator-initiated trial was funded by the German Federal Ministry of Education and Research (Bundesministerium fur Bildung und Forschung; reference 01KG0902 ) and received institutional funding by the Bernhard Nocht Institute for Tropical Medicine and the University Medical Center Hamburg-Eppendorf ."
           },
           {
-            "name": "Research (Bundesministerium fur Bildung und Forschung",
+            "name": "Research",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "This investigator-initiated trial was funded by the German Federal Ministry of Education and Research (Bundesministerium fur Bildung und Forschung; reference 01KG0902 ) and received institutional funding by the Bernhard Nocht Institute for Tropical Medicine and the University Medical Center Hamburg-Eppendorf ."
+          },
+          {
+            "name": "received institutional funding by the Bernhard Nocht Institute for Tropical Medicine",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "full-text funding statement",
+            "span": "This investigator-initiated trial was funded by the German Federal Ministry of Education and Research (Bundesministerium fur Bildung und Forschung; reference 01KG0902 ) and received institutional funding by the Bernhard Nocht Institute for Tropical Medicine and the University Medical Center Hamburg-Eppendorf ."
+          },
+          {
+            "name": "University Medical Center Hamburg-Eppendorf",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
             "source": "full-text funding statement",
             "span": "This investigator-initiated trial was funded by the German Federal Ministry of Education and Research (Bundesministerium fur Bildung und Forschung; reference 01KG0902 ) and received institutional funding by the Bernhard Nocht Institute for Tropical Medicine and the University Medical Center Hamburg-Eppendorf ."
           },
@@ -22332,14 +22513,15 @@
           }
         ],
         "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "unclassified funder(s): Financial support; German Federal Ministry of Education; Research (Bundesministerium fur Bildung und Forschung",
+        "industry_tie_basis": "unclassified funder(s): Financial support; German Federal Ministry of Education; Research; received institutional funding by the Bernhard Nocht Institute for Tropical Medicine",
         "label": "public funder named; industry tie not established",
         "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
         "sponsor_class": "public_named_tie_not_established",
         "needs_proposal": [
           "Financial support",
           "German Federal Ministry of Education",
-          "Research (Bundesministerium fur Bildung und Forschung"
+          "Research",
+          "received institutional funding by the Bernhard Nocht Institute for Tropical Medicine"
         ],
         "proposal": {
           "state": "PROPOSAL_NOT_REQUESTED",
@@ -22447,20 +22629,27 @@
     },
     {
       "id": "PMID 30912409",
-      "type": "not stated (full text scanned)",
-      "span": "",
+      "type": "industry tie present",
+      "span": "</p></ack><sec id=\"S5\"><title>FUNDING</title><p>This study was funded by Schwabe Farma Ibérica.</p></sec><sec sec-type=\"COI-statement\"><title>CONFLICTS OF INTEREST</title><p>Two authors are employees of Schwabe Farma Ibérica.",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE",
+      "funding_state": "INDUSTRY_TIE_PRESENT",
       "typed": {
         "schema": "funding-typed-v1",
         "trial": "30912409",
         "funders": [
           {
             "name": "Schwabe Farma Ibérica",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Farma",
             "source": "full-text funding statement",
+            "span": "FUNDING This study was funded by Schwabe Farma Ibérica."
+          },
+          {
+            "name": "Schwabe Farma Ibérica",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Farma",
+            "source": "full-text funding sentence (sentence classifier)",
             "span": "FUNDING This study was funded by Schwabe Farma Ibérica."
           }
         ],
@@ -22474,19 +22663,15 @@
             "state": "COMPLETE"
           }
         ],
-        "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "unclassified funder(s): Schwabe Farma Ibérica",
-        "label": null,
-        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
-        "sponsor_class": null,
-        "needs_proposal": [
-          "Schwabe Farma Ibérica"
-        ],
-        "proposal": {
-          "state": "PROPOSAL_NOT_REQUESTED",
-          "applied": false
-        }
-      }
+        "industry_tie": "PRESENT",
+        "industry_tie_basis": "industry named by: Schwabe Farma Ibérica (full-text funding sentence (sentence classifier)); Schwabe Farma Ibérica (full-text funding statement)",
+        "label": "industry tie present",
+        "funding_state": "INDUSTRY_TIE_PRESENT",
+        "sponsor_class": "industry",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "industry",
+      "sponsor_class": "industry"
     },
     {
       "id": "PMID 33032474",
@@ -22642,20 +22827,6 @@
             "class_basis": "no registry category and no name marker",
             "source": "full-text funding statement",
             "span": "It is important to highlight that probiotics have been utilized for decades, supported by previous studies demonstrating their benefits in gut health and prevention of AAD [ 2 , 3 , 5 , 9 ]."
-          },
-          {
-            "name": "Conflicts of interest: In compliance with the ICMJE uniform disclosure form",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Conflicts of interest: In compliance with the ICMJE uniform disclosure form, all authors declare the following: Payment/services info: All authors have declared that no financial support was received from any organization for the submitted work."
-          },
-          {
-            "name": "all authors declare the following: Payment/services info: All authors have declared that no financial support was received from any organization for the submitted work",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Conflicts of interest: In compliance with the ICMJE uniform disclosure form, all authors declare the following: Payment/services info: All authors have declared that no financial support was received from any organization for the submitted work."
           }
         ],
         "material_support": [],
@@ -22666,23 +22837,17 @@
           {
             "source": "full-text funding statement",
             "state": "COMPLETE"
-          },
-          {
-            "source": "full-text funding statement",
-            "state": "COMPLETE"
           }
         ],
         "industry_tie": "NOT_ESTABLISHED",
-        "industry_tie_basis": "unclassified funder(s): previous studies demonstrating their benefits in gut health; prevention of AAD [ 2; 9 ]; Conflicts of interest: In compliance with the ICMJE uniform disclosure form",
+        "industry_tie_basis": "unclassified funder(s): previous studies demonstrating their benefits in gut health; prevention of AAD [ 2; 9 ]",
         "label": null,
         "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
         "sponsor_class": null,
         "needs_proposal": [
           "previous studies demonstrating their benefits in gut health",
           "prevention of AAD [ 2",
-          "9 ]",
-          "Conflicts of interest: In compliance with the ICMJE uniform disclosure form",
-          "all authors declare the following: Payment/services info: All authors have declared that no financial support was received from any organization for the submitted work"
+          "9 ]"
         ],
         "proposal": {
           "state": "PROPOSAL_NOT_REQUESTED",
@@ -22725,27 +22890,6 @@
         "schema": "funding-typed-v1",
         "trial": "40488914",
         "funders": [
-          {
-            "name": "Dinleyici",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Obtained funding: Dinleyici, Ozen, Kara."
-          },
-          {
-            "name": "Ozen",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Obtained funding: Dinleyici, Ozen, Kara."
-          },
-          {
-            "name": "Kara",
-            "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
-            "source": "full-text funding statement",
-            "span": "Obtained funding: Dinleyici, Ozen, Kara."
-          },
           {
             "name": "Pediatric Probiotic Prebiotic Society in Türkiye",
             "class": "UNCLASSIFIED",
@@ -22833,9 +22977,16 @@
         ],
         "material_support": [
           {
-            "supplier": "BioGaia",
+            "supplier": "the Scientific and Technological Research Council of Türkiye",
             "class": "UNCLASSIFIED",
             "class_basis": "no registry category and no name marker",
+            "source": "full text",
+            "span": "Keywords Antibiotic Antibiotic associated diarrhea Probiotic Limosilactobacillus reuteri L reuteri DSM 17938 Eskisehir Osmangazi University Open access funding provided by the Scientific and Technological Research Council of Türkiye (TÜBİTAK). pmc-status-qastatus 0 pmc-status-live yes pmc-status-embargo no pmc-status-released yes pmc-prop-open-access yes pmc-prop-olf no pmc-prop-manuscript no pmc-prop-legally-suppressed no pmc-prop-has-pdf yes pmc-prop-has-supplement yes pmc-prop-pdf-only no pmc-prop-suppress-copyright no pmc-prop-is-real-version no pmc-prop-is-scanned-article no pmc-prop-preprint no pmc-prop-in-epmc yes pmc-license-ref CC BY issue-copyright-statement © Springer-Verlag GmbH Germany, part of Springer Nature 2025 Introduction Antibiotics are essential for treating severe acute bacterial infections; nevertheless, misuse can cause detrimental effects, including alterations to the composition and functioning of the human microbiota [ 1 ]."
+          },
+          {
+            "supplier": "BioGaia",
+            "class": "INDUSTRY",
+            "class_basis": "named as the manufacturer of the study product",
             "source": "full text",
             "span": "The study products ( L. reuteri DSM 17938 and placebo) were manufactured and supplied by BioGaia (Lund, Sweden), free of charge."
           },
@@ -22862,21 +23013,14 @@
           {
             "source": "full-text funding statement",
             "state": "COMPLETE"
-          },
-          {
-            "source": "full-text funding statement",
-            "state": "COMPLETE"
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data (full text)",
+        "industry_tie_basis": "industry named by: BioGaia (full text); BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data (full text)",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "mixed",
         "needs_proposal": [
-          "Dinleyici",
-          "Ozen",
-          "Kara",
           "Pediatric Probiotic Prebiotic Society in Türkiye",
           "Sisli Hamidiye Etfal Training and Research Hospital",
           "Prof. Dr. Cemil Tascıoglu Education and Research Hospital Organization",
@@ -22930,7 +23074,15 @@
             "role": "lead"
           }
         ],
-        "material_support": [],
+        "material_support": [
+          {
+            "supplier": "Wecare Probiotics Co. Ltd.",
+            "class": "INDUSTRY",
+            "class_basis": "industry name marker: Co. Ltd",
+            "source": "full text",
+            "span": "The probiotic strain L. acidophilus LA85 was provided by Wecare Probiotics Co. Ltd."
+          }
+        ],
         "funder_role_statement": {
           "state": "NOT_STATED_IN_HELD_FULL_TEXT"
         },
@@ -22941,7 +23093,7 @@
           }
         ],
         "industry_tie": "PRESENT",
-        "industry_tie_basis": "industry named by: Methodex (AACT sponsors); Wecare Probiotics Co., Ltd (AACT sponsors)",
+        "industry_tie_basis": "industry named by: Methodex (AACT sponsors); Wecare Probiotics Co. Ltd. (full text); Wecare Probiotics Co., Ltd (AACT sponsors)",
         "label": "industry tie present",
         "funding_state": "INDUSTRY_TIE_PRESENT",
         "sponsor_class": "mixed",
@@ -23036,7 +23188,7 @@
           {
             "name": "TriHealth Inc",
             "class": "UNCLASSIFIED",
-            "class_basis": "no registry category and no name marker",
+            "class_basis": "registry class OTHER against the company suffix 'Inc': neither settles it",
             "source": "AACT sponsors",
             "role": "lead"
           }
@@ -262815,8 +262967,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 0 title/name-seeded queries; 4 free-text keyword queries.</div>",
-      "text_sha256": "42f6d18ef618a244c54344368f81b14637bed64a37e4e99216e5350299ab0e0c",
+      "rendered_text": "<div class='absent'><strong>HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 0 title/name-seeded queries; 4 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>YES</strong> &mdash; 4 of 4 queries search a concept (free text or a title-restricted concept)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 1 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "2d109c0a09c96de6fa2ba8fad7e5a20d88162c2ad2317044fa54d10622e4a6e4",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -263093,8 +263245,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>10 of 10 known</strong> (47 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 39529939</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Neopharm Bulgaria Ltd (AACT sponsors); Neopharm Bulgaria Ltd (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>funder-role statement: “The sponsor of the trial had no role in trial design, data collection, data analysis, data interpretation, or writing of the manuscript.”<br><em>first-sentence label was: industry</em></td><td>Financial support <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Neopharm Bulgaria Ltd <code>INDUSTRY</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Financial support</em></td><td>full text</td><td><strong>full text</strong>: &lt;italic toggle=&quot;yes&quot;&gt;Financial support&lt;/italic&gt;.&lt;/bold&gt; This work was supported by Neopharm Bulgaria Ltd.</td></tr><tr><td>PMID 34541475</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Ltd (abstract funding sentence)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; abstract funding sentence: COMPLETE<br>funder-role statement: “The funder did not have any role in the design of the study, the collection, analysis, or interpretation of the data, the writing of this manuscript, or the decision to submit this manuscript for publication.”<br><em>first-sentence label was: industry</em></td><td>Yakult Honsha Co <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Ltd <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>material support: the manufacturing company, Yakult Europe B <code>UNCLASSIFIED</code> &mdash; “The study drink and placebo were provided by the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan.”<br><em>unclassified (no registry category, no name marker): Yakult Honsha Co</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Yakult Honsha Co., Ltd.</td></tr><tr><td>PMID 20145608</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Bio-K Plus International Inc (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Sprim Advanced Life Sciences <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Bio-K Plus International Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Sprim Advanced Life Sciences</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT02722993</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Probi AB (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Probi AB <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT02993419</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Jiangsu Famous Medical Technology Co., Ltd (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Jiangsu Famous Medical Technology Co., Ltd <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT03516409</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Probiotics International Ltd (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Sprim Advanced Life Sciences <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Probiotics International Ltd <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Sprim Advanced Life Sciences</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 35727573</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Winclove Probiotics B.V (AACT sponsors); Winclove Probiotics B.V (ClinicalTrials.gov sponsor/collaborators (held API record))<br>list completeness: full-text funding statement: COMPLETE<br>funder-role statement: “Role of the Funder/Sponsor: The funders had no role in the design and conduct of the study; collection, management, analysis, and interpretation of the data; preparation, review, or approval of the manuscript; and decision to submit the manuscript for publication.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>de Meij <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Szajewska <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Medical University of Warsaw <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Winclove Probiotics B.V <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): de Meij; Szajewska</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 40488914</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data (full text)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>funder-role statement: “Limosilactobacillus reuteri DSM 17938 and placebo have been provided by BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Dinleyici <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Ozen <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Kara <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Pediatric Probiotic Prebiotic Society in Türkiye <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Hacettepe University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Acıbadem University School of Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Umraniye Education and Research Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Sisli Hamidiye Etfal Training and Research Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Prof. Dr. Cemil Tascıoglu Education and Research Hospital Organization <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Ege University Medical School <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Yuzuncu Yil University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Goztepe Training and Research Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Erzurum Regional Training &amp; Research Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Namik Kemal University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Eskisehir Osmangazi University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>material support: BioGaia <code>UNCLASSIFIED</code> &mdash; “The study products ( L. reuteri DSM 17938 and placebo) were manufactured and supplied by BioGaia (Lund, Sweden), free of charge.”<br>material support: BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data <code>INDUSTRY</code> &mdash; “Limosilactobacillus reuteri DSM 17938 and placebo have been provided by BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data.”<br><em>unclassified (no registry category, no name marker): Dinleyici; Ozen; Kara; Pediatric Probiotic Prebiotic Society in Türkiye; Sisli Hamidiye Etfal Training and Research Hospital; Prof. Dr. Cemil Tascıoglu Education and Research Hospital Organization; Goztepe Training and Research Hospital</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 40548185</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Methodex (AACT sponsors); Wecare Probiotics Co., Ltd (AACT sponsors)<br>list completeness: full-text funding statement: PARTIAL<br>no funder-role statement in the held full text<br><em>first-sentence label was: public/non-profit</em></td><td>authors received no specific funding for this work <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Methodex <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Wecare Probiotics Co., Ltd <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td>full text</td><td><strong>full text</strong>: &lt;bold&gt;Funding:&lt;/bold&gt; The authors received no specific funding for this work.&lt;/p&gt;&lt;/fn&gt;&lt;/fn-group&gt;&lt;/notes&gt;&lt;/front&gt;&lt;body id=&quot;fsn370490-body-0001&quot;&gt;&lt;sec id=&quot;fsn370490-sec-0001&quot;&gt;&lt;label&gt;1&lt;/label&gt;&lt;title&gt;Introduction&lt;/title&gt;&lt;p&gt;Antibiotic‐associated diarrhea (AAD), defined as unexplained diarrhea linked to antibiotic administration, is a common clinical complication with incidence rates varying from 5% to 35%, influenced by antibio</td></tr><tr><td>NCT05845073</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: The Archer-Daniels-Midland Company (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Analyze &amp; Realize <code>PUBLIC</code> <em>(AACT sponsors)</em><br>The Archer-Daniels-Midland Company <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 23932219</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Health Technology Assessment programme<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>Health Technology Assessment programme <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>National Institute for Health Research (NIHR) <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br><em>unclassified (no registry category, no name marker): Health Technology Assessment programme</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Health Technology Assessment programme; National Institute for Health Research, UK.</td></tr><tr><td>PMID 41699149</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users; 9.1%; 0.51% respectively; (p=0.004)This study suggests that prescribing short-course<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>9.1% <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>0.51% respectively <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>(p=0.004)This study suggests that prescribing short-course <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>narrow spectrum antibiotics can reduce microbiome disruptions <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>concomitant AAD <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>need for probiotic intervention <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>observed significant difference ( p = 0.004) in the rates of diarrhea in participants taking more narrow spectrum ( N = 195) versus broad spectrum antibiotics ( N = 15) <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Eunice Kennedy Shriver National Institute of Child Health <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Human Development of the National Institutes of Health under Award Number 7772608 <code>PUBLIC</code> <em>(full-text funding statement)</em><br>IND #13691 <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users; 9.1%; 0.51% respectively; (p=0.004)This study suggests that prescribing short-course; narrow spectrum antibiotics can reduce microbiome disruptions; concomitant AAD; need for probiotic intervention; observed significant difference ( p = 0.004) in the rates of diarrhea in participants taking more narrow spectrum ( N = 195) versus broad spectrum antibiotics ( N = 15); Eunice Kennedy Shriver National Institute of Child Health; IND #13691</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 26973849</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): Financial support; German Federal Ministry of Education; Research (Bundesministerium fur Bildung und Forschung<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>funder-role statement: “Neither the funding organization nor the sponsor had access to the data or any role in the design, implementation, or analysis of the trial or the reporting of the data.”<br><em>first-sentence label was: public/non-profit</em></td><td>Financial support <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>German Federal Ministry of Education <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Research (Bundesministerium fur Bildung und Forschung <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>German Federal Ministry of Education and Research <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Bernhard Nocht Institute for Tropical Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Financial support; German Federal Ministry of Education; Research (Bundesministerium fur Bildung und Forschung</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;p&gt;&lt;bold&gt;&lt;italic toggle=&quot;yes&quot;&gt;Financial support&lt;/italic&gt;. &lt;/bold&gt;This investigator-initiated trial was funded by the &lt;funding-source&gt;German Federal Ministry of Education and Research&lt;/funding-source&gt; (Bundesministerium fur Bildung und Forschung; reference &lt;award-id&gt;01KG0902&lt;/award-id&gt;) and received institutional funding by the &lt;funding-source&gt;Bernhard Nocht Institute for Tropical Medicine and the University Medical Center Hamburg-Eppendorf&lt;/fundi</td></tr><tr><td>NCT03755765</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>National Center for Complementary and Integrative Health (NCCIH) <code>PUBLIC</code> <em>(AACT sponsors)</em><br>University of Maryland, Baltimore <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Georgetown University <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07234448</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>&quot;University of Urbino Carlo Bo&quot; <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Liaquat University of Medical &amp; Health Sciences <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 32035998</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 24772726</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 18701826</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 18410562</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 15740542</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 11560298</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 7872284</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 21165295</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): research fund of the Korean Association for the Study of Intestinal Diseases<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>research fund of the Korean Association for the Study of Intestinal Diseases <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): research fund of the Korean Association for the Study of Intestinal Diseases</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 18026577</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 10545590</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 10547243</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 14627358</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 16292090</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 16572062</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 17356555</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 18949181</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 19138244</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 21552138</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 2184848</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 21871144</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 22371721</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): grant-in-aid of research from BIO K+ International Inc<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>grant-in-aid of research from BIO K+ International Inc <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): grant-in-aid of research from BIO K+ International Inc</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 22472744</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23618760</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 24044687</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 24456384</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 27169634</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 28871492</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30149135</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30439760</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30912409</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): Schwabe Farma Ibérica<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>Schwabe Farma Ibérica <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Schwabe Farma Ibérica</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 33032474</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 38258024</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39429834</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): Financial support; sponsorship Nil<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>Financial support <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>sponsorship Nil <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Financial support; sponsorship Nil</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39467682</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39497860</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): previous studies demonstrating their benefits in gut health; prevention of AAD [ 2; 9 ]; Conflicts of interest: In compliance with the ICMJE uniform disclosure form<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>previous studies demonstrating their benefits in gut health <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>prevention of AAD [ 2 <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>9 ] <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Conflicts of interest: In compliance with the ICMJE uniform disclosure form <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>all authors declare the following: Payment/services info: All authors have declared that no financial support was received from any organization for the submitted work <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): previous studies demonstrating their benefits in gut health; prevention of AAD [ 2; 9 ]; Conflicts of interest: In compliance with the ICMJE uniform disclosure form; all authors declare the following: Payment/services info: All authors have declared that no financial support was received from any organization for the submitted work</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39935568</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 40716758</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 42608299</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 9570649</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT02589964</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): TriHealth Inc<br>funder-role statement: full text not held</td><td>TriHealth Inc <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): TriHealth Inc</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT04529980</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Children&#x27;s Health<br>funder-role statement: full text not held</td><td>Children&#x27;s Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Children&#x27;s Health</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06990568</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): National Health Insurance Service Ilsan Hospital<br>funder-role statement: full text not held</td><td>National Health Insurance Service Ilsan Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): National Health Insurance Service Ilsan Hospital</em></td><td></td><td><strong></strong>: </td></tr></table></div>",
-      "text_sha256": "2d051f31479079863ea580a7147670865f8db70912947103b2888c9cc14dabf6",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>12 of 12 known</strong> (45 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 39529939</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Neopharm Bulgaria Ltd (AACT sponsors); Neopharm Bulgaria Ltd (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>funder-role statement: “The sponsor of the trial had no role in trial design, data collection, data analysis, data interpretation, or writing of the manuscript.”<br><em>first-sentence label was: industry</em></td><td>Financial support <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Neopharm Bulgaria Ltd <code>INDUSTRY</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Financial support</em></td><td>full text</td><td><strong>full text</strong>: &lt;italic toggle=&quot;yes&quot;&gt;Financial support&lt;/italic&gt;.&lt;/bold&gt; This work was supported by Neopharm Bulgaria Ltd.</td></tr><tr><td>PMID 34541475</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Ltd (abstract funding sentence); Yakult Europe B.V. (full text); Yakult Honsha Co. Ltd (full-text funding statement); the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan (full text)<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; abstract funding sentence: COMPLETE<br>funder-role statement: “The funder did not have any role in the design of the study, the collection, analysis, or interpretation of the data, the writing of this manuscript, or the decision to submit this manuscript for publication.”<br><em>first-sentence label was: industry</em></td><td>Yakult Honsha Co. Ltd <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Yakult Honsha Co <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Ltd <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>material support: Yakult Europe B.V. <code>INDUSTRY</code> &mdash; “Yakult Europe B.V. provided free LcS/Placebo and the necessary equipment to maintain the cold chain.”<br>material support: the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan <code>INDUSTRY</code> &mdash; “The study drink and placebo were provided by the manufacturing company, Yakult Europe B.V, a subsidiary of Yakult Honsha, Japan.”<br><em>unclassified (no registry category, no name marker): Yakult Honsha Co</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Yakult Honsha Co., Ltd.</td></tr><tr><td>PMID 20145608</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Bio-K Plus International Inc (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>Sprim Advanced Life Sciences <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Bio-K Plus International Inc <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Sprim Advanced Life Sciences</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 22371721</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: grant-in-aid of research from BIO K+ International Inc (full-text funding sentence (sentence classifier)); grant-in-aid of research from BIO K+ International Inc (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>grant-in-aid of research from BIO K+ International Inc <code>INDUSTRY</code> <em>(full-text funding statement)</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;p&gt;The study was funded by a grant-in-aid of research from BIO K+ International Inc.&lt;/p&gt;&lt;/sec&gt;&lt;ref-list&gt;&lt;title&gt;References&lt;/title&gt;&lt;ref id=&quot;CIT0001&quot;&gt;&lt;label&gt;1&lt;/label&gt;&lt;element-citation publication-type=&quot;journal&quot;&gt;&lt;person-group person-group-type=&quot;author&quot;&gt;&lt;name name-style=&quot;western&quot;&gt;&lt;surname&gt;Högenauer&lt;/surname&gt;&lt;given-names&gt;C&lt;/given-names&gt;&lt;/name&gt;&lt;name name-style=&quot;western&quot;&gt;&lt;surname&gt;Hammer&lt;/surname&gt;&lt;given-names&gt;HF&lt;/given-names&gt;&lt;/name&gt;&lt;name name</td></tr><tr><td>PMID 30912409</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Schwabe Farma Ibérica (full-text funding sentence (sentence classifier)); Schwabe Farma Ibérica (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: industry</em></td><td>Schwabe Farma Ibérica <code>INDUSTRY</code> <em>(full-text funding statement)</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/ack&gt;&lt;sec id=&quot;S5&quot;&gt;&lt;title&gt;FUNDING&lt;/title&gt;&lt;p&gt;This study was funded by Schwabe Farma Ibérica.&lt;/p&gt;&lt;/sec&gt;&lt;sec sec-type=&quot;COI-statement&quot;&gt;&lt;title&gt;CONFLICTS OF INTEREST&lt;/title&gt;&lt;p&gt;Two authors are employees of Schwabe Farma Ibérica.</td></tr><tr><td>NCT02722993</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Probi AB (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Probi AB <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT02993419</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Jiangsu Famous Medical Technology Co., Ltd (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Jiangsu Famous Medical Technology Co., Ltd <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT03516409</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Probiotics International Ltd (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Sprim Advanced Life Sciences <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Probiotics International Ltd <code>INDUSTRY</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Sprim Advanced Life Sciences</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 35727573</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Winclove Probiotics B.V (AACT sponsors); Winclove Probiotics B.V (ClinicalTrials.gov sponsor/collaborators (held API record)); Winclove Probiotics B.V (full text); provided for study purposes by Winclove Probiotics B.V (full-text funding statement)<br>list completeness: full-text funding statement: COMPLETE<br>funder-role statement: “Role of the Funder/Sponsor: The funders had no role in the design and conduct of the study; collection, management, analysis, and interpretation of the data; preparation, review, or approval of the manuscript; and decision to submit the manuscript for publication.”<br><em>first-sentence label was: industry</em></td><td>Both the placebo <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>probiotic preparation were manufactured <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>provided for study purposes by Winclove Probiotics B.V <code>INDUSTRY</code> <em>(full-text funding statement)</em><br>Medical University of Warsaw <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>Winclove Probiotics B.V <code>INDUSTRY</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>material support: Winclove Probiotics B.V <code>INDUSTRY</code> &mdash; “Funding/Support: Both the placebo and the probiotic preparation were manufactured and provided for study purposes by Winclove Probiotics B.V .”<br><em>unclassified (no registry category, no name marker): Both the placebo; probiotic preparation were manufactured</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;p&gt;&lt;italic toggle=&quot;yes&quot;&gt;Obtained funding:&lt;/italic&gt; de Meij, Szajewska.&lt;/p&gt;&lt;p&gt;&lt;italic toggle=&quot;yes&quot;&gt;Administrative, technical, or material support:&lt;/italic&gt; Dierikx, Besseling-van der Vaart, de Meij.&lt;/p&gt;&lt;p&gt;&lt;italic toggle=&quot;yes&quot;&gt;Supervision:&lt;/italic&gt; de Meij, Szajewska.&lt;/p&gt;&lt;p content-type=&quot;COI-statement&quot;&gt;&lt;bold&gt;Conflict of Interest Disclosures:&lt;/bold&gt; Dr Łukasik reported nonfinancial support from Winclove Probiotics B.V.</td></tr><tr><td>PMID 40488914</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: BioGaia (full text); BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data (full text)<br>list completeness: full-text funding statement: COMPLETE<br>funder-role statement: “Limosilactobacillus reuteri DSM 17938 and placebo have been provided by BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data.”<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>Pediatric Probiotic Prebiotic Society in Türkiye <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Hacettepe University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Acıbadem University School of Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Umraniye Education and Research Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Sisli Hamidiye Etfal Training and Research Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Prof. Dr. Cemil Tascıoglu Education and Research Hospital Organization <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Ege University Medical School <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Yuzuncu Yil University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Goztepe Training and Research Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Erzurum Regional Training &amp; Research Hospital <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Namik Kemal University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Eskisehir Osmangazi University <code>PUBLIC</code> <em>(AACT sponsors)</em><br>material support: the Scientific and Technological Research Council of Türkiye <code>UNCLASSIFIED</code> &mdash; “Keywords Antibiotic Antibiotic associated diarrhea Probiotic Limosilactobacillus reuteri L reuteri DSM 17938 Eskisehir Osmangazi University Open access funding provided by the Scientific and Technological Research Council of Türkiye (TÜBİTAK). pmc-status-qastatus 0 pmc-status-live yes pmc-status-embargo no pmc-status-released yes pmc-prop-open-access yes pmc-prop-olf no pmc-prop-manuscript no pmc-prop-legally-suppressed no pmc-prop-has-pdf yes pmc-prop-has-supplement yes pmc-prop-pdf-only no pmc-prop-suppress-copyright no pmc-prop-is-real-version no pmc-prop-is-scanned-article no pmc-prop-preprint no pmc-prop-in-epmc yes pmc-license-ref CC BY issue-copyright-statement © Springer-Verlag GmbH Germany, part of Springer Nature 2025 Introduction Antibiotics are essential for treating severe acute bacterial infections; nevertheless, misuse can cause detrimental effects, including alterations to the composition and functioning of the human microbiota [ 1 ].”<br>material support: BioGaia <code>INDUSTRY</code> &mdash; “The study products ( L. reuteri DSM 17938 and placebo) were manufactured and supplied by BioGaia (Lund, Sweden), free of charge.”<br>material support: BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data <code>INDUSTRY</code> &mdash; “Limosilactobacillus reuteri DSM 17938 and placebo have been provided by BioGaia Sweden and the manufacturer will have no role in the conception, protocol development, design or conduct of the study, or in the analysis or interpretation of the data.”<br><em>unclassified (no registry category, no name marker): Pediatric Probiotic Prebiotic Society in Türkiye; Sisli Hamidiye Etfal Training and Research Hospital; Prof. Dr. Cemil Tascıoglu Education and Research Hospital Organization; Goztepe Training and Research Hospital</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 40548185</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: Methodex (AACT sponsors); Wecare Probiotics Co. Ltd. (full text); Wecare Probiotics Co., Ltd (AACT sponsors)<br>list completeness: full-text funding statement: PARTIAL<br>no funder-role statement in the held full text<br><em>first-sentence label was: public/non-profit</em></td><td>authors received no specific funding for this work <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Methodex <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Wecare Probiotics Co., Ltd <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>material support: Wecare Probiotics Co. Ltd. <code>INDUSTRY</code> &mdash; “The probiotic strain L. acidophilus LA85 was provided by Wecare Probiotics Co. Ltd.”</td><td>full text</td><td><strong>full text</strong>: &lt;bold&gt;Funding:&lt;/bold&gt; The authors received no specific funding for this work.&lt;/p&gt;&lt;/fn&gt;&lt;/fn-group&gt;&lt;/notes&gt;&lt;/front&gt;&lt;body id=&quot;fsn370490-body-0001&quot;&gt;&lt;sec id=&quot;fsn370490-sec-0001&quot;&gt;&lt;label&gt;1&lt;/label&gt;&lt;title&gt;Introduction&lt;/title&gt;&lt;p&gt;Antibiotic‐associated diarrhea (AAD), defined as unexplained diarrhea linked to antibiotic administration, is a common clinical complication with incidence rates varying from 5% to 35%, influenced by antibio</td></tr><tr><td>NCT05845073</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: The Archer-Daniels-Midland Company (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>Analyze &amp; Realize <code>PUBLIC</code> <em>(AACT sponsors)</em><br>The Archer-Daniels-Midland Company <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 23932219</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Health Technology Assessment programme<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>Health Technology Assessment programme <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>National Institute for Health Research (NIHR) <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br><em>unclassified (no registry category, no name marker): Health Technology Assessment programme</em></td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Health Technology Assessment programme; National Institute for Health Research, UK.</td></tr><tr><td>PMID 41699149</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users; 9.1%; 0.51% respectively; This study suggests that prescribing short-course<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>no funder-role statement in the held full text<br><em>first-sentence label was: not stated (full text scanned)</em></td><td>participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>9.1% <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>0.51% respectively <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>This study suggests that prescribing short-course <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>narrow spectrum antibiotics can reduce microbiome disruptions <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>concomitant AAD <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>need for probiotic intervention <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>observed significant difference in the rates of diarrhea in participants taking more narrow spectrum versus broad spectrum antibiotics <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Eunice Kennedy Shriver National Institute of Child Health <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Human Development of the National Institutes of Health under Award Number 7772608 <code>PUBLIC</code> <em>(full-text funding statement)</em><br>IND #13691 <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Additional support was provided by the University of Maryland School of Medicine <code>PUBLIC</code> <em>(full-text funding statement)</em><br>Institute for Genome Sciences <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): participants who used broad spectrum penicillins had a significantly higher rate of diarrhea compared to narrow spectrum antibiotic users; 9.1%; 0.51% respectively; This study suggests that prescribing short-course; narrow spectrum antibiotics can reduce microbiome disruptions; concomitant AAD; need for probiotic intervention; observed significant difference in the rates of diarrhea in participants taking more narrow spectrum versus broad spectrum antibiotics; Eunice Kennedy Shriver National Institute of Child Health; IND #13691; Institute for Genome Sciences</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 26973849</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): Financial support; German Federal Ministry of Education; Research; received institutional funding by the Bernhard Nocht Institute for Tropical Medicine<br>list completeness: full-text funding statement: COMPLETE; full-text funding statement: COMPLETE<br>funder-role statement: “Neither the funding organization nor the sponsor had access to the data or any role in the design, implementation, or analysis of the trial or the reporting of the data.”<br><em>first-sentence label was: public/non-profit</em></td><td>Financial support <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>German Federal Ministry of Education <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>Research <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>received institutional funding by the Bernhard Nocht Institute for Tropical Medicine <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>University Medical Center Hamburg-Eppendorf <code>PUBLIC</code> <em>(full-text funding statement)</em><br>German Federal Ministry of Education and Research <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Bernhard Nocht Institute for Tropical Medicine <code>PUBLIC</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Financial support; German Federal Ministry of Education; Research; received institutional funding by the Bernhard Nocht Institute for Tropical Medicine</em></td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;p&gt;&lt;bold&gt;&lt;italic toggle=&quot;yes&quot;&gt;Financial support&lt;/italic&gt;. &lt;/bold&gt;This investigator-initiated trial was funded by the &lt;funding-source&gt;German Federal Ministry of Education and Research&lt;/funding-source&gt; (Bundesministerium fur Bildung und Forschung; reference &lt;award-id&gt;01KG0902&lt;/award-id&gt;) and received institutional funding by the &lt;funding-source&gt;Bernhard Nocht Institute for Tropical Medicine and the University Medical Center Hamburg-Eppendorf&lt;/fundi</td></tr><tr><td>NCT03755765</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>National Center for Complementary and Integrative Health (NCCIH) <code>PUBLIC</code> <em>(AACT sponsors)</em><br>University of Maryland, Baltimore <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Georgetown University <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07234448</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>&quot;University of Urbino Carlo Bo&quot; <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Liaquat University of Medical &amp; Health Sciences <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 32035998</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 24772726</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 18701826</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 18410562</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 15740542</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 11560298</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 7872284</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 21165295</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): research fund of the Korean Association for the Study of Intestinal Diseases<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>research fund of the Korean Association for the Study of Intestinal Diseases <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): research fund of the Korean Association for the Study of Intestinal Diseases</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 18026577</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 10545590</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 10547243</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 14627358</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 16292090</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 16572062</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 17356555</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 18949181</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 19138244</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 21552138</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 2184848</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 21871144</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 22472744</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23618760</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 24044687</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 24456384</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 27169634</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 28871492</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30149135</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30439760</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 33032474</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 38258024</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39429834</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): Financial support; sponsorship Nil<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>Financial support <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>sponsorship Nil <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): Financial support; sponsorship Nil</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39467682</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39497860</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; unclassified funder(s): previous studies demonstrating their benefits in gut health; prevention of AAD [ 2; 9 ]<br>list completeness: full-text funding statement: COMPLETE<br>no funder-role statement in the held full text</td><td>previous studies demonstrating their benefits in gut health <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>prevention of AAD [ 2 <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br>9 ] <code>UNCLASSIFIED</code> <em>(full-text funding statement)</em><br><em>unclassified (no registry category, no name marker): previous studies demonstrating their benefits in gut health; prevention of AAD [ 2; 9 ]</em></td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 39935568</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 40716758</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 42608299</td><td><strong>not stated (full text scanned)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>no funder-role statement in the held full text</td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 9570649</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT02589964</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): TriHealth Inc<br>funder-role statement: full text not held</td><td>TriHealth Inc <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): TriHealth Inc</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT04529980</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Children&#x27;s Health<br>funder-role statement: full text not held</td><td>Children&#x27;s Health <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Children&#x27;s Health</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06990568</td><td><strong>source not retrieved</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): National Health Insurance Service Ilsan Hospital<br>funder-role statement: full text not held</td><td>National Health Insurance Service Ilsan Hospital <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): National Health Insurance Service Ilsan Hospital</em></td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "7c474524bbc4a26369c61c174ab9a4a3bcc47489e6b5445e92931faeea7d347c",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -264951,7 +265103,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "648691621303b3b030606144bacbc9d73063ec08184c36f19d2ce7718cb4755f",
+    "review_sha256": "9fb005e2dc819829336f37083a183e31c988271b26c4ad6e2bf8a59606beb19e",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -265177,7 +265329,7 @@
       "retrieved_corpus_sha256": "a832babc15f220a3b9ccb91a1be706f1e0d5be9700c035664132b17a32f6dede",
       "records_file_sha256": "dad7dc73b85febaecf67958a1aeb69fe93f40a56eb4229f97d27232dc9d2b41c",
       "retrieval_ledger_sha256": "58a4c7d14ac4e6860476c939ed46538605b66605cd4fead4fe50b0312d69fdea",
-      "screening_ledger_sha256": "192b1f5bddb2daecafe0efd84327e3b2cfa079773dbfdfa4635590e374f4261c",
+      "screening_ledger_sha256": "856f9be0bf2ba0f3e9f94b14bfa762b602609eb81c3dfea026791307da6a289b",
       "extraction_objects_sha256": "b9d776409c84dd0271ff29b08d98f742becc44a0b4342d9630e9c1415d37c784",
       "trial_family_map_sha256": "7a19aef91d2e74eb9dad93905ee4780f64602b2c806e71b304abf27d7a8eb16f",
       "rob_object_sha256": "737b064a5079c258235781e3955a5adc77ef86a6416370e7634972ad20fdc389",
@@ -265189,6 +265341,22 @@
         {
           "ref": "cache/probiotics-aad-prevention/comparator_fulltext.txt",
           "sha256": "58ffaef583553f34f0e6aa525b65418d22deb031395287d642ab9cd82805d957"
+        },
+        {
+          "ref": "cache/probiotics-aad-prevention/comparator_identity.json",
+          "sha256": "b5a70ab4e73c36382f245a5e8ad7ffe64829eaf4ca71c33882d4f11c0e0984d5"
+        },
+        {
+          "ref": "cache/probiotics-aad-prevention/comparator_pmc_jats.xml",
+          "sha256": "2b85e82c055f3dc1e39534f7f237f8cebaee0751e791383aaf7dbbfcf3cc33dd"
+        },
+        {
+          "ref": "cache/probiotics-aad-prevention/comparator_question.json",
+          "sha256": "9e2a9d18d346e40b888f162f74b95f9b2161509a2d4da19e4c75dda9a728af9b"
+        },
+        {
+          "ref": "cache/probiotics-aad-prevention/comparator_reported_mismatches.json",
+          "sha256": "9ca72eb8ac1afcc80e7c760e70cc11e5e32e5b31469d465a8a9574ed9a562bbe"
         },
         {
           "ref": "cache/probiotics-aad-prevention/ft_18026577.txt",
@@ -265269,10 +265437,18 @@
         {
           "ref": "cache/probiotics-aad-prevention/ft_42608299.txt",
           "sha256": "04cbd0e368d900f66ce54748eaa47697b43b019bb121f0d16abc5800b8539086"
+        },
+        {
+          "ref": "cache/probiotics-aad-prevention/ghost_pub_links.json",
+          "sha256": "9a133f7c34b223ec91fc9d9823d00ed5f94329b5a8b9b652385584b0105810c3"
+        },
+        {
+          "ref": "cache/probiotics-aad-prevention/pmc_links.json",
+          "sha256": "89b8005a5bc07405b7add84f44316f9750f15a0b8c65ca53a67276e7b2c79d2d"
         }
       ],
       "config_sha256": "7acf2346526fba3412ce3906c3841b907f1b90c6b0d10e21fe345356ac61da00",
-      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
+      "analysis_code_sha256": "1f4fcf9a4342fea66cb546ff66219d756418b95fe68cee1709e2926f9a40b923",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -265285,14 +265461,15 @@
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
+        "harness/certificate.py": "430d848edba702b6078df670f33960ea6be90065",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
+        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
+        "harness/comparator_panel.py": "20756375fd7e4fb83c17646fa93e127f63ef51d6",
+        "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -265307,14 +265484,16 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
+        "harness/external_checkpoints.py": "bdecfa029cbdabc8edfbd817ab65f8ac7ef22e01",
+        "harness/extract.py": "4951913bee9e53b6bc5e68ae26bbc0a21f98cd31",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
+        "harness/family_pub_links.py": "884d9af36ed6db09abce7689e47c83a4a204996c",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
-        "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
-        "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
+        "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
+        "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
+        "harness/gate.py": "5049d4f2e2e322cd13daacdae9ac6ccad86119fe",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -265336,11 +265515,11 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
-        "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
+        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/page.py": "ada8163e2530d3dad0fceb34459bd322b9ace212",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
-        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
+        "harness/pipeline.py": "bfc50236227b2d7ee9cfe338ffeb0551561592a1",
+        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -265351,16 +265530,17 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
+        "harness/screen.py": "c964462aa664b6e8b064be1299261e8f5be09a54",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
+        "harness/trial_family.py": "04a0ad5b157e3fe5d07b108f48bb5d84981a2a2e",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -265380,7 +265560,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "97 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -265411,7 +265591,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "eeee0c75dfa7985ea8c8974d52971157fcdfbbdd62b29d0cafefeff5dd2bb1b6",
-      "review_sha256": "648691621303b3b030606144bacbc9d73063ec08184c36f19d2ce7718cb4755f",
+      "review_sha256": "9fb005e2dc819829336f37083a183e31c988271b26c4ad6e2bf8a59606beb19e",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/probiotics-aad-prevention.md UTF-8 text, universal newlines",
@@ -265423,7 +265603,7 @@
         "extraction_objects_sha256": "canonical ref-to-JSON map: cache/probiotics-aad-prevention/verified_arms.json, cache/probiotics-aad-prevention/verified_effects.json",
         "trial_family_map_sha256": "cache/probiotics-aad-prevention/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/probiotics-aad-prevention/rob2.json canonical JSON",
-        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
+        "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json, the topic's decision objects (certificate.DECISION_OBJECTS) when present, plus referenced held documents and source-manifest PDF/text pairs",
         "config_sha256": "canonical topics/<slug>.json",
         "analysis_code_sha256": "canonical analysis_code_blobs map; keys are the static import closure of certificate_scope.roots (harness.code_closure), values are Git SHA-1 blob identities of LF-normalized working source, declared root or optional module missing = NOT_PRESENT",
         "certificate_scope": "prose and derived lists stating what analysis_code_blobs covers and what it does not; part of the certificate, so a change to the stated scope is a release change",
@@ -265431,7 +265611,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "2b4bbff2bac4595a599f23dd7c9a77065ce76082b6e1849258ab48337d708c39"
+      "release_sha256": "589d57c7b572bd106cb6818f4fdf122476f985739d680da583d1c5090407be73"
     }
   }
 }

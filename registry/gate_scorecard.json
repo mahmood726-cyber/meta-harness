@@ -3781,8 +3781,62 @@
     }
    ],
    "gate_id": "gate.check_comparator_identity_disclosed",
-   "what_it_refuses": "V1.0.1: a page whose comparator identity check found COMPARATOR_IDENTITY_MISMATCH (the protocol's named author/title/PMID/DOI disagree with what the PMID and DOI resolve to) and does not render the mismatch and the resolved first author.",
+   "what_it_refuses": "V1.0.1: a page whose comparator identity check found COMPARATOR_IDENTITY_MISMATCH (the protocol's named author/title/PMID/DOI disagree with what the PMID and DOI resolve to) and does not render the mismatch and the resolved first author. Also (empagliflozin-HFpEF review): a page whose manifest names another comparator than its review, and a page that does not state UNRECORDED_REPLACEMENT when the served comparator is not the protocol's and no replacement is recorded.",
    "where": "harness/gate.py:check_comparator_identity_disclosed"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1.0.1 plant-validation tests (tests/test_v101_esketamine_fixtures.py)",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_v101_esketamine_fixtures.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-comparator-sets-and-rows-v101-plant-validations-1",
+     "evidence": [
+      "tests/test_v101_esketamine_fixtures.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "a page with an impossible served overlap, or a withheld comparator still validated against (plants)",
+     "when_utc": null,
+     "where": "harness/gate.py:check_comparator_sets_and_rows"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-comparator-sets-and-rows-v101-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "New in V1.0.1; only plant validations exist; no dated production refusal yet.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_comparator_sets_and_rows"
+    }
+   ],
+   "gate_id": "gate.check_comparator_sets_and_rows",
+   "what_it_refuses": "V1.0.1 (esketamine review): a served overlap (page, computed relation or manifest) with shared > min(ours, theirs) or ours_only + shared != ours; and a page whose comparator has a COMPARATOR_ROW_IMPLAUSIBLE row that does not state the withheld numerical validation, or still serves an agreement/adjudication sentence against it.",
+   "where": "harness/gate.py:check_comparator_sets_and_rows"
   }
  ],
  "generated_utc": null,

@@ -73,7 +73,7 @@ def test_hand_written_keyword_retrieval_state_renderable():
     assert LABEL_C in html
     assert DISTINCTION in html
     assert RETRACTION in html
-    assert "0 PMID-enumeration queries; 0 title/name-seeded queries; 1 free-text keyword queries" in html
+    assert "0 PMID-enumeration queries; 0 title/name-seeded queries; 1 free-text or title-restricted concept queries" in html
 
 
 def test_concept_search_does_not_render_retrieval_warning():

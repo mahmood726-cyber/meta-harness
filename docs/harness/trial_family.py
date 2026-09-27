@@ -390,6 +390,10 @@ def population_matches(terms, conditions):
         f = lexicon.fold(str(t))
         if (f[:-1] in text) if f.endswith('*') else (f in text):
             return True
+        # V1.0.1 (finerenone review): the registry's MeSH condition is plural ('Diabetic Nephropathies') -- the term's
+        # regular plural matches too (ARTS-DN, ARTS-DN Japan)
+        if not f.endswith('*') and any(p in text for p in ({f + 's', f + 'es'} | ({f[:-1] + 'ies'} if f.endswith('y') else set()))):
+            return True
     return False
 
 def population_clarification(config, conditions):

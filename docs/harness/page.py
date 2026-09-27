@@ -266,7 +266,7 @@ def _retrieval_class_counts(rc: dict) -> dict[str, int]:
         "NAME_SEEDED",
         "IDENTIFIER_SEEDED",
     ))
-    free = sum(1 for row in basis if row.get("kind") == "FREE_TEXT_KEYWORD")
+    free = sum(1 for row in basis if row.get("kind") in ("FREE_TEXT_KEYWORD", "TITLE_RESTRICTED_CONCEPT"))
     return {"pmid": pmid, "seeded": seeded, "free": free}
 
 
@@ -280,9 +280,23 @@ def _retrieval_class_overview(rc: dict) -> str:
     parts.append(
         f" {_e(counts['pmid'])} PMID-enumeration queries; "
         f"{_e(counts['seeded'])} title/name-seeded queries; "
-        f"{_e(counts['free'])} free-text keyword queries.</div>"
+        f"{_e(counts['free'])} free-text or title-restricted concept queries.</div>"
     )
+    parts.append(_retrieval_axes_html(rc))
     return "".join(parts)
+
+
+def _retrieval_axes_html(rc: dict) -> str:
+    """V1.0.1 (esketamine review): three separate questions, answered separately."""
+    ax = (rc or {}).get("axes") or {}
+    if not ax:
+        return ""
+    names = {"can_retrieve_unknown_trial": "Can it retrieve an unknown trial?",
+             "execution_documented": "Was execution documented?",
+             "coverage_adequate": "Is coverage adequate?"}
+    return ("<ul class='retrieval-axes'>" + "".join(
+        f"<li>{_e(names[k])} <strong>{_e(ax[k].get('answer'))}</strong> &mdash; {_e(ax[k].get('basis'))}</li>"
+        for k in names if k in ax) + "</ul>")   # fixed order (byte-identical after a key-sorted round trip)
 
 
 def _retrieval_class_html(rc: dict) -> str:
@@ -294,7 +308,7 @@ def _retrieval_class_html(rc: dict) -> str:
         body += " " + _e(rc.get("retraction"))
     if rc.get("distinction"):
         body += " " + _e(rc.get("distinction")) + "."
-    body += "</p></div>"
+    body += "</p></div>" + _retrieval_axes_html(rc)
     rows = []
     for row in rc.get("basis") or []:
         features = "; ".join(row.get("features") or [])
@@ -2109,10 +2123,15 @@ def _comparator(r, neutral):
     sc = c.get("scope") or {}
     if sc:
         note_l = str(sc.get("note") or "").lower()
+        sq_label = (sc.get("same_question") or {}).get("label")
         if sc.get("scope_valid"):
             v = "✓ same question"
         elif "comparator invalid" in note_l:
             v = "COMPARATOR INVALID"
+        elif sq_label == "RELATED_TRIAL_INVENTORY_MAP":
+            v = "related: trial-inventory map (not the same question)"
+        elif sq_label == "NOT_ESTABLISHED" and sc.get("intervention_level_match") and sc.get("population_match"):
+            v = "same question NOT ESTABLISHED"
         else:
             v = "⚠ SCOPE MISMATCH"
         topic_level = sc.get("topic_intervention_level") or ("class-level" if sc.get("topic_is_class") else "a single agent")
@@ -2123,6 +2142,8 @@ def _comparator(r, neutral):
                  f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
                  f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
                  "before the k was seen.</span></p>")
+        from .same_question import render as _same_question_block
+        body += _same_question_block(sc)
         if sc.get("population_match_basis"):
             pm = sc.get("population_match_basis") or {}
             paed = ", ".join(x.get("trial_id", "") for x in pm.get("pool_has_paediatric_trials", []) or [])

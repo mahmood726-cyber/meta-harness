@@ -31,7 +31,7 @@ SPECS = {
                            "several counts states sub-counts, not the total",
                    "trigger": r"trials|RCTs", "plants": {
                        "accept": [("6 trials comparing", ("6",)), ("eight randomized controlled trials", ("eight",))],
-                       "refuse": ["6 patients", "trial of colchicine"]}},
+                       "refuse": ["6 patients", "trial of colchicine", "1,234 trials", "1.5 trials"]}},
     "_ARM": {"kind": "extractor", "fields": ["count", "percent", "denominator"],
              "spec": "an event count for one group written as COUNT (PERCENT%) of DENOMINATOR (or COUNT (PERCENT%)/DENOMINATOR)",
              "trigger": r"\d\s*%", "plants": {"accept": [("12 (6.0%) of 200", ("12", "6.0", "200"))],
