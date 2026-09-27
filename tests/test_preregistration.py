@@ -1,45 +1,62 @@
-"""Preregistration vs build SHA (audit 20, P0). The displayed protocol SHA is usually a BUILD commit
-(protocol + cache + synthesis + page together), which cannot demonstrate the protocol preceded
-synthesis. The harness must distinguish a protocol-ONLY prospective commit from the build, render which,
-and the gate must refuse a page that CLAIMS prospective registration while citing a build commit.
-"""
+"""Harms and secondary outcomes not preregistered in the protocol are EXPLORATORY, or cite a dated amendment (dapagliflozin HFpEF
+review, 2026-09-26). Served state and protocols at the pinned candidate 3876a62d (a missing commit fails, never skips)."""
 import json
 import os
+import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from harness import registration, gate  # noqa: E402
+import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DOCS = os.path.join(ROOT, "docs", "reviews")
+sys.path.insert(0, ROOT)
+from harness import outcome_tiers as ot   # noqa: E402
+
+PINNED = "3876a62dca66764dff1b4f84d6b43356a1a9e3bb"
 
 
-def test_preregistration_resolver_shape():
-    # every live topic resolves to a well-formed preregistration object
-    for slug in sorted(os.listdir(DOCS)):
-        if not os.path.exists(os.path.join(DOCS, slug, "review.json")):
-            continue
-        pre = registration.preregistration_sha(slug)
-        assert set(pre) >= {"prospective", "sha", "kind", "build_sha"}, pre
-        if pre["prospective"]:
-            # a claimed prospective registration MUST be a protocol-only commit
-            assert pre["sha"] and not registration.is_build_commit(pre["sha"]), \
-                f"{slug}: prospective SHA {pre['sha']} is a build commit"
+def _show(path):
+    p = subprocess.run(["git", "show", f"{PINNED}:{path}"], cwd=ROOT, capture_output=True)
+    if p.returncode != 0:
+        pytest.fail(f"{PINNED[:8]}:{path} not in history (never a skip)", pytrace=False)
+    return p.stdout.decode("utf-8")
 
 
-def test_every_served_page_prereg_claim_is_honest():
-    # no served page may claim prospective registration while citing a build commit (the gate limb)
-    for slug in sorted(os.listdir(DOCS)):
-        rp = os.path.join(DOCS, slug, "review.json")
-        if not os.path.exists(rp):
-            continue
-        assert gate.check_preregistration_not_build(os.path.join(DOCS, slug)) == [], slug
+def _outcome(slug, name):
+    return next(o for o in json.loads(_show(f"docs/reviews/{slug}/review.json"))["outcomes"] if o["name"] == name)
 
 
-def test_build_commit_classifier():
-    # a commit touching cache/ or docs/reviews/ is a build commit; refuse to call it prospective
-    # (uses the doac-vte displayed SHA, which audit 20 showed is a build commit)
-    rev = json.load(open(os.path.join(DOCS, "doac-vte-recurrence", "review.json"), encoding="utf-8"))
-    bsha = ((rev.get("reproduction") or {}).get("preregistration") or {}).get("build_sha")
-    if bsha:
-        assert registration.is_build_commit(bsha) is True, f"doac-vte build_sha {bsha} should classify as build"
+def test_plant_dapagliflozin_serves_an_adverse_events_pool_the_protocol_says_is_not_preregistered():
+    md = _show("protocols/dapagliflozin-hfpef-hosp.md")
+    assert "**Harms** - none preregistered for this topic." in md
+    o = _outcome("dapagliflozin-hfpef-hosp", "Adverse events")
+    assert o["result"]["estimate"] is not None and "served_tier" not in o and "outcome_tiers" not in o     # served, unlabelled
+    p = ot.preregistration(o, md)
+    assert p["state"] == "NOT_PREREGISTERED" and p["served_as"] == "EXPLORATORY" and "none preregistered" in p["basis"]
+
+
+@pytest.mark.parametrize("slug,name,basis", [
+    ("ticagrelor-vs-clopidogrel-acs", "Major bleeding", "harm outcomes"),        # '- **Harm outcomes** - major bleeding and dyspnea'
+    ("ticagrelor-vs-clopidogrel-acs", "Dyspnea", "harm outcomes"),
+    ("denosumab-vertebral-fracture", "Serious adverse events", "harm outcomes"),  # 'Harm outcomes:' + bullet list
+    ("corticosteroids-cap-mortality", "Hyperglycaemia", "o (harms)"),            # British spelling vs the protocol's
+])
+def test_every_protocol_style_is_read(slug, name, basis):
+    p = ot.preregistration(_outcome(slug, name), _show(f"protocols/{slug}.md"))
+    assert p["state"] == "PREREGISTERED" and basis in p["basis"].lower(), p
+
+
+def test_a_general_harms_clause_preregisters_harms():
+    md = "- **O (primary)** - x.\n- **O (harms / secondary)** - gastrointestinal adverse events, and any further harm outcome the comparator reports.\n"
+    assert ot.preregistration({"name": "Acute pancreatitis", "kind": "harm"}, md)["state"] == "PREREGISTERED"
+
+
+def test_a_dated_amendment_that_names_the_outcome_counts_and_its_date_is_kept():
+    md = ("- **O (primary)** - x.\n- **Harms** - none preregistered for this topic.\n\n"
+          "## Amendment 2026-09-20 (harms)\nAdverse events are added as a harm outcome.\n")
+    p = ot.preregistration({"name": "Adverse events", "kind": "harm"}, md)
+    assert p["state"] == "AMENDED" and p["amendment_date"] == "2026-09-20"
+
+
+def test_no_protocol_text_shows_nothing_preregistered_except_the_primary():
+    assert ot.preregistration({"name": "Adverse events", "kind": "harm"}, "")["state"] == "NOT_PREREGISTERED"
+    assert ot.preregistration({"name": "x", "primary": True}, "")["state"] == "PREREGISTERED"

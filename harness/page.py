@@ -343,6 +343,14 @@ def _tier_line(o: dict):
     t = o.get("outcome_tiers") or {}
     if not t:
         return None
+    pr = t.get("preregistration") or {}
+    if pr.get("state") == "NOT_PREREGISTERED":
+        return ("EXPLORATORY -- not preregistered: the protocol does not name this outcome and no dated amendment does ("
+                + str(pr.get("basis") or "") + ")")
+    if pr.get("state") == "AMENDED":
+        amended = f"; added by dated amendment {pr.get('amendment_date')}"
+    else:
+        amended = ""
     pt = t.get("primary") or {}
     if pt.get("state") == "POLICY_APPLIED":
         pool = pt.get("pool") or {}
@@ -352,7 +360,7 @@ def _tier_line(o: dict):
                 + (f", {_num(est)} ({_num(pool.get('ci_low'))}-{_num(pool.get('ci_high'))})" if est is not None else "")
                 + "; the all-inputs pool is exploratory")
     return ((t.get("exploratory") or {}).get("title") or "EXPLORATORY") + (
-        " -- no predeclared common_outcome_policy, so no input is shown to meet a common window / definition / population")
+        " -- no predeclared common_outcome_policy, so no input is shown to meet a common window / definition / population") + amended
 
 
 def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:

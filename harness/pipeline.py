@@ -2262,6 +2262,10 @@ def build_review_core(slug, config, records, protocol_sha):
     # is final (the admissions above may rewrite it). The declared name / timepoint / population stay as the REGISTRATION; what
     # the page states about the pool is derived from the pooled inputs, and a PRIMARY tier exists only under a predeclared
     # common_outcome_policy. A trial stays eligible when its result is outside the primary tier (eligibility is not re-decided).
+    try:
+        _protocol_md_for_tiers = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+    except OSError:
+        _protocol_md_for_tiers = ""                       # no protocol text: nothing is shown preregistered (fail closed)
     for _o in review.get("outcomes", []):
         _trials = _o.get("trials") or []
         if not _trials:
@@ -2294,6 +2298,13 @@ def build_review_core(slug, config, records, protocol_sha):
         _o["outcome_tiers"] = _t
         _o["served_tier"] = "PRIMARY" if _pt.get("state") == "POLICY_APPLIED" else "EXPLORATORY"
         _o["served_title"] = (_o.get("name") if _o["served_tier"] == "PRIMARY" else _t["exploratory"]["title"])
+        # PREREGISTRATION (dapagliflozin HFpEF review): a harm / secondary outcome the protocol does not name, and no dated
+        # amendment names, is EXPLORATORY whatever else holds -- titled so, never presented as a planned analysis
+        _pr = outcome_tiers_mod.preregistration(_o, _protocol_md_for_tiers)
+        _t["preregistration"] = _pr
+        if _pr["state"] == "NOT_PREREGISTERED":
+            _o["served_tier"] = "EXPLORATORY"
+            _o["served_title"] = f"Exploratory (not preregistered): {_o.get('name')}"
     harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered

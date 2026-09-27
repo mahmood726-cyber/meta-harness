@@ -199,3 +199,70 @@ def refusals_for(root, slug: str) -> list[dict[str, Any]] | None:
         return (json.load(open(p, encoding="utf-8")) or {}).get(slug)
     except (OSError, ValueError):
         return None
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# PREREGISTRATION (dapagliflozin HFpEF review, 2026-09-26): a harm or secondary outcome the protocol does not preregister -- and no
+# DATED amendment names -- is EXPLORATORY and titled as such. dapagliflozin-hfpef-hosp's protocol says "Harms - none preregistered"
+# while an "Adverse events" pool was served with no label.
+_STOP = {"the", "and", "or", "of", "in", "to", "with", "for", "any", "all", "events", "event", "outcome", "outcomes", "rate", "risk"}
+_O_LINE = re.compile(r"(?im)^\s*-\s*\*\*O\s*\(([^)]*)\)\*\*\s*[-—:]*\s*(.*(?:\n[ \t]+\S.*)*)")
+_NONE_LINE = re.compile(r"(?im)^\s*-\s*\*\*(Secondary outcomes|Harms)\*\*\s*[-—:]*\s*(.*)$")
+_AMEND = re.compile(r"(?im)^#{1,3}\s*[^\n]*amendment[^\n]*$")
+_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2}|\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4})\b")
+_GENERAL_HARMS = re.compile(r"(?i)any\s+(?:further\s+|other\s+)?harm")
+
+
+def _norm_text(s: str) -> str:
+    return re.sub(r"ae", "e", (s or "").lower())                    # hyperglycaemia == hyperglycemia
+
+
+def _content_tokens(name: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z]{4,}", _norm_text(name)) if w not in _STOP]
+
+
+# the three ways these protocols declare outcomes: '- **O (harms)** - ...', '- **Harm outcomes** - ...' (ticagrelor), and a heading
+# 'Harm outcomes:' followed by bullet lines (denosumab)
+_BOLD_LINE = re.compile(r"(?im)^\s*-\s*\*\*((?:primary|secondary|harm)[^*]*)\*\*\s*[-—:]*\s*(.*(?:\n[ \t]+\S.*)*)")
+_HEAD_BLOCK = re.compile(r"(?im)^((?:primary|secondary|harm)[a-z ]*outcomes?|harms)\s*:\s*\n((?:[ \t]*-\s+.*\n?)+)")
+
+
+def _prereg_blocks(md: str):
+    for m in _O_LINE.finditer(md):
+        yield "O (" + m.group(1).lower() + ")", _norm_text(m.group(2))
+    for m in _BOLD_LINE.finditer(md):
+        yield m.group(1).lower(), _norm_text(m.group(2))
+    for m in _HEAD_BLOCK.finditer(md):
+        yield m.group(1).lower(), _norm_text(m.group(2))
+
+
+def preregistration(outcome: dict[str, Any], protocol_md: str | None) -> dict[str, Any]:
+    """PREREGISTERED (the protocol names it, or declares harms by a general clause), AMENDED (a dated amendment section names it
+    or its kind), NOT_PREREGISTERED -> EXPLORATORY. The primary outcome is the protocol's declared O (primary)."""
+    if outcome.get("primary"):
+        return {"state": "PREREGISTERED", "basis": "protocol O (primary)"}
+    md = protocol_md or ""
+    kind = "harm" if outcome.get("kind") == "harm" else "secondary"
+    toks = _content_tokens(outcome.get("name") or "")
+    for label, body in _prereg_blocks(md):
+        if "primary" in label and "harm" not in label and "secondary" not in label:
+            continue
+        if kind == "harm" and "harm" not in label and "secondary" not in label:
+            continue
+        if re.match(r"\s*none\b", body):
+            continue
+        if any(re.search(r"\b" + t + r"\w*", body) for t in toks):
+            return {"state": "PREREGISTERED", "basis": f"protocol: {label}"}
+        if kind == "harm" and _GENERAL_HARMS.search(body):
+            return {"state": "PREREGISTERED", "basis": f"protocol: {label} (general harms clause)"}
+    for m in _AMEND.finditer(md):
+        nxt = _AMEND.search(md, m.end())
+        section = md[m.start(): nxt.start() if nxt else len(md)]
+        header = m.group(0)
+        if any(re.search(r"\b" + t + r"\w*", _norm_text(section)) for t in toks) or (kind == "harm" and re.search(r"(?i)\bharms?\b", header)):
+            d = _DATE.search(header) or _DATE.search(section)
+            if d:
+                return {"state": "AMENDED", "basis": header.strip("# ").strip(), "amendment_date": d.group(1)}
+    none = [m.group(2) for m in _NONE_LINE.finditer(md) if (m.group(1).lower().startswith("harm") == (kind == "harm"))]
+    return {"state": "NOT_PREREGISTERED", "basis": (none[0].strip() if none else "no protocol O-line or dated amendment names it"),
+            "served_as": "EXPLORATORY"}
