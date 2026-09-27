@@ -434,3 +434,28 @@ create was deleted).
 - **Candidates now: 60, 48 verified (44 FOUND, 4 zero-event) across 10 topics** (probiotics 18, DOAC-VTE 8,
   tocilizumab 8, balanced crystalloids 4, DPP-4 4, GLP-1 2, and one each in 4 others). One entry per
   (topic, outcome, trial); a later round supersedes an earlier one (11 did). None admitted.
+
+### Lane round 3: concordance of the 48 verified candidates (no network), and the admission queue
+- Codex judged each verified row against its topic's protocol: endpoint, timepoint, population, design, report role,
+  and whether the review's current exclusion reason still applies. Every judgement carries verbatim spans.
+- Span check (`evidence/acquisition_cascade/LANE_CONCORDANCE.VERIFIED.json`): every protocol, source-definition and
+  timepoint span is found verbatim. 22 population and 4 design fields are unsupported: labels were written, not
+  quotes.
+- Judgements: endpoint EXACT 24, UNCLEAR 24; timepoint SAME 12, UNCLEAR 35, DIFFERENT 1; report role PRIMARY 39,
+  COMPANION 9; the current exclusion reason no longer applies for 37.
+- `evidence/acquisition_cascade/ADMISSION_QUEUE.json`: **TIER_1 2, TIER_2 15, TIER_3 31. NOTHING ADMITTED.**
+  - TIER_1 = numbers verified, endpoint EXACT, timepoint SAME, reason removed, every span found. Both TIER_1 rows are
+    tocilizumab 28-day all-cause mortality, and both were checked by hand against the held text:
+    - TOCIBRAS (33472855): "Mortality up to 28 days" 14/65 vs 6/64, OR 2.70 (0.97-8.35); the primary analysis is
+      intention-to-treat. Held CC-BY PMC XML.
+    - CORIMUNO-TOCI-1 (33080017): 7 vs 8 deaths at day 28, **adjusted** HR 0.92 (0.33-2.53), ITT. The abstract gives
+      no arm denominators, so admitting it also needs a decision on pooling an adjusted HR with count-based rows.
+  - Five more tocilizumab 28-day mortality rows are TIER_2 (EXACT, timepoint SAME, reason removed; only a population
+    or design span unsupported).
+  - Admitting the tocilizumab rows would change that review's PRIMARY served result: a notice and Mahmood's
+    signature first.
+- **Codex read F:/ProjectIndex/INDEX.md and F:/E156/rewrite-workbook.txt in rounds 1, 2 and 3.** The briefs forbid
+  it, and round 2 onwards forbid it by name. The reads come from Codex's global AGENTS.md, which a brief does not
+  override. The sandbox stops writes outside the worktree; the reads are a standing breach. I have not edited the
+  global Codex config: that is Mahmood's call. Options: a lane-local CODEX_HOME, or removing that instruction from
+  the global AGENTS.md.
