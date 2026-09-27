@@ -422,7 +422,10 @@ _NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt)
 _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
                 "comparator_direction", "analysis_set", "adjudication", "verification",
                 # the result's timepoint with its OWN span in the same held document (checked at load)
-                "timepoint", "timepoint_span", "endpoint_role_in_trial")
+                "timepoint", "timepoint_span", "endpoint_role_in_trial",
+                # a row taken from a COMPANION report of the same trial (never a second trial), and a safety
+                # population that differs from randomisation (as treated)
+                "companion_report", "safety_population", "supersedes")
 
 
 def _hand_fields(entry, slug, pid, rec=None):
@@ -1996,6 +1999,8 @@ def build_review_core(slug, config, records, protocol_sha):
                 "span": d.get("span", ""), "found_by": found_by,
                 **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
                 **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
+                # a platform / multi-comparison registration's per-comparison screening, and its pending decisions
+                **{k: d[k] for k in ("comparisons", "pending_decisions") if d.get(k)},
                 **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                 **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
                    if d.get("arm_object_hidden_eligible_contrast") else {}),
@@ -2008,6 +2013,7 @@ def build_review_core(slug, config, records, protocol_sha):
                               "span": d.get("span", ""),
                               **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
                               **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
+                              **{k: d[k] for k in ("comparisons", "pending_decisions") if d.get(k)},
                               **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                               **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
                                  if d.get("arm_object_hidden_eligible_contrast") else {}),

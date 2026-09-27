@@ -5,12 +5,23 @@ cannot contradict what the review object holds (dapagliflozin HFmrEF/HFpEF: the 
 States, first match wins (the order IS the exclusivity):
   ADMITTED_PENDING_SIGNATURE  pooled, and its admission is in an OPEN result-change notice (not yet countersigned)
   ADMITTED                    pooled
+  REPORTED_ZERO_EVENTS        reported with ZERO events in every arm (a witnessed statement or a 0-vs-0 extraction):
+                              reported, never "not reported"; not estimable on a ratio scale
   EXTRACTED_NOT_ADMITTED      not pooled, but an extraction exists: an effect+CI or arm counts with a verbatim span
                               on the row (observed_effect / held_out_row / a value the reason audit found held)
   WITHDRAWN                   a result served earlier was withdrawn (reason carried) and no extraction replaces it
-  SOURCE_HELD_RESULT_NOT_EXTRACTED  a source is held (abstract / full text / registry) but no extraction exists
-  SOURCE_ABSENT               no source is held (not retrieved / not discovered)
+  REPORTED_UNRESOLVED         the held source REPORTS the outcome but no admissible value is resolved from it
+                              (timepoint / estimand / multi-arm / population mismatch, an internally inconsistent
+                              source, a whole-trial row across comparisons, a result located in an unheld supplement,
+                              an outcome discussed without an aggregate)
+  NOT_MEASURED                the trial did not measure it -- ONLY from a witnessed declaration (`not_measured_span`),
+                              never inferred, and never while any held source reports the outcome
+  RETRIEVED_NOT_REPORTED      a source is held and the outcome was not found in it -- a SCOPED statement ("not found in
+                              the inspected abstract"), never promoted to "absent by design"
+  NOT_YET_RETRIEVED           no source is held (not retrieved / not discovered)
 A withdrawal is also kept as HISTORY on any row (withdrawn: {value, reason}), whatever its current state.
+(Vocabulary refined 2026-09-27 from the denosumab review: SOURCE_ABSENT is now NOT_YET_RETRIEVED, and the former
+SOURCE_HELD_RESULT_NOT_EXTRACTED is split into REPORTED_UNRESOLVED / REPORTED_ZERO_EVENTS / RETRIEVED_NOT_REPORTED.)
 """
 from __future__ import annotations
 
@@ -21,11 +32,19 @@ ADMITTED_PENDING_SIGNATURE = "ADMITTED_PENDING_SIGNATURE"
 ADMITTED = "ADMITTED"
 EXTRACTED_NOT_ADMITTED = "EXTRACTED_NOT_ADMITTED"
 WITHDRAWN = "WITHDRAWN"
-SOURCE_HELD_RESULT_NOT_EXTRACTED = "SOURCE_HELD_RESULT_NOT_EXTRACTED"
-SOURCE_ABSENT = "SOURCE_ABSENT"
-STATES = (ADMITTED_PENDING_SIGNATURE, ADMITTED, EXTRACTED_NOT_ADMITTED, WITHDRAWN,
-          SOURCE_HELD_RESULT_NOT_EXTRACTED, SOURCE_ABSENT)
+REPORTED_ZERO_EVENTS = "REPORTED_ZERO_EVENTS"
+REPORTED_UNRESOLVED = "REPORTED_UNRESOLVED"
+NOT_MEASURED = "NOT_MEASURED"
+RETRIEVED_NOT_REPORTED = "RETRIEVED_NOT_REPORTED"
+NOT_YET_RETRIEVED = "NOT_YET_RETRIEVED"
+SOURCE_ABSENT = NOT_YET_RETRIEVED          # the earlier name of the same state (one state, one string)
+STATES = (ADMITTED_PENDING_SIGNATURE, ADMITTED, REPORTED_ZERO_EVENTS, EXTRACTED_NOT_ADMITTED, WITHDRAWN,
+          REPORTED_UNRESOLVED, NOT_MEASURED, RETRIEVED_NOT_REPORTED, NOT_YET_RETRIEVED)
 _NOT_HELD = {"SOURCE_NOT_RETRIEVED", "DISCOVERED_NOT_RETRIEVED", "NOT_DISCOVERED", "NOT_HELD"}
+# codes that say the outcome IS reported but no admissible value was resolved from it
+_REPORTED_CODES = {"TIMEPOINT_MISMATCH", "MULTI_ARM_UNRESOLVED", "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
+                   "POPULATION_MISMATCH", "SOURCE_INTERNALLY_INCONSISTENT", "WHOLE_TRIAL_ACROSS_COMPARISONS",
+                   "ENDPOINT_UNBOUND", "RESULT_INCOMPATIBLE", "KNOWN_REPORTED_NOT_YET_EXTRACTED"}
 _NOT_EXTRACTABLE = re.compile(r"not extractable|could not be extracted|no extractable", re.I)
 
 
@@ -48,7 +67,19 @@ def extraction_of(row: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str]) -> dict[str, Any]:
+def _scope(row: dict[str, Any]) -> str:
+    """What was inspected, for a scoped 'not found' statement."""
+    rep = str(((row.get("held_document") or {}).get("representation")) or "")
+    text = f"{row.get('reason') or ''} {row.get('state_basis') or ''}".lower()
+    if rep in ("xml", "text") or "full text" in text or "full-text" in text:
+        return "the inspected full text"
+    if "abstract" in text or rep == "abstract" or not rep:
+        return "the inspected abstract"
+    return "the held sources"
+
+
+def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentioned: bool = False) -> dict[str, Any]:
+    """`mentioned`: the outcome is named in this trial's held source (the outcome's reported_by)."""
     wd = None
     if row.get("absent_kind") == "result_withdrawn" or row.get("withdrawn_effect"):
         wd = {"value": row.get("withdrawn_effect"), "reason": row.get("reason")}
@@ -56,6 +87,10 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str]) -> dict[
         st = ADMITTED_PENDING_SIGNATURE if _pid(row.get("id")) in pending_ids else ADMITTED
         return {"state": st, **({"withdrawn": wd} if wd else {})}
     ex = extraction_of(row)
+    zero_span = row.get("zero_events_span")
+    if zero_span or (ex and ex.get("ai") == 0 and ex.get("ci") == 0):
+        return {"state": REPORTED_ZERO_EVENTS, "span": zero_span or ex.get("span"),
+                "note": "zero events in every arm: reported; not estimable on a ratio scale"}
     if ex:
         code = row.get("reason_code") or row.get("state") or row.get("absent_kind")
         why = code
@@ -68,10 +103,18 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str]) -> dict[
                 **({"withdrawn": wd} if wd else {})}
     if wd:
         return {"state": WITHDRAWN, "withdrawn": wd}
-    code = str(row.get("reason_code") or row.get("state") or "")
+    code = str(row.get("reason_code") or row.get("state") or row.get("provenance") or "")
     if code in _NOT_HELD or row.get("absent_kind") == "not_retrieved":
-        return {"state": SOURCE_ABSENT, "basis": code}
-    return {"state": SOURCE_HELD_RESULT_NOT_EXTRACTED, "basis": code or row.get("absent_kind")}
+        return {"state": NOT_YET_RETRIEVED, "basis": code}
+    acq = row.get("acquisition_state") or {}
+    if (code in _REPORTED_CODES or mentioned or row.get("reported_unresolved_span")
+            or "PROTOCOL_PREFERRED_ANALYSIS_IN_SUPPLEMENT" in (acq.get("states") or [])):
+        return {"state": REPORTED_UNRESOLVED, "basis": code or row.get("absent_kind"),
+                **({"span": row["reported_unresolved_span"]} if row.get("reported_unresolved_span") else {})}
+    if row.get("not_measured_span"):
+        return {"state": NOT_MEASURED, "span": row["not_measured_span"]}
+    return {"state": RETRIEVED_NOT_REPORTED, "scope": _scope(row), "basis": code or row.get("absent_kind"),
+            "statement": f"not found in {_scope(row)} (a scoped statement, not a claim about the trial's design)"}
 
 
 def _pending_ids(review: dict[str, Any], outcome: str) -> set[str]:
@@ -98,10 +141,11 @@ def derive(review: dict[str, Any]) -> None:
     """Stamp `result_status` on every trial row and rebuild each outcome's not-extracted sentence FROM the states."""
     for o in review.get("outcomes") or []:
         pend = _pending_ids(review, o.get("name"))
+        mentioned = {_pid(x) for x in ((o.get("result") or {}).get("reported_by") or [])}
         for t in o.get("trials") or []:
             t["result_status"] = status_of(t, True, pend)
         for a in o.get("declared_absent_trials") or []:
-            a["result_status"] = status_of(a, False, pend)
+            a["result_status"] = status_of(a, False, pend, mentioned=_pid(a.get("id")) in mentioned)
         res = o.get("result")
         if isinstance(res, dict) and res.get("reported_not_extracted"):
             by = {_pid(a.get("id")): a["result_status"] for a in o.get("declared_absent_trials") or []}
@@ -118,7 +162,7 @@ def derive(review: dict[str, Any]) -> None:
                              + " mention this outcome in the committed abstract without arm counts or an effect+CI "
                                "in an extractable form; full-text acquisition would recover the countable form")
             res["reason"] = ". ".join(parts) + ". This outcome is NOT absent."
-            res["status_counts"] = {"EXTRACTED_NOT_ADMITTED": extracted, "SOURCE_HELD_RESULT_NOT_EXTRACTED": not_extracted}
+            res["status_counts"] = {EXTRACTED_NOT_ADMITTED: extracted, REPORTED_UNRESOLVED: not_extracted}
 
 
 def _value_phrase(ex: dict[str, Any]) -> str:
@@ -131,16 +175,26 @@ def _value_phrase(ex: dict[str, Any]) -> str:
 
 def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     """Blocking: a sentence that calls a trial's result not extractable while that trial's state says an extraction
-    exists (STATUS_VS_EXTRACTION); a row with no derived state or an unknown one (STATUS_MISSING)."""
+    exists (STATUS_VS_EXTRACTION); a row with no derived state or an unknown one (STATUS_MISSING); a design-absence
+    claim (NOT_MEASURED / absent by design) on a row whose held source holds or reports the result
+    (DESIGN_ABSENCE_VS_HELD_RESULT) -- a held result always invalidates it."""
     out = []
     for o in review.get("outcomes") or []:
         states = {}
+        mentioned = {_pid(x) for x in ((o.get("result") or {}).get("reported_by") or [])}
         for t in (o.get("trials") or []) + (o.get("declared_absent_trials") or []):
             st = (t.get("result_status") or {}).get("state")
             if st not in STATES:
                 out.append({"kind": "STATUS_MISSING", "report_id": _pid(t.get("id")),
                             "detail": f"{o.get('name')}: {t.get('id')} has no derived result status"})
             states[_pid(t.get("id"))] = st
+            claims_design = bool(t.get("not_measured_span")) or t.get("absence_status") == "ABSENT_BY_DESIGN"
+            held_result = (t in (o.get("trials") or []) or extraction_of(t) or t.get("zero_events_span")
+                           or _pid(t.get("id")) in mentioned or t.get("reported_unresolved_span"))
+            if claims_design and held_result:
+                out.append({"kind": "DESIGN_ABSENCE_VS_HELD_RESULT", "report_id": _pid(t.get("id")),
+                            "detail": f"{o.get('name')}: {t.get('id')} is claimed not measured / absent by design while "
+                                      "a held source holds or reports its result"})
         texts = [str((o.get("result") or {}).get("reason") or "")]
         texts += [str(a.get("reason") or "") for a in o.get("declared_absent_trials") or []]
         for text in texts:

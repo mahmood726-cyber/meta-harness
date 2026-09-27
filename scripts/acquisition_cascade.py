@@ -342,7 +342,9 @@ def main(argv=None):
             # further reports of the SAME trial (a longer follow-up, a companion): fetched as that trial's reports,
             # held under the trial, never a second trial
             for rep in t.get("reports") or []:
-                rt = {**rep, "trial": f"{t['trial']}#{rep['report_label']}"}
+                # '__', never '#': '#' is the fragment separator of a document reference (records.json#PMID-...),
+                # so a held path containing it is cut short where it is cited
+                rt = {**rep, "trial": f"{t['trial']}__{rep['report_label']}"}
                 route_unpaywall(rt)
                 route_europepmc(rt)
             for q in spec.get("secondary_queries") or []:

@@ -55,10 +55,38 @@ def test_synthetic_not_in_held_sources_pair():
     assert audit["status"] == unextracted.NOT_IN_HELD_SOURCES
 
 
-def test_synthetic_absent_by_design_pair():
+def test_synthetic_timepoint_mismatch_is_reported_unresolved_not_absent_by_design():
+    # REQUIREMENT (denosumab review, 2026-09-27): a timepoint mismatch means the trial REPORTED the outcome at another
+    # time; the audit said ABSENT_BY_DESIGN, a claim about the trial's design that the row does not support.
     outcome = {"name": "Stroke", "trials": [], "declared_absent_trials": []}
     row = {"reason_code": absence.TIMEPOINT_MISMATCH}
     sources = [{"source_id": "abstract:T1", "source_kind": "abstract",
                 "text": "The trial reported quality of life and headache only."}]
     audit = unextracted.audit_pair(outcome, "T1", sources, {"keywords": ["stroke"]}, row)
-    assert audit["status"] == unextracted.ABSENT_BY_DESIGN
+    assert audit["status"] == unextracted.REPORTED_UNRESOLVED
+    assert audit["status"] != unextracted.ABSENT_BY_DESIGN
+
+
+def test_a_refusal_about_the_inspected_source_stays_scoped():
+    # FREEDOM serious infection: REFUSED_ON_EVIDENCE ("the source gives no serious-infection aggregate") is a statement
+    # about what the inspected source says -- never ABSENT_BY_DESIGN
+    outcome = {"name": "Serious infection", "trials": [], "declared_absent_trials": []}
+    row = {"reason_code": absence.REFUSED_ON_EVIDENCE, "absent_kind": "adjudicated_absent"}
+    silent = [{"source_id": "abstract:T1", "source_kind": "abstract", "text": "Fracture risk was reduced."}]
+    a = unextracted.audit_pair(outcome, "T1", silent, {"keywords": ["infection"]}, row)
+    assert a["status"] == unextracted.NOT_IN_HELD_SOURCES and "scoped" in a["scope"]
+    discussed = [{"source_id": "abstract:T1", "source_kind": "abstract",
+                  "text": "There was no increase in the risk of infection with denosumab."}]
+    b = unextracted.audit_pair(outcome, "T1", discussed, {"keywords": ["infection"]}, row)
+    assert b["status"] == unextracted.REPORTED_UNRESOLVED
+
+
+def test_a_held_full_text_result_invalidates_any_design_absence():
+    # PLANT: a design-absence row, but a held full text carries the result -> never absent by design
+    outcome = {"name": "Serious infection", "trials": [], "declared_absent_trials": []}
+    row = {"reason_code": absence.REFUSED_ON_EVIDENCE, "not_measured_span": "not assessed"}
+    ft = [{"source_id": "fulltext:T1", "source_kind": "fulltext",
+           "text": ("Serious infection occurred in 159 of 3886 patients (4.1%) in the denosumab group and in 133 of "
+                    "3876 (3.4%) in the placebo group.")}]
+    a = unextracted.audit_pair(outcome, "T1", ft, {"keywords": ["serious infection"]}, row)
+    assert a["status"] == unextracted.HELD_NOT_EXTRACTED

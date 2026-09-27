@@ -209,6 +209,8 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
                 "trial": key,
                 "why_eligible": x.get("note") or f"known_eligible_missing via {x.get('mechanism')}",
                 "note": x.get("note") or "",
+                # a declared, witnessed per-outcome result state and a comparison split travel with the entry
+                **{k: x[k] for k in ("result_states", "comparisons", "design_note", "acquisition") if x.get(k)},
             })
     for x in primary.get("declared_absent_trials") or []:
         key = _clean_id(x.get("id")) or str(x.get("label") or "")
@@ -248,6 +250,16 @@ def build(review: dict[str, Any], signals: dict[str, Any],
         row = _source_value(review.get("slug", ""), primary, cand, rec_by_id, records)
         row["why_eligible"] = cand.get("why_eligible") or cand.get("reason") or ""
         row["sensitivity_label"] = "SENSITIVITY"
+        _declared = (cand.get("result_states") or {}).get(primary.get("name"))
+        if _declared:
+            # a declared state for THIS outcome; a witnessed one is re-verified against its held bytes (fail closed)
+            if _declared.get("witness"):
+                from .comparison_family import _ROOT as _REPO_ROOT, _verified
+                _verified(_REPO_ROOT, {"witness": _declared["witness"]})
+            row["result_status"] = {k: v for k, v in _declared.items() if k != "witness"}
+        for _k in ("comparisons", "design_note"):
+            if cand.get(_k):
+                row[_k] = cand[_k]
         from .invalidation import missing_state
         fact = next((f for f in review.get("held_regulatory_facts", [])
                      if row["trial_key"] in {f.get("trial"), f.get("trial_key"), f.get("nct")}), None)

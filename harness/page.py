@@ -465,6 +465,16 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
             val = "different estimand in committed source; no target-estimand number used"
         else:
             val = "named, value not in committed source; no number computed"
+        if isinstance(r.get("result_status"), dict):
+            # a declared, witnessed result state for this outcome (REPORTED_ZERO_EVENTS is reported, never 'not reported')
+            rs_ = r["result_status"]
+            val += (f"<div>result status: <code data-result-status='{_e(rs_.get('state'))}'>{_e(rs_.get('state'))}</code>"
+                    + (f" &mdash; &ldquo;{_e(rs_.get('span'))}&rdquo;" if rs_.get("span") else "")
+                    + (f" &mdash; {_e(rs_.get('statement') or rs_.get('basis') or '')}" if (rs_.get('statement') or rs_.get('basis')) else "")
+                    + (f" <span class='muted'>({_e(rs_.get('note'))})</span>" if rs_.get("note") else "") + "</div>")
+        for _k in ("comparisons", "design_note"):
+            if r.get(_k):
+                val += f"<div class='muted'>{_e(_k.replace('_', ' '))}: {_e(r[_k])}</div>"
         sens = r.get("sensitivity")
         if sens:
             sens_txt = (f"{_e(sens.get('label'))}: k={_e(sens.get('k'))}, "
@@ -1572,6 +1582,11 @@ def _trial_inputs(o):
                     + (f" - {_e(t.get('source_warning'))}" if t.get("source_warning") else "")
                     + "</div>")
         inp += _status_html(t, o)
+        if t.get("companion_report"):
+            # counts taken from a companion report of THIS trial (never a second trial)
+            inp += f"<br><span class='muted'>from a companion report of the same trial: {_e(t['companion_report'])}</span>"
+        if t.get("safety_population"):
+            inp += f"<br><span class='muted'>safety population: {_e(t['safety_population'])}</span>"
         if t.get("provenance_tier") == "SECONDARY_SOURCE":
             # counts read from a citing paper, never shown as if they were the trial's own table (provenance_tiers)
             sw = t.get("secondary_witness") or {}

@@ -197,3 +197,13 @@ def test_prisma_flow_shows_awaiting_classification_and_the_comparisons():
                                                          "primary_pool_pending": [{"decision": "TIMEPOINT", "detail": "d"}]}]}]}
     html = page._screening(rev, False)
     assert "Awaiting classification" in html and "data-comparison='X:domain'" in html and "pending TIMEPOINT" in html
+
+
+def test_the_served_reviews_carry_the_comparison_tables():
+    # the ledger copies screening rows through a key whitelist; a hand-built review cannot catch a key it drops
+    for slug, reg in ((CAP, "NCT02735707"), (COVID, "NCT04344730")):
+        rev = json.load(open(os.path.join(ROOT, "docs", "reviews", slug, "review.json"), encoding="utf-8"))
+        fams = {f["registration"].split(" · ")[-1]: f for f in rev.get("comparison_families") or []}
+        assert reg in fams and len(fams[reg]["comparisons"]) == 2, slug
+        html = open(os.path.join(ROOT, "docs", "reviews", slug, "index.html"), encoding="utf-8").read()
+        assert "data-comparison=" in html, slug

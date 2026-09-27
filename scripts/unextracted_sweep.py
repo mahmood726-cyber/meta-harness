@@ -63,8 +63,9 @@ def run() -> dict[str, Any]:
     statuses = [
         unextracted.EXTRACTED,
         unextracted.HELD_NOT_EXTRACTED,
+        unextracted.REPORTED_UNRESOLVED,
         unextracted.NOT_IN_HELD_SOURCES,
-        unextracted.ABSENT_BY_DESIGN,
+        unextracted.NOT_MEASURED,
     ]
     for rp in review_paths():
         slug = rp.parent.name

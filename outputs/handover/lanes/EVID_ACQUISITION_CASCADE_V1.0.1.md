@@ -144,6 +144,34 @@ evidence/screening_roles/TESTS_PREFIX.txt).
 PMC answers its PDF and supplement links with a proof-of-work bot check ("POW_CHALLENGE"); the cascade now records
 that as BLOCKED_CHALLENGE_PAGE. JAMA / OUP publisher PDFs: 403.
 
+## Fixtures added 2026-09-27 (dapagliflozin HFmrEF/HFpEF review)
+
+### Result-status vocabulary: `harness/result_status.py`
+- One derived, mutually exclusive state per trial x outcome, first match wins: ADMITTED_PENDING_SIGNATURE / ADMITTED /
+  EXTRACTED_NOT_ADMITTED / WITHDRAWN(reason) / SOURCE_HELD_RESULT_NOT_EXTRACTED / SOURCE_ABSENT. A withdrawal is also
+  kept as history on any row.
+- DELIVER (PMID 36027570): the page said its primary result was "reported but not extractable"; its own row held the
+  extraction HR 0.82 (0.73-0.92) with its span (and the reason audit had already flagged the stored code as false).
+  Now EXTRACTED_NOT_ADMITTED, extraction named, the withdrawn CV-death-only value 0.88 kept as history. Not admitted:
+  admitting it changes the served primary and needs Mahmood's signature.
+- The outcome's "not extracted" sentence is rebuilt from the states. STATUS_VS_EXTRACTION (a sentence calling a trial
+  not extractable while its state holds an extraction) blocks. **Served V1: 2 of 32 topics** carried it: DELIVER
+  (dapagliflozin-hfpef-hosp) and EMPEROR-Preserved PMID 34449189 (empagliflozin-hfpef-hosp).
+- ADMITTED_PENDING_SIGNATURE is a page overlay from the OPEN result-change notices (outside the review core), so a
+  countersignature never moves the core hash.
+
+### One paper, two trials: `harness/multi_trial_report.py`, `docs/multi_trial_reports.json`
+- McMurray et al., Circulation 2024 (PMID 38059368; DOI 10.1161/circulationaha.123.065061) is linked to BOTH
+  registrations: DETERMINE-Preserved NCT03877224 (n=504) and DETERMINE-Reduced NCT03877237 (n=313). Relevance is derived
+  from each trial's own population span against this review's rules: Preserved in; Reduced out ('reduced ejection
+  fraction'). The combined 'DETERMINE-Pooled' analysis (n=817) is recorded as NEVER_IMPORTED; a pooled row carrying it,
+  or a row from the Reduced trial, is COMBINED_POPULATION_IMPORTED (blocking).
+- Full text and supplement: NOT held (not in PMC; the repository copy's PDF answers 403). The Preserved-specific
+  event and safety data were examined in the trial's own ClinicalTrials.gov posted results (public domain, held):
+  randomised 253 vs 251; safety set 252 vs 249; serious AEs 26/252 vs 19/249; deaths 3/252 vs 2/249 to day 119;
+  cardiac-failure SAEs 2 vs 4 (acute 1 vs 2, congestive 2 vs 0). No CV-death/worsening-HF outcome measure (16-week
+  trial). Examined, NOT admitted (it would change a served number: a decision for Mahmood).
+
 SERVED_DIFF_PLACEHOLDER
 
 ## Committed / not committed
