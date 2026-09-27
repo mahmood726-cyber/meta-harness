@@ -1,0 +1,105 @@
+{
+  "topic": "glp1-ra-mace-t2d",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared declared-absent rows, reason-code and unextracted-outcome audits, and age metadata with held abstracts, both held trial full texts, and regulatory quotations embedded in review.json.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Compared eight primary HRs and confidence intervals with their held abstract clauses; checked the REWIND gastrointestinal and LEADER discontinuation count-based RR inputs.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked primary composite definitions, ELIXA four-point versus three-point handling, harm count rows, and EXSCEL serious-only discontinuation refusal.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared screening decisions for the 11 held PubMed records with their population descriptions, including SELECT's exclusion.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Inspected primary-report assignments and SOUL's held abstract and family records. The supplied lane fact establishes abridgement, but the original abstract was not located in this extract for a local quotation pair.",
+      "result": "NOT_CHECKABLE"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared the held Giugliano comparator's estimate, interval, trial enumeration and methods with served comparator records; checked explicit recency and ELIXA endpoint qualifications.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Compared trial keys, labels and outcomes across the 17 reason-code audit rows and 27 unextracted-outcome audit rows.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Inspected per-trial endpoint definitions, follow-up fields and registry identities; reproduced the REWIND harm endpoint derivation using harness.compat_check.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C1",
+      "title": "ELIXA absence audit contradicts the embedded regulatory extraction",
+      "claim": {
+        "file": "docs/reviews/glp1-ra-mace-t2d/review.json",
+        "quote": "value absent from every held source inspected; code is consistent"
+      },
+      "evidence": [
+        {
+          "file": "docs/reviews/glp1-ra-mace-t2d/review.json",
+          "quote": "ITT analyses (on-study and on-treatment) of MACE, defined as cardiovascular death, non-fatal MI, and non-fatal stroke, are consistent with those of MACE+ (Table 8). The reason for the similarity is that only 0.3% of subjects in the ITT population experienced hospitalization for unstable angina. For ITT analysis 792 MACE events were observed, 392 and 400 in placebo and lixisenatide group, respectively. The 95% confidence interval for the hazard ratio is (0.887, 1.172) with a point estimate of 1.02."
+        }
+      ],
+      "why_wrong": "The ELIXA primary-outcome audit assigns REASON_TRUE to OUTCOME_NOT_IN_SOURCE, while held_regulatory_facts in the same served file preserves an explicitly three-component MACE extraction. This establishes an internal contradiction; the original regulatory PDF is outside this extract, so its transcription was not independently verified.",
+      "served_effect": "ELIXA remains outside the primary pool and is classified NOT_IN_HELD_SOURCES despite an embedded extracted result. The page's stale-result warning acknowledges missing incorporation but does not correct the absence audit.",
+      "proposed_fixture": "Use the existing ELIXA declared-absent row and its held_regulatory_facts entry as input. Assert that a matching three-point MACE HR and interval prevent REASON_TRUE/NOT_IN_HELD_SOURCES; classify the result as held pending adjudication or extraction instead.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "REWIND gastrointestinal result inherits the cardiovascular endpoint definition",
+      "claim": {
+        "file": "docs/reviews/glp1-ra-mace-t2d/review.json",
+        "quote": "\"endpoint_definition\": \"primary outcome was the first occurrence of the composite endpoint of non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes), which was assessed in the intention-to-treat population\""
+      },
+      "evidence": [
+        {
+          "file": "cache/glp1-ra-mace-t2d/records.json",
+          "quote": "2347 (47·4%) participants assigned to dulaglutide reported a gastrointestinal adverse event during follow-up compared with 1687 (34·1%) participants assigned to placebo (p<0·0001)."
+        }
+      ],
+      "why_wrong": "This endpoint_definition belongs to the gastrointestinal harm row for PMID 31189511. Its counts describe gastrointestinal adverse events, but _derive_endpoint selects the abstract's primary cardiovascular outcome definition without binding it to the requested outcome. Read-only execution reproduced the incorrect definition.",
+      "served_effect": "The harm row and its compatibility metadata describe MACE while its numerical input represents gastrointestinal adverse events.",
+      "proposed_fixture": "Pass the held REWIND abstract, its gastrointestinal count row and outcome name 'Gastrointestinal adverse events' to _derive_endpoint. Assert that the returned definition identifies gastrointestinal adverse events and does not contain the cardiovascular composite definition.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Explicit adult ages are reported as not stated",
+      "claim": {
+        "file": "docs/reviews/glp1-ra-mace-t2d/review.json",
+        "quote": "\"population_age\": \"not_stated\""
+      },
+      "evidence": [
+        {
+          "file": "cache/glp1-ra-mace-t2d/records.json",
+          "quote": "Men and women aged at least 50 years with type 2 diabetes who had either a previous cardiovascular event or cardiovascular risk factors were randomly assigned (1:1) to either weekly subcutaneous injection of dulaglutide (1·5 mg) or placebo."
+        },
+        {
+          "file": "cache/glp1-ra-mace-t2d/records.json",
+          "quote": "The mean age of the patients was 66 years; 2695 patients (84.7%) were 50 years of age or older and had cardiovascular or chronic kidney disease."
+        }
+      ],
+      "why_wrong": "The quoted metadata occurs on REWIND and PIONEER 6 rows despite explicit adult ages in their held abstracts. The age classifier recognizes only narrow phrasings. Read-only calls also reproduced not_stated for HARMONY and SOUL.",
+      "served_effect": "Served review metadata falsely marks known adult populations as unspecified, weakening the population compatibility record.",
+      "proposed_fixture": "Feed the held REWIND abstract to _derive_population_age with an empty trial dictionary. Assert value == 'adult' and a nonempty supporting age span. Repeat with the held PIONEER 6, HARMONY and SOUL abstracts.",
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "topic": "empagliflozin-hfpef-hosp",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Served absence, unextracted-outcome and sensitivity claims against held abstracts and registry results, including EMPEROR-Preserved and NCT03448406.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Displayed effects and interval labels against abstracts and registry analyses. The 0.91 estimate is explicitly withdrawn; the withdrawal correctly identifies the registry composite interval as 95.03%.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Composite, cardiovascular-death component, first hospitalisation and recurrent-hospitalisation identities in served outcome diagnostics and held results.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Population exclusion reasons against held titles, abstracts and registry conditions, with particular attention to diabetes and HFpEF.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "EMPEROR-Preserved publication and registry family linkage and primary-report assignment; screened publication identities. Accepted the supplied abstract-integrity measurement.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Comparator scope, reported HR, study-count claims and trial-table availability against PMID 37773799 and its held full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Reason-code and unextracted-outcome audit identities, plus the D5 registered-outcome comparison for the primary composite.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Inspected primary-family identifiers, lifecycle fields, outcome timepoint and registry result definitions for incorrect field placement.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C1",
+      "title": "Held primary-result counts and HR are described as unavailable",
+      "claim": {
+        "file": "docs/reviews/empagliflozin-hfpef-hosp/review.json",
+        "quote": "REPORTED but not extractable as a pooled value: 34449189 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form."
+      },
+      "evidence": [
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/records.json",
+          "quote": "RESULTS: Over a median of 26.2 months, a primary outcome event occurred in 415 of 2997 patients (13.8%) in the empagliflozin group and in 511 of 2991 patients (17.1%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.69 to 0.90; P<0.001)."
+        }
+      ],
+      "why_wrong": "The abstract contains both arm counts with denominators and an HR with confidence limits. Withholding the result pending a corrected extraction does not justify saying these quantities are missing or require full-text acquisition.",
+      "served_effect": "The Results section attributes the withheld result to inadequate source reporting rather than the extraction and correction state.",
+      "proposed_fixture": "Use the held PMID 34449189 abstract and current withdrawn-outcome configuration. Assert that a withheld result preserves extraction/correction status and never claims the abstract lacks counts or effect-plus-CI; assert the held primary tuple is identified as HR 0.79, limits 0.69–0.90.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "HFpEF registry trial excluded solely for diabetes",
+      "claim": {
+        "file": "docs/reviews/empagliflozin-hfpef-hosp/review.json",
+        "quote": "wrong population: title/conditions mention 'diabetes'."
+      },
+      "evidence": [
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/records.json",
+          "quote": "\"conditions\": [ \"Type2 Diabetes\", \"Heart Failure With Preserved Ejection Fraction\" ]"
+        },
+        {
+          "file": "protocols/empagliflozin-hfpef-hosp.md",
+          "quote": "**X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,"
+        }
+      ],
+      "why_wrong": "The NCT05057806 screening row treats diabetes as sufficient for wrong-population exclusion. Its held conditions also explicitly include HFpEF. The protocol excludes diabetes-only populations, not HFpEF with diabetes.",
+      "served_effect": "A registry record with the target heart-failure population is removed before its remaining eligibility criteria can be properly assessed.",
+      "proposed_fixture": "Pass the held NCT05057806 registry record through screening with this topic's criteria. Assert that coexisting Type2 Diabetes and Heart Failure With Preserved Ejection Fraction do not produce a diabetes-based X2 exclusion; assess other eligibility requirements separately.",
+      "confidence": "high"
+    },
+    {
+      "class": "C3",
+      "title": "Composite diagnostic selects recurrent hospitalisations",
+      "claim": {
+        "file": "docs/reviews/empagliflozin-hfpef-hosp/review.json",
+        "quote": "effect=HR 0.73 [0.61, 0.88], class=FIRST_EVENT_RATIO, declared_class=FIRST_EVENT_RATIO"
+      },
+      "evidence": [
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/records.json",
+          "quote": "The total number of hospitalizations for heart failure was lower in the empagliflozin group than in the placebo group (407 with empagliflozin and 541 with placebo; hazard ratio, 0.73; 95% CI, 0.61 to 0.88; P<0.001)."
+        },
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/records.json",
+          "quote": "The primary outcome was a composite of cardiovascular death or hospitalization for heart failure."
+        }
+      ],
+      "why_wrong": "The composite's declared-absent row uses the total-hospitalisation HR as its observed effect and calls it a first-event ratio. The held clause concerns total hospitalisations, while the target is the cardiovascular-death/HF-hospitalisation composite.",
+      "served_effect": "The diagnostic explanation binds a different endpoint and event process to the primary outcome. No current pooled estimate is served.",
+      "proposed_fixture": "Run absence classification on the complete held PMID 34449189 abstract with the configured primary composite. Assert that HR 0.73 is not selected as the composite's observed effect and that its total-hospitalisation clause is not classified as a first-event endpoint.",
+      "confidence": "high"
+    },
+    {
+      "class": "C7",
+      "title": "D5 composite audit matches cardiovascular death alone",
+      "claim": {
+        "file": "docs/reviews/empagliflozin-hfpef-hosp/review.json",
+        "quote": "prespecified secondary outcome, registered 'Time to Adjudicated Cardiovascular (CV) Death'"
+      },
+      "evidence": [
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/records.json",
+          "quote": "The primary outcome was a composite of cardiovascular death or hospitalization for heart failure."
+        },
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/records.json",
+          "quote": "Time to First Event of Adjudicated Cardiovascular (CV) Death or Adjudicated Hospitalisation for Heart Failure (HHF)"
+        }
+      ],
+      "why_wrong": "The D5 row names the composite as its pooled_outcome but its matched comparison and low machine signal concern the cardiovascular-death-only secondary endpoint. Its verdict therefore disposes of a different outcome.",
+      "served_effect": "The served audit data retain a reassuring registration-match signal based on the wrong endpoint, despite withdrawal of the old result. Formal RoB 2 remains explicitly unassessed.",
+      "proposed_fixture": "Supply the held primary composite and secondary CV-death registry definitions to the D5 matcher with the configured composite name. Assert that CV death alone cannot be returned as a matched secondary endpoint; require the complete primary composite identity or an unresolved result.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator study count called unstated despite explicit trial list",
+      "claim": {
+        "file": "docs/reviews/empagliflozin-hfpef-hosp/review.json",
+        "quote": "not stated in the comparator abstract/full text"
+      },
+      "evidence": [
+        {
+          "file": "cache/empagliflozin-hfpef-hosp/comparator_fulltext.txt",
+          "quote": "In this study, we evaluated 6 RCTs (DELIVER trial, EMPEROR-Preserved, DECLARE-TIMI, VERTIS CV trial, SCORED clinical trial, and SOLOIST-WHF Clinical trials) having a total of 15,989 patients."
+        }
+      ],
+      "why_wrong": "The comparator explicitly reports six RCTs and names them. Failure to extract its count is not evidence that the count is unstated.",
+      "served_effect": "The comparator overlap section presents a known study count as unavailable and obscures the available basis for trial-membership comparison.",
+      "proposed_fixture": "Use the held PMID 37773799 abstract and comparator_fulltext.txt as comparator-extraction inputs. Assert that the reported overall study count is six and that the rendered count is never 'not stated in the comparator abstract/full text'. Keep outcome-specific contribution counts separate if unresolved.",
+      "confidence": "high"
+    }
+  ]
+}

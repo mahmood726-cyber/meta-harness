@@ -1,0 +1,191 @@
+{
+  "topic": "pcsk9-mace",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared outcome absences and both audit blocks with all nine held abstracts, available ctgov_results, and held harm rows; reproduced percentage-detection failures.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked main-pool and strand HRs, confidence intervals, contrast direction, comparator RR, and registry KM-ratio labelling against held sources.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked composite definitions, selected primary/secondary results, and VESALIUS co-primary binding; reproduced the erroneous binding.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared screening population reasons with held titles and abstract population descriptions.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked report roles and family PMID/NCT links without finding duplicate pooled reports. The supplied abridgement/alteration facts cannot be independently demonstrated through an on-disk reference version under the exact-quote rule.",
+      "result": "NOT_CHECKABLE"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator scope, numerical results, overlap statements, and panel metadata with its held abstract and full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked reason-code and unextracted-outcome audit trial/outcome keys against the records they dispose of; found no verdict naming a different trial or outcome.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Checked endpoint-definition links, follow-up fields, publication years, and registry identifiers against held records.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C3",
+      "title": "VESALIUS co-primary result rejected through a background-sentence binding",
+      "claim": {
+        "file": "docs/reviews/pcsk9-mace/review.json",
+        "quote": "the bound endpoint span lacks component(s) of the declared composite (cardiovascular death): a component or subset result is not the composite 'Major adverse cardiovascular events'; refused rather than pooled under the composite label"
+      },
+      "evidence": [
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "The two primary end points were a composite of death from coronary heart disease, myocardial infarction, or ischemic stroke (3-point MACE) and a composite of 3-point MACE or ischemia-driven arterial revascularization (4-point MACE)."
+        },
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "A 3-point MACE event occurred in 336 patients (5-year Kaplan-Meier estimate, 6.2%) in the evolocumab group, as compared with 443 (8.0%) in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001)."
+        },
+        {
+          "file": "docs/reviews/pcsk9-mace/review.json",
+          "quote": "\"endpoint_definition_span\": \"The effect of evolocumab on the risk of MACE among patients without a previous myocardial infarction or stroke is unknown.\""
+        }
+      ],
+      "why_wrong": "The selected definition describes prior disease history, not an endpoint. The held methods explicitly define the reported three-point co-primary and include coronary-heart-disease death. Calling this result a component or subset follows from the wrong sentence binding. A read-only call to bind_result_span reproduced that binding.",
+      "served_effect": "The main pool excludes VESALIUS HR 0.75 as RESULT_INCOMPATIBLE, although the supplemental strand accepts the same result.",
+      "proposed_fixture": "Use the complete held PMID 41211925 abstract and its exact three-point result sentence as inputs to bind_result_span. Assert that the binding resolves the three-point co-primary definition, includes CHD death, MI and stroke, excludes revascularization, and never selects the background sentence. With the registered co-primary rule, assert that missing cardiovascular death does not trigger RESULT_INCOMPATIBLE.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "FOURIER secondary result carries the primary endpoint definition",
+      "claim": {
+        "file": "docs/reviews/pcsk9-mace/review.json",
+        "quote": "\"endpoint_definition\": \"FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)\""
+      },
+      "evidence": [
+        {
+          "file": "docs/reviews/pcsk9-mace/review.json",
+          "quote": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)"
+        },
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "The key secondary efficacy end point was the composite of cardiovascular death, myocardial infarction, or stroke."
+        },
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key secondary end point (816 [5.9%] vs. 1013 [7.4%]; hazard ratio, 0.80; 95% CI, 0.73 to 0.88; P<0.001)."
+        }
+      ],
+      "why_wrong": "The selected HR 0.80 belongs to the three-component secondary endpoint. The attached five-component definition belongs to the primary HR 0.85. The compatibility metadata repeats the incorrect definition.",
+      "served_effect": "The main estimate uses the secondary result while its endpoint metadata and composite-heterogeneity explanation describe the primary result.",
+      "proposed_fixture": "Build the FOURIER row from held NCT01764633 results and the held abstract. Assert that selecting HR 0.80 attaches the three-component secondary definition throughout endpoint_definition and compat_dimensions; selecting the five-component primary definition must instead attach HR 0.85.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "ODYSSEY LONG TERM injection-site values classified as absent",
+      "claim": {
+        "file": "docs/reviews/pcsk9-mace/review.json",
+        "quote": "\"trial_key\": \"25773378\",\n        \"trial_label\": \"25773378\",\n        \"outcome\": \"Injection-site reactions\",\n        \"outcome_kind\": \"harm\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmologic events (2.9% vs. 1.9%)."
+        }
+      ],
+      "why_wrong": "The held abstract explicitly reports both injection-site percentages. Extraction refusal or a stale approval does not make those values absent. The numeric-source detector returned None for this held abstract in a read-only check.",
+      "served_effect": "The coverage audit undercounts held harm evidence and presents extraction debt as source absence.",
+      "proposed_fixture": "Pass the exact held PMID 25773378 abstract and injection-site outcome specification to find_value_in_sources and unextracted.audit_pair with no pooled trial. Assert that a source span containing 5.9% and 4.2% is found and the coverage status is HELD_NOT_EXTRACTED, independently of whether pooling is permitted.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "FOURIER and ODYSSEY OUTCOMES harm audits deny reported percentages",
+      "claim": {
+        "file": "docs/reviews/pcsk9-mace/review.json",
+        "quote": "value absent from held source, but the code names a value-present/refusal cause"
+      },
+      "evidence": [
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%)."
+        },
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group)."
+        }
+      ],
+      "why_wrong": "This detail appears in the injection-site audit rows for PMIDs 28304224 and 30403574. Both abstracts contain arm percentages. A lack of counts or effect confidence intervals can justify withholding a pooled RR, but cannot justify claiming that the reported values are absent. Read-only checks reproduced both detection failures.",
+      "served_effect": "The reason audit marks both evidence-based refusals REASON_WRONG_KIND using a false absence premise.",
+      "proposed_fixture": "Parameterize the two exact held abstracts with their injection-site REFUSED_ON_EVIDENCE rows. Assert that numeric source detection finds each percentage pair and that the audit never emits 'value absent from held source'. Preserve the separate refusal to derive unsupported counts or confidence intervals.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator declared same-question despite allowing standard care",
+      "claim": {
+        "file": "docs/reviews/pcsk9-mace/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/pcsk9-mace/comparator_fulltext.txt",
+          "quote": "Phase 2 or 3 randomized controlled trials (RCTs) comparing PCSK9 inhibitors to placebo or standards of care."
+        },
+        {
+          "file": "cache/pcsk9-mace/comparator_fulltext.txt",
+          "quote": "OSLER-1 NCT01439880 2014 1104 9.9 19 Evolocumab SOC"
+        },
+        {
+          "file": "protocols/pcsk9-mace.md",
+          "quote": "- **C** - placebo."
+        }
+      ],
+      "why_wrong": "The topic requires placebo, whereas the comparator permits standard care and its held trial table actually includes a SOC comparison. Matching intervention class and population alone does not establish the same question.",
+      "served_effect": "The comparator receives scope_valid=true without disclosing the comparator-arm mismatch in that verdict.",
+      "proposed_fixture": "Use the held comparator inclusion sentence and OSLER-1 table fragment with this topic's placebo-only configuration. Assert that comparator scope records a control-arm mismatch and does not emit an unqualified same-question verdict.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "FIDELIO endpoint component misread as its population",
+      "claim": {
+        "file": "docs/reviews/pcsk9-mace/review.json",
+        "quote": "wrong population: title/conditions mention 'heart failure'."
+      },
+      "evidence": [
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "Effect of Finerenone on Chronic Kidney Disease Outcomes in Type 2 Diabetes."
+        },
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "In this double-blind trial, we randomly assigned 5734 patients with CKD and type 2 diabetes in a 1:1 ratio to receive finerenone or placebo."
+        },
+        {
+          "file": "cache/pcsk9-mace/records.json",
+          "quote": "The key secondary composite outcome, also assessed in a time-to-event analysis, was death from cardiovascular causes, nonfatal myocardial infarction, nonfatal stroke, or hospitalization for heart failure."
+        }
+      ],
+      "why_wrong": "The screening span takes heart failure from a secondary endpoint. The held title and population sentence describe CKD and type 2 diabetes, not a heart-failure population.",
+      "served_effect": "The negative control remains appropriately excluded on other grounds, but its recorded population reason and supporting span are false.",
+      "proposed_fixture": "Screen the exact held PMID 33264825 record under the topic configuration. Assert exclusion remains, but the population reason cites CKD from the title/population description and cannot use an endpoint-only heart-failure mention.",
+      "confidence": "high"
+    }
+  ]
+}

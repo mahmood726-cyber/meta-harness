@@ -1,0 +1,135 @@
+{
+  "topic": "sacubitril-valsartan-hfref",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared primary-outcome absence rows with held abstracts and registry outcome lists; checked comparator count absence against held full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked both displayed trial HRs, registry confidence level and sidedness, contrast groups, and comparator RR against held text. The pooled estimate is refused.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked primary endpoint definitions, selected registry analyses, and the PARALLEL-HF alternative endpoint classification.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared included populations and population-based screening exclusions with held titles, abstracts, and registry conditions.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked contributing report identities and PARADIGM-HF family publication roles against held abstracts; accepted the supplied abstract-integrity verification.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Checked comparator population, contrast, displayed estimate, scope disclosure, and overlap fields. Full text supports RR 0.83 versus RAS inhibitors despite conflicting abstract wording; the count absence defect is reported under C1.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked reason-code and unextracted-outcome row identities, and the outcome identities used in the compatibility audit.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Inspected contributing rows' registry identities, endpoint bindings, follow-up fields, and comparator bibliographic metadata.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C3",
+      "title": "Triple composite incorrectly classified as an exact target",
+      "claim": {
+        "file": "docs/reviews/sacubitril-valsartan-hfref/review.json",
+        "quote": "\"registry_title\": \"Key Secondary: EAIR of CEC-confirmed First Triple Composite Endpoint (Cardiovascular (CV) Death, Heart Failure (HF) Hospitalization, or Worsening of HF in Outpatients)\",\n\"registry_type\": \"SECONDARY\",\n\"target_endpoint_class\": \"EXACT_TARGET\""
+      },
+      "evidence": [
+        {
+          "file": "cache/sacubitril-valsartan-hfref/records.json",
+          "quote": "Key Secondary: EAIR of CEC-confirmed First Triple Composite Endpoint (Cardiovascular (CV) Death, Heart Failure (HF) Hospitalization, or Worsening of HF in Outpatients)"
+        },
+        {
+          "file": "protocols/sacubitril-valsartan-hfref.md",
+          "quote": "**Primary** - composite cardiovascular death or heart-failure hospitalization, estimand HR, intention-to-treat population, trial end / longest randomized follow-up."
+        }
+      ],
+      "why_wrong": "The alternative includes outpatient worsening of HF, a third component outside the registered two-component target. The classifier drops that extra component and returns EXACT_TARGET.",
+      "served_effect": "The served alternative is incorrectly certified as interchangeable with the primary endpoint. It was not selected for the displayed estimate, so this does not establish numerical contamination of that estimate.",
+      "proposed_fixture": "Load ctgov_results['NCT02468232'][4] from records.json and the configured primary_outcome. Pass its title plus description to harness.target_endpoint._classify. Assert the result is not EXACT_TARGET and records outpatient worsening as an extra component. The current read-only probe returned EXACT_TARGET with no extra components.",
+      "confidence": "high"
+    },
+    {
+      "class": "C7",
+      "title": "Compatibility audit evaluates the composite as all-cause mortality",
+      "claim": {
+        "file": "docs/reviews/sacubitril-valsartan-hfref/review.json",
+        "quote": "{\n\"trial\": \"25176015\",\n\"id\": \"PMID 25176015\",\n\"value\": \"ALL_CAUSE_MORTALITY\",\n\"basis\": \"outcome label\"\n}"
+      },
+      "evidence": [
+        {
+          "file": "cache/sacubitril-valsartan-hfref/records.json",
+          "quote": "The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes."
+        },
+        {
+          "file": "cache/sacubitril-valsartan-hfref/records.json",
+          "quote": "At the time of study closure, the primary outcome had occurred in 914 patients (21.8%) in the LCZ696 group and 1117 patients (26.5%) in the enalapril group (hazard ratio in the LCZ696 group, 0.80; 95% confidence interval [CI], 0.73 to 0.87; P<0.001)."
+        }
+      ],
+      "why_wrong": "The audit assigns the wrong outcome identity to the displayed HR 0.80. Its fallback treats any outcome name containing 'death' as all-cause mortality, ignoring the bound composite definition.",
+      "served_effect": "The compatibility audit falsely reports underlying endpoint heterogeneity between PARADIGM-HF and PARALLEL-HF.",
+      "proposed_fixture": "Use the served primary outcome and its PMID 25176015 trial row as inputs to harness.compat_direction._endpoint_definition. Assert the result identifies cardiovascular death plus HF hospitalization and is not ALL_CAUSE_MORTALITY. The current read-only probe returned ALL_CAUSE_MORTALITY.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Comparator trial count called unstated despite explicit held counts",
+      "claim": {
+        "file": "docs/reviews/sacubitril-valsartan-hfref/review.json",
+        "quote": "\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence": [
+        {
+          "file": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+          "quote": "The present study includes 17 studies published by 19 November 2022"
+        },
+        {
+          "file": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+          "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials."
+        },
+        {
+          "file": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+          "quote": "However, our network meta‐analysis contains three SGLT2i trials and two ARNI trials"
+        }
+      ],
+      "why_wrong": "The held full text explicitly gives overall, HFrEF composite, and ARNI trial counts. Their scopes need distinguishing, but extraction failure does not justify claiming the count is unstated.",
+      "served_effect": "The comparator panel hides available count information behind a false source-absence statement.",
+      "proposed_fixture": "Use the three held count sentences as a comparator fixture. Assert the comparator builder preserves scope-labelled counts of 17 overall, 10 for the HFrEF composite network, and 2 ARNI trials, or explicitly reports unresolved count scope; it must not emit 'not stated in the comparator abstract/full text'. Current extract_meta returns no k for the held full text and triggers that fallback.",
+      "confidence": "high"
+    },
+    {
+      "class": "C5",
+      "title": "Post hoc sex analysis assigned a primary-report role",
+      "claim": {
+        "file": "docs/reviews/sacubitril-valsartan-hfref/review.json",
+        "quote": "\"report_id\": \"40265590\",\n\"role\": \"PRIMARY\""
+      },
+      "evidence": [
+        {
+          "file": "cache/sacubitril-valsartan-hfref/records.json",
+          "quote": "This post hoc analysis of PARADIGM-HF examined sex-based outcomes in patients with HF and reduced ejection fraction randomized to sacubitril/valsartan or enalapril."
+        }
+      ],
+      "why_wrong": "The held abstract explicitly identifies a post hoc analysis, but the served PARADIGM-HF family marks it as a primary report. The role classifier checks title and publication types without using this abstract statement.",
+      "served_effect": "The family provenance lists a secondary analysis as primary. The displayed effect still comes from PMID 25176015; no double-counting of this subgroup report was demonstrated.",
+      "proposed_fixture": "Pass the held PMID 40265590 record, unchanged, to harness.identity._role_from_record and the family-role builder. Assert a secondary role and preservation of family NCT01035255. The current read-only role-classifier probe returned primary.",
+      "confidence": "high"
+    }
+  ]
+}

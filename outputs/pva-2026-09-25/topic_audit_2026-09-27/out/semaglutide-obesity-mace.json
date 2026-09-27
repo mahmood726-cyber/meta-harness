@@ -1,0 +1,127 @@
+{
+  "topic": "semaglutide-obesity-mace",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Checked outcome-absence audits and not-stated fields against held abstracts and SELECT registry outcomes. Reproduced the population-age parser failure.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Compared SELECT HR, confidence interval, contrast direction, reconstructed discontinuation RR, and comparator OR with held sources.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked MACE definition and component alternatives, discontinuation counts, and the refusal to substitute all-cause discontinuations for gastrointestinal events.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared population exclusions and SELECT inclusion with held abstracts, including PMID 38907684.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked the pooled SELECT report and family identity for secondary-report substitution or duplicate pooling. Accepted the supplied abstract-integrity verification.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator population, effect, interval, total trial count, and MACE-specific trial count with its held abstract and full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked trial and outcome identities in the reason-code and unextracted-outcome audit rows.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Checked pooled-report identifiers, follow-up, endpoint-definition links, and comparator bibliographic fields against held records.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C6",
+      "title": "Comparator MACE pool incorrectly described as containing 16 trials",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-mace/index.html",
+        "quote": "pooled MACE OR 0.79 (95% CI 0.71-0.89) over 16 RCTs"
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-mace/comparator_fulltext.txt",
+          "quote": "Treatment with GLP-1 RAs or GIP/GLP-1 RAs was associated with significant reduction of MACE (7 RCTs; OR: 0.79; 95% CI: 0.71–0.89;"
+        }
+      ],
+      "why_wrong": "Sixteen is the comparator review's total trial count. Its MACE analysis contains seven trials.",
+      "served_effect": "The served protocol text overstates the number of trials supporting the comparator MACE estimate.",
+      "proposed_fixture": "Use the held comparator clause containing 'MACE (7 RCTs; OR: 0.79' and the current protocol/page as input. Assert that the rendered MACE estimate is attributed to seven RCTs, while 16 is retained only as the review-wide count.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "SELECT subgroup report excluded as an off-topic population",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-mace/review.json",
+        "quote": "\"id\": \"38907684\",\n        \"id_type\": \"pmid\",\n        \"decision\": \"exclude\",\n        \"rule_id\": \"X2\""
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-mace/records.json",
+          "quote": "In SELECT, people with overweight or obesity and atherosclerotic cardiovascular disease without diabetes were randomized to weekly semaglutide 2.4 mg or placebo."
+        },
+        {
+          "file": "cache/semaglutide-obesity-mace/records.json",
+          "quote": "OBJECTIVE: To evaluate the cardiovascular effects of semaglutide by baseline glycated hemoglobin (HbA1c) and change in HbA1c in a prespecified analysis of Semaglutide Effects on Cardiovascular Outcomes in People With Overweight or Obesity (SELECT)."
+        }
+      ],
+      "why_wrong": "The held abstract explicitly describes the registered population. Failure to match the configured title phrases does not establish a population mismatch. This is a secondary analysis of SELECT and should be handled through report/family linkage.",
+      "served_effect": "The screening table gives a false population exclusion and separates relevant supplementary evidence from the included trial. This does not establish an additional independent trial for pooling.",
+      "proposed_fixture": "Screen the held PMID 38907684 record with the topic configuration. Assert that it does not receive X2; identify it as a SELECT secondary report and retain one independent SELECT contribution.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator population falsely marked as matching",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-mace/review.json",
+        "quote": "\"intervention_level_match\": false,\n      \"population_match\": true,\n      \"scope_valid\": false"
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-mace/comparator_fulltext.txt",
+          "quote": "RCTs on GLP-1 RAs or GIP/GLP-1 RAs—with the exception of SELECT—included overweight or obese adults without cardiovascular comorbidities"
+        },
+        {
+          "file": "protocols/semaglutide-obesity-mace.md",
+          "quote": "adults with overweight or obesity and established cardiovascular disease but\n  without diabetes."
+        }
+      ],
+      "why_wrong": "Established cardiovascular disease is required by this topic. The comparator explicitly includes a broader population, largely without cardiovascular comorbidities. The current scope function reproduces population_match=true from lexical overlap.",
+      "served_effect": "The comparator remains rejected overall, but its structured scope assessment omits a material population mismatch.",
+      "proposed_fixture": "Use the topic's established-CVD requirement and the held comparator population statement as inputs to scope assessment. Assert population_match=false and scope_valid=false, with both population and intervention differences recorded.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "SELECT age eligibility marked not stated despite explicit held text",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-mace/review.json",
+        "quote": "\"population_age\": \"not_stated\""
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-mace/records.json",
+          "quote": "we enrolled patients 45 years of age or older who had preexisting cardiovascular disease"
+        }
+      ],
+      "why_wrong": "The source states an adult eligibility threshold explicitly. The age parser fails to recognize 'patients 45 years of age or older'; a read-only call reproduced not_stated.",
+      "served_effect": "Both pooled SELECT outcome rows lose source-supported age information in their compatibility metadata.",
+      "proposed_fixture": "Pass the held PMID 37952131 record to harness.compat_check._derive_population_age({}, record). Assert value='adult' and a supporting span containing '45 years of age or older'. The current function returns not_stated.",
+      "confidence": "high"
+    }
+  ]
+}

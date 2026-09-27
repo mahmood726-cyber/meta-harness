@@ -1,0 +1,91 @@
+{
+  "topic": "sglt2-primary-prevention-hf",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared declared-absent and unextracted-outcome rows with held abstracts, related HHF reports, available full texts and registry material; distinguished absent values from explicitly refused incompatible endpoints or estimands.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked the four pooled HHF HRs and amputation HR against held effect clauses, confidence intervals and contrast directions; checked the comparator's RR label.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked extracted HHF estimates against composite, component, first-event and recurrent-event clauses. The endpoint metadata error is reported under C8.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Reviewed included populations and sampled population exclusions against held abstracts and protocol scope, including HF-entry and CKD-entry trials.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked the pooled trial/report identifiers and secondary HHF source reports for subgroup substitution or duplicate pooling. Used the supplied abstract-integrity finding.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator estimates and enumerated trial membership with its held abstract and full-text Table 1; checked the explicit scope-mismatch disclosure.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked reason-code audit rows against their trial and outcome keys; reproduced the CANVAS adverse-events audit using the held abstract.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Inspected per-trial endpoint definitions, follow-up and analysis-set metadata; reproduced the CANVAS endpoint-definition assignment.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C8",
+      "title": "CANVAS primary MACE definition is attached to HHF and amputation results",
+      "claim": {
+        "file": "docs/reviews/sglt2-primary-prevention-hf/review.json",
+        "quote": "\"endpoint_definition\": \"primary outcome was a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke\""
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-primary-prevention-hf/records.json",
+          "quote": "hospitalized HF alone (HR, 0.67; 95% CI, 0.52-0.87)"
+        },
+        {
+          "file": "cache/sglt2-primary-prevention-hf/records.json",
+          "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal."
+        }
+      ],
+      "why_wrong": "Both CANVAS result rows receive the trial's primary MACE definition, although their selected effects concern HHF alone and amputation. harness.compat_check._derive_endpoint selects a generic primary-outcome sentence instead of the definition bound to the selected result. A read-only reproduction returned the incorrect MACE definition.",
+      "served_effect": "The page displays an incorrect endpoint definition in both compatibility rows. The numerical effects themselves match the held sources.",
+      "proposed_fixture": "Use the held CANVAS abstract, HHF result clause and existing HHF trial row as inputs to _derive_endpoint. Assert that its value identifies hospitalization for heart failure and does not contain myocardial infarction or stroke. Repeat with the amputation row and assert an amputation definition. The HHF assertion was reproduced as failing on current code.",
+      "confidence": "high"
+    },
+    {
+      "class": "C7",
+      "title": "CANVAS any-adverse-event audit adjudicates an amputation result",
+      "claim": {
+        "file": "docs/reviews/sglt2-primary-prevention-hf/index.html",
+        "quote": "<tr><td>28605608</td><td>Adverse events</td><td><code>REFUSED_ON_EVIDENCE</code></td><td><strong>REASON_FALSE_VALUE_HELD</strong></td>"
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-primary-prevention-hf/records.json",
+          "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal."
+        },
+        {
+          "file": "docs/reviews/sglt2-primary-prevention-hf/review.json",
+          "quote": "The source gives specific adverse-event signals rather than a deduplicated any-AE total. Held AACT serious and other adverse-event populations may overlap and cannot be summed."
+        }
+      ],
+      "why_wrong": "The audit disposes of the overall Adverse events row using numbers explicitly belonging to amputation. Those numbers do not contradict the stated refusal to construct a deduplicated any-AE total. The current audit function reproduced REASON_FALSE_VALUE_HELD from this amputation clause.",
+      "served_effect": "The page falsely flags the refusal as contradicted by held evidence and counts this overall adverse-event outcome as HELD_NOT_EXTRACTED.",
+      "proposed_fixture": "Pass the held CANVAS abstract, the Adverse events specification and its REFUSED_ON_EVIDENCE row to audit_reason_row. Assert that the amputation-specific HR cannot produce REASON_FALSE_VALUE_HELD for the overall adverse-event outcome or HELD_NOT_EXTRACTED membership. The verdict assertion was reproduced as failing on current code.",
+      "confidence": "high"
+    }
+  ]
+}

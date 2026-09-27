@@ -1,0 +1,127 @@
+{
+  "topic": "noac-vs-warfarin-af-stroke",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared served absence and unextracted-outcome rows with held abstracts and registry records; reproduced the RE-LY bleeding coverage classification offline.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Compared efficacy and bleeding estimates, measure labels, dose choices, contrast directions, and ENGAGE confidence-level conversion with held abstracts and served output.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked selected numerical results against composite/component definitions and dose/analysis rows. ROCKET's broader bleeding composite is not pooled as major bleeding. Endpoint metadata misbinding is reported under C8.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared screening population decisions with held PubMed abstracts and registry titles/conditions, including mechanical valves, cardioversion, ablation, and cardiac surgery exclusions.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked pivotal report identities, family mappings, primary-report roles, and pooled membership. Used the supplied confirmation that all six held PubMed records match current PubMed.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared Carnicelli comparator population, standard-dose contrast, effect estimates, named four-trial overlap, and disclosed IPD-versus-trial-level distinction with its held abstract.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked trial and outcome keys in reason_code_audit and unextracted_outcome_audit against the items being adjudicated; found no wrong-identity verdict.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Compared per-trial endpoint and analysis-set metadata with the selected result clauses; reproduced both metadata misbindings through compat_check functions.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C2",
+      "title": "Mixed HR/RR result still displayed and encoded as HR",
+      "claim": {
+        "file": "docs/reviews/noac-vs-warfarin-af-stroke/index.html",
+        "quote": "<th>pooled first-event ratio (3 HR + 1 RR)</th><td>0.81 (HR), 95% CI 0.66–0.98</td>"
+      },
+      "evidence": [
+        {
+          "file": "cache/noac-vs-warfarin-af-stroke/records.json",
+          "quote": "1.11% per year in the group that received 150 mg of dabigatran (relative risk, 0.66; 95% CI, 0.53 to 0.82; P<0.001 for superiority)"
+        },
+        {
+          "file": "docs/reviews/noac-vs-warfarin-af-stroke/review.json",
+          "quote": "\"effect_estimate\": 0.66, \"standard_error\": 0.11133554931483801, \"estimand\": \"HR\""
+        }
+      ],
+      "why_wrong": "The selected RE-LY estimate is explicitly a relative risk. Its study_effect object relabels it HR, and the mixed pooled number is also displayed as HR. The adjacent mixed-measure disclosure acknowledges the composition but does not make either HR label correct.",
+      "served_effect": "Readers and consumers of review.json can interpret the mixed estimate as a hazard ratio; RE-LY's structured estimand contradicts its source and its own RR scale.",
+      "proposed_fixture": "Use the held RE-LY 150 mg clause and the three held HR efficacy rows. Assert that RE-LY study_effect.estimand remains RR and that a mixed result is not encoded or rendered as an unqualified HR. The current JSON and HTML fail these assertions.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "RE-LY major-bleeding rates classified as absent despite being held",
+      "claim": {
+        "file": "docs/reviews/noac-vs-warfarin-af-stroke/review.json",
+        "quote": "\"trial_key\": \"19717844\", \"trial_label\": \"19717844\", \"outcome\": \"Major bleeding\", \"outcome_kind\": \"harm\", \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/noac-vs-warfarin-af-stroke/records.json",
+          "quote": "The rate of major bleeding was 3.36% per year in the warfarin group, as compared with 2.71% per year in the group receiving 110 mg of dabigatran (P=0.003) and 3.11% per year in the group receiving 150 mg of dabigatran (P=0.31)."
+        }
+      ],
+      "why_wrong": "The abstract contains dose-specific major-bleeding rates, including the selected 150 mg regimen. Absence of a source-supported RR-plus-CI tuple does not mean the outcome is absent. An offline call to unextracted.audit_pair with the held abstract reproduces NOT_IN_HELD_SOURCES.",
+      "served_effect": "The coverage audit hides a held but unextracted quantitative outcome. This finding does not establish that the rejected hand-entered RR and CI are source-supported or should be pooled.",
+      "proposed_fixture": "Supply the quoted bleeding sentence as an abstract source to unextracted.audit_pair for trial 19717844, outcome Major bleeding, keywords ['major bleeding'], and no extracted trials. Assert HELD_NOT_EXTRACTED while leaving any unsupported RR/CI unpooled. Current code returns NOT_IN_HELD_SOURCES.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "ARISTOTLE bleeding result inherits the stroke endpoint definition",
+      "claim": {
+        "file": "docs/reviews/noac-vs-warfarin-af-stroke/review.json",
+        "quote": "\"trial_family_id\": \"NCT00412984\", \"publication_role\": \"primary\", \"analysis_set\": null, \"follow_up_window\": null, \"endpoint_definition\": \"primary outcome was ischemic or hemorrhagic stroke or systemic embolism\""
+      },
+      "evidence": [
+        {
+          "file": "cache/noac-vs-warfarin-af-stroke/records.json",
+          "quote": "The rate of major bleeding was 2.13% per year in the apixaban group, as compared with 3.09% per year in the warfarin group (hazard ratio, 0.69; 95% CI, 0.60 to 0.80; P<0.001)"
+        },
+        {
+          "file": "cache/noac-vs-warfarin-af-stroke/records.json",
+          "quote": "The primary outcome was ischemic or hemorrhagic stroke or systemic embolism."
+        }
+      ],
+      "why_wrong": "The affected row is the Major bleeding HR 0.69 result. Its endpoint_definition instead describes the separate primary efficacy outcome. compat_check._derive_endpoint searches the whole record for a primary-outcome definition and reproduces this incorrect attachment.",
+      "served_effect": "The bleeding row displays a stroke/systemic-embolism definition and contributes to a false endpoint-heterogeneity flag. The bleeding estimate itself matches the held bleeding clause.",
+      "proposed_fixture": "Pass the held ARISTOTLE abstract and its HR 0.69 bleeding row to compat_check._derive_endpoint with outcome.name='Major bleeding'. Assert that the derived definition describes major bleeding and does not contain the primary stroke/systemic-embolism definition. Current code returns the latter.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "ROCKET-AF ITT result receives per-protocol analysis metadata",
+      "claim": {
+        "file": "docs/reviews/noac-vs-warfarin-af-stroke/review.json",
+        "quote": "\"trial_family_id\": \"NCT00403767\", \"publication_role\": \"primary\", \"analysis_set\": \"per-protocol\""
+      },
+      "evidence": [
+        {
+          "file": "cache/noac-vs-warfarin-af-stroke/records.json",
+          "quote": "In the intention-to-treat analysis, the primary end point occurred in 269 patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.88; 95% CI, 0.74 to 1.03; P<0.001 for noninferiority; P=0.12 for superiority)."
+        }
+      ],
+      "why_wrong": "The selected effect is HR 0.88, explicitly identified as intention-to-treat in the held result clause. The metadata extractor prioritizes a per-protocol mention elsewhere in the abstract and assigns that analysis set to the ITT result.",
+      "served_effect": "The page labels the selected ROCKET-AF row per-protocol and describes the efficacy pool as mixed ITT/per-protocol, despite selecting the ITT estimate.",
+      "proposed_fixture": "Use the complete held ROCKET-AF abstract and selected HR 0.88 row, including its endpoint_result_span, as input to compat_check._derive_analysis_set. Assert intention-to-treat. Current code returns per-protocol; the result-bound fix must preserve the selected clause's analysis identity.",
+      "confidence": "high"
+    }
+  ]
+}

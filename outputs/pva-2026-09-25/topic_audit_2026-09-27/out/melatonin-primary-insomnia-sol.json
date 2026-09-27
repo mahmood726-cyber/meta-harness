@@ -1,0 +1,215 @@
+{
+  "topic": "melatonin-primary-insomnia-sol",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared outcome-absence audits and funding disclosures with included-trial abstracts, held full texts, and registry results; reproduced selected reason-audit verdicts.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked the sleep-latency MD inputs and direction against registry results and published tables, and adverse-event RR inputs against Table 8.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked extracted sleep-latency subgroup, measurement and three-week timepoint, and adverse-event patient counts against treatment-period versus extension-period columns.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared included populations and population-based exclusions with held abstracts and the protocol's title/conditions screening rule.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Compared included report roles and family annotations with held descriptions of primary trials and pooled subgroup analyses; accepted the supplied abstract-integrity verification.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator scope, study-count absence, and overlap disclosures with its held abstract and full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked reason-audit and unextracted-outcome row identities against their trial keys, labels, outcome names, and corresponding disposition rows.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Checked analysis-set provenance and cached full-text links against trial-specific source descriptions; reproduced the analysis-set classifier result.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C8",
+      "title": "PMID 33157425 is linked to another trial's full text",
+      "claim": {
+        "file": "cache/melatonin-primary-insomnia-sol/records.json",
+        "quote": "\"33157425\": \"1. Introduction Sleep is an essential part of life that helps restore energy, maintain metabolic balance, and support overall health."
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "Ninety-seven consecutive middle-aged patients with primary insomnia were randomized to receive 3 mg fast-release melatonin (n = 51) or placebo (n = 46) for four-weeks."
+        },
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "The remaining 200 participants were enrolled and randomized equally into four groups: ARE ( n  = 50), MLT ( n  = 50), ARE–MLT ( n  = 50), and PL ( n  = 50)."
+        },
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "In this prospective, randomized, double-blind, placebo-controlled trial, 200 men and women aged 18-50 years were randomized to receive ARE (300 mg twice daily; n = 50), MLT (3 mg/day; n = 50), a combination of ARE (600 mg/day) and MLT (3 mg/day; n = 50), or placebo (n = 50) for eight weeks."
+        }
+      ],
+      "why_wrong": "The fulltext_by_pmid entry for 33157425 describes a 200-person, four-arm Ashwagandha/melatonin study. Its own held abstract describes a 97-person, two-arm melatonin trial. The four-arm design instead matches the held abstract for PMID 42029558.",
+      "served_effect": "Source collection accepts the unrelated document as fulltext:33157425, compromising extraction and audit provenance. The served funding row also claims that this trial's full text was scanned.",
+      "proposed_fixture": "Use the held abstracts for 33157425 and 42029558 plus fulltext_by_pmid['33157425']. Assert that the four-arm, 200-person document is rejected or quarantined as an identity mismatch and is not emitted by sources_by_trial as verified full text for 33157425.",
+      "confidence": "high"
+    },
+    {
+      "class": "C5",
+      "title": "A pooled post hoc report is labelled a primary trial",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "\"trial_family_id\": \"PMID:22346363\",\n        \"publication_role\": \"primary\""
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "METHODS: Post hoc analysis of pooled antihypertensive drug-treated subpopulations from four randomized, double-blind trials of PRM and placebo for 3 weeks (N[PRM] = 195; N[placebo] = 197) or 28 weeks (N[PRM] = 157; N[placebo] = 40)."
+        }
+      ],
+      "why_wrong": "PMID 22346363 explicitly reports a post hoc pooled analysis of subpopulations from four trials. It is not an independent primary trial report. Although the newer family block leaves its role unresolved, the screening and outcome-disposition rows still label it primary.",
+      "served_effect": "The report enters the included-trial and missing-outcome accounting as an additional primary trial, overstating independent evidence units. No numerical double-counting in the current single-trial estimate was established.",
+      "proposed_fixture": "Feed the held PMID 22346363 title and abstract to report-role and membership construction. Assert a pooled secondary/subgroup role, never primary, and require parent-trial resolution before counting it as an independent eligible trial.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Held sleep-latency results are declared absent for PMID 22346363",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "\"trial_key\": \"22346363\",\n        \"trial_label\": \"22346363\",\n        \"outcome\": \"Sleep-onset latency\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/ft_22346363.txt",
+          "quote": "evaluated sleep latency (reported in the daily sleep diary) was significantly higher with PRM (25.89 minutes) than with placebo (7.54 minutes)"
+        },
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/ft_22346363.txt",
+          "quote": "<td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Mean change from baseline</td><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">121</td><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">−23.3</td><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.9</td><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">36</td><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">−7.5</td><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">3.6</td>"
+        }
+      ],
+      "why_wrong": "The held full text contains numeric sleep-latency results and Table 3 supplies per-arm sample sizes, means, and a dispersion column labelled SD. Whether this pooled subgroup report is eligible for synthesis is separate from whether its values are held. The current reason audit nevertheless returns REASON_TRUE for absence.",
+      "served_effect": "The page hides available numeric evidence behind NOT_IN_HELD_SOURCES instead of recording a source-backed report-family, population, or extraction disposition.",
+      "proposed_fixture": "Use the held Table 3 XML and surrounding sleep-latency paragraph with the existing 22346363 absence row. Assert that audit_reason_row does not return REASON_TRUE for OUTCOME_NOT_IN_SOURCE and that unextracted auditing does not return NOT_IN_HELD_SOURCES. Preserve any separate family/population refusal.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "A broader sleep-disorder meta-analysis is certified as the same question",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "PARTICIPANTS: Adults and children diagnosed with primary sleep disorders."
+        },
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/comparator_fulltext.txt",
+          "quote": "Nineteen studies were included in the analysis, fourteen studies on the efficacy of melatonin for the treatment of insomnia, four studies on delayed sleep phase syndrome and one study on REM sleep behavior disorder."
+        }
+      ],
+      "why_wrong": "The topic concerns adults with primary insomnia and explicitly excludes children and delayed sleep-phase populations. The comparator includes those populations and another sleep disorder. Matching the drug and finding an insomnia-related term does not establish a population match.",
+      "served_effect": "population_match and scope_valid are true, presenting a broader comparator as directly answering the registered question.",
+      "proposed_fixture": "Call scope.assess with the current topic configuration and held PMID 23691095 title/abstract. Assert population_match=false and scope_valid=false, with a broader-population explanation. The current function returns true for both.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "Extension-period completers are copied into both initial analysis-set fields",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "\"analysis_set\": \"completers efficacy set\""
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "\"populationDescription\": \"Pre-planned analysis on ITT population age 65-80\""
+        },
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/ft_20712869.txt",
+          "quote": "The safety population consisted of 789 patients who received at least one dose of study drug."
+        },
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "PRM patients continued whereas placebo completers were re-randomized 1:1 to PRM or placebo for 26 weeks with 2 weeks of single-blind placebo run-out."
+        }
+      ],
+      "why_wrong": "Both extracted outcomes for PMID 20712869 receive this label. The sleep-latency result is explicitly an ITT subgroup analysis; the adverse-event result uses the safety population. The classifier instead matches 'completers' in the description of later extension-period rerandomization.",
+      "served_effect": "The per-trial analysis-set and compatibility metadata misdescribe both results, despite their correct result-specific source descriptions elsewhere.",
+      "proposed_fixture": "Use the held 20712869 abstract, registry primary-result populationDescription, and Table 8 safety-population caption. Assert the initial sleep-latency result retains its ITT subgroup and the adverse-event result retains its safety population; neither may inherit an extension-period completers label. The current _derive_analysis_set returns 'completers efficacy set'.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator study count is falsely reported as unstated",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "Nineteen studies involving 1683 subjects were included in this meta-analysis."
+        }
+      ],
+      "why_wrong": "The comparator's held abstract explicitly states its overall included-study count. An unknown exact overlap or an unextracted endpoint-specific count does not make that reported count absent.",
+      "served_effect": "The comparison suppresses a known comparator count and misstates the contents of the held source.",
+      "proposed_fixture": "Use the held comparator abstract and current overlap object. Assert overall comparator study count=19 with source provenance. Keep exact overlap and any unverified endpoint-specific count separately unknown; forbid the claim that the abstract/full text does not state a count.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Reported sleep-latency arm means are classified as not held",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "\"trial_key\": \"17875243\",\n        \"trial_label\": \"17875243\",\n        \"outcome\": \"Sleep-onset latency\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/records.json",
+          "quote": "A significant and clinically relevant shortening of sleep latency to the same extent as most frequently used sleep medications was also found (-24.3 vs.-12.9 minutes; p = 0.028)."
+        }
+      ],
+      "why_wrong": "The held abstract reports numerical sleep-latency changes for both arms. Missing arm-level dispersion may justify refusing synthesis under the protocol, but it does not justify stating that the outcome values are not held.",
+      "served_effect": "Available numerical results are collapsed into source absence, and the reason audit incorrectly certifies that the value is absent.",
+      "proposed_fixture": "Use the quoted sentence as an abstract source with the existing 17875243 sleep-latency absence row. Assert numeric-result presence and an explicit insufficient-variance extraction status; do not infer an SD from the p-value and do not return NOT_IN_HELD_SOURCES.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Explicit nil funding is classified as not stated",
+      "claim": {
+        "file": "docs/reviews/melatonin-primary-insomnia-sol/review.json",
+        "quote": "\"id\": \"PMID 27559258\",\n      \"type\": \"not stated (full text scanned)\""
+      },
+      "evidence": [
+        {
+          "file": "cache/melatonin-primary-insomnia-sol/ft_27559258.txt",
+          "quote": "<title>Financial support and sponsorship</title><p>Nil.</p>"
+        }
+      ],
+      "why_wrong": "The held full text explicitly supplies a funding statement. 'Nil' denotes reported absence of financial support, not absence of reporting.",
+      "served_effect": "The funding disclosure incorrectly treats this trial as unknown and omits its explicit statement.",
+      "proposed_fixture": "Pass the quoted XML section to funding classification. Assert that the statement and its provenance are retained as explicit nil financial support, rather than NOT_STATED_IN_RETRIEVED_SOURCE.",
+      "confidence": "high"
+    }
+  ]
+}

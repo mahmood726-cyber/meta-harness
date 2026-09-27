@@ -1,0 +1,115 @@
+{
+  "topic": "iv-iron-hfref-hosp",
+  "classes_checked": [
+    {"class":"C1","what_was_checked":"Compared outcome absence, unextracted-outcome, harm-reporting and abstract-availability claims with held abstracts, full texts and registry results.","result":"FINDINGS"},
+    {"class":"C2","what_was_checked":"Checked per-trial measure labels, nested study_effect fields, strand estimates and suppression of the incompatible primary pool.","result":"FINDINGS"},
+    {"class":"C3","what_was_checked":"Compared endpoint components, patient/event counts and reconstructed denominators with held results and table definitions.","result":"FINDINGS"},
+    {"class":"C4","what_was_checked":"Compared screening population decisions with held trial abstracts and registry conditions. No definite contradictory population decision established.","result":"NO_FINDING"},
+    {"class":"C5","what_was_checked":"Checked primary-report assignments and family identities, particularly the AFFIRM-AHF quality-of-life report; accepted the supplied abstract-integrity measurements.","result":"FINDINGS"},
+    {"class":"C6","what_was_checked":"Compared comparator scope, reported estimates and overlap assertions with the held comparator abstract and full text.","result":"FINDINGS"},
+    {"class":"C7","what_was_checked":"Checked audit row identities and whether the cited evidence concerns the outcome being adjudicated.","result":"FINDINGS"},
+    {"class":"C8","what_was_checked":"Checked extracted metadata and numeric field provenance, including a funder identifier promoted into an outcome-value slot.","result":"FINDINGS"}
+  ],
+  "findings": [
+    {
+      "class":"C3",
+      "title":"CONFIRM-HF person-time rates become participant denominators",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"10 of ~132 (FCM) vs 25 of ~129 (placebo) with >=1 HF hospitalisation"},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/ft_25176939.txt","quote":"Incidence/100 patient-years at risk are computed using the number of subjects with the end-point/event adjusted on the total length of exposure while the subjects are still at risk [before observing the first event or before completing the study for subjects without any event (censored)]."}],
+      "why_wrong":"Strand D treats Table 2's incidence rates as percentages and back-calculates approximately 132 and 129 participants. The footnote defines the denominators as time at risk, not participant counts. The resulting quantity is not a crude participant risk ratio.",
+      "served_effect":"Strand D presents unsupported participant denominators and a mislabeled crude risk ratio.",
+      "proposed_fixture":"Use the held CONFIRM-HF Table 2 headers, hospitalization row and footnote as input. Assert that incidence/100 patient-years cannot generate n1i/n2i or a PARTICIPANT_RISK row; specifically reject the displayed ~132/~129 denominators.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"EFFECT-HF hospitalization counts falsely marked absent",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"trial_key\": \"28701470\",\n        \"trial_label\": \"28701470\",\n        \"outcome\": \"Heart-failure hospitalization\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/ft_28701470.txt","quote":"26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care)."}],
+      "why_wrong":"The held full text explicitly supplies both recurrent hospitalization counts and patients hospitalized by arm. Lack of an extracted compatible effect does not establish source absence.",
+      "served_effect":"The unextracted-outcome audit conceals available hospitalization data and corroborates an incorrect absence verdict.",
+      "proposed_fixture":"Input the held hospitalization sentence under PMID 28701470. Assert that the hospitalization audit returns HELD_NOT_EXTRACTED or an extracted state, never NOT_IN_HELD_SOURCES, while preserving 13/13 events separately from 11/6 patients.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"CONFIRM-HF injection-site events falsely marked absent",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"trial_key\": \"25176939\",\n        \"trial_label\": \"25176939\",\n        \"outcome\": \"Injection-site reactions\",\n        \"outcome_kind\": \"harm\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/ft_25176939.txt","quote":"Of the patients reporting treatment-related adverse events with FCM, two patients experienced injection site discolouration, four patients reported feeling hot, and skin discolouration, urticaria, rash, and erythema were each reported by one patient."}],
+      "why_wrong":"The full text reports two patients with injection-site discolouration, matching the configured injection-site outcome terms. Missing comparator counts would justify extraction debt, not outcome absence.",
+      "served_effect":"A reported administration-site harm is presented as unreported.",
+      "proposed_fixture":"Input this held sentence and the configured Injection-site reactions specification. Assert source_reported=true and an extracted or held-not-extracted state; do not infer a zero comparator count.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"Explicit zero hypersensitivity reports classified as unreported",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"trial_key\": \"28701470\",\n        \"trial_label\": \"28701470\",\n        \"outcome\": \"Hypersensitivity reactions\",\n        \"outcome_kind\": \"harm\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/ft_28701470.txt","quote":"No hypersensitivity reactions to the drug occurred, and no cases of hypophosphatemia were reported."},{"file":"cache/iv-iron-hfref-hosp/ft_25176939.txt","quote":"No severe allergic reactions related to the study treatment were reported."}],
+      "why_wrong":"EFFECT-HF explicitly reports no hypersensitivity reactions. CONFIRM-HF likewise reports no severe treatment-related allergic reactions and receives the same absence classification. These are reported zero-event statements, with their stated scope, rather than missing reporting.",
+      "served_effect":"The harm audit understates reporting and incorrectly certifies absence.",
+      "proposed_fixture":"Parameterize the two held sentences by PMID. Assert that each corresponding hypersensitivity row is source-reported and not NOT_IN_HELD_SOURCES or RETRIEVED_OUTCOME_NOT_REPORTED; retain the severity and treatment-related qualifiers.",
+      "confidence":"high"
+    },
+    {
+      "class":"C2",
+      "title":"FAIR-HF2 rate ratio mislabeled HR in study_effect",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"effect_estimate\": 0.8,\n            \"standard_error\": 0.14517984421624877,\n            \"estimand\": \"HR\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/records.json","quote":"The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]"}],
+      "why_wrong":"The source identifies 0.80 as a recurrent-event rate ratio. The nested study_effect copies the outcome-level HR label instead of preserving the trial's measure. The main incompatible pool is correctly suppressed, which limits but does not remove this field error.",
+      "served_effect":"Machine consumers receive an HR identity for an incidence rate ratio despite correct IRR labels elsewhere.",
+      "proposed_fixture":"Build a study_effect from the held FAIR-HF2 rate-ratio clause under an outcome preferring HR. Assert that its estimand remains IRR/INCIDENCE_RATE_RATIO and agrees with its effect_object.",
+      "confidence":"high"
+    },
+    {
+      "class":"C5",
+      "title":"AFFIRM-AHF secondary report assigned a separate primary family",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"trial_family_id\": \"PMID:34080008\",\n        \"publication_role\": \"primary\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/records.json","quote":"We evaluated the impact of intravenous (IV) ferric carboxymaltose (FCM) vs. placebo on HRQoL for the AFFIRM-AHF population."},{"file":"cache/iv-iron-hfref-hosp/ft_34080008.txt","quote":"the latter was one of the predefined other secondary outcomes in the AFFIRM-AHF trial."}],
+      "why_wrong":"PMID 34080008 analyzes a secondary outcome in the already represented AFFIRM-AHF population. It is not a separate primary trial.",
+      "served_effect":"The screening and absence ledgers count an additional primary report/family and expand their denominators. No duplicate pooled effect was established.",
+      "proposed_fixture":"Input the held AFFIRM-AHF primary and HRQoL reports. Assert that PMID 34080008 is secondary and shares the primary report's family, without adding an independent trial to outcome-reporting denominators.",
+      "confidence":"high"
+    },
+    {
+      "class":"C7",
+      "title":"IRONMAN composite evidence adjudicates standalone hospitalization",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"trial_key\": \"36347265\",\n        \"trial_label\": \"36347265\",\n        \"outcome\": \"Heart-failure hospitalization\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"HELD_NOT_EXTRACTED\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/records.json","quote":"The primary outcome was recurrent hospital admissions for heart failure and cardiovascular death, assessed in all validly randomly assigned patients."}],
+      "why_wrong":"This audit row uses the 336/411 primary-endpoint result to establish availability for standalone HF hospitalization. The held definition explicitly includes cardiovascular death. The separate composite strand correctly recognizes this distinction, but the audit does not.",
+      "served_effect":"The audit reports a standalone-outcome extraction obligation using evidence for a different outcome and marks the associated refusal REASON_FALSE_VALUE_HELD.",
+      "proposed_fixture":"Input IRONMAN's held primary definition and result clause with target components restricted to HF hospitalization. Assert that the composite result cannot establish HELD_NOT_EXTRACTED for the standalone target or invalidate a measure-mismatch refusal.",
+      "confidence":"high"
+    },
+    {
+      "class":"C8",
+      "title":"Funder DOI parsed as an outcome fraction",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"\"value_text\": \"13039/501100006484\""},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/ft_34080008.txt","quote":"<institution>Vifor Pharma</institution><institution-id institution-id-type=\"DOI\">10.13039/501100006484</institution-id>"}],
+      "why_wrong":"The value belongs to the funder's DOI metadata. It is not a numerator/denominator pair for hospitalization. The audit's fraction regex promotes an identifier fragment into an outcome-value field.",
+      "served_effect":"The PMID 34080008 hospitalization audit reports REASON_FALSE_VALUE_HELD with a funding identifier as numeric evidence.",
+      "proposed_fixture":"Pass the held funding XML and surrounding metadata through outcome-value detection. Assert that no clinical value is extracted from institution-id and that 13039/501100006484 is never emitted as value_text.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"CONFIRM-HF effect incorrectly described as absent from abstract",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"Abstract omits this isolated HF-hospitalisation effect (reports composite only), so it is a full-text recovery."},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/records.json","quote":"Treatment with FCM was associated with a significant reduction in the risk of hospitalizations for worsening HF [hazard ratio (95% confidence interval): 0.39 (0.19-0.82), P = 0.009]."}],
+      "why_wrong":"The held abstract explicitly reports the isolated hospitalization HR and confidence interval.",
+      "served_effect":"The review misstates extraction provenance and the necessity of full-text recovery; the numerical effect itself is supported.",
+      "proposed_fixture":"Input the held PMID 25176939 abstract. Assert that the 0.39 HR is located in the abstract and prohibit the claims reports-composite-only and not-in-abstract for that effect.",
+      "confidence":"high"
+    },
+    {
+      "class":"C6",
+      "title":"FCM-only comparator certified as matching the IV-iron class question",
+      "claim":{"file":"docs/reviews/iv-iron-hfref-hosp/review.json","quote":"same-question comparator (matching intervention level and population)"},
+      "evidence":[{"file":"cache/iv-iron-hfref-hosp/records.json","quote":"This meta-analysis seeks to provide updated insights into the effectiveness and safety of FCM compared to placebo/standard of care (SoC) among patients with HFrEF and ID/iron deficiency anemia (IDA)."},{"file":"protocols/iv-iron-hfref-hosp.md","quote":"intravenous iron, including ferric carboxymaltose, ferric derisomaltose, or iron sucrose."}],
+      "why_wrong":"The comparator addresses ferric carboxymaltose specifically; the registered review addresses several IV-iron agents. It is a relevant narrower comparator, but intervention-level equivalence is not established.",
+      "served_effect":"The scope object marks intervention_level_match and scope_valid true and presents a narrower intervention question as identical.",
+      "proposed_fixture":"Compare the held FCM-only comparator scope with the protocol's three-agent intervention set. Assert a narrower-intervention relation rather than same-question intervention-level equivalence.",
+      "confidence":"high"
+    }
+  ]
+}

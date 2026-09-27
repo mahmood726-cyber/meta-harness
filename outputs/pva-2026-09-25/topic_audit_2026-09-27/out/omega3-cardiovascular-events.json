@@ -1,0 +1,251 @@
+{
+  "topic": "omega3-cardiovascular-events",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared served absence and reason-audit rows with held abstracts, full texts, and registry outcomes; reproduced numeric-recognition failures for GISSI-HF AF and REDUCE-IT bleeding.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked selected efficacy HRs and intervals against abstracts and registry analyses, and ASCEND AF counts against its registry comparison.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Compared pooled endpoint components and exact-target classifications with their bound source definitions; reproduced Alpha Omega's classification.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Reviewed population screening reasons, topic eligibility rules, held abstracts, and screen adjudications. No unambiguous contradiction established within the declared title/conditions screening restriction.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked included report roles and served family assignments against held descriptions of GISSI-HF secondary analyses; accepted the supplied abstract-fidelity check.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator scope, trial-count and trial-list availability claims with the held comparator full text and its table.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked trial/outcome keys and cited source identities in reason-code, unextracted-outcome, and screening adjudication rows. Found content errors but no demonstrated wrong-identity verdict.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Compared selected-result endpoint definitions and intervention dose metadata with held abstracts and registry outcome definitions.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C3",
+      "title": "Alpha Omega's broader composite is classified as exact three-point MACE",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"target_endpoint_class\": \"EXACT_TARGET\",\n          \"target_endpoint_source_rank\": \"published_target_effect\",\n          \"target_endpoint_components\": [\n            \"cardiovascular death\",\n            \"myocardial infarction\",\n            \"stroke\"\n          ]"
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "The primary end point was the rate of major cardiovascular events, which comprised fatal and nonfatal cardiovascular events and cardiac interventions."
+        },
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Neither EPA-DHA nor ALA reduced this primary end point (hazard ratio with EPA-DHA, 1.01; 95% confidence interval [CI], 0.87 to 1.17; P=0.93; hazard ratio with ALA, 0.91; 95% CI, 0.78 to 1.05; P=0.20)."
+        }
+      ],
+      "why_wrong": "For PMID 20929341, the held definition explicitly includes cardiac interventions. The classifier nevertheless invents an exact cardiovascular-death/MI/stroke component set and reports no extra components. The separate heterogeneity disclosure does not make that classification correct.",
+      "served_effect": "The HR 1.01 enters the five-study efficacy synthesis with a false exact-target classification and contaminates the canonical endpoint component summary.",
+      "proposed_fixture": "Use PMID 20929341's held abstract, configured primary outcome, and served source string as inputs to target_endpoint.classify_bound. Assert that cardiac interventions prevent EXACT_TARGET and that the result is not assigned only the three canonical components. Current code returns EXACT_TARGET with no extras.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "GISSI-HF AF counts are incorrectly declared absent",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"trial_key\": \"23839902\",\n        \"trial_label\": \"23839902\",\n        \"outcome\": \"Atrial fibrillation\",\n        \"outcome_kind\": \"harm\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Among the 5835 patients without AF at study entry, 444 randomized to n-3 PUFAs (15.2%) and 408 to placebo (14.0%) developed AF (unadjusted hazard 1.10, P = 0.19)."
+        }
+      ],
+      "why_wrong": "The held abstract reports both arm event counts and percentages. Whether this post-hoc population supplies an admissible pooled estimate is a separate decision from whether numerical AF results are held.",
+      "served_effect": "The harm audit labels available AF results absent and validates the absence reason as REASON_TRUE.",
+      "proposed_fixture": "Pass the held PMID 23839902 abstract and configured AF keywords to reason_audit.find_value_in_sources. Assert a non-null result identifying the 444-versus-408 sentence, while leaving subgroup eligibility to a separate check. Current code returns None.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "REDUCE-IT bleeding refusal is audited as though no value exists",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"outcome\": \"Bleeding\",\n        \"outcome_kind\": \"harm\",\n        \"trial_key\": \"30415628\",\n        \"label\": \"30415628\",\n        \"id\": \"PMID 30415628\",\n        \"stated_reason_code\": \"REFUSED_ON_EVIDENCE\",\n        \"verdict\": \"REASON_WRONG_KIND\",\n        \"detail\": \"value absent from held source, but the code names a value-present/refusal cause\""
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Serious bleeding events occurred in 2.7% of the patients in the icosapent ethyl group and in 2.1% in the placebo group (P=0.06)."
+        }
+      ],
+      "why_wrong": "The percentages are explicitly held. A decision not to reconstruct counts from rounded percentages can be valid, but the audit's explanation that the value is absent is false.",
+      "served_effect": "The audit incorrectly challenges an evidence-based refusal and conflates reported-but-not-pooled data with source absence.",
+      "proposed_fixture": "Input the held bleeding sentence to reason_audit.find_value_in_sources with the configured bleeding keywords. Assert numeric evidence is detected; then assert audit_reason_row does not explain REFUSED_ON_EVIDENCE as a missing value. Current numeric detection returns None.",
+      "confidence": "high"
+    },
+    {
+      "class": "C5",
+      "title": "A post-hoc GISSI-HF report is assigned a primary-report role",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"report_id\": \"23839902\",\n          \"role\": \"PRIMARY\""
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "This post-hoc analysis of the GISSI-HF trial assessed the effect of n-3 PUFAs on AF in patients with chronic HF without AF at study entry over a median follow-up of 3.9 years."
+        },
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Of these, 1140 (16.3%) had AF at baseline ECG and were excluded from the present analysis."
+        }
+      ],
+      "why_wrong": "The abstract explicitly identifies a post-hoc analysis restricted to participants without baseline AF. Its RCT publication type does not establish that this is the primary trial report.",
+      "served_effect": "The secondary report is included and represented with a primary role, creating misleading report identity and outcome-completeness accounting. This finding does not assert duplicate numerical pooling.",
+      "proposed_fixture": "Classify the held PMID 23839902 record, retaining both its RCT publication type and its post-hoc abstract language. Assert publication_role is secondary rather than primary and that it is linked to GISSI-HF rather than treated as an independent primary report.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "REDUCE-IT's triglyceride threshold is copied into the dose field",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"agent\": \"EPA-only\",\n            \"formulation\": \"ethyl ester\",\n            \"dose\": \"499 mg\""
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "a fasting triglyceride level of 135 to 499 mg per deciliter"
+        },
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "The patients were randomly assigned to receive 2 g of icosapent ethyl twice daily (total daily dose, 4 g) or placebo."
+        }
+      ],
+      "why_wrong": "499 mg is extracted from an eligibility concentration of 499 mg per deciliter. The intervention dose is explicitly 2 g twice daily, totaling 4 g daily.",
+      "served_effect": "REDUCE-IT carries incorrect dosing metadata in its intervention ontology and compatibility dimensions.",
+      "proposed_fixture": "Input the held PMID 30415628 abstract to intervention-ontology extraction. Assert dose represents 4 g/day or 2 g twice daily and never 499 mg; retain the triglyceride range only as population-enrichment information.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "REDUCE-IT's primary definition is attached to its secondary estimate",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"endpoint_definition\": \"REDUCE-IT: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note on the pool)\""
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "The key secondary end point was a composite of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke."
+        },
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "the corresponding rates of the key secondary end point were 11.2% and 14.8% (hazard ratio, 0.74; 95% CI, 0.65 to 0.83; P<0.001)."
+        }
+      ],
+      "why_wrong": "The selected REDUCE-IT result is HR 0.74 for the three-component secondary endpoint. Its endpoint_definition instead describes the five-component primary endpoint, apparently inherited from the older definition-audit entry.",
+      "served_effect": "The compatibility metadata describes a different endpoint from the pooled estimate and falsely attributes extra components to that selected result.",
+      "proposed_fixture": "Use the held REDUCE-IT secondary registry result and existing definition-audit row as inputs to compatibility derivation. Assert endpoint_definition follows the selected three-component result and cannot be overridden by the primary-endpoint audit description.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "ASCEND AF result inherits a vascular efficacy endpoint definition",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "\"endpoint_definition\": \"primary outcome was a first serious vascular event (i\""
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "\"title\": \"Number of Participants With Event: Atrial Fibrillation (Omega-3 Comparison Only)\",\n        \"description\": \"Includes fatal and non-fatal events.\""
+        }
+      ],
+      "why_wrong": "This endpoint_definition belongs to the served AF row for PMID 30146932. Its selected registry result measures AF, not the trial's primary serious-vascular-event composite.",
+      "served_effect": "The harm result carries an unrelated efficacy definition into compatibility metadata.",
+      "proposed_fixture": "Derive compatibility metadata for the held ASCEND AF registry outcome with its 166/7740 and 135/7740 counts. Assert the endpoint definition identifies AF and does not contain the primary serious-vascular-event definition.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator is called same-question despite broader interventions and controls",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Bemelmans 2002  [ 27 ] Netherlands 266 (109/157) 54.1 44.0 NA 49.2 48.5 NA Primary a-linolenic acid vs omega-6 2.0 yr 4"
+        },
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "(3) control (omega-6 fatty acid supplementation, placebo, or usual care)"
+        }
+      ],
+      "why_wrong": "The topic is restricted to marine omega-3 in double-blind placebo/inert-control RCTs. The held comparator includes plant-derived alpha-linolenic acid and permits active omega-6 controls and usual care. A generic omega-3 class match does not establish the same question.",
+      "served_effect": "A broader synthesis is presented as scope-valid without identifying these intervention and comparator differences.",
+      "proposed_fixture": "Assess scope using the current topic configuration plus the held comparator inclusion criteria and Bemelmans table row. Assert an explicit intervention/comparator scope mismatch rather than an unconditional same-question verdict.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator's available MACE subset size is declared unavailable",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "The outcome-specific MACE subset is not separately machine-extractable from the cached text; 28 is the comparator meta size."
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Twenty-two RCTs showed the effect of omega-3 fatty acids on the risk of MACEs."
+        }
+      ],
+      "why_wrong": "The held full text directly states the outcome-specific count as 22. Although 28 is the overall review size, the claim that the MACE count is unavailable is contradicted by a simple held sentence.",
+      "served_effect": "The comparator overlap panel uses the overall 28-trial denominator while concealing the available 22-trial MACE denominator.",
+      "proposed_fixture": "Input the held sentence beginning 'Twenty-two RCTs' to comparator count extraction. Assert MACE-specific k equals 22, overall-review k remains separately 28, and the unavailable-subset claim is not emitted.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Held comparator trial table is reported as not exposed",
+      "claim": {
+        "file": "docs/reviews/omega3-cardiovascular-events/review.json",
+        "quote": "No comparator trial-list enumeration was found in the cached comparator text."
+      },
+      "evidence": [
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "Table 1 The summary characteristics in eligible study and involved individuals. Study Country Sample size Mean age (yr) Male (%) BMI (kg/m2) Smoking (%) Hypertension (%) DM (%) Prevention Intervention Follow-up Study quality"
+        },
+        {
+          "file": "cache/omega3-cardiovascular-events/records.json",
+          "quote": "ASCEND 2018  [ 47 ] UK 15480 (7740/7740) 63.3 62.6 30.8 8.3 NA 100.0 Primary N-3 EPA + DHA vs MUFA 7.4 yr 5"
+        }
+      ],
+      "why_wrong": "The held full text contains a labeled trial-characteristics table with named study rows. The implementation returns measured absence when no topic-specific parsing profile exists; that is a parser-coverage limitation, not evidence that enumeration is absent.",
+      "served_effect": "The served comparator trial set is empty and labeled MEASURED_ABSENCE, preventing source-based overlap assessment.",
+      "proposed_fixture": "Pass the held comparator full text to comparator_second_pass.parse_trial_set for this slug. Assert it either identifies table rows including ASCEND or explicitly reports parsing unresolved; it must not claim the held trial enumeration is absent.",
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "topic": "probiotics-aad-prevention",
+  "classes_checked": [
+    {"class":"C1","what_was_checked":"Compared primary-outcome absence audits with held abstracts and inspected selected full texts and harm refusals. Reproduced six false absence results using the audit code.","result":"FINDINGS"},
+    {"class":"C2","what_was_checked":"Compared pooled effect labels, confidence intervals, contrast directions and reconstructed counts with held source clauses.","result":"NO_FINDING"},
+    {"class":"C3","what_was_checked":"Checked pooled AAD results against alternative diarrhoea endpoints and checked adverse-event participant counts versus event totals. The endpoint metadata mismatch is reported under C8.","result":"NO_FINDING"},
+    {"class":"C4","what_was_checked":"Compared included populations with the prevention protocol and held descriptions of treatment after AAD onset.","result":"FINDINGS"},
+    {"class":"C5","what_was_checked":"Inspected pooled report identities and selected trial families, including PLACIDE primary reports and protocol. Accepted the supplied abstract-integrity verification.","result":"NO_FINDING"},
+    {"class":"C6","what_was_checked":"Compared comparator estimates and population scope with its held abstract; inspected comparator-panel and overlap claims.","result":"NO_FINDING"},
+    {"class":"C7","what_was_checked":"Traced selected reason-code and unextracted-outcome audit evidence to the cited full texts and reference identities.","result":"FINDINGS"},
+    {"class":"C8","what_was_checked":"Compared pooled-row follow-up and endpoint-definition fields with held source clauses and reproduced their derivation.","result":"FINDINGS"}
+  ],
+  "findings": [
+    {
+      "class":"C4",
+      "title":"Treatment of established AAD included in the prevention review",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"id\": \"40716758\",\n\"id_type\": \"pmid\",\n\"decision\": \"include\",\n\"rule_id\": \"INCLUDE\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"Spore-forming B. subtilis HU58 administered to children after onset of AAD may lead to faster resolution of diarrhoea and associated abdominal pain."},{"file":"protocols/probiotics-aad-prevention.md","quote":"The config\nnow excludes protocol-only reports before RCT publication-type acceptance, excludes\ntreatment/therapeutic-efficacy records rather than AAD prevention records"}],
+      "why_wrong":"PMID 40716758 treats children after AAD onset, contradicting the registered prevention population. The served screening row also records an adjudicator recommendation to exclude but retains inclusion.",
+      "served_effect":"An ineligible treatment trial enters the eligible-trial and outcome-coverage denominators; it is not currently in the primary numerical pool.",
+      "proposed_fixture":"Screen the held PMID 40716758 record using this topic configuration. Assert decision='exclude' with a treatment-of-established-AAD reason, and absence from prevention membership.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"PLAY-ON AAD counts incorrectly declared absent",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"trial_key\": \"41699149\",\n\"trial_label\": \"41699149\",\n\"outcome\": \"Antibiotic-associated diarrhoea\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"Diarrhea rates were nearly identical at 2% (3 cases in the active group, 2 cases in the control group); adverse events were also similar between groups."}],
+      "why_wrong":"The held abstract explicitly supplies the primary outcome's arm-specific case counts. The audit mistakes a detection failure for source absence.",
+      "served_effect":"A trial reporting AAD is classified as lacking held results and remains outside the primary pool.",
+      "proposed_fixture":"Pass PMID 41699149's held abstract and the primary-outcome specification to unextracted.audit_pair. Assert HELD_NOT_EXTRACTED and evidence identifying 3 active versus 2 control cases. Current code returns NOT_IN_HELD_SOURCES.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"VSL#3 intention-to-treat AAD results incorrectly declared absent",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"trial_key\": \"23618760\",\n\"trial_label\": \"23618760\",\n\"outcome\": \"Antibiotic-associated diarrhoea\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"Patients randomized to active (N = 117) and placebo (N = 112) groups were well-matched for baseline demographic patient data."},{"file":"cache/probiotics-aad-prevention/records.json","quote":"On intention-to-treat analysis the difference in AAD incidence (4.3% active vs 8.9% placebo; P = 0.19) was not significant."}],
+      "why_wrong":"Both randomized denominators and intention-to-treat AAD percentages are held. Extraction or rounding decisions cannot justify claiming the outcome is absent.",
+      "served_effect":"The coverage audit hides available intention-to-treat results for an included trial.",
+      "proposed_fixture":"Use the held PMID 23618760 abstract with unextracted.audit_pair. Assert HELD_NOT_EXTRACTED with the 4.3% versus 8.9% ITT clause, keeping it distinct from the separately reported per-protocol result. Current code returns NOT_IN_HELD_SOURCES.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"Explicit amoxicillin-associated diarrhoea fractions incorrectly declared absent",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"trial_key\": \"18949181\",\n\"trial_label\": \"18949181\",\n\"outcome\": \"Antibiotic-associated diarrhoea\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"RESULTS: Ten percent of patients (9/86) reported acute diarrhea, 9,8% (4/41) in the experimental group and 11.196 (5/45) in the control group (p = 100)."}],
+      "why_wrong":"The held source contains explicit experimental and control event fractions. Its malformed percentage and p-value text may warrant a quality flag, but do not erase the reported counts.",
+      "served_effect":"Available arm counts are represented as absent rather than held with a source-quality qualification.",
+      "proposed_fixture":"Use the unchanged PMID 18949181 abstract as input. Assert the audit identifies 4/41 versus 5/45 and does not return NOT_IN_HELD_SOURCES, while preserving the malformed source text without silently repairing it.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"L. reuteri pilot percentages incorrectly declared absent",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"trial_key\": \"21552138\",\n\"trial_label\": \"21552138\",\n\"outcome\": \"Antibiotic-associated diarrhoea\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"Thirteen patients received L. reuteri and 10 received placebo. Patients treated with L. reuteri had a significantly lower frequency of diarrhea compared with placebo (50% in the placebo group vs. 7.7% in the probiotic group, P=0.02)."}],
+      "why_wrong":"The abstract reports analysis-group sizes and diarrhoea percentages. Limitations of its analysis population are separate from whether results are held.",
+      "served_effect":"The audit marks a reported outcome unavailable and obscures a potentially recoverable result.",
+      "proposed_fixture":"Pass the held PMID 21552138 abstract to unextracted.audit_pair. Assert HELD_NOT_EXTRACTED with correct arm assignment: probiotic 7.7%, placebo 50%. Current code returns NOT_IN_HELD_SOURCES.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"Reported risk difference and diarrhoea rates incorrectly declared absent",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"trial_key\": \"30439760\",\n\"trial_label\": \"30439760\",\n\"outcome\": \"Antibiotic-associated diarrhoea\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"The rate of diarrhea was 23.0% in the probiotic group versus 17.6% in the placebo group, absolute risk reduction -5.35% (95% confidence interval, -15.4% to 4.7%; P=0.30)."}],
+      "why_wrong":"The held abstract reports arm percentages and an absolute risk reduction with confidence interval. A non-RR estimate requires an estimand decision, not a source-absence verdict.",
+      "served_effect":"The audit conflates unavailable RR extraction with unavailable outcome evidence.",
+      "proposed_fixture":"Use PMID 30439760's unchanged abstract. Assert held numerical outcome detection and preservation of the absolute-risk-reduction scale; reject NOT_IN_HELD_SOURCES and do not relabel the interval as RR.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"Four-arm prevention results incorrectly declared absent",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"trial_key\": \"42608299\",\n\"trial_label\": \"42608299\",\n\"outcome\": \"Antibiotic-associated diarrhoea\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"RESULTS: The combined group showed a significantly lower AAD incidence (7%) compared to the Saccharomyces boulardii group (15%), BQP group (17%), and control group (31%) (P<0.0083)."}],
+      "why_wrong":"All four arms have reported AAD incidence. Choosing a valid multi-arm contrast remains necessary, but the outcome is demonstrably present.",
+      "served_effect":"Multi-arm evidence is hidden behind an absence classification rather than exposed for contrast resolution.",
+      "proposed_fixture":"Pass the held PMID 42608299 abstract to unextracted.audit_pair. Assert HELD_NOT_EXTRACTED with four separately bound percentages; require a distinct multi-arm decision before pooling. Current code returns NOT_IN_HELD_SOURCES.",
+      "confidence":"high"
+    },
+    {
+      "class":"C8",
+      "title":"Fourteen-day dosing duration used as 21-day outcome follow-up",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"follow_up_window\": \"14 days\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"Subjects recorded the number of stools and their consistency daily for 21 days. The primary outcome was the proportion of patients who developed diarrhea in the first 21 days after enrollment."}],
+      "why_wrong":"In the PMID 11560298 row, 14 days describes treatment administration. The source explicitly defines the outcome window as 21 days. The derivation chooses the dosing duration despite that endpoint statement.",
+      "served_effect":"The pooled trial's follow-up metadata and compatibility assessment use the wrong duration.",
+      "proposed_fixture":"Call compat_check._derive_follow_up with the held PMID 11560298 record and its served primary trial row. Assert value='21 days' and provenance from the outcome clause. Current code returns '14 days'.",
+      "confidence":"high"
+    },
+    {
+      "class":"C8",
+      "title":"Any-diarrhoea definition attached to the narrower AAD estimate",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"endpoint_definition\": \"diarrhoea (>or=3 loose or watery stools/day for >or=48 h occurring during or up to 2 weeks after the antibiotic therapy)\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/records.json","quote":"Three (2.5%) children in the probiotic group developed AAD (diarrhoea caused by Clostridium difficile or otherwise unexplained diarrhoea) compared to nine (7.5%) in the placebo group (RR 0.33, 95% CI 0.1-1.06)."}],
+      "why_wrong":"PMID 18410562 contributes RR 0.33 for etiologically defined AAD. Its attached definition is copied from the separate any-diarrhoea endpoint, which has RR 0.45. The selected numerical result is correct; its definition link is wrong.",
+      "served_effect":"The metadata makes a narrower AAD result appear to use the broader stool-frequency endpoint.",
+      "proposed_fixture":"Call compat_check._derive_endpoint with PMID 18410562's held abstract and selected RR 0.33 row. Assert the definition includes Clostridium difficile or otherwise unexplained diarrhoea, rather than returning the any-diarrhoea definition.",
+      "confidence":"high"
+    },
+    {
+      "class":"C7",
+      "title":"Outcome audit uses another trial's bibliographic DOI as its value",
+      "claim":{"file":"docs/reviews/probiotics-aad-prevention/review.json","quote":"\"source_id\": \"fulltext:22371721\",\n\"source_kind\": \"fulltext\",\n\"source_span\": \"Ref Type: Data File 8 Pedone CA Bernabeau AO Postaire ER The effect of supplementation with milk fermented by Lactobacillus casei (strain DN-114 001) on acute diarrhea in children attending day care centers Int J Clin Pract 1999 53 179 84...\",\n\"value_text\": \"1155/2007\""},
+      "evidence":[{"file":"cache/probiotics-aad-prevention/ft_22371721.txt","quote":"<pub-id pub-id-type=\"pmid\">18026577</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1155/2007/720205</pub-id>"}],
+      "why_wrong":"The AAD audit for PMID 22371721 cites a reference-list passage and interprets part of PMID 18026577's DOI as a numerical outcome. Actual outcome evidence may exist, but this audit's supporting identity and value are invalid.",
+      "served_effect":"HELD_NOT_EXTRACTED and REASON_FALSE_VALUE_HELD are supported by bibliographic material from another report instead of this trial's outcome.",
+      "proposed_fixture":"Run find_value_in_sources on the held ft_22371721.txt with the primary-outcome keywords. Assert no accepted value is a DOI fragment or reference-list result; any returned evidence must describe PMID 22371721's own outcome. Current code returns value_text='1155/2007'.",
+      "confidence":"high"
+    }
+  ]
+}

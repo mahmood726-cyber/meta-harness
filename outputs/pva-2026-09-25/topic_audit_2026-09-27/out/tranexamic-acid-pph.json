@@ -1,0 +1,161 @@
+{
+  "topic": "tranexamic-acid-pph",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Outcome absence and unextracted-outcome rows against included-trial abstracts and held registry evidence; comparator-count and population-age absence claims.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "The served WOMAN RR, confidence interval and contrast against its abstract; comparator ORs against the held comparator text. Harms have no served quantitative estimate.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "WOMAN bleeding-death estimate versus the composite and three-hour subgroup; comparator endpoint definitions and suppressed harms.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Screening population decisions, protocol eligibility, and held inclusion criteria for TA TEG.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Primary pooled report identity, TRACES secondary-report handling, and trial-family report assignments. Incorrect registry assignment is reported under C8.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Comparator population-match claim, reported effects, trial count and overlap disclosures against its held abstract and full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Trial and outcome keys in reason_code_audit, unextracted_outcome_audit and endpoint adjudication against the rows they address.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Registry identifiers and primary-report links, including acronym-based assignments to NCT03364491; pooled-row population and follow-up provenance.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C6",
+      "title": "Prevention-plus-treatment comparator labelled as the same population",
+      "claim": {
+        "file": "docs/reviews/tranexamic-acid-pph/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/tranexamic-acid-pph/comparator_fulltext.txt",
+          "quote": "In the WOMAN trial, 1 all women were randomly assigned after the diagnosis of postpartum haemorrhage, but in the other four trials women were randomly assigned after birth but before the diagnosis of postpartum haemorrhage."
+        },
+        {
+          "file": "protocols/tranexamic-acid-pph.md",
+          "quote": "- **P** - women with a clinical diagnosis of postpartum haemorrhage after vaginal birth\n  or caesarean section."
+        }
+      ],
+      "why_wrong": "The comparator combines prevention and treatment populations, whereas this topic requires established postpartum haemorrhage. Matching drug and disease words does not establish matching entry populations. Calling scope.assess with the held configuration and comparator abstract reproduced scope_valid=true.",
+      "served_effect": "The comparator is presented as a same-question benchmark despite a material population and treatment-timing difference.",
+      "proposed_fixture": "Pass the existing topic configuration and PMID 39461793 title/abstract to scope assessment, retaining the held sentence distinguishing administration before and after diagnosis. Assert that the overall comparator is not an unqualified population match and that the prevention/treatment difference is recorded.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "A separate Indian trial receives the US trial's registry identity",
+      "claim": {
+        "file": "docs/reviews/tranexamic-acid-pph/review.json",
+        "quote": "\"primary_report_ids\": [\n          \"37043652\",\n          \"42540384\"\n        ],\n        \"registry_ids\": [\n          \"NCT03364491\"\n        ]"
+      },
+      "evidence": [
+        {
+          "file": "cache/tranexamic-acid-pph/records.json",
+          "quote": "The study was conducted at the Autonomous State Medical College, Fatehpur, from September 1, 2024, to March 31, 2025."
+        },
+        {
+          "file": "cache/tranexamic-acid-pph/records.json",
+          "quote": "A simple randomization technique was used to allocate 300 participants to either group in a 1:1 ratio."
+        },
+        {
+          "file": "cache/tranexamic-acid-pph/records.json",
+          "quote": "We randomly assigned patients undergoing cesarean delivery at 31 U.S. hospitals to receive either tranexamic acid or placebo after umbilical-cord clamping."
+        },
+        {
+          "file": "cache/tranexamic-acid-pph/records.json",
+          "quote": "ClinicalTrials.gov number, NCT03364491."
+        }
+      ],
+      "why_wrong": "PMID 42540384 describes a 300-participant single-centre Indian trial conducted in 2024–2025. PMID 37043652 describes the US multicentre trial explicitly registered as NCT03364491. The family preparation code assigns the former this registry ID through the generic acronym TXA and shared drug/placebo names, which do not establish trial identity.",
+      "served_effect": "Distinct trials become primary reports of one registry-anchored family, contaminating family membership and associated registry metadata. Neither contributes to the current primary estimate.",
+      "proposed_fixture": "Run family preparation on the two held records with the existing NCT03364491 registry ingredients. Assert that PMID 37043652 retains NCT03364491 and PMID 42540384 is not assigned that ID solely from TXA, tranexamic acid and placebo tokens.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "Elective-cesarean population admitted as established haemorrhage",
+      "claim": {
+        "file": "docs/reviews/tranexamic-acid-pph/review.json",
+        "quote": "\"id\": \"TA TEG · NCT02026297\",\n        \"id_type\": \"nct\",\n        \"decision\": \"include\",\n        \"rule_id\": \"INCLUDE\""
+      },
+      "evidence": [
+        {
+          "file": "docs/reviews/tranexamic-acid-pph/review.json",
+          "quote": "Inclusion Criteria:~* American Society of Anesthesiologists (ASA) class I or II~* aged 18-50 years~* singleton vertex pregnancy~* scheduled elective cesarean delivery (with or without prior labor) with a planned pfannenstiel incision"
+        },
+        {
+          "file": "docs/reviews/tranexamic-acid-pph/review.json",
+          "quote": "Treated, low risk PPH"
+        },
+        {
+          "file": "protocols/tranexamic-acid-pph.md",
+          "quote": "- **P** - women with a clinical diagnosis of postpartum haemorrhage after vaginal birth\n  or caesarean section."
+        }
+      ],
+      "why_wrong": "The held AACT eligibility text, reproduced with source references in the review, describes women scheduled for elective cesarean delivery; its arm label describes low PPH risk. This does not establish the required existing clinical haemorrhage. Screening instead treats the registry condition label Postpartum Hemorrhage as sufficient population evidence.",
+      "served_effect": "TA TEG is counted as eligible and appears as missing evidence for all three outcomes, inflating the treatment review's evidence-completeness deficit.",
+      "proposed_fixture": "Screen the held NCT02026297 record together with its existing AACT eligibility text and arm labels. Assert that a postpartum-haemorrhage condition tag cannot produce INCLUDE for an established-haemorrhage protocol when entry criteria specify scheduled elective delivery; require exclusion or explicit population adjudication.",
+      "confidence": "medium"
+    },
+    {
+      "class": "C1",
+      "title": "Comparator trial count declared unstated despite an explicit count",
+      "claim": {
+        "file": "docs/reviews/tranexamic-acid-pph/review.json",
+        "quote": "\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tranexamic-acid-pph/comparator_fulltext.txt",
+          "quote": "Five completed trials 1 , 10 – 13 met the inclusion criteria, three of which had been completed before publication of our study protocol."
+        }
+      ],
+      "why_wrong": "The held comparator full text explicitly states five included trials. Failure to parse a spelled-out count is not source absence.",
+      "served_effect": "The comparator overlap block suppresses an available trial count and incorrectly attributes the missing value to the source.",
+      "proposed_fixture": "Use the quoted sentence as comparator text in the count-extraction path. Assert theirs_k=5 with a source span, rather than the not-stated fallback.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "WOMAN age eligibility marked not stated",
+      "claim": {
+        "file": "docs/reviews/tranexamic-acid-pph/review.json",
+        "quote": "\"population_age\": \"not_stated\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tranexamic-acid-pph/records.json",
+          "quote": "we recruited women aged 16 years and older with a clinical diagnosis of post-partum haemorrhage"
+        }
+      ],
+      "why_wrong": "The WOMAN abstract explicitly supplies a minimum age. The age derivation recognises only limited categorical patterns and returns not_stated for this wording; that result was reproduced with the held record.",
+      "served_effect": "The pooled trial's compatibility metadata loses available age information and presents parser nonrecognition as source silence.",
+      "proposed_fixture": "Pass the held PMID 28456509 record to _derive_population_age. Assert that age information is retained with the quoted source span and a minimum age of 16, rather than not_stated or an unsupported adult-only classification.",
+      "confidence": "high"
+    }
+  ]
+}

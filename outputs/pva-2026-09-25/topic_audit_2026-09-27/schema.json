@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["topic", "classes_checked", "findings"],
+  "properties": {
+    "topic": {"type": "string"},
+    "classes_checked": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["class", "what_was_checked", "result"],
+        "properties": {
+          "class": {"type": "string", "enum": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]},
+          "what_was_checked": {"type": "string"},
+          "result": {"type": "string", "enum": ["FINDINGS", "NO_FINDING", "NOT_CHECKABLE"]}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["class", "title", "claim", "evidence", "why_wrong", "served_effect", "proposed_fixture", "confidence"],
+        "properties": {
+          "class": {"type": "string", "enum": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"]},
+          "title": {"type": "string"},
+          "claim": {"type": "object", "additionalProperties": false, "required": ["file", "quote"],
+                    "properties": {"file": {"type": "string"}, "quote": {"type": "string"}}},
+          "evidence": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
+                       "required": ["file", "quote"], "properties": {"file": {"type": "string"}, "quote": {"type": "string"}}}},
+          "why_wrong": {"type": "string"},
+          "served_effect": {"type": "string"},
+          "proposed_fixture": {"type": "string"},
+          "confidence": {"type": "string", "enum": ["high", "medium", "low"]}
+        }
+      }
+    }
+  }
+}

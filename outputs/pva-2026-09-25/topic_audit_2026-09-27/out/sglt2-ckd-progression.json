@@ -1,0 +1,161 @@
+{
+  "topic": "sglt2-ckd-progression",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared absence and unextracted-outcome rows with held abstracts, registry records and EMPA-KIDNEY full text; checked not_stated population metadata.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked primary and kidney-only HRs, intervals and contrast direction, plus EMPA-KIDNEY ketoacidosis count-derived RR and amputation HR.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Compared pooled primary and kidney-only estimates with their source endpoint clauses; checked harm counts and the disclosed differences between composite definitions.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared included populations and X2 exclusions with protocol eligibility and held trial titles and registry conditions.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked primary publication roles, PMID/NCT family assignments and pooled membership. Used the supplied abstract-integrity measurements.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared SMART-C reported outcome, estimates, scope qualifications and overlap assertions with its held abstract and comparator text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked reason-code and unextracted-outcome audit keys and screening adjudications against the trials and outcomes they address.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Checked per-outcome endpoint definitions, follow-up fields and source identifiers; reproduced the harm endpoint-binding error with the current derivation function.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C4",
+      "title": "Kidney-disease synonym omission excludes two dialysis trials",
+      "claim": {
+        "file": "docs/reviews/sglt2-ckd-progression/review.json",
+        "quote": "\"decision\": \"exclude\", \"rule_id\": \"X2\", \"reason\": \"population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic kidney diseases'] (an incidental abstract mention does not qualify).\""
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-ckd-progression/records.json",
+          "quote": "\"title\": \"Safety and Efficacy of Empagliflozin in Hemodialysis\", \"acronym\": \"SEED\", \"study_type\": \"INTERVENTIONAL\", \"allocation\": \"RANDOMIZED\", \"masking\": \"DOUBLE\", \"conditions\": [ \"End Stage Renal Disease\" ]"
+        },
+        {
+          "file": "cache/sglt2-ckd-progression/records.json",
+          "quote": "\"title\": \"Dapagliflozin Effect on Cardiovascular Outcomes in Haemodialysis for End Stage Renal Disease\""
+        },
+        {
+          "file": "protocols/sglt2-ckd-progression.md",
+          "quote": "- **I2** - adult chronic kidney disease / kidney disease / diabetic nephropathy population, judged from title or registry conditions;"
+        },
+        {
+          "file": "protocols/sglt2-ckd-progression.md",
+          "quote": "Eligibility is NOT on the outcome axis."
+        }
+      ],
+      "why_wrong": "The quoted exclusion is assigned to SEED (NCT05786443) and DECODED (NCT04764097). Their held records explicitly identify end-stage renal disease and dialysis. The screen mistakes missing vocabulary for an off-topic population. The protocol does not exclude dialysis populations; whether progression is an applicable endpoint belongs to extraction.",
+      "served_effect": "Both trials are removed from eligibility and registered-outcome coverage. This does not establish that either supplies a poolable progression estimate.",
+      "proposed_fixture": "Use the two unchanged ctgov records and topic configuration as inputs to screen.screen_record. Assert both pass the population criterion and are not X2 exclusions. The current function reproduces X2 for both; recognize end-stage renal disease terminology while keeping outcome compatibility separate.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "Primary composite definition attached to both harm results",
+      "claim": {
+        "file": "docs/reviews/sglt2-ckd-progression/review.json",
+        "quote": "\"endpoint_definition\": \"primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1\""
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-ckd-progression/ft_36331190.txt",
+          "quote": "Ketoacidosis occurred in 6 patients in the empagliflozin group versus 1 patient in the placebo group (0.09 versus 0.02 per 100 patient-years)."
+        },
+        {
+          "file": "cache/sglt2-ckd-progression/ft_36331190.txt",
+          "quote": "Lower limb amputations occurred in 28 patients in the empagliflozin group and 19 in the placebo group (0.43 versus 0.29 per 100 patient-years)."
+        }
+      ],
+      "why_wrong": "This endpoint_definition appears on the EMPA-KIDNEY rows for both Diabetic ketoacidosis and Lower-limb amputation. The values describe those distinct safety outcomes, not the primary cardiorenal composite. compat_check._derive_endpoint selects the primary-outcome sentence without binding it to the requested outcome.",
+      "served_effect": "The JSON and rendered compatibility fields attach an unrelated endpoint to otherwise correctly extracted harm results.",
+      "proposed_fixture": "Pass each existing EMPA-KIDNEY harm row, its outcome specification and held PMID 36331190 record to compat_check._derive_endpoint. Assert the returned definition refers to the requested harm or is unresolved, and never starts with the primary cardiorenal definition. Both current calls reproduce the wrong definition.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "SMART-C kidney-only estimate stored under a cardiorenal outcome label",
+      "claim": {
+        "file": "docs/reviews/sglt2-ckd-progression/review.json",
+        "quote": "\"outcome\": \"Trial-defined primary cardiorenal composite\", \"estimate\": 0.62, \"scale\": \"HR\", \"ci_low\": 0.57, \"ci_high\": 0.68"
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-ckd-progression/records.json",
+          "quote": "MAIN OUTCOMES AND MEASURES: CKD progression, defined as kidney failure, at least 50% reduction in eGFR, or death due to kidney failure."
+        },
+        {
+          "file": "cache/sglt2-ckd-progression/records.json",
+          "quote": "SGLT2 inhibitors reduced the risk of CKD progression (25.4 vs 40.3 events per 1000 patient-years; hazard ratio [HR], 0.62 [95% CI, 0.57-0.68])"
+        }
+      ],
+      "why_wrong": "The comparator.reported entry relabels SMART-C's kidney-only CKD progression estimate as the review's trial-defined primary cardiorenal composite. Separate scope and DIFFERENT_QUANTITY warnings correctly acknowledge the distinction but do not correct this structured outcome label.",
+      "served_effect": "Consumers of comparator.reported receive the correct number paired with the wrong endpoint identity.",
+      "proposed_fixture": "Use the held PMID 41203232 abstract and current topic configuration to construct the comparator record. Assert that the 0.62 estimate retains the source CKD-progression endpoint and is not labelled Trial-defined primary cardiorenal composite; preserve the DIFFERENT_QUANTITY relation separately.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "EMPA-KIDNEY adult population marked not stated despite held full text",
+      "claim": {
+        "file": "docs/reviews/sglt2-ckd-progression/review.json",
+        "quote": "\"population_age\": { \"value\": \"not_stated\", \"source\": \"committed source text\", \"span\": \"\" }"
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-ckd-progression/ft_36331190.txt",
+          "quote": "<p id=\"P10\">Adults with a race-adjusted CKD-EPI"
+        },
+        {
+          "file": "cache/sglt2-ckd-progression/ft_36331190.txt",
+          "quote": "At randomization, mean age was 63.8 years, 33% of participants were women and 54% did not have diabetes"
+        }
+      ],
+      "why_wrong": "The EMPA-KIDNEY compatibility metadata reports population_age as not_stated. The held full text explicitly identifies adults and reports their mean age. The derivation inspects selected row text and the abstract without incorporating this held population section.",
+      "served_effect": "Population metadata remains falsely unresolved across the EMPA-KIDNEY outcome rows.",
+      "proposed_fixture": "Use the existing PMID 36331190 record together with ft_36331190.txt in compatibility enrichment. Assert population_age is adult with a held supporting span for each EMPA-KIDNEY row, rather than not_stated. Keep the full-text input necessary so the test detects omission of held sources.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "Ketoacidosis provenance cites a PMCID inconsistent with the held article",
+      "claim": {
+        "file": "docs/reviews/sglt2-ckd-progression/review.json",
+        "quote": "EMPA-KIDNEY (PMID 36331190, PMC9761906) full text:"
+      },
+      "evidence": [
+        {
+          "file": "cache/sglt2-ckd-progression/ft_36331190.txt",
+          "quote": "<article-id pub-id-type=\"pmcid\">PMC7614055</article-id>"
+        }
+      ],
+      "why_wrong": "The ketoacidosis source description identifies the full text as PMC9761906, whereas the held article identifies itself as PMC7614055. The asserted source identifier does not match the document supplying the counts.",
+      "served_effect": "The displayed verification provenance directs readers to an identifier inconsistent with the held evidence.",
+      "proposed_fixture": "Parse the PMCID from the front matter of ft_36331190.txt and compare it with the PMCID in the generated ketoacidosis source description. Assert equality to PMC7614055; the current description contains PMC9761906.",
+      "confidence": "high"
+    }
+  ]
+}

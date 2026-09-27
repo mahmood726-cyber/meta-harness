@@ -1,0 +1,167 @@
+{
+  "topic": "metformin-pcos-ovulation",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared served outcome-absence and reason-audit rows with the seven included trials' held abstracts, available full-text files, and registry-result structure. Replayed the three disputed ovulation audit pairs offline.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked the three pooled trials' counts, reconstructed ORs, contrast direction, and source effect labels. No demonstrated measure-identity error.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Compared pooled ovulation numerators and denominators with held endpoint clauses; distinguished pregnancy, ovulation, patient-level results, and cycle-level results.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Inspected population exclusions and included-trial populations against held titles and abstracts and the registered scope.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Checked pooled report identities, Moll companion-report exclusions, and the held Moll registration-number amendment. Used the supplied abstract-integrity result.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator estimates, treatment-strategy correction, study-count absence, and trial-list absence with the held Cochrane text and comparator processing code.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Compared trial keys and outcome names across reason-code rows, unextracted-outcome rows, and their corresponding disposition rows. False absence verdicts are reported under C1; no wrong-item identity established.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Inspected pooled trial family/report identifiers, endpoint definitions, follow-up fields, population-age fields, and source registration information.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C6",
+      "title": "Monotherapy comparator estimate remains labelled as clomifene add-on efficacy",
+      "claim": {
+        "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+        "quote": "\"outcome\": \"Ovulation with metformin added to clomifene\",\n        \"estimate\": 2.64,\n        \"scale\": \"OR\",\n        \"ci_low\": 1.85,\n        \"ci_high\": 3.75"
+      },
+      "evidence": [
+        {
+          "file": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+          "quote": "Metformin and CC may improve ovulation per woman compared with CC alone, (OR 1.65, 95% CI 1.35 to 2.03; I 2 = 63%; 21 studies, 1568 women;"
+        },
+        {
+          "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+          "quote": "Original comparator extraction selected metformin monotherapy; the topic is metformin plus clomifene citrate versus clomifene citrate, so the add-on contrast is used."
+        }
+      ],
+      "why_wrong": "The correction appends the add-on estimate under 'Ovulation rate' but leaves the original 2.64 estimate under the exact registered outcome name. The held add-on estimate is 1.65, with CI 1.35–2.03. The correction claim therefore does not describe the resulting comparator record.",
+      "served_effect": "The served comparator associates the primary add-on outcome with the wrong treatment contrast and a larger effect.",
+      "proposed_fixture": "Pass the existing comparator.reported entries and held comparator text to comparator_second_pass._apply_reported_overrides for this slug. Assert that the entry matching the registered primary outcome has estimate 1.65 and CI [1.35, 2.03], and that no active add-on outcome retains 2.64.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Sturrock ovulation counts falsely classified as absent",
+      "claim": {
+        "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+        "quote": "\"trial_key\": \"11994052\",\n        \"trial_label\": \"11994052\",\n        \"outcome\": \"Ovulation with metformin added to clomifene\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/metformin-pcos-ovulation/records.json",
+          "quote": "There was no difference in the efficacy of clomiphene between the two groups with ovulation being induced in five (out of 12) metformin treated women and four (out of 14) placebo treated women, P=0.63."
+        }
+      ],
+      "why_wrong": "The held abstract explicitly reports both ovulation counts and denominators. The crossover design may require a pooling refusal or special analysis, but it cannot justify claiming that the outcome is absent. The offline audit replay returned NOT_IN_HELD_SOURCES.",
+      "served_effect": "Reported evidence is hidden behind an absence label, and the reason audit incorrectly certifies that absence.",
+      "proposed_fixture": "Use PMID 11994052's held abstract as the source text, the configured primary-outcome keywords, and its current absent row in unextracted.audit_pair. Assert HELD_NOT_EXTRACTED and preservation of 5/12 versus 4/14; independently require crossover handling before pooling.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Cycle-level ovulation results falsely classified as absent",
+      "claim": {
+        "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+        "quote": "\"trial_key\": \"19552097\",\n        \"trial_label\": \"19552097\",\n        \"outcome\": \"Ovulation with metformin added to clomifene\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/metformin-pcos-ovulation/records.json",
+          "quote": "Ovulation was noted to have occurred in 71.11% of the 45 cycles studied in 15 patients in the metformin group whereas ovulation occurred in 11.11% of the 36 cycles studied in 12 patients in the placebo group."
+        }
+      ],
+      "why_wrong": "The abstract provides ovulation percentages and cycle denominators in both arms. These are cycle-level results requiring explicit unit and correlation handling, not absent outcomes. The offline audit replay reproduced the false absence.",
+      "served_effect": "The page conceals available results and fails to explain the actual obstacle to including them in a patient-level synthesis.",
+      "proposed_fixture": "Supply PMID 19552097's held abstract to unextracted.audit_pair with the configured primary outcome. Assert HELD_NOT_EXTRACTED; retain denominators as 45 and 36 cycles and prohibit treating them as independent patient counts.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Ng median ovulation rates falsely classified as absent",
+      "claim": {
+        "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+        "quote": "\"trial_key\": \"11473953\",\n        \"trial_label\": \"11473953\",\n        \"outcome\": \"Ovulation with metformin added to clomifene\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/metformin-pcos-ovulation/records.json",
+          "quote": "The median ovulation rate in the placebo group was 0% (range: 0--50%) after placebo only and 6.9% (range: 0--50%) after placebo and CC, whereas the corresponding rates in the metformin group were 0% (range: 0--22%) and 0% (range: 0--22%) respectively."
+        }
+      ],
+      "why_wrong": "Both treatment phases have reported median ovulation rates and ranges. These cannot directly supply an OR, but an incompatible summary format is different from an absent outcome. The offline audit replay reproduced NOT_IN_HELD_SOURCES.",
+      "served_effect": "Readers are told no held result exists instead of seeing the reported result and its extraction limitation.",
+      "proposed_fixture": "Supply PMID 11473953's held abstract to unextracted.audit_pair. Assert HELD_NOT_EXTRACTED and retain the add-on medians 6.9% versus 0%; assert that ranges are not interpreted as confidence intervals or patient-level event counts.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Moll discontinuation audit denies the value quoted by its own disposition",
+      "claim": {
+        "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+        "quote": "\"trial_key\": \"16769748\",\n        \"label\": \"16769748\",\n        \"id\": \"PMID 16769748\",\n        \"stated_reason_code\": \"EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH\",\n        \"verdict\": \"REASON_WRONG_KIND\",\n        \"detail\": \"value absent from held source, but the code names a value-present/refusal cause\""
+      },
+      "evidence": [
+        {
+          "file": "cache/metformin-pcos-ovulation/records.json",
+          "quote": "A significantly larger proportion of women in the metformin group discontinued treatment because of side effects (16% v 5%; 11%, 5% to 16%)."
+        }
+      ],
+      "why_wrong": "The held abstract reports arm percentages and a risk-difference interval for discontinuation. A refusal to pool that measure may need separate evaluation, but the audit's assertion that the value is absent is directly false.",
+      "served_effect": "The audit incorrectly rejects a value-present rationale and obscures a reported adverse-effect result.",
+      "proposed_fixture": "Pass the held discontinuation sentence, configured discontinuation keywords, and existing PMID 16769748 refusal row to reason_audit.audit_reason_row. Assert recognition of a held value and prohibit a verdict whose detail says the value is absent; retain the risk-difference identity.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator enumeration and study counts described as missing despite held tables",
+      "claim": {
+        "file": "docs/reviews/metformin-pcos-ovulation/review.json",
+        "quote": "No comparator trial-list enumeration was found in the cached comparator text."
+      },
+      "evidence": [
+        {
+          "file": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+          "quote": "Characteristics of included studies [ordered by study ID] Baillargeon 2004 . Methods RCT Setting: Venezuela"
+        },
+        {
+          "file": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+          "quote": "Sturrock 2002 5 12 4 14 P = 0.49 Vandermolen 2001 9 12 4 15 P = 0.02 Zain 2009 38 41 24 41 P < 0.01"
+        },
+        {
+          "file": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+          "quote": "Metformin and CC may improve ovulation per woman compared with CC alone, (OR 1.65, 95% CI 1.35 to 2.03; I 2 = 63%; 21 studies, 1568 women;"
+        }
+      ],
+      "why_wrong": "The held text contains an included-studies enumeration, named study rows, and the add-on outcome's study count. The parser returns MEASURED_ABSENCE when this topic has no configured trial-set profile; that is a parser-coverage limitation, not demonstrated source absence. The accompanying 'theirs_k' absence statement is also contradicted by the explicit 21-study result.",
+      "served_effect": "Available comparator membership and quantity evidence is represented as unavailable, weakening the overlap assessment.",
+      "proposed_fixture": "Call comparator_second_pass.parse_trial_set with this slug and the existing held comparator text. Assert that a missing parser profile cannot yield MEASURED_ABSENCE or a claim that no enumeration exists. Extract or explicitly mark unparsed the included-study table, and preserve 21 as the add-on ovulation study count without treating it as an exact shared-trial count.",
+      "confidence": "high"
+    }
+  ]
+}

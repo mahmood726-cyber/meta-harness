@@ -1,0 +1,153 @@
+{
+  "topic": "spironolactone-hfref-mortality",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Served harm absence claims, reason-code audits, unextracted-outcome rows, funding and age fields against held abstracts and registry results; reproduced two false numeric-absence determinations.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Three pooled effects, source measure labels, confidence intervals, contrast directions and the aggregate scale.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Mortality effect selection against each trial's endpoint definitions and results; examined registry cross-source endpoint disclosures.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Included trial populations and X2 exclusions against held abstracts, including the post-MI exclusion.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Inspected pooled report identities, family mappings and the two flagged altered abstracts. No additional local report-identity defect established; independent verification of the supplied PubMed alteration facts requires source versions unavailable in this extract.",
+      "result": "NOT_CHECKABLE"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Comparator scope, reported mortality estimate, overlap claims and trial membership against its held abstract and full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Matched all six reason-code audit rows and nine unextracted-outcome audit rows to their trial and outcome keys.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Endpoint-definition links, follow-up fields, source labels and registry identities for pooled trials; reproduced the EMPHASIS-HF definition error.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C3",
+      "title": "J-EMPHASIS-HF composite HR enters the all-cause mortality pool",
+      "claim": {
+        "file": "docs/reviews/spironolactone-hfref-mortality/index.html",
+        "quote": "<tr><td>J-EMPHASIS-HF</td><td>PMID 28824029</td><td>0.85 (HR), 95% CI"
+      },
+      "evidence": [
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "The primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF. The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)]."
+        },
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died."
+        }
+      ],
+      "why_wrong": "The displayed row belongs to the All-cause mortality outcome, but 0.85 measures cardiovascular death or HF hospitalization. The separate death counts imply an all-cause mortality RR of approximately 1.685. The source-hierarchy selector prefers the published composite HR over the mortality reconstruction without enforcing endpoint identity.",
+      "served_effect": "Substitutes a favorable composite estimate for an unfavorable mortality estimate within the three-trial mortality synthesis.",
+      "proposed_fixture": "Use the held PMID 28824029 abstract and mortality candidate counts 17/111 versus 10/110. Supply the published 0.85 composite HR as an alternative. Assert that endpoint binding rejects that alternative for all-cause mortality and that no mortality pool receives it. The current source-hierarchy probe selects PUBLISHED_EFFECT_TARGET_CLASS.",
+      "confidence": "high"
+    },
+    {
+      "class": "C2",
+      "title": "Mixed HR/RR synthesis retains an HR scale",
+      "claim": {
+        "file": "docs/reviews/spironolactone-hfref-mortality/review.json",
+        "quote": "\"estimate\": 0.7294,\n        \"scale\": \"HR\""
+      },
+      "evidence": [
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "There were 386 deaths in the placebo group (46 percent) and 284 in the spironolactone group (35 percent; relative risk of death, 0.70; 95 percent confidence interval, 0.60 to 0.82; P<0.001)."
+        },
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "A total of 12.5% of patients receiving eplerenone and 15.5% of those receiving placebo died (hazard ratio, 0.76; 95% CI, 0.62 to 0.93; P=0.008);"
+        }
+      ],
+      "why_wrong": "The inputs include a source-labelled relative risk and hazard ratios. The review acknowledges the approximation in its mixed-measure disclosure, but still assigns HR to result.scale, served_estimand and the RALES study_effect.estimand. That categorical identity is unsupported by the held RALES clause.",
+      "served_effect": "Consumers of the structured review can interpret the mixed summary and RALES contribution as hazard ratios despite the prose qualification.",
+      "proposed_fixture": "Use the held RALES RR 0.70 (0.60–0.82) and EMPHASIS-HF HR 0.76 (0.62–0.93). Assert that RALES retains RR throughout its effect object and that any permitted mixed synthesis is explicitly typed as mixed rather than HR; alternatively require separate measure-specific syntheses.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "EMPHASIS-HF mortality effect inherits the primary composite definition",
+      "claim": {
+        "file": "docs/reviews/spironolactone-hfref-mortality/review.json",
+        "quote": "\"endpoint_definition\": \"primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure\""
+      },
+      "evidence": [
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "A total of 12.5% of patients receiving eplerenone and 15.5% of those receiving placebo died (hazard ratio, 0.76; 95% CI, 0.62 to 0.93; P=0.008);"
+        }
+      ],
+      "why_wrong": "The selected EMPHASIS-HF effect is the all-cause death HR with CI 0.62–0.93. Its endpoint_definition instead describes the trial's primary composite. The metadata derivation searches for primary-outcome language without binding the definition to the selected result.",
+      "served_effect": "Misdescribes a correctly selected mortality effect and introduces a spurious endpoint mismatch into compatibility metadata.",
+      "proposed_fixture": "Pass the held PMID 21073363 abstract and selected mortality effect 0.76 (0.62–0.93) to endpoint derivation. Assert that its definition identifies death from any cause and excludes HF hospitalization. The current _derive_endpoint probe returns the composite definition.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator is declared same-question despite including post-MI patients",
+      "claim": {
+        "file": "docs/reviews/spironolactone-hfref-mortality/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
+          "quote": "EPHESUS (Eplerenone, a Selective Aldosterone Blocker, in Patients with Left Ventricular Dysfunction after Myocardial Infarction) ( 14 ), which assessed eplerenone;"
+        },
+        {
+          "file": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
+          "quote": "Each section includes data from studies such as RALES 2000, EPHESUS 2003, and EMPHASIS-HF 2011, showing hazard ratios and confidence intervals."
+        }
+      ],
+      "why_wrong": "This review explicitly excludes post-myocardial-infarction LV dysfunction, while the comparator includes EPHESUS in its HFrEF analyses. Matching an MRA class label and an HFrEF umbrella term does not establish matching population scope. The review's own comparator truth block records this contradiction but leaves scope_valid and population_match true.",
+      "served_effect": "Presents the comparator's mortality result as answering the registered question despite a material population difference.",
+      "proposed_fixture": "Use the held comparator passages naming EPHESUS and its post-MI population together with this topic's post-MI exclusion. Assert that comparator population scope is qualified or incompatible and cannot emit an unqualified same-question claim.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Absence audit overlooks reported harm percentages",
+      "claim": {
+        "file": "docs/reviews/spironolactone-hfref-mortality/review.json",
+        "quote": "value absent from held source, but the code names a value-present/refusal cause"
+      },
+      "evidence": [
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "A serum potassium level exceeding 5.5 mmol per liter occurred in 11.8% of patients in the eplerenone group and 7.2% of those in the placebo group (P<0.001)."
+        },
+        {
+          "file": "cache/spironolactone-hfref-mortality/records.json",
+          "quote": "Gynecomastia or breast pain was reported in 10 percent of men who were treated with spironolactone, as compared with 1 percent of men in the placebo group (P<0.001)."
+        }
+      ],
+      "why_wrong": "The quoted absence determination is attached to EMPHASIS-HF hyperkalemia and RALES gynecomastia/breast pain. Both held abstracts contain numeric outcome values. Missing exact counts, denominators or an effect CI may justify refusing synthesis, but does not make the reported percentages absent. Local audit_reason_row probes reproduced both false absence determinations.",
+      "served_effect": "Labels supported extraction refusals REASON_WRONG_KIND and tells readers that numeric values are absent when they are held.",
+      "proposed_fixture": "Use the two quoted sentences as separate held-source fixtures with their registered harm keywords. Assert that numeric-source detection finds each percentage pair and that refusal adjudication preserves a value-present but insufficient-for-synthesis state, never a value-absent explanation.",
+      "confidence": "high"
+    }
+  ]
+}

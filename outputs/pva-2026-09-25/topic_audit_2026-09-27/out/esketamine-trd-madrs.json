@@ -1,0 +1,97 @@
+{
+  "topic": "esketamine-trd-madrs",
+  "classes_checked": [
+    {"class":"C1","what_was_checked":"Checked declared absences, reason-code and unextracted-outcome audits against held abstracts, full texts and registry outcomes; reproduced the TRANSFORM-1 audit result.","result":"FINDINGS"},
+    {"class":"C2","what_was_checked":"Compared pooled MADRS means, SDs, denominators and contrast direction with registry rows; checked the adverse-event RR against the held safety table.","result":"NO_FINDING"},
+    {"class":"C3","what_was_checked":"Checked selected MADRS rows against Day-28 change-score definitions and distinguished observed data from LOCF and model estimates; checked adverse-event patient counts.","result":"NO_FINDING"},
+    {"class":"C4","what_was_checked":"Reviewed included populations and population-based screening exclusions against held abstracts and registry descriptions.","result":"NO_FINDING"},
+    {"class":"C5","what_was_checked":"Checked primary pooled reports, registry/publication deduplication and secondary-report exclusions. Accepted the supplied abstract-integrity measurements.","result":"NO_FINDING"},
+    {"class":"C6","what_was_checked":"Compared comparator scope and claimed trial overlap with held comparator text and current pooled membership; reproduced the overlap calculation.","result":"FINDINGS"},
+    {"class":"C7","what_was_checked":"Checked trial keys, outcome names and verdict associations in reason-code and unextracted-outcome audit rows.","result":"NO_FINDING"},
+    {"class":"C8","what_was_checked":"Checked registry identifiers, endpoint/timeframe links and full-text source assignments, including the sources used for funding disclosures.","result":"FINDINGS"}
+  ],
+  "findings": [
+    {
+      "class":"C1",
+      "title":"TRANSFORM-1 registry values are incorrectly classified as absent from held sources",
+      "claim":{
+        "file":"docs/reviews/esketamine-trd-madrs/review.json",
+        "quote":"\"outcome\": \"Observed-case Day-28 raw change-score MADRS MD\",\n        \"outcome_kind\": \"primary\",\n        \"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence":[
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"\"NCT02417064\": [\n      {\n        \"type\": \"PRIMARY\",\n        \"title\": \"Change From Baseline in Montgomery-Asberg Depression Rating Scale (MADRS) Total Score up to Day 28 of Double- Blind Induction Phase- Mixed- Effects Model Using Repeated Measures (MMRM) Analysis\""
+        },
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"\"groupId\": \"OG000\",\n                    \"value\": \"-19.0\",\n                    \"spread\": \"13.86\""
+        },
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"\"groupId\": \"OG001\",\n                    \"value\": \"-18.8\",\n                    \"spread\": \"14.12\""
+        },
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"\"groupId\": \"OG002\",\n                    \"value\": \"-14.8\",\n                    \"spread\": \"15.07\""
+        }
+      ],
+      "why_wrong":"The quoted audit row belongs to NCT02417064. Its held ctgov_results contain the Day-28 per-arm means and SDs, with denominators 111, 98 and 108. The review itself records these as extraction debt. sources_by_trial does not ingest ctgov_results, and a read-only call to audit_pair reproduced NOT_IN_HELD_SOURCES. Whether the combined-arm estimate should be admitted is separate from whether the source values are held.",
+      "served_effect":"The outcome-coverage audit hides held extraction debt and the reason-code audit incorrectly reports no held source for TRANSFORM-1.",
+      "proposed_fixture":"Use the held NCT02417064 registry record and its ctgov_results primary MADRS object, with the current declared-absent row and an outcome that does not pool this trial. Build the source map and run the coverage audit. Assert HELD_NOT_EXTRACTED with registry provenance, rather than NOT_IN_HELD_SOURCES or no held source. The current code reproduces the incorrect absence.",
+      "confidence":"high"
+    },
+    {
+      "class":"C6",
+      "title":"Comparator overlap claims four shared trials for a three-trial pool",
+      "claim":{
+        "file":"docs/reviews/esketamine-trd-madrs/review.json",
+        "quote":"\"ours_k\": 3,\n      \"theirs_k\": 4,\n      \"shared_k\": 4,\n      \"only_ours\": [],\n      \"only_theirs\": []"
+      },
+      "evidence":[
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"Four acute induction RCTs (n=937) showed greater symptom reduction at day 28 with esketamine (MADRS MD -2.99, 95% CI -5.10 to -0.89; I²=48.5%)."
+        },
+        {
+          "file":"harness/comparator_second_pass.py",
+          "quote":"\"source_term\": \"Table 2 Key characteristics of included randomized controlled trials\",\n            \"shared_k\": 4,"
+        },
+        {
+          "file":"docs/reviews/esketamine-trd-madrs/review.json",
+          "quote":"same phase III acute-induction evidence set, different extraction and statistical implementation"
+        }
+      ],
+      "why_wrong":"The comparator's four acute trials do not establish four shared trials. The current pool contains only NCT03434041, NCT02418585 and NCT02422186; TRANSFORM-1 is excluded from the consumed pool. The comparator profile hardcodes shared_k=4 and transfers it without intersecting current membership. Calling comparator_second_pass.apply reproduced ours_k=3, theirs_k=4, shared_k=4. An intersection cannot exceed either set.",
+      "served_effect":"The review falsely presents identical trial sets and attributes differences solely to extraction and statistical implementation.",
+      "proposed_fixture":"Pass the held comparator text and current comparator object with ours_k=3 through comparator_second_pass.apply. Assert shared_k <= min(ours_k, theirs_k) and prohibit SAME_SET_DIFFERENT_IMPLEMENTATION when set sizes differ. Require source-backed family mappings before reporting an exact intersection; otherwise return unknown overlap.",
+      "confidence":"high"
+    },
+    {
+      "class":"C8",
+      "title":"TRANSFORM-1 funding disclosure uses an unrelated study stored under a linked PMID",
+      "claim":{
+        "file":"docs/reviews/esketamine-trd-madrs/review.json",
+        "quote":"\"id\": \"NCT02417064\",\n      \"type\": \"not stated (full text scanned)\",\n      \"span\": \"\",\n      \"source\": \"linked full text PMID 37019044\",\n      \"scanned\": \"linked full text PMID 37019044\",\n      \"funding_state\": \"NOT_STATED_IN_RETRIEVED_SOURCE\""
+      },
+      "evidence":[
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"Predictors of response and remission in patients with treatment-resistant depression: A post hoc pooled analysis of two acute trials of esketamine nasal spray."
+        },
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"Trial Registration: ClinicalTrials.gov: NCT02417064 (clinicaltrials.gov/ct2/show/NCT02417064) and NCT02418585 (clinicaltrials.gov/ct2/show/NCT02418585)."
+        },
+        {
+          "file":"cache/esketamine-trd-madrs/records.json",
+          "quote":"ResisToday was an observational, prospective, multicenter, non-interventional study evaluating clinical response, PROs, treatment patterns and characterizing the clinical and sociodemographic profile of adults who started a new pharmacological or non-pharmacological treatment for TRD in a clinical practice setting in Portugal."
+        }
+      ],
+      "why_wrong":"The held abstract identifies PMID 37019044 as a pooled analysis of the two acute randomized trials. However, fulltext_by_pmid['37019044'] contains the quoted ResisToday observational-study methods. The funding disclosure therefore treats a scan of an unrelated document as a scan of evidence for TRANSFORM-1. This establishes a source-link error, not that TRANSFORM-1 funding must be present.",
+      "served_effect":"Readers receive an unsupported assurance that a relevant full text was scanned and found silent about funding.",
+      "proposed_fixture":"Use the held PMID 37019044 abstract and the current fulltext_by_pmid['37019044'] bytes. Assert that the ResisToday document cannot qualify as identity-verified full text for that PMID or support NOT_STATED_IN_RETRIEVED_SOURCE for NCT02417064. Require a source-identity mismatch or unverified-source state until the correct document is linked.",
+      "confidence":"high"
+    }
+  ]
+}

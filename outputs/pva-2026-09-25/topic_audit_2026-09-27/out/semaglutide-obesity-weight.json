@@ -1,0 +1,187 @@
+{
+  "topic": "semaglutide-obesity-weight",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Served absence/refusal rows and outcome audits against held abstracts, embedded full text, registry results, and comparator text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Primary MD inputs, intervention-minus-placebo direction, SD versus SE, registry interval metadata, and served interval qualifications.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Registry measurement-row denominators and observation periods; gastrointestinal incidence versus treatment discontinuation.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Screening decisions and held population descriptions, including STEP 1, STEP 3, STEP 11, STEP 2, STEP 7, adolescent, and heart-failure records.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Pooled report identities and family assignments were inspected. The notified alteration of PMID 42610271 cannot be independently compared with original PubMed bytes because those bytes are not held locally and network use is prohibited.",
+      "result": "NOT_CHECKABLE"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Comparator scope, trial-count and overlap claims against its held abstract and full-text trial tables.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Reason-code and unextracted-outcome audit keys against the trial and outcome identified by their cited evidence.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Pooled trial registry identifiers, timeframes, analysis-population and endpoint-definition fields, and screening arm-object metadata; no additional independent finding established.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C3",
+      "title": "Available-data means use all-randomized denominators",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+        "quote": "mean -15.6 (SD 10.1, n=1306) [Semaglutide 2.4 mg] vs -2.8 (SD 6.5, n=655) [Placebo]"
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "\"title\": \"In-trial observation period\", \"denoms\": [ { \"units\": \"Participants\", \"counts\": [ { \"groupId\": \"OG000\", \"value\": \"1212\" }, { \"groupId\": \"OG001\", \"value\": \"577\" } ] } ]"
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "\"title\": \"In-trial observation period\", \"denoms\": [ { \"units\": \"Participants\", \"counts\": [ { \"groupId\": \"OG000\", \"value\": \"373\" }, { \"groupId\": \"OG001\", \"value\": \"189\" } ] } ]"
+        }
+      ],
+      "why_wrong": "STEP 1's selected means and SDs belong to 1212 and 577 participants with available measurements, not all 1306 and 655 randomized participants. STEP 3 has the same error: 407/204 are used instead of 373/189. The continuous extractor reads measurements from classes[0] but denominators from the enclosing outcome. In-memory execution reproduced both errors. Available-data summaries also do not become all-randomized treatment-policy estimates by substituting randomized denominators.",
+      "served_effect": "Understates both trial standard errors and affects confidence intervals, synthesis weights, and heterogeneity calculations. STEP 1's SE is 0.377641 instead of 0.396724; STEP 3's is 0.735715 instead of 0.766283.",
+      "proposed_fixture": "Pass the held first Change in Body Weight (%) outcome for NCT03548935 and NCT03611582 to _extract_ctgov_continuous, using intervention term 'semaglutide 2.4 mg' and comparator 'placebo'. Assert denominator pairs (1212,577) and (373,189), respectively, and SE=sqrt(sd1²/nc1+sd2²/nc2). Current execution returns (1306,655) and (407,204).",
+      "confidence": "high"
+    },
+    {
+      "class": "C7",
+      "title": "STEP 11 audit treats an unrelated review-table dose as an outcome value",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+        "quote": "\"trial_key\": \"40825340\", \"trial_label\": \"40825340\", \"outcome\": \"Percent change in body weight\", \"outcome_kind\": \"primary\", \"status\": \"HELD_NOT_EXTRACTED\", \"source_id\": \"fulltext:40825340\""
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "METHODS: STEP 11 was a 44-week, randomised, double-blind, placebo-controlled, phase 3 trial conducted at 12 clinical sites in South Korea and Thailand."
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "Study Study design Study population Primary endpoints Key findings SELECT trial (semaglutide 2.4 mg) [ 9 ] Randomized, double‐blind, placebo‐controlled phase 3 trial 17,604 adults with overweight or obesity and established CVD, without diabetes"
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "SURMOUNT‐OSA trial (tirzepatide 10/15 mg)"
+        }
+      ],
+      "why_wrong": "The audit attaches an embedded multi-trial review table to STEP 11. Its recorded value_text is '10/15', which occurs as a tirzepatide dose in the SURMOUNT-OSA row, not a STEP 11 weight-change result. The evidence therefore fails both trial and numeric-role identity.",
+      "served_effect": "Creates a false STEP 11 extraction-debt finding and REASON_FALSE_VALUE_HELD verdict supported by another trial's dosing text.",
+      "proposed_fixture": "Use the held record 40825340 and its fulltext_by_pmid entry as input to the reason/outcome audit. Assert that '10/15' is never accepted as percent weight change and that a SELECT/SURMOUNT-OSA table cannot substantiate a STEP 11 verdict. Independently present STEP 11's reported 44-week result as a timepoint mismatch to the Week-68 target.",
+      "confidence": "high"
+    },
+    {
+      "class": "C3",
+      "title": "GI discontinuations falsely invalidate a refusal to extract GI incidence",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+        "quote": "\"trial_key\": \"33567185\", \"label\": \"33567185\", \"id\": \"PMID 33567185\", \"stated_reason_code\": \"REFUSED_ON_EVIDENCE\", \"verdict\": \"REASON_FALSE_VALUE_HELD\""
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "More participants in the semaglutide group than in the placebo group discontinued treatment owing to gastrointestinal events (59 [4.5%] vs. 5 [0.8%])."
+        },
+        {
+          "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+          "quote": "The source counts treatment discontinuations due to gastrointestinal events rather than all patients with gastrointestinal events; AACT individual symptom rows do not supply that aggregate."
+        }
+      ],
+      "why_wrong": "The held numbers count treatment discontinuations caused by GI events, a narrower endpoint than experiencing GI adverse events. The refusal correctly explains this distinction, but the audit treats those same numbers as proof that the requested incidence value is held.",
+      "served_effect": "Incorrectly reports STEP 1 GI incidence as HELD_NOT_EXTRACTED and its evidence-based refusal as false. The page suppresses quantitative harms synthesis, so this finding concerns the audit rather than an actual pooled harms estimate.",
+      "proposed_fixture": "Audit the held discontinuation sentence against outcome 'Gastrointestinal adverse events' and the existing REFUSED_ON_EVIDENCE explanation. Assert that discontinuation counts do not produce REASON_FALSE_VALUE_HELD or HELD_NOT_EXTRACTED for overall GI incidence.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator is labelled the same question despite different doses and withdrawal design",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-weight/comparator_fulltext.txt",
+          "quote": "In contrast, Rubino’s study randomized participants to either continue with semaglutide or switch to a placebo after reaching the target dose."
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/comparator_fulltext.txt",
+          "quote": "O’Neil et al administered a smaller daily dose of semaglutide, ranging from 0.05 mg to 0.4 mg."
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/comparator_fulltext.txt",
+          "quote": "Percent change in body weight from randomization (week 20) to week 68"
+        }
+      ],
+      "why_wrong": "This topic specifies once-weekly 2.4 mg and untreated-baseline-to-Week-68 change, explicitly excluding withdrawal designs. The comparator includes a daily-dose study and a post-run-in continuation-versus-withdrawal study. Matching drug name and broad population is insufficient to establish the same question.",
+      "served_effect": "The served page displays a positive same-question judgment for a broader, partly incompatible synthesis.",
+      "proposed_fixture": "Use the held comparator trial-characteristics paragraphs and the topic arm_object/protocol as inputs to comparator scope validation. Assert scope_valid is false or qualified as partial overlap, with dose/frequency and post-run-in baseline mismatches explicitly recorded.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Comparator trial count is claimed unstated despite an explicit count",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+        "quote": "\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "RESULTS: Four randomized controlled trials involving 3613 participants met the eligibility criteria."
+        },
+        {
+          "file": "cache/semaglutide-obesity-weight/comparator_fulltext.txt",
+          "quote": "The analysis included 3613 participants across the 4 trials, with 2350 individuals in the semaglutide group and 1263 in the placebo group."
+        }
+      ],
+      "why_wrong": "Both the held comparator abstract and full text explicitly report four trials. Failure to extract the count is incorrectly described as source absence.",
+      "served_effect": "The HTML repeats the false unstated-count claim and obscures an available comparator characteristic.",
+      "proposed_fixture": "Pass the held comparator abstract and full text to comparator extraction/rendering. Assert theirs_k=4, and assert the rendered page does not say that the trial count is unstated.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "STEP 3 GI percentages are incorrectly audited as absent",
+      "claim": {
+        "file": "docs/reviews/semaglutide-obesity-weight/review.json",
+        "quote": "\"trial_key\": \"33625476\", \"label\": \"33625476\", \"id\": \"PMID 33625476\", \"stated_reason_code\": \"REFUSED_ON_EVIDENCE\", \"verdict\": \"REASON_WRONG_KIND\", \"detail\": \"value absent from held source, but the code names a value-present/refusal cause\""
+      },
+      "evidence": [
+        {
+          "file": "cache/semaglutide-obesity-weight/records.json",
+          "quote": "Gastrointestinal adverse events were more frequent with semaglutide (82.8%) vs placebo (63.2%)."
+        }
+      ],
+      "why_wrong": "The held abstract contains per-arm GI incidence percentages. Missing numerators can justify refusing an RR reconstruction, but cannot justify declaring the outcome value absent. In-memory execution confirmed _has_numeric_outcome returns false for this sentence.",
+      "served_effect": "Mislabels a correctly explained extraction refusal as REASON_WRONG_KIND and fails to distinguish reported percentages from unavailable counts.",
+      "proposed_fixture": "Use the exact held GI sentence as input to numeric-outcome recognition and reason auditing. Assert the percentages are recognized as reported values while numerator availability remains false; do not emit the quoted absent-value verdict or infer integer counts.",
+      "confidence": "high"
+    }
+  ]
+}

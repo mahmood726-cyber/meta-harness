@@ -1,0 +1,99 @@
+{
+  "topic": "sglt2-hfref-hosp-cvdeath",
+  "classes_checked": [
+    {"class":"C1","what_was_checked":"Served absence claims and both outcome audits against held abstracts, registry outcomes and comparator full text.","result":"FINDINGS"},
+    {"class":"C2","what_was_checked":"Selected efficacy estimates, HR labels, confidence limits and treatment direction against the DAPA-HF registry endpoint and EMPEROR-Reduced abstract.","result":"NO_FINDING"},
+    {"class":"C3","what_was_checked":"Selected composite endpoints, component definitions, participant counts and registry outcome selection.","result":"NO_FINDING"},
+    {"class":"C4","what_was_checked":"Screening population decisions against held publication abstracts and registry titles/conditions.","result":"NO_FINDING"},
+    {"class":"C5","what_was_checked":"Pooled report identities, primary-report roles and family aliases; accepted the supplied abstract-integrity checks.","result":"NO_FINDING"},
+    {"class":"C6","what_was_checked":"Comparator estimates, trial listings, subgroup population and participant reconciliation against its held text.","result":"FINDINGS"},
+    {"class":"C7","what_was_checked":"Trial and outcome identities in reason-code and unextracted-outcome audit rows.","result":"NO_FINDING"},
+    {"class":"C8","what_was_checked":"Selected endpoint definitions, harm source links, follow-up fields and pooled-report identifiers.","result":"FINDINGS"}
+  ],
+  "findings": [
+    {
+      "class":"C6",
+      "title":"Comparator participant reconciliation omits EMPEROR-Reduced",
+      "claim":{
+        "file":"docs/reviews/sglt2-hfref-hosp-cvdeath/review.json",
+        "quote":"PARITY_REFUTED_BY_N(theirs=9199, ours=4744, excess=4455)"
+      },
+      "evidence":[
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/comparator_fulltext.txt",
+          "quote":"DAPA‐HF ( n = 4744) EMPEROR‐Preserved ( n = 5988) EMPEROR‐Reduced ( n = 3730) SOLOIST‐WHF ( n = 1222)"
+        },
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/records.json",
+          "quote":"In this double-blind trial, we randomly assigned 3730 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive empagliflozin (10 mg once daily) or placebo, in addition to recommended therapy."
+        }
+      ],
+      "why_wrong":"Both DAPA-HF and EMPEROR-Reduced contribute selected efficacy estimates, but participant_reconciliation silently skips the latter because its selected effect row lacks participant-count fields. Their combined population is 8474, making the difference from 9199 equal to 725, not 4455. Calling the partial sum the review's population is incorrect.",
+      "served_effect":"Overstates the comparator population excess by 3730 participants and supplies incorrect numerical evidence for the parity assessment.",
+      "proposed_fixture":"Use the two current selected efficacy rows plus their held abstracts as input. Assert that participant reconciliation includes both trial identities, returns ours_n=8474 and excess=725; if any denominator remains unresolved, require an incomplete result instead of a partial total. The current function reproduces ours_n=4744.",
+      "confidence":"high"
+    },
+    {
+      "class":"C8",
+      "title":"Primary endpoint definition attached to DAPA-HF's selected secondary endpoint",
+      "claim":{
+        "file":"docs/reviews/sglt2-hfref-hosp-cvdeath/review.json",
+        "quote":"\"endpoint_definition\": \"; DISCLOSED (composite-component difference, found by the cross-family AGY/Gemini audit of the not-yet-audited topics): DAPA-HF (31535829) defines its primary as worsening heart failure — HF HOSPITALISATION or an URGENT HF VISIT requiring IV therapy — or cardiovascular death, whereas EMPEROR-Reduced (32865377) and our outcome label count CV death or HF hospitalisation only. The urgent-visit component is a minor broadening in DAPA-HF; disclosed, still poolable.\""
+      },
+      "evidence":[
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/records.json",
+          "quote":"\"type\": \"SECONDARY\",\n        \"title\": \"Subjects Included in the Composite Endpoint of CV Death or Hospitalization Due to Heart Failure.\""
+        },
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/records.json",
+          "quote":"The primary outcome was a composite of worsening heart failure (hospitalization or an urgent visit resulting in intravenous therapy for heart failure) or cardiovascular death."
+        }
+      ],
+      "why_wrong":"The selected DAPA-HF result is the registry secondary composite excluding urgent visits. Its endpoint_definition and compatibility metadata instead inherit an audit describing the broader primary composite. The audit statement is accurate about the primary endpoint but is linked to the wrong selected result.",
+      "served_effect":"Misdescribes the selected estimate as having an urgent-visit component and introduces a nonexistent endpoint difference into compatibility metadata.",
+      "proposed_fixture":"Use the held DAPA-HF secondary registry outcome and the current definition-audit resolution. Run endpoint-dimension derivation for the selected secondary result. Assert that endpoint_definition follows the selected registry outcome and excludes urgent visits; retain the primary-endpoint audit only as separately scoped context.",
+      "confidence":"high"
+    },
+    {
+      "class":"C1",
+      "title":"Comparator trial count declared unstated despite held trial listings",
+      "claim":{
+        "file":"docs/reviews/sglt2-hfref-hosp-cvdeath/review.json",
+        "quote":"\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence":[
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/comparator_fulltext.txt",
+          "quote":"After removal of duplicate records as well as title/abstract and full‐text screening, four met eligibility criteria"
+        },
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/comparator_fulltext.txt",
+          "quote":"Two trials included only patients with a reduced LVEF, one trial included only patients with a preserved LVEF, and one trial included both."
+        }
+      ],
+      "why_wrong":"The held full text explicitly supplies the overall count of four and describes the population distribution relevant to the selected subgroup. Failure to extract a scoped count does not establish that the comparator never states a count.",
+      "served_effect":"Presents an extraction limitation as source absence and obscures available trial-set evidence.",
+      "proposed_fixture":"Feed the quoted full-text sentences into comparator count extraction. Assert that overall k=4 is retained with its scope and that subgroup uncertainty, if unresolved, is labelled unextracted rather than 'not stated in the comparator abstract/full text'.",
+      "confidence":"high"
+    },
+    {
+      "class":"C8",
+      "title":"Volume-depletion sentence used as ketoacidosis reporting evidence",
+      "claim":{
+        "file":"docs/reviews/sglt2-hfref-hosp-cvdeath/review.json",
+        "quote":"\"harm_source_reported\": true,\n          \"harm_source_span\": \"The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.\",\n          \"harm_source_signal\": \"term_signal\""
+      },
+      "evidence":[
+        {
+          "file":"cache/sglt2-hfref-hosp-cvdeath/records.json",
+          "quote":"The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups."
+        }
+      ],
+      "why_wrong":"This field sequence occurs in DAPA-HF's diabetic-ketoacidosis row. The cited sentence concerns three other adverse outcomes and does not report ketoacidosis. The generic 'adverse events' keyword causes reporting_signal to attach it to the ketoacidosis outcome; this behavior was reproduced in memory.",
+      "served_effect":"Counts DAPA-HF as reporting ketoacidosis using an unrelated abstract sentence and gives its outcome-specific refusal an incorrect source link.",
+      "proposed_fixture":"Pass the exact held adverse-event sentence and the configured diabetic-ketoacidosis specification to reporting_signal. Assert that it yields no ketoacidosis reporting signal; the volume-depletion specification should still match. Require a ketoacidosis-specific held span for a positive ketoacidosis source link.",
+      "confidence":"high"
+    }
+  ]
+}

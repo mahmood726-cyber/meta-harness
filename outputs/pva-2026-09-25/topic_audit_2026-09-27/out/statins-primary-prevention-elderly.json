@@ -1,0 +1,155 @@
+{
+  "topic": "statins-primary-prevention-elderly",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Outcome absence rows, funding statements, and population-age absence against held abstracts and available registry evidence. No trial full-text files or ctgov_results were present.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Both pooled estimates, their HR labels, confidence limits, contrast directions, and the explicitly labelled common-effect sensitivity interval against held abstracts.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Pooled cardiovascular endpoints against the JUPITER and STAREE definitions, including STAREE's separate disability-free-survival endpoint. Composite differences are disclosed.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Screening population reasons against abstracts, registry conditions, and held eligibility criteria, including PREVENTABLE.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Publication roles, subgroup prespecification, and ALLHAT report-family assignments against held report descriptions. Accepted the supplied abstract-integrity measurements.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Comparator effect, study count, observational-design disclosure, scope assessment, and overlap statements against its held abstract and full text.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Reason-code and unextracted-outcome audit identities against their cited source clauses; reproduced the STAREE harms mismatch with the audit function.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Pooled-row source links, endpoint definitions, follow-up fields, publication years, and registry identifiers against available held records.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C5",
+      "title": "Exploratory JUPITER subgroup presented as prespecified",
+      "claim": {
+        "file": "docs/reviews/statins-primary-prevention-elderly/index.html",
+        "quote": "2 (1 trial + 1 pre-specified subgroup of JUPITER)"
+      },
+      "evidence": [
+        {
+          "file": "cache/statins-primary-prevention-elderly/records.json",
+          "quote": "LIMITATION: Effect estimates from this exploratory analysis with age cut-point chosen after trial completion should be viewed in the context of the overall trial results."
+        }
+      ],
+      "why_wrong": "The held report explicitly identifies a retrospectively chosen age cut-point. The served prespecification label contradicts that statement, even though another review field acknowledges the post-hoc selection.",
+      "served_effect": "Overstates the prospective status of one of the two pooled evidence units.",
+      "proposed_fixture": "Use PMID 20404379's held abstract and current topic annotation as input. Assert that the age subgroup is classified post_hoc_subgroup and that rendered evidence-unit descriptions do not call it pre-specified.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "PREVENTABLE excluded for a condition its eligibility criteria exclude",
+      "claim": {
+        "file": "docs/reviews/statins-primary-prevention-elderly/review.json",
+        "quote": "wrong population: title/conditions mention 'dementia'."
+      },
+      "evidence": [
+        {
+          "file": "docs/reviews/statins-primary-prevention-elderly/review.json",
+          "quote": "Exclusion Criteria:~* Clinically evident cardiovascular disease defined as prior myocardial Infarction (MI), prior stroke, prior revascularization procedure, or a secondary prevention indication for a statin (clinician determined)~* Hospitalization for a primary diagnosis of heart failure in the prior 12 months (Note: History of heart failure in the absence of recent hospitalization or clinically evident cardiovascular disease is not an exclusion)~* Dementia (clinically evident or previously diagnosed)"
+        }
+      ],
+      "why_wrong": "The quoted evidence is the held AACT eligibility text embedded in the NCT04262206 family. Dementia is an exclusion criterion, whereas screening treats the registry condition label as evidence of dementia in the enrolled population.",
+      "served_effect": "PREVENTABLE is excluded from the eligible evidence inventory for an incorrect population reason.",
+      "proposed_fixture": "Use the held NCT04262206 conditions and eligibility criteria. Assert that screening does not issue X2 for dementia when those criteria explicitly exclude dementia; assess the remaining eligibility dimensions independently.",
+      "confidence": "high"
+    },
+    {
+      "class": "C7",
+      "title": "Harms auditor assigns aggregate serious-adverse-event counts to specific harms",
+      "claim": {
+        "file": "docs/reviews/statins-primary-prevention-elderly/index.html",
+        "quote": "42670961</td><td>Muscle symptoms/myopathy</td><td><code>REFUSED_ON_EVIDENCE</code></td><td><strong>REASON_FALSE_VALUE_HELD</strong>"
+      },
+      "evidence": [
+        {
+          "file": "cache/statins-primary-prevention-elderly/records.json",
+          "quote": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastatin group."
+        }
+      ],
+      "why_wrong": "The numerical counts describe all serious adverse events. The musculoskeletal and diabetes-related clauses are qualitative. The auditor uses those aggregate counts to reject outcome-specific extraction refusals for both muscle symptoms/myopathy and new-onset diabetes. Read-only execution of find_value_in_sources reproduced both incorrect matches.",
+      "served_effect": "Two defensible extraction refusals are presented as false absence claims and held-but-unextracted quantitative harm results.",
+      "proposed_fixture": "Pass the exact held serious-adverse-event sentence to find_value_in_sources separately with the configured muscle and diabetes keywords. Assert that neither call returns an outcome-specific numeric value, while an aggregate serious-adverse-event query may return the counts.",
+      "confidence": "high"
+    },
+    {
+      "class": "C5",
+      "title": "ALLHAT secondary analysis labelled as a primary report",
+      "claim": {
+        "file": "cache/statins-primary-prevention-elderly/families.json",
+        "quote": "\"report_id\":\"30251369\",\"role\":\"PRIMARY\""
+      },
+      "evidence": [
+        {
+          "file": "cache/statins-primary-prevention-elderly/records.json",
+          "quote": "DESIGN: Secondary analysis of the Antihypertensive and Lipid-Lowering Treatment to Prevent Heart Attack Trial-Lipid-Lowering Trial (ALLHAT-LLT)."
+        }
+      ],
+      "why_wrong": "The held abstract explicitly identifies a secondary analysis. The role classifier examines title and publication types without applying this abstract statement. Read-only execution returned PRIMARY for this report.",
+      "served_effect": "Misrepresents the report's role in the evidence inventory. It is not pooled, so this finding does not establish numerical double-counting.",
+      "proposed_fixture": "Pass the unchanged held PMID 30251369 record to trial_family.report_role. Assert SECONDARY_ANALYSIS rather than PRIMARY and preserve that role in the served family record.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator study count claimed absent despite explicit full-text count",
+      "claim": {
+        "file": "docs/reviews/statins-primary-prevention-elderly/index.html",
+        "quote": "Legacy comparator extraction, theirs_k: not stated in the comparator abstract/full text."
+      },
+      "evidence": [
+        {
+          "file": "cache/statins-primary-prevention-elderly/comparator_fulltext.txt",
+          "quote": "8 studies reported total CV events [ 24 , 25 , 27 , 28 , 30 , 32 , 34 , 35 ]"
+        }
+      ],
+      "why_wrong": "The held full text explicitly gives the number of studies contributing the comparator's selected cardiovascular endpoint. The comparator's observational design does not make its stated study count absent.",
+      "served_effect": "The comparator panel withholds an available endpoint-specific study count and describes an extraction failure as source absence.",
+      "proposed_fixture": "Use the held full-text sentence as comparator input for total cardiovascular events. Assert an endpoint study count of 8 and prohibit rendering 'not stated'; retain the separate observational-design qualification.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "JUPITER population age marked unstated",
+      "claim": {
+        "file": "docs/reviews/statins-primary-prevention-elderly/review.json",
+        "quote": "\"population_age\": \"not_stated\""
+      },
+      "evidence": [
+        {
+          "file": "cache/statins-primary-prevention-elderly/records.json",
+          "quote": "OBJECTIVE: To assess the efficacy and safety of rosuvastatin in persons 70 years or older."
+        }
+      ],
+      "why_wrong": "The PMID 20404379 row claims age is unstated despite an explicit age threshold. Read-only execution of _derive_population_age reproduced not_stated because its patterns fail to recognize this wording.",
+      "served_effect": "Removes available population-age evidence from the trial compatibility metadata.",
+      "proposed_fixture": "Pass the held PMID 20404379 record to _derive_population_age. Assert an adult/older-adult classification with the source age clause and a value other than not_stated.",
+      "confidence": "high"
+    }
+  ]
+}

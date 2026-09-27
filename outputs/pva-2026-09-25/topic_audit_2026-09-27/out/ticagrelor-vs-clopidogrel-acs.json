@@ -1,0 +1,85 @@
+{
+  "topic": "ticagrelor-vs-clopidogrel-acs",
+  "classes_checked": [
+    {"class":"C1","what_was_checked":"Trial-level outcome absence claims against included abstracts and held registry outcomes; comparator count absence checked under C6.","result":"NO_FINDING"},
+    {"class":"C2","what_was_checked":"MACE and bleeding estimates, intervals, contrast direction, reconstructed counts, and served measure labels.","result":"FINDINGS"},
+    {"class":"C3","what_was_checked":"Selected MACE component definitions and bleeding registry rows, arms, denominators, and timepoints.","result":"NO_FINDING"},
+    {"class":"C4","what_was_checked":"Screening population decisions against held titles and abstracts.","result":"FINDINGS"},
+    {"class":"C5","what_was_checked":"Included primary reports, PLATO subgroup exclusion, and served family assignments; accepted the supplied abstract-integrity check.","result":"NO_FINDING"},
+    {"class":"C6","what_was_checked":"Comparator effect, population, treatment comparison, study-count statements, and overlap disclosures against its held abstract and full text.","result":"FINDINGS"},
+    {"class":"C7","what_was_checked":"Trial and outcome keys in reason-code, unextracted-outcome, and screening adjudication rows.","result":"NO_FINDING"},
+    {"class":"C8","what_was_checked":"Selected trial registry identifiers, endpoint-definition links, and follow-up fields.","result":"NO_FINDING"}
+  ],
+  "findings": [
+    {
+      "class": "C2",
+      "title": "PLATO bleeding risk ratio is labelled as a hazard ratio",
+      "claim": {
+        "file": "docs/reviews/ticagrelor-vs-clopidogrel-acs/review.json",
+        "quote": "\"effect_estimate\": 1.028956973837655,\n            \"standard_error\": 0.04358742911820759,\n            \"estimand\": \"HR\""
+      },
+      "evidence": [
+        {
+          "file": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+          "quote": "\"title\": \"Participants With Any Major Bleeding Event\""
+        },
+        {
+          "file": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+          "quote": "\"groupId\": \"OG000\",\n                \"value\": \"961\""
+        },
+        {
+          "file": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+          "quote": "\"groupId\": \"OG001\",\n                \"value\": \"929\""
+        },
+        {
+          "file": "docs/reviews/ticagrelor-vs-clopidogrel-acs/review.json",
+          "quote": "ClinicalTrials.gov results (structured): outcome 'Participants With Any Major Bleeding Event' COUNT_OF_PARTICIPANTS 961/9235 (TICAGRELOR) vs 929/9186 (CLOPIDOGREL)"
+        }
+      ],
+      "why_wrong": "The estimate equals (961/9235)/(929/9186), a cumulative risk ratio. Participant counts do not estimate a hazard ratio. The served study_effect and k2 diagnostics label this reconstructed value HR, although another field correctly identifies it as RISK_RATIO.",
+      "served_effect": "Machine-readable trial diagnostics misidentify the effect measure. The mixed-scale disclosure and suppressed safety conclusion limit the impact but do not correct these fields.",
+      "proposed_fixture": "Use the held PLATO bleeding registry row with counts 961/9235 and 929/9186, alongside the held PHILO HR 1.54. Assert PLATO study_effect.estimand and its k2 diagnostic scale are RR, while PHILO remains HR; a mixed result must not acquire a homogeneous HR label.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator study count falsely described as unstated",
+      "claim": {
+        "file": "docs/reviews/ticagrelor-vs-clopidogrel-acs/review.json",
+        "quote": "\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence": [
+        {
+          "file": "cache/ticagrelor-vs-clopidogrel-acs/comparator_fulltext.txt",
+          "quote": "As far as general ACS patients are concerned, 5 studies, including a total of 33,258 patients, assessed the incidence of the composite endpoint."
+        }
+      ],
+      "why_wrong": "The held full text explicitly states the endpoint-specific study count. Failure to extract membership does not establish that the count is absent.",
+      "served_effect": "The page repeats an incorrect absence claim and withholds an available comparator count. Exact shared-trial membership can remain unresolved.",
+      "proposed_fixture": "Feed the quoted composite-endpoint sentence into comparator extraction. Assert the reported endpoint study count is 5 with that source span, and that neither review.json nor HTML says it is unstated. Do not infer shared membership from the count.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "STEMI trial receives a wrong-population exclusion reason",
+      "claim": {
+        "file": "docs/reviews/ticagrelor-vs-clopidogrel-acs/review.json",
+        "quote": "population not on-topic: title/conditions do not mention any of ['acute coronary syndrome', 'acute coronary syndromes', 'ACS', 'non-ST-segment elevation acute coronary syndrome', 'non-ST-segment elevation acute coronary syndromes', 'non-ST-elevation acute coronary syndrome', 'non-ST-elevation acute coronary syndromes', 'NSTE-ACS', 'STEMI', 'ST-segment elevation myocardial infarction', 'ST-elevation myocardial infarction', 'ST elevation myocardial infarction'] (an incidental abstract mention does not qualify)."
+      },
+      "evidence": [
+        {
+          "file": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+          "quote": "Randomized assessment of ticagrelor versus prasugrel antiplatelet effects in patients with ST-segment-elevation myocardial infarction."
+        },
+        {
+          "file": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+          "quote": "In a prospective, single-center, single-blind study, 55 out of 117 (47%) screened consecutive ST-segment-elevation myocardial infarction patients undergoing primary percutaneous coronary intervention were randomized to either ticagrelor 180 mg loading followed by 90 mg bid, or prasugrel 60 mg loading followed by 10 mg od for 5 days."
+        }
+      ],
+      "why_wrong": "For PMID 23169985, the title explicitly identifies the eligible STEMI population. An additional hyphen in ST-segment-elevation causes the population matcher to reject an equivalent term.",
+      "served_effect": "The screening log misstates why this record is excluded. Its prasugrel comparator and single-blind design independently justify exclusion, so this finding does not require adding it to the synthesis.",
+      "proposed_fixture": "Screen the held PMID 23169985 record with the current topic configuration. Assert population_match is true after hyphen normalization, and exclusion is attributed to comparator or masking rather than wrong population.",
+      "confidence": "high"
+    }
+  ]
+}

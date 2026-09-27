@@ -1,0 +1,265 @@
+{
+  "topic": "tocilizumab-covid19-mortality",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Compared absence and unextracted-outcome rows with held abstracts and full-text outcome passages and tables.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Checked RECOVERY's reported measure, served effect classification, and reconstructed safety odds ratios against source clauses.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "Checked mortality/composite distinctions, serious versus any adverse events, timepoints, and patient/event counts.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Compared population screening decisions with held titles, registry conditions, and protocol exclusions.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Inspected publication roles, family links, excluded observational/comment records, and pooled report identities; accepted the supplied abstract-integrity measurement.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Compared comparator scope, trial count, effect, and date-based overlap assertions with the held comparator and trial sources.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Checked reason-code audit trial/outcome keys against their supporting source spans.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Checked pooled rows' endpoint definitions, analysis populations, follow-up fields, and identifiers against held sources.",
+      "result": "FINDINGS"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C2",
+      "title": "RECOVERY's reported rate ratio is classified as a risk ratio",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"reported_label\": \"RR\",\n\"statistical_model\": \"rate / person-time\",\n\"canonical_estimand\": \"RISK_RATIO\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "Overall, 621 (31%) of the 2022 patients allocated tocilizumab and 729 (35%) of the 2094 patients allocated to usual care died within 28 days (rate ratio 0.85; 95% CI 0.76-0.94; p=0.0028)."
+        }
+      ],
+      "why_wrong": "The held clause calls 0.85 a rate ratio. The review instead identifies it as a cumulative risk ratio. The crude risk ratio calculated from the same clause is approximately 0.8822, demonstrating that these are different estimators. The held abstract does not justify silently changing the reported measure.",
+      "served_effect": "The sole mortality estimate and its interval are served under RR/RISK_RATIO identity.",
+      "proposed_fixture": "Use the quoted RECOVERY sentence as extraction input. Assert that the reported label remains rate ratio and that 0.85 is not classified as a cumulative RISK_RATIO without an explicit source-backed conversion. Separately assert that count-based RR equals (621/2022)/(729/2094).",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "REMDACTA mortality counts are held but certified absent",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"trial_key\": \"34609549\",\n\"trial_label\": \"34609549\",\n\"outcome\": \"28-day all-cause mortality\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "Serious adverse events occurred in 128 (29.8%) tocilizumab plus remdesivir and 72 (33.8%) placebo plus remdesivir patients; 78 (18.2%) and 42 (19.7%) patients, respectively, died by day 28."
+        }
+      ],
+      "why_wrong": "The abstract explicitly supplies per-arm day-28 deaths. Population or denominator reconciliation may affect pooling, but cannot establish that the outcome is absent from held sources.",
+      "served_effect": "A reported mortality result is counted as missing, and its absence reason receives REASON_TRUE.",
+      "proposed_fixture": "Audit PMID 34609549 with the quoted abstract sentence and the registered mortality outcome. Assert HELD_NOT_EXTRACTED or a specific evidence-backed refusal, never NOT_IN_HELD_SOURCES or REASON_TRUE for outcome absence.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "CORIMUNO mortality counts and adjusted HR are overlooked",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"trial_key\": \"33080017\",\n\"trial_label\": \"33080017\",\n\"outcome\": \"28-day all-cause mortality\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "At day 28, 7 patients had died in the TCZ group and 8 in the UC group (adjusted HR, 0.92; 95% CI 0.33-2.53)."
+        }
+      ],
+      "why_wrong": "Both arm-level deaths and a mortality HR with its confidence interval appear explicitly in the held abstract. An estimand mismatch would require a different status.",
+      "served_effect": "The coverage audit falsely counts this mortality result among outcomes absent from held sources.",
+      "proposed_fixture": "Feed the quoted sentence to the mortality presence audit for PMID 33080017. Assert that it detects 7 versus 8 deaths and the adjusted HR, retains HR identity, and does not return NOT_IN_HELD_SOURCES.",
+      "confidence": "high"
+    },
+    {
+      "class": "C1",
+      "title": "Brazilian trial's held 28-day mortality table is marked absent",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"trial_key\": \"33472855\",\n\"trial_label\": \"33472855\",\n\"outcome\": \"28-day all-cause mortality\",\n\"outcome_kind\": \"primary\",\n\"status\": \"NOT_IN_HELD_SOURCES\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/ft_33472855.txt",
+          "quote": "Mortality up to 28 days</td><td valign=\"middle\" align=\"center\" colspan=\"1\" rowspan=\"1\">14 (21)</td><td valign=\"middle\" align=\"center\" colspan=\"1\" rowspan=\"1\">6 (9)</td><td valign=\"middle\" align=\"center\" colspan=\"1\" rowspan=\"1\">Odds ratio</td><td valign=\"middle\" align=\"center\" colspan=\"1\" rowspan=\"1\">2.70 (0.97 to 8.35)</td>"
+        }
+      ],
+      "why_wrong": "The held full-text table contains the exact target timepoint, mortality counts, and an odds ratio with interval.",
+      "served_effect": "The mortality audit certifies absence despite a directly relevant held table row.",
+      "proposed_fixture": "Use held Table 2 from ft_33472855.txt. Assert that the mortality presence audit locates the 28-day row with 14 and 6 deaths and OR 2.70, without substituting the separate 15-day result.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Class-wide comparator is certified as the same intervention scope",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "same-question comparator (matching intervention level and population)"
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "The corresponding summary ORs were 0.83 (95% CI, 0.74-0.92; P < .001) for tocilizumab and 1.08 (95% CI, 0.86-1.36; P = .52) for sarilumab."
+        },
+        {
+          "file": "topics/tocilizumab-covid19-mortality.json",
+          "quote": "In hospitalised adults with COVID-19, does tocilizumab reduce 28-day all-cause mortality versus usual care, standard care, or placebo?"
+        }
+      ],
+      "why_wrong": "The selected comparator estimate is the IL-6-antagonist class result, whereas this topic specifies tocilizumab. The comparator itself distinguishes tocilizumab from sarilumab. A separate narrative caveat does not correct the structured scope_valid/intervention_level_match verdict.",
+      "served_effect": "The comparator record presents the class estimate as a valid same-question benchmark.",
+      "proposed_fixture": "Run scope assessment using the committed topic configuration and PMID 34228774 abstract. Assert that the overall class estimate is not intervention-scope matched; a tocilizumab subgroup must be identified separately.",
+      "confidence": "high"
+    },
+    {
+      "class": "C7",
+      "title": "Secondary-infection audit adjudicates a mortality sentence",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"outcome\": \"Secondary infections by 28 days\",\n\"outcome_kind\": \"harm\",\n\"trial_key\": \"33472855\",\n\"label\": \"33472855\",\n\"id\": \"PMID 33472855\",\n\"stated_reason_code\": \"OUTCOME_NOT_IN_SOURCE\",\n\"verdict\": \"REASON_FALSE_VALUE_HELD\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/ft_33472855.txt",
+          "quote": "Death at 15 days, a component of the primary outcome, occurred in 11 (17%) patients in the tocilizumab plus standard care group compared with two (3%) in the standard care group (odds ratio 6.42, 1.59 to 43.2)."
+        }
+      ],
+      "why_wrong": "This is the audit row's supporting sentence, but it concerns death at 15 days, not secondary infections by 28 days. It cannot adjudicate the keyed infection outcome.",
+      "served_effect": "The review reports a held-but-unextracted infection result using mortality evidence.",
+      "proposed_fixture": "Give the infection audit only the quoted mortality sentence for PMID 33472855. Assert that it produces neither REASON_FALSE_VALUE_HELD nor HELD_NOT_EXTRACTED on that evidence.",
+      "confidence": "high"
+    },
+    {
+      "class": "C8",
+      "title": "EMPACTA safety result carries the primary efficacy definition",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"endpoint_definition\": \"primary outcome was mechanical ventilation or death by day 28\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "The primary outcome was mechanical ventilation or death by day 28."
+        },
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "In the safety population, serious adverse events occurred in 38 of 250 patients (15.2%) in the tocilizumab group and 25 of 127 patients (19.7%) in the placebo group."
+        }
+      ],
+      "why_wrong": "The quoted endpoint_definition is attached to EMPACTA's serious-adverse-event effect. The same row uses modified intention-to-treat metadata although the extracted counts explicitly belong to the safety population. COVACTA's safety row similarly inherits its primary clinical-status definition.",
+      "served_effect": "Safety effects receive efficacy endpoint/population metadata, contaminating compatibility checks and displayed provenance.",
+      "proposed_fixture": "Annotate EMPACTA's SAE tuple 38/250 versus 25/127 using its held abstract. Assert that endpoint_definition identifies serious adverse events, analysis_set identifies the safety population, and neither is copied from the primary efficacy clause.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "COVID-associated cytokine release syndrome is treated as off-topic",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "wrong population: title/conditions mention 'cytokine release syndrome'."
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "TOCILIZUMAB - An Option for Patients With COVID-19 Associated Cytokine Release Syndrome; A Single Center Experience"
+        },
+        {
+          "file": "protocols/tocilizumab-covid19-mortality.md",
+          "quote": "cytokine-release\n  syndrome outside COVID-19"
+        }
+      ],
+      "why_wrong": "NCT04730323 explicitly concerns COVID-19-associated syndrome. The registered exclusion is for syndrome outside COVID-19, but the screening rule applies the term without that qualification.",
+      "served_effect": "The registry record is excluded under a population reason contradicted by its held title. Other eligibility dimensions still require assessment.",
+      "proposed_fixture": "Screen the held NCT04730323 title and Covid19 condition. Assert that COVID-associated cytokine release syndrome does not trigger X2; evaluate design and comparator independently.",
+      "confidence": "high"
+    },
+    {
+      "class": "C3",
+      "title": "Any-adverse-event totals are used as serious-adverse-event evidence",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"outcome\": \"Serious adverse events\",\n\"outcome_kind\": \"harm\",\n\"trial_key\": \"40232661\",\n\"label\": \"40232661\",\n\"id\": \"PMID 40232661\",\n\"stated_reason_code\": \"POPULATION_MISMATCH\",\n\"verdict\": \"REASON_FALSE_VALUE_HELD\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/ft_40232661.txt",
+          "quote": "58 adverse events (AE) occurred in 27 participants (43.5%)."
+        },
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "No serious adverse events were reported."
+        }
+      ],
+      "why_wrong": "The audit uses the 58-any-AE/27-participant passage to adjudicate serious adverse events. The held abstract expressly distinguishes serious events by reporting none. Any-AE totals cannot substitute for SAE values or resolve a population mismatch.",
+      "served_effect": "The SAE coverage audit identifies the wrong endpoint's numbers as an unextracted safety result.",
+      "proposed_fixture": "Use the held any-AE sentence alongside 'No serious adverse events were reported.' Assert that SAE auditing never uses 58 events or 27 participants as an SAE value and preserves the explicit no-SAE statement separately.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Comparator trial count is falsely described as unstated",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "\"theirs_k\": \"not stated in the comparator abstract/full text\""
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "Among 72 potentially eligible trials, 27 (37.5%) met study selection criteria."
+        }
+      ],
+      "why_wrong": "The held comparator abstract explicitly reports 27 included trials. The class-wide count must be distinguished from a tocilizumab subgroup count, but it is not unstated.",
+      "served_effect": "The overlap panel withholds a source-reported comparator denominator under an incorrect absence explanation.",
+      "proposed_fixture": "Extract comparator metadata from PMID 34228774's held abstract. Assert class-wide k=27 with its source span, and keep any subgroup count separately scoped.",
+      "confidence": "high"
+    },
+    {
+      "class": "C6",
+      "title": "Publication year is used to assert trial non-overlap",
+      "claim": {
+        "file": "docs/reviews/tocilizumab-covid19-mortality/review.json",
+        "quote": "Trials newer than the comparator (2021) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+      },
+      "evidence": [
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "The study was conducted June 2020 to March 2021."
+        },
+        {
+          "file": "cache/tocilizumab-covid19-mortality/records.json",
+          "quote": "Searches were not restricted by trial status or language. Additional trials were identified through contact with experts."
+        }
+      ],
+      "why_wrong": "The only_ours list includes PMID 38157348 because its publication year is 2023, but the held trial ran in 2020–2021. The comparator could identify unpublished trials. Publication date alone therefore cannot prove trial-set nonmembership; these bytes do not establish actual inclusion either.",
+      "served_effect": "Unknown overlap is converted into asserted non-overlap for later-published reports.",
+      "proposed_fixture": "Use the held IMMCoVA record and comparator abstract with no extracted comparator membership list. Assert that the later publication year does not populate only_ours; membership remains unknown until trial-level evidence establishes it.",
+      "confidence": "high"
+    }
+  ]
+}

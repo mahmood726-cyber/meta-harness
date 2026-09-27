@@ -1,0 +1,99 @@
+{
+  "topic": "finerenone-ckd-t2d-renal",
+  "classes_checked": [
+    {
+      "class": "C1",
+      "what_was_checked": "Served absence claims, reason-code audits and outcome-coverage rows against all five held abstracts and available registry text; reproduced the discontinuation audits offline.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C2",
+      "what_was_checked": "Both pooled trial effects, HR labels, confidence limits, contrast direction and comparator estimates against held text; checked exclusion of ARTS-DN's UACR ratios and 90% intervals.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C3",
+      "what_was_checked": "FIDELIO and FIGARO kidney definitions and result spans, including FIGARO's secondary kidney composite versus its primary cardiovascular composite.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C4",
+      "what_was_checked": "Published-trial and registry screening population reasons against held titles, conditions and abstracts, and the protocol's population exclusions.",
+      "result": "FINDINGS"
+    },
+    {
+      "class": "C5",
+      "what_was_checked": "Primary-report assignments, PMID/NCT family mappings and pooled membership; accepted the supplied verification that all five abstracts match PubMed.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C6",
+      "what_was_checked": "Comparator population, placebo comparison, renal-composite trial overlap and displayed HR/RR estimates against its held abstract and full text.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C7",
+      "what_was_checked": "Trial and outcome identities in reason-code, unextracted-outcome and screening-adjudication rows.",
+      "result": "NO_FINDING"
+    },
+    {
+      "class": "C8",
+      "what_was_checked": "Pooled-trial follow-up windows, endpoint-definition links, publication years and registry identifiers against held records and family mappings.",
+      "result": "NO_FINDING"
+    }
+  ],
+  "findings": [
+    {
+      "class": "C1",
+      "title": "Discontinuation percentages are held but the audit declares values absent",
+      "claim": {
+        "file": "docs/reviews/finerenone-ckd-t2d-renal/review.json",
+        "quote": "\"outcome\": \"Hyperkalemia-related treatment discontinuation\",\n        \"outcome_kind\": \"harm\",\n        \"trial_key\": \"33264825\",\n        \"label\": \"33264825\",\n        \"id\": \"PMID 33264825\",\n        \"stated_reason_code\": \"REFUSED_ON_EVIDENCE\",\n        \"verdict\": \"REASON_WRONG_KIND\",\n        \"detail\": \"value absent from held source, but the code names a value-present/refusal cause\""
+      },
+      "evidence": [
+        {
+          "file": "cache/finerenone-ckd-t2d-renal/records.json",
+          "quote": "The incidence of hyperkalemia-related discontinuation of the trial regimen was higher with finerenone than with placebo (2.3% and 0.9%, respectively)."
+        },
+        {
+          "file": "cache/finerenone-ckd-t2d-renal/records.json",
+          "quote": "The incidence of hyperkalemia-related discontinuation of the trial regimen was higher with finerenone (1.2%) than with placebo (0.4%)."
+        },
+        {
+          "file": "cache/finerenone-ckd-t2d-renal/records.json",
+          "quote": "The prespecified secondary outcome of hyperkalemia leading to discontinuation was not observed in the placebo and finerenone 10-mg/d groups; incidences in the finerenone 7.5-, 15-, and 20-mg/d groups were 2.1%, 3.2%, and 1.7%, respectively."
+        }
+      ],
+      "why_wrong": "The quoted FIDELIO audit confuses a reported value with a poolable effect. FIGARO receives the same absence assertion; ARTS-DN receives REASON_TRUE with an assertion that the value is absent from every held source. All three abstracts explicitly report discontinuation percentages. The extraction refusals may remain justified by missing exact counts or unresolved dose selection, but those limitations do not make the values absent. Offline calls reproduced the incorrect audit results.",
+      "served_effect": "The coverage audit labels all three discontinuation rows ABSENT_BY_DESIGN and reports zero HELD_NOT_EXTRACTED rows, obscuring reported but unpooled harm values. This finding does not require reconstructing counts or pooling the percentages.",
+      "proposed_fixture": "Parameterize the three held abstracts by PMID 33264825, 34449181 and 26325557, retaining their existing discontinuation specs and refusal rows. Call reason_audit.find_value_in_sources and unextracted.audit_pair. Assert that each returns the matching discontinuation sentence as held evidence and that coverage is HELD_NOT_EXTRACTED. Assert that audit_reason_row never asserts value absence for these rows. Current calls return no detected value and ABSENT_BY_DESIGN.",
+      "confidence": "high"
+    },
+    {
+      "class": "C4",
+      "title": "A heart-failure mention overrides an explicitly diabetic-CKD population",
+      "claim": {
+        "file": "docs/reviews/finerenone-ckd-t2d-renal/review.json",
+        "quote": "\"id\": \"NCT07326631\",\n        \"id_type\": \"nct\",\n        \"decision\": \"exclude\",\n        \"rule_id\": \"X2\",\n        \"reason\": \"wrong population: title/conditions mention 'heart failure'.\""
+      },
+      "evidence": [
+        {
+          "file": "cache/finerenone-ckd-t2d-renal/records.json",
+          "quote": "Finerenone for Cardiorenal Protection in Diabetic CKD: Impact on Renal Function Decline and Heart Failure"
+        },
+        {
+          "file": "cache/finerenone-ckd-t2d-renal/records.json",
+          "quote": "\"conditions\": [\n        \"Diabetic Kidney Disease (DKD)\",\n        \"Heart Failure\"\n      ]"
+        },
+        {
+          "file": "protocols/finerenone-ckd-t2d-renal.md",
+          "quote": "**X2** - wrong population (for example heart failure without the target CKD/T2D\n  population, type 1 diabetes, nondiabetic CKD, pericarditis, or atrial fibrillation)"
+        }
+      ],
+      "why_wrong": "The held title explicitly identifies diabetic CKD and mentions heart failure as an outcome being investigated. The conditions also include diabetic kidney disease. A heart-failure mention alone therefore does not establish the protocol's exclusion of heart failure without the target population. The record can still be excluded for its design or comparison; those are separate reasons.",
+      "served_effect": "The screening ledger attributes exclusion to a contradicted population reading. The same keyword rule risks rejecting target-population studies that investigate heart-failure outcomes or include that comorbidity; this record alone does not establish a missing poolable trial.",
+      "proposed_fixture": "Use the unchanged held NCT07326631 registry record and topic configuration as input to screen.screen_record. Assert that a heart-failure mention cannot produce X2 when the title explicitly identifies diabetic CKD; retain exclusion under any independently supported design or comparator rule. The current served result is X2 solely for 'heart failure'.",
+      "confidence": "medium"
+    }
+  ]
+}
