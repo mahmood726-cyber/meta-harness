@@ -11,6 +11,7 @@ import re
 from typing import Any
 
 from . import extract, hand_binding
+from .registry_denominators import denominator_blocks, denominator_counts, analysis_set_metadata
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
 
 EXACT_TARGET = "EXACT_TARGET"
@@ -768,10 +769,7 @@ def _counts_from_om(om: dict[str, Any], interv: list[str], comp: list[str]) -> d
         return None
     measurements = classes[0]["categories"][0].get("measurements") or []
     values = {m.get("groupId"): _num(m.get("value")) for m in measurements}
-    denoms = {}
-    for d in om.get("denoms") or []:
-        for c in d.get("counts") or []:
-            denoms[c.get("groupId")] = _num(c.get("value"))
+    denoms = denominator_counts(denominator_blocks(om, classes[0]), _num)
     ai, n1i = values.get(interv_gid), denoms.get(interv_gid)
     ci, n2i = values.get(comp_gid), denoms.get(comp_gid)
     if None in (ai, n1i, ci, n2i):
@@ -785,6 +783,7 @@ def _counts_from_om(om: dict[str, Any], interv: list[str], comp: list[str]) -> d
         "n1i": int(n1i),
         "ci": int(ci),
         "n2i": int(n2i),
+        **analysis_set_metadata(om, classes[0], interv_gid, comp_gid, _num),
         "intervention_arm": gi,
         "comparator_arm": gc,
     }
@@ -838,7 +837,7 @@ def _ctgov_candidates(
         analysis = _effect_analysis(om)
         if not counts and not analysis:
             continue
-        denom_units = "; ".join(d.get("units", "") for d in om.get("denoms", []) if d.get("units"))
+        denom_units = "; ".join(d.get("units", "") for d in denominator_blocks(om, (om.get("classes") or [{}])[0]) if d.get("units"))
         measure_type = _registry_measure_type(
             om,
             ((om.get("classes") or [{}])[0] or {}).get("title"),
@@ -857,6 +856,8 @@ def _ctgov_candidates(
             "classification_text": text,
             "provenance": "ctgov_results",
         }
+        if counts and measure_type == "COUNT_OF_PARTICIPANTS" and "n_analysis_set" in counts:
+            base.update({k: counts[k] for k in ("n_source", "n_analysis_set")})
         base.update(_classify(spec, text))
         base.update({"endpoint_binding": BINDING_REGISTRY,
                      "endpoint_definition_span": text.strip(),
@@ -1014,7 +1015,7 @@ def row_from_candidate(c: dict[str, Any]) -> dict[str, Any]:
         row.update({"ai": c.get("ai"), "n1i": c.get("n1i"), "ci": c.get("ci"), "n2i": c.get("n2i")})
     if c.get("endpoint_counts"):
         row["endpoint_counts"] = dict(c["endpoint_counts"])
-    for k in ("registry_title", "registry_type", "registry_measure_type", "registry_timeframe"):
+    for k in ("registry_title", "registry_type", "registry_measure_type", "registry_timeframe", "n_source", "n_analysis_set"):
         if c.get(k) is not None:
             row[k] = c[k]
     return row
