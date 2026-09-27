@@ -399,12 +399,116 @@ def _unbound_classification(binding: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def classify_bound(spec: dict[str, Any], abstract: str, source: str | None) -> dict[str, Any]:
+def _single_text(text: str) -> str:
+    """Orthographic normalization only; no outcome synonym dictionary."""
+    text = str(text or "")
+    # Held legacy source quotes sometimes UTF-8-decoded twice. Repair only a
+    # reversible encoding error, and still require a unique held sentence.
+    try:
+        repaired = text.encode("cp1252").decode("utf-8")
+        text = repaired
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    return re.sub(r"\s+", " ", text.lower().replace("diarrhoea", "diarrhea").replace("-", " ")).strip()
+
+
+def _bind_single_outcome(spec, abstract, source, effect=None):
+    """Conservative fallback ONLY for an otherwise unbound single result.
+
+    Keywords are retrieval cues, not synonyms: accept a full declared name /
+    definition / synonym, or its source-defined abbreviation when also declared
+    in keywords. Require an adjacent outcome/effect phrase, one estimate, and
+    the row's point (explicit argument or complete source quotation).
+    """
+    def refuse(reason, sentence=None):
+        return {"binding": BINDING_NONE, "endpoint_result_span": sentence,
+                "endpoint_definition_span": None, "components": set(),
+                "binding_reason": "single outcome: " + reason}
+
+    declared = " ".join(str(spec.get(k) or "") for k in ("name", "definition"))
+    annotations = spec.get("trial_annotations") or {}
+    if (len(canonical_components(spec)) > 1 or spec.get("components") or spec.get("canonical_components")
+            or re.search(r"\b(?:composite|and|or)\b|/", declared, re.I)
+            or any(len(a.get("components") or []) > 1 for a in annotations.values())):
+        return refuse("composite identity is outside this fallback")
+    if not source or ": " not in source:
+        return refuse("no source quotation")
+    fragment = _single_text(source.split(": ", 1)[1])
+    sentences = [x.strip() for x in extract._sentences(extract._norm(abstract))]
+    hits = [x for x in sentences if _single_text(x).startswith(fragment)]
+    if len(hits) != 1:
+        return refuse("source quotation does not uniquely prefix a held sentence")
+    sentence = hits[0]
+    text = _single_text(sentence)
+    # Qualifier loss is not evidence of the registered population or timepoint.
+    if re.search(r"\b(?:subgroup|subset|secondary|post hoc|per protocol|on treatment|among|aged|older|younger)\b"
+                 r"|\b(?:patients|participants|subjects|those) with\b", text):
+        return refuse("subgroup or secondary identity is unresolved", sentence)
+    ref = _reference_of(sentence)
+    target_ref = _reference_of("at " + str(spec.get("timepoint") or ""))
+    if ref["population"] or ref["ordinal"]:
+        return refuse("population or ordinal identity is unresolved", sentence)
+    if ref["timepoint"] != target_ref["timepoint"]:
+        return refuse("timepoint identity is missing or different", sentence)
+    matches = list(extract._EFFECT.finditer(sentence))
+    if len(matches) != 1 or "reduction" in matches[0].group(1).lower():
+        return refuse("requires one source-reported ratio, not counts or multiple/transformed effects", sentence)
+    own = extract.extract_effect(sentence)
+    quoted = extract.extract_effect(source.split(": ", 1)[1])
+    expected = effect if effect is not None else (quoted.point if quoted else None)
+    if expected is None or own is None or float(expected) != own.point:
+        return refuse("row point estimate is unavailable or differs from the sentence", sentence)
+    if quoted and quoted.point != own.point:
+        return refuse("source quotation estimate differs from the sentence", sentence)
+    terms = [spec.get("name"), spec.get("definition")]
+    synonyms = spec.get("synonyms") or []
+    terms += [synonyms] if isinstance(synonyms, str) else synonyms
+    terms = [_single_text(t) for t in terms if isinstance(t, str) and t.strip()]
+    # Source-backed abbreviation expansion; never infer AAD/POAF/etc. in code.
+    normalized_abstract = _single_text(abstract)
+    for term in list(terms):
+        for m in re.finditer(r"(?<![\w-])" + re.escape(term) + r"\s*\(([a-z][a-z0-9]{1,9})\)", normalized_abstract):
+            alias = m.group(1)
+            if any(re.search(r"\b" + re.escape(alias) + r"\b", _single_text(k)) for k in spec.get("keywords") or []):
+                terms.append(alias)
+    # The outcome must occupy the ratio's own outcome slot, not a mention in
+    # background prose or another clause. Conservative adjacent forms only.
+    before = _single_text(sentence[:matches[0].start()])
+    effect_phrase = _single_text(matches[0].group(0))
+    for term in terms:
+        if (_NAMED_COMPOSITE_RX.search(term) or not re.search(r"[a-z]", term)):
+            continue
+        escaped = re.escape(term)
+        adjacent = re.search(r"(?<![\w-])" + escaped + r"\s*\(\s*$", before)
+        ratio_for = re.match(r"(?:relative risk|risk ratio|odds ratio|hazard ratio) for " + escaped + r" was \d", effect_phrase)
+        if adjacent or ratio_for:
+            prefix = before[:adjacent.start()] if adjacent else before
+            # An unrecognized modifier is not permission to weaken identity
+            # (e.g. recurrent target, target among a restricted population).
+            if adjacent and prefix and not re.search(r"(?:risk of|incidence of|rate of|results:)\s*$", prefix):
+                return refuse("outcome mention is in a qualified or ambiguous clause", sentence)
+            if re.search(r"\bin\b", text):
+                return refuse("outcome mention is in a qualified or ambiguous clause", sentence)
+            prefix = re.sub(r"\bcompared with placebo\s*\([^)]*\)", "", prefix)
+            if re.search(r"\b(?:with|without|after|following|among|in|despite|secondary|subgroup|non|severe|and|or)\b", prefix):
+                return refuse("outcome mention is in a qualified or ambiguous clause", sentence)
+            return {"binding": "single_outcome_phrase_and_estimate", "endpoint_result_span": sentence,
+                    "endpoint_definition_span": sentence, "components": set(),
+                    "binding_reason": "single outcome: declared phrase '" + term + "' adjacent to the row's estimate"}
+    return refuse("no declared outcome phrase in the estimate's own outcome slot", sentence)
+
+
+def classify_bound(spec: dict[str, Any], abstract: str, source: str | None, *, effect: float | None = None) -> dict[str, Any]:
     """Classify ONE extracted row against the target from its own bound definition span."""
     binding = bind_result_span(abstract, _result_sentence(abstract, source))
     if binding["binding"] == BINDING_NONE:
-        return _unbound_classification(binding)
-    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"])
+        binding = _bind_single_outcome(spec, abstract, source, effect)
+        if binding["binding"] == BINDING_NONE:
+            return _unbound_classification(binding)
+        cls = {"target_endpoint_class": EXACT_TARGET, "target_components": [],
+               "extra_components": [], "missing_components": [], "component_distance": 0}
+    else:
+        cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"])
     cls.update({
         "endpoint_binding": binding["binding"],
         "endpoint_result_span": binding["endpoint_result_span"],
@@ -831,7 +935,7 @@ def _candidate_from_abstract(
     for k in ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i"):
         if ex.get(k) is not None:
             c[k] = ex[k]
-    c.update(classify_bound(spec, abstract, ex.get("source")))
+    c.update(classify_bound(spec, abstract, ex.get("source"), effect=ex.get("effect")))
     return c
 
 
