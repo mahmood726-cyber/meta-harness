@@ -16,6 +16,9 @@ import re
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import effect_identity as effect_identity_mod
 from . import continuous_identity as continuous_identity_mod
+from . import outcome_tiers as outcome_tiers_mod
+from . import composite_rule as composite_rule_mod
+from . import narrative_rules as narrative_rules_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -656,6 +659,26 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     else:
         out["agree"] = None
     return _refresh_cross_source_identity(out, spec, trial_components)
+
+
+def _analysis_groups(studies, adjustments, labels):
+    """ADJUSTED / UNADJUSTED / UNSTATED inputs kept as separate analysis groups: each group is pooled on its own when its
+    inputs share one measure, and reported (never merged into a headline) -- the reader sees what each kind of evidence says."""
+    groups = {}
+    for g in ("ADJUSTED", "UNADJUSTED", "UNSTATED"):
+        idx = [i for i, a in enumerate(adjustments) if a == g]
+        if not idx:
+            continue
+        gl = sorted({labels[i] for i in idx if labels[i]})
+        entry = {"k": len(idx), "trials": [studies[i].label for i in idx], "measures": gl}
+        if len(gl) == 1 and all(labels[i] for i in idx):
+            r = _pool_result([studies[i] for i in idx], scale=gl[0])
+            entry.update({k: r.get(k) for k in ("estimate", "ci_low", "ci_high", "estimate_fixed", "ci_low_fixed", "ci_high_fixed", "tau2", "Q")})
+            entry["scale"] = gl[0]
+        else:
+            entry["not_pooled"] = "the group's inputs are more than one measure" if len(gl) > 1 else "no identifiable measure"
+        groups[g] = entry
+    return groups
 
 
 def _pool_result(studies, scale="RR", *, require_study_effect=False):
@@ -1688,21 +1711,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             if t.get("mean1") is not None:
                 return "MD"
             return meas
+        _mlabels = [estmeasure.input_label(t, meas) for t in trials]
+        _madj = [estmeasure.adjustment_of(t) for t in trials]
+        _mpolicy = estmeasure.mixture_policy(spec)
+        _mdec = estmeasure.pool_measure_decision(_mlabels, _madj, _mpolicy)
         # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
-        # continuous, else the topic's ratio estimand.
+        # continuous, else the measure the admitted inputs are (derived; see below).
         if all(t.get("e1i") is not None for t in trials):
             pooled_scale = "IRR"
         elif all(t.get("mean1") is not None for t in trials):
             pooled_scale = "MD"
-        elif all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
-            # Every pooled trial reported an explicit effect on the SAME scale -> display that scale,
-            # not the topic's declared estimand. This stops a rate ratio (FAIR-HF2 total HF
-            # hospitalizations, scale IRR) being labelled a risk ratio just because the topic
-            # declared RR. Mixed scales fall through to the declared estimand (and are a known
-            # heterogeneity the label makes visible, e.g. spironolactone RR/HR).
-            pooled_scale = trials[0]["scale"]
         else:
-            pooled_scale = selector_estimand or spec.get("estimand", "RR")
+            # DERIVED, NEVER DECLARED (external review, 2026-09-26): the label is the measure the admitted inputs actually are
+            # (estmeasure.pool_measure_decision). It used to fall through to the topic's declared estimand whenever any input
+            # lacked a stated scale -- balanced-crystalloids served "HR" over PLUS's count-reconstructed RR + BaSICS's HR.
+            # A refused mixture is still computed here only to record its counterfactual; the numbers are suppressed below.
+            pooled_scale = _mdec["label"] if _mdec["state"] in ("DERIVED", "MIXED_BY_POLICY") else (_mlabels[0] or "RR")
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
                          ci_high=t.get("ci_high"),
@@ -1812,6 +1836,38 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                                   + ", ".join(f"{k}: {v}" for k, v in sorted(_defs.items()))
                                                   + "); definition compatibility is adjudicated, not assumed")
         _incompat = _compat["status"] == "incompatible"
+        _mrefused = (not _incompat) and _mdec["state"] == "REFUSED"
+        out["result"]["measure_decision"] = {k: v for k, v in _mdec.items() if k != "policy"}
+        if _mpolicy:
+            out["result"]["measure_policy"] = _mpolicy          # a predeclared mixture is shown wherever the number is
+        out["result"]["analysis_groups"] = _analysis_groups(studies, _madj, _mlabels)
+        if _mrefused:
+            out["result"]["counterfactual"] = {
+                "reason_code": _mdec["code"],
+                "would_be_estimate": out["result"].get("estimate"),
+                "would_be_ci_low": out["result"].get("ci_low"),
+                "would_be_ci_high": out["result"].get("ci_high"),
+                "would_be_label": _mdec.get("label"),
+                "note": ("what pooling these inputs anyway would have yielded; it is NOT a result and is shown only so the "
+                         "refusal is auditable")}
+            for _kpop in ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed",
+                          "ci_high_fixed", "pi_low", "pi_high", "leave_one_out", "pi_note", "fixed_note",
+                          "ci_note"):
+                out["result"].pop(_kpop, None)
+            out["result"]["scale"] = "REFUSED: " + (_mdec.get("label") or "unidentified measure")
+            out["result"]["pool_measure_refused"] = _mdec["code"]
+            # every consumer (page, gate, index, manuscript) already fails closed on suppressed_incompatible: reuse that path, so
+            # no renderer can fall through to a "Pooled effect" row with the number popped
+            out["result"]["suppressed_incompatible"] = True
+            out["result"]["suppressed_reason"] = "pooled effect SUPPRESSED: " + _mdec["reason"] + ". The per-trial estimates and the per-group analyses are shown."
+        elif _mdec["state"] == "MIXED_BY_POLICY":
+            out["result"]["scale"] = _mdec["label"]
+            # the mixed pool is shown beside a SENSITIVITY analysis restricted to the majority measure (DOAC-VTE: the five HRs)
+            _rm = _mdec.get("sensitivity_restricted_to")
+            _rs = [s for s, lab in zip(studies, _mlabels) if lab == _rm] if _rm else []
+            if _rm and len(_rs) >= 1 and len(_rs) < len(studies):
+                out["result"]["measure_sensitivity"] = {"restricted_to": _rm, "excluded_measures": sorted(set(_mlabels) - {_rm}),
+                                                        **_pool_result(_rs, scale=_rm)}
         if _incompat:
             # FAIL CLOSED (audit 23, DETECTED-INVALID-BUT-PUBLISHED): a pool that mixes incompatible
             # estimand classes is NOT a valid summary, so we must SUPPRESS every derived number -- pooled
@@ -1847,7 +1903,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         elif _compat["status"] == "compatible_labels":
             # one compatibility class, >1 label: keep the pooled ratio scale, disclose the label mix
             out["result"]["scale_mixed"] = _compat["labels"]
-        if not _incompat and out["result"].get("k") == 2:
+        if not (_incompat or _mrefused) and out["result"].get("k") == 2:
             k2_mod.apply_k2_policy(
                 out["result"],
                 trials,
@@ -1875,7 +1931,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
         # hidden). Uses the same pooler and scale; no new number is invented.
         k_now = out["result"].get("k")
-        if isinstance(k_now, int) and k_now >= 3 and not _incompat and not out["result"].get("pool_refused"):
+        if isinstance(k_now, int) and k_now >= 3 and not (_incompat or _mrefused) and not out["result"].get("pool_refused"):
             loo = []
             for j in range(len(studies)):
                 sub = studies[:j] + studies[j + 1:]
@@ -1889,7 +1945,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "most_influential": worst["dropped"] if worst else None,
                 "per_trial": loo,
                 "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."}
-        elif isinstance(k_now, int) and not _incompat and not out["result"].get("pool_refused"):
+        elif isinstance(k_now, int) and not (_incompat or _mrefused) and not out["result"].get("pool_refused"):
             out["result"]["leave_one_out"] = {"note": f"not assessable at k={k_now} (leave-one-out needs k>=3)"}
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
@@ -2446,6 +2502,70 @@ def build_review_core(slug, config, records, protocol_sha):
             eligibility_chain_mod.apply_admissions(review, config, records, _md)
         except OSError:
             pass
+    # OUTCOME LABEL DERIVED FROM THE INPUTS, TWO TIERS (external review of colchicine-postop-af, 2026-09-26): after compat_key
+    # is final (the admissions above may rewrite it). The declared name / timepoint / population stay as the REGISTRATION; what
+    # the page states about the pool is derived from the pooled inputs, and a PRIMARY tier exists only under a predeclared
+    # common_outcome_policy. A trial stays eligible when its result is outside the primary tier (eligibility is not re-decided).
+    try:
+        _protocol_md_for_tiers = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+    except OSError:
+        _protocol_md_for_tiers = ""                       # no protocol text: nothing is shown preregistered (fail closed)
+    for _o in review.get("outcomes", []):
+        _trials = _o.get("trials") or []
+        if not _trials:
+            continue
+        # POPULATIONS LITERALLY, before the derived label is computed: what the held text + the row's own denominators support
+        for _tr in _trials:
+            _lit = narrative_rules_mod.population_literal(
+                (rec_by_id.get(str(_tr.get("id", "")).replace("PMID ", "")) or {}).get("abstract", ""), _tr)
+            if _lit:
+                _tr["analysis_population_literal"] = _lit
+        _t = outcome_tiers_mod.tiers(_o, _trials, _spec_by_name.get(_o.get("name")))
+        # ONE component rule for admitted and composite-refused rows alike (colchicine-secondary review, 2026-09-26)
+        _abs = {str(k): (v or {}).get("abstract", "") for k, v in rec_by_id.items()}
+        _cc = outcome_tiers_mod.composite_compatibility(_o, _trials, _spec_by_name.get(_o.get("name")) or {}, _abs,
+                                                        outcome_tiers_mod.refusals_for(ROOT, slug) if _o.get("primary") else None)
+        if _cc:
+            _o["composite_compatibility"] = _cc
+            if _cc["policy_declared"] and _t["primary"].get("state") in ("POLICY_APPLIED", "NO_POLICY_DECLARED"):
+                _ok = {str(x["id"]) for x in _cc["rows"] if x["served"] == "ADMITTED" and x["state"] == "PRIMARY"}
+                _base = _t["primary"]["trials"] if _t["primary"].get("state") == "POLICY_APPLIED" else [str(t.get("id") or t.get("label")) for t in _trials]
+                _keep = [i for i in _base if i in _ok]
+                _t["primary"] = {**_t["primary"], "tier": "PRIMARY", "state": "POLICY_APPLIED" if _keep else "NO_INPUT_SATISFIES_POLICY",
+                                 "trials": _keep, "composite_policy": composite_rule_mod.policy(_spec_by_name.get(_o.get("name")))}
+        _pt = _t["primary"]
+        if _pt.get("state") == "POLICY_APPLIED" and isinstance(_o.get("result"), dict) and _o["result"].get("estimate") is not None:
+            _keep = set(_pt["trials"])
+            _sub = [t for t in _trials if str(t.get("id") or t.get("label")) in _keep]
+            _scale = _o["result"].get("scale") or "RR"
+            _pt["pool"] = _pool_result([Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"), n2i=t.get("n2i"),
+                                              effect=t.get("effect"), ci_low=t.get("ci_low"), ci_high=t.get("ci_high"),
+                                              e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),
+                                              mean1=t.get("mean1"), sd1=t.get("sd1"), nc1=t.get("nc1"),
+                                              mean2=t.get("mean2"), sd2=t.get("sd2"), nc2=t.get("nc2"),
+                                              source=t.get("source", ""), derivation=t.get("derivation", ""))
+                                        for t in _sub], scale=_scale) if _sub else None
+        _o["outcome_tiers"] = _t
+        # NARRATIVE RULES: each pooled trial names the treatment STRATEGY its held abstract states (parenteral lead-in then X /
+        # X alone), and the analysis populations it states verbatim -- never a bare drug name or an assumed population
+        _agents = sorted((config.get("intervention_agents") or {}).keys(), key=len, reverse=True)
+        for _tr in _trials:
+            _ab = (rec_by_id.get(str(_tr.get("id", "")).replace("PMID ", "")) or {}).get("abstract", "")
+            _drug = next((a for a in _agents if re.search(rf"(?i)\b{re.escape(a)}\b", _ab or "")), None)
+            if _drug:
+                _tr["treatment_strategy"] = narrative_rules_mod.strategy_label(_ab, _drug)
+            _pops = narrative_rules_mod.populations_stated(_ab)
+            if _pops:
+                _tr["analysis_populations_stated"] = _pops
+        _o["served_tier"] = "PRIMARY" if _pt.get("state") == "POLICY_APPLIED" else "EXPLORATORY"
+        _o["served_title"] = (_o.get("name") if _o["served_tier"] == "PRIMARY" else _t["exploratory"]["title"])
+        # PREREGISTRATION (dapagliflozin HFpEF review): a harm / secondary outcome the protocol does not name, and no dated
+        # amendment names, is EXPLORATORY whatever else holds -- titled so, never presented as a planned analysis
+        _pr = outcome_tiers_mod.preregistration(_o, _protocol_md_for_tiers)
+        _t["preregistration"] = _pr
+        if _pr["state"] == "NOT_PREREGISTERED":
+            _o["served_tier"] = "EXPLORATORY"
+            _o["served_title"] = f"Exploratory (not preregistered): {_o.get('name')}"
     harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered

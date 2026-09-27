@@ -1,0 +1,273 @@
+"""The served OUTCOME label is derived from the pooled inputs, never declared; two tiers (external review of colchicine-postop-af,
+2026-09-26).
+
+The served label ("ITT, in-hospital / index-admission AF") came from the topic's declared outcome, while the inputs differed:
+END-AF >=5 min during hospitalisation, COPPS-2 >30 s within 3 months, a 14-day available-case analysis. Measured at v1/candidate: on
+26 of 27 served primary pools the label is not derived from the inputs -- most inputs' window / analysis set / definition were
+COPIED onto them from the label itself (compat_dimensions source outcome.timepoint / outcome.name / study_effect.analysis_population,
+the last filled from the declared population), so the label was "confirmed" by itself.
+
+Per input and dimension this module records the value and whether it is DERIVED (the input's own committed source text, registry
+timeframe, definition audit) or COPIED (from the label). Then:
+  derived_label  per dimension: the single derived value; "mixed: a | b" when derived values differ; or
+                 "declared <x>: not shown for n of k inputs" when any input's value was copied -- never the bare declared value
+  PRIMARY tier   ONLY against a PREDECLARED per-outcome `common_outcome_policy` ({dimension: [allowed values], predeclared: true,
+                 decided_by, decided_on, rationale}): the inputs whose DERIVED values satisfy every constrained dimension. A copied
+                 value never satisfies a policy. No policy -> no PRIMARY tier (state NO_POLICY_DECLARED).
+  EXPLORATORY    every eligible input, titled "Exploratory: trial-defined <name> across <windows>".
+A trial can be eligible without every result entering the primary pool: eligibility is not re-decided here."""
+from __future__ import annotations
+
+import json
+import re
+from typing import Any
+
+from . import composite_rule
+
+DIMENSIONS = ("follow_up_window", "analysis_set", "endpoint_definition")
+COPIED_SOURCES = {"outcome.timepoint", "outcome.name", "outcome.population", "study_effect.analysis_population"}
+_DECLARED = {"follow_up_window": "timepoint", "analysis_set": "population", "endpoint_definition": "name"}
+
+
+def _norm(v) -> str:
+    if isinstance(v, (dict, list)):
+        return json.dumps(v, sort_keys=True)
+    return " ".join(str(v or "").split())
+
+
+def _compat_key_per_trial(compat_key: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """The harness's own per-input derivations, where it made them: compat_key.<dim>.per_trial (window, analysis set: value +
+    PASS / FAIL / UNKNOWN verdict against the declared value) and trial_defined_dimensions.endpoint_definition.per_trial."""
+    ck = compat_key or {}
+    out: dict[str, dict[str, Any]] = {}
+    for d in ("follow_up_window", "analysis_set"):
+        for p in ((ck.get(d) or {}).get("per_trial") or []) if isinstance(ck.get(d), dict) else []:
+            out.setdefault(str(p.get("trial")), {})[d] = p
+    for p in (((ck.get("trial_defined_dimensions") or {}).get("endpoint_definition") or {}).get("per_trial") or []):
+        out.setdefault(str(p.get("trial")), {})["endpoint_definition"] = p
+    return out
+
+
+def input_dimensions(trial: dict[str, Any], ck_per_trial: dict[str, dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
+    out = {}
+    tid = str(trial.get("id") or trial.get("label") or "").replace("PMID ", "")
+    own = (ck_per_trial or {}).get(tid) or {}
+    for d in DIMENSIONS:
+        lit = trial.get("analysis_population_literal") if d == "analysis_set" else None
+        if isinstance(lit, dict) and lit.get("population"):
+            # the population the held text states literally (mITT, "analysed M of N randomised") -- DERIVED, never the declared ITT
+            out[d] = {"value": lit["population"], "source": "held abstract population statement", "derived": True}
+            continue
+        p = own.get(d)
+        if p is not None and p.get("value") not in (None, "not_stated"):
+            out[d] = {"value": p.get("value"), "source": "compat_key per-input derivation", "derived": True, "verdict": p.get("verdict")}
+            continue
+        cd = (trial.get("compat_dimensions") or {}).get(d)
+        if not isinstance(cd, dict) or not cd.get("source"):
+            out[d] = {"value": None, "source": None, "derived": False}
+        else:
+            out[d] = {"value": cd.get("value"), "source": cd.get("source"), "derived": cd.get("source") not in COPIED_SOURCES}
+        if p is not None and p.get("value") == "not_stated":
+            out[d].update(derived=False, verdict=p.get("verdict"), note="the input's own source does not state it")
+    return out
+
+
+def common_policy(spec: dict[str, Any] | None) -> dict[str, Any] | None:
+    p = (spec or {}).get("common_outcome_policy")
+    if not isinstance(p, dict) or p.get("predeclared") is not True or not all(p.get(k) for k in ("decided_by", "decided_on", "rationale")):
+        return None
+    constrained = {d: sorted({_norm(x).lower() for x in (p.get(d) or [])}) for d in DIMENSIONS if p.get(d)}
+    return {**p, "constrained": constrained} if constrained else None
+
+
+def derived_label(outcome: dict[str, Any], dims: list[dict[str, dict[str, Any]]]) -> dict[str, Any]:
+    lab = {}
+    k = len(dims)
+    for d in DIMENSIONS:
+        copied = sum(1 for x in dims if not x[d]["derived"])
+        vals = sorted({_norm(x[d]["value"]) for x in dims if x[d]["derived"]})
+        declared = outcome.get(_DECLARED[d])
+        if copied:
+            lab[d] = {"state": "NOT_SHOWN", "label": f"declared {declared!s}: not shown for {copied} of {k} inputs", "declared": declared}
+        elif len(vals) > 1:
+            lab[d] = {"state": "MIXED", "label": "mixed: " + " | ".join(vals), "values": vals}
+        else:
+            lab[d] = {"state": "DERIVED", "label": vals[0] if vals else None}
+    lab["matches_inputs"] = all(lab[d]["state"] == "DERIVED" for d in DIMENSIONS)
+    return lab
+
+
+def tiers(outcome: dict[str, Any], trials: list[dict[str, Any]], spec: dict[str, Any] | None) -> dict[str, Any]:
+    dims = [input_dimensions(t, _compat_key_per_trial(outcome.get("compat_key"))) for t in trials]
+    ids = [str(t.get("id") or t.get("label")) for t in trials]
+    pol = common_policy(spec)
+    windows = sorted({_norm(x["follow_up_window"]["value"]) for x in dims                       # DERIVED windows only: a value copied
+                      if x["follow_up_window"]["derived"] and x["follow_up_window"]["value"] is not None})  # from the label never titles
+    n_unshown = sum(1 for x in dims if not x["follow_up_window"]["derived"])
+    expl = {"tier": "EXPLORATORY", "trials": ids,
+            "title": (f"Exploratory: trial-defined {outcome.get('name')} across "
+                      + (("windows " + "; ".join(windows)) if len(windows) > 1 else (windows[0] if windows else "windows not stated"))
+                      + (f" (window not shown for {n_unshown} of {len(dims)} inputs)" if n_unshown and windows else ""))}
+    if pol is None:
+        prim = {"tier": "PRIMARY", "state": "NO_POLICY_DECLARED", "trials": [],
+                "reason": "no predeclared common_outcome_policy: no input can be shown to satisfy a common window / definition / population"}
+    else:
+        keep, excluded = [], []
+        for i, x in zip(ids, dims):
+            why = [f"{d}: {'value not shown by the input (copied from the label or not stated)' if not x[d]['derived'] else repr(x[d]['value']) + ' not in the policy'}"
+                   for d, allowed in pol["constrained"].items()
+                   if not x[d]["derived"] or _norm(x[d]["value"]).lower() not in allowed]
+            (excluded.append({"trial": i, "why": why}) if why else keep.append(i))
+        prim = {"tier": "PRIMARY", "state": "POLICY_APPLIED" if keep else "NO_INPUT_SATISFIES_POLICY", "trials": keep,
+                "excluded": excluded, "policy": {k: v for k, v in pol.items() if k != "constrained"}}
+    return {"derived_label": derived_label(outcome, dims), "primary": prim, "exploratory": expl,
+            "per_input": {i: x for i, x in zip(ids, dims)}}
+
+
+_DEF_SENTENCE = re.compile(r"(?i)\bprimary\s+(?:efficacy\s+|composite\s+)?(?:end\s?point|outcome)\s+(?:was|is)\s+(?:a\s+|the\s+)?composite\s+of\b")
+_PMID = re.compile(r"PMID\s*(\d{6,9})")
+
+
+def definition_text(pid: str, abstract: str | None, row: dict[str, Any] | None = None) -> tuple[str | None, str]:
+    """The definition of the result that was POOLED (or refused). An admitted row: its own served components / definition span
+    first -- the pooled outcome is not always the trial's primary composite (spironolactone pools all-cause mortality, not
+    EMPHASIS's primary composite). The held abstract's "primary ... was a composite of" sentence is used for a refused row (whose
+    refusal cites that composite) and for an admitted row only when its own result quotation says it is the PRIMARY outcome."""
+    if row:
+        comps = row.get("target_endpoint_components") or row.get("components")
+        if isinstance(comps, list) and comps:
+            return ", ".join(map(str, comps)), "row served components"
+        if row.get("endpoint_definition_span"):
+            return row["endpoint_definition_span"], "row endpoint_definition_span"
+        if not re.search(r"(?i)primary", str(row.get("source") or "")):
+            return None, "row carries no definition, and its result is not stated to be the trial's primary outcome"
+    for sent in re.split(r"(?<=[.])\s+(?=[A-Z])", abstract or ""):
+        if _DEF_SENTENCE.search(sent):
+            return sent, "held abstract definition sentence"
+    return None, "none"
+
+
+_MACE_NAME = re.compile(r"(?i)major\s+adverse\s+cardio|MACE|major\s+(?:coronary|cardiovascular|vascular)\s+(?:events?|composite)|coronary/cardiovascular\s+composite")
+
+
+def core_for(spec: dict[str, Any] | None, outcome: dict[str, Any]) -> list[str] | None:
+    """The core a row is compared with: a policy's core; the outcome's declared components; 3-point ONLY for a MACE-type outcome.
+    Anything else has no declared core and is not judged (a heart-failure composite is not measured against MACE)."""
+    pol = composite_rule.policy(spec)
+    if pol:
+        return pol["core"]
+    declared = composite_rule.components(", ".join(map(str, (spec or {}).get("canonical_components") or [])))
+    if declared:
+        return declared
+    return list(composite_rule.DEFAULT_CORE) if _MACE_NAME.search(str(outcome.get("name") or "")) else None
+
+
+def composite_compatibility(outcome: dict[str, Any], trials: list[dict[str, Any]], spec: dict[str, Any] | None,
+                            abstracts: dict[str, str], refusals: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """ONE rule (composite_rule.verdict) over the ADMITTED rows and the rows REFUSED for a composite reason. Reports every row
+    whose served admission differs from the rule, and any composite refusal the rule treats exactly like an admitted row."""
+    core = core_for(spec, outcome)
+    if core is None:
+        return None                                                    # no declared core: nothing to judge against
+    rows = []
+    for t in trials:
+        pid = str(t.get("id") or "").replace("PMID ", "")
+        text, where = definition_text(pid, abstracts.get(pid), t)
+        rows.append({"id": t.get("id"), "served": "ADMITTED", "definition_from": where, **composite_rule.verdict(text, spec, core)})
+    for r in refusals or []:
+        reason = str(r.get("not_pooled_because") or r.get("reason") or "")
+        if "composite" not in reason.lower():
+            continue
+        m = _PMID.search(str(r.get("trial") or ""))
+        pid = m.group(1) if m else None
+        text, where = definition_text(pid or "", abstracts.get(pid or ""), None)
+        rows.append({"id": f"PMID {pid}" if pid else r.get("trial"), "served": "REFUSED", "refusal_reason": reason, "definition_from": where,
+                     **composite_rule.verdict(text, spec, core)})
+    judged = [x for x in rows if x["state"] != "NO_DEFINITION"]
+    if not judged or all(len(x["components"]) < 2 for x in judged):
+        return None                                                    # not a composite outcome
+    for x in rows:
+        x["admission_changes"] = x["state"] != "NO_DEFINITION" and ((x["served"] == "ADMITTED") != (x["state"] == "PRIMARY"))
+    admitted_states = {x["state"] for x in rows if x["served"] == "ADMITTED"}
+    inconsistent = [x["id"] for x in rows if x["served"] == "REFUSED" and x["state"] in admitted_states]
+    return {"rule": "composite_rule.verdict (one rule; admitted and refused rows alike; definitions only, never an effect)",
+            "policy_declared": bool(composite_rule.policy(spec)), "rows": rows,
+            "admission_changes": [x["id"] for x in rows if x["admission_changes"]],
+            "refusals_judged_like_an_admitted_row": inconsistent}
+
+
+def refusals_for(root, slug: str) -> list[dict[str, Any]] | None:
+    """The topic's hand-recorded VERIFIED-BUT-NOT-POOLED refusals (docs/refusals.json), the same file census reads."""
+    import os
+    p = os.path.join(str(root), "docs", "refusals.json")
+    try:
+        return (json.load(open(p, encoding="utf-8")) or {}).get(slug)
+    except (OSError, ValueError):
+        return None
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# PREREGISTRATION (dapagliflozin HFpEF review, 2026-09-26): a harm or secondary outcome the protocol does not preregister -- and no
+# DATED amendment names -- is EXPLORATORY and titled as such. dapagliflozin-hfpef-hosp's protocol says "Harms - none preregistered"
+# while an "Adverse events" pool was served with no label.
+_STOP = {"the", "and", "or", "of", "in", "to", "with", "for", "any", "all", "events", "event", "outcome", "outcomes", "rate", "risk"}
+_O_LINE = re.compile(r"(?im)^\s*-\s*\*\*O\s*\(([^)]*)\)\*\*\s*[-—:]*\s*(.*(?:\n[ \t]+\S.*)*)")
+_NONE_LINE = re.compile(r"(?im)^\s*-\s*\*\*(Secondary outcomes|Harms)\*\*\s*[-—:]*\s*(.*)$")
+_AMEND = re.compile(r"(?im)^#{1,3}\s*[^\n]*amendment[^\n]*$")
+_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2}|\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4})\b")
+_GENERAL_HARMS = re.compile(r"(?i)any\s+(?:further\s+|other\s+)?harm")
+
+
+def _norm_text(s: str) -> str:
+    return re.sub(r"ae", "e", (s or "").lower())                    # hyperglycaemia == hyperglycemia
+
+
+def _content_tokens(name: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z]{4,}", _norm_text(name)) if w not in _STOP]
+
+
+# the three ways these protocols declare outcomes: '- **O (harms)** - ...', '- **Harm outcomes** - ...' (ticagrelor), and a heading
+# 'Harm outcomes:' followed by bullet lines (denosumab)
+_BOLD_LINE = re.compile(r"(?im)^\s*-\s*\*\*((?:primary|secondary|harm)[^*]*)\*\*\s*[-—:]*\s*(.*(?:\n[ \t]+\S.*)*)")
+_HEAD_BLOCK = re.compile(r"(?im)^((?:primary|secondary|harm)[a-z ]*outcomes?|harms)\s*:\s*\n((?:[ \t]*-\s+.*\n?)+)")
+
+
+def _prereg_blocks(md: str):
+    for m in _O_LINE.finditer(md):
+        yield "O (" + m.group(1).lower() + ")", _norm_text(m.group(2))
+    for m in _BOLD_LINE.finditer(md):
+        yield m.group(1).lower(), _norm_text(m.group(2))
+    for m in _HEAD_BLOCK.finditer(md):
+        yield m.group(1).lower(), _norm_text(m.group(2))
+
+
+def preregistration(outcome: dict[str, Any], protocol_md: str | None) -> dict[str, Any]:
+    """PREREGISTERED (the protocol names it, or declares harms by a general clause), AMENDED (a dated amendment section names it
+    or its kind), NOT_PREREGISTERED -> EXPLORATORY. The primary outcome is the protocol's declared O (primary)."""
+    if outcome.get("primary"):
+        return {"state": "PREREGISTERED", "basis": "protocol O (primary)"}
+    md = protocol_md or ""
+    kind = "harm" if outcome.get("kind") == "harm" else "secondary"
+    toks = _content_tokens(outcome.get("name") or "")
+    for label, body in _prereg_blocks(md):
+        if "primary" in label and "harm" not in label and "secondary" not in label:
+            continue
+        if kind == "harm" and "harm" not in label and "secondary" not in label:
+            continue
+        if re.match(r"\s*none\b", body):
+            continue
+        if any(re.search(r"\b" + t + r"\w*", body) for t in toks):
+            return {"state": "PREREGISTERED", "basis": f"protocol: {label}"}
+        if kind == "harm" and _GENERAL_HARMS.search(body):
+            return {"state": "PREREGISTERED", "basis": f"protocol: {label} (general harms clause)"}
+    for m in _AMEND.finditer(md):
+        nxt = _AMEND.search(md, m.end())
+        section = md[m.start(): nxt.start() if nxt else len(md)]
+        header = m.group(0)
+        if any(re.search(r"\b" + t + r"\w*", _norm_text(section)) for t in toks) or (kind == "harm" and re.search(r"(?i)\bharms?\b", header)):
+            d = _DATE.search(header) or _DATE.search(section)
+            if d:
+                return {"state": "AMENDED", "basis": header.strip("# ").strip(), "amendment_date": d.group(1)}
+    none = [m.group(2) for m in _NONE_LINE.finditer(md) if (m.group(1).lower().startswith("harm") == (kind == "harm"))]
+    return {"state": "NOT_PREREGISTERED", "basis": (none[0].strip() if none else "no protocol O-line or dated amendment names it"),
+            "served_as": "EXPLORATORY"}
