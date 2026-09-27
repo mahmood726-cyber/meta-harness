@@ -44,3 +44,12 @@ def test_every_blind_screen_quote_is_in_its_record_and_the_cases_were_verified()
         assert s["quote"] in r["title"] + " " + (r.get("abstract") or "") or s["quote"] in (r.get("abstract") or ""), s["id"]
     verified = json.load(open(os.path.join(D, "screen", "VERIFIED.json"), encoding="utf-8"))
     assert set(verified["recall_cases"]) == set(CASES)
+
+
+def test_the_open_full_text_recall_case_reports_postoperative_AF_counts():
+    import hashlib, html
+    v = json.load(open(os.path.join(D, "screen", "VERIFIED.json"), encoding="utf-8"))["full_text_checks"]["36747296"]
+    raw = open(os.path.join(D, "fulltext", "PMC9903414.xml"), "rb").read()
+    assert hashlib.sha256(raw).hexdigest() == v["sha256"]
+    text = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", raw.decode("utf-8"))))
+    assert v["quote_table"] in text and v["quote_discussion"] in text
