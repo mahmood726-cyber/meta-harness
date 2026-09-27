@@ -74,3 +74,20 @@ were being treated as independent eligible trials. The config now excludes
 cost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as
 LoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary
 trial reports remain eligible.
+
+## Retrospective protocol erratum (2026-09-27) -- comparator result as quoted above
+**Labelled retrospective: written after data were seen; the sentence above is left unchanged as registered.**
+The "Comparator" section quotes the comparator's result as "MACE (RR 0.65, 95% CI 0.38-0.77)". That pair
+repeats the comparator's own prose, which mixes two models: its Figure 3A (MACE) prints
+**fixed effect (Mantel-Haenszel) RR 0.65 [0.56, 0.75]** and **random effects RR 0.54 [0.38, 0.77]**
+(I2 = 70%), so the quoted point is the fixed-effect row and the quoted interval the random-effects row. The
+same prose sentence gives the reduction as 46%, which is the random-effects point (1 - 0.54), not 0.65.
+The comparator's methods select random effects when I2 > 50%.
+- Corrected reading: the comparator's MACE result is model-specific --
+  FE 0.65 (0.56-0.75); RE 0.54 (0.38-0.77). The mixed pair 0.65 (0.38-0.77) is not a result of either model.
+- Source: Figure 3A of PMID 36176989 (PMC9512890), transcribed with the image sha256 in
+  cache/colchicine-secondary-cv-prevention/comparator_figures.json; both rows are reproduced by recomputing
+  the pools from the figure's seven per-trial rows.
+- Scope: this erratum corrects a quotation of the comparator. It changes no eligibility rule, no outcome, no
+  model and no result of this review; our pooled result is not moved toward either comparator row.
+- Recorded as COMPARATOR_INTERNAL_MISMATCH on the page (harness/comparator_models.py).
