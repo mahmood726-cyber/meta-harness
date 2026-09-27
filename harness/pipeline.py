@@ -1301,7 +1301,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row["verified_passage_location"] = bound.get("passage_location")
             trials.append(row)
             continue
-        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+        row = {"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]}
+        if str(ex.get("reason") or "").startswith(extract.COUNT_PCT_CONFLICT):
+            # a count/denominator/percentage CONFLICT is a typed finding from the moment it is made, not reason text a
+            # later layer may relabel ('not yet extracted' overwrote it on the first V1.0.1 rebuild)
+            row.update(reason_code=extract.COUNT_PCT_CONFLICT, state=extract.COUNT_PCT_CONFLICT,
+                       count_pct_conflicts=ex.get("count_pct_conflicts") or [])
+        absent.append(row)
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are

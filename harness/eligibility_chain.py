@@ -268,7 +268,12 @@ def _passes_design(value: str, contract: str | None) -> bool | None:
 
 
 @_typed_reading
-def _follow_up_value(pid: str, text: str) -> tuple[str, str]:
+def _follow_up_value(pid: str, text: str, result_span: str | None = None) -> tuple[str, str]:
+    # The sentence that OWNS this row's number decides first: an extracted result's timepoint binds to THAT result
+    # ('By day 28, death ...' -> 28 days; 'In-hospital mortality ...' -> in-hospital), before any hand row or text search.
+    own = window_evidence.result_window(result_span)
+    if own:
+        return own[0], _norm(own[1].string[max(0, own[1].start() - 45):own[1].end() + 90])
     known = {
         "25172965": ("3 months", "within 3 months / 1- and 3-month visits"),
         "27502857": ("in-hospital / until discharge", "continued until hospital discharge"),
@@ -371,7 +376,8 @@ def admission_record(
         "verdict": "PASS" if (not comp_terms or comp_hit) else "FAIL",
     }
 
-    fu, fspan = _follow_up_value(pid, text)
+    from .compat_check import _result_span            # the row's own result sentence (one definition, one place)
+    fu, fspan = _follow_up_value(pid, text, _result_span(trial))
     fcontract = (criteria.get("follow_up_window") or {}).get("value")
     fp = None
     if fcontract:

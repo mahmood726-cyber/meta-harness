@@ -42,6 +42,8 @@ _ESTIMAND_SUFFIX = re.compile(r"\b(?:RR|OR|HR|IRR|MD|SMD|risk ratio|odds ratio|h
 OUTCOME_NOT_IN_SOURCE = "OUTCOME_NOT_IN_SOURCE"
 EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH = "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH"
 COUNTS_PRESENT_NOT_CORROBORATED = "COUNTS_PRESENT_NOT_CORROBORATED"
+# count, denominator and stated percentage disagree (Akrami 34876021: 3/129 = 2.33% stated 2.5%) -- lane NR V1.0.1
+COUNT_PCT_CONFLICT = "COUNT_PCT_CONFLICT"
 MULTI_ARM_UNRESOLVED = "MULTI_ARM_UNRESOLVED"
 TIMEPOINT_MISMATCH = "TIMEPOINT_MISMATCH"
 POPULATION_MISMATCH = "POPULATION_MISMATCH"
@@ -269,10 +271,20 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     # (RESULT_INCOMPATIBLE / ENDPOINT_UNBOUND): on the served release this layer overwrote a
     # RESULT_INCOMPATIBLE refusal with EXTRACTION_NOT_PERFORMED -- the right reason, mislabelled before
     # publication (M2, 2026-09-20).
-    if row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND") and row.get("reason_code"):
+    if (row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND", "ENDPOINT_COMPONENT_EXCLUDED",
+                                            "COMPOSITE_DECLARATION_INCOMPLETE")
+            and row.get("reason_code")):
         span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""
         return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
                 "state_basis": _basis(row["reason_code"], span, reason),
+                "source_span": _clip(span), "verbatim_span": _clip(span)}
+    # count, denominator and stated percentage DISAGREE (harness.extract.COUNT_PCT_CONFLICT): the conflict is the finding
+    # and keeps its own code -- never relabelled COUNTS_PRESENT_NOT_CORROBORATED, never an extraction to be done
+    if str(reason or "").startswith(COUNT_PCT_CONFLICT) or row.get("reason_code") == COUNT_PCT_CONFLICT:
+        c = (row.get("count_pct_conflicts") or [{}])[0]
+        span = c.get("span") or row.get("source") or reason or ""
+        return {"reason_code": COUNT_PCT_CONFLICT, "state": COUNT_PCT_CONFLICT,
+                "state_basis": _basis(COUNT_PCT_CONFLICT, span, reason),
                 "source_span": _clip(span), "verbatim_span": _clip(span)}
     # All lane adjudications require a recognized reason and an exact held span.
     code = row.get("refusal_provenance") or row.get("reason_code") or row.get("state")

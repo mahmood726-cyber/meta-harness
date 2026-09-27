@@ -41,7 +41,8 @@ MARKERS = {
     "declared_absent": ["declared absent", "DECLARED_ABSENT", "OUTCOME_NOT_IN_SOURCE",
                         "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH", "COUNTS_PRESENT_NOT_CORROBORATED",
                         "SOURCE_NOT_RETRIEVED", "MULTI_ARM_UNRESOLVED", "TIMEPOINT_MISMATCH",
-                        "POPULATION_MISMATCH"],
+                        "POPULATION_MISMATCH", "COUNT_PCT_CONFLICT", "ENDPOINT_COMPONENT_EXCLUDED",
+                        "COMPOSITE_DECLARATION_INCOMPLETE"],
     "not_assessed": ["not assessed", "NOT_ASSESSED"],
 }
 ACK_PATH = Path("docs") / "ratchet_acknowledgements.json"

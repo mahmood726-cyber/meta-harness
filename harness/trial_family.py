@@ -243,8 +243,11 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         refresh_registered_outcomes([f], config)
         for status in f['outcome_status']:
             spec = next(s for s in specs if s['name']==status['outcome'])
+            _, results_tf = _registry_time_frames(config)
             for result in held.get('registry_results',[]):
-                match = target_endpoint._classify(spec,result['outcome'].get('title',''))
+                tf = results_tf.get(str(result['outcome'].get('id'))) or {}
+                match = target_endpoint.registry_outcome_match(spec, config, result['outcome'].get('title',''),
+                                                               time_frame=tf.get('time_frame'), population=tf.get('population'))
                 if match['target_endpoint_class'] != 'EXACT_TARGET':
                     continue
                 measurements = result.get('measurement_samples') or []
@@ -269,17 +272,34 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         out.append(f)
     return sorted(out, key=lambda f:f['family_id'])
 
+def _registry_time_frames(config):
+    """({design_outcomes id: row}, {outcomes id: row}) from cache/<slug>/design_outcome_timeframes.json (AACT time_frame,
+    recorded with hash and read time by scripts/fetch_design_outcome_timeframes.py); only rows whose snapshot text equals
+    the held text are used. Absent file -> empty maps (the timepoint is then UNCONFIRMED, never assumed)."""
+    path = Path(__file__).resolve().parents[1] / 'cache' / str((config or {}).get('slug')) / 'design_outcome_timeframes.json'
+    try:
+        doc = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}, {}
+    keep = lambda rows: {k:v for k,v in (rows or {}).items() if v.get('text_matches_held', v.get('measure_matches_held'))}  # noqa: E731
+    return keep(doc.get('rows')), keep(doc.get('results_rows'))
+
+
 def refresh_registered_outcomes(nodes, config):
-    """Match outcome identity without claiming that a latest snapshot proves timing."""
+    """Match outcome identity without claiming that a latest snapshot proves timing. A registry outcome is EXACT only when
+    population, comparison, outcome AND timepoint agree (target_endpoint.registry_outcome_match)."""
     specs = [config['primary_outcome']] if config.get('primary_outcome') else []
     specs += list(config.get('secondary_outcomes') or []) + list(config.get('harm_outcomes') or [])
     by_name = {s['name']:s for s in specs}
+    design_tf, _ = _registry_time_frames(config)
     for f in nodes:
         for status in f['outcome_status']:
             candidates = []
             for item in status.get('registered_outcome_candidates',[]):
                 row = item.get('row',item)
-                match = target_endpoint._classify(by_name[status['outcome']],row.get('measure',''))
+                tf = design_tf.get(str(row.get('id'))) or {}
+                match = target_endpoint.registry_outcome_match(by_name[status['outcome']], config, row.get('measure',''),
+                                                               time_frame=tf.get('time_frame'), population=tf.get('population'))
                 if match['target_endpoint_class'] != 'DIFFERENT_OUTCOME':
                     candidates.append({'row':row, **match})
             status['registered_outcome_candidates'] = candidates

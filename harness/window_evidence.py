@@ -22,10 +22,14 @@ import re
 DURATION = re.compile(r"\d+(?:\.\d+)?(?:\s*-\s*|\s+)(?:days?|weeks?|months?|years?)\b", re.I)
 
 _ASC = (r"follow(?:ed)?[\s-]*up|followed\s+(?!by\b)|observ\w*|monitor\w*|assess\w*|ascertain\w*|surveillance|"
-        r"evaluat\w*|visits?|telemetry|holter|discharge|end\s*points?|outcomes?")
+        r"evaluat\w*|visits?|telemetry|holter|discharge|end\s*points?|outcomes?|record(?:ed|ing)|diar(?:y|ies)")
 _DOSE = (r"\d+(?:\.\d+)?\s*(?:mg|mcg|µg|μg|g|iu|ml|units?)\b|daily|twice|once|thrice|b\.?i\.?d|t\.?i\.?d|"
          r"q\.?d|doses?|dosing|dosage|regimens?|tablets?|capsules?|administ\w*|infus\w*|loading|maintenance|"
-         r"supplement\w*|given|received|receiving|taking|treated|treatment|therapy|course")
+         r"supplement\w*|given|received|receiving|taking|treated|treatment|therapy|course|"
+         # 'followed by tapering for a total of 8 or 14 days' (CAPE COD 36942789) is the regimen, not follow-up
+         r"taper\w*|intravenous\w*|orally|per\s+day|"
+         # 'randomized to receive Lactobacillus GG, 20 x 10(9) CFU/d, or placebo for 14 days' (11560298, probiotics)
+         r"receive|cfu|colony[\s-]forming|sachets?|times\s+(?:a|per)\s+day")
 _ASC_AFTER = re.compile(r"^\s*(?:of\s+)?(?:follow[\s-]*up|observation|monitoring|surveillance)\b|"
                         r"^\s*(?:after|following|post-?)\s*(?:the\s+)?(?:surgery|operation|randomi[sz]ation|discharge|"
                         r"enrol\w*|cabg|procedure|index|admission|intervention)\b", re.I)
@@ -84,3 +88,28 @@ def is_follow_up_evidence(span: str) -> bool:
     if roles:
         return any(r != "DOSING" for r in roles)
     return bool(_ASC_RX.search(span)) or not _DOSE_RX.search(span)
+
+
+# The window a RESULT's own sentence states ('By day 28, death had occurred in ...', 'In-hospital mortality did not
+# differ ...'): an extracted result's timepoint binds to the sentence that owns THAT result before anything else in the
+# text (corticosteroids-cap-mortality review: CAPE COD's day-28 deaths were given the 14-day regimen as follow-up; Torres's
+# in-hospital deaths were given the review's own timepoint).
+_RESULT_WINDOWS = (
+    (re.compile(r"\bin[\s-]hospital\b|\bduring\s+(?:the\s+)?hospital(?:i[sz]ation|\s+stay)\b|\b(?:until|at|before)\s+"
+                r"(?:hospital\s+)?discharge\b", re.I), lambda m: "in-hospital"),
+    (re.compile(r"\b(?:by|at|through|to|until|within|on)\s+day\s+(\d+)\b", re.I), lambda m: f"{m.group(1)} days"),
+    (re.compile(r"\b(\d+)[\s-]day\b", re.I), lambda m: f"{m.group(1)} days"),
+    (re.compile(r"\b(?:at|by|within|after|over|through|during)\s+(\d+(?:\.\d+)?)\s*(day|week|month|year)s?\b", re.I),
+     lambda m: f"{m.group(1)} {m.group(2).lower()}{'' if m.group(1) == '1' else 's'}"),
+)
+
+
+def result_window(span: str | None):
+    """(value, match) for the window the result's OWN span states, or None. A dosing duration in the span is skipped."""
+    span = span or ""
+    for rx, value in _RESULT_WINDOWS:
+        for m in rx.finditer(span):
+            if DURATION.search(m.group(0)) and duration_role(span, m.start(), m.end()) == "DOSING":
+                continue
+            return value(m), m
+    return None

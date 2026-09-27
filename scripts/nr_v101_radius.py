@@ -76,7 +76,10 @@ def dump(out: Path) -> int:
                 res["fu_compat"][key] = {"value": fu.get("value"), "source": fu.get("source"), "span": fu.get("span")}
                 rec = rmap.get(pid) or {}
                 text = eligibility_chain._record_text(rec, t)
-                v, s = eligibility_chain._follow_up_value(pid, text)
+                try:                      # production passes the row's own result span (V1.0.1); head code may not take it
+                    v, s = eligibility_chain._follow_up_value(pid, text, compat_check._result_span(t))
+                except (TypeError, AttributeError):
+                    v, s = eligibility_chain._follow_up_value(pid, text)
                 res["fu_adm"][key] = {"value": v, "span": s}
                 res["ep_adm"][key] = {"value": eligibility_chain._endpoint_definition(pid, text).get("surveillance_window")}
     out.write_text(json.dumps(res, ensure_ascii=False, indent=0, sort_keys=True) + "\n", encoding="utf-8")

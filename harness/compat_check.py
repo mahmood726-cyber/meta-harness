@@ -144,6 +144,58 @@ def _derive_analysis_set(
     return _derived(None, "underivable", "")
 
 
+def _result_span(trial: dict[str, Any]) -> str:
+    """The sentence (or table cell) that OWNS this row's number: the extractor's `source` after its route label
+    ('abstract arm-level counts (percentage-corroborated): <sentence>'), else the study effect's provenance span."""
+    src = str(trial.get("source") or ((trial.get("study_effect") or {}).get("source_provenance") or {}).get("span") or "")
+    head, sep, tail = src.partition(": ")
+    return tail if sep and len(head) <= 120 else src
+
+
+_PRIMARY_DEF = re.compile(r"\bprimary\s+(?:[a-z-]+\s+){0,2}?(?:outcome|end\s*point|endpoint|measure)s?\b", re.I)
+
+
+def _row_is_primary(result_span: str) -> bool:
+    """A row whose own span names the primary outcome (or has no owning span, the legacy case) may be defined by the
+    primary-outcome paragraph; a separately extracted secondary result may not (Torres: in-hospital deaths were given
+    the primary treatment-failure composite as their definition)."""
+    return not result_span or bool(_PRIMARY_DEF.search(result_span))
+
+
+def _sentence_at(text: str, m: re.Match[str]) -> str:
+    lo = max(text.rfind(". ", 0, m.start()), 0)
+    hi = text.find(". ", m.end())
+    return text[lo:hi if hi >= 0 else len(text)]
+
+
+def _in_primary_definition(text: str, m: re.Match[str]) -> bool:
+    return bool(_PRIMARY_DEF.search(_sentence_at(text, m)))
+
+
+_DEF_STOP = {"a", "an", "the", "of", "composite", "first", "occurrence", "time", "to", "rate", "incidence", "any",
+             "and", "or", "in", "with", "was", "were", "is", "are", "defined", "as"}
+
+
+def _defined_phrase(definition: str) -> list[str]:
+    """The head words of what a primary-outcome sentence DEFINES: 'The primary end point was new vertebral fracture'
+    -> ['new', 'vertebral', 'fracture']; the words after was/were, up to the first bracket or comma."""
+    m = re.search(r"\b(?:was|were|is|are|included|comprised)\b\s+(.*)", definition or "", re.I | re.S)
+    head = re.split(r"[(,;:]", m.group(1) if m else "")[0]
+    return [w for w in re.findall(r"[a-z][a-z-]*", head.lower()) if w not in _DEF_STOP][:4]
+
+
+def _defines_this_row(definition: str, result_span: str, outcome_name: str = "") -> bool:
+    """A primary-outcome sentence defines a row when the row's own span names the primary outcome, or when every head
+    word it defines appears as a WHOLE word in the row's span or outcome name. FREEDOM: 'new vertebral fracture' defines
+    the vertebral-fracture estimate, not 'nonvertebral fracture' ('nonvertebral' is not the word 'vertebral') and not
+    'hip fracture'; Torres: 'treatment failure' does not define 'in-hospital mortality'."""
+    if _row_is_primary(result_span):
+        return True
+    words = _defined_phrase(definition)
+    hay = set(re.findall(r"[a-z][a-z-]*", f"{result_span} {outcome_name}".lower()))
+    return bool(words) and all(w in hay for w in words)
+
+
 def _derive_follow_up(
     outcome: dict[str, Any],
     trial: dict[str, Any],
@@ -165,11 +217,19 @@ def _derive_follow_up(
         (r"\bfor\s+40\s+months\b", "40 months"),
         (r"\bmedian duration of supplementation was\s+([0-9.]+)\s+years\b", None),
     ]
+    # 1. the window the result's OWN span states ('By day 28, death had occurred ...', 'In-hospital mortality ...')
+    rs = _result_span(trial)
+    own = window_evidence.result_window(rs)
+    if own:
+        return _derived(own[0], "result span", _short_span(rs, own[1]))
+    # 2. elsewhere in the text: never a regimen, and never a primary-outcome sentence for a row that is not the primary
+    oname = str(outcome.get("name") or "")
     refused_dosing = None
     for pattern, value in rules:
         # a duration is follow-up evidence only if it is not a TREATMENT/DOSING duration ('1 mg daily ... for 14
         # days' is the regimen, not the ascertainment window): take the first match that is not dosing
-        hits = list(re.finditer(pattern, text or "", re.I | re.S))
+        hits = [x for x in re.finditer(pattern, text or "", re.I | re.S)
+                if not _in_primary_definition(text, x) or _defines_this_row(_sentence_at(text, x), rs, oname)]
         m = next((x for x in hits if window_evidence.duration_role(text, x.start(), x.end()) != "DOSING"), None)
         if not m:
             refused_dosing = refused_dosing or (hits[0] if hits else None)
@@ -184,8 +244,9 @@ def _derive_follow_up(
         # timepoint is a promise about the outcome, not a statement by this trial, so it must not stand in here.
         return {**_derived(None, "underivable", ""),
                 "refused_dosing_span": _short_span(text, refused_dosing)}
-    if outcome.get("timepoint"):
-        return _derived(str(outcome.get("timepoint")), "outcome.timepoint", str(outcome.get("timepoint")))
+    # The review's declared timepoint is a promise about the OUTCOME, not a statement by this trial: it no longer stands in
+    # for the trial's window (it bound Torres's in-hospital deaths to '30-day or in-hospital'). No owning statement ->
+    # UNRESOLVED (underivable), disclosed as such.
     return _derived(None, "underivable", "")
 
 
@@ -209,8 +270,18 @@ def _derive_endpoint(
         (r"major cardiovascular events, defined as [^.]{20,220}", None),
         (r"major cardiovascular events,? comprised [^.]{20,220}", None),
     ]
+    # the result's OWN span first; then the text -- but a primary-outcome definition paragraph defines a row only when
+    # that row's own span is the primary result (Torres's in-hospital deaths are not the treatment-failure composite)
+    rs = _result_span(trial)
+    for pattern, _ in rules:
+        m = _search(pattern, rs)
+        if m:
+            return _derived(_short_span(rs, m, flank=0), "result span", _short_span(rs, m))
+    oname = str(outcome.get("name") or "")
     for pattern, _ in rules:
         m = _search(pattern, text)
+        if m and pattern.startswith("primary") and not _defines_this_row(m.group(0), rs, oname):
+            continue
         if m:
             return _derived(_short_span(text, m, flank=0), "committed source text", _short_span(text, m))
     name = outcome.get("name")
@@ -435,8 +506,9 @@ def check(
                     outcome, dim, UNDERIVABLE, asserted, underivable,
                     "per-trial value could not be derived from the row or committed source",
                 ))
-                continue
-            if _is_mismatch(dim, asserted, values):
+            # the rows that DO state a value can still contradict a uniform key: report that too (an underivable row
+            # must not hide a heterogeneous one -- and only this finding lets _fix_compat_key rewrite the key)
+            if values and _is_mismatch(dim, asserted, values):
                 violations.append(_violation(
                     outcome, dim, ASSERTED_NOT_UNDERLYING, asserted, per_trial,
                     "outcome-level key asserts a uniform value but pooled trial rows differ",

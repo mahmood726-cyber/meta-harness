@@ -141,7 +141,41 @@ def _negated(s, pos):
     return any(n in pre for n in NEG)
 
 
-def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_ns=None):
+COUNT_PCT_CONFLICT = "COUNT_PCT_CONFLICT"
+
+
+def pct_consistent(ev, n, pct) -> bool:
+    """True when the STATED percentage is what ev/n is, at the stated precision: ev/n*100 rounded (half up or half even)
+    or truncated to as many decimals as the source wrote. 21/113 = 18.584 -> '18.6' passes; 3/129 = 2.326 -> '2.5' does
+    not (it was accepted by the old +/-1.0-1.5 point window and served as 'percentage-corroborated': Akrami, 34876021)."""
+    s = str(pct).strip()
+    d = len(s.split(".", 1)[1]) if "." in s else 0
+    if not n or n <= 0 or ev < 0:
+        return False
+    p, q, unit = ev * 100.0 / n, float(s), 10.0 ** -d
+    if abs(p - q) <= unit / 2 + 1e-9 or abs(int(p / unit + 1e-9) * unit - q) < 1e-9:
+        return True
+    # DOUBLE ROUNDING is a reporting artefact, not a disagreement: 13/81 = 16.049 -> 16.05 -> '16.1' (32720823);
+    # 711/1005 = 70.746 -> 70.75 -> '70.8'. One extra decimal, rounded half up, then to the stated precision.
+    from decimal import ROUND_HALF_UP, Decimal
+    two = Decimal(repr(p)).quantize(Decimal(1).scaleb(-(d + 1)), rounding=ROUND_HALF_UP)
+    return two.quantize(Decimal(1).scaleb(-d), rounding=ROUND_HALF_UP) == Decimal(s)
+
+
+def _near_miss(ev, n, pct, window) -> bool:
+    """The numbers CLAIM to agree (within the old +/-window points) and do not at the stated precision: a conflict. A
+    gross mismatch is not a conflict in the source -- it is a failed pairing (usually a wrongly inferred denominator:
+    '32 patients (13%)' against a total of 492), reported as not corroborated, as before."""
+    return bool(n) and n > 0 and 0 <= ev <= n and abs(ev * 100.0 / n - float(pct)) <= window
+
+
+def _conflict(conflicts, ev, n, pct, span):
+    if conflicts is not None:
+        conflicts.append({"count": ev, "denominator": n, "stated_pct": str(pct),
+                          "computed_pct": round(ev * 100.0 / n, 3) if n else None, "span": span.strip()[:200]})
+
+
+def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_ns=None, conflicts=None):
     """Return (ai,n1i,ci,n2i) if two corroborated arm groups are found, else None.
 
     arm_ns: optional {"i": n_intervention, "c": n_comparator} per-arm sizes with ARM IDENTITY. When
@@ -149,24 +183,41 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
     the count sits nearer the intervention or the comparator term), never with the other arm's size.
     This is what makes near-equal arms safe: LoDoCo2 (2762 vs 2760) or SELECT (8803 vs 8801) can no
     longer cross, because the placebo count is only ever tested against the placebo size. A wrong
-    per-arm size still just fails corroboration and the count is declared absent — never mispooled."""
+    per-arm size still just fails corroboration and the count is declared absent — never mispooled.
+
+    CORROBORATION IS TWO-WAY (pct_consistent): a stated percentage corroborates only if it IS ev/n at its own
+    precision. When count, denominator and percentage are bound together and disagree -- an explicit fraction with its
+    %, or a count paired with its own arm's size -- the disagreement is appended to `conflicts` (COUNT_PCT_CONFLICT),
+    never accepted and never silently dropped."""
     groups = []
     for m in _ARM.finditer(sentence):
-        ev, pct, n = int(m.group(1)), float(m.group(2)), int(m.group(3))
-        if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append(ArmHit(m.start(), ev, n))
+        ev, pct, n = int(m.group(1)), m.group(2), int(m.group(3))
+        if n > 0 and not _negated(sentence, m.start()):
+            if pct_consistent(ev, n, pct):
+                groups.append(ArmHit(m.start(), ev, n))
+            elif _near_miss(ev, n, pct, 1.5):
+                _conflict(conflicts, ev, n, pct, m.group(0))
     for m in _ARM2.finditer(sentence):
-        ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
-        if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append(ArmHit(m.start(), ev, n))
+        ev, n, pct = int(m.group(1)), int(m.group(2)), m.group(3)
+        if n > 0 and not _negated(sentence, m.start()):
+            if pct_consistent(ev, n, pct):
+                groups.append(ArmHit(m.start(), ev, n))
+            elif _near_miss(ev, n, pct, 1.5):
+                _conflict(conflicts, ev, n, pct, m.group(0))
     for m in _ARM3.finditer(sentence):
-        ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
-        if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append(ArmHit(m.start(), ev, n))
+        ev, n, pct = int(m.group(1)), int(m.group(2)), m.group(3)
+        if n > 0 and ev <= n and not _negated(sentence, m.start()):
+            if pct_consistent(ev, n, pct):
+                groups.append(ArmHit(m.start(), ev, n))
+            elif _near_miss(ev, n, pct, 1.5):
+                _conflict(conflicts, ev, n, pct, m.group(0))
     for m in _ARM4.finditer(sentence):  # "P% (N/M)" percentage-first
-        pct, ev, n = float(m.group(1)), int(m.group(2)), int(m.group(3))
-        if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-            groups.append(ArmHit(m.start(), ev, n))
+        pct, ev, n = m.group(1), int(m.group(2)), int(m.group(3))
+        if n > 0 and ev <= n and not _negated(sentence, m.start()):
+            if pct_consistent(ev, n, pct):
+                groups.append(ArmHit(m.start(), ev, n))
+            elif _near_miss(ev, n, pct, 1.5):
+                _conflict(conflicts, ev, n, pct, m.group(0))
     if len(groups) < 2 and (denom_each or arm_ns):
         # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept only if a
         # candidate denominator corroborates the stated percentage for that arm. With per-arm arm_ns
@@ -176,8 +227,10 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         cands = denom_each if isinstance(denom_each, (list, tuple, set)) else [denom_each]
         cands = [int(c) for c in cands if c]
         arm_ns = arm_ns or {}
-        armp = [ArmPercentHit(m.start(), int(m.group(1)), float(m.group(2)))
-                for m in _ARMP.finditer(sentence) if not _negated(sentence, m.start())]
+        _armp_m = [m for m in _ARMP.finditer(sentence) if not _negated(sentence, m.start())]
+        armp = [ArmPercentHit(m.start(), int(m.group(1)), float(m.group(2))) for m in _armp_m]
+        pct_text = {m.start(): m.group(2) for m in _armp_m}          # the percentage AS WRITTEN (its precision)
+        span_at = {m.start(): m.group(0) for m in _armp_m}
         ipos = min((low_s.find(t.lower()) for t in interv_terms if t.lower() in low_s), default=-1)
         cpos = min((low_s.find(t.lower()) for t in comp_terms if t.lower() in low_s), default=-1)
         used_reading_order = False
@@ -190,26 +243,35 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         if len(armp) == 2 and arm_ns.get("i") and arm_ns.get("c") and ipos >= 0 and cpos >= 0:
             first_arm = "i" if ipos <= cpos else "c"
             order = [first_arm, "c" if first_arm == "i" else "i"]
-            paired = []
+            paired, arm_conflict = [], False
             for (pos, ev, pct), arm in zip(armp, order):
                 d = int(arm_ns[arm])
-                if d > 0 and ev <= d and abs(ev / d * 100 - pct) <= 1.0:
+                if d > 0 and ev <= d and pct_consistent(ev, d, pct_text[pos]):
                     paired.append(ArmHit(pos, ev, d))
+                elif _near_miss(ev, d, pct, 1.0):
+                    # the count is paired with ITS OWN arm's size and the stated % nearly -- but not -- agrees: a
+                    # conflict, not a failed guess; it may not be rescued by another candidate denominator below
+                    _conflict(conflicts, ev, d, pct_text[pos], span_at[pos])
+                    arm_conflict = True
             if len(paired) == 2:
                 groups.extend(paired)
                 used_reading_order = True
+            elif arm_conflict:
+                return None
         # FALLBACK (backward compatible): flat best-corroborating candidate per count.
         if not used_reading_order:
             for pos, ev, pct in armp:
-                best = None
-                for den in cands:
-                    if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0:
-                        if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
-                            best = den
-                if len({den for den in cands if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0}) > 1:
+                ok = [den for den in cands if den > 0 and ev <= den and pct_consistent(ev, den, pct_text[pos])]
+                if len(set(ok)) > 1:
                     return None  # R4 ambiguity: several stated denominators corroborate this count; refused
-                if best:
-                    groups.append(ArmHit(pos, ev, best))
+                if ok:
+                    groups.append(ArmHit(pos, ev, ok[0]))
+                    continue
+                near = [den for den in cands if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0]
+                if len(set(near)) == 1:
+                    # one candidate denominator lands within a point of the stated % but is NOT it at the stated
+                    # precision (Akrami: 3/129 = 2.33% stated 2.5%): the numbers claim to agree and do not
+                    _conflict(conflicts, ev, near[0], pct_text[pos], span_at[pos])
     # R4 ambiguity: two readings at the SAME position that disagree on (count, denominator) -> refused
     _bypos = {}
     for g in groups:
@@ -856,13 +918,13 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             if eff and eff[0] == "HR":
                 return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
                         "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
-    _arm_res = []
+    _arm_res, _conflicts = [], []
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))
                 or _kw_only_in_null_result(s, outcome_kws)):
             continue
-        arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each, arm_ns)
+        arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each, arm_ns, conflicts=_conflicts)
         if arms:
             # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
             # reconcile with the effect the paper reports for THIS outcome — first the same
@@ -882,6 +944,14 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                 continue
             _arm_res.append({"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                              "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]})
+    if _conflicts:
+        # count, denominator and stated percentage DISAGREE in an admissible sentence of this outcome: the conflict is
+        # the finding. It is never turned into a success (and no other route may paper over it for this outcome).
+        c = _conflicts[0]
+        return {"absent": True, "count_pct_conflicts": _conflicts,
+                "reason": (f"{COUNT_PCT_CONFLICT}: {c['count']}/{c['denominator']} = {c['computed_pct']:g}% but the source "
+                           f"states {c['stated_pct']}% ('{c['span']}'); count, denominator and percentage disagree -- "
+                           f"preserved as a conflict, not corroborated")}
     if _arm_res:
         if _arm_res[0].get("absent"):
             return _arm_res[0]

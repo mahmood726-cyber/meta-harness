@@ -89,6 +89,7 @@ def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None):
 _INCOMPATIBLE_CODES = {
     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
     absence.COUNTS_PRESENT_NOT_CORROBORATED,
+    absence.COUNT_PCT_CONFLICT,
     absence.MULTI_ARM_UNRESOLVED,
     absence.TIMEPOINT_MISMATCH,
     absence.POPULATION_MISMATCH,

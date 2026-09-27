@@ -29,9 +29,13 @@ VALUE_REASON_CODES = {
     "UNIT_MISMATCH_CYCLE_LEVEL",
     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
     absence.COUNTS_PRESENT_NOT_CORROBORATED,
+    absence.COUNT_PCT_CONFLICT,
     absence.EXTRACTION_NOT_PERFORMED,
     absence.REFUSED_ON_EVIDENCE,
 }
+
+# typed findings about a value that WAS found; never overwritten by the extraction-debt relabel below
+TYPED_EVIDENCE_FINDINGS = {absence.COUNT_PCT_CONFLICT, "ENDPOINT_COMPONENT_EXCLUDED", "COMPOSITE_DECLARATION_INCOMPLETE"}
 
 FALSE_ABSENCE_CODES = {
     "",
@@ -573,6 +577,11 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
             if not cand.get("source_has_value"):
                 continue
             current_code = _row_code(row)
+            if current_code in TYPED_EVIDENCE_FINDINGS:
+                # a typed finding ABOUT the value found (its numbers disagree, its endpoint excludes a target
+                # component, its composite is undeclared) is kept: relabelling it 'not yet extracted' would erase the
+                # reason the value was not pooled (Akrami 34876021: COUNT_PCT_CONFLICT became extraction debt)
+                continue
             replacement_code = cand.get("reason_code") or KNOWN_REPORTED_NOT_YET_EXTRACTED
             if current_code not in FALSE_ABSENCE_CODES and current_code == replacement_code:
                 continue
