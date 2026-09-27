@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from . import second_source as second_source_mod
+from .registry_denominators import denominator_blocks, denominator_counts, analysis_set_metadata
 
 
 def _num(x):
@@ -152,7 +153,7 @@ def _extract_ctgov_continuous(om, interv_l, comp_l, combine_rule=None):
     for d in classes[0].get("denoms") or []:
         for c in d.get("counts", []):
             class_denoms[c.get("groupId")] = _num(c.get("value"))
-    if class_denoms:
+    if classes[0].get("denoms"):
         denoms = class_denoms
     interv_gid, comp_gid = _classify_arms(groups, interv_l, comp_l)
     if not (interv_gid and comp_gid):
@@ -298,12 +299,11 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
             for m in classes[0]["categories"][0].get("measurements", []):
                 events[m.get("groupId")] = _num(m.get("value"))
                 raw_measurements[m.get("groupId")] = m
-        # per-group denominator
-        denoms = {}
-        for d in om.get("denoms", []):
-            for c in d.get("counts", []):
-                denoms[c.get("groupId")] = _num(c.get("value"))
-        denom_units = "; ".join(d.get("units", "") for d in om.get("denoms", []) if d.get("units"))
+        # Denominators and units belong to the same class as the event counts.
+        selected_class = classes[0] if classes else {}
+        blocks = denominator_blocks(om, selected_class)
+        denoms = denominator_counts(blocks, _num)
+        denom_units = "; ".join(d.get("units", "") for d in blocks if d.get("units"))
         if not denoms:  # fall back to group-level "seriousNumAffected"? no — need denom
             continue
         # classify each group as intervention or comparator by title
@@ -360,6 +360,7 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
                "registry_implied_effect": implied,
                "source": (f"ClinicalTrials.gov results (structured): outcome '{title[:80]}' "
                           f"{measure_type} {values}")}
+        out.update(analysis_set_metadata(om, selected_class, interv_gid, comp_gid, _num))
         # Carry the model-derived identity judgment that admitted this OM, so the page can render it
         # (checkable, 5 fields). The judgment gated selection; it does NOT supply any number here.
         if judgments is not None:

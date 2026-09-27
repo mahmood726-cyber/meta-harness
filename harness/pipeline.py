@@ -643,6 +643,8 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
            "registry_intervention_value": cg.get("registry_intervention_value"),
            "registry_comparator_value": cg.get("registry_comparator_value"),
            **verdict}
+    if "n_analysis_set" in cg:
+        out.update({key: cg[key] for key in ("n_source", "n_analysis_set") if key in cg})
     if a_rr and c_rr:
         import math
         ratio = a_rr / c_rr

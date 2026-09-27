@@ -75,6 +75,7 @@ def typed_measure(om: dict[str, Any]) -> dict[str, Any]:
     # those are the n observed behind the mean/SD, and the measure-level count is the analysis-set n
     analysis_set_n = dict(denoms)
     if classes and classes[0].get("denoms"):
+        denoms = {}  # A missing class arm must not inherit the measure-level FAS.
         for d in classes[0]["denoms"]:
             for c in d.get("counts") or []:
                 denoms[c.get("groupId")] = _num(c.get("value"))

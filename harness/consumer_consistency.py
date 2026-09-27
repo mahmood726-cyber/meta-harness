@@ -155,10 +155,8 @@ def _ctgov_continuous_candidate(records_blob: dict[str, Any], spec: dict[str, An
     candidates.sort(key=lambda om: (0 if om.get("type") == "PRIMARY" else 1,
                                     0 if "day 28" in (om.get("timeFrame") or "").lower() else 1))
     om = candidates[0]
-    denoms = {}
-    for denom in om.get("denoms") or []:
-        for count in denom.get("counts") or []:
-            denoms[count.get("groupId")] = count.get("value")
+    from .registry_denominators import denominator_blocks, denominator_counts
+    selected_class = {}
     measurements = {}
     for klass in om.get("classes") or []:
         for cat in klass.get("categories") or []:
@@ -167,7 +165,9 @@ def _ctgov_continuous_candidate(records_blob: dict[str, Any], spec: dict[str, An
             if measurements:
                 break
         if measurements:
+            selected_class = klass
             break
+    denoms = denominator_counts(denominator_blocks(om, selected_class))
     parts = []
     for group in om.get("groups") or []:
         gid = group.get("id")
