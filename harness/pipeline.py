@@ -606,7 +606,8 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     if not oms:
         return None
     trial_components = ex.get("components") or ex.get("target_endpoint_components")
-    cg = extract_ctgov(oms, spec["keywords"], interv, comp, declared_components=trial_components)
+    cg = extract_ctgov(oms, spec["keywords"], interv, comp, declared_components=trial_components,
+                       estimand=spec.get("estimand"))
     if not cg:
         return None
     c_rr = cg.get("registry_implied_effect")
@@ -1136,7 +1137,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 and _cnct and _cnct in ctgov_results):
             # A DECLARED combine rule reproduces the hand-combined arm FROM THE HELD REGISTRY ARMS: the row is the
             # registry's, not the hand override's (whose computed tuple is in no held document and so never binds).
-            _cg = extract_ctgov(ctgov_results.get(_cnct), spec["keywords"], interv, comp, combine_rule=_crule)
+            _cg = extract_ctgov(ctgov_results.get(_cnct), spec["keywords"], interv, comp, combine_rule=_crule,
+                                estimand=spec.get("estimand"))
             if _cg and _cg.get("multi_arm_combined") and all(
                     abs(float(_cg[k]) - float(va_over.get(k) or 0)) <= 0.01 for k in ("mean1", "sd1", "mean2", "sd2"))                     and (_cg["nc1"], _cg["nc2"]) == (va_over.get("nc1"), va_over.get("nc2")):
                 _cg["provenance"] = "ctgov_results"
@@ -1233,7 +1235,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             continue
         cg = (extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp,
                             min_total=_enrollment_floor(rec.get("abstract", "")),
-                            judgments=outcome_judgments)
+                            judgments=outcome_judgments, estimand=spec.get("estimand"))
               if nct and nct in ctgov_results else None)
         if cg:
             cg["provenance"] = "ctgov_results"

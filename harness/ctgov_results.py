@@ -197,7 +197,7 @@ def _is_supplementary_estimand(title: str) -> bool:
 
 
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
-                  judgments=None, declared_components=None, combine_rule=None):
+                  judgments=None, declared_components=None, combine_rule=None, estimand=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
 
     Chooses the outcome measure whose TITLE contains one of our outcome keywords (so we do not
@@ -280,6 +280,11 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
             if cont:
                 return cont
             continue
+        # A CONTINUOUS estimand never falls through to a count measure: when the MEAN measure is refused (TRANSFORM-1 without
+        # a combine rule), the next candidate was a responder percentage (>=50% MADRS reduction, 53/98 vs 38/108 -- one dose arm)
+        # and would have entered an MD outcome as counts. Refused (continuous-identity review f5b8f4cb).
+        if str(estimand or "").upper() in ("MD", "SMD"):
+            continue
         # only participant-count style measures (skip medians/rates)
         if ptype and ptype not in ("COUNT_OF_PARTICIPANTS", "NUMBER", "COUNT_OF_UNITS"):
             continue
@@ -305,6 +310,12 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
                 denoms[c.get("groupId")] = _num(c.get("value"))
         denom_units = "; ".join(d.get("units", "") for d in om.get("denoms", []) if d.get("units"))
         if not denoms:  # fall back to group-level "seriousNumAffected"? no — need denom
+            continue
+        # MULTI-ARM GUARD (counts), as on the continuous route: more than one arm matching the intervention (or the comparator)
+        # terms is a dose/arm choice no rule made -- the loop below would keep whichever matched LAST (84 mg of TRANSFORM-1).
+        if (sum(1 for g in groups if not any(c in (g.get("title") or "").lower() for c in comp_l)
+                and any(i in (g.get("title") or "").lower() for i in interv_l)) > 1
+                or sum(1 for g in groups if any(c in (g.get("title") or "").lower() for c in comp_l)) > 1):
             continue
         # classify each group as intervention or comparator by title
         interv_gid = comp_gid = None

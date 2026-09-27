@@ -191,3 +191,22 @@ def test_a_measure_without_class_denominators_is_unchanged(held):
     om = _om(held, "NCT02418585")
     cg = _extract_ctgov_continuous(om, ["esketamine"], ["placebo"])
     assert (cg["nc1"], cg["nc2"], cg["n_source"]) == (101, 100, "measure-level denominators") and "n_analysis_set" not in cg
+
+
+# ------------------------------------------------------------------ fixture finding: no fall-through, no silent dose pick
+def test_plant_a_continuous_outcome_never_falls_through_to_a_responder_count(held, topic):
+    """Codex fixture finding: without a combine rule, extract_ctgov refused TRANSFORM-1's MEAN measure and then returned the
+    '>=50% reduction' responder percentage, 53/98 vs 38/108 -- a count row for an MD outcome, from the 84 mg arm alone."""
+    oms = held["ctgov_results"]["NCT02417064"]
+    kw, iv, cp = topic["primary_outcome"]["keywords"], topic["intervention_terms"], topic["comparator_terms"]
+    assert extract_ctgov(oms, kw, iv, cp, estimand="MD") is None                       # continuous: no fall-through
+    assert extract_ctgov(oms, kw, iv, cp) is None                                      # counts: two dose arms -> refused
+
+
+def test_the_counts_route_still_reads_a_two_arm_measure():
+    om = {"title": "Number of Participants With Response", "type": "PRIMARY", "paramType": "COUNT_OF_PARTICIPANTS",
+          "groups": [{"id": "A", "title": "Esketamine"}, {"id": "B", "title": "Placebo"}],
+          "denoms": [{"units": "Participants", "counts": [{"groupId": "A", "value": "100"}, {"groupId": "B", "value": "100"}]}],
+          "classes": [{"categories": [{"measurements": [{"groupId": "A", "value": "40"}, {"groupId": "B", "value": "30"}]}]}]}
+    cg = extract_ctgov([om], ["response"], ["esketamine"], ["placebo"])
+    assert (cg["ai"], cg["n1i"], cg["ci"], cg["n2i"]) == (40, 100, 30, 100)
