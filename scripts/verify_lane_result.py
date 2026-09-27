@@ -18,7 +18,7 @@ from collections import Counter
 
 T = sys.argv[1]
 RES = sys.argv[2] if len(sys.argv) > 2 else "RESULT.json"
-OUT = "VERIFIED.json" if RES == "RESULT.json" else "VERIFIED." + RES.replace("RESULT", "").strip("._") + ".json"
+OUT = "VERIFIED.json" if RES == "RESULT.json" else "VERIFIED." + os.path.splitext(RES)[0].replace("RESULT", "").strip("._") + ".json"
 D = os.path.join(T, "evidence", "acquisition_cascade")
 res = json.load(open(os.path.join(T, ".lane", RES), encoding="utf-8"))
 ledger = json.load(open(os.path.join(D, "held", "HELD.json"), encoding="utf-8"))
@@ -30,17 +30,21 @@ def num_tokens(s):
     s = s.replace("·", ".").replace("−", "-")
     toks = set(re.findall(r"\d+(?:[.,]\d+)*", s))
     toks |= {"0" + t for t in re.findall(r"(?<![\d.])\.\d+", s)}   # '.55' is 0.55 (journals that drop the leading zero)
+    # '10 033' / '10 033' (Lancet thousands grouping by a thin or plain space) is 10033
+    toks |= {re.sub(r"[    ]", "", t)
+             for t in re.findall(r"(?<![\d.])\d{1,3}(?:[    ]\d{3})+(?![\d.])", s)}
     return toks
 
 
 def header_tokens(text, span):
-    """Numbers in the column headings of the ONE table that contains the span (JATS <table-wrap>): arm sizes live there.
-    Never the whole document -- a count elsewhere in the paper is not this row's denominator."""
+    """Numbers in the column headings of the ONE <table> that contains the span (JATS XML and PMC HTML both put <thead>
+    inside <table>): arm sizes live there. Never the whole document -- a count elsewhere is not this row's denominator."""
     i = text.find(span)
     if i < 0:
         return set()
-    a, b = text.rfind("<table-wrap", 0, i), text.find("</table-wrap>", i)
-    if a < 0 or b < 0 or text.rfind("</table-wrap>", 0, i) > a:
+    starts = [m.start() for m in re.finditer(r"<table[\s>]", text[:i])]
+    a, b = (starts[-1] if starts else -1), text.find("</table>", i)
+    if a < 0 or b < 0 or text.rfind("</table>", 0, i) > a:
         return set()
     tw = text[a:b]
     heads = re.findall(r"<thead\b.*?</thead>", tw, flags=re.S)
@@ -81,7 +85,7 @@ for r in res.get("rows") or []:
          "checks": [], "ok": False}
     ref = (r.get("document_ref") or "").replace("\\", "/")
     rel = ref.split("evidence/acquisition_cascade/held/", 1)[-1] if "held/" in ref else None
-    if r.get("verdict") == "FOUND":
+    if r.get("verdict") in ("FOUND", "REPORTED_ZERO_EVENTS"):
         p = os.path.join(D, "held", rel) if rel else None
         if not p or not os.path.exists(p):
             v["checks"].append("DOC_MISSING")
@@ -121,8 +125,31 @@ for r in res.get("rows") or []:
                 toks = num_tokens(re.sub(r"<[^>]+>", " ", hit[0]))
                 ht = header_tokens(text, hit[0])
                 missing, via_header = [], []
+                zero_ok = r.get("verdict") == "REPORTED_ZERO_EVENTS" and re.search(
+                    r"\b(no|none|zero|nil|0)\b[^.]{0,80}\b(events?|cases?|effects?|reactions?|occurred|reported|"
+                    r"observed|registered|recorded|noted|seen|detected)\b|"
+                    r"\b(events?|cases?|effects?)\b[^.]{0,40}\b(none|zero|0)\b", _ws(re.sub(r"<[^>]+>", " ", hit[0])), re.I)
                 for k, x in (r.get("values") or {}).items():
                     if isinstance(x, str) or x is None or any(f in toks for f in fmt(x)):
+                        continue
+                    if k in ("ai", "ci") and x == 0 and zero_ok:
+                        continue                   # 'no adverse events were reported': a stated zero, in the span
+                    arm = r.get(f"{k}_span")
+                    plain = text if rep != "raw bytes" else re.sub(r"<[^>]+>", " ", text)
+                    # the arm-size span may be quoted as held (with markup, found in the raw bytes) or as plain text;
+                    # its numbers are read from the tag-stripped span either way
+                    arm_plain = _ws(html.unescape(re.sub(r"<[^>]+>", " ", arm or "")))
+                    # for a TABLE row the arm size must be inside the same <table> as the row (a section-heading row
+                    # of the table body counts); for a text statement ('no events in either group') the same document
+                    scope = text
+                    if rep == "raw bytes" and "<tr" in hit[0]:
+                        i0 = text.find(hit[0])
+                        st = [m.start() for m in re.finditer(r"<table[\s>]", text[:i0])]
+                        scope = text[st[-1]:text.find("</table>", i0)] if st else ""
+                    scope_plain = scope if rep != "raw bytes" else re.sub(r"<[^>]+>", " ", scope)
+                    if (k in ("n1i", "n2i") and arm and (arm in scope or _ws(arm) in _ws(scope_plain))
+                            and any(f in num_tokens(arm_plain) for f in fmt(x))):
+                        v.setdefault("arm_sizes_from_own_span", []).append(k)
                         continue
                     hs = r.get("header_span")
                     if k in ("n1i", "n2i") and hs and rep != "raw bytes" and _ws(hs) in _ws(text) and any(f in num_tokens(hs) for f in fmt(x)):
@@ -147,7 +174,10 @@ for r in res.get("rows") or []:
             v["checks"].append("FULLTEXT_NOT_HELD")
         if not cov:
             v["checks"].append("COVERAGE_UNNAMED")
-    v["ok"] = not [c for c in v["checks"] if not c.startswith("SOURCE_HOST_REVIEW")]
+    else:
+        v["checks"].append("NO_CLAIM_CHECKED")   # NOT_HELD / REPORTED_NOT_EXTRACTABLE: recorded, never a pass
+    v["ok"] = (None if v["checks"] == ["NO_CLAIM_CHECKED"]
+               else not [c for c in v["checks"] if not c.startswith("SOURCE_HOST_REVIEW")])
     tally[(r.get("verdict"), v["ok"])] += 1
     out.append(v)
 

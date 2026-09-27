@@ -420,3 +420,17 @@ create was deleted).
 - Lane A re-examined its 13 failed FOUND rows (7 FOUND, 4 REPORTED_ZERO_EVENTS, 2 REPORTED_NOT_EXTRACTABLE per the
   lane) and stopped before fetching.
 - Resume point: acq-a/.lane/RESULT_R2.json `resume_at`. The lane outputs are not yet verified or merged.
+- Lane A round 2, part A (before the disk gate): all 11 of its claims verify (7 FOUND, 4 REPORTED_ZERO_EVENTS).
+- Verifier corrections found while checking lane output:
+  - REPORTED_ZERO_EVENTS rows were marked ok with NO check. The verifier only examined FOUND and NOT_REPORTED. Every
+    other verdict is now `ok: null` (NO_CLAIM_CHECKED), never a pass.
+  - A zero-event row now needs a span that states zero and a span of its own for each arm size.
+  - PMC HTML tables (`<table><thead>`) are read like JATS XML tables.
+  - Arm sizes quoted with markup are matched in the raw bytes.
+  - For a table row, an arm size must lie inside the SAME `<table>`.
+  - Thin-space thousands ("10 033") are read as numbers.
+  - Planted: a zero not stated, no arm span, a wrong arm size, an arm span from another table, and one from outside
+    the table in a synthetic Lancet-style control each fail; true rows pass.
+- **Candidates now: 60, 48 verified (44 FOUND, 4 zero-event) across 10 topics** (probiotics 18, DOAC-VTE 8,
+  tocilizumab 8, balanced crystalloids 4, DPP-4 4, GLP-1 2, and one each in 4 others). One entry per
+  (topic, outcome, trial); a later round supersedes an earlier one (11 did). None admitted.
