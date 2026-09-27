@@ -1963,6 +1963,7 @@ def _outcome_block(o, show_inputs=True, review=None):
         body += _harms_ledger_block(o)
     body += _time_to_event_block(o) + _definition_adjudication_block(o) + _continuous_analysis_block(o)
     body += _measure_sensitivity_block(o)
+    body += _continuous_inputs_block(o)
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 
@@ -1978,6 +1979,41 @@ def _time_to_event_block(o: dict) -> str:
               if pool.get("estimate") is not None else "")
     return ("<div class='absent'><strong>Separate time-to-event analysis (TIME_TO_EVENT_SEPARATE).</strong> " + rows + "." + pooled
             + " " + _e(tte.get("note")) + "</div>")
+
+
+def _continuous_inputs_block(o: dict) -> str:
+    """SUBGROUP analyses, per-MEASUREMENT-CLASS analyses and crossover holds (melatonin review, retrospective): each shown as its
+    own analysis, never pooled with the primary; raw and adjusted side by side, never merged."""
+    ci = o.get("continuous_inputs") or {}
+    if not ci:
+        return ""
+    parts = []
+    rule = ci.get("population_rule") or {}
+    if rule:
+        parts.append("<strong>Population rule:</strong> " + _e(rule.get("rule")) + " -- " + _e(rule.get("subgroups"))
+                     + ". " + _e(rule.get("decided")))
+    for x in ci.get("subgroup_analyses") or []:
+        raw, adj = x.get("raw") or {}, x.get("adjusted") or {}
+        txt = (f"<strong>Subgroup analysis ({_e(x.get('label'))}: {_e(x.get('subgroup'))}; measurement {_e(x.get('measurement_class'))}):</strong> "
+               f"raw MD {_num(raw.get('estimate'))} ({_num(raw.get('ci_low'))} to {_num(raw.get('ci_high'))})")
+        if adj.get("state") == "ADMITTED":
+            txt += f"; adjusted {_num(adj.get('value'))} (SE {_num(adj.get('se'))}, {_e(adj.get('method'))}) -- a separate estimate, not merged with the raw one"
+        elif adj.get("state"):
+            txt += f"; adjusted: {_e(adj.get('state'))}"
+        parts.append(txt + ".")
+    mrule = ci.get("measurement_rule") or {}
+    if mrule:
+        parts.append("<strong>Measurement classes:</strong> " + _e(mrule.get("rule")) + ". Primary class: "
+                     + (_e(mrule.get("primary")) if mrule.get("primary") else "not declared") + ".")
+    for cls, a in (ci.get("measurement_class_analyses") or {}).items():
+        pool = a.get("pool") or {}
+        parts.append(f"<strong>Separate analysis, {_e(cls)}:</strong> " + ", ".join(_e(r.get("label") or r.get("id")) for r in a.get("rows") or [])
+                     + (f"; MD {_num(pool.get('estimate'))} ({_num(pool.get('ci_low'))} to {_num(pool.get('ci_high'))}), k={_e(pool.get('k'))}"
+                        if pool.get("estimate") is not None else "") + ".")
+    if ci.get("held_crossover"):
+        parts.append("<strong>Crossover input held:</strong> " + ", ".join(_e(i) for i in ci["held_crossover"])
+                     + " -- the paired (within-person) variance is required; periods are never independent parallel arms.")
+    return "<div class='absent'>" + " ".join(parts) + "</div>" if parts else ""
 
 
 def _continuous_analysis_block(o: dict) -> str:

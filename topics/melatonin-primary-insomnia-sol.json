@@ -108,13 +108,47 @@
       "primary end point"
     ],
     "estimand": "MD",
-    "population": "pre-specified age 65-80 ITT subgroup (of an 18-80 enrolment)",
+    "population": "adults with primary insomnia (the full eligible population)",
     "timepoint": "end of treatment",
     "trial_annotations": {
       "20712869": {
         "evidence_unit": "prespecified_subgroup",
         "evidence_unit_detail": "age 65-80 ITT subgroup"
       }
+    },
+    "population_default": {
+      "rule": "FULL_ELIGIBLE",
+      "subgroups": "separate analyses (age bands, low excretors); never the primary input and never pooled as independent of their own trial",
+      "overrides": "protocol line 26, which made Wade's pre-specified age 65-80 subgroup the pooled input",
+      "decided": "2026-09-27, melatonin review; decided by Dispatch under Mahmood's delegation. RETROSPECTIVE: made after registration and after the results were seen, so it is not demonstrably prospective."
+    },
+    "measurement_classes": {
+      "separate_by_class": true,
+      "classes": [
+        "PSG",
+        "DIARY",
+        "QUESTIONNAIRE",
+        "ACTIGRAPHY"
+      ],
+      "rule": "sleep-onset latency by polysomnography, by sleep diary and by questionnaire (e.g. PSQI question 2) are different measurements: a separate analysis per class, never one chosen for favourability or convenience",
+      "primary": null,
+      "primary_note": "no primary measurement class is declared; the decision did not name one",
+      "decided": "2026-09-27, melatonin review; decided by Dispatch under Mahmood's delegation. RETROSPECTIVE: made after registration and after the results were seen, so it is not demonstrably prospective."
+    },
+    "analysis_plan": {
+      "primary": {
+        "kind": "RAW_ARM_MEAN_SD",
+        "population": "the full eligible population",
+        "protocol_quote": "The pooled value is the unadjusted per-arm mean difference computed from the reported per-arm change-from-baseline means and SDs; the trial's own covariate-adjusted estimate ... is noted where it differs.",
+        "missing_data_assumption": null
+      },
+      "sensitivity": [
+        {
+          "kind": "MODEL_BASED_ADJUSTED_DIFFERENCE",
+          "rule": "reported adjusted differences, kept separate from raw ones; SE only when established",
+          "registration": "2026-09-27, melatonin review; decided by Dispatch under Mahmood's delegation. RETROSPECTIVE: made after registration and after the results were seen, so it is not demonstrably prospective."
+        }
+      ]
     }
   },
   "secondary_outcomes": [],

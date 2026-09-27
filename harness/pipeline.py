@@ -1621,6 +1621,72 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    if spec.get("population_default") or spec.get("measurement_classes") or any(
+            t.get("mean1") is not None for t in trials):
+        # CONTINUOUS inputs (melatonin review, 2026-09-27, retrospective, Dispatch under Mahmood's delegation): a SUBGROUP is not
+        # the primary input for a broad question; measurement classes are analysed separately; a crossover needs its paired
+        # variance. Each moved row stays visible in its own analysis.
+        def _nct_of(t):
+            _p = str(t.get("id") or "").replace("PMID ", "")
+            _r = rec_by_id.get(_p) or rec_by_id.get(t.get("id")) or {}
+            return (_r.get("nct") or (_p if _p.upper().startswith("NCT") else "") or "").upper(), _r
+
+        def _om_of(t):
+            return next((o for o in (ctgov_results.get(_nct_of(t)[0]) or []) if o.get("title") == t.get("registry_title")), None)
+
+        def _texts(t):
+            _om = _om_of(t) or {}
+            _an = _om.get("analyses")
+            _an = json.loads(_an) if isinstance(_an, str) else (_an or [])
+            return ([str(t.get("source") or ""), str(_om.get("title") or ""), str(_om.get("description") or "")]
+                    + [str(a.get("groupDescription") or "") for a in _an])
+
+        _before = [id(t) for t in trials]
+        _kept, _crec = continuous_identity_mod.split_continuous_inputs(
+            trials, spec, _texts, lambda t: (registry_designs or {}).get(_nct_of(t)[0]),
+            lambda t: (_nct_of(t)[1].get("abstract") or ""))
+        if [id(t) for t in _kept] != _before:
+            trials[:] = _kept
+        _pop_rule = spec.get("population_default") or {}
+        _sub = []
+        for t in _crec["subgroups"]:
+            _om = _om_of(t)
+            _adj = (continuous_identity_mod.model_based_row(_om, [_nct_of(t)[1].get("abstract") or ""], None) if _om else None)
+            _sub.append({"id": t.get("id"), "label": t.get("label"), "subgroup": t["population_class"].get("label"),
+                         "measurement_class": (t.get("measurement_class") or {}).get("class"),
+                         "raw": _pool_result([Study(label=t["label"], mean1=t["mean1"], sd1=t["sd1"], nc1=t.get("nc1"),
+                                                    mean2=t["mean2"], sd2=t["sd2"], nc2=t.get("nc2"), measure="MD")], scale="MD"),
+                         "adjusted": _adj})
+            if not any(str(x.get("id")) == str(t.get("id")) for x in trials):
+                absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
+                               "state": "FULL_POPULATION_INPUT_NOT_HELD", "reason_code": "FULL_POPULATION_INPUT_NOT_HELD",
+                               "endpoint_admissibility": "FULL_POPULATION_INPUT_NOT_HELD",
+                               "reason": ("the held number is the subgroup '" + str(t["population_class"].get("label")) + "', not the "
+                                          "full eligible population the question asks about; it is shown as a separate subgroup "
+                                          "analysis. The full-population result is not in the held sources"),
+                               "population_rule": _pop_rule})
+        for t in _crec["held_crossover"]:
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                           "state": "CROSSOVER_PAIRED_VARIANCE_REQUIRED", "reason_code": "CROSSOVER_PAIRED_VARIANCE_REQUIRED",
+                           "endpoint_admissibility": "CROSSOVER_PAIRED_VARIANCE_REQUIRED", "reason": t["crossover"]["reason"],
+                           "crossover": t["crossover"]})
+        _by_class = {}
+        for _cls, _rows in (_crec.get("by_class") or {}).items():
+            _mrows = [r for r in _rows if r.get("mean1") is not None]
+            _by_class[_cls] = {"rows": [{k: r.get(k) for k in ("id", "label", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2", "source")}
+                                        for r in _rows],
+                               "pool": (_pool_result([Study(label=r["label"], mean1=r["mean1"], sd1=r["sd1"], nc1=r.get("nc1"),
+                                                            mean2=r["mean2"], sd2=r["sd2"], nc2=r.get("nc2"), measure="MD")
+                                                      for r in _mrows], scale="MD") if _mrows else None)}
+        if (_sub or _by_class or _crec["held_crossover"] or _crec.get("state") or spec.get("population_default")
+                or spec.get("measurement_classes")):
+            out["continuous_inputs"] = {
+                "population_rule": _pop_rule or None, "measurement_rule": spec.get("measurement_classes") or None,
+                "state": _crec.get("state"), "classes": _crec.get("classes"),
+                "subgroup_analyses": _sub, "measurement_class_analyses": _by_class,
+                "held_crossover": [t.get("id") for t in _crec["held_crossover"]],
+                "note": ("subgroups and other measurement classes are separate analyses: never pooled with, or as independent of, "
+                         "the primary")}
     _zes = spec.get("zero_event_sensitivity") or {}
     if double_zero_rows and _zes.get("predeclared") is True and _zes.get("method") == "CC_0.5":
         _zrows = trials + double_zero_rows
@@ -1980,6 +2046,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    _ci = out.get("continuous_inputs") or {}
+    if not trials and (_ci.get("subgroup_analyses") or _ci.get("state") or _ci.get("held_crossover")):
+        _why = []
+        if _ci.get("subgroup_analyses"):
+            _why.append("the held inputs are SUBGROUPS (" + "; ".join(str(x["label"]) + ": " + str(x["subgroup"])
+                                                              for x in _ci["subgroup_analyses"])
+                        + ") and the question is the full eligible population; the full-population result is not in the held sources")
+        if _ci.get("state") == "MEASUREMENT_CLASS_MIXED_PRIMARY_NOT_DECLARED":
+            _why.append("the inputs are different measurements (" + ", ".join(sorted(_ci.get("classes") or {}))
+                        + ") and no primary measurement class is declared; each is analysed separately")
+        if _ci.get("state") == "PRIMARY_CLASS_INPUT_NOT_HELD":
+            _why.append("no input is held in the declared primary measurement class")
+        if _ci.get("held_crossover"):
+            _why.append("crossover input(s) without a paired variance: " + ", ".join(map(str, _ci["held_crossover"])))
+        out["result"] = {"present": False, "code": "PRIMARY_INPUT_NOT_HELD_UNDER_CONTINUOUS_RULES",
+                         "reason": "No primary pooled number: " + "; ".join(_why) + ". The separate analyses are shown below."}
     if out.get("design_refusals"):
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):

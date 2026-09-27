@@ -28,6 +28,8 @@ from typing import Any
 
 # --------------------------------------------------------------------------- typed registry measure
 _ADJUSTED = re.compile(r"(?i)least\s+squares?|\bLS\s+mean|adjusted\s+mean|model[- ]based|marginal\s+mean")
+_MODEL_METHOD = re.compile(r"(?i)\bANCOVA\b|analysis\s+of\s+covariance|regression|mixed\s+model|\bMMRM\b|repeated\s+measure")
+_MODEL_WITH_TERMS = re.compile(r"(?i)model\s+with\s+terms|adjusted\s+for|covariates?\b")
 
 
 def _load(v):
@@ -95,7 +97,12 @@ def typed_measure(om: dict[str, Any]) -> dict[str, Any]:
         dk = dispersion_kind(a.get("dispersionType"))
         analyses.append({
             "groups": list(a.get("groupIds") or []),
-            "estimate_kind": "ADJUSTED_DIFFERENCE" if _ADJUSTED.search(str(a.get("paramType") or "")) else "DIFFERENCE_NOT_TYPED",
+            # ADJUSTED when the parameter says so (LS mean) OR the method / description is a covariate model (Wade: ANCOVA,
+            # "linear regression model with terms for treatment ... and baseline sleep latency", -15.6 vs raw -17.4)
+            "estimate_kind": ("ADJUSTED_DIFFERENCE" if (_ADJUSTED.search(str(a.get("paramType") or ""))
+                                                       or _MODEL_METHOD.search(str(a.get("statisticalMethod") or ""))
+                                                       or _MODEL_WITH_TERMS.search(str(a.get("groupDescription") or "")))
+                              else "DIFFERENCE_NOT_TYPED"),
             "method": a.get("statisticalMethod"), "value": _num(a.get("paramValue")),
             # an SE here is the SE OF THE DIFFERENCE -- never an arm SD
             "se_of_difference": _num(a.get("dispersionValue")) if dk == "SE" else None,
@@ -256,3 +263,122 @@ def model_based_row(om: dict[str, Any], held_texts, declared_procedure: dict[str
                 "procedure": proc, "reason": se["refused"]}
     return {"state": "ADMITTED", "measure_title": tm["title"], "value": a["value"], "se": round(se["se"], 4),
             "se_basis": se["basis"], "ci": a["ci"], "procedure": proc, "method": a["method"]}
+
+
+# =========================================================================== melatonin review (2026-09-27, retrospective,
+# decided by Dispatch under Mahmood's delegation): population default, measurement class, crossover pairing
+# --------------------------------------------------------------------------- (1) population default
+_SUBGROUP = re.compile(r"(?i)\bsub-?groups?\b|\blow\s+excretors?\b|\bpre-?planned\s+analysis\s+on\s+[^.;]{0,40}?population\s+aged?(?:\s*\d{2}\s*(?:-|–|to)\s*\d{2})?"
+                       r"|\bpopulation\s+(?:aged?\s+)?\d{2}\s*(?:-|–|to)\s*\d{2}\b|\baged?\s+\d{2}\s*(?:-|–|to)\s*\d{2}\b"
+                       r"|\b\d{2}\s*(?:-|–|to)\s*\d{2}\s*(?:-\s*)?years?\s+(?:old\s+)?(?:population|subgroup|group)\b")
+
+
+def population_class(row: dict[str, Any], spec: dict[str, Any] | None) -> dict[str, Any]:
+    """FULL_ELIGIBLE unless the row's own source or the topic's annotation says the number is a SUBGROUP (an age band, low
+    excretors, a pre-planned subgroup). A subgroup is never the primary input for a broad question and never pooled as
+    independent of its own trial's full population."""
+    pid = str(row.get("id") or "").replace("PMID ", "")
+    ann = ((spec or {}).get("trial_annotations") or {}).get(pid) or {}
+    if "subgroup" in str(ann.get("evidence_unit") or "").lower():
+        return {"population": "SUBGROUP", "label": ann.get("evidence_unit_detail") or ann.get("evidence_unit"),
+                "basis": "trial annotation (topic)"}
+    src = str(row.get("source") or "")
+    pop = src.split("population:", 1)[1] if "population:" in src else ""
+    m = _SUBGROUP.search(pop) or _SUBGROUP.search(str(row.get("population_description") or ""))
+    if m:
+        return {"population": "SUBGROUP", "label": m.group(0).strip(), "basis": "the row's own population statement"}
+    return {"population": "FULL_ELIGIBLE", "basis": "no subgroup statement in the row's source or annotation"}
+
+
+# --------------------------------------------------------------------------- (2) measurement class
+_MEASUREMENT = (("PSG", re.compile(r"(?i)polysomnograph\w*|\bPSG\b|\bEEG\b|electroencephalograph\w*|latency\s+to\s+persistent\s+sleep|\bLPS\b")),
+                ("DIARY", re.compile(r"(?i)sleep\s+diar\w*|\bdiar(?:y|ies)\b|sleep\s+logs?\b")),
+                ("QUESTIONNAIRE", re.compile(r"(?i)\bPSQI\b|pittsburgh\s+sleep\s+quality|questionnaire|\bLSEQ\b|leeds\s+sleep|"
+                                             r"insomnia\s+severity\s+index")),
+                ("ACTIGRAPHY", re.compile(r"(?i)actigraph\w*|\bwrist\s+activity")))
+
+
+def measurement_class(texts) -> dict[str, Any]:
+    """PSG / DIARY / QUESTIONNAIRE / ACTIGRAPHY from the words the SOURCE uses for THIS number; AMBIGUOUS when the same text names
+    two classes; SUBJECTIVE_UNSPECIFIED for 'subjective' alone (diary or questionnaire); NOT_STATED otherwise. Never inferred
+    from the outcome's name."""
+    found = {}
+    for t in texts or []:
+        for cls, rx in _MEASUREMENT:
+            m = rx.search(t or "")
+            if m:
+                found.setdefault(cls, m.group(0))
+    if len(found) == 1:
+        (cls, words), = found.items()
+        return {"class": cls, "words": words}
+    if len(found) > 1:
+        return {"class": "AMBIGUOUS", "words": found}
+    if any(re.search(r"(?i)\bsubjective\b", t or "") for t in texts or []):
+        return {"class": "SUBJECTIVE_UNSPECIFIED", "words": "subjective"}
+    return {"class": "NOT_STATED", "words": None}
+
+
+# --------------------------------------------------------------------------- (3) crossover
+_CROSSOVER_TEXT = re.compile(r"(?i)\bcross-?over\b|\beach\s+(?:patient|participant|subject)\s+received\s+(?:each|all)\b|"
+                             r"\breceived,?\s+in\s+random\s+order\b")
+
+
+def crossover_state(row: dict[str, Any], registry_row: dict[str, Any] | None, held_text: str | None) -> dict[str, Any] | None:
+    """A crossover's arms are periods in the same people. A continuous row given as per-arm mean/SD is two INDEPENDENT arms and
+    is refused: the analysis needs the paired (within-person) difference with its own SD or SE. None when not a crossover."""
+    model = str((registry_row or {}).get("intervention_model") or "").upper()
+    m = _CROSSOVER_TEXT.search(held_text or "")
+    if model != "CROSSOVER" and not m:
+        return None
+    basis = "registry intervention_model CROSSOVER" if model == "CROSSOVER" else f"held text: '{m.group(0)}'"
+    if row.get("paired_md") is not None and (row.get("paired_se") is not None or row.get("paired_sd_diff") is not None):
+        return {"design": "CROSSOVER", "basis": basis, "state": "PAIRED_ADMITTED"}
+    if row.get("mean1") is not None:
+        return {"design": "CROSSOVER", "basis": basis, "state": "CROSSOVER_PAIRED_VARIANCE_REQUIRED",
+                "reason": ("a crossover's periods are the same people: per-arm means and SDs analysed as independent parallel arms "
+                           "give the wrong variance. The paired (within-person) difference with its SD or SE is required")}
+    return {"design": "CROSSOVER", "basis": basis, "state": "EFFECT_AS_REPORTED",
+            "note": "a reported crossover effect is taken as the trial's paired estimate only if its source says so"}
+
+
+def split_continuous_inputs(trials: list[dict[str, Any]], spec: dict[str, Any] | None, texts_for, registry_for, held_for):
+    """Apply (1)-(3) to an outcome's continuous rows. Returns (primary rows, record). Subgroup rows go to subgroup analyses;
+    rows of another measurement class than the declared primary class go to separate per-class analyses (and, when no class is
+    declared and classes are mixed, EVERY class is separate and the primary is refused); crossover rows without a paired
+    variance are held. texts_for / registry_for / held_for are callables on a row."""
+    rule = (spec or {}).get("population_default") or {}
+    mrule = (spec or {}).get("measurement_classes") or {}
+    rec = {"subgroups": [], "held_crossover": [], "classes": {}, "primary_class": mrule.get("primary"), "state": None}
+    keep = []
+    for t in trials:
+        if t.get("mean1") is None and str(t.get("scale") or "").upper() not in ("MD", "SMD"):
+            keep.append(t)
+            continue
+        cx = crossover_state(t, registry_for(t), held_for(t))
+        if cx:
+            t["crossover"] = cx
+            if cx["state"] == "CROSSOVER_PAIRED_VARIANCE_REQUIRED":
+                rec["held_crossover"].append(t)
+                continue
+        pc = population_class(t, spec)
+        t["population_class"] = pc
+        mc = measurement_class(texts_for(t))
+        t["measurement_class"] = mc
+        if str(rule.get("rule") or "").upper() == "FULL_ELIGIBLE" and pc["population"] == "SUBGROUP":
+            rec["subgroups"].append(t)
+            continue
+        keep.append(t)
+    if mrule.get("separate_by_class"):
+        by = {}
+        for t in keep:
+            by.setdefault((t.get("measurement_class") or {}).get("class", "NOT_STATED"), []).append(t)
+        rec["classes"] = {k: [r.get("id") for r in v] for k, v in by.items()}
+        prim = mrule.get("primary")
+        if len(by) > 1 and not prim:
+            rec["state"] = "MEASUREMENT_CLASS_MIXED_PRIMARY_NOT_DECLARED"
+            rec["by_class"] = by
+            return [], rec
+        if prim:
+            rec["by_class"] = {k: v for k, v in by.items() if k != prim}
+            return by.get(prim, []), rec
+    return keep, rec
