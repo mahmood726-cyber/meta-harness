@@ -466,7 +466,13 @@ def screen_family(family, config):
             clarification = population_clarification(config, conditions)
             if not clarification:
                 return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
-        if any(t.lower() in text for t in inc.get('population_none') or []):
+        # a comorbidity keyword the protocol qualifies with '-only' excludes only when the qualifying condition is
+        # absent (V1.0.1; screen.with_protocol_entry_only)
+        from .screen import with_protocol_entry_only
+        _inc = with_protocol_entry_only(config).get('include') or inc
+        _only = {t.lower() for t in _inc.get('population_none_entry_condition_only') or []}
+        _qualified = population_matches(_inc.get('population_any') or [], conditions)
+        if any(t.lower() in text and not (t.lower() in _only and _qualified) for t in inc.get('population_none') or []):
             return cell('INELIGIBLE', family['population']['conditions']['span'])
     if not family['randomised_contrasts']:
         return cell(code='INTERVENTION_CONTRAST_NOT_PROVEN')
@@ -487,6 +493,18 @@ def screen_family(family, config):
         span['population_basis'] = 'RETROSPECTIVE_VOCABULARY_CLARIFICATION'
         span['population_clarification'] = clarification
     return cell('ELIGIBLE', span)
+
+def population_witness_topic(root, slug, config):
+    """V1.0.1: a topic listed VALIDATED in registry/population_witness_topics.json reads its family population from
+    source evidence (harness/population_witness.py) with its validated per-topic settings."""
+    p = Path(root) / 'registry' / 'population_witness_topics.json'
+    entry = ((json.loads(p.read_text(encoding='utf8')) if p.exists() else {}).get('topics') or {}).get(slug) or {}
+    if entry.get('status') != 'VALIDATED':
+        return config
+    req = dict(config.get('family_requirements') or {})
+    req.setdefault('population', 'validated topic: ' + slug)
+    return dict(config, family_requirements=req, population_witness=entry)
+
 
 def protocol_requirements(root, slug, config):
     """Apply explicit structured B-prime design/population declarations only.
@@ -511,7 +529,7 @@ def protocol_requirements(root, slug, config):
 def prepare(root, slug, records, config, ledger=None):
     """Read held family ingredients; registry collection is an explicit offline step."""
     root = Path(root)
-    config = protocol_requirements(root,slug,config)
+    config = population_witness_topic(root, slug, protocol_requirements(root,slug,config))
     path = root/'cache'/slug/'family_registry.json'
     ingredients = read_registry(path) if path.exists() else {}
     by_id = {_rid(r):dict(r) for r in records}

@@ -19,13 +19,16 @@ This module computes the relation from the pooled trial-FAMILY sets of the prima
            For 2 and 3 a name binds to a family only when its normalised form (lower-case alphanumerics) equals
            an acronym held for exactly one family -- the family ledger's acronym or its registry record's acronym
            field. Abstract text is never used to bind (abstracts cite other trials).
-  date proof = a pooled family whose EARLIEST held publication report is from a year strictly AFTER the
-           comparator's publication year cannot be in the comparator's set.
+  NO publication-year rule. A trial's standalone paper can post-date a comparator that already analysed its data
+           (COVID STEROID's 2021 paper; its data are in the 2020 WHO prospective meta-analysis; RECOVERY's report
+           is dated 2021 in print). Membership is trial identity plus actual analysis membership, never a date.
 
 Relation (IDENTICAL_SET / SUBSET / SUPERSET / OVERLAPPING / DISJOINT) is a set operation. When the sets are not known
 well enough to decide -- no enumeration, or an unbound comparator trial that could be one of ours -- the relation is
-NOT_ENUMERABLE, never a guess from counts; what IS known is kept as a stated constraint. DISJOINT by date proof needs
-no enumeration: if every pooled family post-dates the comparator, nothing can be shared.
+NOT_ENUMERABLE, never a guess from counts or dates; what IS known is kept as a stated constraint.
+Participant level: a shared TRIAL is not necessarily shared PARTICIPANTS -- a comparator can analyse a subgroup (WHO
+REACT used RECOVERY's invasively ventilated subgroup). When a comparator member states its analysis population and it
+differs from ours, the shared family is reported as SAME_TRIAL_DIFFERENT_PARTICIPANTS.
 """
 from __future__ import annotations
 
@@ -43,8 +46,8 @@ LABELS = {
     "DISJOINT": "disjoint -- no trial family in common",
     "NOT_ENUMERABLE": "not enumerable -- the comparator trial set is not known well enough to compare",
 }
-DATE_RULE = ("a pooled family whose earliest held publication report is from a year strictly after the comparator's "
-             "publication year cannot be in the comparator's trial set")
+NO_DATE_RULE = ("publication year is never used to decide membership: a trial's own paper can post-date a comparator "
+                "that already analysed its data (V1.0.1, COVID-corticosteroids review)")
 
 
 def _year(value) -> Optional[int]:
@@ -168,7 +171,8 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
                                 "secondary publication of " + via[0][0] if via and len(hits) == 1 else
                                 "bound by panel alias" if m.get("aliases") else
                                 "identified by bibliographic key " + m["bib_key"] if m.get("bib_key") else "unbound (name only)"),
-                   "endpoint": ep, "span": (m.get("span") or {}).get("quote")}
+                   "endpoint": ep, "span": (m.get("span") or {}).get("quote"),
+                   **({"analysis_population": m["analysis_population"]} if m.get("analysis_population") else {})}
             (outs if (ep and expected and ep != expected) else ins).append(rec)
         tsd = panel.get("trial_set_document") or {}
         doc = tsd.get("document_ref") or panel.get("document_ref")
@@ -220,14 +224,8 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
         ours_keys[fid] = [k for k in (fid, t.get("id"), t.get("label"), *(al.get("report_ids") or []),
                                       *(al.get("registry_ids") or []), *(al.get("dois") or []),
                                       *(al.get("bib_keys") or [])) if k]
-    post = {o["family_id"] for o in ours
-            if comp_year is not None and o["earliest_report"] and o["earliest_report"]["year"] > comp_year}
-    date_proof = {"rule": DATE_RULE, "comparator_year": comp_year,
-                  "post_dating": [f"{o['family_id']} ({o['earliest_report']['report_id']}, {o['earliest_report']['year']})"
-                                  for o in ours if o["family_id"] in post],
-                  "holds_for_every_pooled_family": bool(ours) and len(post) == len(ours)}
     out = {"outcome": prim.get("name"), "comparator_pmid": comp.get("pmid"), "comparator_year": comp_year,
-           "ours": ours, "ours_k": len(ours), "date_proof": date_proof, "constraints": []}
+           "ours": ours, "ours_k": len(ours), "membership_rule": NO_DATE_RULE, "constraints": []}
     if not ours:
         return _finish(out, "NOT_ENUMERABLE", basis="no pooled trials for the primary outcome")
 
@@ -235,12 +233,6 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
     if got is None:
         out["theirs"] = {"status": "NOT_ENUMERATED",
                          "note": "the registered comparator's trial set is not enumerated in a typed, located source"}
-        if date_proof["holds_for_every_pooled_family"]:
-            out.update(shared=[], shared_k=0, only_ours=[o["family_id"] for o in ours])
-            return _finish(out, "DISJOINT", basis="date proof (every pooled family post-dates the comparator)")
-        if post:
-            out["constraints"].append("ours is not a subset of the comparator's set: " + ", ".join(date_proof["post_dating"])
-                                      + f" first reported after {comp_year}")
         return _finish(out, "NOT_ENUMERABLE", basis="comparator trial set not enumerated")
 
     meta, ins, outs = got
@@ -266,21 +258,34 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
     known = lambda m: (bool(m.get("family")) or m["identity"] == "bound by panel alias"
                        or (m["identity"].startswith("identified by bibliographic key") and ours_have_bib))
     unbound = [m["name"] for m in ins if not m["bound_to"] and not known(m)]
-    undecidable = [o["family_id"] for o in ours if o["family_id"] not in bound_ours and o["family_id"] not in post]
+    undecidable = [o["family_id"] for o in ours if o["family_id"] not in bound_ours]
     if unbound and undecidable:
         out["constraints"].append(
             f"{len(ins) - len(unbound)} of {len(ins)} comparator trial(s) bound to a trial family; unbound: "
-            f"{', '.join(unbound)}; pooled famil(ies) {', '.join(undecidable)} are not excluded by date, so the "
-            "shared set cannot be decided")
+            f"{', '.join(unbound)}; pooled famil(ies) {', '.join(undecidable)} could be among them, so the shared set "
+            "cannot be decided")
         return _finish(out, "NOT_ENUMERABLE", basis="enumerated comparator set with unbound members")
     out["inventory_comparison"] = _inventory(review, ins)
     shared = sorted(bound_ours)
     only_ours = [o["family_id"] for o in ours if o["family_id"] not in bound_ours]
     only_theirs = [m["name"] for m in ins if not m["bound_to"]]
     out.update(shared=shared, shared_k=len(shared), only_ours=only_ours, only_theirs=only_theirs)
-    if unbound:
-        out["constraints"].append(f"unbound comparator trial(s) {', '.join(unbound)} cannot be any pooled family: "
-                                  "every pooled family not bound to one post-dates the comparator (date proof)")
+    # participant level: a shared trial analysed in a different population on the comparator's side
+    ours_pop = {t.get("family_id") or t.get("id"): (t.get("analysis_population") or "the randomised population as pooled here")
+                for t in prim.get("trials") or [] if isinstance(t, dict)}
+    part = []
+    for m in ins:
+        if m.get("bound_to") and m.get("analysis_population"):
+            same = str(m["analysis_population"]).strip().lower() == str(ours_pop.get(m["bound_to"])).strip().lower()
+            part.append({"family": m["bound_to"], "comparator_trial": m["name"],
+                         "comparator_population": m["analysis_population"], "our_population": ours_pop.get(m["bound_to"]),
+                         "state": "SAME_PARTICIPANTS" if same else "SAME_TRIAL_DIFFERENT_PARTICIPANTS"})
+    if part:
+        out["participant_level"] = part
+        diff = [p["family"] for p in part if p["state"] != "SAME_PARTICIPANTS"]
+        if diff:
+            out["constraints"].append("shared trial(s) analysed in a different population by the comparator: "
+                                      + ", ".join(diff) + " (a trial-name match is not the same participants)")
     if not shared:
         rel = "DISJOINT"
     elif not only_ours and not only_theirs:
@@ -291,7 +296,7 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
         rel = "SUPERSET"
     else:
         rel = "OVERLAPPING"
-    return _finish(out, rel, basis="set operation on the enumerated comparator trial set" + (" + date proof" if unbound else ""))
+    return _finish(out, rel, basis="set operation on the enumerated comparator trial set")
 
 
 def _inventory(review: dict, members: list) -> dict:
@@ -424,9 +429,10 @@ def render_block(obj: Optional[dict]) -> str:
                              for m in th.get("out_of_scope") or []) + "</table>")
     else:
         out.append(f"<p>Comparator trial set: NOT ENUMERATED ({e(th.get('note') or 'no typed source')}).</p>")
-    dp = obj.get("date_proof") or {}
-    out.append(f"<p>Date proof ({e(dp.get('rule'))}; comparator year {e(dp.get('comparator_year'))}): "
-               + (e(", ".join(dp.get("post_dating") or [])) or "no pooled family post-dates the comparator") + ".</p>")
+    out.append(f"<p class='small'>{e(obj.get('membership_rule') or NO_DATE_RULE)}.</p>")
+    for p_ in obj.get("participant_level") or []:
+        out.append(f"<p><code>{e(p_['state'])}</code>: {e(p_['comparator_trial'])} ({e(p_['family'])}) -- comparator "
+                   f"analyses {e(p_['comparator_population'])}; we pool {e(p_['our_population'])}.</p>")
     inv = obj.get("inventory_comparison") or {}
     if inv.get("rows"):
         out.append("<h5>Comparator trials against our eligible inventory (separate from the pooled-set relation)</h5>"

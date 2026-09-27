@@ -43,3 +43,18 @@ def test_build_commit_classifier():
     bsha = ((rev.get("reproduction") or {}).get("preregistration") or {}).get("build_sha")
     if bsha:
         assert registration.is_build_commit(bsha) is True, f"doac-vte build_sha {bsha} should classify as build"
+
+
+def test_later_protocol_only_commit_after_a_build_is_not_prospective(monkeypatch):
+    # V1.0.1 plant (synthetic; the live instance was colchicine-secondary: build 9355c4b9, then the labelled
+    # retrospective erratum 22d1741a, which the earliest-protocol-only rule read as the registration)
+    hist = ["erratum0", "build000"]  # git log order: newest first
+    monkeypatch.setattr(registration, "_log_all", lambda path: list(hist))
+    monkeypatch.setattr(registration, "is_build_commit", lambda sha: sha.startswith("build"))
+    monkeypatch.setattr(registration, "_git_log", lambda path: None)
+    pre = registration.preregistration_sha("__control_erratum_after_build")
+    assert pre["prospective"] is False and pre["sha"] is None, pre
+    # the converse: a protocol-only FIRST commit is still the registration, whatever follows
+    hist[:] = ["build000", "proto000"]
+    pre = registration.preregistration_sha("__control_protocol_first")
+    assert pre["prospective"] is True and pre["sha"] == "proto000", pre

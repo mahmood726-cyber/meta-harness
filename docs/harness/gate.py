@@ -326,6 +326,86 @@ def check_manuscript_numbers(review_dir):
     return []
 
 
+def _review_json(review_dir):
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return None, []
+    try:
+        with open(p, encoding="utf-8") as f:
+            return json.load(f), []
+    except (OSError, ValueError) as exc:
+        return None, [f"cannot read review.json: {exc}"]
+
+
+def check_comparator_internal_mismatch_kept(review_dir, html=None):
+    """V1.0.1: a comparator's internal mismatch (a prose tuple mixing two models' rows, a figure row whose year differs
+    from its own table -- harness/comparator_models.py) is KEPT: every one is rendered, and a reported comparator row
+    that repeats a mixed pair carries the flag and keeps its printed values."""
+    rev, err = _review_json(review_dir)
+    if err:
+        return ["COMPARATOR_MISMATCH: " + err[0]]
+    if not rev:
+        return []
+    comp = rev.get("comparator") or {}
+    mm = comp.get("internal_mismatches") or []
+    out = []
+    for x in [x for x in mm if x.get("kind") == "PROSE_MIXES_MODELS"]:
+        pr = x["prose"]
+        rows = [r for r in comp.get("reported") or [] if (r.get("estimate"), r.get("ci_low"), r.get("ci_high"))
+                == (pr["point"], pr["ci_low"], pr["ci_high"])]
+        if rows and not all((r.get("internal_mismatch") or {}).get("code") == "COMPARATOR_INTERNAL_MISMATCH" for r in rows):
+            out.append(f"COMPARATOR_MISMATCH: reported row {pr['point']} ({pr['ci_low']}-{pr['ci_high']}) repeats a mixed "
+                       "pair without the flag")
+    if html is not None and mm and html.count("COMPARATOR_INTERNAL_MISMATCH") < len(mm):
+        out.append(f"COMPARATOR_MISMATCH: {len(mm)} internal mismatch(es) in the object, "
+                   f"{html.count('COMPARATOR_INTERNAL_MISMATCH')} rendered")
+    return out
+
+
+def check_comparator_identity_disclosed(review_dir, html=None):
+    """V1.0.1: when the comparator the protocol NAMES is not the one its PMID/DOI resolve to
+    (harness/comparator_identity.py), the page says so -- COMPARATOR_IDENTITY_MISMATCH and the resolved first author."""
+    rev, err = _review_json(review_dir)
+    if err:
+        return ["COMPARATOR_IDENTITY: " + err[0]]
+    ident = ((rev or {}).get("comparator") or {}).get("identity") or {}
+    if ident.get("state") != "COMPARATOR_IDENTITY_MISMATCH" or html is None:
+        return []
+    out = []
+    if "COMPARATOR_IDENTITY_MISMATCH" not in html:
+        out.append("COMPARATOR_IDENTITY: the identity mismatch is not rendered")
+    fa = (ident.get("resolved") or {}).get("first_author")
+    if fa and fa not in html:
+        out.append(f"COMPARATOR_IDENTITY: the resolved first author {fa!r} is not rendered")
+    return out
+
+
+def check_funding_label_derived(review_dir, html=None):
+    """V1.0.1: a funding row that carries the typed object (harness/funding_typed.py) serves the label DERIVED from it,
+    and 'no industry tie' is served only with industry_tie ABSENT -- a public funder named 'and others' can never
+    establish it."""
+    rev, err = _review_json(review_dir)
+    if err:
+        return ["FUNDING: " + err[0]]
+    if not rev:
+        return []
+    out = []
+    for row in rev.get("funding") or []:
+        t = row.get("typed") or {}
+        if not t:
+            continue
+        if t.get("label") and row.get("type") != t["label"]:
+            out.append(f"FUNDING: {row.get('id')} serves {row.get('type')!r}, typed object says {t['label']!r}")
+        if "no industry tie" in str(row.get("type") or "") and t.get("industry_tie") != "ABSENT":
+            out.append(f"FUNDING: {row.get('id')} claims no industry tie with industry_tie {t.get('industry_tie')!r}")
+        if row.get("type") == "public/non-profit" and t.get("industry_tie") != "ABSENT":
+            out.append(f"FUNDING: {row.get('id')} served public/non-profit with industry_tie {t.get('industry_tie')!r}")
+        if t.get("industry_tie") == "PRESENT" and not [f for f in (t.get("funders") or []) + (t.get("material_support") or [])
+                                                      if f.get("class") == "INDUSTRY"]:
+            out.append(f"FUNDING: {row.get('id')} industry_tie PRESENT with no industry entity named")
+    return out
+
+
 def check_overlap_relation_one_object(review_dir, html=None):
     """V1.0.1: the comparator overlap relation is ONE computed object (harness/overlap_relation.py). Refuse a page
     whose projections disagree with it -- the overlap counts, the manifest, the parity row -- or that does not render
@@ -1354,6 +1434,9 @@ def gate_page(review_dir):
                + check_rob_rederivable(review_dir)
                + check_manuscript_numbers(review_dir)
                + check_overlap_relation_one_object(review_dir, html)
+               + check_comparator_internal_mismatch_kept(review_dir, html)
+               + check_funding_label_derived(review_dir, html)
+               + check_comparator_identity_disclosed(review_dir, html)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)

@@ -943,7 +943,10 @@ def stated_trial_count(text):
             tok = m.group(1).lower()
             k = int(tok) if tok.isdigit() else _WORDNUM.get(tok)
             if k:
-                lo = max(text.rfind(". ", 0, m.start()) + 2, 0)
+                lo = text.rfind(". ", 0, m.start())
+                while lo > 0 and re.search(r"(?:\bet al|\be\.g|\bi\.e|\bvs|\bFig|\bRef)$", text[max(0, lo - 6):lo]):
+                    lo = text.rfind(". ", 0, lo)     # 'Smith et al. included 12 RCTs': the period of an abbreviation
+                lo = max(lo + 2, 0)
                 hi = text.find(". ", m.end())
                 sent = text[lo: hi + 1 if hi != -1 else len(text)].strip()
                 # a sentence stating SEVERAL trial counts ('6 trials comparing SGLT2i..., eight trials comparing

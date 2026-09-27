@@ -734,15 +734,83 @@ def _invalidation_signals(slug):
     return out
 
 
+_NOT_OWN_PUB = {"Review", "Systematic Review", "Meta-Analysis", "Comment", "Letter", "Editorial", "News"}
+_NOT_OWN_PUB_EU = {"review", "review-article", "systematic review", "systematic-review", "meta-analysis", "comment",
+                   "letter", "editorial", "news", "preprint"}
+
+
+_TITLE_STOP = {"study", "studies", "trial", "trials", "randomized", "randomised", "randomly", "controlled", "double",
+               "blind", "blinded", "placebo", "multicenter", "multicentre", "phase", "versus", "with", "without",
+               "efficacy", "safety", "evaluate", "evaluating", "evaluation", "assess", "assessing", "assessment",
+               "effect", "effects", "compared", "comparing", "comparison", "patients", "subjects", "from", "that",
+               "this", "their", "after", "into", "open", "label", "group", "parallel", "clinical", "results", "month",
+               "months", "week", "weeks", "year", "years", "treatment", "therapy", "participants", "adults"}
+
+
+def _title_match(title, registry_titles, need=3):
+    """At least `need` distinctive words (>= 4 letters, not trial boilerplate) shared by a paper's title and its
+    trial's registry title: 'Assessment of Denosumab in Korean Postmenopausal Women with Osteoporosis' vs
+    'A Study in Korean Postmenopausal Women With Osteoporosis to Evaluate ... Denosumab' share five."""
+    def words(s):
+        return {w for w in re.findall(r"[a-z][a-z0-9-]{3,}", str(s or "").lower()) if w not in _TITLE_STOP}
+    tw = words(title)
+    return any(len(tw & words(r)) >= need for r in registry_titles or [])
+
+
 def _load_ghost(slug):
-    """Committed ghost-protocol / registry-landscape census (cache/<slug>/ghost.json) from AACT."""
+    """Committed ghost-protocol / registry-landscape census (cache/<slug>/ghost.json) from AACT.
+
+    V1.0.1 (denosumab review): registry IDs are resolved against PUBLICATIONS before anything is labelled results-only
+    or ghost. The census links an NCT to its paper only through AACT study_references RESULT/DERIVED; NCT01457950 was
+    'results_only' although Koh 2016 (PMID 27189284) reports it. cache/<slug>/ghost_pub_links.json (held records that
+    name the NCT + PubMed '[si]' hits, scripts/ghost_pub_links.py) relinks such NCTs; the census counts are kept."""
     p = os.path.join(ROOT, "cache", slug, "ghost.json")
     if not os.path.exists(p):
         return None
     try:
-        return json.load(open(p, encoding="utf-8"))
+        g = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    lp = os.path.join(ROOT, "cache", slug, "ghost_pub_links.json")
+    if not os.path.exists(lp):
+        return g
+    links = json.load(open(lp, encoding="utf-8")).get("ncts") or {}
+
+    def pubs(n):
+        e = links.get(n) or {}
+        own = [dict(h, source=h.get("source")) for h in e.get("held_records") or []]
+        own += [dict(h, source="PubMed secondary identifier [si]") for h in (e.get("pubmed_si") or {}).get("hits") or []
+                if not set(h.get("pubtypes") or []) & _NOT_OWN_PUB]
+        seen = {x["pmid"] for x in own}
+        own += [dict(h, source="Europe PMC full-text / accession search") for h in (e.get("europepmc") or {}).get("hits") or []
+                if h["pmid"] not in seen and not {t.lower() for t in h.get("pubtypes") or []} & _NOT_OWN_PUB_EU
+                # full text can merely CITE a trial: only a paper typed as a trial report whose title matches the
+                # trial's registry title is taken as its publication
+                and any("trial" in t.lower() for t in h.get("pubtypes") or [])
+                and _title_match(h.get("title"), e.get("registry_titles"))]
+        return own
+    relinked = {}
+    for key in ("results_only_ncts", "ghost_ncts"):
+        for n in g.get(key) or []:
+            pp = pubs(n)
+            if pp:
+                relinked[n] = {"was": key[:-5], "publications": [{"pmid": x["pmid"], "title": x.get("title"),
+                                                                   "year": x.get("year"), "source": x["source"]} for x in pp]}
+    if not relinked:
+        return dict(g, publication_linking={"checked": sorted(links), "relinked": {}})
+    g2 = dict(g)
+    g2["as_census"] = {k: g.get(k) for k in ("published", "results_only", "ghost_upper_bound", "results_only_ncts", "ghost_ncts")}
+    g2["results_only_ncts"] = [n for n in g.get("results_only_ncts") or [] if n not in relinked]
+    g2["ghost_ncts"] = [n for n in g.get("ghost_ncts") or [] if n not in relinked]
+    ro = sum(1 for v in relinked.values() if v["was"] == "results_only")
+    gh = sum(1 for v in relinked.values() if v["was"] == "ghost")
+    g2["results_only"] = g.get("results_only", 0) - ro
+    g2["ghost_upper_bound"] = g.get("ghost_upper_bound", 0) - gh
+    g2["published"] = g.get("published", 0) + ro + gh
+    g2["publication_linking"] = {"checked": sorted(links), "relinked": relinked,
+                                 "note": "resolved against publications (held records naming the NCT; PubMed [si]) "
+                                         "before labelling results-only or ghost"}
+    return g2
 
 
 def _load_integrity(slug):
@@ -1912,6 +1980,9 @@ def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
 @aact_cache.cache_only_build
 def build_review_core(slug, config, records, protocol_sha):
     from . import trial_family as trial_family_mod
+    from . import held_text_identity as _hti
+    # V1.0.1 (DOAC-VTE review): a held comparator full text is read only when proved to be the comparator's own text
+    records = _hti.sanitize(ROOT, slug, records)
     _inp = outcome_inputs(slug, config, records)
     config = _inp["config"]
     merged, retrieval_ledger, family_nodes = _inp["merged"], _inp["retrieval_ledger"], _inp["family_nodes"]
@@ -1945,12 +2016,28 @@ def build_review_core(slug, config, records, protocol_sha):
     # text and recorded in the config (with the quote in comparator_k_source), that value is used and
     # the fragile auto-extraction is not.
     ck = config.get("comparator_k")
+    theirs_k_source = None
     if ck is not None:
         theirs_k = ck
     else:
         theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")
-                    or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k")
-                    or "not stated in the comparator abstract/full text")
+                    or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k"))
+        if not theirs_k:
+            # V1.0.1: read every HELD comparator text before declaring the count unavailable -- the abstract and the
+            # committed cache/<slug>/comparator_fulltext.txt (records.json may carry an empty comparator_fulltext)
+            _held_ft = os.path.join(ROOT, "cache", slug, "comparator_fulltext.txt")
+            _ft_file = open(_held_ft, encoding="utf-8").read() if os.path.exists(_held_ft) else ""
+            for _src, _txt in (("comparator abstract", comp_abstract), ("comparator full text (records)", comp_full),
+                               (f"cache/{slug}/comparator_fulltext.txt", _ft_file)):
+                _k, _q = extract.stated_trial_count(_txt)
+                if _k:
+                    theirs_k, theirs_k_source = _k, {"source": _src, "quote": _q}
+                    break
+        if not theirs_k:
+            theirs_k = ("not stated in the held comparator text (read: abstract"
+                        + (", full text" if comp_full else "")
+                        + (f", cache/{slug}/comparator_fulltext.txt" if os.path.exists(os.path.join(ROOT, "cache", slug, "comparator_fulltext.txt")) else "")
+                        + ")")
     oa = records.get("comparator_oa") or {}
     comp_year = comp_rec.get("year")
     ours_k = primary["result"].get("k") if isinstance(primary["result"], dict) and primary["result"].get("k") else len(primary["trials"])
@@ -1966,19 +2053,29 @@ def build_review_core(slug, config, records, protocol_sha):
     if invalid_note := parity_relation.invalid_scope_override(ROOT, slug):
         comp_scope = {**comp_scope, "scope_valid": False, "note": invalid_note}
     comparator = {
+        **({"fulltext_identity": records["comparator_fulltext_identity"]}
+           if records.get("comparator_fulltext_identity") else {}),
         "name": comp_rec.get("title") or "comparator", "year": comp_year,
         "journal": comp_rec.get("journal"), "pmid": comp_rec.get("id"), "doi": comp_rec.get("doi"),
         "url": (f"https://doi.org/{comp_rec.get('doi')}" if comp_rec.get("doi") else None),
         "open_access": bool(oa.get("is_oa")), "reported": reported,
         "scope": comp_scope,
         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
-                    **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else {}),
+                    **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else
+                       {"theirs_k_source": theirs_k_source} if theirs_k_source else {}),
                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
                     "only_ours": newer, "only_theirs": [],
                     "method": "publication-date + design identity (comparator trial list not extracted from source)",
                     "note": (f"Trials newer than the comparator ({comp_year}) cannot be in it (only-ours, "
                              f"verifiable by date). Exact shared count not asserted.")},
     }
+    # V1.0.1 (denosumab review): a stated count from a NETWORK meta-analysis is a network count, never the direct
+    # comparison's k (Wei 2023: 92 RCTs overall, 55 in the vertebral-fracture network, direct edge not enumerated)
+    from . import comparator_network as comparator_network_mod
+    _net = comparator_network_mod.load(ROOT, slug)
+    comparator["overlap"] = comparator_network_mod.apply(
+        comparator["overlap"], _net, comparator_network_mod.is_network(comp_rec.get("title") or "", comp_abstract)
+        and slug not in comparator_second_pass.PROFILES)
     if slug in comparator_second_pass.PROFILES:
         comparator = comparator_second_pass.apply(slug, config, records, comp_rec, comparator)
     if slug in comparator_truth.PAGE_ANNOTATION_SLUGS:
@@ -2315,10 +2412,42 @@ def build_review_core(slug, config, records, protocol_sha):
     # overlap counts become a projection of it (harness/overlap_relation.py).
     from . import overlap_relation as overlap_relation_mod
     review["comparator"] = overlap_relation_mod.attach(review, rec_by_id)
+    # V1.0.1: the comparator's model-specific tuples and its internal mismatches (a mixed prose pair is flagged,
+    # never adopted and never used to move our result) -- harness/comparator_models.py
+    from . import comparator_models as comparator_models_mod
+    review["comparator"] = comparator_models_mod.attach_review(review, overlap_relation_mod._panel_entry(review),
+                                                               comparator_models_mod.load_reported(ROOT, slug))
+    # V1.0.1 (DOAC-VTE review): identical membership is not identical inputs -- per shared trial, population, outcome,
+    # window and analysis set on both sides (harness/outcome_match.py)
+    from . import outcome_match as outcome_match_mod
+    _mi = outcome_match_mod.load(ROOT, slug)
+    if _mi:
+        review["comparator"] = dict(review["comparator"], shared_trial_inputs=outcome_match_mod.compare(_mi, review))
+    # V1.0.1 (denosumab review): the comparator's abstract vs its results section, same named estimate -- kept, flagged
+    _body_ref = f"cache/{slug}/comparator_fulltext.txt"
+    _body = (open(os.path.join(ROOT, _body_ref), encoding="utf-8").read()
+             if os.path.exists(os.path.join(ROOT, _body_ref)) else "")
+    review["comparator"] = comparator_models_mod.flag_reported_rows(
+        review["comparator"], comparator_models_mod.abstract_body_mismatches(comp_abstract, _body, _body_ref))
+    # V1.0.1: is the comparator the protocol NAMES the one its PMID/DOI resolve to? (harness/comparator_identity.py)
+    from . import comparator_identity as comparator_identity_mod
+    review["comparator"] = dict(review["comparator"], identity=comparator_identity_mod.check(
+        ROOT, slug, config.get("comparator_pmid")))
+    # V1.0.1 (dapagliflozin review): a comparator row's POPULATION read from the included trial's own report -- "HF
+    # without known reduced EF" is not measured preserved EF, whatever the comparator's table prints
+    _mr = os.path.join(ROOT, "cache", slug, "comparator_member_reports.json")
+    _ct = os.path.join(ROOT, "cache", slug, "comparator_fulltext.txt")
+    if os.path.exists(_mr) and os.path.exists(_ct):
+        from . import population_witness as _pw
+        _reports = json.load(open(_mr, encoding="utf-8")).get("reports") or []
+        review["comparator"] = dict(review["comparator"], member_populations=_pw.member_populations(
+            open(_ct, encoding="utf-8").read(), _reports))
     return review
 
 
 def build_comparator_core(slug, config, records):
+    from . import held_text_identity as _hti
+    records = _hti.sanitize(ROOT, slug, records)
     comp_rec = {r["id"]: r for r in _dedup(records)}.get(config.get("comparator_pmid")) or {}
     comp_abstract = comp_rec.get("abstract", "")
     comp_full = records.get("comparator_fulltext") or ""

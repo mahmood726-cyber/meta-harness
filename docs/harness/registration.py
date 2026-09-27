@@ -83,10 +83,13 @@ def preregistration_sha(slug: str) -> dict:
     listed there and that batch is protocol-only. If neither exists, prospective is False (the protocol
     first entered the repo inside a build commit) -- reported honestly, never claimed."""
     bsha = build_sha(slug)
-    for sha in reversed(_log_all(f"protocols/{slug}.md")):  # oldest first
-        if not is_build_commit(sha):
-            return {"prospective": True, "sha": sha, "kind": "protocol-file (earliest, protocol-only)",
-                    "build_sha": bsha}
+    # V1.0.1: only the protocol's FIRST commit can be its prospective registration. Once the protocol has entered the
+    # repo inside a BUILD, a later protocol-only commit is an amendment or a retrospective erratum (colchicine-secondary's
+    # labelled erratum 22d1741a after build 9355c4b9 was being read as its registration).
+    history = _log_all(f"protocols/{slug}.md")
+    if history and not is_build_commit(history[-1]):  # oldest first
+        return {"prospective": True, "sha": history[-1], "kind": "protocol-file (earliest, protocol-only)",
+                "build_sha": bsha}
     try:
         prereg_text = open(os.path.join(ROOT, PREREG), encoding="utf-8").read()
     except OSError:
@@ -96,4 +99,6 @@ def preregistration_sha(slug: str) -> dict:
         return {"prospective": True, "sha": batch, "kind": "PREREGISTRATION_v2 batch (protocol-only)",
                 "build_sha": bsha}
     return {"prospective": False, "sha": None,
-            "kind": "no protocol-only commit -- protocol first committed inside a build", "build_sha": bsha}
+            "kind": ("protocol first committed inside a build; later protocol-only commits are amendments or errata, "
+                     "not a registration") if any(not is_build_commit(x) for x in _log_all(f"protocols/{slug}.md"))
+                    else "no protocol-only commit -- protocol first committed inside a build", "build_sha": bsha}

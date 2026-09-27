@@ -606,7 +606,35 @@ def _source_case_basis(basis: str, rec: dict) -> str:
     return out
 
 
+def with_protocol_entry_only(config: dict) -> dict:
+    """V1.0.1 (dapagliflozin review): COMORBIDITY IS NOT EXCLUSION. The protocol's own exclusion wording ('diabetes-only,
+    CKD-only') makes those population_none terms entry-condition-only vetoes: they exclude a record only when positive
+    evidence of the qualifying condition is absent (screen_entry.population_exclusion). Read from the registered
+    protocol text, never hand-edited into the config; a config's own declaration is kept."""
+    import os
+    from . import population_witness
+    import json as _json
+    slug = config.get("slug")
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(root, "protocols", f"{slug}.md")
+    inc = dict(config.get("include") or {})
+    reg = os.path.join(root, "registry", "population_witness_topics.json")
+    status = (((_json.load(open(reg, encoding="utf-8")) if os.path.exists(reg) else {})
+               .get("comorbidity_only_from_protocol") or {}).get(slug) or {}).get("status")
+    # validated per topic: in doac-vte-recurrence '-only' restricts the same condition to a subgroup, not a comorbidity
+    if status != "VALIDATED" or not slug or not os.path.exists(path) or not inc.get("population_none"):
+        return config
+    derived = population_witness.entry_only_terms_from_protocol(open(path, encoding="utf-8").read(), inc["population_none"])
+    if not derived:
+        return config
+    have = list(inc.get("population_none_entry_condition_only") or [])
+    inc["population_none_entry_condition_only"] = have + [t for t in derived if t not in have]
+    inc["population_none_entry_condition_only_source"] = f"protocols/{slug}.md ('-only' wording) + topic config"
+    return dict(config, include=inc)
+
+
 def run(all_recs: list, config: dict) -> dict:
+    config = with_protocol_entry_only(config)
     inc = config.get("include", {})
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-

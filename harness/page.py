@@ -1010,6 +1010,16 @@ def _search(r, neutral):
                  f"nor a linked publication — a <em>loose upper bound</em> on non-publication, inflated by "
                  f"the broad enumeration and by NCT&rarr;PMID linkage misses, not a publication-bias claim. "
                  f"<span class='muted'>{_e(g.get('source'))}.</span></p>")
+        _rl = (g.get("publication_linking") or {}).get("relinked") or {}
+        if _rl:
+            _ac = g.get("as_census") or {}
+            body += (f"<p>Registry IDs resolved against publications before labelling (V1.0.1): {len(_rl)} NCT(s) the "
+                     f"census called results-only or ghost have a publication that names them "
+                     f"(census counts: {_e(_ac.get('published'))} published, {_e(_ac.get('results_only'))} results-only, "
+                     f"{_e(_ac.get('ghost_upper_bound'))} ghost): "
+                     + "; ".join(f"{_e(n)} &rarr; " + ", ".join(f"PMID {_e(x['pmid'])} ({_e(x['source'])})"
+                                                          for x in v["publications"][:3]) for n, v in sorted(_rl.items()))
+                     + ".</p>")
     for src in s.get("sources", []) or []:
         body += f"<h4>{_e(src.get('name'))}</h4>"
         for q in src.get("queries", []) or []:
@@ -1053,7 +1063,10 @@ def _trial_families(r, legacy_flow=''):
     panel = ('<section id="family-missing-evidence"><h4>Missing evidence in eligible families</h4>'
              '<p>Eligible families without a poolable value, by registered outcome; UNKNOWN is not NO.</p><ul>'
              + ''.join('<li>'+_e(x['family_id']+' / '+x['outcome']+' / '+x['state'])+'</li>' for x in missing)
-             + '</ul>' + ('<p>None.</p>' if not missing else '') + '</section>')
+             + '</ul>' + (('<p>None.</p>' if chain.get('eligible_families') else
+                            '<p>0 families established: with no family structurally eligible, nothing can be listed as '
+                            'missing among established families (this is not evidence that none is missing).</p>')
+                           if not missing else '') + '</section>')
     heads = ['Family ID','Acronym','Reports by role','Arms','Contrasts','Eligibility','Lifecycle','Per-outcome status']
     if show_pop:
         heads.insert(6, 'Entry population (source evidence: registry criteria, primary report, registry conditions)')
@@ -2122,6 +2135,9 @@ def _comparator(r, neutral):
         # excused as scope. Sourced from the topic config; shown verbatim beside the uniform verdict.
         if r.get("comparator_scope_note"):
             body += f"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>"
+    if not r.get("comparator_panel"):
+        from .held_text_identity import render as _held_identity_block
+        body += _held_identity_block(c.get("fulltext_identity") or {})
     if r.get("comparator_panel"):
         from .comparator_panel import render
         # Preserve explicit absence disclosures required by the standing page gate.
@@ -2269,9 +2285,13 @@ def _reproduction(r, neutral):
                       "results, so it is a timestamped internal record of what we already knew, not a "
                       "prospective registration (and it does not satisfy PRISMA 24a). Retracted.")
     elif pre:
-        prereg_row = ("<strong>NOT demonstrated for this topic</strong> — no protocol-only commit exists; "
-                      "the protocol first entered the repository inside a build commit "
-                      f"(<code>{_e(pre.get('build_sha'))}</code>), so this repository's history does not show "
+        _later = str(pre.get("kind") or "").startswith("protocol first committed inside a build; later")
+        prereg_row = ("<strong>NOT demonstrated for this topic</strong> — "
+                      + ("the protocol first entered the repository inside a build commit; its later protocol-only "
+                         "commits are amendments or labelled errata, not a registration "
+                         if _later else "no protocol-only commit exists; the protocol first entered the repository "
+                         "inside a build commit ")
+                      + f"(current protocol commit <code>{_e(pre.get('build_sha'))}</code>), so this repository's history does not show "
                       "the protocol preceding synthesis. The PICO is still fixed and replay from the "
                       "committed cache is deterministic; only prospective PRECEDENCE is unproven here.")
     else:

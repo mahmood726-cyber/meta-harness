@@ -194,6 +194,14 @@ def attach(slug, review, root=ROOT):
     primary = next((o.get("name") for o in review.get("outcomes") or [] if o.get("primary")), None)
     for c in panel:
         validate(c, root)
+        # V1.0.1 (DOAC-VTE review): a panel may name records.json#comparator_fulltext as its held document only when
+        # that text is proved to be the comparator's own (harness/held_text_identity.py)
+        if c.get("held") and c.get("document_field") == "comparator_fulltext":
+            from . import held_text_identity
+            st = held_text_identity.comparator_text_state(
+                str(root), slug, json.loads((Path(root) / c["document_ref"]).read_text(encoding="utf-8")))
+            if st["state"] != "OWN_TEXT":
+                raise ValueError("COMPARATOR_PANEL: held document is not the comparator's own text: " + st.get("why", ""))
         if figures and (str(figures.get("comparator_pmid")) in str(c.get("citation") or "")
                         or str(figures.get("comparator_pmid")) == str(c.get("id") or "")):
             # V1.0.1: model-specific tuples from the comparator's own figure, its internal mismatches, and the
@@ -254,10 +262,25 @@ def render(review):
     from .comparator_identity import render_block as _identity_block
     parts.append(_reported_block(review.get("comparator") or {}))
     parts.append(_identity_block((review.get("comparator") or {}).get("identity") or {}))
+    from .outcome_match import render as _outcome_match_block
+    parts.append(_outcome_match_block((review.get("comparator") or {}).get("shared_trial_inputs")))
+    from .held_text_identity import render as _held_identity_block
+    parts.append(_held_identity_block((review.get("comparator") or {}).get("fulltext_identity") or {}))
+    from .comparator_network import render as _network_block
+    parts.append(_network_block((review.get("comparator") or {}).get("overlap") or {}))
+    mp = (review.get("comparator") or {}).get("member_populations") or []
+    if mp:
+        e = lambda s: html.escape(str(s), quote=True)  # noqa: E731
+        parts.append("<div class='comparator-members'><h5>Comparator rows: population read from the trial's own report</h5><ul>"
+                     + "".join(f"<li><strong>{e(m['member'])}</strong>: comparator prints &ldquo;{e(m['comparator_prints'])}&rdquo;; "
+                               f"<code>{e(m['ef_state'])}</code> from PMID {e(m['report_pmid'])}: &ldquo;{e(m['report_quote'])}&rdquo; "
+                               f"&mdash; {e(m['note'])}.</li>" for m in mp) + "</ul></div>")
     for c in review.get("comparator_panel", []):
         parts.append(f"<article data-comparator='{esc(c['id'])}'><h4>{esc(c['citation'])}</h4><p>{esc(c['scope_note'])}</p>")
         if not c["held"]:
-            parts.append("<p><strong>NOT HELD — identity only</strong></p></article>")
+            parts.append("<p><strong>NOT HELD — identity only</strong>"
+                         + (f" (held text refused: {esc(c['held_refused']['why'])})" if c.get("held_refused") else "")
+                         + "</p></article>")
             continue
         parts.append(f"<p>HELD: {esc(c['document_ref'])}{esc('#' + c['document_field']) if c.get('document_field') else ''}; SHA-256 {esc(c['document_sha256'])}</p><dl>")
         for key in FACTS:

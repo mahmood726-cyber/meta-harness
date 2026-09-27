@@ -1,0 +1,58 @@
+{
+ "_doc": "Topics where harness/population_witness.py is VALIDATED on that topic's own families (read from registry criteria, primary report enrolment sentence and title). A topic is used only when listed VALIDATED with a validation record; the protocol's structured B-prime declaration (glp1-ra-mace-t2d) is its own route. comorbidity_only_from_protocol: topics where the protocol's '<X>-only' exclusion wording has been checked to mean 'X without the qualifying condition' (a comorbidity), so those population_none terms exclude only when the qualifying condition is absent.",
+ "topics": {
+  "denosumab-vertebral-fracture": {
+   "status": "VALIDATED",
+   "validation": "evidence/v101_population/validation/denosumab-vertebral-fracture.json",
+   "none_population_terms": [
+    "women and men",
+    "prostate cancer",
+    "breast cancer",
+    "cancer",
+    "malignancy",
+    "metastatic",
+    "bone metastases",
+    "androgen-deprivation",
+    "androgen deprivation",
+    "aromatase inhibitor",
+    "multiple myeloma",
+    "giant cell tumor",
+    "paediatric",
+    "pediatric",
+    "children",
+    "chronic kidney disease",
+    "renal insufficiency"
+   ],
+   "why_population_terms": "the topic's population_none also lists drugs (romosozumab, teriparatide, abaloparatide, bisphosphonate) and a procedure (vertebroplasty); read as population exclusions they excluded romosozumab and abaloparatide trials on 'population'"
+  }
+ },
+ "comorbidity_only_from_protocol": {
+  "dapagliflozin-hfpef-hosp": {
+   "status": "VALIDATED",
+   "wording": "diabetes-only, CKD-only",
+   "check": "CARDIA-STIFF NCT04739215 requires T2D + LVEF >= 50% + clinically diagnosed HFpEF: a comorbidity, not a diabetes-only population"
+  },
+  "empagliflozin-hfpef-hosp": {
+   "status": "VALIDATED",
+   "wording": "diabetes-only, CKD-only",
+   "check": "same protocol wording; NCT05057806 lists T2D and HFpEF"
+  },
+  "sglt2-hfref-hosp-cvdeath": {
+   "status": "VALIDATED",
+   "wording": "diabetes-only, CKD-only",
+   "check": "already declared in the topic config (population_none_entry_condition_only)"
+  },
+  "colchicine-secondary-cv-prevention": {
+   "status": "DEFERRED",
+   "wording": "primary stroke-only populations",
+   "check": "Raju 2012 (21918905) enrolled acute coronary syndrome OR acute ischaemic stroke: not a stroke-only population",
+   "deferred_why": "the rule is checked (Raju 2012 is not a stroke-only population and would be included), but including it makes the page refuse at the harms gate: Raju reports 'an excess of diarrhoea (X(2) 4.14, P = 0.04)' with no arm counts in its held abstract, its full text is subscription-only (not in PMC) and no registry record was found, so the gastrointestinal harm would be KNOWN_REPORTED_NOT_YET_EXTRACTED. Until Raju's counts are held (or refused on a source), the topic keeps its V1 screening (Raju excluded under X2); this is the V1 state, not a new exclusion.",
+   "deferred_on": "2026-09-27"
+  },
+  "doac-vte-recurrence": {
+   "status": "NOT_APPLICABLE",
+   "wording": "cancer-only, thrombophilia-only, antiphospholipid-only",
+   "check": "here '-only' restricts the SAME condition (VTE) to a subgroup the protocol excludes (cancer-associated VTE), it does not name a comorbidity; lifting it would admit cancer-associated VTE trials"
+  }
+ }
+}

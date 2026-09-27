@@ -12,6 +12,26 @@ PROPOSAL) marks in a sentence without ever seeing the regex. `kind`:
 from __future__ import annotations
 
 SPECS = {
+    # V1.0.1: the comparator's OWN statement of how many trials it analysed (stated_trial_count)
+    "_K_STATED": {"kind": "extractor", "fields": ["count"],
+                  "spec": "an inclusion verb (included, pooled data from, a total of, participating in, ...) followed by "
+                          "a trial count and 'trials' / 'RCTs'",
+                  "trigger": r"trials|RCTs", "plants": {
+                      "accept": [("pooled data from 7 randomized clinical trials", ("7",)),
+                                 ("included 15 RCTs", ("15",)), ("participating in six trials", ("six",))],
+                      "refuse": ["6 trials comparing SGLT2i", "we identify trials", "included 3252 patients"]}},
+    "_OTHER_REVIEW": {"kind": "classifier",
+                      "spec": "the sentence is about ANOTHER review (et al, another, a/previous/recent meta-analysis), so "
+                              "its trial count is not the comparator's",
+                      "trigger": r"et al|another|review|analys", "plants": {
+                          "accept": ["A recent meta-analysis by Zhang et al included 12 RCTs"],
+                          "refuse": ["This meta-analysis included 12 RCTs"]}},
+    "_re_counts": {"kind": "extractor", "fields": ["count"],
+                   "spec": "every trial count in a sentence ('6 trials', 'eight randomized trials'): a sentence with "
+                           "several counts states sub-counts, not the total",
+                   "trigger": r"trials|RCTs", "plants": {
+                       "accept": [("6 trials comparing", ("6",)), ("eight randomized controlled trials", ("eight",))],
+                       "refuse": ["6 patients", "trial of colchicine"]}},
     "_ARM": {"kind": "extractor", "fields": ["count", "percent", "denominator"],
              "spec": "an event count for one group written as COUNT (PERCENT%) of DENOMINATOR (or COUNT (PERCENT%)/DENOMINATOR)",
              "trigger": r"\d\s*%", "plants": {"accept": [("12 (6.0%) of 200", ("12", "6.0", "200"))],
@@ -158,6 +178,10 @@ INLINE_SPECS = {
         "kind": "split", "what": "composite_heterogeneity: end a definition at the first . ; or :",
         "plants": {"accept": [(" death, mi or stroke; secondary: bleeding", [" death, mi or stroke", " secondary", " bleeding"])],
                    "refuse": ["death, mi or stroke"]}},
+    "extract.py:search:646b4c9a8e": {
+        "kind": "search", "what": "stated_trial_count: the period before a sentence break closes an abbreviation (et al., "
+                                  "e.g., i.e., vs., Fig., Ref.), so the sentence does not start there",
+        "plants": {"accept": [(" Smith et al", None), (" see Fig", None)], "refuse": [" the trial", " we analysed"]}},
     "extract.py:finditer:33f2389e47": {
         "kind": "search", "what": "_multi_dose_arms: a dose with an arm/group context",
         "plants": {"accept": [("the 150 mg group", ("150",)), ("300-mg arm", ("300",))],

@@ -108,10 +108,19 @@ def split_criteria(raw: str):
         if head:
             cur = head.group(1).lower()
             s = head.group(2).strip()
+            # criteria for a LATER phase (extension, re-treatment, follow-on, open-label continuation) are not entry
+            # criteria of the randomised phase: their items are not read (NCT00896532 lists 'New malignancy' under
+            # its follow-on phase)
+            if re.search(r"\b(?:extension|re-?treatment|follow-?on|open[- ]label|continuation|maintenance) (?:phase|period|study)\b"
+                         r"|\bphase \(month", s, re.I):
+                cur = "later_phase"
+                continue
             if not s:
                 continue
         item = re.sub(r"^[*\-•]\s*|^\d{1,2}[.)]\s+", "", s).strip()
         if item:
+            if cur == "later_phase":
+                continue
             (inc if cur == "inclusion" else exc if cur == "exclusion" else uns).append(item)
     return inc, exc, uns
 
@@ -211,11 +220,37 @@ def report_witness(rec: dict, target_terms, none_terms, diabetes: bool = False) 
     return None
 
 
+def title_witness(rec: dict, target_terms, none_terms, diabetes: bool = False) -> Optional[dict]:
+    """The primary report's OWN title is the trial's statement of its population ('Denosumab for prevention of fractures
+    in postmenopausal women with osteoporosis'). FREEDOM's registry criteria say only 'Women ... 60 to 90' and 'T-Score
+    less than -2.5'; its title names the population."""
+    f = lexicon.fold(str(rec.get("title") or ""))
+    if not f:
+        return None
+    pos = [h for h in _hits(f, target_terms) if not h[3]]
+    bad = [h for h in _hits(f, none_terms) if not h[3]]
+    neg = _negated_diabetes(f) if diabetes else None
+    base = {"source": "primary report title", "report_id": str(rec.get("id")), "quote": rec.get("title")}
+    if pos and (bad or neg):
+        return dict(base, verdict="MIXED", why="the title names the protocol population and another")
+    if bad or neg:
+        return dict(base, verdict="EXCLUDED", why=f"the title names a population the protocol excludes ({neg or f[bad[0][1]:bad[0][2]]})")
+    if pos:
+        return dict(base, verdict="ESTABLISHED", why=f"the title names {f[pos[0][1]:pos[0][2]]}")
+    return None
+
+
 def decide(family: dict, config: dict, report_role=None) -> dict:
     """{'state', 'witnesses', 'basis'} for one family. report_role(rec) -> (role, evidence)."""
     inc = config.get("include") or {}
     target = list(inc.get("population_any") or [])
     none = list(inc.get("population_none") or [])
+    topic = config.get("population_witness") or {}
+    if topic.get("none_population_terms") is not None:
+        # validated per topic: only the exclusion terms that describe a POPULATION ('prostate cancer', 'pediatric');
+        # a topic's population_none may also list drugs or designs ('romosozumab', 'vertebroplasty') that must never
+        # read as a population exclusion (registry/population_witness_topics.json)
+        none = list(topic["none_population_terms"])
     clar = [c for c in config.get("population_vocabulary_clarifications") or [] if c.get("terms")]
     if not target:
         return {"state": "NOT_APPLICABLE", "witnesses": [], "basis": "the topic declares no population_any"}
@@ -233,10 +268,13 @@ def decide(family: dict, config: dict, report_role=None) -> dict:
         role = roles.get(str(rec.get("id")))
         if role is None and report_role:
             role = report_role(rec)[0]
-        if role in ("PRIMARY", "PRIMARY_WITH_POOLED_ANALYSIS") and rec.get("abstract"):
-            w = report_witness(rec, target, none, diabetes)
+        if role in ("PRIMARY", "PRIMARY_WITH_POOLED_ANALYSIS"):
+            w = report_witness(rec, target, none, diabetes) if rec.get("abstract") else None
             if w:
                 witnesses.append(w)
+            tw = title_witness(rec, target, none, diabetes)
+            if tw:
+                witnesses.append(tw)
     conds = (pop.get("conditions") or {}).get("value") or []
     strong = {w["verdict"] for w in witnesses}
     if conds:
@@ -273,8 +311,8 @@ def decide(family: dict, config: dict, report_role=None) -> dict:
     else:
         state = "NOT_ESTABLISHED"
     out = {"state": state, "witnesses": witnesses,
-           "basis": "registry eligibility criteria + primary report enrolment sentence; exclusions before the "
-                    "positive match; the registry conditions label only fills silence"}
+           "basis": "registry eligibility criteria + primary report enrolment sentence and title; exclusions before "
+                    "the positive match; the registry conditions label only fills silence"}
     if state == "NOT_ESTABLISHED" and clar:
         # a disclosed RETROSPECTIVE vocabulary clarification may establish it; it is recorded as such
         from .trial_family import population_clarification
@@ -284,4 +322,96 @@ def decide(family: dict, config: dict, report_role=None) -> dict:
         if c:
             out.update(state="ESTABLISHED", population_basis="RETROSPECTIVE_VOCABULARY_CLARIFICATION",
                        population_clarification=c)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# V1.0.1 extension (dapagliflozin HFmrEF/HFpEF review)
+#
+# (1) COMORBIDITY IS NOT EXCLUSION. A protocol that excludes "diabetes-ONLY" or "CKD-only" populations excludes a
+#     record that mentions diabetes only when positive evidence of the qualifying condition is ABSENT. CARDIA-STIFF
+#     (NCT04739215) requires T2D + LVEF >= 50% + clinically diagnosed HFpEF; its conditions list both, and it was
+#     excluded under X2 because the config listed 'diabetes' as a plain veto. The "-only" wording is read from the
+#     protocol's own exclusion line, so the rule follows the registered text, not a hand-edited config.
+# (2) EF MEASURED OR NOT. "HF without known reduced EF" (DECLARE-TIMI 58, n = 1316) is not proof of measured preserved
+#     EF, although the comparator's table prints that subgroup as "HF and EF >= 45%". The trial's own report says EF
+#     "was collected when available". The row is typed EF_UNMEASURED_OR_UNKNOWN from the trial's report.
+
+_ONLY_ABBREV = {"ckd": "kidney", "t2d": "diabet", "t2dm": "diabet", "mi": "myocardial infarction", "af": "atrial fibrillation"}
+
+
+def entry_only_terms_from_protocol(protocol_text: str, none_terms) -> list:
+    """population_none terms the protocol's EXCLUSION wording qualifies with '-only' ('diabetes-only, CKD-only'):
+    such a term excludes only a population that has nothing else -- i.e. only when the qualifying condition is absent."""
+    out = []
+    # only the X2 / wrong-population bullet and its indented continuation lines -- never another section's '-only'
+    lines, on = [], False
+    for ln in (protocol_text or "").splitlines():
+        if re.search(r"\*\*X2\*\*|^\s*-?\s*X2\b|wrong population", ln, re.I):
+            on = True
+            lines.append(ln)
+        elif on and ln.startswith((" ", "\t")) and ln.strip():
+            lines.append(ln)
+        else:
+            on = False
+    text = " ".join(lines)
+    for m in re.finditer(r"([A-Za-z][A-Za-z0-9 /'-]{1,40}?)-only\b", text):
+        phrase = m.group(1).strip().split(",")[-1].strip().split(" ")[-1].lower()
+        # the qualified word begins a word of the term (adjective endings allowed: diabetes -> diabetic, thrombophilia ->
+        # thrombophilic); a term joining two populations ('women and men') is never an '-only' population
+        stem = _ONLY_ABBREV.get(phrase) or phrase[:max(4, len(phrase) - 2)]
+        for t in none_terms or []:
+            ft = lexicon.fold(str(t))
+            if stem and re.search(r"(?<![a-z])" + re.escape(stem), ft) and " and " not in ft and t not in out:
+                out.append(t)
+    return out
+
+
+_EF_UNKNOWN = re.compile(r"\bwithout known reduced (?:ejection fraction|EF)\b|\bEF was collected when available\b|"
+                         r"\bejection fraction (?:was )?(?:not|un)(?:measured|known|available)\b", re.I)
+_EF_MEASURED_PRESERVED = re.compile(r"\b(?:LVEF|ejection fraction|EF)\s*(?:of\s*)?(?:>=|≥|>|greater than|at least)\s*4\d\s*%", re.I)
+
+
+def ef_state(report_text: str, n_as_printed=None):
+    """(state, quote) for the EF of a subgroup, read from the trial's OWN report. When the comparator prints a subgroup
+    size (N = 1316), the sentence of the report that carries that number decides; a report that says EF was collected
+    'when available' / 'HF without known reduced EF' is EF_UNMEASURED_OR_UNKNOWN, never HFpEF."""
+    text = re.sub(r"\s+", " ", report_text or "")
+    sents = re.split(r"(?<=[.;])\s+(?=[A-Z(])", text)
+    if n_as_printed:
+        n = str(n_as_printed).replace(",", "")
+        sents = [s for s in sents if re.search(r"(?<![\d,])" + re.escape(n) + r"(?![\d,])", s.replace(",", ""))] or []
+    for s in sents:
+        if _EF_UNKNOWN.search(s):
+            return "EF_UNMEASURED_OR_UNKNOWN", s
+    whole = [s for s in re.split(r"(?<=[.;])\s+(?=[A-Z(])", text) if _EF_UNKNOWN.search(s)]
+    if whole:
+        return "EF_UNMEASURED_OR_UNKNOWN", whole[0]
+    for s in sents:
+        if _EF_MEASURED_PRESERVED.search(s):
+            return "EF_MEASURED_PRESERVED", s
+    return "EF_STATE_NOT_ESTABLISHED", None
+
+
+def member_populations(printed_text: str, reports: list) -> list:
+    """For each held report of a comparator member: the comparator's printed population cell (located in its own text
+    by the subgroup size the report states) beside the EF state read from the report."""
+    out = []
+    t = printed_text or ""
+    for rep in reports or []:
+        ab = rep.get("abstract") or ""
+        rows = []
+        for m in re.finditer(r"\b(?:HF|heart failure)[^()]{0,40}?\(N\s*=\s*([\d,]+)\)", t):
+            n = m.group(1).replace(",", "")
+            if re.search(r"(?<![\d,])" + n + r"(?![\d])", ab.replace(",", "")):
+                rows.append((m.group(0), n))
+        if not rows:
+            continue
+        cell, n = rows[0]
+        state, quote = ef_state(ab, n)
+        out.append({"member": rep["member"], "report_pmid": rep["pmid"], "comparator_prints": cell,
+                    "n": int(n), "ef_state": state, "report_quote": quote,
+                    "note": ("the comparator's label is kept as printed; the EF state is read from the trial's own "
+                             "report" + ("" if state != "EF_UNMEASURED_OR_UNKNOWN" else
+                                         " -- not proof of measured preserved EF, so not counted as HFpEF"))})
     return out

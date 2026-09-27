@@ -228,7 +228,22 @@
         "NCT06778330",
         "NCT06915870"
       ],
-      "caveat": "ghost = completed >=12mo before snapshot with no CT.gov results and no linked publication; an UPPER BOUND (a paper under a title our NCT->PMID linkage missed reads as ghost). Linkage = AACT study_references RESULT/DERIVED."
+      "caveat": "ghost = completed >=12mo before snapshot with no CT.gov results and no linked publication; an UPPER BOUND (a paper under a title our NCT->PMID linkage missed reads as ghost). Linkage = AACT study_references RESULT/DERIVED.",
+      "publication_linking": {
+        "checked": [
+          "NCT04249778",
+          "NCT04575675",
+          "NCT04595370",
+          "NCT04778787",
+          "NCT05250011",
+          "NCT06012279",
+          "NCT06065280",
+          "NCT06639087",
+          "NCT06778330",
+          "NCT06915870"
+        ],
+        "relinked": {}
+      }
     }
   },
   "screening": {
@@ -1425,9 +1440,9 @@
         "id": "NCT04697485",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'diabetes'.",
-        "span": "…d Ejection Fraction and Diabetes Mellitus HF - Heart Fai…",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dapagliflozin', 'Farxiga', 'Forxiga'] (not named in title/conditions; an incidental abstract mention does not qualify).",
+        "span": "examined: “Polydiuretic Therapy for Heart Failure With Preserved Ejection Fraction and Diabetes Melli…”",
         "found_by": [
           "UNRECORDED"
         ],
@@ -1482,20 +1497,24 @@
       {
         "id": "CARDIA-STIFF · NCT04739215",
         "id_type": "nct",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'diabetes'.",
-        "span": "…etic Patient With HFpEF Diabetes Mellitus, Type 2 Heart…",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "eligible double-blind/placebo-controlled RCT: intervention dapagliflozin, comparator placebo, population preserved ejection fraction — P/I/C/design met.",
+        "span": "population “…pe 2 Heart Failure With Preserved Ejection Fraction CARDIA-STIFF”; comparator “…iflozin 10 MG [Farxiga] Placebo CARDIA-STIFF”",
         "found_by": [
           "UNRECORDED"
         ],
+        "matched_intervention": "dapagliflozin",
         "phase": null,
         "status": null,
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
         "trial_family_id": "NCT04739215",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_unavailable",
+        "completeness_basis": "publication record / committed cache metadata"
       },
       {
         "id": "NCT07776054",
@@ -1537,9 +1556,9 @@
         "id": "NCT05719714",
         "id_type": "nct",
         "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'chronic kidney disease'.",
-        "span": "…nd Cardiac Mechanics in Chronic Kidney Disease Chronic Kidney Diseases…",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'matching placebo']).",
+        "span": "examined: “Effect of Dapagliflozin on Metabolomics and Cardiac Mechanics in Chronic Kidney Disease Ch…”",
         "found_by": [
           "UNRECORDED"
         ],
@@ -1868,6 +1887,41 @@
           "claim_kind": "membership_state"
         },
         {
+          "label": "CARDIA-STIFF",
+          "id": "NCT04739215",
+          "absent_kind": "machine_absent",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT04739215",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_unavailable",
+          "completeness_basis": "publication record / committed cache metadata",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
+          "trial_id": "NCT04739215",
+          "report_id": "NCT04739215",
+          "outcome_effect_id": "dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::NCT04739215::NCT04739215",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "family_id": "NCT04739215",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "e1ccf86b5c5a1831",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
           "label": "36027570",
           "id": "PMID 36027570",
           "absent_kind": "result_withdrawn",
@@ -1940,11 +1994,12 @@
           "PMID 37534453",
           "NCT04475042",
           "NCT03877224",
+          "NCT04739215",
           "PMID 36027570"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "dc0f4c16f805dee600bde5565069ec396d8e2fbed0af8974cd52691e412c84cd"
+        "input_set_version": "4d9a21f3f42aaf21f14b6c04f948e0379d0959cafec45b709bffafaf8d6dabe8"
       },
       "result": {
         "present": false,
@@ -2300,6 +2355,43 @@
             "input_set_version": "0a8bae0ea99ac33dddbdb1343b8b8d7ee3e57a295886c6f3c90f3cee51ffec81"
           },
           "claim_kind": "membership_state"
+        },
+        {
+          "label": "CARDIA-STIFF",
+          "id": "NCT04739215",
+          "absent_kind": "machine_absent",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT04739215",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_unavailable",
+          "completeness_basis": "publication record / committed cache metadata",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
+          "trial_id": "NCT04739215",
+          "report_id": "NCT04739215",
+          "outcome_effect_id": "dapagliflozin-hfpef-hosp::Adverse events::NCT04739215::NCT04739215",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "family_id": "NCT04739215",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "0a8bae0ea99ac33dddbdb1343b8b8d7ee3e57a295886c6f3c90f3cee51ffec81",
+          "claim_id": "2a919bf25a30d8cb",
+          "depends_on": {
+            "input_set_version": "0a8bae0ea99ac33dddbdb1343b8b8d7ee3e57a295886c6f3c90f3cee51ffec81"
+          },
+          "claim_kind": "membership_state"
         }
       ],
       "membership": {
@@ -2318,11 +2410,12 @@
           "PMID 36027570",
           "PMID 37534453",
           "NCT04475042",
-          "NCT03877224"
+          "NCT03877224",
+          "NCT04739215"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "97cc3e71ef7ae7e915621b2ea563f6dd6f882284c4e4444e227fc795e9ffa588"
+        "input_set_version": "63b2bd7477f3fd44b3e6dfd0fe2d99081f3ded85204b4057c2a7ab8a267e2dc3"
       },
       "result": {
         "k": 1,
@@ -2448,7 +2541,7 @@
         ],
         "harm_reporting_trials_n": 3,
         "harm_extracted_trials_n": 1,
-        "harm_registered_trials_n": 5,
+        "harm_registered_trials_n": 6,
         "harms_synthesis_suppressed": true,
         "input_set_version": "0a8bae0ea99ac33dddbdb1343b8b8d7ee3e57a295886c6f3c90f3cee51ffec81",
         "claim_id": "712b2e2bd257dd1c",
@@ -2598,6 +2691,7 @@
         }
       }
     },
+    "internal_mismatches": [],
     "identity": {
       "state": "MATCH",
       "checks": {
@@ -2632,7 +2726,18 @@
         "pubmed_sha256": "5629cae9d0b50d40019f25d833979f56349098b93548c3ba0d551b23fa53b1a4",
         "crossref_sha256": "98224d97451d5ba1e82f10e0773d58cb4840b9fa98cf9a898584c76a1119f7dc"
       }
-    }
+    },
+    "member_populations": [
+      {
+        "member": "Kato et al 7 (DECLARE-TIMI 58 analysis)",
+        "report_pmid": "30882238",
+        "comparator_prints": "HF and EF ≥ 45% (N = 1316)",
+        "n": 1316,
+        "ef_state": "EF_UNMEASURED_OR_UNKNOWN",
+        "report_quote": "Of 17 160 patients, 671 (3.9%) had HFrEF, 1316 (7.7%) had HF without known reduced EF, and 15 173 (88.4%) had no history of HF at baseline.",
+        "note": "the comparator's label is kept as printed; the EF state is read from the trial's own report -- not proof of measured preserved EF, so not counted as HFpEF"
+      }
+    ]
   },
   "estimand_exclusions": [
     {
@@ -3175,6 +3280,68 @@
       },
       "label_from_first_sentence": "source not retrieved",
       "sponsor_class": "industry"
+    },
+    {
+      "id": "NCT04739215",
+      "type": "public funder named; industry tie not established",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT04739215",
+        "funders": [
+          {
+            "name": "University of Navarra",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Instituto de Salud Carlos III",
+            "class": "PUBLIC",
+            "class_basis": "registry category: OTHER_GOV",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Fundación para la Investigación Biomédica del Hospital Gregorio Maranon",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Hospital General Universitario Gregorio Marañon",
+            "class": "UNCLASSIFIED",
+            "class_basis": "no registry category and no name marker",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held; unclassified funder(s): Fundación para la Investigación Biomédica del Hospital Gregorio Maranon; Hospital General Universitario Gregorio Marañon",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": [
+          "Fundación para la Investigación Biomédica del Hospital Gregorio Maranon",
+          "Hospital General Universitario Gregorio Marañon"
+        ],
+        "proposal": {
+          "state": "PROPOSAL_NOT_REQUESTED",
+          "applied": false
+        }
+      },
+      "label_from_first_sentence": "source not retrieved",
+      "sponsor_class": "public_named_tie_not_established"
     }
   ],
   "rob_spancheck": {
@@ -3226,7 +3393,8 @@
       "34711976": "dapagliflozin",
       "37534453": "dapagliflozin",
       "STADIA-HFpEF · NCT04475042": "dapagliflozin",
-      "NCT03877224": "dapagliflozin"
+      "NCT03877224": "dapagliflozin",
+      "CARDIA-STIFF · NCT04739215": "dapagliflozin"
     },
     "unresolved": [],
     "verdict": "MATCH",
@@ -3245,7 +3413,7 @@
       },
       {
         "code": "eligible_declared_absent",
-        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03619213, NCT04730947, NCT04475042, NCT03877224; the completeness claim cannot be current"
+        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03619213, NCT04730947, NCT04475042, NCT03877224, NCT04739215; the completeness claim cannot be current"
       }
     ]
   },
@@ -3275,15 +3443,15 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 9,
+    "N": 11,
     "counts": {
       "REASON_TRUE": 2,
       "REASON_FALSE_VALUE_HELD": 1,
       "REASON_WRONG_KIND": 2,
-      "NOT_VERIFIABLE": 4
+      "NOT_VERIFIABLE": 6
     },
     "n_false_value_held": 1,
-    "n_not_verifiable": 4,
+    "n_not_verifiable": 6,
     "by_code_kind": {
       "OUTCOME_NOT_IN_SOURCE": {
         "REASON_TRUE": 2,
@@ -3295,7 +3463,7 @@
         "REASON_TRUE": 0,
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
-        "NOT_VERIFIABLE": 4
+        "NOT_VERIFIABLE": 6
       },
       "EXTRACTION_NOT_PERFORMED": {
         "REASON_TRUE": 0,
@@ -3359,6 +3527,17 @@
         "slug": "dapagliflozin-hfpef-hosp",
         "outcome": "Composite cardiovascular death or worsening heart failure",
         "outcome_kind": "primary",
+        "trial_key": "NCT04739215",
+        "label": "CARDIA-STIFF",
+        "id": "NCT04739215",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "dapagliflozin-hfpef-hosp",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
         "trial_key": "36027570",
         "label": "36027570",
         "id": "PMID 36027570",
@@ -3414,16 +3593,27 @@
         "stated_reason_code": "SOURCE_NOT_RETRIEVED",
         "verdict": "NOT_VERIFIABLE",
         "detail": "no held source"
+      },
+      {
+        "slug": "dapagliflozin-hfpef-hosp",
+        "outcome": "Adverse events",
+        "outcome_kind": "harm",
+        "trial_key": "NCT04739215",
+        "label": "CARDIA-STIFF",
+        "id": "NCT04739215",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
       }
     ]
   },
   "unextracted_outcome_audit": {
     "denominator_source": "included screening records x registered outcomes in this review",
-    "N": 10,
+    "N": 12,
     "counts": {
       "EXTRACTED": 1,
       "HELD_NOT_EXTRACTED": 1,
-      "NOT_IN_HELD_SOURCES": 6,
+      "NOT_IN_HELD_SOURCES": 8,
       "ABSENT_BY_DESIGN": 2
     },
     "n_held_not_extracted": 1,
@@ -3431,13 +3621,13 @@
       "primary": {
         "EXTRACTED": 0,
         "HELD_NOT_EXTRACTED": 1,
-        "NOT_IN_HELD_SOURCES": 4,
+        "NOT_IN_HELD_SOURCES": 5,
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
         "EXTRACTED": 1,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 2,
+        "NOT_IN_HELD_SOURCES": 3,
         "ABSENT_BY_DESIGN": 2
       }
     },
@@ -3488,6 +3678,14 @@
       },
       {
         "slug": "dapagliflozin-hfpef-hosp",
+        "trial_key": "NCT04739215",
+        "trial_label": "CARDIA-STIFF · NCT04739215",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "dapagliflozin-hfpef-hosp",
         "trial_key": "36027570",
         "trial_label": "36027570",
         "outcome": "Adverse events",
@@ -3524,6 +3722,14 @@
         "slug": "dapagliflozin-hfpef-hosp",
         "trial_key": "NCT03877224",
         "trial_label": "NCT03877224",
+        "outcome": "Adverse events",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "dapagliflozin-hfpef-hosp",
+        "trial_key": "NCT04739215",
+        "trial_label": "CARDIA-STIFF · NCT04739215",
         "outcome": "Adverse events",
         "outcome_kind": "harm",
         "status": "NOT_IN_HELD_SOURCES"
@@ -4143,8 +4349,164 @@
         }
       ],
       "eligibility": {
-        "state": "UNKNOWN",
-        "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED"
+        "state": "ELIGIBLE",
+        "span": {
+          "design": {
+            "allocation": "RANDOMIZED",
+            "intervention_model": "PARALLEL",
+            "masking": "QUADRUPLE",
+            "nct_id": "NCT03030235",
+            "source_reference": {
+              "table": "designs",
+              "nct_id": "NCT03030235",
+              "row_key": {
+                "id": "228059536"
+              },
+              "row_sha256": "ab2305f1859917459b01170aca243eb51a50dc3814367d933b91491b8c63c0d5",
+              "snapshot": "2026-08-30"
+            }
+          },
+          "population": {
+            "rows": [
+              {
+                "nct_id": "NCT03030235",
+                "source_reference": {
+                  "table": "conditions",
+                  "nct_id": "NCT03030235",
+                  "row_key": {
+                    "id": "406727310"
+                  },
+                  "row_sha256": "e39528002159367ad984b08562b40dfa2367e357d8df4c0add4d5417ed08b27d",
+                  "snapshot": "2026-08-30"
+                }
+              }
+            ],
+            "source": "AACT.conditions"
+          },
+          "protocol_requirements": {},
+          "contrasts": [
+            {
+              "arm_ids": [
+                "NCT03030235:434731556",
+                "NCT03030235:434731557"
+              ],
+              "drug": "dapagliflozin",
+              "background_therapy": [],
+              "span": [
+                {
+                  "design_group": {
+                    "row": {
+                      "nct_id": "NCT03030235",
+                      "source_reference": {
+                        "table": "design_groups",
+                        "nct_id": "NCT03030235",
+                        "row_key": {
+                          "id": "434731556"
+                        },
+                        "row_sha256": "3df09ce7befa733b544ed1e55a36f72f4a3fd7e94a5b5cd377c32b2d392948fc",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source": "AACT.design_groups"
+                  },
+                  "interventions": [
+                    {
+                      "id": "389702815",
+                      "name": "Dapagliflozin 10Mg Oral Tablet",
+                      "nct_id": "NCT03030235",
+                      "source_reference": {
+                        "table": "interventions",
+                        "nct_id": "NCT03030235",
+                        "row_key": {
+                          "id": "389702815"
+                        },
+                        "row_sha256": "4548ccc4352d9b758012d030d05c95484176c05813a323e48f1bb757b118f071",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ],
+                  "links": [
+                    {
+                      "nct_id": "NCT03030235",
+                      "source_reference": {
+                        "table": "design_group_interventions",
+                        "nct_id": "NCT03030235",
+                        "row_key": {
+                          "id": "513511607"
+                        },
+                        "row_sha256": "6eb759011e9695c4856ea9b551e59a98cdb0072b956cf16111e39444d8b5ec9d",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "design_group": {
+                    "row": {
+                      "nct_id": "NCT03030235",
+                      "source_reference": {
+                        "table": "design_groups",
+                        "nct_id": "NCT03030235",
+                        "row_key": {
+                          "id": "434731557"
+                        },
+                        "row_sha256": "c811eeaaed7aeb1b783ddcbf227c2a008e1a46a0908db5447a47a6c95dbcc688",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source": "AACT.design_groups"
+                  },
+                  "interventions": [
+                    {
+                      "id": "389702816",
+                      "name": "Dapagliflozin matching placebo",
+                      "nct_id": "NCT03030235",
+                      "source_reference": {
+                        "table": "interventions",
+                        "nct_id": "NCT03030235",
+                        "row_key": {
+                          "id": "389702816"
+                        },
+                        "row_sha256": "fe2c13557529eeb4df48f8bc181d87219babb5a681f060941933156bea7ca576",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ],
+                  "links": [
+                    {
+                      "nct_id": "NCT03030235",
+                      "source_reference": {
+                        "table": "design_group_interventions",
+                        "nct_id": "NCT03030235",
+                        "row_key": {
+                          "id": "513511608"
+                        },
+                        "row_sha256": "8a3bbdd00629201c3691f0e351845f1613823827fa9880a814582f758450b8cd",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "population_basis": "RETROSPECTIVE_VOCABULARY_CLARIFICATION",
+          "population_clarification": {
+            "id": "D3-preserved-systolic-function",
+            "equivalent_to": "preserved ejection fraction",
+            "terms": [
+              "preserved systolic function"
+            ],
+            "status": "RETROSPECTIVE_PROTOCOL_CLARIFICATION",
+            "pre_specified": false,
+            "decided_after_data_seen": true,
+            "decided_by": "Mahmood",
+            "decided_on": "2026-09-25",
+            "question_put": "Does \"Chronic Heart Failure With Preserved Systolic Function\" (the DELIVER registry condition) count as the same entry population as the protocol term \"preserved ejection fraction\"?",
+            "answer": "yes same population",
+            "how_it_reached_the_reviewer": "Dispatch chat relay, answer to a plain-language question"
+          }
+        }
       },
       "registry_design": {
         "allocation": "RANDOMIZED",
@@ -18247,35 +18609,263 @@
         }
       ],
       "eligibility": {
-        "state": "INELIGIBLE",
+        "state": "ELIGIBLE",
         "span": {
-          "rows": [
-            {
+          "design": {
+            "allocation": "RANDOMIZED",
+            "intervention_model": "PARALLEL",
+            "masking": "QUADRUPLE",
+            "nct_id": "NCT04739215",
+            "source_reference": {
+              "table": "designs",
               "nct_id": "NCT04739215",
-              "source_reference": {
-                "table": "conditions",
+              "row_key": {
+                "id": "227738810"
+              },
+              "row_sha256": "78d2e8d99dfdb1639013241db7a5984c74666a2b0d914c61f7c1e4665f94eb50",
+              "snapshot": "2026-08-30"
+            }
+          },
+          "population": {
+            "rows": [
+              {
                 "nct_id": "NCT04739215",
-                "row_key": {
-                  "id": "406144548"
-                },
-                "row_sha256": "447fa4c9c7aff894480461c273d21f7670a9749bb28f903acf9112c21d2fb5b5",
-                "snapshot": "2026-08-30"
+                "source_reference": {
+                  "table": "conditions",
+                  "nct_id": "NCT04739215",
+                  "row_key": {
+                    "id": "406144548"
+                  },
+                  "row_sha256": "447fa4c9c7aff894480461c273d21f7670a9749bb28f903acf9112c21d2fb5b5",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              {
+                "nct_id": "NCT04739215",
+                "source_reference": {
+                  "table": "conditions",
+                  "nct_id": "NCT04739215",
+                  "row_key": {
+                    "id": "406144549"
+                  },
+                  "row_sha256": "981eb73acea95e1ee63800ca918e5ddd483cfe0aa3b2fd516f97b71e5352215c",
+                  "snapshot": "2026-08-30"
+                }
               }
+            ],
+            "source": "AACT.conditions"
+          },
+          "protocol_requirements": {},
+          "contrasts": [
+            {
+              "arm_ids": [
+                "NCT04739215:434135704",
+                "NCT04739215:434135705"
+              ],
+              "drug": "dapagliflozin",
+              "background_therapy": [],
+              "span": [
+                {
+                  "design_group": {
+                    "row": {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_groups",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "434135704"
+                        },
+                        "row_sha256": "2fae5253ec3b9af95358a8b2b23f2ec2da28a96f18648f6c70c04f541876f557",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source": "AACT.design_groups"
+                  },
+                  "interventions": [
+                    {
+                      "id": "389157256",
+                      "name": "Dapagliflozin 10 MG [Farxiga]",
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "389157256"
+                        },
+                        "row_sha256": "9f7d3051ce57f38d0771c7b0a7665aedab89f307928b1616124e33e47b0ba7b2",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ],
+                  "links": [
+                    {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_group_interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "512791436"
+                        },
+                        "row_sha256": "2efefcde3ace9e9c55d049b4b0673ec21c859e43b46cada35417ec1d406d258a",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "design_group": {
+                    "row": {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_groups",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "434135705"
+                        },
+                        "row_sha256": "d7d70dd49cb370d17f24abda8980cb20319a648f18969e27d924edc058cb8d64",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source": "AACT.design_groups"
+                  },
+                  "interventions": [
+                    {
+                      "id": "389157257",
+                      "name": "Placebo",
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "389157257"
+                        },
+                        "row_sha256": "825f7d0fb2418bf6d51ea2290e6c4f4f346306ed0b07b5bec51103683903de8c",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ],
+                  "links": [
+                    {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_group_interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "512791437"
+                        },
+                        "row_sha256": "5f1f1a36a4e65d2c85c4c4af99ced05381d87288b940c882e012136ee1c921df",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             {
-              "nct_id": "NCT04739215",
-              "source_reference": {
-                "table": "conditions",
-                "nct_id": "NCT04739215",
-                "row_key": {
-                  "id": "406144549"
+              "arm_ids": [
+                "NCT04739215:434135704",
+                "NCT04739215:434135705"
+              ],
+              "drug": "Farxiga",
+              "background_therapy": [],
+              "span": [
+                {
+                  "design_group": {
+                    "row": {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_groups",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "434135704"
+                        },
+                        "row_sha256": "2fae5253ec3b9af95358a8b2b23f2ec2da28a96f18648f6c70c04f541876f557",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source": "AACT.design_groups"
+                  },
+                  "interventions": [
+                    {
+                      "id": "389157256",
+                      "name": "Dapagliflozin 10 MG [Farxiga]",
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "389157256"
+                        },
+                        "row_sha256": "9f7d3051ce57f38d0771c7b0a7665aedab89f307928b1616124e33e47b0ba7b2",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ],
+                  "links": [
+                    {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_group_interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "512791436"
+                        },
+                        "row_sha256": "2efefcde3ace9e9c55d049b4b0673ec21c859e43b46cada35417ec1d406d258a",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ]
                 },
-                "row_sha256": "981eb73acea95e1ee63800ca918e5ddd483cfe0aa3b2fd516f97b71e5352215c",
-                "snapshot": "2026-08-30"
-              }
+                {
+                  "design_group": {
+                    "row": {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_groups",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "434135705"
+                        },
+                        "row_sha256": "d7d70dd49cb370d17f24abda8980cb20319a648f18969e27d924edc058cb8d64",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source": "AACT.design_groups"
+                  },
+                  "interventions": [
+                    {
+                      "id": "389157257",
+                      "name": "Placebo",
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "389157257"
+                        },
+                        "row_sha256": "825f7d0fb2418bf6d51ea2290e6c4f4f346306ed0b07b5bec51103683903de8c",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ],
+                  "links": [
+                    {
+                      "nct_id": "NCT04739215",
+                      "source_reference": {
+                        "table": "design_group_interventions",
+                        "nct_id": "NCT04739215",
+                        "row_key": {
+                          "id": "512791437"
+                        },
+                        "row_sha256": "5f1f1a36a4e65d2c85c4c4af99ced05381d87288b940c882e012136ee1c921df",
+                        "snapshot": "2026-08-30"
+                      }
+                    }
+                  ]
+                }
+              ]
             }
-          ],
-          "source": "AACT.conditions"
+          ]
         }
       },
       "registry_design": {
@@ -20926,60 +21516,8 @@
         }
       ],
       "eligibility": {
-        "state": "INELIGIBLE",
-        "span": {
-          "rows": [
-            {
-              "nct_id": "NCT05719714",
-              "source_reference": {
-                "table": "conditions",
-                "nct_id": "NCT05719714",
-                "row_key": {
-                  "id": "406741946"
-                },
-                "row_sha256": "4b32d3584a00600dcf3487e574bc44837c6dd132ca958943a4e9ff30792dec54",
-                "snapshot": "2026-08-30"
-              }
-            },
-            {
-              "nct_id": "NCT05719714",
-              "source_reference": {
-                "table": "conditions",
-                "nct_id": "NCT05719714",
-                "row_key": {
-                  "id": "406741947"
-                },
-                "row_sha256": "ce29f26e3f68c51104c53de675fe624a2c5277b1480c3ce97b7eb1f8429f9b6c",
-                "snapshot": "2026-08-30"
-              }
-            },
-            {
-              "nct_id": "NCT05719714",
-              "source_reference": {
-                "table": "conditions",
-                "nct_id": "NCT05719714",
-                "row_key": {
-                  "id": "406741948"
-                },
-                "row_sha256": "6280dfd65ccb225f3f2b39e3a4117ad435ad1828eb30987b7a697899145d3dd8",
-                "snapshot": "2026-08-30"
-              }
-            },
-            {
-              "nct_id": "NCT05719714",
-              "source_reference": {
-                "table": "conditions",
-                "nct_id": "NCT05719714",
-                "row_key": {
-                  "id": "406741949"
-                },
-                "row_sha256": "35eb1e19edacbea795936d20fd99011621c8eb89845ed57d7ec6b17d8803f911",
-                "snapshot": "2026-08-30"
-              }
-            }
-          ],
-          "source": "AACT.conditions"
-        }
+        "state": "UNKNOWN",
+        "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN"
       },
       "registry_design": {
         "allocation": "RANDOMIZED",
@@ -56963,18 +57501,42 @@
   ],
   "family_count_chain": {
     "trial_families": 22,
-    "eligible_families": 3,
+    "eligible_families": 5,
     "contributing": 1,
     "pooled": 0,
     "eligibility_unresolved": 12,
     "unresolved_report_candidates": 57,
-    "contributing_without_structural_eligibility": [
-      "NCT03030235"
-    ],
+    "contributing_without_structural_eligibility": [],
     "publications_screened": 62,
     "registry_records_screened": 20
   },
   "family_missing_evidence": [
+    {
+      "family_id": "NCT03030235",
+      "outcome": "Composite cardiovascular death or worsening heart failure",
+      "state": "UNKNOWN",
+      "span": {
+        "measured": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "reported": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "extractable": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        }
+      },
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
+    },
     {
       "family_id": "NCT03619213",
       "outcome": "Composite cardiovascular death or worsening heart failure",
@@ -57299,6 +57861,53 @@
       },
       "absence_code": "NO_POOLABLE_VALUE",
       "pool_refusal": null
+    },
+    {
+      "family_id": "NCT04739215",
+      "outcome": "Composite cardiovascular death or worsening heart failure",
+      "state": "UNKNOWN",
+      "span": {
+        "measured": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "reported": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "extractable": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        }
+      },
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
+    },
+    {
+      "family_id": "NCT04739215",
+      "outcome": "Adverse events",
+      "state": "UNKNOWN",
+      "span": {
+        "measured": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "reported": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "extractable": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        }
+      },
+      "absence_code": "NO_POOLABLE_VALUE",
+      "pool_refusal": null
     }
   ],
   "claimgraph": {
@@ -57456,8 +58065,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>the primary outcome is reported by trials that could not be pooled (36027570, 34711976, 37534453) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03619213, NCT04730947, NCT04475042, NCT03877224; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "b84bcd68f0347f11132a6eb8f5bfa8137855c77ae5189a81e2c037d73c81fd63",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>the primary outcome is reported by trials that could not be pooled (36027570, 34711976, 37534453) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03619213, NCT04730947, NCT04475042, NCT03877224, NCT04739215; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "3ec54ca8ef1df7445d932d41967e955fecaf4720e7c9d4a8b57e5cb4b15c14f9",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -57735,8 +58344,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>3 of 3 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 36027570</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors); AstraZeneca (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by AstraZeneca; DELIVER ClinicalTrials.gov number, NCT03619213.).</td></tr><tr><td>NCT03877224</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT04475042</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Mariëlle Scheffer <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Mariëlle Scheffer</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 34711976</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Saint Luke&#x27;s Health System<br>funder-role statement: full text not held</td><td>Saint Luke&#x27;s Health System <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Saint Luke&#x27;s Health System</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 37534453</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Mayo Clinic<br>funder-role statement: full text not held</td><td>Mayo Clinic <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Mayo Clinic</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "d449b1470b0891da8f93f818866636b5f8a70df70bba62b0645b945430083421",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>3 of 3 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 36027570</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors); AstraZeneca (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by AstraZeneca; DELIVER ClinicalTrials.gov number, NCT03619213.).</td></tr><tr><td>NCT03877224</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(AACT sponsors)</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT04475042</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (AACT sponsors)<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(AACT sponsors)</em><br>Mariëlle Scheffer <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Mariëlle Scheffer</em></td><td></td><td><strong></strong>: </td></tr><tr><td>NCT04739215</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Fundación para la Investigación Biomédica del Hospital Gregorio Maranon; Hospital General Universitario Gregorio Marañon<br>funder-role statement: full text not held<br><em>first-sentence label was: source not retrieved</em></td><td>University of Navarra <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Instituto de Salud Carlos III <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Fundación para la Investigación Biomédica del Hospital Gregorio Maranon <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br>Hospital General Universitario Gregorio Marañon <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Fundación para la Investigación Biomédica del Hospital Gregorio Maranon; Hospital General Universitario Gregorio Marañon</em></td><td></td><td><strong></strong>: </td></tr><tr><td>PMID 34711976</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Saint Luke&#x27;s Health System<br>funder-role statement: full text not held</td><td>Saint Luke&#x27;s Health System <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Saint Luke&#x27;s Health System</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 37534453</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held; unclassified funder(s): Mayo Clinic<br>funder-role statement: full text not held</td><td>Mayo Clinic <code>UNCLASSIFIED</code> <em>(AACT sponsors)</em><br><em>unclassified (no registry category, no name marker): Mayo Clinic</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "1b69174f6a6b32c04ac5efa484ef4ec636d59731a9063425c68a98c4906a881a",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -57933,7 +58542,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a6788cc518027a2b1b2aa9e94ac45b393a13efca",
-    "review_sha256": "3012d216d34d032bca5cdd4a9f60a5b0a27ab259ad083d4b8115d688d48c5faa",
+    "review_sha256": "dd406cf91ab375829e5b82e3b9d8104cbac8202f8d11d88c18426e6ec7374498",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -58023,7 +58632,7 @@
       "retrieved_corpus_sha256": "91f71997fe2745a48278bd689ff32f1612e0c66b64e17c1187de8e002cff5b32",
       "records_file_sha256": "b4d3cf77233c29feba5f04e9a1031e155099eed9fc23f13e66c399dad4e24772",
       "retrieval_ledger_sha256": "4f6b0394b33c5a04295001685dabd518359bd48f69513d4ed5eb3c872e22c4a7",
-      "screening_ledger_sha256": "2d59dc51b71ef125913e8c95668b5c0bac3693767118ea25b60d32c125ba2263",
+      "screening_ledger_sha256": "1f857f43306e0f9b466efc212e8a079d359b395ff73422164ada21bdf91429ae",
       "extraction_objects_sha256": "0d2a88501e55cdb9bfa5637b979d0f52de8c1c56aec2d331dab4ca248f933e5d",
       "trial_family_map_sha256": "d26383659188f51aa489e778169c2fc2f100cefea5a13c4bc2ee2af658a78e60",
       "rob_object_sha256": "0bcaa02f4b91ba2eecd7b04af3fd1bd739d985bbc52d24a136e87df5b409e03e",
@@ -58041,8 +58650,8 @@
           "sha256": "50429a380c137b78871fbee01cb2641ab0676f2fb9e194fd53455bbfc483ee73"
         }
       ],
-      "config_sha256": "8760471506ef98436ff00f1df6fc956e460763651a6b0c8dea02d045e0c60dfd",
-      "analysis_code_sha256": "691c6198d37594baf975e29484b609587f636f327daf6cd4a0cd195b9ab85ae2",
+      "config_sha256": "80716162865d3c08911bcdcae36f4e795e86b5dd4110f4dec7db14f4b9138b73",
+      "analysis_code_sha256": "a2b8f267b3b172ba381dfe70b4877bb35c335018b02d99714b0c93c630a300c4",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -58060,8 +58669,9 @@
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
         "harness/comparator_identity.py": "390b41d4488de36b9ef0a80a937fd4787cbccc72",
-        "harness/comparator_models.py": "18dbac742d920a835cc70e440a957e188a265c54",
-        "harness/comparator_panel.py": "e429fd8ba38f68a572c20715032fcb91f257ee1a",
+        "harness/comparator_models.py": "6b857dd679f71852f3b9ffeb45074027c4da61c5",
+        "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
+        "harness/comparator_panel.py": "cde88d2f748f3fc0fcbe94ec2022684a9cdca213",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
@@ -58076,13 +58686,13 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "55d449875218d206f508e56e7a7bad485507f942",
+        "harness/extract.py": "22c23c8c08717c82d59296f5dd427d232427927b",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "389774b3dc7656d87d09a2fbf9508d0e75866be2",
-        "harness/funding_typed.py": "4fe83151865757c6412a8307c577de5f7eb6cd12",
+        "harness/funding_typed.py": "b9020fcc95627a6256aead0ec676ef2b4423b3bf",
         "harness/gate.py": "b93f4897d1ab8fb54654aeebfdf7cfab23d731cf",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
@@ -58090,6 +58700,7 @@
         "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
+        "harness/held_text_identity.py": "f1d623c4fd51f1753766acc401f42b5f59f3efe7",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
         "harness/index.py": "b4f1391a202f34ef02da8f727b6300f16296ce85",
@@ -58103,30 +58714,32 @@
         "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
+        "harness/outcome_match.py": "bc6fd4050fe67824c67ff6c62314913bc756c5a3",
         "harness/overlap_relation.py": "52135c247a1739f126085c00f6162c5df376b1f6",
-        "harness/page.py": "9c272afd67bc4cbc01fcb52d7ecde88fc64e3880",
+        "harness/page.py": "b98bcd8d712c729688ce2366184098f4e463dbf8",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "5b1fc46b6e66241746493c266713db7a9d49460e",
+        "harness/pipeline.py": "492ad1ea356b0634a56665d3ddaef49e73abb82a",
+        "harness/population_witness.py": "19d856534cb25ad0970fede021ad77d88b19f0b4",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
         "harness/reason_audit.py": "6950b0298265ef47e7ef83a44622a715bfe54d9e",
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
-        "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
+        "harness/registration.py": "734394837d88c1c1a9c3933fa18cbbe52db63a19",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "eea78180ecba3cf23e4b4a6e03326a364f3425b1",
+        "harness/screen.py": "d2574dbda0bab425b59c3b103160b8467c98f7aa",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "cc1e9d6d1ab9e201e3b601bc21957b2b30d23e73",
+        "harness/trial_family.py": "dabf9ae0dd87eb3deb5d3e86ccbc553a28d3e2f4",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -58146,7 +58759,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "89 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "93 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -58176,8 +58789,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "2429dffa7e24fc231aa2a5597565b79c8ee1c002c147b63caea1369d97f71262",
-      "review_sha256": "3012d216d34d032bca5cdd4a9f60a5b0a27ab259ad083d4b8115d688d48c5faa",
+      "manuscript_sha256": "fe9e0f5d7109c0a0752b9b59fb66876749b11915fe5814388ba8c4fcbff3997a",
+      "review_sha256": "dd406cf91ab375829e5b82e3b9d8104cbac8202f8d11d88c18426e6ec7374498",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/dapagliflozin-hfpef-hosp.md UTF-8 text, universal newlines",
@@ -58197,7 +58810,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "5fb3b7a10c95106ffed40245dec69aa3adfd70a0dfaadaf1200ebdc6ffbacb1f"
+      "release_sha256": "af0d8171f896b4abd1bce5d655c6d91f21b589951dd931cfbf38d2cf33b92db1"
     }
   }
 }

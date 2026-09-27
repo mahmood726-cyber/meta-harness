@@ -21,6 +21,7 @@ from enum import Enum
 from typing import Any
 
 from . import claimgraph
+from .funding_typed import render_cells as _funding_typed_cells
 from . import hazard_consumers as _hazard_consumers
 from . import page as _page
 from . import propositions as _proposition_mod
@@ -534,6 +535,9 @@ def _funding_block(fund: list[dict[str, Any]]) -> str:
         return 4
 
     def _celltype(item: dict[str, Any]) -> str:
+        _typed = _funding_typed_cells(item)
+        if _typed:
+            return _typed[0]
         bits = [f"<strong>{_e(_class(item))}</strong>", _e(item.get("status") or "")]
         if item.get("note"):
             bits.append(f"<em>{_e(item.get('note'))}</em>")
@@ -542,6 +546,9 @@ def _funding_block(fund: list[dict[str, Any]]) -> str:
         return "<br>".join(bit for bit in bits if bit)
 
     def _sponsor_cell(item: dict[str, Any]) -> str:
+        _typed = _funding_typed_cells(item)
+        if _typed:
+            return _typed[1]
         sponsors = item.get("sponsors") or []
         roles = item.get("role") or []
         body = "; ".join(_e(value) for value in sponsors) or "&mdash;"

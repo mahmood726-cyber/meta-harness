@@ -146,10 +146,15 @@ def test_dapa_hf_and_emperor_reduced_remain_included():
     assert _by_id(rows, "32865377")["decision"] == "include"
 
 
-def test_entry_condition_exception_is_removed_in_legacy_config():
+def test_entry_condition_exception_is_removed_in_legacy_config(monkeypatch):
+    # V1.0.1: the exception now has TWO sources -- the topic config and the registered protocol's '-only' wording
+    # (screen.with_protocol_entry_only, VALIDATED topics). Legacy = both removed.
     cfg = copy.deepcopy(_topic("sglt2-hfref-hosp-cvdeath"))
     cfg["include"].pop("population_none_entry_condition_only", None)
     cfg["include"].pop("comparator_overrides", None)
+    protocol_only = _by_id(_decisions("sglt2-hfref-hosp-cvdeath", config=cfg), "NCT04385589")
+    assert protocol_only["rule_id"] != "X2"                  # the protocol alone carries the exception
+    monkeypatch.setattr(screen, "with_protocol_entry_only", lambda c: c)
     legacy = _by_id(_decisions("sglt2-hfref-hosp-cvdeath", config=cfg), "NCT04385589")
     assert legacy["decision"] == "exclude"
     assert legacy["rule_id"] == "X2"
