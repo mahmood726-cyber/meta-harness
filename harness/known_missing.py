@@ -192,6 +192,36 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
     return out
 
 
+def _family_resolver(review: dict[str, Any]):
+    """key -> trial-family id, from the review's family ledger: report ids, registry ids, and acronyms (normalised).
+    An acronym held by more than one family resolves to nothing (ambiguous is never merged)."""
+    import re as _re
+    norm = lambda v: _re.sub(r"[^a-z0-9]", "", str(v or "").lower())
+    tf = review.get("trial_families")
+    fams = tf.get("families") if isinstance(tf, dict) else tf
+    ids, acr = {}, {}
+    for f in fams or []:
+        if not isinstance(f, dict) or not f.get("family_id"):
+            continue
+        al = f.get("aliases") or {}
+        for k in [f["family_id"]] + list(al.get("report_ids") or []) + list(al.get("registry_ids") or []):
+            ids.setdefault(_clean_id(k).upper(), f["family_id"])
+        for a in al.get("acronym") or []:
+            acr.setdefault(norm(a), set()).add(f["family_id"])
+
+    def resolve(cand: dict[str, Any]):
+        for k in (cand.get("id"), cand.get("trial"), cand.get("label")):
+            fid = ids.get(_clean_id(k).upper()) if k else None
+            if fid:
+                return fid
+        for k in (cand.get("trial"), cand.get("label"), cand.get("name")):
+            hit = acr.get(norm(k)) if k else None
+            if hit and len(hit) == 1:
+                return next(iter(hit))
+        return None
+    return resolve
+
+
 def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list[dict[str, Any]]:
     primary = _primary(review) or {}
     screen = {
@@ -220,7 +250,30 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
             **x,
             "why_eligible": scr.get("reason") or x.get("reason") or "screened in but not pooled",
         })
-    return out
+    # V1.0.1: one row per TRIAL FAMILY. A trial named by its acronym (a signal) and by its article (a declared-absent
+    # row) is one trial: resolve both to the family ledger and merge, keeping the row that has a held record.
+    resolve = _family_resolver(review)
+    merged: list[dict[str, Any]] = []
+    by_family: dict[str, dict[str, Any]] = {}
+    for c in out:
+        fid = resolve(c)
+        if not fid:
+            merged.append(c)
+            continue
+        c = dict(c, family_id=fid)
+        prev = by_family.get(fid)
+        if prev is None:
+            by_family[fid] = c
+            merged.append(c)
+            continue
+        keep, other = (c, prev) if (c.get("id") and not prev.get("id")) else (prev, c)
+        names = [n for n in (keep.get("also_named") or []) + [other.get("trial") or other.get("label") or _clean_id(other.get("id"))]
+                 + (other.get("also_named") or []) if n]
+        keep = dict(keep, also_named=sorted(set(names)),
+                    why_eligible="; ".join(dict.fromkeys(w for w in (keep.get("why_eligible"), other.get("why_eligible")) if w)))
+        merged[merged.index(prev)] = keep
+        by_family[fid] = keep
+    return merged
 
 
 def build(review: dict[str, Any], signals: dict[str, Any],
@@ -247,6 +300,10 @@ def build(review: dict[str, Any], signals: dict[str, Any],
     for cand in candidates:
         row = _source_value(review.get("slug", ""), primary, cand, rec_by_id, records)
         row["why_eligible"] = cand.get("why_eligible") or cand.get("reason") or ""
+        if cand.get("family_id"):
+            row["family_id"] = cand["family_id"]
+        if cand.get("also_named"):
+            row["also_named"] = cand["also_named"]
         row["sensitivity_label"] = "SENSITIVITY"
         from .invalidation import missing_state
         fact = next((f for f in review.get("held_regulatory_facts", [])

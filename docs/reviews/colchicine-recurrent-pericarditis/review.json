@@ -1601,18 +1601,6 @@
         "label": "SENSITIVITY",
         "rows": [
           {
-            "trial_key": "ICAP",
-            "name": "ICAP",
-            "source_ref": null,
-            "source_span": null,
-            "verify_basis": "named trial is not present in the committed topic cache",
-            "value_status": "NOT_IN_COMMITTED_SOURCE",
-            "missing_class": "NOT_IN_COMMITTED_SOURCE",
-            "why_eligible": "VERIFIED AGAINST SOURCE (PMID 23992557): population is ACUTE (first-episode) pericarditis, NOT the recurrent-pericarditis population of this topic; and the audit-cited counts 11/120 vs 25/120 (9.2%/20.8%) do NOT match the abstract (primary incessant-or-recurrent ~37.5% placebo, symptom persistence 19.2%). Eligibility CONTESTED (population axis) and counts unverified -- NOT integrated; recovery refused.",
-            "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
-          },
-          {
             "trial_key": "23992557",
             "name": "A randomized trial of colchicine for acute pericarditis.",
             "source_ref": "cache/colchicine-recurrent-pericarditis/records.json#23992557.abstract",
@@ -1620,7 +1608,11 @@
             "verify_basis": "committed source does not carry an extractable target-estimand value",
             "value_status": "NOT_IN_COMMITTED_SOURCE",
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
-            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention colchicine, comparator placebo, population pericarditis — P/I/C/design met.",
+            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention colchicine, comparator placebo, population pericarditis — P/I/C/design met.; VERIFIED AGAINST SOURCE (PMID 23992557): population is ACUTE (first-episode) pericarditis, NOT the recurrent-pericarditis population of this topic; and the audit-cited counts 11/120 vs 25/120 (9.2%/20.8%) do NOT match the abstract (primary incessant-or-recurrent ~37.5% placebo, symptom persistence 19.2%). Eligibility CONTESTED (population axis) and counts unverified -- NOT integrated; recovery refused.",
+            "family_id": "NCT00128453",
+            "also_named": [
+              "ICAP"
+            ],
             "sensitivity_label": "SENSITIVITY",
             "conclusion_effect": "NOT_COMPUTABLE"
           }
@@ -2785,12 +2777,20 @@
     "overlap": {
       "ours_k": 2,
       "theirs_k": 5,
-      "shared_k": "not computed: comparator trial set not enumerated",
-      "only_ours": [],
-      "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
-      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator's trial set is not known well enough to compare); our pooled trial families 2; basis: comparator trial set not enumerated; ours is not a subset of the comparator's set: NCT00235079 (24694983, 2014) first reported after 2012.",
-      "relation": "NOT_ENUMERABLE"
+      "shared_k": 1,
+      "only_ours": [
+        "NCT00235079"
+      ],
+      "only_theirs": [
+        "Finkelstein (row 1)",
+        "COPE (row 2)",
+        "CORE (row 3)",
+        "COPPS (row 4)"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set + date proof",
+      "note": "Computed overlap relation with the published comparator: OVERLAPPING (overlapping -- some families shared, each side has trials the other lacks); our pooled trial families 2, comparator trials 5, shared 1; basis: set operation on the enumerated comparator trial set + date proof; unbound comparator trial(s) Finkelstein (row 1), COPE (row 2), CORE (row 3) cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof).",
+      "theirs_k_source": "comparator panel trial_set (cache/colchicine-recurrent-pericarditis/comparator_fulltext.txt, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 5 comparator trial(s) for this outcome",
+      "relation": "OVERLAPPING"
     },
     "overlap_relation": {
       "outcome": "Recurrent pericarditis",
@@ -2826,20 +2826,125 @@
         "holds_for_every_pooled_family": false
       },
       "constraints": [
-        "ours is not a subset of the comparator's set: NCT00235079 (24694983, 2014) first reported after 2012"
+        "unbound comparator trial(s) Finkelstein (row 1), COPE (row 2), CORE (row 3) cannot be any pooled family: every pooled family not bound to one post-dates the comparator (date proof)"
       ],
       "theirs": {
-        "status": "NOT_ENUMERATED",
-        "note": "the registered comparator's trial set is not enumerated in a typed, located source"
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/colchicine-recurrent-pericarditis/comparator_fulltext.txt, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
+        "endpoint_for_outcome": null,
+        "members": [
+          {
+            "name": "Finkelstein (row 1)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": null,
+            "span": "Finkelstein Y et al 10 Israel/2002 Double-blind RCT Multicenter Colchicine 111 3",
+            "bound_to": null
+          },
+          {
+            "name": "COPE (row 2)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": null,
+            "span": "COPE study 1 Italy/2005 Open-label RCT Single center Colchicine 120 18",
+            "bound_to": null
+          },
+          {
+            "name": "CORE (row 3)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": null,
+            "span": "CORE study 2 Italy/2005 Open-label RCT Single center Colchicine 84 18",
+            "bound_to": null
+          },
+          {
+            "name": "COPPS (row 4)",
+            "family": "NCT00128427",
+            "alias_ids": [
+              "20805112"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "COPPS study 11 Italy/2010 Double-blind RCT Multicenter Colchicine 360 12",
+            "bound_to": null
+          },
+          {
+            "name": "CORP (row 5)",
+            "family": "NCT00128414",
+            "alias_ids": [
+              "21873705"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "CORP study 12 Italy/2011 Double-blind RCT Multicenter Colchicine 120 18",
+            "bound_to": "NCT00128414"
+          }
+        ],
+        "out_of_scope": []
       },
-      "theirs_k": null,
-      "shared": null,
-      "shared_k": null,
-      "only_ours": null,
-      "only_theirs": null,
-      "relation": "NOT_ENUMERABLE",
-      "label": "not enumerable -- the comparator's trial set is not known well enough to compare",
-      "basis": "comparator trial set not enumerated",
+      "theirs_k": 5,
+      "inventory_comparison": {
+        "rows": [
+          {
+            "comparator_trial": "Finkelstein (row 1)",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity",
+            "row_design_as_printed": "Double-blind RCT"
+          },
+          {
+            "comparator_trial": "COPE (row 2)",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity",
+            "row_design_as_printed": "Open-label RCT"
+          },
+          {
+            "comparator_trial": "CORE (row 3)",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity",
+            "row_design_as_printed": "Open-label RCT"
+          },
+          {
+            "comparator_trial": "COPPS (row 4)",
+            "status": "SCREENED_OUT",
+            "family": "NCT00128427",
+            "record": "20805112",
+            "rule": "X2",
+            "reason": "wrong population: title/conditions mention 'post-pericardiotomy'.",
+            "row_design_as_printed": "Double-blind RCT"
+          },
+          {
+            "comparator_trial": "CORP (row 5)",
+            "status": "POOLED",
+            "family": "NCT00128414",
+            "row_design_as_printed": "Double-blind RCT"
+          }
+        ],
+        "counts": {
+          "NOT_IN_OUR_RECORDS": 3,
+          "SCREENED_OUT": 1,
+          "POOLED": 1
+        },
+        "note": "comparison with our eligible inventory; separate from the pooled-set relation"
+      },
+      "shared": [
+        "NCT00128414"
+      ],
+      "shared_k": 1,
+      "only_ours": [
+        "NCT00235079"
+      ],
+      "only_theirs": [
+        "Finkelstein (row 1)",
+        "COPE (row 2)",
+        "CORE (row 3)",
+        "COPPS (row 4)"
+      ],
+      "relation": "OVERLAPPING",
+      "label": "overlapping -- some families shared, each side has trials the other lacks",
+      "basis": "set operation on the enumerated comparator trial set + date proof",
       "theirs_k_stated": {
         "value": 5,
         "source": null
@@ -7198,7 +7303,9 @@
         "fallback_report_ids": []
       },
       "aliases": {
-        "acronym": [],
+        "acronym": [
+          "ICAP"
+        ],
         "registry_ids": [
           "NCT00128453"
         ],
@@ -52406,20 +52513,203 @@
       "held": true,
       "document_ref": "cache/colchicine-recurrent-pericarditis/comparator_fulltext.txt",
       "document_sha256": "25f6f40886719a2d7541b4eb5b90bbffe982f4cb44ebc2ca745166f8bd98968a",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "Finkelstein (row 1)",
+          "name_in_source": "Finkelstein",
+          "span": {
+            "start": 10228,
+            "end": 10308,
+            "quote": "Finkelstein Y et al 10 Israel/2002 Double-blind RCT Multicenter Colchicine 111 3"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "COPE (row 2)",
+          "name_in_source": "COPE",
+          "span": {
+            "start": 10309,
+            "end": 10379,
+            "quote": "COPE study 1 Italy/2005 Open-label RCT Single center Colchicine 120 18"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "CORE (row 3)",
+          "name_in_source": "CORE",
+          "span": {
+            "start": 10380,
+            "end": 10449,
+            "quote": "CORE study 2 Italy/2005 Open-label RCT Single center Colchicine 84 18"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "COPPS (row 4)",
+          "name_in_source": "COPPS",
+          "span": {
+            "start": 10450,
+            "end": 10522,
+            "quote": "COPPS study 11 Italy/2010 Double-blind RCT Multicenter Colchicine 360 12"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "20805112",
+              "document_ref": "cache/colchicine-recurrent-pericarditis/records.json",
+              "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+              "span": {
+                "start": 105746,
+                "end": 107998,
+                "quote": "{\n      \"id\": \"20805112\",\n      \"id_type\": \"pmid\",\n      \"title\": \"COlchicine for the Prevention of the Post-pericardiotomy Syndrome (COPPS): a multicentre, randomized, double-blind, placebo-controlled trial.\",\n      \"abstract\": \"AIMS: No drug has been proven efficacious to prevent the post-pericardiotomy syndrome (PPS), but colchicine seems safe and effective for the treatment and prevention of pericarditis. The aim of the COlchicine for the Prevention of the Post-pericardiotomy Syndrome (COPPS) trial is to test the efficacy and safety of colchicine for the primary prevention of the PPS. METHODS AND RESULTS: The COPPS study is a multicentre, double-blind, randomized trial. On the third post-operative day, 360 patients (mean age 65.7 ± 12.3 years, 66% males), 180 in each treatment arm, were randomized to receive placebo or colchicine (1.0 mg twice daily for the first day followed by a maintenance dose of 0.5 mg twice daily for 1 month in patients ≥70 kg, and halved doses for patients <70 kg or intolerant to the highest dose). The primary efficacy endpoint was the incidence of PPS at 12 months. Secondary endpoint was the combined rate of disease-related hospitalization, cardiac tamponade, constrictive pericarditis, and relapses. Baseline characteristics were well balanced between the study groups. Colchicine significantly reduced the incidence of the PPS at 12 months compared with placebo (respectively, 8.9 vs. 21.1%; P = 0.002; number needed to treat = 8). Colchicine also reduced the secondary endpoint (respectively, 0.6 vs. 5.0%; P = 0.024). The rate of side effects (mainly related to gastrointestinal intolerance) was similar in the colchicine and placebo groups (respectively, 8.9 vs. 5.0%; P = 0.212). CONCLUSION: Colchicine is safe and efficacious in the prevention of the PPS and its related complications and may halve the risk of developing the syndrome following cardiac surgery. ClinicalTrials.gov number, NCT00128427.\",\n      \"pubtypes\": [\n        \"Journal Article\",\n        \"Multicenter Study\",\n        \"Randomized Controlled Trial\",\n        \"Research Support, Non-U.S. Gov't\"\n      ],\n      \"year\": \"2010\",\n      \"journal\": \"Eur Heart J\",\n      \"doi\": \"10.1093/eurheartj/ehq319\",\n      \"nct\": \"NCT00128427\"\n    }"
+              }
+            }
+          ]
+        },
+        {
+          "family_id": "CORP (row 5)",
+          "name_in_source": "CORP",
+          "span": {
+            "start": 10523,
+            "end": 10594,
+            "quote": "CORP study 12 Italy/2011 Double-blind RCT Multicenter Colchicine 120 18"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "21873705",
+              "document_ref": "cache/colchicine-recurrent-pericarditis/records.json",
+              "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+              "span": {
+                "start": 103526,
+                "end": 105740,
+                "quote": "{\n      \"id\": \"21873705\",\n      \"id_type\": \"pmid\",\n      \"title\": \"Colchicine for recurrent pericarditis (CORP): a randomized trial.\",\n      \"abstract\": \"BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.\",\n      \"pubtypes\": [\n        \"Journal Article\",\n        \"Multicenter Study\",\n        \"Randomized Controlled Trial\"\n      ],\n      \"year\": \"2011\",\n      \"journal\": \"Ann Intern Med\",\n      \"doi\": \"10.7326/0003-4819-155-7-201110040-00359\",\n      \"nct\": \"NCT00128414\"\n    }"
+              }
+            }
+          ]
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/colchicine-recurrent-pericarditis/comparator_fulltext.txt",
+        "document_sha256": "25f6f40886719a2d7541b4eb5b90bbffe982f4cb44ebc2ca745166f8bd98968a",
+        "source": "committed full-text transcription + cache/<slug>/comparator_table_spec.json",
+        "table_caption": "Table 1 Mean features of included studies"
+      },
+      "overlaps": [
+        {
+          "pool": "Recurrent pericarditis",
+          "shared": [
+            "CORP (row 5)"
+          ],
+          "harness_only": [
+            "NCT00235079"
+          ],
+          "comparator_only": [
+            "COPE (row 2)",
+            "COPPS (row 4)",
+            "CORE (row 3)",
+            "Finkelstein (row 1)"
+          ],
+          "jaccard": 0.16666666666666666,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CORP (row 5)"
+          ],
+          "harness_k": 2,
+          "comparator_k": 5
+        },
+        {
+          "pool": "Symptom persistence at 72 hours",
+          "shared": [
+            "CORP (row 5)"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "COPE (row 2)",
+            "COPPS (row 4)",
+            "CORE (row 3)",
+            "Finkelstein (row 1)"
+          ],
+          "jaccard": 0.2,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "CORP (row 5)"
+          ],
+          "harness_k": 1,
+          "comparator_k": 5
+        },
+        {
+          "pool": "Disease-related hospitalisation",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "COPE (row 2)",
+            "COPPS (row 4)",
+            "CORE (row 3)",
+            "CORP (row 5)",
+            "Finkelstein (row 1)"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 5
+        },
+        {
+          "pool": "Adverse events (gastrointestinal)",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "COPE (row 2)",
+            "COPPS (row 4)",
+            "CORE (row 3)",
+            "CORP (row 5)",
+            "Finkelstein (row 1)"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 5
+        },
+        {
+          "pool": "Treatment discontinuation",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "COPE (row 2)",
+            "COPPS (row 4)",
+            "CORE (row 3)",
+            "CORP (row 5)",
+            "Finkelstein (row 1)"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 5
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "34023da4e35f9094f846361cefb31c8a6655e678",
-    "review_sha256": "2321b4056412f408002a13357be99319d76b759d007be01e5afbfa080987f53a",
+    "review_sha256": "9b4037dcf98bd8f4658b3bbc629f79d271d604c254559f19b57502869d7ed0dd",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -52493,27 +52783,27 @@
       "slug": "colchicine-recurrent-pericarditis",
       "our_k": 2,
       "comparable_comparator_k": 4,
-      "status": "NOT_ENUMERABLE",
+      "status": "OVERLAPPING",
       "reason": "Comparator (Imazio 2012) comparable k=4. Decomposed: 2 POOLED BY US (24694983, 21873705); of the gap trials, 0 are eligible-not-pooled recoverable misses. CORE (16186468) and COPE (16186437) are OPEN-LABEL (design-excluded: we require double-blind) — CORE is the exact recurrent-pericarditis outcome but open-label; Finkelstein (12574898) is postpericardiotomy-syndrome PREVENTION (scope-excluded). So every gap trial is design- or scope-excluded by the preregistered screen — the harness is more rigorous than the comparator, not missing trials.",
       "parity_relation": {
-        "relation": "NOT_ENUMERABLE",
-        "label": "not enumerable -- comparator trial list and k are not exposed",
+        "relation": "OVERLAPPING",
+        "label": "overlapping -- neither trial set contains the other",
         "inferred": false,
         "our_k": 2,
         "hand_our_k": 2,
         "hand_our_k_stale": false,
-        "their_k": 4,
-        "their_k_source": "comparable_comparator_k",
-        "shared_k": null,
-        "only_ours_n": 0,
-        "only_theirs_n": 0,
+        "their_k": 5,
+        "their_k_source": "computed overlap relation (enumerated comparator set)",
+        "shared_k": 1,
+        "only_ours_n": 1,
+        "only_theirs_n": 4,
         "dominance": null,
         "hand_status": "OVERLAPPING",
         "hand_status_normalized": "OVERLAPPING",
-        "hand_status_disagrees": true
+        "hand_status_disagrees": false
       },
       "hand_status": "OVERLAPPING",
-      "hand_status_stale": true,
+      "hand_status_stale": false,
       "membership_status": "STALE_VS_MEMBERSHIP",
       "membership_unrenderable": true,
       "membership_conflicts": [
@@ -52678,7 +52968,7 @@
         }
       ],
       "config_sha256": "fb849b3b032885799231b74dc48acdd3945de804edf04cf18eb54fdb56e74a8d",
-      "analysis_code_sha256": "44c6b1b0365fe6b2b965e2730697937a29ddbddd82e2f08e69c9144626f4e53d",
+      "analysis_code_sha256": "33a136339db12e49860018f3ebc7b9ca7ea64078c1d2872eb4d58f717c5427c2",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -52701,7 +52991,7 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
+        "harness/consumer_consistency.py": "82d57dbcafa7e626f7c3616b3c9f55cfabe25972",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
@@ -52729,14 +53019,14 @@
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
         "harness/journal_route.py": "fde5fdea07c69b09069a4d9c558b9d68437ce95b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-        "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
+        "harness/known_missing.py": "29a05e416efa01f49ecbdbaf8e2254ec33cbfba9",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
         "harness/limitations.py": "d38f54d0aa9f39aeac11243c07aab50e4d1a6d31",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "1f69ac5139f578286b1355f8be6260287fe4dd0b",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/overlap_relation.py": "b249213972a06b785246bce2d4735af2236d20f6",
+        "harness/overlap_relation.py": "44af48dfafcf99dbd75f36e214d7bf88147a1db5",
         "harness/page.py": "14e814c33ddcca705c410832402471082a0a86e1",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
         "harness/pipeline.py": "c0be8753c893646c9823fd4f83c2b75fbd84d404",
@@ -52759,7 +53049,7 @@
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "5919792d570e8b8bf007b3015edc9db8b948ed1f",
+        "harness/trial_family.py": "cc1e9d6d1ab9e201e3b601bc21957b2b30d23e73",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -52808,8 +53098,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "56e67d4d5a80429fe31a82d01d57bc07dd09afb6398e913669ddfc4413012508",
-      "review_sha256": "2321b4056412f408002a13357be99319d76b759d007be01e5afbfa080987f53a",
+      "manuscript_sha256": "60b66446fe7f64532e0f1e45b4cbeb627be64e98fac74351ebc4563b08bf29ca",
+      "review_sha256": "9b4037dcf98bd8f4658b3bbc629f79d271d604c254559f19b57502869d7ed0dd",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-recurrent-pericarditis.md UTF-8 text, universal newlines",
@@ -52829,7 +53119,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "f5d1526b8fb465c156230c8bee7e478741645f5ff7b5b0cf8e36eb8d784ec493"
+      "release_sha256": "809a3cbccefc9331f90b6056e926c36afe7fad0b7cfdbf6d28f8363d95cb7e94"
     }
   }
 }

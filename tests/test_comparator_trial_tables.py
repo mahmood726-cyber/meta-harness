@@ -56,3 +56,23 @@ def test_PLANT_colchicine_poaf_overlap_from_explicit_identities():
     assert o["shared"] == ["NCT01552187", "NCT03015831"]           # COPPS-2, END-AF Low Dose
     assert o["only_ours"] == ["SYN-f9c2d88aa0de"]                   # Farzaneh (PMID 42132185, 2026)
     assert "not machine-exposed" not in json.dumps(rev["comparator"]["overlap"])
+
+
+def test_PLANT_pericarditis_overlap_from_the_committed_transcription_table():
+    rev = json.load(open(os.path.join(ROOT, "docs", "reviews", "colchicine-recurrent-pericarditis", "review.json"), encoding="utf-8"))
+    o = rev["comparator"]["overlap_relation"]
+    fam = {f["family_id"]: f["aliases"].get("acronym") for f in rev["trial_families"]}
+    assert o["relation"] == "OVERLAPPING" and o["theirs_k"] == 5 and o["shared_k"] == 1
+    assert [fam[x] for x in o["shared"]] == [["CORP"]] and o["only_ours"] == ["NCT00235079"]        # CORP-2 ours only
+    assert o["only_theirs"] == ["Finkelstein (row 1)", "COPE (row 2)", "CORE (row 3)", "COPPS (row 4)"]
+    assert rev["comparator"]["overlap"]["only_ours"] == ["NCT00235079"]                               # not ICAP
+    inv = {r["comparator_trial"]: r for r in o["inventory_comparison"]["rows"]}
+    assert inv["COPPS (row 4)"]["status"] == "SCREENED_OUT"                                         # postoperative
+    assert inv["COPE (row 2)"]["status"] == "NOT_IN_OUR_RECORDS"
+    assert "open-label" in inv["COPE (row 2)"]["row_design_as_printed"].lower()                   # not 'missing eligible'
+
+
+def test_PLANT_CORP_never_binds_to_a_CORP_2_report():
+    panel = json.load(open(os.path.join(ROOT, "cache", "colchicine-recurrent-pericarditis", "comparators.json"), encoding="utf-8"))
+    corp = next(m for c in panel for m in c.get("trial_set") or [] if m["name_in_source"] == "CORP")
+    assert [a["id"] for a in corp["aliases"]] == ["21873705"]                                     # CORP, not CORP-2 24694983

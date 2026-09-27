@@ -1,6 +1,6 @@
 # V1.0.1 -- the comparator overlap relation, computed (branch evid2/v101-overlap)
 
-From two external reviews (balanced-crystalloids; colchicine-POAF), 26 Sep 2026. Main is frozen: this is a branch for
+From three external reviews (balanced-crystalloids; colchicine-POAF; pericarditis recurrence), 26-27 Sep 2026. Main is frozen: this is a branch for
 the release captain. Nothing pooled changed: **0 of 32 pooled results moved.**
 
 ## What was wrong
@@ -65,54 +65,74 @@ own word. Esketamine showed the same defect directly: served `shared_k` 4 with o
   no results paper exists.
 - **Not pooled.**
 
-## n of N
-- **Served relation word changed: 10 of the 19 topics that served one.** The acknowledgements are in
-  `docs/ratchet_acknowledgements.json`; the list goes to the signing list as label notices.
+## Pericarditis-recurrence fixtures (third external review)
+- **Overlap from the committed transcription.** The comparator's Table 1 is in our committed full-text
+  transcription, not in PMC. `from_text_spec` (scripts/comparator_trial_tables.py) reads
+  `cache/colchicine-recurrent-pericarditis/comparator_table_spec.json` (anchor text and row labels as printed only),
+  locates each row, and binds a row only to a unique PRIMARY-role report whose title carries the name as a whole
+  token. **Plant: CORP never binds to CORP-2** (PMID 21873705, not 24694983).
+- **Result, against the outcome-specific POOLED set (CORP, CORP-2): OVERLAPPING.** Shared = CORP; ours only =
+  CORP-2 (NCT00235079); theirs only = Finkelstein, COPE, CORE, COPPS. ICAP is no longer in `only_ours`: it is not
+  pooled, and membership in the pooled set is now separate from membership of a family (`bound_to` vs `family`).
+- **A separate inventory comparison** is rendered under the relation, and never feeds it:
+  - COPPS is SCREENED_OUT (postoperative);
+  - Finkelstein, COPE and CORE are NOT_IN_OUR_RECORDS, with the comparator row's printed design kept
+    (e.g. COPE "open-label"). So an open-label or postoperative trial is not called "missing eligible".
+- **ICAP is one family.** The missing-trial panel named it by acronym and by article title. The family resolver now
+  reads registration trailers ("ICAP ClinicalTrials.gov number, NCT00128453"), only when that NCT is the family's
+  own, and merges the candidates: one row, family NCT00128453, `also_named` ICAP. Plant: another trial's NCT binds
+  nothing.
+
+## n of N (final rebuild, 32 of 32 pages rebuilt rc=0 with `--now 2026-09-11`)
+- **Served relation word changed: 9 of the 19 topics that served one.** The acknowledgements are in
+  `docs/ratchet_acknowledgements.json` (9 parity, 5 block); the list goes to the signing list as label notices.
   - Balanced-crystalloids and corticosteroids-covid19: OVERLAPPING -> DISJOINT.
   - Melatonin: OVERLAPPING -> SUBSET.
-  - **7 drop to NOT_ENUMERABLE** (noac, pcsk9, probiotics, semaglutide-weight, sglt2-ckd, tranexamic, pericarditis).
-    Their word rested on counts or hand prose, and no typed enumeration exists to recompute it. Each can be
-    restored by a typed trial set; their comparators are not open-licence in PMC, or have no linked table, or
-    (noac) RE-LY and ROCKET AF cannot be bound.
+  - **6 drop to NOT_ENUMERABLE** (noac, pcsk9, probiotics, semaglutide-weight, sglt2-ckd, tranexamic). Their word
+    rested on counts or hand prose, and no typed enumeration exists to recompute it. Each can be restored by a
+    typed trial set; their comparators are not open-licence in PMC, or have no linked table, or (noac) RE-LY and
+    ROCKET AF cannot be bound.
+  - Pericarditis keeps OVERLAPPING, but it is now computed from trial identities (below), not inferred.
 - **Index ours/theirs/shared changed: 31 of 32.**
-- **Computed relation now served on 32 of 32:** DISJOINT 3, IDENTICAL_SET 1, SUBSET 2, SUPERSET 1, OVERLAPPING 6,
-  NOT_ENUMERABLE 19.
+- **Computed relation now served on 32 of 32:** DISJOINT 3, IDENTICAL_SET 1, SUBSET 2, SUPERSET 1, OVERLAPPING 7,
+  NOT_ENUMERABLE 18.
 - **Pooled results moved: 0 of 32.** So no result-change notices are needed.
 
-| topic | served relation (main) | computed now | ours / theirs / shared before | after | comparator table |
-|---|---|---|---|---|---|
-| balanced-crystalloids-vs-saline-mortality | OVERLAPPING | **DISJOINT** | 2 / 6 / not exactly verifiable | 2 / 5 / 0 | ALREADY_ENUMERATED |
-| colchicine-postop-af | OVERLAPPING | **OVERLAPPING** | 3 / 9 / not exactly verifiable | 3 / 9 / 2 | WRITTEN |
-| colchicine-recurrent-pericarditis | OVERLAPPING | **NOT_ENUMERABLE** | 2 / 5 / not exactly verifiable | 2 / 5 / not computed: comparator trial set not e | NOT_IN_PMC |
-| colchicine-secondary-cv-prevention | — | **None** | 3 / not stated in the comp / not exactly verifiable | 3 / 15 / 2 | WRITTEN |
-| corticosteroids-cap-mortality | — | **None** | 2 / not stated in the comp / not exactly verifiable | 2 / not stated in the comp / not computed: comparator trial set not e | NOT_IN_PMC |
-| corticosteroids-covid19-mortality | OVERLAPPING | **DISJOINT** | 1 / not stated in the comp / not exactly verifiable | 1 / not stated in the comp / 0 | NOT_OPEN_LICENSE |
-| dapagliflozin-hfpef-hosp | — | **None** | 0 / not stated in the comp / not exactly verifiable | 0 / not stated in the comp / not computed: no pooled trials for the p | NOT_OPEN_LICENSE |
-| denosumab-vertebral-fracture | NOT_ENUMERABLE | **NOT_ENUMERABLE** | 1 / not stated in the comp / not exactly verifiable | 1 / not stated in the comp / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| doac-vte-recurrence | — | **None** | 6 / 6 / 6 | 6 / 6 / not computed: comparator trial set not e | NOT_IN_PMC |
-| dpp4-mace-t2d | — | **None** | 3 / not stated in the comp / not exactly verifiable | 3 / not stated in the comp / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| empagliflozin-hfpef-hosp | — | **None** | 0 / not stated in the comp / not exactly verifiable | 0 / not stated in the comp / not computed: no pooled trials for the p | NO_INCLUDED_TABLE |
-| esketamine-trd-madrs | OVERLAPPING | **OVERLAPPING** | 3 / 4 / 4 | 3 / 6 / 2 | WRITTEN |
-| finerenone-ckd-t2d-renal | IDENTICAL_SET | **IDENTICAL_SET** | 2 / 2 / 2 | 2 / 2 / 2 | WRITTEN |
-| glp1-ra-mace-t2d | SUPERSET | **SUPERSET** | 8 / 8 / 7 | 8 / 7 / 7 | ALREADY_ENUMERATED |
-| iv-iron-hfref-hosp | OVERLAPPING | **OVERLAPPING** | 2 / 6 / not exactly verifiable | 2 / 5 / 1 | WRITTEN |
-| melatonin-primary-insomnia-sol | OVERLAPPING | **SUBSET** | 1 / not stated in the comp / not exactly verifiable | 1 / 19 / 1 | WRITTEN |
-| metformin-pcos-ovulation | — | **None** | 3 / not stated in the comp / not exactly verifiable | 3 / not stated in the comp / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
-| noac-vs-warfarin-af-stroke | IDENTICAL_SET | **NOT_ENUMERABLE** | 4 / 4 / 4 | 4 / 4 / not computed: enumerated comparator set  | NOT_OPEN_LICENSE |
-| omega3-cardiovascular-events | OVERLAPPING | **OVERLAPPING** | 5 / 28 / not exactly verifiable | 5 / 28 / 3 | WRITTEN |
-| pcsk9-mace | DOMINANT_SUBSET | **NOT_ENUMERABLE** | 2 / 12 / not exactly verifiable | 2 / 12 / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| probiotics-aad-prevention | OVERLAPPING | **NOT_ENUMERABLE** | 11 / 42 / not exactly verifiable | 11 / 42 / not computed: enumerated comparator set  | WRITTEN |
-| sacubitril-valsartan-hfref | — | **None** | 2 / not stated in the comp / not exactly verifiable | 2 / not stated in the comp / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| semaglutide-obesity-mace | — | **None** | 1 / 16 / not exactly verifiable | 1 / 16 / 1 | WRITTEN |
-| semaglutide-obesity-weight | IDENTICAL_SET | **NOT_ENUMERABLE** | 2 / not stated in the comp / not exactly verifiable | 2 / not stated in the comp / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| sglt2-ckd-progression | SUBSET | **NOT_ENUMERABLE** | 3 / 10 / not exactly verifiable | 3 / 10 / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
-| sglt2-hfref-hosp-cvdeath | PARITY_REFUTED_BY_N | **PARITY_REFUTED_BY_N** | 2 / not stated in the comp / not exactly verifiable | 2 / not stated in the comp / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| sglt2-primary-prevention-hf | — | **None** | 4 / 8 / 4 | 4 / 8 / 2 | WRITTEN |
-| spironolactone-hfref-mortality | — | **None** | 3 / 9 / not exactly verifiable | 3 / 9 / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
-| statins-primary-prevention-elderly | COMPARATOR_INVALID | **COMPARATOR_INVALID** | 2 / not stated in the comp / not exactly verifiable | 2 / 12 / 0 | WRITTEN |
-| ticagrelor-vs-clopidogrel-acs | — | **None** | 2 / not stated in the comp / not exactly verifiable | 2 / 22 / not computed: enumerated comparator set  | WRITTEN |
-| tocilizumab-covid19-mortality | — | **None** | 1 / not stated in the comp / not exactly verifiable | 1 / not stated in the comp / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
-| tranexamic-acid-pph | SUBSET | **NOT_ENUMERABLE** | 1 / not stated in the comp / not exactly verifiable | 1 / not stated in the comp / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| topic | served relation (main) | served now | computed object | ours / theirs / shared before | after | comparator table |
+|---|---|---|---|---|---|---|
+| balanced-crystalloids-vs-saline-mortality | OVERLAPPING | **DISJOINT** | DISJOINT | 2 / 6 / not exactly verifiable (comparator trial | 2 / 5 / 0 | ALREADY_ENUMERATED |
+| colchicine-postop-af | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 3 / 9 / not exactly verifiable (comparator trial | 3 / 9 / 2 | WRITTEN |
+| colchicine-recurrent-pericarditis | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 2 / 5 / not exactly verifiable (comparator trial | 2 / 5 / 1 | WRITTEN (text transcription; PMC: NOT_IN_PMC) |
+| colchicine-secondary-cv-prevention | — | **—** | OVERLAPPING | 3 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 3 / 15 / 2 | WRITTEN |
+| corticosteroids-cap-mortality | — | **—** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NOT_IN_PMC |
+| corticosteroids-covid19-mortality | OVERLAPPING | **DISJOINT** | DISJOINT | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / not stated in the comparator abstract/fu / 0 | NOT_OPEN_LICENSE |
+| dapagliflozin-hfpef-hosp | — | **—** | NOT_ENUMERABLE | 0 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 0 / not stated in the comparator abstract/fu / not computed: no pooled trials for the p | NOT_OPEN_LICENSE |
+| denosumab-vertebral-fracture | NOT_ENUMERABLE | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| doac-vte-recurrence | — | **—** | NOT_ENUMERABLE | 6 / 6 / 6 | 6 / 6 / not computed: comparator trial set not e | NOT_IN_PMC |
+| dpp4-mace-t2d | — | **—** | NOT_ENUMERABLE | 3 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 3 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| empagliflozin-hfpef-hosp | — | **—** | NOT_ENUMERABLE | 0 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 0 / not stated in the comparator abstract/fu / not computed: no pooled trials for the p | NO_INCLUDED_TABLE |
+| esketamine-trd-madrs | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 3 / 4 / 4 | 3 / 6 / 2 | WRITTEN |
+| finerenone-ckd-t2d-renal | IDENTICAL_SET | **IDENTICAL_SET** | IDENTICAL_SET | 2 / 2 / 2 | 2 / 2 / 2 | WRITTEN |
+| glp1-ra-mace-t2d | SUPERSET | **SUPERSET** | SUPERSET | 8 / 8 / 7 | 8 / 7 / 7 | ALREADY_ENUMERATED |
+| iv-iron-hfref-hosp | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 2 / 6 / not exactly verifiable (comparator trial | 2 / 5 / 1 | WRITTEN |
+| melatonin-primary-insomnia-sol | OVERLAPPING | **SUBSET** | SUBSET | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / 19 / 1 | WRITTEN |
+| metformin-pcos-ovulation | — | **—** | NOT_ENUMERABLE | 3 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 3 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
+| noac-vs-warfarin-af-stroke | IDENTICAL_SET | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 4 / 4 / 4 | 4 / 4 / not computed: enumerated comparator set  | NOT_OPEN_LICENSE |
+| omega3-cardiovascular-events | OVERLAPPING | **OVERLAPPING** | OVERLAPPING | 5 / 28 / not exactly verifiable (comparator trial | 5 / 28 / 3 | WRITTEN |
+| pcsk9-mace | DOMINANT_SUBSET | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 2 / 12 / not exactly verifiable (comparator trial | 2 / 12 / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| probiotics-aad-prevention | OVERLAPPING | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 11 / 42 / not exactly verifiable (comparator trial | 11 / 42 / not computed: enumerated comparator set  | WRITTEN |
+| sacubitril-valsartan-hfref | — | **—** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| semaglutide-obesity-mace | — | **—** | SUBSET | 1 / 16 / not exactly verifiable (comparator trial | 1 / 16 / 1 | WRITTEN |
+| semaglutide-obesity-weight | IDENTICAL_SET | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| sglt2-ckd-progression | SUBSET | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 3 / 10 / not exactly verifiable (comparator trial | 3 / 10 / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
+| sglt2-hfref-hosp-cvdeath | PARITY_REFUTED_BY_N | **PARITY_REFUTED_BY_N** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| sglt2-primary-prevention-hf | — | **—** | OVERLAPPING | 4 / 8 / 4 | 4 / 8 / 2 | WRITTEN |
+| spironolactone-hfref-mortality | — | **—** | NOT_ENUMERABLE | 3 / 9 / not exactly verifiable (comparator trial | 3 / 9 / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+| statins-primary-prevention-elderly | COMPARATOR_INVALID | **COMPARATOR_INVALID** | DISJOINT | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / 12 / 0 | WRITTEN |
+| ticagrelor-vs-clopidogrel-acs | — | **—** | NOT_ENUMERABLE | 2 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 2 / 22 / not computed: enumerated comparator set  | WRITTEN |
+| tocilizumab-covid19-mortality | — | **—** | NOT_ENUMERABLE | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NOT_OPEN_LICENSE |
+| tranexamic-acid-pph | SUBSET | **NOT_ENUMERABLE** | NOT_ENUMERABLE | 1 / not stated in the comparator abstract/fu / not exactly verifiable (comparator trial | 1 / not stated in the comparator abstract/fu / not computed: comparator trial set not e | NO_INCLUDED_TABLE |
+
 ## Known gaps, stated
 - **The honest ratchet only compares outcomes that exist in the base commit** (harness/honest_ratchet.py ~254). A
   NEW outcome passes it silently; nr's re-derivation caught one on the Q branch.

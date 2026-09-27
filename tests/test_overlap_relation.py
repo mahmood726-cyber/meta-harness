@@ -103,3 +103,40 @@ def test_PLANT_balanced_crystalloids_is_disjoint_on_every_surface():
 def test_every_served_page_reads_the_one_object(review_dir):
     html = open(os.path.join(review_dir, "index.html"), encoding="utf-8").read()
     assert gate.check_overlap_relation_one_object(review_dir, html) == []
+
+
+@pytest.mark.parametrize("breaks", ["overlap_word", "parity_word", "manifest_word", "no_block", "no_object"])
+def test_PLANT_gate_refuses_a_page_that_does_not_read_the_one_object(tmp_path, breaks):
+    import shutil
+    d = tmp_path / "rev"
+    shutil.copytree(BC, d)
+    rev = json.load(open(d / "review.json", encoding="utf-8"))
+    man = json.load(open(d / "manifest.json", encoding="utf-8"))
+    html = open(d / "index.html", encoding="utf-8").read()
+    if breaks == "overlap_word":
+        rev["comparator"]["overlap"]["relation"] = "OVERLAPPING"
+    elif breaks == "parity_word":
+        rev["reproduction"]["parity"]["parity_relation"]["relation"] = "OVERLAPPING"
+    elif breaks == "manifest_word":
+        man["comparator"]["overlap"]["relation"] = "OVERLAPPING"
+    elif breaks == "no_block":
+        html = html.replace("data-relation='DISJOINT'", "")
+    else:
+        rev["comparator"].pop("overlap_relation")
+    json.dump(rev, open(d / "review.json", "w", encoding="utf-8"))
+    json.dump(man, open(d / "manifest.json", "w", encoding="utf-8"))
+    assert gate.check_overlap_relation_one_object(str(d), html), breaks
+
+
+def test_PLANT_a_comparator_trial_that_is_one_of_our_NON_pooled_families_is_never_shared():
+    # the ledger holds F9 (acronym XTRIAL, not pooled); the comparator names XTRIAL. Before V1.0.1's family/pool split
+    # an acronym bound to ANY family counted as shared.
+    rev = _review([("F3", "P3")])
+    rev["trial_families"].append({"family_id": "F9", "aliases": {"report_ids": ["P9"], "registry_ids": [], "acronym": ["XTRIAL"]}})
+    rev["comparator"]["comparator_trial_set"] = {"status": "MEASURED", "trials": ["XTRIAL"], "source_kind": "named prose"}
+    rev["screening"] = {"records": [{"id": "P9", "decision": "exclude", "rule_id": "X3", "reason": "open-label"}]}
+    YEARS["P9"] = 2012
+    obj = _rel(rev)
+    assert obj["shared_k"] == 0 and obj["relation"] == "DISJOINT"
+    row = obj["inventory_comparison"]["rows"][0]
+    assert row["status"] == "SCREENED_OUT" and row["family"] == "F9" and row["rule"] == "X3"

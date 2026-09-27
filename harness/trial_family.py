@@ -42,6 +42,24 @@ def field(value=None, span=None, code='NOT_HELD'):
 def cell(state='UNKNOWN', span=None, code='NOT_HELD'):
     return {'state': state, 'span': span} if span else {'state': state, 'absence_code': code}
 
+# The registration trailer a report prints about ITSELF ("(Funded by ...; ICAP ClinicalTrials.gov number, NCT00128453.)",
+# the NEJM/Lancet house style) binds an acronym to a registry id. V1.0.1: the family resolver takes the acronym ONLY
+# when that NCT is the family's own registry id, so a report citing another trial's registration binds nothing.
+_TRAILER = re.compile(r"\b([A-Z][A-Za-z0-9]*(?:[- ][A-Z0-9][A-Za-z0-9]*){0,3})\s+(?:ClinicalTrials\.gov|ClinicalTrials\.gov\s+"
+                      r"registration)\s+(?:number|numbers|identifier|registration number),?\s+(NCT\d{8})")
+
+
+def trailer_acronyms(members, regs):
+    own = {str(n).upper() for n in regs or []}
+    out = set()
+    for r in members:
+        for m in _TRAILER.finditer(str(r.get('abstract') or '')):
+            name, nct = m.group(1).strip(), m.group(2).upper()
+            if nct in own and not name.lower().startswith(('and ', 'funded')) and len(name) <= 30:
+                out.add(name)
+    return out
+
+
 def report_role(rec):
     if rec.get('family_parent_evidence'):
         return 'PRIMARY_WITH_POOLED_ANALYSIS', rec['family_parent_evidence']
@@ -200,7 +218,8 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         f = {'family_id':fid, 'identity_flag':flags[0] if flags else 'REGISTRY_ANCHORED', 'flags':flags,
              'identity_basis':{'primary_report_ids':primaries, 'registry_ids':regs, 'fallback_report_ids':seed if not primaries else []},
              'aliases':{'acronym':sorted({str(r['acronym']) for r in members if r.get('acronym')} |
-                         {r['acronym'] for r in held.get('raw',{}).get('studies',[]) if r.get('acronym')}),
+                         {r['acronym'] for r in held.get('raw',{}).get('studies',[]) if r.get('acronym')} |
+                         trailer_acronyms(members, regs)),
                         'registry_ids':regs, 'mentioned_registry_ids':sorted({n for r in members for n in r.get('mentioned_registry_ids',[])}),
                         'report_ids':sorted(r['id'] for r in members),
                         'dois':sorted({r['doi'] for r in members if r.get('doi')}),

@@ -58,3 +58,16 @@ def test_served_page_shows_reconstructed_not_pooled_and_the_pool_is_unchanged():
     assert row["reconstructed"]["intervention"]["events"] == 16 and row["reconstructed"]["comparator"]["events"] == 33
     html = open(os.path.join(ROOT, "docs", "reviews", SLUG, "index.html"), encoding="utf-8").read()
     assert "RECONSTRUCTED" in html and "16/108 vs 33/108" in html
+
+
+def test_PLANT_icap_named_by_acronym_and_by_article_is_one_family():
+    from harness import trial_family
+    rec = {"id": "1", "id_type": "pmid", "title": "t", "abstract": "(Funded by X; ICAP ClinicalTrials.gov number, NCT00128453.)",
+           "nct": "NCT00128453", "pubtypes": ["Randomized Controlled Trial"]}
+    assert trial_family.trailer_acronyms([rec], ["NCT00128453"]) == {"ICAP"}
+    assert trial_family.trailer_acronyms([rec], ["NCT09999999"]) == set()      # another trial's registration binds nothing
+    rev = json.load(open(os.path.join(ROOT, "docs", "reviews", "colchicine-recurrent-pericarditis", "review.json"), encoding="utf-8"))
+    rows = next(o for o in rev["outcomes"] if o.get("primary"))["known_missing_sensitivity"]["rows"]
+    icap = [r for r in rows if r.get("family_id") == "NCT00128453"]
+    assert len(icap) == 1 and "ICAP" in icap[0].get("also_named", [])
+    assert not [r for r in rows if r.get("trial_key") == "ICAP"]

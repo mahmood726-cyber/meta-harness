@@ -186,6 +186,112 @@ def build(slug, write):
     return result
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# TEXT TRANSCRIPTION ROUTE (V1.0.1, pericarditis review): a comparator whose table is not in PMC but IS in our
+# committed full-text transcription. The only curated input is cache/<slug>/comparator_table_spec.json -- the table's
+# anchor text and each row's label AS PRINTED. Everything else is mechanical and validated: each row is located as
+# the text from its label to the next label; a row binds to a trial only through the unique PRIMARY-role report
+# among our records whose title (or registry acronym field) carries the row's name as a whole token (CORP never
+# matches CORP-2); anything else stays unbound and is disclosed.
+def _record_blocks(rec_text):
+    """(record id, start, end) of every record object in a records.json text (brace-matched, strings respected)."""
+    out, i = [], 0
+    for m in re.finditer(r'\{\s*"id": "([^"]+)"', rec_text):
+        if m.start() < i:
+            continue
+        depth, in_str, esc = 0, False, False
+        for j in range(m.start(), len(rec_text)):
+            ch = rec_text[j]
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    out.append((m.group(1), m.start(), j + 1))
+                    i = j + 1
+                    break
+    return out
+
+
+def from_text_spec(slug, write):
+    spec_p = os.path.join(ROOT, "cache", slug, "comparator_table_spec.json")
+    if not os.path.exists(spec_p):
+        return {"state": "NO_TEXT_SPEC"}
+    from harness import trial_family
+    spec = json.load(open(spec_p, encoding="utf-8"))
+    doc = spec["document_ref"]
+    raw = open(os.path.join(ROOT, doc), "rb").read()
+    text = raw.decode("utf-8")
+    t0 = text.index(spec["table_anchor"])
+    if text.count(spec["table_anchor"]) != 1:
+        return {"state": "AMBIGUOUS_TABLES", "why": "table anchor not unique"}
+    t1 = text.index(spec["end_anchor"], t0)
+    starts = []
+    for row in spec["rows"]:
+        i = text.find(row["label"], t0, t1)
+        if i < 0 or text.find(row["label"], i + 1, t1) >= 0:
+            return {"state": "ROW_NOT_LOCATED", "row": row["label"]}
+        starts.append(i)
+    if starts != sorted(starts):
+        return {"state": "ROW_ORDER", "why": "row labels are not in table order"}
+    ends = starts[1:] + [t1]
+    rec_path = f"cache/{slug}/records.json"
+    rec_raw = open(os.path.join(ROOT, rec_path), "rb").read()
+    rec_text = rec_raw.decode("utf-8")
+    recs = {str(r.get("id")): r for k, v in json.loads(rec_text).items() if isinstance(v, list)
+            for r in v if isinstance(r, dict) and r.get("id")}
+    blocks = {rid: (a, b) for rid, a, b in _record_blocks(rec_text)}
+    entries, notes = [], []
+    for row, a, b in zip(spec["rows"], starts, ends):
+        name = row["name_in_source"]
+        pat = re.compile(r"(?<![A-Za-z0-9-])" + re.escape(name) + r"(?![A-Za-z0-9]|-\d)")
+        prim = [rid for rid, r in recs.items()
+                if pat.search((r.get("title") or "") + " " + (r.get("acronym") or ""))
+                and trial_family.report_role(r)[0] in ("PRIMARY", "PRIMARY_WITH_POOLED_ANALYSIS")]
+        m = {"family_id": f"{name} (row {len(entries) + 1})", "name_in_source": name,
+             "span": {"start": a, "end": a + len(text[a:b].rstrip()), "quote": text[a:b].rstrip()},
+             "endpoint": None, "aliases": []}
+        if len(prim) == 1 and prim[0] in blocks:
+            ba, bb = blocks[prim[0]]
+            m["aliases"].append({"id": prim[0], "document_ref": rec_path,
+                                 "document_sha256": hashlib.sha256(rec_raw).hexdigest(),
+                                 "span": {"start": ba, "end": bb, "quote": rec_text[ba:bb]}})
+        else:
+            notes.append(f"{name}: {len(prim)} primary report(s) among our records carry the name -- not bound")
+        entries.append(m)
+    result = {"state": "WRITTEN" if write else "WOULD_WRITE", "source": "text transcription", "k": len(entries),
+              "bound": sum(bool(m["aliases"]) for m in entries), "rows": [m["family_id"] for m in entries],
+              "notes": notes}
+    if write:
+        ppath = os.path.join(ROOT, "cache", slug, "comparators.json")
+        raw_panel = open(ppath, encoding="utf-8").read()
+        panel = json.loads(raw_panel)
+        cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8"))
+        pmid = str(cfg.get("comparator_pmid") or "")
+        entry = next(c for c in panel if pmid in str(c.get("citation") or "") or pmid == str(c.get("id") or ""))
+        if entry.get("trial_set"):
+            return {"state": "ALREADY_ENUMERATED", "k": len(entry["trial_set"])}
+        entry["trial_set"] = entries
+        entry["trial_set_document"] = {"document_ref": doc, "document_sha256": hashlib.sha256(raw).hexdigest(),
+                                       "source": "committed full-text transcription + cache/<slug>/comparator_table_spec.json",
+                                       "table_caption": spec["table_anchor"]}
+        comparator_panel.validate(entry, ROOT)
+        open(ppath, "w", encoding="utf-8", newline="\n").write(
+            json.dumps(panel, indent=2 if raw_panel.startswith("[\n  ") else 1, ensure_ascii=False)
+            + ("\n" if raw_panel.endswith("\n") else ""))
+    return result
+
+
 def main(argv):
     write = "--write" in argv
     only = argv[argv.index("--only") + 1] if "--only" in argv else None
@@ -197,6 +303,9 @@ def main(argv):
         if not os.path.isdir(os.path.join(ROOT, "docs", "reviews", slug)):
             continue
         report[slug] = build(slug, write)
+        if report[slug]["state"] in ("NOT_IN_PMC", "NOT_OPEN_LICENSE", "NO_INCLUDED_TABLE") and \
+                os.path.exists(os.path.join(ROOT, "cache", slug, "comparator_table_spec.json")):
+            report[slug] = dict(from_text_spec(slug, write), pmc_state=report[slug]["state"])
         print(slug, report[slug]["state"], {k: v for k, v in report[slug].items() if k in ("pmcid", "k", "bound", "license")})
     out = os.path.join(ROOT, "evidence", "comparator_tables")
     os.makedirs(out, exist_ok=True)

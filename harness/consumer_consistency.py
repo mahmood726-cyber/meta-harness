@@ -456,6 +456,9 @@ def _display_trial_id(trial_id: str) -> str:
     tid = _norm_id(trial_id)
     if tid.upper().startswith("NCT"):
         return tid
+    # only a numeric id is a PMID; a journal-route record (JOURNAL:<bib key>, V1.0.1) is shown as itself
+    if tid and not tid.isdigit():
+        return tid
     return f"PMID {tid}" if tid else str(trial_id or "")
 
 

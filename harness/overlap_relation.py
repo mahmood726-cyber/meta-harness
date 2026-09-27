@@ -36,12 +36,12 @@ from .membership import canonical_trial_key
 
 RELATIONS = ("IDENTICAL_SET", "SUBSET", "SUPERSET", "OVERLAPPING", "DISJOINT", "NOT_ENUMERABLE")
 LABELS = {
-    "IDENTICAL_SET": "identical -- the same trial families; agreement is arithmetic, not independent corroboration",
-    "SUBSET": "subset -- every pooled family is in the comparator's set",
+    "IDENTICAL_SET": "identical -- the same trial families; agreement between the two is arithmetic on the same trials, not a second evidence base",
+    "SUBSET": "subset -- every pooled family is in the comparator set",
     "SUPERSET": "superset -- every comparator trial is in our pool",
     "OVERLAPPING": "overlapping -- some families shared, each side has trials the other lacks",
     "DISJOINT": "disjoint -- no trial family in common",
-    "NOT_ENUMERABLE": "not enumerable -- the comparator's trial set is not known well enough to compare",
+    "NOT_ENUMERABLE": "not enumerable -- the comparator trial set is not known well enough to compare",
 }
 DATE_RULE = ("a pooled family whose earliest held publication report is from a year strictly after the comparator's "
              "publication year cannot be in the comparator's trial set")
@@ -95,9 +95,21 @@ def _acronym_index(review: dict, report_acronym: Callable[[str], Optional[str]])
     return idx
 
 
+def _family_index(review: dict) -> dict:
+    """identity key -> family id for EVERY family in the ledger (report ids, registry ids, DOIs, bib keys)."""
+    idx = {}
+    for f in _families(review):
+        al = f.get("aliases") or {}
+        for k in [f["family_id"]] + list(al.get("report_ids") or []) + list(al.get("registry_ids") or []) \
+                + list(al.get("dois") or []) + list(al.get("bib_keys") or []):
+            idx.setdefault(_key(k), f["family_id"])
+    return idx
+
+
 def _members(review, panel, prim_name, acr_idx, ours_keys):
     """(source, in_scope members, out_of_scope members, endpoint) from the best typed enumeration, or None.
-    A member is {name, bound_to (our family id or None), identity, endpoint, span}."""
+    A member is {name, family (ANY family of our ledger it is, or None), alias_ids, identity, endpoint, span};
+    whether that family is in our POOL is decided by the caller."""
     comp = review.get("comparator") or {}
     truth = (comp.get("truth") or {}).get("completeness") or {}
     panel_outcome_specific = bool(panel and panel.get("trial_set") and (panel.get("outcome_endpoints") or {}).get(prim_name))
@@ -118,16 +130,15 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
             # one identifier claimed by two different comparator rows: the rows' identities are ambiguous
             return {"source": f"comparator panel trial_set ({panel.get('document_ref')})",
                     "endpoint_for_outcome": None, "ambiguous": collisions}, [], []
-        bound = {}
-        for fid, keys in ours_keys.items():
-            # several comparator rows may be reports of ONE of our trials: they all bind to it (counted once)
-            for name in {alias_of[ck] for k in keys for ck in [_key(k)] if ck and ck in alias_of}:
-                bound[name] = fid
+        fam_idx = _family_index(review)
         ins, outs = [], []
         for m in panel["trial_set"]:
             ep = m.get("endpoint")
-            rec = {"name": m["family_id"], "bound_to": bound.get(m["family_id"]),
-                   "identity": ("bound by panel alias" if (m.get("aliases") or m["family_id"] in bound) else
+            ids = [a["id"] for a in m.get("aliases", [])] + ([m["bib_key"]] if m.get("bib_key") else [])
+            hits = {fam_idx[_key(i)] for i in ids if _key(i) in fam_idx}
+            rec = {"name": m["family_id"], "family": (next(iter(hits)) if len(hits) == 1 else None),
+                   "alias_ids": [a["id"] for a in m.get("aliases", [])],
+                   "identity": ("bound by panel alias" if m.get("aliases") else
                                 "identified by bibliographic key " + m["bib_key"] if m.get("bib_key") else "unbound (name only)"),
                    "endpoint": ep, "span": (m.get("span") or {}).get("quote")}
             (outs if (ep and expected and ep != expected) else ins).append(rec)
@@ -152,7 +163,7 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
     ins = []
     for n in named:
         fams = acr_idx.get(norm_name(n["name"])) or set()
-        ins.append({"name": n["name"], "bound_to": (next(iter(fams)) if len(fams) == 1 else None),
+        ins.append({"name": n["name"], "family": (next(iter(fams)) if len(fams) == 1 else None), "alias_ids": [],
                     "identity": ("bound by acronym" if len(fams) == 1 else
                                  "ambiguous acronym (several families)" if fams else "unbound (name only)"),
                     "endpoint": None, "span": n.get("span")})
@@ -209,9 +220,14 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
         out["theirs"] = {"status": "AMBIGUOUS", **meta}
         out["constraints"].append("comparator rows share an identifier: " + "; ".join(meta["ambiguous"]))
         return _finish(out, "NOT_ENUMERABLE", basis="enumerated comparator set with ambiguous row identities")
+    ours_set = {o["family_id"] for o in ours}
+    for m in ins + outs:
+        # bound_to = one of OUR POOLED families; a member that is a non-pooled family of our ledger is a known
+        # trial on their side only (it is reported in the inventory comparison, never counted as shared)
+        m["bound_to"] = m.get("family") if m.get("family") in ours_set else None
     out["theirs"] = {"status": "ENUMERATED", **meta, "members": ins, "out_of_scope": outs}
-    # theirs is counted in TRIALS: rows bound to the same pooled family are one trial
-    out["theirs_k"] = len({m["bound_to"] or ("row:" + m["name"]) for m in ins})
+    # theirs is counted in TRIALS: rows resolving to the same family are one trial
+    out["theirs_k"] = len({m.get("family") or ("row:" + m["name"]) for m in ins})
     bound_ours = {m["bound_to"] for m in ins if m["bound_to"]}
     # a member identified by an alias (PMID/DOI) or a bibliographic key is a KNOWN trial: if it is not bound to one of
     # ours it is theirs-only. Only a member with no identifier at all is an unknown identity.
@@ -219,7 +235,7 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
     # a bibliographic key (journal:year:volume:first page) only when some pooled family carries bibliographic keys
     # (a journal-route record) -- otherwise a bib-key-only row could be one of ours and is an unknown identity.
     ours_have_bib = any(str(k).startswith("bib:") for keys in ours_keys.values() for k in keys)
-    known = lambda m: (m["identity"] == "bound by panel alias"
+    known = lambda m: (bool(m.get("family")) or m["identity"] == "bound by panel alias"
                        or (m["identity"].startswith("identified by bibliographic key") and ours_have_bib))
     unbound = [m["name"] for m in ins if not m["bound_to"] and not known(m)]
     undecidable = [o["family_id"] for o in ours if o["family_id"] not in bound_ours and o["family_id"] not in post]
@@ -229,6 +245,7 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
             f"{', '.join(unbound)}; pooled famil(ies) {', '.join(undecidable)} are not excluded by date, so the "
             "shared set cannot be decided")
         return _finish(out, "NOT_ENUMERABLE", basis="enumerated comparator set with unbound members")
+    out["inventory_comparison"] = _inventory(review, ins)
     shared = sorted(bound_ours)
     only_ours = [o["family_id"] for o in ours if o["family_id"] not in bound_ours]
     only_theirs = [m["name"] for m in ins if not m["bound_to"]]
@@ -247,6 +264,48 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
     else:
         rel = "OVERLAPPING"
     return _finish(out, rel, basis="set operation on the enumerated comparator trial set" + (" + date proof" if unbound else ""))
+
+
+def _inventory(review: dict, members: list) -> dict:
+    """The comparator's trials against our BROADER eligible inventory -- kept apart from the pooled-set relation. A
+    comparator trial we do not pool is not automatically 'missing eligible': it may be in our ledger and screened
+    out (open-label, another population), eligible but not poolable, or absent from our records altogether."""
+    scr = {str(x.get("id")): x for x in ((review.get("screening") or {}).get("records") or [])}
+    fams = {f["family_id"]: f for f in _families(review)}
+    prim = _primary(review) or {}
+    absent = {_key(str(a.get("id") or "").replace("PMID ", "")): a for a in prim.get("declared_absent_trials") or []}
+    rows = []
+    design_re = re.compile(r"\b(double[- ]blind|single[- ]blind|open[- ]label)\b[^.;]{0,20}?\b(RCT|randomi[sz]ed|trial)\b", re.I)
+    for m in members:
+        _d = design_re.search(m.get("span") or "")
+        row_design = ({"row_design_as_printed": _d.group(0)} if _d else {})
+        if m.get("bound_to"):
+            rows.append({"comparator_trial": m["name"], "status": "POOLED", "family": m["bound_to"], **row_design})
+            continue
+        ids = list(m.get("alias_ids") or [])
+        if m.get("family"):
+            ids = list(((fams.get(m["family"]) or {}).get("aliases") or {}).get("report_ids") or []) + ids
+        decisions = [scr[i] for i in ids if i in scr]
+        inc = [d for d in decisions if d.get("decision") == "include"]
+        if inc:
+            ab = next((absent[_key(i)] for i in ids if _key(i) in absent), None)
+            rows.append({"comparator_trial": m["name"], "status": "ELIGIBLE_NOT_POOLED", "family": m.get("family"),
+                         "record": inc[0].get("id"), "state": (ab or {}).get("state"),
+                         "reason": (ab or {}).get("reason") or inc[0].get("reason"), **row_design})
+        elif decisions:
+            d = decisions[0]
+            rows.append({"comparator_trial": m["name"], "status": "SCREENED_OUT", "family": m.get("family"),
+                         "record": d.get("id"), "rule": d.get("rule_id"), "reason": d.get("reason"), **row_design})
+        elif m.get("family"):
+            rows.append({"comparator_trial": m["name"], "status": "IN_LEDGER_NOT_SCREENED", "family": m["family"], **row_design})
+        else:
+            rows.append({"comparator_trial": m["name"], "status": "NOT_IN_OUR_RECORDS",
+                         "note": "no held record carries this trial's identity", **row_design})
+    counts = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return {"rows": rows, "counts": counts,
+            "note": "comparison with our eligible inventory; separate from the pooled-set relation"}
 
 
 def _finish(out: dict, relation: str, basis: str) -> dict:
@@ -340,6 +399,14 @@ def render_block(obj: Optional[dict]) -> str:
     dp = obj.get("date_proof") or {}
     out.append(f"<p>Date proof ({e(dp.get('rule'))}; comparator year {e(dp.get('comparator_year'))}): "
                + (e(", ".join(dp.get("post_dating") or [])) or "no pooled family post-dates the comparator") + ".</p>")
+    inv = obj.get("inventory_comparison") or {}
+    if inv.get("rows"):
+        out.append("<h5>Comparator trials against our eligible inventory (separate from the pooled-set relation)</h5>"
+                   "<table><tr><th>Comparator trial</th><th>Our status</th><th>Detail</th></tr>" + "".join(
+                       f"<tr><td>{e(r['comparator_trial'])}</td><td>{e(r['status'])}</td><td>"
+                       + e("; ".join(str(x) for x in (r.get("rule"), r.get("state"), r.get("reason") or r.get("note"),
+                                                      ("comparator row: " + r["row_design_as_printed"]) if r.get("row_design_as_printed") else None)
+                                     if x)) + "</td></tr>" for r in inv["rows"]) + "</table>")
     if obj.get("theirs_k_stated"):
         out.append(f"<p>Trial count the comparator states (a different quantity from its set for this outcome): "
                    f"{e(obj['theirs_k_stated'].get('value'))}.</p>")
