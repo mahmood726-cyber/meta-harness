@@ -355,7 +355,11 @@ def test_harmony_is_admissible_once_its_population_is_established_on_source_evid
     row = next(r for r in bundle["verification_rows"] if r["trial"]["id"] == "PMID 30291013")
     assert row["admission"]["predicates"]["P5_family_eligible"]["eligibility_state"] == "ELIGIBLE"
     assert row["admission"]["final"] == "ADMISSIBLE"
-    assert bundle["counts"]["admissible_rows"] == 8
+    # the one pooled row that is not admissible is SUSTAIN-6, and for the stated reason (GLP-1 review)
+    s6 = next(r for r in bundle["verification_rows"] if r["trial"]["id"] == "PMID 27633186")
+    assert s6["admission"]["final"] == "INADMISSIBLE"
+    assert s6["admission"]["predicates"]["P5_family_eligible"]["absence_code"] == "OUTCOME_ASCERTAINMENT_PENDING"
+    assert bundle["counts"]["admissible_rows"] == 7 and bundle["counts"]["inadmissible_rows_in_primary_pool"] == 1
 
 
 def test_lancet_rows_are_normalised_not_verbatim_and_offsets_reproduce(bundle):
