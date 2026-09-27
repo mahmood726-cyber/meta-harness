@@ -9,6 +9,7 @@ from __future__ import annotations
 import re as _re
 
 from . import arm_object
+from . import arm_parse
 from . import lexicon
 from . import armcontrast
 from . import screen_entry
@@ -331,11 +332,10 @@ def _record_arm_interventions_background_only(rec, keywords) -> tuple[bool, str]
     if not kws:
         return False, ""
 
-    def has_interest(s):
-        return any(k and k in s for k in kws)
-
-    active = [s for s in folded if not armcontrast._PLACEBO.fullmatch(s.strip())]
-    if len(active) < 2 or not all(has_interest(s) for s in active):
+    # "Every arm" means every listed arm is ACTIVELY exposed (arm_parse). A substring test read "Potassium Chloride + Placebo
+    # for Empagliflozin" (SAK-HFpEF) and "placebo Circadin" (Neu I) as exposure, and a plain "Placebo" arm was dropped before
+    # the test (DRC-04, SYNAPSE, ARTS-DN): a matched-placebo or placebo arm is an UNEXPOSED arm, so there is a contrast.
+    if not arm_parse.interest_in_every_arm(folded, kws):
         return False, ""
     return True, "; ".join(interventions)
 
