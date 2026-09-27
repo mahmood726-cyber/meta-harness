@@ -104,6 +104,9 @@ class Study:
     design: Optional[dict] = None
     design_adjustment: Optional[dict] = None
     study_effect: Optional[dict] = None
+    # A DECLARED, prespecified zero-event method for a sensitivity analysis only (denosumab review, 2026-09-26). None = a
+    # double-zero study (0 events in both arms) has NO conventional log-ratio and is refused here, never given pseudo-events.
+    zero_event_method: Optional[str] = None
 
     def yi_vi(self) -> tuple[float, float]:
         d = self.design or {}
@@ -139,6 +142,8 @@ class Study:
         # zero event count only.
         if self.e1i is not None and self.t1i and self.e2i is not None and self.t2i:
             e1, e2 = self.e1i, self.e2i
+            if e1 == 0 and e2 == 0 and self.zero_event_method != "CC_0.5":
+                raise DoubleZero(f"{self.label}: 0 events in both arms -- no conventional log-rate-ratio (DOUBLE_ZERO)")
             if min(e1, e2) == 0:
                 e1, e2 = e1 + 0.5, e2 + 0.5
             y = math.log((e1 / self.t1i) / (e2 / self.t2i))
@@ -146,6 +151,10 @@ class Study:
             return y, v
         if self.ai is not None:
             a, n1, c, n2 = self.ai, self.n1i, self.ci, self.n2i
+            if a == 0 and c == 0 and self.zero_event_method != "CC_0.5":
+                # DOUBLE_ZERO: no events in either arm carries no information about the ratio; a continuity correction would
+                # manufacture pseudo-events. Only a declared zero-event SENSITIVITY analysis may pass (zero_event_method).
+                raise DoubleZero(f"{self.label}: 0 events in both arms -- no conventional log-ratio (DOUBLE_ZERO)")
             if min(a, c, n1 - a, n2 - c) == 0:  # zero cell in THIS study
                 a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1.0, n2 + 1.0
             if self.measure.upper() == "OR":
@@ -195,6 +204,20 @@ class PoolResult:
 
 # The one token that certifies an interval as engine-produced. Bump the version if the method changes.
 CI_PROVENANCE = "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
+
+
+class DoubleZero(ValueError):
+    """A study with 0 events in both arms: eligible, outcome observed, no conventional log-ratio (denosumab review)."""
+
+
+def zero_cell_state(ai, n1i, ci, n2i) -> str | None:
+    """DOUBLE_ZERO (both arms 0 events), SINGLE_ZERO_CELL (the 0.5 all-cells correction yi_vi applies -- recorded, never silent),
+    or None."""
+    if None in (ai, n1i, ci, n2i):
+        return None
+    if ai == 0 and ci == 0:
+        return "DOUBLE_ZERO"
+    return "SINGLE_ZERO_CELL" if min(ai, ci, n1i - ai, n2i - ci) == 0 else None
 # k=1 computes NO tau2 and NO HKSJ: the interval is the single study's own Wald interval with a normal quantile (the z fallback in
 # pool() below). The token names that computation (dapagliflozin HFpEF review, 2026-09-26: a single-study RR from 44/162 vs 38/162
 # carried the PM/HKSJ token).

@@ -411,3 +411,51 @@ def count_only_under_hr(row: dict[str, Any], target: str | None, spec: dict[str,
                        "hazard ratio and does not enter the HR primary"
                        + ("; it enters the explicitly defined secondary count analysis" if defined else
                           "; no secondary count analysis is defined for this outcome, so it is reported, not pooled"))}
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# (10) PREFER THE PUBLISHED MODEL (denosumab review): FREEDOM's vertebral RR 0.32 (0.26-0.41) is age-stratified Mantel-Haenszel and
+# its nonvertebral / hip HRs are age-adjusted Cox. A published model estimate is KEPT with its model recorded; a same-measure crude
+# count reconstruction (RR 0.32479, 0.25573-0.41249) is CORROBORATION ONLY, never a replacement. The model is read from held text,
+# or from a typed record (`published_model` with its span); otherwise it is stated as not established -- never asserted.
+_MODEL = (
+    ("MANTEL_HAENSZEL", r"mantel[- ]haenszel"),
+    ("STRATIFIED", r"\bstratified\b"),
+    ("COX", r"\bcox\b|proportional[- ]hazards?"),
+    ("LOGISTIC", r"logistic\s+regression"),
+    ("POISSON", r"poisson"),
+    ("ADJUSTED", r"(?<![-\w])adjusted\s+(?:hazard|relative|risk|odds|rate)|(?<![-\w])adjust(?:ed|ing)?\s+for\b|\bmultivariab?le\b"
+                 r"|\bmultivariate\b|\b(?:age|sex|risk|baseline|fully|covariate)[- ]adjusted\b"),
+)
+
+
+def published_model(row: dict[str, Any], abstract: str | None = None) -> dict[str, Any]:
+    import re as _re
+    typed = row.get("published_model")
+    if isinstance(typed, dict) and typed.get("model") and typed.get("span") and typed.get("basis") == "typed record":
+        return typed
+    if isinstance(typed, dict) and typed.get("model") and typed.get("span") and not typed.get("basis"):
+        return {"model": typed["model"], "basis": "typed record", "span": typed["span"]}
+    for text, where in ((row.get("source") or "", "row quotation"), (abstract or "", "held abstract")):
+        found = [name for name, rx in _MODEL if _re.search(rx, text, _re.I)]
+        if found:
+            return {"model": "+".join(found), "basis": where}
+    return {"model": "NOT_STATED_IN_HELD_TEXT", "basis": "neither the quotation nor the held abstract states the estimation model"}
+
+
+def model_documented(row: dict[str, Any], abstract: str | None = None) -> bool:
+    """A documented estimation model (stratified / Mantel-Haenszel / Cox / adjusted) explains why a crude count ratio differs: the
+    published estimate is kept and the difference disclosed -- never held for it, never replaced by the crude ratio."""
+    return adjusted_documented(row) or published_model(row, abstract)["model"] != "NOT_STATED_IN_HELD_TEXT"
+
+
+def crude_corroboration(row: dict[str, Any]) -> dict[str, Any] | None:
+    """Same-measure crude counts beside a published estimate: recorded as CORROBORATION ONLY."""
+    counts = _counts_of(row)
+    scale = str(row.get("scale") or "").upper()
+    if counts is None or row.get("effect") is None or scale not in RATIO:
+        return None
+    t = counts_tuple(*counts, scale)
+    return t and {"role": "CORROBORATION_ONLY", "counts": list(counts), "crude": {k: round(v, 5) for k, v in t.items()},
+                  "note": "a crude count ratio never replaces the published model estimate"}

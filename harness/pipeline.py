@@ -50,7 +50,7 @@ from . import eligibility_chain as eligibility_chain_mod
 from . import scope_identity as scope_identity_mod
 from .limitations import build_limitations
 from .ctgov_results import extract_ctgov
-from .synth import Study, pool, method_text, METHOD_RATIO
+from .synth import Study, pool, method_text, METHOD_RATIO, zero_cell_state
 from .acquisition import LEDGER_FILENAME, STATES
 
 # Back-compat alias: the ratio-scale method is the historical default. Per-outcome and manifest
@@ -1455,9 +1455,21 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             if t.get("selection_rule") == "KEEP_REPORTED_EFFECT":
                 t["selection_rule"] = "KEEP_REPORTED_EFFECT_TRANSFORMED"
             t["selected_estimator"] = "published_effect_ci_transformed"
-        _cc = effect_identity_mod.conflict_check(t, effect_identity_mod.adjusted_documented(t))
+        # a documented estimation model (stratified MH, Cox, adjusted) keeps the published estimate: never held, never replaced
+        t["published_model"] = effect_identity_mod.published_model(t, ab)
+        _cc = effect_identity_mod.conflict_check(t, effect_identity_mod.model_documented(t, ab))
         if _cc:
             t["effect_conflict"] = _cc
+        _cor = effect_identity_mod.crude_corroboration(t)
+        if _cor:
+            t["crude_corroboration"] = _cor
+        _zs = zero_cell_state(t.get("ai"), t.get("n1i"), t.get("ci"), t.get("n2i")) if t.get("effect") is None else None
+        if _zs == "SINGLE_ZERO_CELL" and not t.get("continuity_correction"):
+            # the same disclosure harms.py writes for harm rows, for EVERY outcome: a single-zero correction is never silent
+            t["continuity_correction"] = ("0.5 continuity correction applied by synth.Study.yi_vi because this study has at least "
+                                          "one zero cell; correction is per-study and disclosed here.")
+        elif _zs == "DOUBLE_ZERO":
+            t["double_zero"] = True
         # OUTCOME POLARITY: which EVENT the effect models; a benefit-event effect in a death pool is held, or re-oriented only
         # under a declared normalisation (the original kept)
         _pc = effect_identity_mod.polarity_check(t, spec.get("name"), spec)
@@ -1474,6 +1486,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         time_to_event_rows = list(_tte)
     else:
         time_to_event_rows = []
+    # DOUBLE_ZERO: 0 events in both arms -- eligible, outcome OBSERVED, no conventional log-ratio. Out of the pool, counted in the
+    # inventory; a zero-event method runs only as a declared, prespecified sensitivity analysis.
+    double_zero_rows = [t for t in trials if t.get("double_zero")]
+    if double_zero_rows:
+        trials = [t for t in trials if not t.get("double_zero")]
+        for t in double_zero_rows:
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "observed_no_estimable_effect",
+                           "state": "DOUBLE_ZERO", "reason_code": "DOUBLE_ZERO", "endpoint_admissibility": "DOUBLE_ZERO",
+                           "eligible": True, "outcome_observed": True,
+                           "counts": [t.get(k) for k in ("ai", "n1i", "ci", "n2i")], "source": t.get("source", ""),
+                           "reason": ("0 events in both arms: the outcome was observed and did not occur; no conventional log-ratio is "
+                                      "estimable. No continuity correction or pseudo-events; a zero-event method only as a declared "
+                                      "sensitivity analysis")})
     # COUNTS UNDER AN HR TARGET: a count-only row never enters an HR pool (it is not an HR); it goes to an explicitly defined
     # secondary count analysis, or is reported with its typed state
     secondary_count_rows = []
@@ -1526,6 +1551,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    _zes = spec.get("zero_event_sensitivity") or {}
+    if double_zero_rows and _zes.get("predeclared") is True and _zes.get("method") == "CC_0.5":
+        _zrows = trials + double_zero_rows
+        _zm = str(spec.get("estimand") or "RR").upper()
+        try:
+            out["zero_event_sensitivity"] = {
+                "method": "CC_0.5 (0.5 added to all four cells of each zero-cell study)", "declared": _zes,
+                "pool": _pool_result([Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"), n2i=t.get("n2i"),
+                                            effect=t.get("effect"), ci_low=t.get("ci_low"), ci_high=t.get("ci_high"),
+                                            measure=_zm, zero_event_method="CC_0.5") for t in _zrows], scale=_zm),
+                "note": "SENSITIVITY ONLY: the primary result excludes double-zero studies"}
+        except ValueError as _e:
+            out["zero_event_sensitivity"] = {"method": "CC_0.5", "error": str(_e)[:200]}
+    elif double_zero_rows:
+        out["zero_event_sensitivity"] = {"state": "NOT_DECLARED", "double_zero_studies": [t.get("id") for t in double_zero_rows],
+                                         "note": "no prespecified zero-event sensitivity analysis: none is run"}
     if secondary_count_rows:
         _sec = spec.get("secondary_count_analysis") or {}
         out["secondary_count_analysis"] = {

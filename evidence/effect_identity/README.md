@@ -177,3 +177,31 @@ The served adverse-events pool is k=1 (44/162 vs 38/162, RR 1.157895 (0.795441-1
 At k=1 `synth.pool` computes no tau2 and no HKSJ, only the study's own z-based Wald interval. It now stamps
 `synth.pool:k=1:single-study-log-ratio-Wald-z(no-tau2,no-HKSJ):v1` (or the additive twin for MD/SMD) and keeps PM/HKSJ for k>=2.
 The census gate's allow-list gains exactly these tokens.
+
+## (11) Double-zero studies (denosumab review)
+
+A trial with 0 events in both arms (Nakamura) has no conventional log-ratio.
+- `synth.Study.yi_vi` used to add 0.5 to all four cells whenever ANY cell was zero, **including double-zero**, which manufactures
+  pseudo-events. The plant is the pre-fix engine returning log-RR 0 for 0/50 vs 0/50.
+- It now raises `DoubleZero` (2x2 and events/person-time alike), unless a DECLARED zero-event method is set on the study.
+- The pipeline moves such a row out of the pool with state **DOUBLE_ZERO**: `eligible: true`, `outcome_observed: true`, absent kind
+  `observed_no_estimable_effect`, counts shown. The code survives the absence layer.
+- A zero-event method runs only as a predeclared `zero_event_sensitivity` (`CC_0.5`), in its own pool marked SENSITIVITY ONLY.
+  Undeclared, none is run and that is stated.
+- A single-zero correction (the house rule) stays, and is disclosed for every outcome kind; harms.py already disclosed it for harm
+  rows. My first claim that the one served single-zero row (COVID serious adverse events 1/16 vs 0/14) was corrected silently was
+  wrong; a test caught it.
+- Served today: 0 double-zero rows among 35 served count rows. Nakamura is not in the served denosumab review; its row is a synthetic
+  fixture.
+
+## (12) Prefer the published model; crude counts corroborate only (denosumab review)
+
+FREEDOM (19671655) serves the published RR 0.32 (0.26-0.41) and HRs 0.80 / 0.60 (`KEEP_REPORTED_EFFECT`); no path replaced them.
+- The rows now carry `published_model`: read from the quotation / held abstract, or from a typed record with its span. FREEDOM's
+  held abstract gives percentages only and does not state the age-stratified Mantel-Haenszel / age-adjusted Cox models (those are in
+  the full text), so each row says `NOT_STATED_IN_HELD_TEXT` rather than asserting a model.
+- With a typed record the model is recorded. Same-measure crude counts become `crude_corroboration` with role CORROBORATION_ONLY:
+  86/3702 vs 264/3691 -> RR 0.32479 (0.25573-0.41249), the review's number. They are never a replacement.
+- A documented model (stratified / Mantel-Haenszel / Cox / adjusted) makes a count disagreement KEEP_DISCLOSED, never HOLD. The
+  same estimate with no documented model is HOLD (tested both ways).
+- Not built end to end: both drives are below the 3 GB regeneration floor (C: 2.5 GB, F: 2.4 GB).

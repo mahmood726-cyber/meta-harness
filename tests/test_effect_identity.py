@@ -328,3 +328,74 @@ def test_k1_ci_provenance_names_the_single_study_wald_computation():
     assert two.ci_provenance == synth.CI_PROVENANCE
     from harness import census
     assert synth.CI_PROVENANCE_K1_RATIO in census._VALID_CI_PROVENANCE and "made-up-token" not in census._VALID_CI_PROVENANCE
+
+
+# ------------------------------------------------------------------ denosumab: double-zero; prefer the published model
+_NAKAMURA = {"id": "Nakamura", "label": "Nakamura", "ai": 0, "n1i": 50, "ci": 0, "n2i": 50}   # synthetic: the review's double-zero trial
+
+
+def test_double_zero_has_no_conventional_log_ratio_and_the_engine_refuses_pseudo_events():
+    with pytest.raises(synth.DoubleZero):
+        synth.Study(label="Nakamura", ai=0, n1i=50, ci=0, n2i=50).yi_vi()
+    with pytest.raises(synth.DoubleZero):
+        synth.Study(label="Nakamura", e1i=0, t1i=100, e2i=0, t2i=100).yi_vi()
+    assert synth.zero_cell_state(0, 50, 0, 50) == "DOUBLE_ZERO"
+    y, v = synth.Study(label="sens", ai=0, n1i=50, ci=0, n2i=50, zero_event_method="CC_0.5").yi_vi()   # ONLY when declared
+    assert y == 0.0 and v > 0
+
+
+def test_plant_pre_fix_engine_silently_gave_a_double_zero_study_pseudo_events():
+    src = subprocess.run(["git", "show", f"{PINNED}:harness/synth.py"], cwd=ROOT, capture_output=True).stdout.decode()
+    ns = {}
+    exec(compile(src, "synth_prefix.py", "exec"), ns)
+    y, v = ns["Study"](label="Nakamura", ai=0, n1i=50, ci=0, n2i=50).yi_vi()                      # no refusal: 0.5 in every cell
+    assert y == 0.0 and v > 0
+
+
+def test_a_double_zero_row_is_eligible_observed_and_reaches_the_reader():
+    from harness import absence
+    row = {"label": "Nakamura", "id": "Nakamura", "absent_kind": "observed_no_estimable_effect", "state": "DOUBLE_ZERO",
+           "reason_code": "DOUBLE_ZERO", "endpoint_admissibility": "DOUBLE_ZERO", "eligible": True, "outcome_observed": True}
+    assert absence.classify_reason(["fracture"], "", row=row)["reason_code"] == "DOUBLE_ZERO"
+
+
+def test_a_single_zero_cell_correction_is_disclosed_on_the_row():
+    """The one served single-zero row (COVID serious adverse events, a HARM) was already disclosed by harms.py -- a first claim that
+    it was silent was wrong, and this test caught it. The pipeline now writes the same disclosure for EVERY outcome kind."""
+    o = next(x for x in _git_json("docs/reviews/corticosteroids-covid19-mortality/review.json")["outcomes"] if x["name"].startswith("Serious"))
+    t = next(x for x in o["trials"] if x["id"] == "PMID 34138478")
+    assert (t["ai"], t["n1i"], t["ci"], t["n2i"]) == (1, 16, 0, 14)
+    assert "0.5 continuity correction" in t["continuity_correction"]
+    assert synth.zero_cell_state(t["ai"], t["n1i"], t["ci"], t["n2i"]) == "SINGLE_ZERO_CELL"
+
+
+def _freedom():
+    rev = _git_json("docs/reviews/denosumab-vertebral-fracture/review.json")
+    ab = {str(r["id"]): r.get("abstract", "") for r in _git_json("cache/denosumab-vertebral-fracture/records.json")["records"]}["19671655"]
+    return rev, ab
+
+
+def test_freedom_published_estimates_are_kept_and_the_model_is_never_asserted_from_nothing():
+    rev, ab = _freedom()
+    for o in rev["outcomes"][:3]:
+        t = o["trials"][0]
+        assert t["selection_rule"] == "KEEP_REPORTED_EFFECT" and t["derivation"] == "reported"
+        assert ei.published_model(t, ab)["model"] == "NOT_STATED_IN_HELD_TEXT"          # the abstract does not state MH / Cox
+
+
+def test_a_typed_model_record_is_used_and_crude_counts_are_corroboration_only():
+    rev, ab = _freedom()
+    fr = dict(rev["outcomes"][0]["trials"][0], alternatives=[{"ai": 86, "n1i": 3702, "ci": 264, "n2i": 3691}],
+              published_model={"model": "MANTEL_HAENSZEL+STRATIFIED (age)", "span": "age-stratified Mantel-Haenszel (FREEDOM full text)"})
+    assert ei.published_model(fr, ab)["basis"] == "typed record"
+    cor = ei.crude_corroboration(fr)
+    assert cor["role"] == "CORROBORATION_ONLY" and cor["crude"] == {"estimate": 0.32479, "ci_low": 0.25573, "ci_high": 0.41249}
+    assert fr["effect"] == 0.32                                                            # the published estimate is untouched
+
+
+def test_a_documented_model_keeps_a_published_estimate_that_crude_counts_disagree_with():
+    row = {"effect": 0.30, "ci_low": 0.20, "ci_high": 0.45, "scale": "RR", "source": "risk ratio 0.30 (Mantel-Haenszel, stratified by age)",
+           "alternatives": [{"ai": 30, "n1i": 100, "ci": 50, "n2i": 100}]}
+    assert ei.conflict_check(row, ei.model_documented(row))["resolution"] == "KEEP_DISCLOSED"
+    bare = dict(row, source="risk ratio 0.30")
+    assert ei.conflict_check(bare, ei.model_documented(bare))["resolution"] == "HOLD"
