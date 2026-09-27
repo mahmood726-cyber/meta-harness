@@ -62,3 +62,19 @@ DOI 10.3389/fendo.2023.1114894; Unpaywall is_oa=true). It reports renal composit
   FIGARO-DKD (PMID 34449181), and ARTS-DN (PMID 26325557).
 - **Negative** - FINEARTS-HF (finerenone for heart failure, PMID 39225278, another topic
   population) must be recovered and EXCLUDED as wrong population.
+
+## Retrospective protocol erratum (2026-09-27) -- comparator as cited above
+**Labelled retrospective: written after data were seen; the section above is left unchanged as registered.**
+- Attribution: the comparator (PMID 36742404, DOI 10.3389/fendo.2023.1114894) is by **Ghosal S. and Sinha B.**,
+  not "Sarafidis et al." The PMID, DOI and title above are correct; only the named authors are wrong. Recorded as
+  COMPARATOR_IDENTITY_MISMATCH on the page (harness/comparator_identity.py).
+- Hyperkalaemia: the section above copies "RR 2.22 (95% CI 1.93-2.24)" from the comparator's text. Its Figure 3B
+  forest plot prints the upper bound as 2.54 (reported by an external review; the figure is an image and is not
+  held), and the printed tuple is itself not symmetric on the log scale (a symmetric interval around 2.22 with
+  lower bound 1.93 ends at 2.55). Recorded as COMPARATOR_INTERNAL_MISMATCH; neither value is adopted.
+- The same Figure 3B pools FIDELIO-DKD's treatment-related hyperkalaemia with FIGARO-DKD's investigator-reported
+  hyperkalaemia (COMPARATOR_DEFINITION_MIX); no safety result of this review is validated against it.
+- Renal composite: the section above quotes 0.84 (0.77-0.92) from the comparator's abstract; its results section
+  prints 0.86 (0.77-0.92) for the same estimate (COMPARATOR_INTERNAL_MISMATCH).
+- Scope: this erratum corrects quotations and the attribution of the comparator. It changes no eligibility rule,
+  no outcome, no model and no result of this review.
