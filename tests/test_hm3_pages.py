@@ -1,6 +1,7 @@
 """End-to-end contract on the 17 rebuilt HM3 pages and their held inputs."""
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -58,7 +59,15 @@ def test_primary_trial_values_and_membership_are_unchanged():
         assert snap['pinned_commit'] == BASE
         before = snap['pages'][slug]
         after = json.loads((ROOT/rel).read_text(encoding='utf-8'))
-        assert before['screening_records'] == after['screening']['records'], slug
+        # V1.0.1 (empagliflozin review): a registry record the registry itself states is not randomised (allocation
+        # NA / NON_RANDOMIZED) is now excluded on X1 before any later rule. The only allowed difference from the pinned
+        # control is exactly that: same record, same decision, rule X1, and a span quoting the registry allocation.
+        b_recs, a_recs = before['screening_records'], after['screening']['records']
+        assert [(x['id'], x['decision']) for x in b_recs] == [(x['id'], x['decision']) for x in a_recs], slug
+        for x, y in zip(b_recs, a_recs):
+            if x != y:
+                assert y['rule_id'] == 'X1' and y['decision'] == 'exclude', (slug, y['id'])
+                assert re.fullmatch(r'registry allocation: (?:NA|N/A|NON_RANDOMIZED|Non-Randomized)', y['span'], re.I), (slug, y)
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
         sup = (snap.get('superseded') or {}).get(slug)

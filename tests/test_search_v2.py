@@ -14,7 +14,9 @@ from harness.pipeline import RETRIEVAL_RETRACTION, classify_retrieval
         ("10.1056/NEJMoa000000", "IDENTIFIER_SEEDED", "10.1056/NEJMoa000000"),
         ("40159390", "IDENTIFIER_SEEDED", "40159390"),
         ("NCT01234567", "IDENTIFIER_SEEDED", "NCT01234567"),
-        ("Dapagliflozin[Title] randomized placebo", "TITLE_ANCHORED", "[Title]"),
+        # V1.0.1 (esketamine review): a treatment concept in a title field is a (possibly insensitive) concept query,
+        # not known-item seeding; a discovery query still may not be title-restricted, so it is refused under that kind
+        ("Dapagliflozin[Title] randomized placebo", "TITLE_RESTRICTED_CONCEPT", "[Title]"),
         ("12345678[uid]", "PMID_ENUMERATION", "[uid]"),
     ],
 )

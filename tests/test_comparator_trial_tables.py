@@ -84,12 +84,18 @@ def test_PLANT_esketamine_transform3_is_shared_through_screenings_dedup_parent()
     # paper's own family made TRANSFORM-3 look "ours only" and the relation OVERLAPPING; it is SUBSET.
     rev = json.load(open(os.path.join(ROOT, "docs", "reviews", "esketamine-trd-madrs", "review.json"), encoding="utf-8"))
     o = rev["comparator"]["overlap_relation"]
-    assert o["relation"] == "SUBSET" and o["theirs_k"] == 6 and o["only_ours"] == []
+    # theirs_k 6 -> 4 (V1.0.1 esketamine review): generic row labels never count as identities; at trial level the
+    # comparator holds TRANSFORM-1, TRANSFORM-2, TRANSFORM-3 and Chen 2023
+    assert o["relation"] == "SUBSET" and o["theirs_k"] == 4 and o["only_ours"] == []
     assert o["shared"] == ["NCT02418585", "NCT02422186", "NCT03434041"]           # TRANSFORM-2, TRANSFORM-3, Chen 2023
     inv = {r["comparator_trial"].split(" ")[1]: r for r in o["inventory_comparison"]["rows"]}
     assert inv["D"]["status"] == "POOLED" and inv["D"]["family"] == "NCT02422186"
     assert inv["B"]["family"] == "NCT02417064"          # TRANSFORM-1, held by registry only: bound by its title acronym
-    assert inv["E"]["status"] == "NOT_IN_OUR_RECORDS"   # SUSTAIN-2: no family of ours carries it
+    # SUSTAIN-2 (row E) is outside the comparator's Day-28 MADRS pool (outcome-level membership A-D, row n = stated
+    # participants); it is listed as out of scope with its endpoint, never dropped, and no family of ours carries it
+    oos = {m["name"].split(" ")[1]: m for m in o["theirs"]["out_of_scope"]}
+    assert oos["E"]["family"] is None and oos["E"]["endpoint"] == "maintenance randomised-withdrawal analysis"
+    assert "E" not in inv
 
 
 def _synthetic(title, families, screening=()):

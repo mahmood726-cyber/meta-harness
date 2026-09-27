@@ -412,6 +412,12 @@ def screen_record(rec, inc, neg_pmids):
     if over := _manual_override(rec, inc):
         return over
     if not _is_rct(rec):
+        alloc = (rec.get("allocation", "") or "").upper()
+        if rec.get("id_type") not in ("pmid", "journal") and alloc in ("NA", "N/A", "NON_RANDOMIZED", "NON-RANDOMIZED"):
+            # a registry record is excluded on its own ALLOCATION field: the span quotes that field, not publication
+            # types a registry record never has
+            return ScreenDecision("exclude", "X1", f"not a randomized controlled trial (record: {label}; the registry "
+                                  f"states allocation {alloc}).", f"registry allocation: {rec.get('allocation')}")
         pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
         return ScreenDecision("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
                 f"publication types: {pts}")

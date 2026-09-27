@@ -47,7 +47,10 @@ def test_PLANT_protocol_and_config_naming_different_papers():
 
 
 def test_gate_refuses_an_unrendered_mismatch(tmp_path):
-    (tmp_path / "review.json").write_text(json.dumps({"comparator": {"identity": _check(CAP)}}), encoding="utf-8")
+    ident = _check(CAP)
+    # a served review always carries its comparator PMID; the gate also checks it against the governing record
+    (tmp_path / "review.json").write_text(json.dumps({"comparator": {"pmid": (ident.get("governing") or {}).get("served_pmid"),
+                                                                     "identity": ident}}), encoding="utf-8")
     assert gate.check_comparator_identity_disclosed(str(tmp_path), "<html></html>")
     html = ci.render_block(_check(CAP))
     assert gate.check_comparator_identity_disclosed(str(tmp_path), html) == []

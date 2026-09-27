@@ -133,6 +133,10 @@ def test_hand_written_keyword_pages_are_separate_unregistered_scope_rows():
         "colchicine-postop-af",
         "colchicine-recurrent-pericarditis",
         "corticosteroids-cap-mortality",
+        # V1.0.1 (esketamine, melatonin reviews): a treatment concept in a title field is a concept query, so these
+        # two pages are hand-written keyword searches, not title-seeded retrieval
+        "esketamine-trd-madrs",
+        "melatonin-primary-insomnia-sol",
         "probiotics-aad-prevention",
     }
     assert {row["verdict"] for row in hand.values()} == {scope_identity.HAND_WRITTEN_SCOPE}
@@ -140,4 +144,5 @@ def test_hand_written_keyword_pages_are_separate_unregistered_scope_rows():
 
     sweep = scope_identity.sweep(ROOT)
     assert sweep["n_pages"] == 32
-    assert sweep["n_scope_mismatch"] == 28
+    # 28 -> 26: esketamine and melatonin moved to the hand-written keyword verdict above (4 -> 6 pages)
+    assert sweep["n_scope_mismatch"] == 26

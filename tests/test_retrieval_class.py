@@ -14,7 +14,9 @@ def test_structural_query_classifier_kinds():
     assert classify_query("12345678[uid] OR 23456789[uid]") == "PMID_ENUMERATION"
     assert classify_query("10.1016/S0140-6736(22)02083-9") == "IDENTIFIER_SEEDED"
     assert classify_query("40159390") == "IDENTIFIER_SEEDED"
-    assert classify_query("Dapagliflozin[Title] randomized placebo") == "TITLE_ANCHORED"
+    # V1.0.1 (esketamine review): one treatment concept in a title field is a concept query; a trial name is seeding
+    assert classify_query("Dapagliflozin[Title] randomized placebo") == "TITLE_RESTRICTED_CONCEPT"
+    assert classify_query('"LEADER"[Title] liraglutide') == "TITLE_ANCHORED"
     assert classify_query("FAIR-HF2 JAMA 2025 randomized clinical trial ferric carboxymaltose") == "NAME_SEEDED"
     assert (
         classify_query("hydrocortisone severe community-acquired pneumonia randomized placebo mortality")
@@ -36,12 +38,14 @@ def test_all_uid_queries_are_known_item_retrieval():
 
 
 def test_mixed_uid_and_seeded_queries_are_title_seeded_retrieval():
-    rc = classify_retrieval({"pubmed_queries": ["123[uid]", '"named trial"[Title]']})
+    # the seeded half is a trial NAME in the title field (a lower-case phrase would be a concept query, V1.0.1)
+    rc = classify_retrieval({"pubmed_queries": ["123[uid]", '"LEADER"[Title]']})
     assert rc["class"] == "TITLE_SEEDED_RETRIEVAL"
     assert rc["label"] == TITLE_SEEDED_RETRIEVAL_LABEL
     assert rc["basis"] == [
         {"query": "123[uid]", "kind": "PMID_ENUMERATION", "features": ["uid_field:[uid]"]},
-        {"query": '"named trial"[Title]', "kind": "TITLE_ANCHORED", "features": ["title_field_tag:[Title]"]},
+        {"query": '"LEADER"[Title]', "kind": "TITLE_ANCHORED",
+         "features": ["title_field_tag:[Title]", "trial_acronym_token:LEADER", "trial_name_in_title:LEADER"]},
     ]
     assert rc["retrieval_auditable"] is False
     assert rc["distinction"] == RETRIEVAL_UNAUDITABLE_DISTINCTION
