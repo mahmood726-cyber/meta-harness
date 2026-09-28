@@ -229,14 +229,93 @@ def classify(status, absent, reg_agent, aact_src, oa):
     return "ACQUISITION" if open_src else "GENUINELY_UNAVAILABLE_OPEN"
 
 
-def closable_by(cls, aact_src, oa):
+NOT_YET_EXTRACTED = {"IDENTIFICATION", "SCREEN_OR_ELIGIBILITY"}
+
+
+def closable_by(cls, aact_src, oa, upw=False, abstract_hit=False):
+    """Best open source for a typed result, in the harness's own ladder order for a trial of this class.
+    The PubMed abstract counts only for a trial the pipeline has NOT yet tried to extract (not identified, or
+    screened out): for a declared-absent trial the abstract was already read and found wanting."""
     if cls in ("POOLED", "MEASURE_MISMATCH", "UNRESOLVED_IDENTITY", "SCOPE_MISMATCH"):
         return ""
     if aact_src["n_matches"] > 0:
         return "AACT_RESULTS"
     if oa:
         return "PMC_OA_FULLTEXT"
+    if upw:
+        return "UNPAYWALL_OA_COPY"
+    if abstract_hit and cls in NOT_YET_EXTRACTED:
+        return "PUBMED_ABSTRACT_OUTCOME"
     return "NONE_OPEN_PROBED"
+
+
+_EFFECT = re.compile(r"\b(?:HR|RR|OR|hazard ratio|risk ratio|relative risk|odds ratio|rate ratio|mean difference|"
+                     r"difference)\b[^.;]{0,60}?\d|\b\d+\s*/\s*\d+\b|\b\d+\s*\(\s*\d+(?:\.\d+)?\s*%\)", re.I)
+
+
+def abstract_reports_outcome(abstract: str, kws: list[str]) -> str | None:
+    """A sentence of the abstract that names the topic outcome AND carries a numeric result (an effect with a
+    number, n/N, or n (x%)). Returns the sentence (the span) or None. A signal that the abstract rung is worth
+    running -- not an extraction, and never an admitted number."""
+    if not abstract or not kws:
+        return None
+    kre = re.compile("|".join(re.escape(k) for k in kws), re.I)
+    for sent in re.split(r"(?<=[.;])\s+", abstract):
+        if kre.search(sent) and _EFFECT.search(sent):
+            return sent[:300]
+    return None
+
+
+def trial_abstracts(pmids, offline) -> dict:
+    """PMID -> {abstract, doi} via efetch (batched 150, cached outputs/k_gap/trial_abstracts.json)."""
+    cp = os.path.join(OUT, "trial_abstracts.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({p for p in pmids if p.isdigit() and p not in cache})
+    if todo:
+        import time
+        import xml.etree.ElementTree as ET
+        from harness import http
+        for i in range(0, len(todo), 150):
+            chunk = todo[i:i + 150]
+            try:
+                x = http.get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                                  {"db": "pubmed", "id": ",".join(chunk), "retmode": "xml"}, timeout=60)
+            except Exception as exc:  # noqa: BLE001
+                print("efetch failed", exc)
+                continue
+            for a in ET.fromstring(x).iter("PubmedArticle"):
+                pm = a.find(".//PMID").text
+                doi = next((e.text for e in a.iter("ArticleId") if e.get("IdType") == "doi" and e.text), "")
+                cache[pm] = {"abstract": " ".join("".join(e.itertext()) for e in a.iter("AbstractText")), "doi": doi}
+            time.sleep(0.4)
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def unpaywall_probe(dois, offline) -> dict:
+    """DOI -> {is_oa, host_type, url} via Unpaywall (cached outputs/k_gap/unpaywall.json). Records where an OA
+    copy is; fetching it is the adapter's job, not the probe's."""
+    cp = os.path.join(OUT, "unpaywall.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({d.lower() for d in dois if d and d.lower() not in cache})
+    if todo:
+        import time
+        import urllib.parse
+        from harness import http
+        for d in todo:
+            try:
+                r = http.get_json("https://api.unpaywall.org/v2/" + urllib.parse.quote(d),
+                                  {"email": "meta-harness@example.org"}, tries=2)
+                b = r.get("best_oa_location") or {}
+                cache[d] = {"is_oa": bool(r.get("is_oa")), "host_type": b.get("host_type"),
+                            "url": b.get("url_for_pdf") or b.get("url"), "license": b.get("license")}
+            except Exception as exc:  # noqa: BLE001
+                cache[d] = {"error": str(exc)[:160]}
+            time.sleep(0.15)
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
 
 
 def oa_probe(pmids: list[str], offline: bool) -> dict:
@@ -577,12 +656,24 @@ def main(argv=None):
         P["unit_source"] = P["chosen"] or "NONE"
         rows += P["rows"]
     oa = oa_probe([p for r in rows for p in r["pmids"] if r["status"] != "POOLED"], offline)
+    notpooled = [r for r in rows if r["status"] not in ("POOLED", "UNRESOLVED")]
+    abst = trial_abstracts([p for r in notpooled for p in r["pmids"][:4]], offline)
+    for r in notpooled:
+        r["dois"] = sorted({d for d in r["cited_doi"] if d} | {abst[p]["doi"] for p in r["pmids"][:4]
+                                                                if p in abst and abst[p].get("doi")})
+    upw = unpaywall_probe([d for r in notpooled for d in r.get("dois", [])], offline)
     for r in rows:
         oas = [oa.get(p, {}) for p in r["pmids"]]
         r["pmc_oa"] = [{"pmid": p, **oa.get(p, {})} for p in r["pmids"] if oa.get(p, {}).get("pmcid")]
         is_oa = any(v.get("is_oa") for v in oas)
-        r["gap_class"] = classify(r["status"], r["declared_absent"], None, r["aact"], is_oa)
-        r["closable_by"] = closable_by(r["gap_class"], r["aact"], is_oa)
+        r["unpaywall"] = [{"doi": d, **upw.get(d.lower(), {})} for d in r.get("dois", []) if upw.get(d.lower(), {}).get("is_oa")]
+        kws = outcome_keywords(per[r["slug"]]["topic"])
+        r["abstract_outcome_span"] = next((sp for p in r["pmids"][:4]
+                                           for sp in [abstract_reports_outcome((abst.get(p) or {}).get("abstract", ""), kws)]
+                                           if sp), None)
+        r["gap_class"] = classify(r["status"], r["declared_absent"], None, r["aact"], is_oa or bool(r["unpaywall"]))
+        r["closable_by"] = closable_by(r["gap_class"], r["aact"], is_oa, bool(r["unpaywall"]),
+                                       bool(r["abstract_outcome_span"]))
     topics_out = []
     for slug, cpmid, cit in topics:
         P = per[slug]

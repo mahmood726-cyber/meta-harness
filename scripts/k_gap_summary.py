@@ -18,7 +18,7 @@ OUT = os.path.join(ROOT, "outputs", "k_gap")
 
 GAP_ORDER = ["IDENTIFICATION", "SCREEN_OR_ELIGIBILITY", "ACQUISITION", "EXTRACTION_FROM_TABLE", "MEASURE_MISMATCH",
              "SCOPE_MISMATCH", "GENUINELY_UNAVAILABLE_OPEN"]
-SRC_ORDER = ["AACT_RESULTS", "PMC_OA_FULLTEXT", "NONE_OPEN_PROBED"]
+SRC_ORDER = ["AACT_RESULTS", "PMC_OA_FULLTEXT", "UNPAYWALL_OA_COPY", "PUBMED_ABSTRACT_OUTCOME", "NONE_OPEN_PROBED"]
 
 
 def fam_key(r):
@@ -81,8 +81,10 @@ def main():
         f"by the comparator; pooled by us {sum(r['gap_class'] == 'POOLED' for r in seed)}, not pooled "
         f"{sum(r['gap_class'] != 'POOLED' for r in seed)}.",
         "8. Largest gaps: " + "; ".join(f"{x['slug']} {x['missing']}/{x['drug_specific_resolved']}" for x in per[:6]) + ".",
-        "9. NOT probed yet (so absent from 'closable'): Drugs@FDA reviews, EMA EPARs, NICE committee papers, "
-        "Unpaywall non-PMC OA copies, OA supplements. 'NONE_OPEN_PROBED' means none of AACT posted results / PMC OA held it.",
+        "9. NOT probed yet (so absent from 'closable'): Drugs@FDA reviews, EMA EPARs, NICE committee papers, OA "
+        "supplements. 'NONE_OPEN_PROBED' = no AACT posted result for the outcome, no PMC OA, no Unpaywall OA copy, and (for "
+        "a trial not yet extracted) no abstract sentence naming the outcome with a number. PUBMED_ABSTRACT_OUTCOME is "
+        "counted only for trials never yet extracted (identification / screened out).",
         "10. Read with: the comparator set is the comparator's DRUG-SPECIFIC included studies (any outcome); a trial "
         "missing here may be outside our registered outcome/estimand, which a class of SCREEN_OR_ELIGIBILITY or "
         "MEASURE_MISMATCH records rather than hides.",
