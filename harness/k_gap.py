@@ -250,7 +250,7 @@ def _units_from_table(t: dict) -> list[dict]:
     return units
 
 
-def included_trials(parsed: dict, agent_terms: list[str]) -> dict:
+def included_trials(parsed: dict, agent_terms: list[str], other_agents: list[str] | None = None) -> dict:
     """Units (rows, or columns of a transposed table) of the comparator's included-studies table(s).
 
     Each unit keeps the verbatim label, the table it came from, the reference-list entries it cites
@@ -289,9 +289,18 @@ def included_trials(parsed: dict, agent_terms: list[str]) -> dict:
                 "acronyms": toks["acronyms"], "author": toks["author"], "year": toks["year"],
                 "agent_hit": bool(agent_re and agent_re.search(text)),
             })
-    any_hit = any(u["agent_hit"] for u in units)
+    other_re = re.compile("|".join(re.escape(a) for a in other_agents), re.I) if other_agents else None
     for u in units:
-        u["drug_match"] = "DRUG_MATCH" if u["agent_hit"] else ("OTHER_AGENT" if any_hit else "AGENT_IMPLICIT")
+        # A unit is OTHER_AGENT only on its OWN text: it names another served topic's agent and none of ours.
+        # (An earlier rule -- "some other row names our agent, so this one must not be ours" -- discarded 8 of 9
+        # colchicine rows and the WOMAN/TRAAP columns: absence of a drug name in a row is not another drug.)
+        text = u["label"] + " | " + u["context"]
+        if u["agent_hit"]:
+            u["drug_match"] = "DRUG_MATCH"
+        elif other_re and other_re.search(text):
+            u["drug_match"] = "OTHER_AGENT"
+        else:
+            u["drug_match"] = "AGENT_IMPLICIT"
     return {"tables_used": used, "units": units,
             "state": "ENUMERATED" if units else "NO_INCLUDED_TABLE_ENUMERABLE"}
 

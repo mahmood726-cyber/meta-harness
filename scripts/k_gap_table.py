@@ -45,10 +45,16 @@ def _num(i):
 
 def topic_agents(topic: dict) -> list[str]:
     ag = topic.get("intervention_agents") or {}
-    terms = list(ag.keys()) + [s for v in ag.values() for s in (v or [])]
-    if not terms:
-        terms = list(topic.get("intervention_terms") or [])
+    terms = list(ag.keys()) + [s for v in ag.values() for s in (v or [])] + list(topic.get("intervention_terms") or [])
     return sorted({t for t in terms if t and len(t) >= 3}, key=str.lower)
+
+
+def molecule_names(topic: dict) -> list[str]:
+    """Named molecules only (intervention_agents keys + synonyms) -- the vocabulary for "this row names ANOTHER
+    served topic's drug". Class terms ("statin", "SGLT2 inhibitor") are excluded: they appear in background-
+    therapy columns of trials of a different drug."""
+    ag = topic.get("intervention_agents") or {}
+    return sorted({t for t in list(ag.keys()) + [x for v in ag.values() for x in (v or [])] if t and len(t) >= 5})
 
 
 def outcome_keywords(topic: dict) -> list[str]:
@@ -97,14 +103,14 @@ def ours(slug: str) -> dict:
             "estimand": (prim.get("estimand") or ""), "outcome": prim.get("name")}
 
 
-def comparator_units(slug, pmid, agents):
+def comparator_units(slug, pmid, agents, others=None):
     p = os.path.join(ROOT, "cache", "comparators", pmid, f"{DATE}_kgap_jats.xml")
     if not os.path.exists(p):
         return {"state": "NO_OPEN_JATS", "units": [], "tables_used": []}, None
     with open(p, "rb") as fh:
         body = fh.read()
     parsed = k_gap.parse_jats(body)
-    inc = k_gap.included_trials(parsed, agents)
+    inc = k_gap.included_trials(parsed, agents, others)
     inc["jats_file"] = os.path.relpath(p, ROOT).replace(os.sep, "/")
     inc["jats_sha256"] = k_gap.sha256(body)
     return inc, parsed
@@ -285,22 +291,25 @@ def comparator_abstracts(pmids, offline) -> dict:
     return cache
 
 
-def proposal_units(slug: str, agents: list[str]) -> list[dict]:
+def proposal_units(slug: str, agents: list[str], others: list[str] | None = None) -> list[dict]:
     if not os.path.exists(PROP):
         return []
     it = _j(PROP)["items"].get(slug) or {}
     v = it.get("verification") or {}
     agent_re = re.compile("|".join(re.escape(a) for a in agents), re.I) if agents else None
+    other_re = re.compile("|".join(re.escape(a) for a in others), re.I) if others else None
     out = []
     for s in v.get("admitted", []):
         lab = s["label"].strip()
         toks = k_gap._label_tokens(lab)
         m = _AUTH_YR.match(lab)
         acr = toks["acronyms"] or ([lab] if re.match(r"^[A-Z][A-Z0-9-]{2,}", lab) else [])
+        hit = bool(agent_re and agent_re.search(lab + " " + s["quote"]))
+        oth = bool(other_re and other_re.search(lab + " " + s["quote"]))
         out.append({"table": "proposal:" + it.get("record_id", ""), "layout": "text", "label": lab,
                     "context": s["quote"], "rids": [], "cited": [], "ncts": toks["ncts"], "acronyms": acr,
                     "author": toks["author"] or (m.group(1) if m else ""), "year": toks["year"] or (m.group(2) if m else ""),
-                    "agent_hit": bool(agent_re and agent_re.search(s["quote"])), "drug_match": "AGENT_IMPLICIT",
+                    "agent_hit": hit, "drug_match": "DRUG_MATCH" if hit else ("OTHER_AGENT" if oth else "AGENT_IMPLICIT"),
                     "design_stated": s["design_stated"]})
     return out
 
@@ -343,39 +352,30 @@ def main(argv=None):
     store.build_maps(log=log)
     abstracts = comparator_abstracts([t[1] for t in topics], offline)
     per = {}
+    other_all = sorted({a for t in topics for a in molecule_names(_j(os.path.join(ROOT, "topics", t[0] + ".json")))},
+                       key=str.lower)
     for slug, cpmid, cit in topics:
         topic = _j(os.path.join(ROOT, "topics", slug + ".json"))
         agents = topic_agents(topic)
-        inc, parsed = comparator_units(slug, cpmid, agents)
-        src = "JATS_TABLE"
+        others = [a for a in other_all if not re.search("|".join(re.escape(x) for x in agents), a, re.I)]
+        inc, parsed = comparator_units(slug, cpmid, agents, others)
         try:
             text, ref = k_gap.held_text(slug, DATE)
         except Exception as exc:  # noqa: BLE001
             text, ref = "", f"UNREADABLE: {exc}"
         held = {"ref": ref, **k_gap.held_text_identity(abstracts.get(cpmid, ""), text)}
-        named = held["state"] == "NAMED_ARTICLE"
-        if not inc["units"] and named:
-            pu = proposal_units(slug, agents)
+        cands = [("JATS_TABLE", inc)]
+        if held["state"] == "NAMED_ARTICLE":
+            pu = proposal_units(slug, agents, others)
             if pu:
-                inc = {"state": "PROPOSAL_GATED", "units": pu, "tables_used": [pu[0]["table"]]}
-                src = "MODEL_PROPOSAL_GATED"
-        if not inc["units"]:
-            # third source, open metadata: the comparator's own reference list, RCT-typed + agent-named.
-            # A CANDIDATE superset, labelled so; never counted as the comparator's confirmed included set.
-            er = k_gap.fetch_epmc_references(cpmid, DATE) if not offline else {"refs": []}
-            pt = k_gap.pubmed_pubtypes([r["pmid"] for r in er["refs"]], os.path.join(OUT, "pubmed_pubtypes.json")) \
-                if er["refs"] and not offline else {}
-            su = k_gap.reference_seed_units(er["refs"], pt, agents)
-            if su:
-                inc = {"state": "REFERENCE_SEEDED_CANDIDATES", "units": su,
-                       "tables_used": [er.get("file", "epmc references")]}
-                src = "REFERENCE_SEED"
-        per[slug] = {"topic": topic, "agents": agents, "inc": inc, "parsed": parsed, "ours": ours(slug),
-                     "comparator_pmid": cpmid, "citation": cit, "unit_source": src,
-                     "held": held}
-    need = set()
-    for slug, P in per.items():
-        for u in P["inc"]["units"]:
+                cands.append(("MODEL_PROPOSAL_GATED", {"state": "PROPOSAL_GATED", "units": pu,
+                                                       "tables_used": [pu[0]["table"]]}))
+        per[slug] = {"topic": topic, "agents": agents, "others": others, "parsed": parsed, "ours": ours(slug),
+                     "comparator_pmid": cpmid, "citation": cit, "held": held, "cands": cands, "tried": []}
+
+    def prep(P, units):
+        need = set()
+        for u in units:
             if not u["cited"] and not u["ncts"] and u["author"] and u["year"]:
                 refhit = None
                 if P["parsed"]:
@@ -390,27 +390,26 @@ def main(argv=None):
                     if pm:
                         u["cited"] = [{"pmid": pm, "basis": "pubmed_author_year_single_hit"}]
             for c in u["cited"]:
-                for n, _t in store.d["pmid"].get(c.get("pmid") or "", []):
-                    need.add(n)
+                need |= {n for n, _t in store.d["pmid"].get(c.get("pmid") or "", [])}
             need |= set(u["ncts"])
             for a in u["acronyms"]:
                 need |= set(store.d["acr"].get(k_gap.norm_acronym(a), [])[:25])
-        o = P["ours"]
-        need |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
-    store.ensure_ncts(need, log=log)
-    rows = []
-    for slug, cpmid, cit in topics:
-        P = per[slug]
+        return need
+
+    def resolve_rows(slug, P, units, source):
         tidx = store.index(P["agents"])
         agents_re = re.compile("|".join(re.escape(a) for a in P["agents"]), re.I)
-        for u in P["inc"]["units"]:
+        out = []
+        for u in units:
             ident = resolve_unit(u, P["parsed"], tidx, agents_re)
             ident["basis"] += [c["basis"] for c in u["cited"] if c.get("basis")]
             reg = registry_agent(ident["ncts"], tidx)
-            if u["drug_match"] == "OTHER_AGENT" or (u["drug_match"] == "AGENT_IMPLICIT" and reg is False):
-                drug = "OTHER_AGENT"
-            elif u["drug_match"] == "DRUG_MATCH" or reg:
+            # the unit's own text naming our agent wins; else the REGISTRY decides when an NCT resolved; the
+            # text "names another served topic's molecule" check applies only when the registry cannot speak.
+            if u["agent_hit"] or reg:
                 drug = "DRUG_MATCH"
+            elif reg is False or u["drug_match"] == "OTHER_AGENT":
+                drug = "OTHER_AGENT"
             else:
                 drug = "AGENT_UNCONFIRMED"
             if not ident["pmids"] and not ident["ncts"]:
@@ -418,14 +417,59 @@ def main(argv=None):
             else:
                 status, fam, absent = match_ours(ident, u["acronyms"], P["ours"])
             src = aact_source(ident["ncts"], tidx, outcome_keywords(P["topic"]), P["ours"]["estimand"])
-            rows.append({"slug": slug, "comparator_pmid": cpmid, "unit_source": P["unit_source"], "table": u["table"],
-                         "layout": u["layout"], "label": u["label"], "context": u["context"][:300], "drug": drug,
-                         "pmids": ident["pmids"], "ncts": ident["ncts"], "identity_basis": ident["basis"],
-                         "pubmed_query": u.get("pubmed_query"),
-                         "cited_doi": [c.get("doi") for c in u["cited"] if c.get("doi")],
-                         "status": status, "family_id": fam["family_id"] if fam else "",
-                         "family_eligibility": fam["eligibility"] if fam else "",
-                         "declared_absent": absent, "aact": src, "study": {n: tidx["study"].get(n) for n in ident["ncts"]}})
+            out.append({"slug": slug, "comparator_pmid": P["comparator_pmid"], "unit_source": source,
+                        "table": u["table"], "layout": u["layout"], "label": u["label"], "context": u["context"][:300],
+                        "drug": drug, "pmids": ident["pmids"], "ncts": ident["ncts"], "identity_basis": ident["basis"],
+                        "pubmed_query": u.get("pubmed_query"), "design_stated": u.get("design_stated"),
+                        "cited_doi": [c.get("doi") for c in u["cited"] if c.get("doi")],
+                        "status": status, "family_id": fam["family_id"] if fam else "",
+                        "family_eligibility": fam["eligibility"] if fam else "",
+                        "declared_absent": absent, "aact": src, "study": {n: tidx["study"].get(n) for n in ident["ncts"]}})
+        return out
+
+    def n_elig(rs):
+        return sum(r["drug"] != "OTHER_AGENT" and r["status"] != "UNRESOLVED" for r in rs)
+
+    # round 1: every held candidate source for every topic (one batched AACT fact scan)
+    need = set()
+    for P in per.values():
+        for _src, inc in P["cands"]:
+            need |= prep(P, inc["units"])
+        o = P["ours"]
+        need |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
+    store.ensure_ncts(need, log=log)
+    for slug, P in per.items():
+        P["chosen"] = None
+        for src, inc in P["cands"]:
+            rs = resolve_rows(slug, P, inc["units"], src)
+            P["tried"].append({"source": src, "units": len(rs), "drug_specific_resolved": n_elig(rs)})
+            if P["chosen"] is None and n_elig(rs):
+                P["chosen"], P["rows"], P["inc"] = src, rs, inc
+    # round 2: reference seeding, only where no held source resolved a drug-specific trial
+    need = set()
+    for slug, P in per.items():
+        if P["chosen"] or offline:
+            continue
+        er = k_gap.fetch_epmc_references(P["comparator_pmid"], DATE)
+        pt = k_gap.pubmed_pubtypes([r["pmid"] for r in er["refs"]], os.path.join(OUT, "pubmed_pubtypes.json")) \
+            if er["refs"] else {}
+        su = k_gap.reference_seed_units(er["refs"], pt, P["agents"])
+        P["seed"] = {"state": "REFERENCE_SEEDED_CANDIDATES", "units": su, "tables_used": [er.get("file", "")],
+                     "refs_held": len(er["refs"])}
+        need |= prep(P, su)
+    store.ensure_ncts(need, log=log)
+    rows = []
+    for slug, P in per.items():
+        if not P["chosen"] and P.get("seed"):
+            rs = resolve_rows(slug, P, P["seed"]["units"], "REFERENCE_SEED")
+            P["tried"].append({"source": "REFERENCE_SEED", "units": len(rs), "drug_specific_resolved": n_elig(rs),
+                               "refs_held": P["seed"]["refs_held"]})
+            if n_elig(rs):
+                P["chosen"], P["rows"], P["inc"] = "REFERENCE_SEED", rs, P["seed"]
+        if not P["chosen"]:
+            P["rows"], P["inc"] = [], {"state": "NONE", "tables_used": []}
+        P["unit_source"] = P["chosen"] or "NONE"
+        rows += P["rows"]
     oa = oa_probe([p for r in rows for p in r["pmids"] if r["status"] != "POOLED"], offline)
     for r in rows:
         oas = [oa.get(p, {}) for p in r["pmids"]]
@@ -438,17 +482,18 @@ def main(argv=None):
         P = per[slug]
         tr = [r for r in rows if r["slug"] == slug]
         elig = [r for r in tr if r["drug"] != "OTHER_AGENT" and r["status"] != "UNRESOLVED"]
-        if P["held"]["state"] != "NAMED_ARTICLE" and P["unit_source"] == "MODEL_PROPOSAL_GATED":
-            state, elig = "HELD_TEXT_NOT_NAMED_ARTICLE", []
-        elif elig:
-            state = P["inc"]["state"]
-        elif not tr:
-            state = "NOT_ENUMERABLE_OPEN"
+        if P["chosen"] == "JATS_TABLE":
+            state = "TABLE_ENUMERATED"
+        elif P["chosen"] == "MODEL_PROPOSAL_GATED":
+            state = "PROPOSAL_ENUMERATED_GATED"
+        elif P["chosen"] == "REFERENCE_SEED":
+            state = "REFERENCE_SEED_CANDIDATES"
         else:
-            state = "NO_DRUG_SPECIFIC_RESOLVED"
+            state = "NOT_ENUMERABLE_OPEN"
         topics_out.append({
             "slug": slug, "comparator_pmid": cpmid, "comparator": cit[:160], "unit_source": P["unit_source"],
             "comparator_set_state": state, "held_text": P["held"], "tables_used": P["inc"]["tables_used"],
+            "sources_tried": P["tried"],
             "our_k": P["ours"]["k"], "comparator_units": len(tr), "drug_specific_resolved": len(elig),
             "other_agent": sum(r["drug"] == "OTHER_AGENT" for r in tr),
             "unresolved_labels": sum(r["status"] == "UNRESOLVED" for r in tr),
