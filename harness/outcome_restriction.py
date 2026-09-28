@@ -39,10 +39,55 @@ def _spans(row: dict[str, Any]) -> str:
                     ("source_span", "verbatim_span", "endpoint_result_span"))
 
 
+_POP = ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed", "ci_high_fixed", "pi_low", "pi_high",
+        "leave_one_out", "pi_note", "fixed_note", "ci_note")
+
+
 def attach(review: dict[str, Any], slug: str | None, root: str = _ROOT) -> None:
+    """Record the declarations; for a DEFINITION_TYPED outcome, type every pooled row (its own harm_definition_key, else
+    the witnessed per-trial declaration, else UNTYPED) and SUPPRESS a pool whose rows carry more than one definition --
+    the per-trial estimates stay, the would-be number is quarantined as a counterfactual (the estmeasure pattern)."""
     decl = load(slug, root)
-    if decl:
-        review["outcome_restrictions"] = decl
+    if not decl:
+        return
+    review["outcome_restrictions"] = decl
+    from .comparison_family import _verified
+    for o in review.get("outcomes") or []:
+        d = decl.get(o.get("name")) or {}
+        if d.get("restriction") != "DEFINITION_TYPED":
+            continue
+        by_trial = d.get("definitions_by_trial") or {}
+        for row in o.get("trials") or []:
+            if row.get("harm_definition_key"):
+                continue
+            pid = re.sub(r"^PMID\s*", "", str(row.get("id") or ""))
+            dt = by_trial.get(pid)
+            if dt:
+                _verified(root, {"witness": dt["witness"]})        # fail closed: the definition is held
+                row["harm_definition_key"], row["harm_definition"] = dt["key"], dt["definition"]
+            else:
+                row["harm_definition_key"] = "UNTYPED"
+        strata = {}
+        for row in o.get("trials") or []:
+            strata.setdefault(row["harm_definition_key"], []).append(str(row.get("id")))
+        res = o.get("result") or {}
+        if len(strata) > 1 and not res.get("suppressed_incompatible"):
+            res["counterfactual"] = {"reason_code": "INCOMPATIBLE_DEFINITIONS", "would_be_estimate": res.get("estimate"),
+                                     "would_be_ci_low": res.get("ci_low"), "would_be_ci_high": res.get("ci_high"),
+                                     "note": ("what pooling these different definitions would have yielded; INVALID, shown "
+                                              "only so the refusal is auditable, never as a result")}
+            for k in _POP:
+                res.pop(k, None)
+            res["suppressed_incompatible"] = True
+            res["definition_strata"] = strata
+            res["suppressed_reason"] = (
+                "pooled effect SUPPRESSED: the trials define this harm differently ("
+                + "; ".join(f"{k}: {', '.join(v)}" for k, v in sorted(strata.items()))
+                + ") -- different definitions are different quantities. The per-trial estimates are shown; a pool "
+                  "within one definition is a decision for the reviewer.")
+            o["result"] = res
+        elif strata:
+            res["definition_strata"] = strata
 
 
 def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
@@ -68,4 +113,13 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
                 out.append({"kind": "COMPONENT_SUM_AS_COMPOSITE", "report_id": rid,
                             "detail": f"{o.get('name')}: pooled counts were summed from component rows; a patient "
                                       "composite counts each patient's first event once"})
+        # DEFINITION_MIX_POOLED: harm rows carry a typed definition (sacubitril-HFrEF: symptomatic hypotension vs a
+        # reported AE with SBP <90 vs symptomatic SBP <=85; laboratory K >5.5 vs >=5.5 vs a CODED hyperkalaemia AE).
+        # Different definitions are different quantities and are never pooled into one number without a decision.
+        keys = sorted({str(r.get("harm_definition_key")) for r in o.get("trials") or [] if r.get("harm_definition_key")})
+        if (len(keys) > 1 and not (o.get("result") or {}).get("suppressed_incompatible")
+                and not (d.get("definition_pooling_decided") or {}).get("keys") == keys):
+            out.append({"kind": "DEFINITION_MIX_POOLED", "report_id": ";".join(str(r.get("id")) for r in o["trials"]),
+                        "detail": f"{o.get('name')}: pooled rows carry different definitions {keys}; no pooling "
+                                  "decision covers them"})
     return out

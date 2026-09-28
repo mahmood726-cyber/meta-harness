@@ -24,7 +24,8 @@ BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REAS
             "DESIGN_ABSENCE_VS_HELD_RESULT", "VERSION_SUPERSEDED_SERVED", "VERSION_CHAIN_UNSHOWN",
             "SCOPE_RULE_NOT_IN_PROTOCOL", "SCOPE_INHERITED_FROM_COMPARATOR", "ABSENCE_ON_EXCERPT",
             "HIERARCHY_TREATED_AS_PROHIBITION", "ELIGIBILITY_FIELD_CONFLICT", "FAMILY_INVARIANT",
-            "ARM_LABEL_CONFLICT", "OUTCOME_RESTRICTION_MISMATCH", "POST_HOC_POOLED", "COMPONENT_SUM_AS_COMPOSITE")
+            "ARM_LABEL_CONFLICT", "OUTCOME_RESTRICTION_MISMATCH", "POST_HOC_POOLED", "COMPONENT_SUM_AS_COMPOSITE",
+            "DEFINITION_MIX_POOLED", "FAMILY_DESIGN_CONFLICT", "WRONG_WINDOW")
 ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
@@ -248,11 +249,12 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     for p in multi_trial_report.problems(review):
         add(p["kind"], p["report_id"], p["detail"])
     # SOURCE VERSIONS (a superseded value never served; a chain always shown) and SCOPE DECISIONS (protocol text only)
-    from . import (arm_label_conflict, eligibility_field, family_invariant, outcome_restriction, scope_decision,
-                   source_precedence, source_versions)
+    from . import (arm_label_conflict, eligibility_field, family_invariant, outcome_restriction, registry_publications,
+                   scope_decision, source_precedence, source_versions)
     for p in (source_versions.problems(review) + scope_decision.problems(review) + source_precedence.problems(review)
               + eligibility_field.problems(review) + family_invariant.problems(review)
-              + arm_label_conflict.problems(review) + outcome_restriction.problems(review)):
+              + arm_label_conflict.problems(review) + outcome_restriction.problems(review)
+              + registry_publications.problems(review)):
         add(p["kind"], p["report_id"], p["detail"])
     # RESULT STATUS: the page's words about a trial's result agree with its derived state
     from . import result_status

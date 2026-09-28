@@ -380,9 +380,20 @@ def main(argv=None):
                 route_discover(t, q)
             route_unpaywall(t)
             epmc = route_europepmc(t) or {}
-            if t.get("want_supplements") and epmc.get("pmcid") and epmc.get("isOpenAccess") == "Y":
-                route_supplements(t, epmc["pmcid"])
-            if t.get("want_supplements"):
+            # SUPPLEMENTS BY DEFAULT (sacubitril-HFrEF, 2026-09-28): LIFE's clinical outcomes are only in its
+            # supplement, and this route used to run only when a target opted in AND the article was open access --
+            # so no attempt was made or recorded. Now: whenever a PMCID is known (from Europe PMC, or declared on the
+            # target when Europe PMC answers 503), the supplement route is attempted; a response with no archive is
+            # recorded as SUPPLEMENT_NOT_HELD with its reason, never skipped in silence.
+            pmcid = epmc.get("pmcid") or t.get("pmcid")
+            if pmcid and not t.get("no_supplements"):
+                _st, _b = route_supplements(t, pmcid)
+                if not (_b and _b[:2] == b"PK"):
+                    _record("supplements_state", t["trial"], f"pmcid:{pmcid}", "SUPPLEMENT_NOT_HELD", b"",
+                            note=(f"supplementaryFiles answered {_st} with {len(_b or b'')} bytes and no archive "
+                                  f"(isOpenAccess={epmc.get('isOpenAccess')}); the PMC article page itself is "
+                                  "needed for its /bin/ files (route_pmc_bin_supplements)"))
+            if not t.get("no_supplements"):
                 route_pmc_bin_supplements(t)
             route_registry(t)
             if not spec.get("skip_regulatory"):

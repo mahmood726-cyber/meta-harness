@@ -38,4 +38,16 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
         out.append({"kind": "FAMILY_INVARIANT", "report_id": "family_count_chain",
                     "detail": (f"the family count says {chain.get('contributing')} contributing famil(ies); the pooled inputs "
                                f"come from {len(contributing)} independent populations: {sorted(contributing)}")})
+    # ONE RECORD, ONE DESIGN DECISION (sacubitril-HFrEF, PARALLEL-HF): a family that contributes data may not have one
+    # of its reports excluded for its DESIGN -- the trial is either eligible by design or it is not. The publication
+    # read as 'not double-blind' from an abstract that is silent on masking, while the same trial pooled via its
+    # registry (and the paper's full text says double-blind), was that contradiction.
+    rules = {str(r.get("id")): r for r in (review.get("screening") or {}).get("records") or []}
+    for fid in sorted(contributing):
+        for rep in fams[fid].get("reports") or []:
+            r = rules.get(str(rep.get("report_id"))) or {}
+            if r.get("decision") == "exclude" and r.get("rule_id") == "X-DESIGN":
+                out.append({"kind": "FAMILY_DESIGN_CONFLICT", "report_id": str(rep.get("report_id")),
+                            "detail": (f"family {fid} contributes pooled data while its report {rep.get('report_id')} is "
+                                       f"excluded for its design ({r.get('reason')})")})
     return out

@@ -425,7 +425,10 @@ _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level"
                 "timepoint", "timepoint_span", "endpoint_role_in_trial",
                 # a row taken from a COMPANION report of the same trial (never a second trial), and a safety
                 # population that differs from randomisation (as treated)
-                "companion_report", "safety_population", "supersedes")
+                "companion_report", "safety_population", "supersedes",
+                # a harm row's own typed definition (symptomatic vs threshold hypotension; laboratory vs coded
+                # hyperkalaemia) and a ratio reconstructed from counts, labelled so
+                "harm_definition", "harm_definition_key", "effect_reconstructed_from_counts")
 
 
 def _hand_fields(entry, slug, pid, rec=None):

@@ -59,6 +59,17 @@ def attach(review: dict[str, Any], slug: str | None, root: str = _ROOT) -> None:
                             if st["held_out_row"].get(k) is not None and str(st["held_out_row"][k]) not in digits:
                                 raise ValueError(f"{link['registration']} / {name}: held_out_row {k} is not in its witness span")
         pub = {k: link.get(k) for k in ("pmid", "label", "coverage", "identity_check", "design")}
+        # a family with SEVERAL reports (PIONEER-HF: main report, clinical-outcomes report, open-label extension): each
+        # is a report of the one registration, each record witnessed
+        reports = []
+        for rep in link.get("reports") or []:
+            _check_witness(root, rep.get("record_witness"), f"{link['registration']} -> PMID {rep.get('pmid')}")
+            reports.append({k: rep.get(k) for k in ("pmid", "label", "role", "coverage", "holds")})
+        for name, st in per.items():
+            for nt in st.get("not_this") or []:
+                _check_witness(root, nt.get("witness"), f"{link['registration']} / {name} / not_this")
+        if reports:
+            pub["reports"] = reports
         shown.append({"registration": link["registration"], **pub})
         for o in review.get("outcomes") or []:
             for row in (o.get("trials") or []) + (o.get("declared_absent_trials") or []):
@@ -78,4 +89,28 @@ def attach(review: dict[str, Any], slug: str | None, root: str = _ROOT) -> None:
                     row["not_admitted_because"] = st.get("not_admitted_because")
                 if st.get("statement"):
                     row["publication_statement"] = st["statement"]
+                if st.get("not_this"):
+                    row["not_this"] = [{"span": n["witness"]["span"], "why": n.get("why")} for n in st["not_this"]]
     review["registry_publications"] = shown
+    review["registry_publications_not_this"] = [
+        {"registration": link["registration"], "outcome": name, "span": n["witness"]["span"], "why": n.get("why")}
+        for link in links for name, st in (link.get("per_outcome") or {}).items() for n in st.get("not_this") or []]
+
+
+def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
+    """WRONG_WINDOW (blocking): a pooled row of a registration whose bound span is a declared NOT-THIS span for the
+    outcome -- PIONEER-HF's extension reports a 12-WEEK HR (0.69, 0.49-0.97) spanning the open-label switch; it is never
+    the 8-week randomised contrast."""
+    out = []
+    for nt in review.get("registry_publications_not_this") or []:
+        span = " ".join(str(nt["span"]).split())
+        for o in review.get("outcomes") or []:
+            if o.get("name") != nt["outcome"]:
+                continue
+            for row in o.get("trials") or []:
+                bound = " ".join(" ".join(str(row.get(k) or "").split())
+                                 for k in ("source_span", "verbatim_span", "endpoint_result_span"))
+                if _nct(row.get("id")) == nt["registration"] and span and span in bound:
+                    out.append({"kind": "WRONG_WINDOW", "report_id": str(row.get("id")),
+                                "detail": f"{nt['outcome']}: pooled row is bound to a declared not-this span ({nt['why']})"})
+    return out

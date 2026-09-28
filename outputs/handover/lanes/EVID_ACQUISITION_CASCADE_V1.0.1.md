@@ -694,3 +694,64 @@ and found failures accumulated by earlier rounds of this lane. They are fixed at
 - GLP-1 signature bundle regenerated: **5160a1d6**. HM3 supersession regenerated.
 - Full per-file suite: 240 files, 239 green, **4679 passed, 1 failed** (the error-rate census above).
   - `test_architecture_identity` needs 12m50s alone. The first run's 1500 s limit was hit under contention.
+
+## Round 2026-09-28c: sacubitril-HFrEF fixtures (generator `outputs/handover/sacubitril_sources/make_sacubitril_fixtures.py`, idempotent)
+- **LIFE (NCT02816736, PMID 34730769)**: a known eligible trial, missing from the inventory. It is double-blind, and
+  valsartan is an ARB comparator, eligible by protocol C. NOT pooled.
+  - Principal analysis n=335 of 365 randomised: a COVID-related cohort restriction (the registry says so).
+  - CV death or HHF is REPORTED: the held main text names it, in eTable 4 of Supplement 2. The supplement is NOT held:
+    - Europe PMC supplementaryFiles gives no archive (not OA);
+    - the four PMC /bin/ links answered bot checks, recorded and not worked around.
+  - Relayed, not data: 48/167 vs 37/168, HR 1.32 (0.86-2.03). Distinct outcomes, never substituted: first HHF 1.24;
+    total HHF 61 vs 50 EVENTS, RR 1.23.
+  - The 3-trial diagnostic reproduces: 0.9724 (0.5024-1.8820).
+  - LIFE's harms are HELD in its registry results: symptomatic SBP <=85 29/167 vs 20/168; K >=5.5 28/167 vs 15/168.
+- **Cascade: supplements by default.** They are attempted whenever a PMCID is known, from Europe PMC or declared on the
+  target, so a 503 cannot hide it. "No archive" is recorded as SUPPLEMENT_NOT_HELD. Before this, a supplement was
+  attempted only with an opt-in flag on an OA article, so LIFE's supplement was never attempted and nothing recorded it.
+- **Harms (protocol O) were missing from the topic config, so the page said "none recorded".** Hypotension and
+  Hyperkalemia are now declared. Each row carries a typed `harm_definition_key`:
+  - Hypotension:
+    - PARALLEL: reported AE with SBP <90, 13/111 vs 5/112 (held, Table 3). Two mis-randomised untreated patients are
+      excluded.
+    - PIONEER-HF: symptomatic, 66/440 vs 56/441 (registry).
+    - PARADIGM: symptomatic, 588/4187 vs 388/4212, relayed.
+    - LIFE: symptomatic SBP <=85, known eligible.
+  - Hyperkalaemia:
+    - PARALLEL: lab >=5.5, 8 vs 6 (not its coded AE, 15.2% vs 11.7%).
+    - PIONEER-HF: lab >5.5, 51 vs 41.
+    - PARADIGM: >5.5, 674 vs 727, relayed.
+  - A pool across definitions is SUPPRESSED (INCOMPATIBLE_DEFINITIONS, with a counterfactual and definition strata);
+    DEFINITION_MIX_POOLED is blocking. Per-trial RRs are reconstructed from counts and labelled so.
+- **PARALLEL-HF, one record, one design decision.** Publication 33731544 had been excluded X-DESIGN on an abstract
+  silent on masking.
+  - It is now a report of family NCT02468232 (study_families, parent record = the registration) and screened X-DEDUP.
+    The held full text says "double-blind".
+  - FAMILY_DESIGN_CONFLICT (blocking) forbids a design exclusion in a contributing family.
+- **PIONEER-HF: one family**, NCT02554890 plus main 30415601, outcomes 30955360, extension 31825471.
+  - The exact 8-week clinical HR is NOT held: NEJM 403; the Circulation report is not open and its record has no
+    abstract; the registry posts no clinical outcome.
+  - The extension's 12-week HR 0.69 (0.49-0.97) is declared `not_this`. WRONG_WINDOW (blocking) refuses it as the
+    8-week contrast.
+
+### Decisions for Mahmood (sacubitril)
+- Signatures for the three OPEN notices: LIFE inventory, and Hypotension / Hyperkalemia as new outcomes.
+- Whether to pool within one harm definition, and whether K >5.5 and >=5.5 may be treated as one definition.
+- LIFE eTable 4: someone with legitimate access may supply the supplement PDF, so the row can be held and pooled.
+- PARADIGM Table 3 and PIONEER-HF's 8-week HR are held nowhere open; same route.
+- Whether PIONEER-HF (8 weeks, an in-hospital ADHF population) belongs in the efficacy pool at all.
+
+### Verification (sacubitril round)
+- 32/32 rebuilt. 16 moved outcomes, each covered by an OPEN notice; the two new harm outcomes carry NEW_OUTCOME notices.
+- Gate 19/32. The 13 holds are:
+  - 10 pages with OPEN notices;
+  - 2 HARMS_INCOMPLETE pages;
+  - ticagrelor: FAMILY_DESIGN_CONFLICT on 20802246, found by the new rule. The PLATO diabetes substudy is a SUBGROUP
+    report of the pooled family NCT00391872, yet it was screened X-DESIGN. It is fixed in the next batch.
+- Suite: 243 files; 241 green (4684 passed). Failures:
+  - the override audit: 4 new rows, added after the run;
+  - the known error-rate census re-run.
+- GLP-1 bundle e9417692.
+- Source-identity incident, found while acquiring for the next rounds: a DOI typed from memory for EMPERIAL
+  (10.1002/ejhf.2084, a different paper) made Unpaywall hold the wrong PMC page under EMPERIAL. The executable
+  source-identity check (SGLT2-CKD round) is built to catch exactly this.
