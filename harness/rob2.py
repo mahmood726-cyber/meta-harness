@@ -276,6 +276,41 @@ def derive_d5(
     pooled_outcome: str,
     matches: Callable[[str, str], bool] | None = None,
     registered_secondaries: list[Any] | None = None,
+    subgroup_provenance: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """D5 (selection of the reported result): the registered-outcome identity signal, then the SUBGROUP PROVENANCE of the
+    pooled row (lane NR V1.0.1; statins-older-adults review): a subgroup the source states was defined post hoc (JUPITER
+    >=70: 'age cut-point chosen after trial completion') is a result selected from several possible analyses, so a 'low'
+    registered-outcome signal becomes 'some concerns'. The provenance is a derived input with its span, stored in
+    `inputs` so the domain stays re-derivable; it never excludes the row."""
+    d = _derive_d5_registered(registered_primaries, pooled_outcome, matches, registered_secondaries)
+    return apply_subgroup_provenance(d, subgroup_provenance)
+
+
+def apply_subgroup_provenance(d: dict[str, Any], subgroup_provenance: dict[str, Any] | None) -> dict[str, Any]:
+    """The D5 subgroup-provenance step on a registered-outcome D5 domain (used by derive_d5 and at build time on the
+    stored domain, so the stored result is exactly what re-derivation computes)."""
+    if not subgroup_provenance:
+        return d
+    inputs = dict(d.get("inputs") or {}, subgroup_provenance=subgroup_provenance)
+    # A post-hoc subgroup is positive evidence that the reported result was selected, so it raises D5 from LOW and also
+    # from NOT-ASSESSABLE (no registry to compare against does not cancel a source's own post-hoc statement). It never
+    # lowers a worse level, and a pre-specified or unresolved provenance changes nothing.
+    if subgroup_provenance.get("value") == "post_hoc_subgroup" and (d.get("level") == "low"
+                                                                     or d.get("level") in NOT_ASSESSED_LEVELS):
+        basis = (d.get("basis", "") + "; but the pooled result is a POST-HOC subgroup ('"
+                 + str(subgroup_provenance.get("span") or "")[:160] + "') -- a result selected from several possible "
+                 "analyses")
+        return _domain("some concerns", basis, f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2+subgroup_provenance_v1",
+                       inputs)
+    return {**d, "inputs": inputs}
+
+
+def _derive_d5_registered(
+    registered_primaries: list[Any] | None,
+    pooled_outcome: str,
+    matches: Callable[[str, str], bool] | None = None,
+    registered_secondaries: list[Any] | None = None,
 ) -> dict[str, Any]:
     primaries = _outcome_dicts(registered_primaries)
     secondaries = _outcome_dicts(registered_secondaries)
@@ -418,6 +453,7 @@ def rederive_domain(domain: dict[str, Any], matches: Callable[[str, str], bool] 
             inputs.get("pooled_outcome") or "",
             matches,
             inputs.get("registered_secondary_outcomes") or [],
+            inputs.get("subgroup_provenance"),
         )
     raise ValueError(f"unknown rule_id {rule_id!r}")
 

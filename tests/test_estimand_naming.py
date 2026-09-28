@@ -125,11 +125,16 @@ def test_statins_subgroup_evidence_unit_plant():
     live = _live_review("statins-primary-prevention-elderly")
     live_primary = _primary(live)
     live_jupiter = next(t for t in _pooled_trials(live) if t.get("id") == "PMID 20404379")
-    assert live_jupiter["evidence_unit"] == "prespecified_subgroup"
+    # Lane NR V1.0.1: the unit is DERIVED from the paper's own LIMITATION ('age cut-point chosen after trial
+    # completion'), no longer asserted by the topic as pre-specified; this assertion used to pin the wrong value.
+    assert live_jupiter["evidence_unit"] == "post_hoc_subgroup"
+    assert live_jupiter["subgroup_provenance"]["value"] == "post_hoc_subgroup"
     assert "subgroup" in live_primary["population"].lower()
+    assert "pre-specified" not in live_primary["population"].lower()
     page = open(ROOT / "docs" / "reviews" / "statins-primary-prevention-elderly" / "index.html",
                 encoding="utf-8").read()
-    assert "k = 2 (1 trial + 1 pre-specified subgroup of JUPITER)" in page
+    assert "k = 2 (1 trial + 1 post-hoc subgroup of JUPITER)" in page
+    assert "pre-specified subgroup of JUPITER" not in page
 
 
 def test_synthetic_prior_stage_and_background_dimension_controls():

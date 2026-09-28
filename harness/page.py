@@ -1228,6 +1228,8 @@ def _unit_label(unit):
         return "pre-specified subgroup"
     if unit == "post_hoc_subgroup":
         return "post-hoc subgroup"
+    if unit == "subgroup_unresolved":
+        return "subgroup (pre-specification not stated in the source)"
     return "trial"
 
 
@@ -1239,7 +1241,7 @@ def _evidence_unit_summary(o):
     bits = []
     if counts.get("trial"):
         bits.append(f"{counts['trial']} trial" + ("" if counts["trial"] == 1 else "s"))
-    for unit in ("prespecified_subgroup", "post_hoc_subgroup"):
+    for unit in ("prespecified_subgroup", "post_hoc_subgroup", "subgroup_unresolved"):
         group = [t for t in trials if t.get("evidence_unit") == unit]
         if not group:
             continue

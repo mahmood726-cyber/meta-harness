@@ -195,6 +195,55 @@ The calls are logged in `C:/mh-lanes/nr/codex/CALL_LOG.jsonl` (NR-C03 … NR-C17
   topic's `trial_annotations` for 31535829) still describes DAPA-HF's broader primary, including urgent HF visits, while
   the pooled input is the first-event CV death/HHF secondary. Keep the input and fix the narrative; no number changes.
 
+### Subgroup provenance: JUPITER >=70 (statins-older-adults review), follow-up commit
+- **The fixture:** the page called JUPITER's >=70-years subgroup (PMID 20404379, HR 0.61) 'pre-specified' because the
+  topic asserted `evidence_unit: prespecified_subgroup`. The held abstract's LIMITATION says the age cut-point was chosen
+  after trial completion.
+- **The field:** `harness/subgroup_provenance.py` derives `subgroup_provenance` in {whole_trial, prespecified_subgroup,
+  post_hoc_subgroup} from a quoted source span (held abstract, then full text, then row source). It is never asserted.
+  - A topic now declares only THAT a row is a subgroup (`evidence_unit: subgroup`).
+  - Not stated resolves to UNRESOLVED (`subgroup_unresolved`), never to pre-specified.
+  - Post-hoc evidence beats a general pre-specification. A bare 'post hoc' counts only in the same clause as a subgroup
+    cue, and negated statements are ignored.
+- **RoB, not exclusion:** a post_hoc_subgroup raises D5 (selection of the reported result) from low or not-assessable to
+  some concerns (`rob2.apply_subgroup_provenance`, rule `...+subgroup_provenance_v1`). The provenance is stored in D5's
+  inputs, so `rederive_domain` reproduces it; the gate check passes. The row stays pooled.
+- **Topics:**
+  - statins: annotation set to `subgroup`; 'pre-specified' removed from the question and population prose.
+  - melatonin-primary-insomnia-sol also asserted a 'pre-specified age 65-80 subgroup' (PMID 20712869). The held abstract
+    does not state it, so it is now UNRESOLVED and labelled 'subgroup (pre-specification not stated in the source)'.
+- **A test that defended the defect:** `test_estimand_naming::test_statins_subgroup_evidence_unit_plant` pinned
+  `prespecified_subgroup` and the page string 'pre-specified subgroup of JUPITER'. It now asserts post_hoc_subgroup and the
+  absence of the old wording.
+- **Codex NR-C18 (adversarial, slot 1, logged):** 17 sentences. All 14 claimed misclassifications reproduced by
+  execution before the fix, including 4 false post-hoc results that would have wrongly raised D5 ('were not post hoc',
+  'prespecified, not post hoc', 'not selected after trial completion', a post-hoc sensitivity clause after ';'). Fixed,
+  and planted with 3 ambiguous controls that stay UNRESOLVED. Codex's narrow 'defined before unblinding + protocol'
+  branch was not taken: UNRESOLVED is the conservative answer there.
+- **Radius** (32 topics, against the batch-2 rebuild build_G):
+  - 0 of 797 served rows, 0 of 652 metadata fields, 0 of 937 registry labels change.
+  - Provenance over pooled rows: 129 whole_trial, 1 post_hoc_subgroup (JUPITER), 1 unresolved (melatonin).
+  - RoB: 1 trial changes (JUPITER D5 not assessable -> some concerns; machine-signal overall low -> some concerns).
+  - Knock-ons in statins: GRADE certainty stays provisional; its internal RoB downgrade count goes 0 -> 1, total 1 -> 2,
+    and is not rendered while domains are unassessed. The RoB-restricted re-pool (low-only k=1, 0.70) stays suppressed
+    because formal RoB 2 is not assessed.
+- **Notice for Mahmood:** `items/NOTICES_TO_APPEND_V101_F.json`, a served RoB judgment and label change with no number
+  change (OPEN).
+- **Build hazard found on the way:** stopping a background rebuild with TaskStop left its inner loop running. Two
+  docs-restoring loops in one worktree clobbered 14 saved copies, which were byte-identical to the committed pages, and
+  the diff then showed 3 false 'served changes' (the batch-2 changes reverting). Rebuilt serially with no loop running,
+  that radius is 0. Check any rebuild for copies byte-equal to `HEAD:docs/reviews/<slug>/review.json`.
+- **Tests:**
+  - Plants: `tests/test_nr_v101_subgroup_provenance.py` (14, including 16 adversarial sentences). The regex-inventory and
+    RoB tests pass.
+  - Full suite: 4262 passed, 71 xfailed, 20 failed, 12 errors (56 min; the old 50-min `timeout` now cuts it off).
+  - All 12 failures that differ from the batch-2 list fail identically at HEAD with this change stashed (certificate
+    ×6, gate full-reproduction, fixstate, aact_cache replay, result_withdrawn ×2, sglt2 source-hierarchy). They depend
+    on the docs state: this run used the committed V1.0 pages, and the batch-2 run used rebuilt pages. Conversely, 11
+    bundle/execution-record/page-verifier failures from that run now pass. Integration state; the captain's
+    regeneration decides both sets.
+  - Run the suite with `--continue-on-collection-errors`, or `test_site_detects`' collection error aborts it.
+
 ## Tests (full suite, sequential, temp on C:)
 - **Result:** 4237 passed, 71 xfailed, 19 failed, 12 errors, all accounted for.
 - **Environment:**

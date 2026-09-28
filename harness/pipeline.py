@@ -807,6 +807,30 @@ def _load_rob2(slug):
         return None
 
 
+def _rob2_with_subgroup_provenance(rb, outcomes):
+    """RoB D5 of every PRIMARY pooled row takes its derived SUBGROUP PROVENANCE as an input (harness/rob2.py
+    apply_subgroup_provenance): a post-hoc subgroup is a selected analysis. Re-derivable from the stored inputs; never an
+    exclusion (lane NR V1.0.1, statins-older-adults review: JUPITER >=70)."""
+    if not rb or not isinstance(rb.get("trials"), dict):
+        return rb
+    from . import rob2 as rob2_mod
+    import copy
+    prim = next((o for o in outcomes or [] if o.get("primary")), (outcomes or [None])[0]) or {}
+    provs = {str(t.get("id", "")).replace("PMID ", "").strip(): t.get("subgroup_provenance")
+             for t in prim.get("trials") or [] if t.get("subgroup_provenance")}
+    out = copy.deepcopy(rb)
+    for pid, prov in provs.items():
+        entry = out["trials"].get(pid)
+        d5 = ((entry or {}).get("domains") or {}).get("D5_selective_reporting")
+        if not d5 or not d5.get("inputs") or ":D5:" not in str(d5.get("rule_id") or "") or prov.get("value") == "whole_trial":
+            continue
+        entry["domains"]["D5_selective_reporting"] = rob2_mod.apply_subgroup_provenance(d5, prov)
+        entry["overall"] = rob2_mod.overall(entry["domains"])
+        if "rob_basis" in entry:
+            entry["rob_basis"] = rob2_mod.rob_basis(entry["domains"])
+    return out
+
+
 def _load_arm_contrast(slug):
     """Committed per-pooled-trial ARM-CONTRAST disclosure (cache/<slug>/arm_contrast.json): whether the
     intervention of interest is a genuine RANDOMISED CONTRAST (differs across arms) or fail-open/background.
@@ -1008,6 +1032,20 @@ def _apply_adjudicator_flags(slug, screening_records):
             "rationale": jr.get("rationale"),
         })
     return {"records": screening_records, "pending": pending}
+
+
+def _apply_subgroup_provenance(trials, rec_by_id):
+    """Every pooled row's SUBGROUP PROVENANCE, derived from a source span (harness/subgroup_provenance.py). The topic
+    declares only THAT a row is a subgroup; whether it was pre-specified or post hoc is read from the held text, and the
+    rendered evidence unit follows the derived value (JUPITER >=70 was asserted 'pre-specified'; its paper says the age
+    cut-point was chosen after trial completion). Never an exclusion: the number stays."""
+    from . import subgroup_provenance as sp
+    for t in trials:
+        pid = str(t.get("id", "")).replace("PMID ", "").strip()
+        prov = sp.derive(t, (rec_by_id or {}).get(pid), t.get("evidence_unit") or "trial")
+        t["subgroup_provenance"] = prov
+        if prov["value"] != sp.WHOLE_TRIAL:
+            t["evidence_unit"] = sp.evidence_unit(prov)
 
 
 def _apply_trial_annotations(spec, trials):
@@ -1458,6 +1496,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if meta:
             row.update(meta)
     _apply_trial_annotations(spec, trials)
+    _apply_subgroup_provenance(trials, rec_by_id)
     for t in trials:
         if t.get("cross_source"):
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
@@ -2086,7 +2125,7 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"withdrawn": config["primary_outcome"]["withdrawn"]} if config.get("primary_outcome", {}).get("withdrawn") else {}),
         **({"comparator_scope_note": comparator_scope_note} if comparator_scope_note else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
-        **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
+        **({"rob2": _rb} if (_rb := _rob2_with_subgroup_provenance(_load_rob2(slug), outcomes)) else {}),
         # Arm-contrast disclosure (TIER-1 structural fix): per pooled trial, whether the intervention of
         # interest is a parser-confirmed RANDOMISED CONTRAST or a fail-open/background inclusion. Visible,
         # never silent -- a trial admitted with no registry arm data reads 'contrast unverified', not verified.
