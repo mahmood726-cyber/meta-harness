@@ -110,10 +110,11 @@ def main(argv):
         rec = round(len(found) / len(known), 3) if known else None
         # Classify each missed trial by the CAUSE of non-recovery (the metric otherwise reads a
         # non-recovery as a search failure even when the trial predates trial registration):
-        #   no_registry_link       -> no own-publication (RESULT/DERIVED) NCT anywhere; the trial has
-        #                              no registry entry to reach (pre-registration-era/unregistered),
-        #                              or is only cited as BACKGROUND by other trials. A registry-first
-        #                              search CANNOT recover it — this is a property of the literature.
+        #   no_registry_link       -> no own-publication (RESULT/DERIVED) NCT links this PUBLICATION: a blank
+        #                              link, which is NOT evidence the trial is unregistered (V1.0.1, statins
+        #                              review: JUPITER's older-adults report is NCT00239681 -- a secondary report
+        #                              is often linked to no registration). A registry-first search cannot reach
+        #                              the report through AACT's reference table.
         #   registered_not_enumerated -> an own-publication NCT exists but the committed cond&intr query
         #                              did not enumerate it (registry vocabulary/precision limit) -> the
         #                              improvable bucket; a broader committed query could reach it.
@@ -125,7 +126,7 @@ def main(argv):
         no_link = sum(1 for v in missed_reasons.values() if v == "no_registry_link")
         rows.append((s, cond, intr, known, enum[s], resolved, found, rec))
         print(f"{s:42} {len(enum[s]):<8} {str(rec):10} {len(found)}/{len(known)}"
-              + (f"  [ceiling {reachable_ceiling}/{len(known)}, {no_link} unregistered/unlinked]" if (known - resolved) else ""))
+              + (f"  [ceiling {reachable_ceiling}/{len(known)}, {no_link} publication(s) with no linked registration]" if (known - resolved) else ""))
         if "--write" in argv:
             out = {"status": "RAN_OK", "source": f"AACT {snap_name} (local snapshot)",
                    "enumerated": len(enum[s]), "known": len(known), "recovered": len(found),

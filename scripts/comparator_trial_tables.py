@@ -300,6 +300,38 @@ def _record_blocks(rec_text):
     return out
 
 
+def _cited_aliases(spec, row, all_names):
+    """The comparator's own citation of a transcription row: in the held JATS (spec['refs_document']), the printed
+    name followed -- with no other row's name and no other citation between -- by an xref to row['cited_ref'], whose
+    <ref> carries a PMID or DOI. Returns {'aliases', 'citation'} or the reason it cannot."""
+    rel = spec.get("refs_document")
+    if not rel:
+        return "cited_ref needs the spec's refs_document (the held JATS)"
+    raw = open(os.path.join(ROOT, rel), "rb").read()
+    xml = raw.decode("utf-8")
+    ref = refs(xml).get(row["cited_ref"])
+    if not ref or not (ref["ids"].get("pmid") or ref["ids"].get("doi")):
+        return f"reference {row['cited_ref']} has no PMID/DOI in {rel}"
+    hits = []
+    for mm in re.finditer(r"(?<![A-Za-z0-9-])" + re.escape(row["name_in_source"]) + r"(?![A-Za-z0-9]|-\d)", xml):
+        tail = xml[mm.end():mm.end() + 400]
+        x = re.search(r"<xref\b[^>]*>", tail)
+        if not x or row["cited_ref"] not in bibr_rids(x.group(0)):
+            continue
+        between = _text(tail[:x.start()])
+        if any(n != row["name_in_source"] and n in between for n in all_names):
+            continue
+        hits.append((mm.start(), mm.end() + x.end()))
+    if not hits:
+        return f"{row['name_in_source']} is never followed by a citation of {row['cited_ref']}"
+    a, b = hits[0]
+    sha = hashlib.sha256(raw).hexdigest()
+    cn = {"start": a, "end": b, "quote": xml[a:b]}
+    return {"aliases": [{"id": ref["ids"][k], "document_ref": rel, "document_sha256": sha, "span": ref["span"],
+                         "linked_rid": row["cited_ref"], "cited_name_span": cn} for k in ("pmid", "doi") if ref["ids"].get(k)],
+            "citation": {"document_ref": rel, "span": cn}}
+
+
 def from_text_spec(slug, write):
     spec_p = os.path.join(ROOT, "cache", slug, "comparator_table_spec.json")
     if not os.path.exists(spec_p):
@@ -340,7 +372,20 @@ def from_text_spec(slug, write):
         m = {"family_id": f"{name} (row {len(entries) + 1})", "name_in_source": name,
              "span": {"start": a, "end": a + len(text[a:b].rstrip()), "quote": text[a:b].rstrip()},
              "endpoint": None, "aliases": []}
-        if len(prim) == 1 and prim[0] in blocks:
+        if row.get("cited_ref"):
+            # V1.0.1 (MRA-HFrEF review): a row may bind through the comparator's OWN citation of it -- the reference
+            # its prose cites right after the printed name (RALES ... ( <xref rid="B1"> )) -- when the held JATS carries
+            # that reference's PMID/DOI. Never by matching names across documents; a pre-registration trial (RALES)
+            # has no acronym in our records, so its name cannot bind it.
+            cit = _cited_aliases(spec, row, [r["name_in_source"] for r in spec["rows"]])
+            if isinstance(cit, str):
+                return {"state": "CITATION_NOT_LOCATED", "row": row["label"], "why": cit}
+            m["aliases"] += cit["aliases"]
+            m["references"] = [row["cited_ref"]]
+            m["citation"] = cit["citation"]
+        if m["aliases"]:
+            pass
+        elif len(prim) == 1 and prim[0] in blocks:
             ba, bb = blocks[prim[0]]
             m["aliases"].append({"id": prim[0], "document_ref": rec_path,
                                  "document_sha256": hashlib.sha256(rec_raw).hexdigest(),

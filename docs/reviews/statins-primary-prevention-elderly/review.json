@@ -4,11 +4,11 @@
   "question": "In older adults (>=70 years) without established cardiovascular disease, do statins versus placebo/control reduce major vascular events? (Evidence units include one whole trial and one pre-specified JUPITER older-adult subgroup.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
+    "sha": "2315682434b2ee44596a507f05901f7b2ef0bba1",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['older persons', 'older adults', 'elderly', '70 years', '75 years', 'aged 70', 'aged 75']; and none of ['heart failure', 'atrial fibrillation', 'stroke', 'acute coronary', 'myocardial infarction', 'coronary artery disease', 'coronary heart disease', 'coronary disease', 'chronic subdural', 'rheumatoid arthritis', 'osteoarthritis', 'hearing loss', 'postoperative', 'perioperative', 'kidney disease', 'hemodialysis', 'liver fibrosis', 'at risk of vascular disease', 'vascular disease (prosper)', 'cognitive decline', 'alzheimer', 'dementia']; randomised intervention is one of ['statin', 'statins', 'rosuvastatin', 'pravastatin', 'atorvastatin'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'control']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - statins for primary prevention in older adults\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - older adults (>=70 years) without established cardiovascular disease.\n- **I** - statin therapy, including rosuvastatin, pravastatin, or atorvastatin.\n- **C** - placebo, usual care, or no-statin control.\n- **O (primary)** - major vascular events / major cardiovascular events.\n- **O (harms)** - muscle symptoms/myopathy; new-onset diabetes.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), statin vs placebo/control.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial or randomised trial analysis;\n- **I2** - title-level or registry-condition population is older/elderly adults;\n- **I3** - title-level or registry intervention is a statin or statin name;\n- **I4** - comparator is placebo, usual care, or control;\n- **design** - randomised statin allocation; double-blinding is not required because\n  usual-care trials are eligible.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or PubMed record\n  not indexed as a randomized controlled trial by the fixed screen);\n- **X2** - wrong population (e.g. heart failure, atrial fibrillation, prior stroke,\n  acute coronary syndrome, coronary disease, perioperative/non-cardiovascular disease);\n- **X3** - wrong intervention/comparison (no statin-vs-placebo/usual-care/control contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether an included trial reports major\n> vascular events, or gives a 2x2 table vs only an effect+CI, is recorded as\n> target-result status at extraction - never as an exclusion. A published effect + 95% CI\n> is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: focused statin-title searches for JUPITER older-person analyses, ALLHAT-LLT\n  older-adult primary-prevention analyses, and STAREE older-adult atorvastatin reports.\n- ClinicalTrials.gov: condition \"Elderly\", intervention \"Atorvastatin\".\n- Comparator reference seeding is disabled for this topic because the resolved open-access\n  comparator is an observational review; its reference list is not an RCT recall set for\n  a randomized statin-vs-control harness.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nHuang, Zhu, and Ya, *Reviews in Cardiovascular Medicine* 2022, \"Statin use in older\npeople primary prevention on cardiovascular disease: an updated systematic review and\nmeta-analysis\" (PMID 39076238, PMCID PMC11273788, DOI 10.31083/j.rcm2304114; Unpaywall\nis_oa=true). It reports total cardiovascular events HR 0.75 (95% CI 0.66-0.85) in older\nprimary-prevention statin users versus no-statin users. This is an external benchmark,\nnot an RCT-only comparator; exact RCT-only elderly primary-prevention meta-analyses\nfound during resolution were not open access.\n\n## Controls\n- **Positive** - the search must recover and include the JUPITER older-person rosuvastatin\n  analysis (PMID 20404379) and ALLHAT-LLT older-adult pravastatin analyses (PMIDs\n  28531241 and 30251369).\n- **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,\n  PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong\n  population.\n"
+    "text": "# Protocol - statins for primary prevention in older adults\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - older adults (>=70 years) without established cardiovascular disease.\n- **I** - statin therapy, including rosuvastatin, pravastatin, or atorvastatin.\n- **C** - placebo, usual care, or no-statin control.\n- **O (primary)** - major vascular events / major cardiovascular events.\n- **O (harms)** - muscle symptoms/myopathy; new-onset diabetes.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), statin vs placebo/control.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial or randomised trial analysis;\n- **I2** - title-level or registry-condition population is older/elderly adults;\n- **I3** - title-level or registry intervention is a statin or statin name;\n- **I4** - comparator is placebo, usual care, or control;\n- **design** - randomised statin allocation; double-blinding is not required because\n  usual-care trials are eligible.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or PubMed record\n  not indexed as a randomized controlled trial by the fixed screen);\n- **X2** - wrong population (e.g. heart failure, atrial fibrillation, prior stroke,\n  acute coronary syndrome, coronary disease, perioperative/non-cardiovascular disease);\n- **X3** - wrong intervention/comparison (no statin-vs-placebo/usual-care/control contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether an included trial reports major\n> vascular events, or gives a 2x2 table vs only an effect+CI, is recorded as\n> target-result status at extraction - never as an exclusion. A published effect + 95% CI\n> is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: focused statin-title searches for JUPITER older-person analyses, ALLHAT-LLT\n  older-adult primary-prevention analyses, and STAREE older-adult atorvastatin reports.\n- ClinicalTrials.gov: condition \"Elderly\", intervention \"Atorvastatin\".\n- Comparator reference seeding is disabled for this topic because the resolved open-access\n  comparator is an observational review; its reference list is not an RCT recall set for\n  a randomized statin-vs-control harness.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nHuang, Zhu, and Ya, *Reviews in Cardiovascular Medicine* 2022, \"Statin use in older\npeople primary prevention on cardiovascular disease: an updated systematic review and\nmeta-analysis\" (PMID 39076238, PMCID PMC11273788, DOI 10.31083/j.rcm2304114; Unpaywall\nis_oa=true). It reports total cardiovascular events HR 0.75 (95% CI 0.66-0.85) in older\nprimary-prevention statin users versus no-statin users. This is an external benchmark,\nnot an RCT-only comparator; exact RCT-only elderly primary-prevention meta-analyses\nfound during resolution were not open access.\n\n## Controls\n- **Positive** - the search must recover and include the JUPITER older-person rosuvastatin\n  analysis (PMID 20404379) and ALLHAT-LLT older-adult pravastatin analyses (PMIDs\n  28531241 and 30251369).\n- **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,\n  PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong\n  population.\n\n## Retrospective protocol erratum (2026-09-28) -- an RCT-only elderly analysis exists; conditions are not diagnoses\n**Labelled retrospective: written after data were seen; the sections above are left unchanged as registered.**\n- The comparator section says RCT-only elderly primary-prevention meta-analyses \"were not open access\". An external\n  review reproduced one: Ridker 2017 (Circulation 135:1979-81, PMID 28385949), JUPITER + HOPE-3 participants aged\n  >= 70, MI/stroke/CV death, HR 0.74 (0.61-0.91). It is free to read at the publisher but is not under an open\n  licence, is not in PMC, and the publisher page answers automated requests with a bot check (not bypassed), so it\n  is not held here. It is registered as an RCT checkpoint (registry/positive_controls.json, PENDING_SOURCE), never as\n  the comparator; Huang 2022 stays the registered comparator and is observational (shared RCT inputs: none).\n- The letter's HOPE-3 age >= 70 stratum is the same kind of input as JUPITER's older-adults report; the\n  title-seeded search could not find it. It is recorded as a discovery case, not added, while the letter is not held.\n- A registry \"conditions\" entry can be what a trial PREVENTS. The X2 population exclusions are read against the\n  trial's own eligibility criteria: a registered condition that the trial's exclusion criteria refuse at entry is\n  never a baseline diagnosis (harness/condition_role.py). PREVENTABLE (NCT04262206; aged >= 75 without\n  cardiovascular disease, disability or dementia) is therefore eligible; it is ongoing (RECRUITING) with no results,\n  so it adds no pooled input.\n- A secondary report's registration is its parent trial's: JUPITER's older-adults report (PMID 20404379) is\n  NCT00239681, recorded with located evidence in cache/statins-primary-prevention-elderly/parent_registrations.json.\n  A blank registry link is not \"unregistered\". ALLHAT-LLT's older-adults RMST report (PMID 30251369) is of the same\n  class (ALLHAT, NCT00000542) but is NOT linked here: a linked report sharing an NCT with ALLHAT's other older-adults\n  report (PMID 28531241) is collapsed by the build's same-registration de-duplication without a screening row, so the\n  link waits until that collapse is disclosed.\n- Scope: screening and the family ledger only. The pooled trials and the pooled result are unchanged.\n"
   },
   "rule_trace": {
     "enforced": false,
@@ -121,7 +121,7 @@
       {
         "key": "population_none",
         "term": "dementia",
-        "state": "UNTRACED"
+        "state": "TRACED_LITERAL"
       }
     ],
     "untraced": [
@@ -139,8 +139,7 @@
       "at risk of vascular disease",
       "vascular disease (prosper)",
       "cognitive decline",
-      "alzheimer",
-      "dementia"
+      "alzheimer"
     ]
   },
   "search": {
@@ -380,7 +379,13 @@
       },
       "reachable_ceiling": 1,
       "no_registry_link": 2,
-      "measured_utc": "2026-09-11T23:39:14Z"
+      "measured_utc": "2026-09-11T23:39:14Z",
+      "parent_registrations": {
+        "20404379": {
+          "nct": "NCT00239681",
+          "acronym": "JUPITER"
+        }
+      }
     },
     "ghost": {
       "source": "AACT 2026-08-30 (local snapshot)",
@@ -585,7 +590,7 @@
           "legacy_unrecorded#1"
         ],
         "matched_intervention": "statin",
-        "trial_family_id": "PMID:20404379",
+        "trial_family_id": "NCT00239681",
         "publication_role": "primary",
         "completeness_state": "eligible+completed+results_available",
         "completeness_basis": "publication record / committed cache metadata"
@@ -875,7 +880,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT00449410",
+        "trial_family_id": "SPACE",
         "publication_role": "primary"
       },
       {
@@ -893,7 +898,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT02913664",
+        "trial_family_id": "RRAD",
         "publication_role": "primary"
       },
       {
@@ -929,7 +934,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT01245608",
+        "trial_family_id": "POLYIRAN-L",
         "publication_role": "primary"
       },
       {
@@ -947,8 +952,8 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT04536870",
-        "publication_role": "primary"
+        "trial_family_id": "STAREE-HEART",
+        "publication_role": "secondary"
       },
       {
         "id": "ARISE · NCT01646307",
@@ -965,7 +970,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT01646307",
+        "trial_family_id": "ARISE",
         "publication_role": "primary"
       },
       {
@@ -1037,7 +1042,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT01271985",
+        "trial_family_id": "POLYIRAN",
         "publication_role": "primary"
       },
       {
@@ -1055,7 +1060,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT06896708",
+        "trial_family_id": "CAPITAL-PLAQUE",
         "publication_role": "primary"
       },
       {
@@ -1073,7 +1078,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT00127218",
+        "trial_family_id": "NIA-PLAQUE",
         "publication_role": "primary"
       },
       {
@@ -1109,26 +1114,64 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT01394848",
+        "trial_family_id": "INNOVATION",
         "publication_role": "primary"
       },
       {
         "id": "PREVENTABLE · NCT04262206",
         "id_type": "nct",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'dementia'.",
-        "span": "…nitive Impairment, Mild Dementia Cardiovascular Diseases…",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "eligible randomised controlled trial: intervention statin, comparator placebo, population older adults — P/I/C/design met. [CONDITION_AS_OUTCOME: the X2 on the registered condition 'Dementia' is withdrawn -- the trial's own exclusion criteria refuse it at entry (\"Dementia (clinically evident or previously diagnosed)\"), so it is what the trial prevents, not whom it enrols]",
+        "span": "population “…ts of Lipid-lowering in Older Adults Cognitive Impairment, M…”; comparator “…tatin 40 Mg Oral Tablet Placebo oral tablet PREVENTABLE”",
         "found_by": [
           "UNRECORDED"
         ],
+        "matched_intervention": "statin",
         "phase": null,
         "status": null,
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT04262206",
-        "publication_role": "primary"
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+        "condition_role": {
+          "rule": "CONDITION_AS_OUTCOME",
+          "withdrawn": {
+            "decision": "exclude",
+            "rule_id": "X2",
+            "reason": "wrong population: title/conditions mention 'dementia'.",
+            "span": "…nitive Impairment, Mild Dementia Cardiovascular Diseases…"
+          },
+          "prevention_targets": [
+            {
+              "term": "dementia",
+              "condition": "Dementia",
+              "exclusion": "Dementia (clinically evident or previously diagnosed)"
+            }
+          ],
+          "criteria_reference": {
+            "row": {
+              "nct_id": "NCT04262206",
+              "source_reference": {
+                "table": "eligibilities",
+                "nct_id": "NCT04262206",
+                "row_key": {
+                  "id": "229374397"
+                },
+                "row_sha256": "1bbe6b75c1d456062da61342131de8586210ae6cadc875fbc46effbb91fa551b",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "source": "AACT.eligibilities"
+          },
+          "reading": "a registered condition the trial's own exclusion criteria refuse at entry is what it aims to prevent, not a baseline diagnosis"
+        },
+        "trial_family_id": "PREVENTABLE",
+        "publication_role": "primary",
+        "completeness_state": "eligible+ongoing",
+        "registry_status": "RECRUITING",
+        "completion_date": "2026-12-31",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "NCT05893849",
@@ -1181,7 +1224,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT02596126",
+        "trial_family_id": "SECURE",
         "publication_role": "primary"
       },
       {
@@ -1217,8 +1260,8 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT05586750",
-        "publication_role": "primary"
+        "trial_family_id": "STAREE-MIND",
+        "publication_role": "secondary"
       }
     ],
     "positive_control": "Recovered & included the canonical trials ['20404379', '28531241', '30251369'] that a comparator includes; none missed.",
@@ -1418,10 +1461,10 @@
               "validity_critical": false
             }
           },
+          "background_therapy": "standard_care",
+          "evidence_unit_detail": "JUPITER",
           "prior_disease_stage": "primary_prevention",
           "evidence_unit": "prespecified_subgroup",
-          "evidence_unit_detail": "JUPITER",
-          "background_therapy": "standard_care",
           "study_effect": {
             "effect_estimate": 0.61,
             "standard_error": 0.1474715493077838,
@@ -1451,7 +1494,7 @@
             "statistical_model": "rate / person-time",
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
-          "trial_family_id": "PMID:20404379",
+          "trial_family_id": "NCT00239681",
           "publication_role": "primary",
           "analysis_set": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
           "follow_up_window": "trial end",
@@ -1490,8 +1533,8 @@
           "trial_id": "PMID 20404379",
           "report_id": "PMID 20404379",
           "outcome_effect_id": "statins-primary-prevention-elderly::Major vascular events::PMID 20404379::PMID 20404379",
-          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "family_id": "SYN-f393bbca005f"
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "family_id": "NCT00239681"
         },
         {
           "label": "42670961",
@@ -1537,9 +1580,9 @@
               "validity_critical": false
             }
           },
+          "background_therapy": "standard_care",
           "prior_disease_stage": "primary_prevention",
           "evidence_unit": "trial",
-          "background_therapy": "standard_care",
           "study_effect": {
             "effect_estimate": 0.7,
             "standard_error": 0.07547214781101398,
@@ -1637,10 +1680,10 @@
           },
           "family_id": "SYN-ef19fb9fe94b",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-          "claim_id": "b1bc64633045c8a4",
+          "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+          "claim_id": "4fc6cfe3990f5bdd",
           "depends_on": {
-            "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+            "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
           },
           "claim_kind": "membership_state"
         },
@@ -1670,36 +1713,74 @@
           },
           "family_id": "NCT00000542",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-          "claim_id": "b1bc64633045c8a4",
+          "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+          "claim_id": "4fc6cfe3990f5bdd",
           "depends_on": {
-            "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+            "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
+          "label": "PREVENTABLE",
+          "id": "NCT04262206",
+          "absent_kind": "machine_absent",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "PREVENTABLE",
+          "publication_role": "primary",
+          "completeness_state": "eligible+ongoing",
+          "registry_status": "RECRUITING",
+          "completion_date": "2026-12-31",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
+          "trial_id": "NCT04262206",
+          "report_id": "NCT04262206",
+          "outcome_effect_id": "statins-primary-prevention-elderly::Major vascular events::NCT04262206::NCT04262206",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "family_id": "NCT04262206",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+          "claim_id": "4fc6cfe3990f5bdd",
+          "depends_on": {
+            "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
         "analysis_input_family_ids": [
+          "NCT00239681",
           "NCT02099123"
         ],
         "pooled_family_ids": [
+          "NCT00239681",
           "NCT02099123"
         ],
-        "pooled_family_count": 1,
+        "pooled_family_count": 2,
         "pooled": [
           "PMID 20404379",
           "PMID 42670961"
         ],
-        "unresolved_pooled_candidate_ids": [
-          "SYN-f393bbca005f"
-        ],
+        "unresolved_pooled_candidate_ids": [],
         "declared_absent": [
           "PMID 30251369",
-          "PMID 28531241"
+          "PMID 28531241",
+          "NCT04262206"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "20cb7d93a366c6c6fa3e18db7c5c0be7494835acdb65840dbbf9839adde125a1"
+        "input_set_version": "ee5b43de908201f449ca13309b471339eec3d0bc70160b96edfc819f75a1131b"
       },
       "result": {
         "k": 2,
@@ -1776,10 +1857,10 @@
           "direction": null,
           "basis": "no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI"
         },
-        "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-        "claim_id": "94db754b47baf16d",
+        "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+        "claim_id": "1ec6f836706448de",
         "depends_on": {
-          "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+          "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
         },
         "claim_kind": "outcome_result"
       },
@@ -1950,7 +2031,7 @@
           "id": "PMID 20404379",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "PMID:20404379",
+          "trial_family_id": "NCT00239681",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "completeness_basis": "publication record / committed cache metadata",
@@ -1969,8 +2050,8 @@
           },
           "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
           "harm_source_reported": false,
-          "family_id": "SYN-f393bbca005f",
-          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
+          "family_id": "NCT00239681",
+          "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "52263d4f441a77c2",
           "depends_on": {
@@ -2093,6 +2174,45 @@
             "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
+        },
+        {
+          "label": "PREVENTABLE",
+          "id": "NCT04262206",
+          "absent_kind": "machine_absent",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "PREVENTABLE",
+          "publication_role": "primary",
+          "completeness_state": "eligible+ongoing",
+          "registry_status": "RECRUITING",
+          "completion_date": "2026-12-31",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
+          "trial_id": "NCT04262206",
+          "report_id": "NCT04262206",
+          "outcome_effect_id": "statins-primary-prevention-elderly::Muscle symptoms/myopathy::NCT04262206::NCT04262206",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "family_id": "NCT04262206",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "52263d4f441a77c2",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
         }
       ],
       "membership": {
@@ -2105,11 +2225,12 @@
           "PMID 20404379",
           "PMID 30251369",
           "PMID 28531241",
-          "PMID 42670961"
+          "PMID 42670961",
+          "NCT04262206"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "23d526738696ca61dc097a1a2f437dbc92a9f78ae4f0c400b26a7523182225ab"
+        "input_set_version": "c59ffe497b82f31a2e6c39f452bfc05394caff6654b97b0f67694b9cb51f7c2f"
       },
       "result": {
         "present": false,
@@ -2117,7 +2238,7 @@
         "reported_by": [
           "42670961"
         ],
-        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -2162,7 +2283,7 @@
         ],
         "harm_reporting_trials_n": 1,
         "harm_extracted_trials_n": 0,
-        "harm_registered_trials_n": 4,
+        "harm_registered_trials_n": 5,
         "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "e8c964832f400f5b",
@@ -2198,7 +2319,7 @@
           "id": "PMID 20404379",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "PMID:20404379",
+          "trial_family_id": "NCT00239681",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "completeness_basis": "publication record / committed cache metadata",
@@ -2217,8 +2338,8 @@
           },
           "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
           "harm_source_reported": false,
-          "family_id": "SYN-f393bbca005f",
-          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
+          "family_id": "NCT00239681",
+          "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "f636967e793aa7df",
           "depends_on": {
@@ -2341,6 +2462,45 @@
             "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
+        },
+        {
+          "label": "PREVENTABLE",
+          "id": "NCT04262206",
+          "absent_kind": "machine_absent",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "PREVENTABLE",
+          "publication_role": "primary",
+          "completeness_state": "eligible+ongoing",
+          "registry_status": "RECRUITING",
+          "completion_date": "2026-12-31",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "reason_code": "SOURCE_NOT_RETRIEVED",
+          "state": "SOURCE_NOT_RETRIEVED",
+          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
+          "trial_id": "NCT04262206",
+          "report_id": "NCT04262206",
+          "outcome_effect_id": "statins-primary-prevention-elderly::New-onset diabetes::NCT04262206::NCT04262206",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "family_id": "NCT04262206",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "f636967e793aa7df",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
         }
       ],
       "membership": {
@@ -2353,11 +2513,12 @@
           "PMID 20404379",
           "PMID 30251369",
           "PMID 28531241",
-          "PMID 42670961"
+          "PMID 42670961",
+          "NCT04262206"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "e9732ec897164e1b55d5de87ddf31195535cc7b3cec57c08d50a816a645d12a2"
+        "input_set_version": "785f2434f40c834740b79fc91e6fe5919a2dc0b1a4d6a837e690bb60f1f83b35"
       },
       "result": {
         "present": false,
@@ -2365,7 +2526,7 @@
         "reported_by": [
           "42670961"
         ],
-        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -2410,7 +2571,7 @@
         ],
         "harm_reporting_trials_n": 1,
         "harm_extracted_trials_n": 0,
-        "harm_registered_trials_n": 4,
+        "harm_registered_trials_n": 5,
         "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "2996a0f97636b211",
@@ -2542,7 +2703,7 @@
       "theirs_k": 12,
       "shared_k": 0,
       "only_ours": [
-        "SYN-f393bbca005f",
+        "NCT00239681",
         "NCT02099123"
       ],
       "only_theirs": [
@@ -2570,7 +2731,7 @@
       "comparator_year": 2022,
       "ours": [
         {
-          "family_id": "SYN-f393bbca005f",
+          "family_id": "NCT00239681",
           "row_id": "PMID 20404379",
           "label": "20404379",
           "earliest_report": {
@@ -2839,7 +3000,7 @@
       "shared": [],
       "shared_k": 0,
       "only_ours": [
-        "SYN-f393bbca005f",
+        "NCT00239681",
         "NCT02099123"
       ],
       "only_theirs": [
@@ -3855,6 +4016,61 @@
         "sponsor_class": null,
         "needs_proposal": []
       }
+    },
+    {
+      "id": "NCT04262206",
+      "type": "public funder named; industry tie not established",
+      "span": "",
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+      "typed": {
+        "schema": "funding-typed-v1",
+        "trial": "NCT04262206",
+        "funders": [
+          {
+            "name": "National Institute on Aging (NIA)",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NIH",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "National Heart, Lung, and Blood Institute (NHLBI)",
+            "class": "PUBLIC",
+            "class_basis": "registry category: NIH",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Wake Forest University Health Sciences",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "collaborator"
+          },
+          {
+            "name": "Duke University",
+            "class": "PUBLIC",
+            "class_basis": "public/non-profit name marker: University",
+            "source": "AACT sponsors",
+            "role": "lead"
+          }
+        ],
+        "material_support": [],
+        "funder_role_statement": {
+          "state": "FULL_TEXT_NOT_HELD"
+        },
+        "list_completeness": [],
+        "industry_tie": "NOT_ESTABLISHED",
+        "industry_tie_basis": "no complete funding statement is held",
+        "label": "public funder named; industry tie not established",
+        "funding_state": "INDUSTRY_TIE_NOT_ESTABLISHED",
+        "sponsor_class": "public_named_tie_not_established",
+        "needs_proposal": []
+      },
+      "label_from_first_sentence": "not stated (abstract only - full text not retrieved)",
+      "sponsor_class": "public_named_tie_not_established"
     }
   ],
   "definition_audit": {
@@ -3880,7 +4096,7 @@
   },
   "publication_units": {
     "source": "harness.identity.build_publication_units",
-    "n_records_annotated": 43
+    "n_records_annotated": 44
   },
   "protocol_config": {
     "divergences": [],
@@ -3899,7 +4115,8 @@
       "20404379": "CLASS:statin",
       "30251369": "CLASS:statin",
       "28531241": "CLASS:statin",
-      "42670961": "CLASS:statin"
+      "42670961": "CLASS:statin",
+      "PREVENTABLE · NCT04262206": "CLASS:statin"
     },
     "unresolved": [],
     "verdict": "NOT_APPLICABLE",
@@ -3951,9 +4168,9 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 10,
+    "N": 13,
     "counts": {
-      "REASON_TRUE": 8,
+      "REASON_TRUE": 11,
       "REASON_FALSE_VALUE_HELD": 2,
       "REASON_WRONG_KIND": 0,
       "NOT_VERIFIABLE": 0
@@ -3963,6 +4180,12 @@
     "by_code_kind": {
       "OUTCOME_NOT_IN_SOURCE": {
         "REASON_TRUE": 8,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "SOURCE_NOT_RETRIEVED": {
+        "REASON_TRUE": 3,
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
@@ -3999,6 +4222,17 @@
       },
       {
         "slug": "statins-primary-prevention-elderly",
+        "outcome": "Major vascular events",
+        "outcome_kind": "primary",
+        "trial_key": "NCT04262206",
+        "label": "PREVENTABLE",
+        "id": "NCT04262206",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "statins-primary-prevention-elderly",
         "outcome": "Muscle symptoms/myopathy",
         "outcome_kind": "harm",
         "trial_key": "20404379",
@@ -4047,6 +4281,17 @@
       },
       {
         "slug": "statins-primary-prevention-elderly",
+        "outcome": "Muscle symptoms/myopathy",
+        "outcome_kind": "harm",
+        "trial_key": "NCT04262206",
+        "label": "PREVENTABLE",
+        "id": "NCT04262206",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "statins-primary-prevention-elderly",
         "outcome": "New-onset diabetes",
         "outcome_kind": "harm",
         "trial_key": "20404379",
@@ -4092,16 +4337,27 @@
         "source_kind": "abstract",
         "source_span": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastat...",
         "source_contains": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastat..."
+      },
+      {
+        "slug": "statins-primary-prevention-elderly",
+        "outcome": "New-onset diabetes",
+        "outcome_kind": "harm",
+        "trial_key": "NCT04262206",
+        "label": "PREVENTABLE",
+        "id": "NCT04262206",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
       }
     ]
   },
   "unextracted_outcome_audit": {
     "denominator_source": "included screening records x registered outcomes in this review",
-    "N": 12,
+    "N": 15,
     "counts": {
       "EXTRACTED": 2,
       "HELD_NOT_EXTRACTED": 2,
-      "NOT_IN_HELD_SOURCES": 8,
+      "NOT_IN_HELD_SOURCES": 11,
       "ABSENT_BY_DESIGN": 0
     },
     "n_held_not_extracted": 2,
@@ -4109,13 +4365,13 @@
       "primary": {
         "EXTRACTED": 2,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 2,
+        "NOT_IN_HELD_SOURCES": 3,
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
         "EXTRACTED": 0,
         "HELD_NOT_EXTRACTED": 2,
-        "NOT_IN_HELD_SOURCES": 6,
+        "NOT_IN_HELD_SOURCES": 8,
         "ABSENT_BY_DESIGN": 0
       }
     },
@@ -4154,6 +4410,14 @@
       },
       {
         "slug": "statins-primary-prevention-elderly",
+        "trial_key": "NCT04262206",
+        "trial_label": "PREVENTABLE · NCT04262206",
+        "outcome": "Major vascular events",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "statins-primary-prevention-elderly",
         "trial_key": "20404379",
         "trial_label": "20404379",
         "outcome": "Muscle symptoms/myopathy",
@@ -4189,6 +4453,14 @@
       },
       {
         "slug": "statins-primary-prevention-elderly",
+        "trial_key": "NCT04262206",
+        "trial_label": "PREVENTABLE · NCT04262206",
+        "outcome": "Muscle symptoms/myopathy",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "statins-primary-prevention-elderly",
         "trial_key": "20404379",
         "trial_label": "20404379",
         "outcome": "New-onset diabetes",
@@ -4221,6 +4493,14 @@
         "source_id": "abstract:42670961",
         "source_kind": "abstract",
         "source_span": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastat..."
+      },
+      {
+        "slug": "statins-primary-prevention-elderly",
+        "trial_key": "NCT04262206",
+        "trial_label": "PREVENTABLE · NCT04262206",
+        "outcome": "New-onset diabetes",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
       }
     ]
   },
@@ -4248,10 +4528,10 @@
         "ci_high": 1.5975
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-      "claim_id": "db4bae35a68e0988",
+      "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+      "claim_id": "8fc491ddcb31bb21",
       "depends_on": {
-        "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+        "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
       },
       "claim_kind": "rob_sensitivity.full"
     },
@@ -4267,10 +4547,10 @@
         "ci_high": 1.5975
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-      "claim_id": "b76fdc40370d90ed",
+      "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+      "claim_id": "eb382ac4fae628a3",
       "depends_on": {
-        "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+        "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
@@ -4286,10 +4566,10 @@
         "ci_high": 1.5975
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-      "claim_id": "b43703353170f17f",
+      "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+      "claim_id": "ab0088a25abb323a",
       "depends_on": {
-        "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+        "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
@@ -4328,11 +4608,11 @@
         "assessed": false,
         "direction_conflict": false,
         "i2": 0.0,
-        "basis": "not assessable: STALE: pooled membership known incomplete (2 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "basis": "not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
         "stale": true,
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
-          "not assessable: STALE: pooled membership known incomplete (2 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+          "not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
         ]
       },
       "imprecision": {
@@ -4391,10 +4671,10 @@
     ],
     "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-    "claim_id": "b8cd4dce1be7a022",
+    "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+    "claim_id": "5326af204bd3a969",
     "depends_on": {
-      "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+      "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
     },
     "claim_kind": "grade"
   },
@@ -7843,6 +8123,477 @@
             "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
+        },
+        {
+          "outcome": "Muscle symptoms/myopathy",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "New-onset diabetes",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        }
+      ]
+    },
+    {
+      "family_id": "NCT00239681",
+      "identity_flag": "REGISTRY_ANCHORED",
+      "flags": [],
+      "identity_basis": {
+        "primary_report_ids": [
+          "20404379"
+        ],
+        "registry_ids": [
+          "NCT00239681"
+        ],
+        "fallback_report_ids": []
+      },
+      "aliases": {
+        "acronym": [],
+        "registry_ids": [
+          "NCT00239681"
+        ],
+        "mentioned_registry_ids": [],
+        "report_ids": [
+          "20404379"
+        ],
+        "dois": [
+          "10.7326/0003-4819-152-8-201004200-00005"
+        ],
+        "bib_keys": []
+      },
+      "reports": [
+        {
+          "report_id": "20404379",
+          "role": "PRIMARY",
+          "span_basis": {
+            "source": "record.pubtypes",
+            "quote": "Journal Article Multicenter Study Randomized Controlled Trial Research Support, N.I.H., Extramural Research Support, Non-U.S. Gov't",
+            "match": "Randomized Controlled Trial"
+          },
+          "retrieved_via": [
+            "legacy_unrecorded#1"
+          ]
+        }
+      ],
+      "arms": [],
+      "arm_absence_code": "NO_COMPLETE_ARM_STRUCTURE",
+      "abstract_arm_objects": [
+        {
+          "source": "harness.arm_object",
+          "trial": {
+            "id": {
+              "value": "20404379",
+              "span": "20404379",
+              "source": "record.id"
+            },
+            "nct": {
+              "value": "NCT00239681",
+              "span": "NCT00239681",
+              "source": "record.nct"
+            },
+            "label": {
+              "value": "20404379",
+              "span": "20404379",
+              "source": "record"
+            },
+            "title": {
+              "value": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
+              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
+              "source": "record.title"
+            }
+          },
+          "randomised_arm": [
+            {
+              "name": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "role": "NOT_DERIVABLE",
+              "drug": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "dose": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "background_therapy": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              }
+            }
+          ],
+          "randomised_contrasts": [],
+          "population": {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
+              "source": "record.title_abstract_conditions"
+            }
+          },
+          "timepoint": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "analysis_set": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "effect_source": {
+            "value": "abstract",
+            "span": "... for unstable angina, or death from cardiovascular causes). RESULTS: The 32% of trial participants 70 years or older accrued 49%...",
+            "source": "record.abstract"
+          }
+        }
+      ],
+      "randomised_contrasts": [],
+      "population": {
+        "absence_code": "REGISTRY_ELIGIBILITY_NOT_HELD",
+        "report_fields": [
+          {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
+              "source": "record.title_abstract_conditions"
+            }
+          }
+        ]
+      },
+      "analysis_sets": [
+        {
+          "report_id": "20404379",
+          "value": "NOT_DERIVABLE",
+          "span": "NOT_DERIVABLE",
+          "source": "record"
+        }
+      ],
+      "lifecycle": {
+        "registered": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "started": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "completed": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "results_posted": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "publication_found": {
+          "value": "2010",
+          "span": {
+            "report_id": "20404379",
+            "source": "record.year",
+            "precision": "year"
+          }
+        }
+      },
+      "entered_via": [
+        "LEGACY_UNRECORDED"
+      ],
+      "outcome_status": [
+        {
+          "outcome": "Major vascular events",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "YES",
+            "span": {
+              "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+              "source": "held abstract",
+              "report_id": "20404379"
+            }
+          },
+          "reported": {
+            "state": "YES",
+            "span": {
+              "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+              "source": "held abstract",
+              "report_id": "20404379"
+            }
+          },
+          "extractable": {
+            "state": "YES",
+            "span": {
+              "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+              "source": "held abstract",
+              "report_id": "20404379"
+            }
+          },
+          "in_primary_pool": {
+            "state": "YES",
+            "span": {
+              "source": "review.outcomes.trials",
+              "report_id": "20404379"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Muscle symptoms/myopathy",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "NCT00239681"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "New-onset diabetes",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "NCT00239681"
+            }
+          },
+          "registered_outcome_candidates": []
+        }
+      ],
+      "eligibility": {
+        "state": "UNKNOWN",
+        "absence_code": "INSUFFICIENT_PICD_EVIDENCE"
+      },
+      "registry_design": {},
+      "source_records": [
+        {
+          "id": "20404379",
+          "id_type": "pmid",
+          "title": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
+          "abstract": "BACKGROUND: Randomized data on statins for primary prevention in older persons are limited, and the relative hazard of cardiovascular disease associated with an elevated cholesterol level weakens with advancing age. OBJECTIVE: To assess the efficacy and safety of rosuvastatin in persons 70 years or older. DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial. SETTING: 1315 sites in 26 countries randomly assigned participants in JUPITER. PARTICIPANTS: Among the 17 802 participants randomly assigned with low-density lipoprotein (LDL) cholesterol levels less than 3.37 mmol/L (<130 mg/dL) and high-sensitivity C-reactive protein levels of 2.0 mg/L or more without cardiovascular disease, 5695 were 70 years or older. INTERVENTION: Participants were randomly assigned in a 1:1 ratio to receive 20 mg of rosuvastatin daily or placebo. MEASUREMENTS: The primary end point was the occurrence of a first cardiovascular event (myocardial infarction, stroke, arterial revascularization, hospitalization for unstable angina, or death from cardiovascular causes). RESULTS: The 32% of trial participants 70 years or older accrued 49% (n = 194) of the 393 confirmed primary end points. The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82]; P < 0.001). Corresponding rates of all-cause mortality in this age group were 1.63 and 2.04 (hazard ratio, 0.80 [CI, 0.62 to 1.04]; P = 0.090). Although no significant heterogeneity was found in treatment effects by age, absolute reductions in event rates associated with rosuvastatin were greater in older persons. The relative rate of any serious adverse event among older persons in the rosuvastatin versus placebo group was 1.05 (CI, 0.93 to 1.17). LIMITATION: Effect estimates from this exploratory analysis with age cut-point chosen after trial completion should be viewed in the context of the overall trial results. CONCLUSION: In apparently healthy older persons without hyperlipidemia but with elevated high-sensitivity C-reactive protein levels, rosuvastatin reduces the incidence of major cardiovascular events. PRIMARY FUNDING SOURCE: AstraZeneca.",
+          "pubtypes": [
+            "Journal Article",
+            "Multicenter Study",
+            "Randomized Controlled Trial",
+            "Research Support, N.I.H., Extramural",
+            "Research Support, Non-U.S. Gov't"
+          ],
+          "year": "2010",
+          "journal": "Ann Intern Med",
+          "doi": "10.7326/0003-4819-152-8-201004200-00005",
+          "nct": "NCT00239681",
+          "identity_source": {
+            "source": "recorded parent registration (cache/<slug>/parent_registrations.json)",
+            "acronym": "JUPITER",
+            "nct_id": "NCT00239681",
+            "paper_quote": "DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial.",
+            "registry_quote": {
+              "document_ref": "evidence/held/registry/NCT00239681.json",
+              "field": "protocolSection.identificationModule.briefTitle",
+              "quote": "JUPITER - Crestor 20mg Versus Placebo in Prevention of Cardiovascular (CV) Events"
+            },
+            "reported_by": "external review of the statins-primary-prevention-elderly topic (28 Sep 2026)"
+          },
+          "registry_ids": [
+            "NCT00239681"
+          ]
+        }
+      ],
+      "is_trial_family": true,
+      "strand": {
+        "state": "NONE",
+        "span": {
+          "source": "review.strands",
+          "names": []
+        }
+      },
+      "sources": [
+        {
+          "source_id": "20404379",
+          "role": "PRIMARY",
+          "sha256": "4ce3dcaefd6ecfe2405ef209ee36058625220bd14855bdb82bd9f86a65989aa1",
+          "retrieval_origin": [
+            "legacy_unrecorded#1"
+          ],
+          "span": {
+            "source": "held record",
+            "record": {
+              "id": "20404379",
+              "id_type": "pmid",
+              "title": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
+              "abstract": "BACKGROUND: Randomized data on statins for primary prevention in older persons are limited, and the relative hazard of cardiovascular disease associated with an elevated cholesterol level weakens with advancing age. OBJECTIVE: To assess the efficacy and safety of rosuvastatin in persons 70 years or older. DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial. SETTING: 1315 sites in 26 countries randomly assigned participants in JUPITER. PARTICIPANTS: Among the 17 802 participants randomly assigned with low-density lipoprotein (LDL) cholesterol levels less than 3.37 mmol/L (<130 mg/dL) and high-sensitivity C-reactive protein levels of 2.0 mg/L or more without cardiovascular disease, 5695 were 70 years or older. INTERVENTION: Participants were randomly assigned in a 1:1 ratio to receive 20 mg of rosuvastatin daily or placebo. MEASUREMENTS: The primary end point was the occurrence of a first cardiovascular event (myocardial infarction, stroke, arterial revascularization, hospitalization for unstable angina, or death from cardiovascular causes). RESULTS: The 32% of trial participants 70 years or older accrued 49% (n = 194) of the 393 confirmed primary end points. The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82]; P < 0.001). Corresponding rates of all-cause mortality in this age group were 1.63 and 2.04 (hazard ratio, 0.80 [CI, 0.62 to 1.04]; P = 0.090). Although no significant heterogeneity was found in treatment effects by age, absolute reductions in event rates associated with rosuvastatin were greater in older persons. The relative rate of any serious adverse event among older persons in the rosuvastatin versus placebo group was 1.05 (CI, 0.93 to 1.17). LIMITATION: Effect estimates from this exploratory analysis with age cut-point chosen after trial completion should be viewed in the context of the overall trial results. CONCLUSION: In apparently healthy older persons without hyperlipidemia but with elevated high-sensitivity C-reactive protein levels, rosuvastatin reduces the incidence of major cardiovascular events. PRIMARY FUNDING SOURCE: AstraZeneca.",
+              "pubtypes": [
+                "Journal Article",
+                "Multicenter Study",
+                "Randomized Controlled Trial",
+                "Research Support, N.I.H., Extramural",
+                "Research Support, Non-U.S. Gov't"
+              ],
+              "year": "2010",
+              "journal": "Ann Intern Med",
+              "doi": "10.7326/0003-4819-152-8-201004200-00005",
+              "nct": "NCT00239681",
+              "identity_source": {
+                "source": "recorded parent registration (cache/<slug>/parent_registrations.json)",
+                "acronym": "JUPITER",
+                "nct_id": "NCT00239681",
+                "paper_quote": "DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial.",
+                "registry_quote": {
+                  "document_ref": "evidence/held/registry/NCT00239681.json",
+                  "field": "protocolSection.identificationModule.briefTitle",
+                  "quote": "JUPITER - Crestor 20mg Versus Placebo in Prevention of Cardiovascular (CV) Events"
+                },
+                "reported_by": "external review of the statins-primary-prevention-elderly topic (28 Sep 2026)"
+              },
+              "registry_ids": [
+                "NCT00239681"
+              ]
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "poolability": [
+        {
+          "outcome": "Major vascular events",
+          "state": "POOLED",
+          "span": {
+            "measured": {
+              "state": "YES",
+              "span": {
+                "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+                "source": "held abstract",
+                "report_id": "20404379"
+              }
+            },
+            "reported": {
+              "state": "YES",
+              "span": {
+                "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+                "source": "held abstract",
+                "report_id": "20404379"
+              }
+            },
+            "extractable": {
+              "state": "YES",
+              "span": {
+                "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+                "source": "held abstract",
+                "report_id": "20404379"
+              }
+            }
+          },
+          "analysis_input": true,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "YES",
+            "span": {
+              "source": "review.outcomes.trials",
+              "report_ids": [
+                "PMID 20404379"
+              ]
+            }
+          },
+          "poolable_value": true
         },
         {
           "outcome": "Muscle symptoms/myopathy",
@@ -52074,447 +52825,6 @@
       ]
     },
     {
-      "family_id": "SYN-f393bbca005f",
-      "identity_flag": "NO_REGISTRY_RECORD",
-      "flags": [
-        "NO_REGISTRY_RECORD"
-      ],
-      "identity_basis": {
-        "primary_report_ids": [
-          "20404379"
-        ],
-        "registry_ids": [],
-        "fallback_report_ids": []
-      },
-      "aliases": {
-        "acronym": [],
-        "registry_ids": [],
-        "mentioned_registry_ids": [],
-        "report_ids": [
-          "20404379"
-        ],
-        "dois": [
-          "10.7326/0003-4819-152-8-201004200-00005"
-        ],
-        "bib_keys": []
-      },
-      "reports": [
-        {
-          "report_id": "20404379",
-          "role": "PRIMARY",
-          "span_basis": {
-            "source": "record.pubtypes",
-            "quote": "Journal Article Multicenter Study Randomized Controlled Trial Research Support, N.I.H., Extramural Research Support, Non-U.S. Gov't",
-            "match": "Randomized Controlled Trial"
-          },
-          "retrieved_via": [
-            "legacy_unrecorded#1"
-          ]
-        }
-      ],
-      "arms": [],
-      "arm_absence_code": "NO_COMPLETE_ARM_STRUCTURE",
-      "abstract_arm_objects": [
-        {
-          "source": "harness.arm_object",
-          "trial": {
-            "id": {
-              "value": "20404379",
-              "span": "20404379",
-              "source": "record.id"
-            },
-            "nct": {
-              "value": "NOT_DERIVABLE",
-              "span": "20404379",
-              "source": "record.nct"
-            },
-            "label": {
-              "value": "20404379",
-              "span": "20404379",
-              "source": "record"
-            },
-            "title": {
-              "value": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
-              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
-              "source": "record.title"
-            }
-          },
-          "randomised_arm": [
-            {
-              "name": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              },
-              "role": "NOT_DERIVABLE",
-              "drug": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              },
-              "dose": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              },
-              "background_therapy": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              }
-            }
-          ],
-          "randomised_contrasts": [],
-          "population": {
-            "age_range": {
-              "value": "NOT_DERIVABLE",
-              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
-              "source": "record.title_abstract_conditions"
-            },
-            "entry_condition": {
-              "value": "NOT_DERIVABLE",
-              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
-              "source": "record.title_abstract_conditions"
-            }
-          },
-          "timepoint": {
-            "value": "NOT_DERIVABLE",
-            "span": "NOT_DERIVABLE",
-            "source": "record"
-          },
-          "analysis_set": {
-            "value": "NOT_DERIVABLE",
-            "span": "NOT_DERIVABLE",
-            "source": "record"
-          },
-          "effect_source": {
-            "value": "abstract",
-            "span": "... for unstable angina, or death from cardiovascular causes). RESULTS: The 32% of trial participants 70 years or older accrued 49%...",
-            "source": "record.abstract"
-          }
-        }
-      ],
-      "randomised_contrasts": [],
-      "population": {
-        "absence_code": "REGISTRY_ELIGIBILITY_NOT_HELD",
-        "report_fields": [
-          {
-            "age_range": {
-              "value": "NOT_DERIVABLE",
-              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
-              "source": "record.title_abstract_conditions"
-            },
-            "entry_condition": {
-              "value": "NOT_DERIVABLE",
-              "span": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lip...",
-              "source": "record.title_abstract_conditions"
-            }
-          }
-        ]
-      },
-      "analysis_sets": [
-        {
-          "report_id": "20404379",
-          "value": "NOT_DERIVABLE",
-          "span": "NOT_DERIVABLE",
-          "source": "record"
-        }
-      ],
-      "lifecycle": {
-        "registered": {
-          "value": null,
-          "absence_code": "REGISTRY_DATE_NOT_HELD"
-        },
-        "started": {
-          "value": null,
-          "absence_code": "REGISTRY_DATE_NOT_HELD"
-        },
-        "completed": {
-          "value": null,
-          "absence_code": "REGISTRY_DATE_NOT_HELD"
-        },
-        "results_posted": {
-          "value": null,
-          "absence_code": "REGISTRY_DATE_NOT_HELD"
-        },
-        "publication_found": {
-          "value": "2010",
-          "span": {
-            "report_id": "20404379",
-            "source": "record.year",
-            "precision": "year"
-          }
-        }
-      },
-      "entered_via": [
-        "LEGACY_UNRECORDED"
-      ],
-      "outcome_status": [
-        {
-          "outcome": "Major vascular events",
-          "prospectively_specified": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
-          },
-          "measured": {
-            "state": "YES",
-            "span": {
-              "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
-              "source": "held abstract",
-              "report_id": "20404379"
-            }
-          },
-          "reported": {
-            "state": "YES",
-            "span": {
-              "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
-              "source": "held abstract",
-              "report_id": "20404379"
-            }
-          },
-          "extractable": {
-            "state": "YES",
-            "span": {
-              "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
-              "source": "held abstract",
-              "report_id": "20404379"
-            }
-          },
-          "in_primary_pool": {
-            "state": "YES",
-            "span": {
-              "source": "review.outcomes.trials",
-              "report_id": "20404379"
-            }
-          },
-          "registered_outcome_candidates": []
-        },
-        {
-          "outcome": "Muscle symptoms/myopathy",
-          "prospectively_specified": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
-          },
-          "measured": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-          },
-          "reported": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-          },
-          "extractable": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-          },
-          "in_primary_pool": {
-            "state": "NO",
-            "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-f393bbca005f"
-            }
-          },
-          "registered_outcome_candidates": []
-        },
-        {
-          "outcome": "New-onset diabetes",
-          "prospectively_specified": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
-          },
-          "measured": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-          },
-          "reported": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-          },
-          "extractable": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-          },
-          "in_primary_pool": {
-            "state": "NO",
-            "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-f393bbca005f"
-            }
-          },
-          "registered_outcome_candidates": []
-        }
-      ],
-      "eligibility": {
-        "state": "UNKNOWN",
-        "absence_code": "REGISTRY_PARENT_UNRESOLVED"
-      },
-      "registry_design": {},
-      "source_records": [
-        {
-          "id": "20404379",
-          "id_type": "pmid",
-          "title": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
-          "abstract": "BACKGROUND: Randomized data on statins for primary prevention in older persons are limited, and the relative hazard of cardiovascular disease associated with an elevated cholesterol level weakens with advancing age. OBJECTIVE: To assess the efficacy and safety of rosuvastatin in persons 70 years or older. DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial. SETTING: 1315 sites in 26 countries randomly assigned participants in JUPITER. PARTICIPANTS: Among the 17 802 participants randomly assigned with low-density lipoprotein (LDL) cholesterol levels less than 3.37 mmol/L (<130 mg/dL) and high-sensitivity C-reactive protein levels of 2.0 mg/L or more without cardiovascular disease, 5695 were 70 years or older. INTERVENTION: Participants were randomly assigned in a 1:1 ratio to receive 20 mg of rosuvastatin daily or placebo. MEASUREMENTS: The primary end point was the occurrence of a first cardiovascular event (myocardial infarction, stroke, arterial revascularization, hospitalization for unstable angina, or death from cardiovascular causes). RESULTS: The 32% of trial participants 70 years or older accrued 49% (n = 194) of the 393 confirmed primary end points. The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82]; P < 0.001). Corresponding rates of all-cause mortality in this age group were 1.63 and 2.04 (hazard ratio, 0.80 [CI, 0.62 to 1.04]; P = 0.090). Although no significant heterogeneity was found in treatment effects by age, absolute reductions in event rates associated with rosuvastatin were greater in older persons. The relative rate of any serious adverse event among older persons in the rosuvastatin versus placebo group was 1.05 (CI, 0.93 to 1.17). LIMITATION: Effect estimates from this exploratory analysis with age cut-point chosen after trial completion should be viewed in the context of the overall trial results. CONCLUSION: In apparently healthy older persons without hyperlipidemia but with elevated high-sensitivity C-reactive protein levels, rosuvastatin reduces the incidence of major cardiovascular events. PRIMARY FUNDING SOURCE: AstraZeneca.",
-          "pubtypes": [
-            "Journal Article",
-            "Multicenter Study",
-            "Randomized Controlled Trial",
-            "Research Support, N.I.H., Extramural",
-            "Research Support, Non-U.S. Gov't"
-          ],
-          "year": "2010",
-          "journal": "Ann Intern Med",
-          "doi": "10.7326/0003-4819-152-8-201004200-00005",
-          "nct": "",
-          "registry_ids": []
-        }
-      ],
-      "is_trial_family": false,
-      "strand": {
-        "state": "NONE",
-        "span": {
-          "source": "review.strands",
-          "names": []
-        }
-      },
-      "sources": [
-        {
-          "source_id": "20404379",
-          "role": "PRIMARY",
-          "sha256": "8f133fe05feed7778ccbb7e24b15159d628b9d590be51390154a9f47ce0740ef",
-          "retrieval_origin": [
-            "legacy_unrecorded#1"
-          ],
-          "span": {
-            "source": "held record",
-            "record": {
-              "id": "20404379",
-              "id_type": "pmid",
-              "title": "Rosuvastatin for primary prevention in older persons with elevated C-reactive protein and low to average low-density lipoprotein cholesterol levels: exploratory analysis of a randomized trial.",
-              "abstract": "BACKGROUND: Randomized data on statins for primary prevention in older persons are limited, and the relative hazard of cardiovascular disease associated with an elevated cholesterol level weakens with advancing age. OBJECTIVE: To assess the efficacy and safety of rosuvastatin in persons 70 years or older. DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial. SETTING: 1315 sites in 26 countries randomly assigned participants in JUPITER. PARTICIPANTS: Among the 17 802 participants randomly assigned with low-density lipoprotein (LDL) cholesterol levels less than 3.37 mmol/L (<130 mg/dL) and high-sensitivity C-reactive protein levels of 2.0 mg/L or more without cardiovascular disease, 5695 were 70 years or older. INTERVENTION: Participants were randomly assigned in a 1:1 ratio to receive 20 mg of rosuvastatin daily or placebo. MEASUREMENTS: The primary end point was the occurrence of a first cardiovascular event (myocardial infarction, stroke, arterial revascularization, hospitalization for unstable angina, or death from cardiovascular causes). RESULTS: The 32% of trial participants 70 years or older accrued 49% (n = 194) of the 393 confirmed primary end points. The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82]; P < 0.001). Corresponding rates of all-cause mortality in this age group were 1.63 and 2.04 (hazard ratio, 0.80 [CI, 0.62 to 1.04]; P = 0.090). Although no significant heterogeneity was found in treatment effects by age, absolute reductions in event rates associated with rosuvastatin were greater in older persons. The relative rate of any serious adverse event among older persons in the rosuvastatin versus placebo group was 1.05 (CI, 0.93 to 1.17). LIMITATION: Effect estimates from this exploratory analysis with age cut-point chosen after trial completion should be viewed in the context of the overall trial results. CONCLUSION: In apparently healthy older persons without hyperlipidemia but with elevated high-sensitivity C-reactive protein levels, rosuvastatin reduces the incidence of major cardiovascular events. PRIMARY FUNDING SOURCE: AstraZeneca.",
-              "pubtypes": [
-                "Journal Article",
-                "Multicenter Study",
-                "Randomized Controlled Trial",
-                "Research Support, N.I.H., Extramural",
-                "Research Support, Non-U.S. Gov't"
-              ],
-              "year": "2010",
-              "journal": "Ann Intern Med",
-              "doi": "10.7326/0003-4819-152-8-201004200-00005",
-              "nct": "",
-              "registry_ids": []
-            }
-          }
-        }
-      ],
-      "conflicts": [],
-      "poolability": [
-        {
-          "outcome": "Major vascular events",
-          "state": "POOLED",
-          "span": {
-            "measured": {
-              "state": "YES",
-              "span": {
-                "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
-                "source": "held abstract",
-                "report_id": "20404379"
-              }
-            },
-            "reported": {
-              "state": "YES",
-              "span": {
-                "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
-                "source": "held abstract",
-                "report_id": "20404379"
-              }
-            },
-            "extractable": {
-              "state": "YES",
-              "span": {
-                "quote": "The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
-                "source": "held abstract",
-                "report_id": "20404379"
-              }
-            }
-          },
-          "analysis_input": true,
-          "pool_refusal": null,
-          "pooled": {
-            "state": "YES",
-            "span": {
-              "source": "review.outcomes.trials",
-              "report_ids": [
-                "PMID 20404379"
-              ]
-            }
-          },
-          "poolable_value": true
-        },
-        {
-          "outcome": "Muscle symptoms/myopathy",
-          "state": "UNKNOWN",
-          "span": {
-            "measured": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-            },
-            "reported": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-            },
-            "extractable": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-            }
-          },
-          "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": false,
-            "suppressed_incompatible": null,
-            "pool_refused": null
-          },
-          "pooled": {
-            "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
-          },
-          "poolable_value": false
-        },
-        {
-          "outcome": "New-onset diabetes",
-          "state": "UNKNOWN",
-          "span": {
-            "measured": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-            },
-            "reported": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-            },
-            "extractable": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-            }
-          },
-          "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": false,
-            "suppressed_incompatible": null,
-            "pool_refused": null
-          },
-          "pooled": {
-            "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
-          },
-          "poolable_value": false
-        }
-      ]
-    },
-    {
       "family_id": "SYN-fe4faecf36cb",
       "identity_flag": "NO_REGISTRY_RECORD",
       "flags": [
@@ -52935,13 +53245,15 @@
     }
   ],
   "family_count_chain": {
-    "trial_families": 25,
+    "trial_families": 26,
     "eligible_families": 1,
-    "contributing": 1,
-    "pooled": 1,
-    "eligibility_unresolved": 23,
-    "unresolved_report_candidates": 14,
-    "contributing_without_structural_eligibility": [],
+    "contributing": 2,
+    "pooled": 2,
+    "eligibility_unresolved": 24,
+    "unresolved_report_candidates": 13,
+    "contributing_without_structural_eligibility": [
+      "NCT00239681"
+    ],
     "publications_screened": 17,
     "registry_records_screened": 23
   },
@@ -53003,16 +53315,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "4828a1e18887d305",
+        "claim_id": "08223f9c61d6ce62",
         "depends_on": {
-          "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+          "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "c15b5298ac823056",
+        "claim_id": "07d29ac3ffde1b40",
         "depends_on": {
-          "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+          "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
         }
       }
     ]
@@ -53445,8 +53757,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 20404379</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>NIA NIH HHS <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em></td><td>abstract</td><td><strong>abstract</strong>: PRIMARY FUNDING SOURCE: AstraZeneca.</td></tr><tr><td>PMID 42670961</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the abstract funding sentence); no complete funding statement is held; unclassified funder(s): National Health<br>list completeness: abstract funding sentence: PARTIAL<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>National Health <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Medical Research Council <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>National Health and Medical Research Council <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>National Heart Foundation of Australia <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Monash University <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Health and Medical Research Council, Australia <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Heart Foundation, Australia <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): National Health</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.).</td></tr><tr><td>PMID 28531241</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>National Heart, Lung, and Blood Institute (NHLBI) <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30251369</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "dbcef747ecaf48fe3ee02b435be8702a0b2f17e4c54ed15a56b7dab78b3ec28d",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (4 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 20404379</td><td><strong>industry tie present</strong><br>industry tie: <code>PRESENT</code> &mdash; industry named by: AstraZeneca (abstract funding sentence)<br>list completeness: abstract funding sentence: COMPLETE<br>funder-role statement: full text not held<br><em>first-sentence label was: industry</em></td><td>AstraZeneca <code>INDUSTRY</code> <em>(abstract funding sentence)</em><br>NIA NIH HHS <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em></td><td>abstract</td><td><strong>abstract</strong>: PRIMARY FUNDING SOURCE: AstraZeneca.</td></tr><tr><td>PMID 42670961</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; the funder list is partial (&#x27;and others&#x27; in the abstract funding sentence); no complete funding statement is held; unclassified funder(s): National Health<br>list completeness: abstract funding sentence: PARTIAL<br>funder-role statement: full text not held<br><em>first-sentence label was: public/non-profit</em></td><td>National Health <code>UNCLASSIFIED</code> <em>(abstract funding sentence)</em><br>Medical Research Council <code>PUBLIC</code> <em>(abstract funding sentence)</em><br>National Health and Medical Research Council <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>National Heart Foundation of Australia <code>PUBLIC</code> <em>(publisher funding metadata (Europe PMC core grantsList))</em><br>Monash University <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Health and Medical Research Council, Australia <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br>National Heart Foundation, Australia <code>PUBLIC</code> <em>(ClinicalTrials.gov sponsor/collaborators (held API record))</em><br><em>unclassified (no registry category, no name marker): National Health</em></td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health and Medical Research Council and others; STAREE ClinicalTrials.gov number, NCT02099123.).</td></tr><tr><td>PMID 28531241</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>National Heart, Lung, and Blood Institute (NHLBI) <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT04262206</td><td><strong>public funder named; industry tie not established</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held<br><em>first-sentence label was: not stated (abstract only - full text not retrieved)</em></td><td>National Institute on Aging (NIA) <code>PUBLIC</code> <em>(AACT sponsors)</em><br>National Heart, Lung, and Blood Institute (NHLBI) <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Wake Forest University Health Sciences <code>PUBLIC</code> <em>(AACT sponsors)</em><br>Duke University <code>PUBLIC</code> <em>(AACT sponsors)</em></td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 30251369</td><td><strong>not stated (abstract only - full text not retrieved)</strong><br>industry tie: <code>NOT_ESTABLISHED</code> &mdash; no complete funding statement is held<br>funder-role statement: full text not held</td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "9c266243c258f280e8a333a86f38b7c42785d0926d316620b25d5bf1889609a3",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -53504,8 +53816,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (2 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; served pooled CI (refused); clinical threshold / MID with basis; information-size assessment with adequacy and basis | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (32 of ~97 completed unpublished, 33%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "61c56588235c3031d969d0d90939c9991d029690adf71b0927b338208331e236",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; served pooled CI (refused); clinical threshold / MID with basis; information-size assessment with adequacy and basis | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (32 of ~97 completed unpublished, 33%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "cf83be216538fc39bafc0d9df01877749657bb8b286b19d3da1c3193f0b3dac9",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -54040,8 +54352,8 @@
           "pool": "Major vascular events",
           "shared": [],
           "harness_only": [
-            "NCT02099123",
-            "SYN-f393bbca005f"
+            "NCT00239681",
+            "NCT02099123"
           ],
           "comparator_only": [
             "Alpérovitch 2015 [b25]",
@@ -54119,14 +54431,14 @@
   ],
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "3cce771e89b9a89a6126a6a85b4904040bafae0d3424d88518c2289015d931df",
+    "protocol_sha": "2315682434b2ee44596a507f05901f7b2ef0bba1",
+    "review_sha256": "0b7128cf5d89c4d2c513244aa3e3320d09e106999351f482a754fe3e76cfbc16",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
       "sha": null,
-      "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750"
+      "kind": "protocol first committed inside a build; later protocol-only commits are amendments or errata, not a registration",
+      "build_sha": "2315682434b2ee44596a507f05901f7b2ef0bba1"
     },
     "parity": {
       "slug": "statins-primary-prevention-elderly",
@@ -54153,10 +54465,10 @@
       },
       "hand_status": "COMPARATOR_INVALID",
       "hand_status_stale": false,
-      "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4",
-      "claim_id": "970a36740778de8c",
+      "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7",
+      "claim_id": "e0e4557059d2477a",
       "depends_on": {
-        "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
+        "input_set_version": "31ff3aef98373a3fb48dddb153d78ef4149e4bf20864f813a270f3fbc85199f7"
       },
       "claim_kind": "parity"
     },
@@ -54236,15 +54548,15 @@
     "certificate": {
       "schema_version": 1,
       "slug": "statins-primary-prevention-elderly",
-      "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-      "protocol_text_sha256": "4e98c57b38315f8f77cb408ff4c2dab56f201e2fffd6eed690178e3e9cf58b35",
+      "protocol_sha": "2315682434b2ee44596a507f05901f7b2ef0bba1",
+      "protocol_text_sha256": "871c31bf5c723be4f5180406ac6d6456c5898796a8194cffa02a529dfd908dbe",
       "search_query_sha256": "31330c5f08b95faf151ebeab3a6a4b17c322e69a74a432b292ae433e20236e33",
       "retrieved_corpus_sha256": "7170920d541cd0ecf65779801b77336d065b5e86db4c039a0818c181aaf69b67",
       "records_file_sha256": "0bd4996edb3ef9df1b90f77efd8d3c74fcaf433114c882b968d325b07263bef2",
       "retrieval_ledger_sha256": "e71f15c5b47fd83dcf6acc690fd7f388113eef51eb18c4ce2a0ee34cd3e9d0cc",
-      "screening_ledger_sha256": "30af780574e0887ab8983310633bae264790ea3184e9dcc8f13b2e7ebc164739",
+      "screening_ledger_sha256": "e2c4cfd0005f0cbb347afd0b82b9887e1701769fdb57c1fa348d40d6032f387d",
       "extraction_objects_sha256": "8a46c5c222627320fda49a2299c0bfed382102c1254f094d655abdfd7934355b",
-      "trial_family_map_sha256": "a489e3ebcd67e5202a715547e80be30a1f5c15aa5f0c332c88f9b6a098188384",
+      "trial_family_map_sha256": "48ef60151ba324d3b08d32eed4f528b863008339f79a2246f6c4118d4049ea96",
       "rob_object_sha256": "ed5b3c5922762f44a70df5695d0b06c80faa51e27335c0c7a56ed7333c6c9986",
       "held_documents": [
         {
@@ -54285,7 +54597,7 @@
         }
       ],
       "config_sha256": "d57b4a7cbe9453a236a5675880c60cb8d64f3a77d78098797096588d715af7dc",
-      "analysis_code_sha256": "1be63d087c25bf9a1ac3d3a4660c3a37cb647b1a2f61425b422713b757f26f2e",
+      "analysis_code_sha256": "49291dda90d8ab600b62585c586260eb5ce57b59593e7628ed45676f8ac54a68",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -54303,13 +54615,13 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_analysis.py": "4460d85c6fadfa37155f5e23df2338e5ce5f8471",
+        "harness/comparator_analysis.py": "7474e11a07165969bb532a8c982f852951cdcfd1",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
         "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
         "harness/comparator_named.py": "7df2bf010d5e1985e506557da973019be3695d45",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
+        "harness/comparator_panel.py": "1e67e5a633f07c8f64bfc258428de9bba10e78e3",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "e69bc67465ddd3539f72f6faa361a31846de12f3",
@@ -54317,9 +54629,10 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
+        "harness/condition_role.py": "b499eb9a3932f70d5d41f78623b72244e2644874",
         "harness/consumer_consistency.py": "9f3122e2278082379bdea3c0922ab9939783c0e0",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+        "harness/design_key.py": "03f9e7f03d311f8600d7d7762682011017cfef68",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -54344,7 +54657,7 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/held_text_identity.py": "f1d623c4fd51f1753766acc401f42b5f59f3efe7",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
-        "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
+        "harness/identity.py": "30770e9b20ee8b7b7f8bd171885fe873de5e38fd",
         "harness/index.py": "b4f1391a202f34ef02da8f727b6300f16296ce85",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
         "harness/journal_route.py": "fde5fdea07c69b09069a4d9c558b9d68437ce95b",
@@ -54358,10 +54671,11 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
         "harness/overlap_relation.py": "b0934f1bcff05a5d84a12f94798f538ccea6b71e",
-        "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
+        "harness/page.py": "d2524b8707d21bf08b3561585fb592498c5793b6",
+        "harness/parent_registration.py": "6a4fbca389f87b41985e2278991298e4c6ff1491",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "295bb6b1de4466b039e572f88b3912fca81d1ffa",
-        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
+        "harness/pipeline.py": "6009fabe540d09ab2719068c061d09f8fd1a12af",
+        "harness/population_witness.py": "00cf5f34772e2bd2ea8e96d6ff61e15fcbcd112f",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -54405,7 +54719,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "105 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "107 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -54435,8 +54749,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "6a0d1661369eb9090715973acd7104c33b423b8adfcfb828fc8eb1250731b22a",
-      "review_sha256": "3cce771e89b9a89a6126a6a85b4904040bafae0d3424d88518c2289015d931df",
+      "manuscript_sha256": "efd84d50dfac8eb7d44ef83c519cf38aa3038288c086bf199a5c550020c3d7a8",
+      "review_sha256": "0b7128cf5d89c4d2c513244aa3e3320d09e106999351f482a754fe3e76cfbc16",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/statins-primary-prevention-elderly.md UTF-8 text, universal newlines",
@@ -54456,7 +54770,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "9812cad822110777ea33feeb5914afb88b93baaa4a311769677e992281754639"
+      "release_sha256": "f0eb2567caaf8002c9d1bb2ea98bb68f645c68bd2730f394a5adb9a372115ab3"
     }
   }
 }

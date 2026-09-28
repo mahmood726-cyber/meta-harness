@@ -1002,8 +1002,8 @@ def _search(r, neutral):
                 f"PRE-SPECIFIED known trials (pooled + declared positive controls; enumerated "
                 f"{_e(rc.get('enumerated'))}; status {_e(status)}).")
         # A bare recall reads every non-recovery as a search failure. Split the missed trials by CAUSE
-        # so the number is honest: trials with no own-publication registry linkage are UNREACHABLE by a
-        # registry-first search (the literature predates or omits trial registration), while trials that
+        # so the number is honest: reports with no registration linked in AACT are UNREACHABLE by a
+        # registry-first search through that link (a blank link is not an unregistered trial), while trials that
         # ARE registered but were not enumerated are the improvable ceiling of the committed query.
         ceil, nolink = rc.get("reachable_ceiling"), rc.get("no_registry_link")
         reasons = rc.get("missed_reasons") or {}
@@ -1015,9 +1015,18 @@ def _search(r, neutral):
                          f"{_e(len(reg_ne))} trial(s) are registered but not enumerated by the committed "
                          f"query (registry vocabulary limit — improvable).")
             if nolink:
-                line += (f" {_e(nolink)} missed trial(s) have <strong>no own-publication registry "
-                         f"linkage</strong> — unregistered / pre-registration-era, so unreachable by any "
-                         f"registry-first search (a property of the literature, not a search failure).")
+                # V1.0.1 (statins-older-adults review): 'no_registry_link' means AACT links no registration to that
+                # PUBLICATION -- a blank field, not an unregistered trial (JUPITER's older-adults report is NCT00239681)
+                parents = rc.get("parent_registrations") or {}
+                known_parent = [m for m in unreg if str(m) in parents]
+                line += (f" {_e(nolink)} missed report(s) have <strong>no registration linked to the publication "
+                         f"in AACT</strong> — a blank link, not evidence that the trial is unregistered; a registry-first "
+                         f"search cannot reach the report through it.")
+                if known_parent:
+                    line += (" Registered through the parent trial: "
+                             + "; ".join(f"{_e(m)} = {_e(parents[str(m)]['acronym'])} {_e(parents[str(m)]['nct'])}"
+                                         for m in known_parent)
+                             + " (recorded with evidence, cache/&lt;slug&gt;/parent_registrations.json).")
             line += f" <span class='muted'>Missed: {_e(', '.join(str(m) for m in rc.get('missed', [])))}.</span>"
         if rc.get("measured_utc"):
             line += f" <span class='muted'>Measured {_e(rc.get('measured_utc'))}.</span>"

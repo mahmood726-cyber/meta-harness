@@ -49,8 +49,14 @@ def rows_of(control: dict, root=None) -> list:
         doc = comparator_analysis.load(root, control["rows_from"]["slug"])
         if doc is None or not doc.get("membership"):
             raise PendingSource(f"{control.get('id')}: comparator_analysis.json membership not held")
+        rows = doc["membership"]["rows"]
+        if rows and all("log_se" in r for r in rows):
+            # V1.0.1 (MRA-HFrEF review): a generic inverse-variance plot's printed log[HR] and SE, passed to the engine
+            # as the z interval they define (synth recovers exactly that SE)
+            return [dict(zip(("effect", "ci_low", "ci_high"), comparator_analysis.log_row_effect(r)), label=r["label"],
+                         state="HELD") for r in rows]
         return [{"label": r["label"], "events_int": r["counts"][0], "n_int": r["counts"][1], "events_ctl": r["counts"][2],
-                 "n_ctl": r["counts"][3], "state": "HELD"} for r in doc["membership"]["rows"]]
+                 "n_ctl": r["counts"][3], "state": "HELD"} for r in rows]
     if control.get("state") == "ROWS_FROM_MEMBER_INPUTS":
         from . import outcome_match
         rf = control["rows_from"]

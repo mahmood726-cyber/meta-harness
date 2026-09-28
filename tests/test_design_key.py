@@ -89,3 +89,14 @@ def test_correlation_method_without_evidence_is_treated_as_none_and_refused():
     decision = D.decision_for_trial(trial, "RR")
     assert decision["action"] == "REFUSE"
     assert D.needs_design_refusal(trial)
+
+
+def test_registry_designs_never_mutates_the_screened_record():
+    """V1.0.1 (statins-older-adults review): registry_designs() stored the ctgov RECORD itself and then update()d it with
+    the cached AACT design row, whose 'id' is the AACT row key -- PREVENTABLE's record id became '227809937', so the
+    completeness classifier no longer saw an NCT and labelled a RECRUITING trial 'completed'."""
+    rec = {"id": "NCT04262206", "id_type": "nct", "acronym": "PREVENTABLE", "allocation": "RANDOMIZED"}
+    out = D.registry_designs({"ctgov": [rec], "designs": [{"nct_id": "NCT04262206", "id": "227809937",
+                                                                      "masking": "TRIPLE"}]})
+    assert rec == {"id": "NCT04262206", "id_type": "nct", "acronym": "PREVENTABLE", "allocation": "RANDOMIZED"}
+    assert out["NCT04262206"]["masking"] == "TRIPLE"

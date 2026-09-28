@@ -3342,7 +3342,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT07758023",
+        "trial_family_id": "ACHILLES-HF",
         "publication_role": "primary"
       },
       {
@@ -3378,7 +3378,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "REC:NCT07803471",
+        "trial_family_id": "NCT07803471",
         "publication_role": "primary"
       },
       {
@@ -3396,7 +3396,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT07349979",
+        "trial_family_id": "PCI-GULF",
         "publication_role": "primary"
       },
       {
@@ -3432,7 +3432,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT07029503",
+        "trial_family_id": "SCARF-1",
         "publication_role": "primary"
       },
       {
@@ -3450,7 +3450,7 @@
         "primary_completion": null,
         "completion": null,
         "enrollment": null,
-        "trial_family_id": "NCT07295522",
+        "trial_family_id": "POPS-HF",
         "publication_role": "primary"
       }
     ],
@@ -3788,8 +3788,8 @@
               "validity_critical": false
             }
           },
-          "source_label": "hazard ratio",
           "effect_model_class": "TIME_TO_FIRST_DEATH_COX_RATIO",
+          "source_label": "hazard ratio",
           "study_effect": {
             "effect_estimate": 0.76,
             "standard_error": 0.10343687723509756,
@@ -4759,13 +4759,18 @@
     },
     "overlap": {
       "ours_k": 3,
-      "theirs_k": 9,
-      "shared_k": "not computed: comparator trial set not enumerated",
-      "only_ours": [],
-      "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
-      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator trial set is not known well enough to compare); our pooled trial families 3; basis: comparator trial set not enumerated.",
-      "relation": "NOT_ENUMERABLE"
+      "theirs_k": 3,
+      "shared_k": 2,
+      "only_ours": [
+        "NCT01115855"
+      ],
+      "only_theirs": [
+        "EPHESUS (row 2)"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: OVERLAPPING (overlapping -- some families shared, each side has trials the other lacks); our pooled trial families 3, comparator trials 3, shared 2; basis: set operation on the enumerated comparator trial set.",
+      "theirs_k_source": "comparator panel trial_set (cache/spironolactone-hfref-mortality/comparator_fulltext.txt, located spans; per-outcome membership bound (Figure 4D (HFrEF all-cause mortality))): 3 comparator trial(s) for this outcome; 6 with another endpoint excluded",
+      "relation": "OVERLAPPING"
     },
     "truth": {
       "agent_scope": {
@@ -4851,6 +4856,124 @@
         }
       ]
     },
+    "analysis": {
+      "outcome": "All-cause mortality",
+      "governing": {
+        "analysis": "Figure 4D (HFrEF all-cause mortality)",
+        "label": "MRAs vs control in HFrEF, inverse-variance fixed effect on log HR",
+        "scale": "HR",
+        "estimate": 0.78,
+        "ci_low": 0.72,
+        "ci_high": 0.85,
+        "k": 3,
+        "n": null,
+        "document_ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
+        "quote": "For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72–0.85; P < 0.00001) with moderate heterogeneity ( I ² = 43%) ( Figure 4D )"
+      },
+      "protocol_benchmark": null,
+      "method_difference": {
+        "heading": "Different trials, different model",
+        "quotes": [
+          {
+            "document_ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
+            "quote": "For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72–0.85; P < 0.00001) with moderate heterogeneity ( I ² = 43%) ( Figure 4D )"
+          }
+        ],
+        "reading": "Its 0.78 (0.72-0.85) is a fixed-effect pool of two of our trials plus EPHESUS (48.4% of its weight), outside our population; our 0.73 (0.56-0.95) is Paule-Mandel with a Hartung-Knapp interval over RALES, EMPHASIS-HF and J-EMPHASIS-HF. Agreement or disagreement between the two is not a check on either.",
+        "reported_by": "external review of the spironolactone-hfref-mortality topic (28 Sep 2026)"
+      },
+      "scope": {
+        "quotes": [
+          {
+            "document_ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
+            "quote": "This study included a total of nine RCTs"
+          }
+        ],
+        "reading": "Zhang 2025 pools nine MRA trials across HFrEF, HFmrEF/HFpEF and diabetic kidney disease; its 9 is not our target. The analysis that answers our question is Figure 4D (HFrEF all-cause mortality): RALES, EPHESUS and EMPHASIS-HF. Two are ours (RALES, EMPHASIS-HF). EPHESUS enrolled acute post-myocardial-infarction LV dysfunction, which our preregistered population excludes (X2), so it is a scope difference, not a missed trial. Our third trial, J-EMPHASIS-HF, is not in it.",
+        "reported_by": "external review of the spironolactone-hfref-mortality topic (28 Sep 2026)"
+      },
+      "membership": {
+        "figure": {
+          "caption": {
+            "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+            "quote": "Forest plots assessing MRA effectiveness in hFrEF patients. (A) CV composite events; (B) CV death; (C) Hospitalization for heart failures; (D) All-cause mortality."
+          },
+          "url": "https://cdn.ncbi.nlm.nih.gov/pmc/blobs/f20a/12434096/2bb4d17ab59c/fcvm-12-1667236-g004.jpg",
+          "document_ref": "cache/spironolactone-hfref-mortality/comparator_figure_g004.jpg",
+          "sha256": "cfaff093e757dda3dcd2ccbcd3ff348a2ab2270efd7f0a4f7537a4ce9b19f6ff",
+          "licence": "CC BY 4.0 (PMC12434096)",
+          "read_by": "Claude Opus 5.5 (lane evid2), from the held image, 28 Sep 2026; panel D prints log[HR], SE, weight and HR per row, Total 0.78 [0.72, 0.85], Chi2 = 3.53, df = 2, I2 = 43%"
+        },
+        "members": [
+          {
+            "label": "RALES2000",
+            "log_se": [
+              -0.3464,
+              0.0755
+            ],
+            "printed": {
+              "effect": [
+                0.71,
+                0.61,
+                0.82
+              ],
+              "weight": 33.7
+            },
+            "panel_row": "RALES (row 1)"
+          },
+          {
+            "label": "EPHESUS 2003",
+            "log_se": [
+              -0.1643,
+              0.063
+            ],
+            "printed": {
+              "effect": [
+                0.85,
+                0.75,
+                0.96
+              ],
+              "weight": 48.4
+            },
+            "panel_row": "EPHESUS (row 2)"
+          },
+          {
+            "label": "EMPHASIS-HF2011",
+            "log_se": [
+              -0.2753,
+              0.1034
+            ],
+            "printed": {
+              "effect": [
+                0.76,
+                0.62,
+                0.93
+              ],
+              "weight": 18.0
+            },
+            "panel_row": "EMPHASIS-HF (row 3)"
+          }
+        ],
+        "endpoint": "All-cause mortality",
+        "endpoint_label": "Figure 4D (HFrEF all-cause mortality)",
+        "shared_same_counts": [],
+        "weight_concentration": {
+          "scale": "HR",
+          "top": "EPHESUS 2003",
+          "top_share": 48.37,
+          "top_crude": null,
+          "shares": {
+            "RALES2000": 33.68,
+            "EPHESUS 2003": 48.37,
+            "EMPHASIS-HF2011": 17.96
+          },
+          "no_events_left_out": [],
+          "k": 3,
+          "from": "printed SE"
+        }
+      },
+      "row_flags": []
+    },
     "overlap_relation": {
       "outcome": "All-cause mortality",
       "comparator_pmid": "40959489",
@@ -4888,17 +5011,148 @@
       "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
-        "status": "NOT_ENUMERATED",
-        "note": "the registered comparator's trial set is not enumerated in a typed, located source"
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/spironolactone-hfref-mortality/comparator_fulltext.txt, located spans; per-outcome membership bound (Figure 4D (HFrEF all-cause mortality)))",
+        "endpoint_for_outcome": "Figure 4D (HFrEF all-cause mortality)",
+        "members": [
+          {
+            "name": "RALES (row 1)",
+            "family": "SYN-983d4c339111",
+            "alias_ids": [
+              "10471456",
+              "10.1056/NEJM199909023411001"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "Figure 4D (HFrEF all-cause mortality)",
+            "span": "RALES 1999 1,663 (27) 65 ± 11 HFrEF, LVEF ≤ 35%, K ≤ 5 mmol/L 12 months Spironolactone 25 mg/days for 8 weeks → 50 mg/days CV composite events (CV death or HHF or aborted cardiac arrest), CV death, HHF",
+            "bound_to": "SYN-983d4c339111"
+          },
+          {
+            "name": "EPHESUS (row 2)",
+            "family": "SYN-230cd71a3183",
+            "alias_ids": [
+              "12668699",
+              "10.1056/NEJMoa030207"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "Figure 4D (HFrEF all-cause mortality)",
+            "span": "EPHESUS 2003 6,642 (29) 64 ± 11 HFpEF, LVEF ≤ 40%, K ≤ 5 mmol/L 16 months Eplerenone 25 mg/days for 4 weeks → 50 mg/days CV composite events (CV death or HHF), CV death, HHF",
+            "bound_to": null
+          },
+          {
+            "name": "EMPHASIS-HF (row 3)",
+            "family": "NCT00232180",
+            "alias_ids": [
+              "21073363",
+              "10.1056/NEJMoa1009492"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "Figure 4D (HFrEF all-cause mortality)",
+            "span": "EMPHASIS-HF 2011 2,737 (22) 68.7 ± 7.7 HFpEF, LVEF < 35%, K ≤ 5 mmol/L 21 months Eplerenone 25 mg/days for 4 weeks → 50 mg/days CV composite events (CV death or FHHF), CV death, HHF",
+            "bound_to": "NCT00232180"
+          }
+        ],
+        "out_of_scope": [
+          {
+            "name": "Aldo-DHF (row 4)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "not in Figure 4D (HFrEF all-cause mortality)",
+            "span": "Aldo-DHF 2013 422 (52) 67 ± 8 HFpEF, LVEF ≥ 50%, K ≤ 5 mmol/L 11.6 months Spironolactone 25 mg/days Cardiac hospitalization, Noncardiac hospitalization, Worsening coronary heart disease, New or worsening anemia",
+            "bound_to": null
+          },
+          {
+            "name": "TOPCAT (row 5)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "not in Figure 4D (HFrEF all-cause mortality)",
+            "span": "TOPCAT 2014 3,445 (52) 68 ± 9 HFpEF, LVEF ≥ 45%, K ≤ 5 mmol/L 3.3 years Spironolactone 15 mg/days → 45 mg/days during 4 months CV composite events (CV death or HHF), CV death, HHF",
+            "bound_to": null
+          },
+          {
+            "name": "FIGARO-DKD (row 6)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "not in Figure 4D (HFrEF all-cause mortality)",
+            "span": "FIGARO-DKD 2022 7,352 (31) 65 ± 9 T2DM, CKD, LVEF ≥ 40%, K ≤ 5 mmol/L 3.4 years Finerenone 10 or 20 mg/days CV composite events (CV death or HHF), CV death, HHF",
+            "bound_to": null
+          },
+          {
+            "name": "FIDELIO-DKD (row 7)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "not in Figure 4D (HFrEF all-cause mortality)",
+            "span": "FIDELIO-DKD 2020 5,674 (30) 65 ± 9 T2DM, CKD, LVEF ≥ 40%, K ≤ 5 mmol/L 2.6 years Finerenone 10 or 20 mg/days CV composite events (CV death or HHF), CV death, HHF",
+            "bound_to": null
+          },
+          {
+            "name": "FINEARTS-HF (row 8)",
+            "family": "NCT04435626",
+            "alias_ids": [
+              "41642173"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 4D (HFrEF all-cause mortality)",
+            "span": "FINEARTS-HF2024 6,001 (46) 72 ± 9 HFpEF, HFmrEF, LVEF ≥ 40% K ≤ 5 mmol/L 32 months Finerenone 20 or 40 mg/days CV composite events (CV death or Total worsening heart failure events), CV death, HHF",
+            "bound_to": null
+          },
+          {
+            "name": "ARTS-HF (row 9)",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "not in Figure 4D (HFrEF all-cause mortality)",
+            "span": "ARTS-HF2013 458 (21) 71 ± 8 HFrEF, CKD, LVEF ≤ 40%, K ≤ 5 mmol/L 4 weeks Finerenone 2.5, 5 or 10 mg/days Change in serum potassium concentration, safety, tolerability, and renal effects",
+            "bound_to": null
+          }
+        ]
       },
-      "theirs_k": null,
-      "shared": null,
-      "shared_k": null,
-      "only_ours": null,
-      "only_theirs": null,
-      "relation": "NOT_ENUMERABLE",
-      "label": "not enumerable -- the comparator trial set is not known well enough to compare",
-      "basis": "comparator trial set not enumerated",
+      "theirs_k": 3,
+      "inventory_comparison": {
+        "rows": [
+          {
+            "comparator_trial": "RALES (row 1)",
+            "status": "POOLED",
+            "family": "SYN-983d4c339111"
+          },
+          {
+            "comparator_trial": "EPHESUS (row 2)",
+            "status": "SCREENED_OUT",
+            "family": "SYN-230cd71a3183",
+            "record": "12668699",
+            "rule": "X2",
+            "reason": "wrong population: title/conditions mention 'myocardial infarction'."
+          },
+          {
+            "comparator_trial": "EMPHASIS-HF (row 3)",
+            "status": "POOLED",
+            "family": "NCT00232180"
+          }
+        ],
+        "counts": {
+          "POOLED": 2,
+          "SCREENED_OUT": 1
+        },
+        "note": "comparison with our eligible inventory; separate from the pooled-set relation"
+      },
+      "shared": [
+        "NCT00232180",
+        "SYN-983d4c339111"
+      ],
+      "shared_k": 2,
+      "only_ours": [
+        "NCT01115855"
+      ],
+      "only_theirs": [
+        "EPHESUS (row 2)"
+      ],
+      "relation": "OVERLAPPING",
+      "label": "overlapping -- some families shared, each side has trials the other lacks",
+      "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
         "value": 9,
         "source": null
@@ -113434,20 +113688,342 @@
       "held": true,
       "document_ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
       "document_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "RALES (row 1)",
+          "name_in_source": "RALES",
+          "span": {
+            "start": 9400,
+            "end": 9601,
+            "quote": "RALES 1999 1,663 (27) 65 ± 11 HFrEF, LVEF ≤ 35%, K ≤ 5 mmol/L 12 months Spironolactone 25 mg/days for 8 weeks → 50 mg/days CV composite events (CV death or HHF or aborted cardiac arrest), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "10471456",
+              "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee",
+              "span": {
+                "start": 66242,
+                "end": 67318,
+                "quote": "<ref id=\"B1\"><label>1.</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Pitt</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>Remme</surname><given-names>WJ</given-names></name><name name-style=\"western\"><surname>Cody</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Castaigne</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Perez</surname><given-names>A</given-names></name><etal/></person-group>\n<article-title>The effect of spironolactone on morbidity and mortality in patients with severe heart failure. Randomized aldactone evaluation study investigators</article-title>. <source>N Engl J Med</source>. (<year>1999</year>) <volume>341</volume>:<fpage>709</fpage>–<lpage>17</lpage>. <pub-id pub-id-type=\"doi\">10.1056/NEJM199909023411001</pub-id><pub-id pub-id-type=\"pmid\">10471456</pub-id>\n</mixed-citation></ref>"
+              },
+              "linked_rid": "B1",
+              "cited_name_span": {
+                "start": 26193,
+                "end": 26327,
+                "quote": "RALES (The Effect of Spironolactone on Morbidity and Mortality in Patients with Severe Heart Failure) (<xref rid=\"B1\" ref-type=\"bibr\">"
+              }
+            },
+            {
+              "id": "10.1056/NEJM199909023411001",
+              "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee",
+              "span": {
+                "start": 66242,
+                "end": 67318,
+                "quote": "<ref id=\"B1\"><label>1.</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Pitt</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>Remme</surname><given-names>WJ</given-names></name><name name-style=\"western\"><surname>Cody</surname><given-names>R</given-names></name><name name-style=\"western\"><surname>Castaigne</surname><given-names>A</given-names></name><name name-style=\"western\"><surname>Perez</surname><given-names>A</given-names></name><etal/></person-group>\n<article-title>The effect of spironolactone on morbidity and mortality in patients with severe heart failure. Randomized aldactone evaluation study investigators</article-title>. <source>N Engl J Med</source>. (<year>1999</year>) <volume>341</volume>:<fpage>709</fpage>–<lpage>17</lpage>. <pub-id pub-id-type=\"doi\">10.1056/NEJM199909023411001</pub-id><pub-id pub-id-type=\"pmid\">10471456</pub-id>\n</mixed-citation></ref>"
+              },
+              "linked_rid": "B1",
+              "cited_name_span": {
+                "start": 26193,
+                "end": 26327,
+                "quote": "RALES (The Effect of Spironolactone on Morbidity and Mortality in Patients with Severe Heart Failure) (<xref rid=\"B1\" ref-type=\"bibr\">"
+              }
+            }
+          ],
+          "references": [
+            "B1"
+          ],
+          "citation": {
+            "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+            "span": {
+              "start": 26193,
+              "end": 26327,
+              "quote": "RALES (The Effect of Spironolactone on Morbidity and Mortality in Patients with Severe Heart Failure) (<xref rid=\"B1\" ref-type=\"bibr\">"
+            }
+          }
+        },
+        {
+          "family_id": "EPHESUS (row 2)",
+          "name_in_source": "EPHESUS",
+          "span": {
+            "start": 9602,
+            "end": 9775,
+            "quote": "EPHESUS 2003 6,642 (29) 64 ± 11 HFpEF, LVEF ≤ 40%, K ≤ 5 mmol/L 16 months Eplerenone 25 mg/days for 4 weeks → 50 mg/days CV composite events (CV death or HHF), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "12668699",
+              "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee",
+              "span": {
+                "start": 79703,
+                "end": 80749,
+                "quote": "<ref id=\"B14\"><label>14.</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Pitt</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Remme</surname><given-names>W</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>Neaton</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Martinez</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>Roniker</surname><given-names>B</given-names></name><etal/></person-group>\n<article-title>Eplerenone, a selective aldosterone blocker, in patients with left ventricular dysfunction after myocardial infarction</article-title>. <source>N Engl J Med</source>. (<year>2003</year>) <volume>348</volume>:<fpage>1309</fpage>–<lpage>21</lpage>. <pub-id pub-id-type=\"doi\">10.1056/NEJMoa030207</pub-id><pub-id pub-id-type=\"pmid\">12668699</pub-id>\n</mixed-citation></ref>"
+              },
+              "linked_rid": "B14",
+              "cited_name_span": {
+                "start": 26370,
+                "end": 26532,
+                "quote": "EPHESUS (Eplerenone, a Selective Aldosterone Blocker, in Patients with Left Ventricular Dysfunction after Myocardial Infarction) (<xref rid=\"B14\" ref-type=\"bibr\">"
+              }
+            },
+            {
+              "id": "10.1056/NEJMoa030207",
+              "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee",
+              "span": {
+                "start": 79703,
+                "end": 80749,
+                "quote": "<ref id=\"B14\"><label>14.</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Pitt</surname><given-names>B</given-names></name><name name-style=\"western\"><surname>Remme</surname><given-names>W</given-names></name><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>Neaton</surname><given-names>J</given-names></name><name name-style=\"western\"><surname>Martinez</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>Roniker</surname><given-names>B</given-names></name><etal/></person-group>\n<article-title>Eplerenone, a selective aldosterone blocker, in patients with left ventricular dysfunction after myocardial infarction</article-title>. <source>N Engl J Med</source>. (<year>2003</year>) <volume>348</volume>:<fpage>1309</fpage>–<lpage>21</lpage>. <pub-id pub-id-type=\"doi\">10.1056/NEJMoa030207</pub-id><pub-id pub-id-type=\"pmid\">12668699</pub-id>\n</mixed-citation></ref>"
+              },
+              "linked_rid": "B14",
+              "cited_name_span": {
+                "start": 26370,
+                "end": 26532,
+                "quote": "EPHESUS (Eplerenone, a Selective Aldosterone Blocker, in Patients with Left Ventricular Dysfunction after Myocardial Infarction) (<xref rid=\"B14\" ref-type=\"bibr\">"
+              }
+            }
+          ],
+          "references": [
+            "B14"
+          ],
+          "citation": {
+            "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+            "span": {
+              "start": 26370,
+              "end": 26532,
+              "quote": "EPHESUS (Eplerenone, a Selective Aldosterone Blocker, in Patients with Left Ventricular Dysfunction after Myocardial Infarction) (<xref rid=\"B14\" ref-type=\"bibr\">"
+            }
+          }
+        },
+        {
+          "family_id": "EMPHASIS-HF (row 3)",
+          "name_in_source": "EMPHASIS-HF",
+          "span": {
+            "start": 9776,
+            "end": 9957,
+            "quote": "EMPHASIS-HF 2011 2,737 (22) 68.7 ± 7.7 HFpEF, LVEF < 35%, K ≤ 5 mmol/L 21 months Eplerenone 25 mg/days for 4 weeks → 50 mg/days CV composite events (CV death or FHHF), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "21073363",
+              "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee",
+              "span": {
+                "start": 80749,
+                "end": 81753,
+                "quote": "<ref id=\"B15\"><label>15.</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>McMurray</surname><given-names>JJ</given-names></name><name name-style=\"western\"><surname>Krum</surname><given-names>H</given-names></name><name name-style=\"western\"><surname>van Veldhuisen</surname><given-names>DJ</given-names></name><name name-style=\"western\"><surname>Swedberg</surname><given-names>K</given-names></name><name name-style=\"western\"><surname>Shi</surname><given-names>H</given-names></name><etal/></person-group>\n<article-title>Eplerenone in patients with systolic heart failure and mild symptoms</article-title>. <source>N Engl J Med</source>. (<year>2011</year>) <volume>364</volume>:<fpage>11</fpage>–<lpage>21</lpage>. <pub-id pub-id-type=\"doi\">10.1056/NEJMoa1009492</pub-id><pub-id pub-id-type=\"pmid\">21073363</pub-id>\n</mixed-citation></ref>"
+              },
+              "linked_rid": "B15",
+              "cited_name_span": {
+                "start": 26571,
+                "end": 26687,
+                "quote": "EMPHASIS-HF (Eplerenone in Patients with Systolic Heart Failure and Mild Symptoms) (<xref rid=\"B15\" ref-type=\"bibr\">"
+              }
+            },
+            {
+              "id": "10.1056/NEJMoa1009492",
+              "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+              "document_sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee",
+              "span": {
+                "start": 80749,
+                "end": 81753,
+                "quote": "<ref id=\"B15\"><label>15.</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Zannad</surname><given-names>F</given-names></name><name name-style=\"western\"><surname>McMurray</surname><given-names>JJ</given-names></name><name name-style=\"western\"><surname>Krum</surname><given-names>H</given-names></name><name name-style=\"western\"><surname>van Veldhuisen</surname><given-names>DJ</given-names></name><name name-style=\"western\"><surname>Swedberg</surname><given-names>K</given-names></name><name name-style=\"western\"><surname>Shi</surname><given-names>H</given-names></name><etal/></person-group>\n<article-title>Eplerenone in patients with systolic heart failure and mild symptoms</article-title>. <source>N Engl J Med</source>. (<year>2011</year>) <volume>364</volume>:<fpage>11</fpage>–<lpage>21</lpage>. <pub-id pub-id-type=\"doi\">10.1056/NEJMoa1009492</pub-id><pub-id pub-id-type=\"pmid\">21073363</pub-id>\n</mixed-citation></ref>"
+              },
+              "linked_rid": "B15",
+              "cited_name_span": {
+                "start": 26571,
+                "end": 26687,
+                "quote": "EMPHASIS-HF (Eplerenone in Patients with Systolic Heart Failure and Mild Symptoms) (<xref rid=\"B15\" ref-type=\"bibr\">"
+              }
+            }
+          ],
+          "references": [
+            "B15"
+          ],
+          "citation": {
+            "document_ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+            "span": {
+              "start": 26571,
+              "end": 26687,
+              "quote": "EMPHASIS-HF (Eplerenone in Patients with Systolic Heart Failure and Mild Symptoms) (<xref rid=\"B15\" ref-type=\"bibr\">"
+            }
+          }
+        },
+        {
+          "family_id": "Aldo-DHF (row 4)",
+          "name_in_source": "Aldo-DHF",
+          "span": {
+            "start": 9958,
+            "end": 10168,
+            "quote": "Aldo-DHF 2013 422 (52) 67 ± 8 HFpEF, LVEF ≥ 50%, K ≤ 5 mmol/L 11.6 months Spironolactone 25 mg/days Cardiac hospitalization, Noncardiac hospitalization, Worsening coronary heart disease, New or worsening anemia"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "TOPCAT (row 5)",
+          "name_in_source": "TOPCAT",
+          "span": {
+            "start": 10169,
+            "end": 10348,
+            "quote": "TOPCAT 2014 3,445 (52) 68 ± 9 HFpEF, LVEF ≥ 45%, K ≤ 5 mmol/L 3.3 years Spironolactone 15 mg/days → 45 mg/days during 4 months CV composite events (CV death or HHF), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "FIGARO-DKD (row 6)",
+          "name_in_source": "FIGARO-DKD",
+          "span": {
+            "start": 10349,
+            "end": 10509,
+            "quote": "FIGARO-DKD 2022 7,352 (31) 65 ± 9 T2DM, CKD, LVEF ≥ 40%, K ≤ 5 mmol/L 3.4 years Finerenone 10 or 20 mg/days CV composite events (CV death or HHF), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "FIDELIO-DKD (row 7)",
+          "name_in_source": "FIDELIO-DKD",
+          "span": {
+            "start": 10510,
+            "end": 10671,
+            "quote": "FIDELIO-DKD 2020 5,674 (30) 65 ± 9 T2DM, CKD, LVEF ≥ 40%, K ≤ 5 mmol/L 2.6 years Finerenone 10 or 20 mg/days CV composite events (CV death or HHF), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": []
+        },
+        {
+          "family_id": "FINEARTS-HF (row 8)",
+          "name_in_source": "FINEARTS-HF",
+          "span": {
+            "start": 10672,
+            "end": 10868,
+            "quote": "FINEARTS-HF2024 6,001 (46) 72 ± 9 HFpEF, HFmrEF, LVEF ≥ 40% K ≤ 5 mmol/L 32 months Finerenone 20 or 40 mg/days CV composite events (CV death or Total worsening heart failure events), CV death, HHF"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "41642173",
+              "document_ref": "cache/spironolactone-hfref-mortality/records.json",
+              "document_sha256": "e901036c243cd53f5c1b4644dc0e5d003caf8e540c1d13514856f1096a0cf461",
+              "span": {
+                "start": 261070,
+                "end": 264214,
+                "quote": "{\n   \"id\": \"41642173\",\n   \"id_type\": \"pmid\",\n   \"title\": \"Efficacy and Safety of the Kidney Function-Based Finerenone Dosing Strategy Used in FINEARTS-HF.\",\n   \"abstract\": \"BACKGROUND: Given that mineralocorticoid receptor antagonists have the potential to impair renal function and induce hyperkalemia, close monitoring of estimated glomerular filtration rate (eGFR) and serum potassium levels is essential to ensure the safe administration of this therapy. OBJECTIVES: In this prespecified analysis, the authors evaluated the efficacy and safety of the kidney function-based finerenone dosing strategy used in the FINEARTS-HF trial. METHODS: In FINEARTS-HF, patients with an eGFR of 25 to 60 mL/min/1.73 m2 at baseline were stratified at randomization to the low-dose group and started on 10 mg of finerenone once daily (titrated to a maximum 20 mg/d) or matching placebo, whereas those with an eGFR >60 mL/min/1.73 m2 at baseline were stratified to the high-dose group and started on 20 mg of finerenone once daily (titrated to a maximum 40 mg/d) or matching placebo. The primary outcome was the composite of total (first and recurrent) heart failure events and cardiovascular death. RESULTS: Among 5,986 (99.8%) analyzable patients, 3,159 were assigned to the higher eGFR/high-dose stratum and 2,827 to the lower eGFR/low-dose stratum group. The mean ± SD achieved dose was 32.3 ± 9.1 mg (finerenone) and 34.4 ± 7.8 mg (placebo) in the higher eGFR/high-dose stratum, and 15.6 ± 4.3 mg (finerenone) and 16.7 ± 4.0 mg (placebo) in the lower eGFR/low-dose stratum. The effect of finerenone on the primary outcome was consistent across the 2 dosing strata (higher eGFR/high-dose stratum: rate ratio: 0.77 [95% CI: 0.63-0.94] vs lower eGFR/low-dose stratum: rate ratio: 0.87 [95% CI: 0.74-1.03]; P for interaction = 0.34). Consistent benefits were observed for the components of the primary outcome and all-cause death. Safety was also consistent between dosing strata, except for hypokalemia, where the reduction in the odds of hypokalemia with finerenone compared to placebo was greater in the higher eGFR/high-dose stratum (P-interaction < 0.01). CONCLUSIONS: In FINEARTS-HF, an eGFR-based dosing strategy allowed effective and safe use of finerenone in patients with heart failure with mildly reduced ejection fraction/ heart failure with preserved ejection fraction with a baseline eGFR as low as 25 mL/min/1.73 m2. We recommend that clinicians implement the trial-validated dosing strategy and incorporate appropriate uptitration to the target dose to ensure optimal therapeutic outcomes. (FINEARTS-HF [Study to Evaluate the Efficacy (Effect on Disease) and Safety of Finerenone in Participants With Heart Failure and Left Ventricular Ejection Fraction (Proportion of Blood Expelled Per Heart Stroke) Greater or Equal to 40%; NCT04435626).\",\n   \"pubtypes\": [\n    \"Clinical Trial, Phase III\",\n    \"Journal Article\",\n    \"Multicenter Study\",\n    \"Randomized Controlled Trial\",\n    \"Research Support, Non-U.S. Gov't\"\n   ],\n   \"year\": \"2026\",\n   \"journal\": \"JACC Heart Fail\",\n   \"doi\": \"10.1016/j.jchf.2026.102938\",\n   \"nct\": \"NCT04435626\"\n  }"
+              }
+            }
+          ]
+        },
+        {
+          "family_id": "ARTS-HF (row 9)",
+          "name_in_source": "ARTS-HF",
+          "span": {
+            "start": 10869,
+            "end": 11054,
+            "quote": "ARTS-HF2013 458 (21) 71 ± 8 HFrEF, CKD, LVEF ≤ 40%, K ≤ 5 mmol/L 4 weeks Finerenone 2.5, 5 or 10 mg/days Change in serum potassium concentration, safety, tolerability, and renal effects"
+          },
+          "endpoint": null,
+          "aliases": []
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
+        "document_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c",
+        "source": "committed full-text transcription + cache/<slug>/comparator_table_spec.json",
+        "table_caption": "Table 1 Baseline characteristics of patients in each MRAs trials."
+      },
+      "overlaps": [
+        {
+          "pool": "All-cause mortality",
+          "shared": [
+            "EMPHASIS-HF (row 3)",
+            "RALES (row 1)"
+          ],
+          "harness_only": [
+            "NCT01115855"
+          ],
+          "comparator_only": [
+            "ARTS-HF (row 9)",
+            "Aldo-DHF (row 4)",
+            "EPHESUS (row 2)",
+            "FIDELIO-DKD (row 7)",
+            "FIGARO-DKD (row 6)",
+            "FINEARTS-HF (row 8)",
+            "TOPCAT (row 5)"
+          ],
+          "jaccard": 0.2,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "EMPHASIS-HF (row 3)",
+            "RALES (row 1)"
+          ],
+          "harness_k": 3,
+          "comparator_k": 9
+        },
+        {
+          "pool": "Hyperkalemia",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "ARTS-HF (row 9)",
+            "Aldo-DHF (row 4)",
+            "EMPHASIS-HF (row 3)",
+            "EPHESUS (row 2)",
+            "FIDELIO-DKD (row 7)",
+            "FIGARO-DKD (row 6)",
+            "FINEARTS-HF (row 8)",
+            "RALES (row 1)",
+            "TOPCAT (row 5)"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 9
+        },
+        {
+          "pool": "Gynecomastia or breast pain",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "ARTS-HF (row 9)",
+            "Aldo-DHF (row 4)",
+            "EMPHASIS-HF (row 3)",
+            "EPHESUS (row 2)",
+            "FIDELIO-DKD (row 7)",
+            "FIGARO-DKD (row 6)",
+            "FINEARTS-HF (row 8)",
+            "RALES (row 1)",
+            "TOPCAT (row 5)"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 9
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "768c98fb539969c99716a5974e118d134ad6cf62",
-    "review_sha256": "0f8ce58ba8d37c6f633e5a4c8f2d3c04c55670ae424ba5d1dce438f34c4182f8",
+    "review_sha256": "c58834dd89a7fe7b46fdfa1368dd6f3947c5913652138b70db81540c8127bf84",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -113557,7 +114133,7 @@
       "retrieved_corpus_sha256": "8352ca9581242dc00cf6abe07e2d312360d61d7acb0377edc4ccc7efd12a1417",
       "records_file_sha256": "db061b2b27f9129c680faabb2a341f2d46c278362eeb0ba552e171a57b09ef51",
       "retrieval_ledger_sha256": "77b9387d36f3c805134c0bfd20ba416ca22f34d069447c61a3058b07578f274c",
-      "screening_ledger_sha256": "4a42bb9adeab6e810ddc515711e65ec3e45357be348013d983c2c8452e3419b1",
+      "screening_ledger_sha256": "4d30c423472a5418104f620f335bc785c8b7d0cc7ed0293c757084b30af60cdc",
       "extraction_objects_sha256": "89bf041092e040196816cfdc9d4fb993b64b0f18fa6773ddcbee46747bb807fa",
       "trial_family_map_sha256": "2d2255c165e372659cb5d544a2029c42f69fbef6c9b3a08957bacbc7c71a1d31",
       "rob_object_sha256": "7c9775c9a0f80e3efd15529cfa99aad11e3aae526dbe7aa47ba4ada0d14787cf",
@@ -113567,12 +114143,24 @@
           "sha256": "4d4455d6cfff6ba1296bd22d4ada8a2db154ec3e58f48749e73160734c05188a"
         },
         {
+          "ref": "cache/spironolactone-hfref-mortality/comparator_analysis.json",
+          "sha256": "62ed15b954533301f2ea0f11304af045d7c4c506a558b0f86bbdfeb324797f08"
+        },
+        {
+          "ref": "cache/spironolactone-hfref-mortality/comparator_figure_g004.jpg",
+          "sha256": "cfaff093e757dda3dcd2ccbcd3ff348a2ab2270efd7f0a4f7537a4ce9b19f6ff"
+        },
+        {
           "ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
           "sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
         },
         {
           "ref": "cache/spironolactone-hfref-mortality/comparator_identity.json",
           "sha256": "7dba64486cad8e85119c98634c31072276af70982fdde67cfbf27eb57fcde6f2"
+        },
+        {
+          "ref": "cache/spironolactone-hfref-mortality/comparator_pmc_jats.xml",
+          "sha256": "943036f1916bcf368218d6d45a3b3e13a83a7d1e93662bbff0e1b53f7025bfee"
         },
         {
           "ref": "cache/spironolactone-hfref-mortality/comparator_reported_mismatches.json",
@@ -113588,7 +114176,7 @@
         }
       ],
       "config_sha256": "380a6cc2dc7e7b784c7d18b05025828ee14dfe43225bc44d87dc736e739e450c",
-      "analysis_code_sha256": "1be63d087c25bf9a1ac3d3a4660c3a37cb647b1a2f61425b422713b757f26f2e",
+      "analysis_code_sha256": "49291dda90d8ab600b62585c586260eb5ce57b59593e7628ed45676f8ac54a68",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -113606,13 +114194,13 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_analysis.py": "4460d85c6fadfa37155f5e23df2338e5ce5f8471",
+        "harness/comparator_analysis.py": "7474e11a07165969bb532a8c982f852951cdcfd1",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
         "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
         "harness/comparator_named.py": "7df2bf010d5e1985e506557da973019be3695d45",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
+        "harness/comparator_panel.py": "1e67e5a633f07c8f64bfc258428de9bba10e78e3",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "e69bc67465ddd3539f72f6faa361a31846de12f3",
@@ -113620,9 +114208,10 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
+        "harness/condition_role.py": "b499eb9a3932f70d5d41f78623b72244e2644874",
         "harness/consumer_consistency.py": "9f3122e2278082379bdea3c0922ab9939783c0e0",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+        "harness/design_key.py": "03f9e7f03d311f8600d7d7762682011017cfef68",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -113647,7 +114236,7 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/held_text_identity.py": "f1d623c4fd51f1753766acc401f42b5f59f3efe7",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
-        "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
+        "harness/identity.py": "30770e9b20ee8b7b7f8bd171885fe873de5e38fd",
         "harness/index.py": "b4f1391a202f34ef02da8f727b6300f16296ce85",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
         "harness/journal_route.py": "fde5fdea07c69b09069a4d9c558b9d68437ce95b",
@@ -113661,10 +114250,11 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
         "harness/overlap_relation.py": "b0934f1bcff05a5d84a12f94798f538ccea6b71e",
-        "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
+        "harness/page.py": "d2524b8707d21bf08b3561585fb592498c5793b6",
+        "harness/parent_registration.py": "6a4fbca389f87b41985e2278991298e4c6ff1491",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "295bb6b1de4466b039e572f88b3912fca81d1ffa",
-        "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
+        "harness/pipeline.py": "6009fabe540d09ab2719068c061d09f8fd1a12af",
+        "harness/population_witness.py": "00cf5f34772e2bd2ea8e96d6ff61e15fcbcd112f",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -113708,7 +114298,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "105 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "107 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -113738,8 +114328,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "75c6807698b0aca5d5ea73f9f1e1a13fbf5b638075ddc340f2d849e9070901c7",
-      "review_sha256": "0f8ce58ba8d37c6f633e5a4c8f2d3c04c55670ae424ba5d1dce438f34c4182f8",
+      "manuscript_sha256": "429447ba4775f8407a1d69fa7fe3fa921fe1f1b9b8da5a5a14182b03b47bd044",
+      "review_sha256": "c58834dd89a7fe7b46fdfa1368dd6f3947c5913652138b70db81540c8127bf84",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/spironolactone-hfref-mortality.md UTF-8 text, universal newlines",
@@ -113759,7 +114349,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "f5c5cebeb9c263b186eaa2d04ea70b57d8629c50da1120b42c1a60e25d6a4ba2"
+      "release_sha256": "b889dea222791f276c7425378e13b1b975b8ef623b77aa4d93cedf9573f1f8e3"
     }
   }
 }

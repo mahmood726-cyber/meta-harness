@@ -80,10 +80,26 @@ def load(root, slug) -> Optional[dict]:
         g = doc["governing"]
         if len(rows) != g["k"]:
             raise AnalysisRefused(f"{slug}: {len(rows)} figure rows, the governing analysis states {g['k']} studies")
-        n = sum(r["counts"][1] + r["counts"][3] for r in rows)
-        if n != g["n"]:
-            raise AnalysisRefused(f"{slug}: figure rows total {n} participants, the governing analysis states {g['n']}")
+        kinds = {("log_se" if "log_se" in r else "counts") for r in rows}
+        if len(kinds) != 1:
+            raise AnalysisRefused(f"{slug}: figure rows mix counts and log-effect rows")
+        if kinds == {"log_se"}:
+            # V1.0.1 (MRA-HFrEF review): a generic inverse-variance plot (Zhang 2025 Figure 4D) prints log[HR] and SE per
+            # row, not counts; no participant total is stated, so the plot is checked against ITSELF instead: each row's
+            # printed HR and interval, and its printed weight, from its log[HR] and SE; and the rows' common effect
+            # against the printed total -- each to the plot's own printed precision
+            _check_log_rows(slug, rows, g)
+        else:
+            n = sum(r["counts"][1] + r["counts"][3] for r in rows)
+            if n != g["n"]:
+                raise AnalysisRefused(f"{slug}: figure rows total {n} participants, the governing analysis states {g['n']}")
         for r in rows:
+            if "log_se" in r:
+                if r.get("source_check"):
+                    raise AnalysisRefused(f"{slug}: row {r['label']}: a count source check needs count rows")
+                if r.get("input_type"):
+                    locate(r["input_type"])
+                continue
             a, n1, c, n2 = r["counts"]
             if not (0 <= a <= n1 and 0 <= c <= n2):
                 raise AnalysisRefused(f"{slug}: row {r['label']} has impossible counts {r['counts']}")
@@ -114,15 +130,52 @@ def load(root, slug) -> Optional[dict]:
     return doc
 
 
+Z975 = 1.959963984540054
+
+
+def log_row_effect(r: dict) -> tuple:
+    """(estimate, low, high) on the ratio scale from a printed log-effect row's log value and SE (z interval)."""
+    import math
+    y, se = r["log_se"]
+    return math.exp(y), math.exp(y - Z975 * se), math.exp(y + Z975 * se)
+
+
+def _check_log_rows(slug, rows, g):
+    import math
+    w = [1 / r["log_se"][1] ** 2 for r in rows]
+    for r, wi in zip(rows, w):
+        pr = r.get("printed") or {}
+        eff = pr.get("effect")
+        if not eff or len(eff) != 3 or pr.get("weight") is None:
+            raise AnalysisRefused(f"{slug}: row {r['label']}: a log-effect row needs its printed effect, interval and weight")
+        if any(abs(round(x, 2) - e) > 1e-9 for x, e in zip(log_row_effect(r), eff)):
+            raise AnalysisRefused(f"{slug}: row {r['label']}: printed {eff} is not exp(log +/- 1.96 SE) of {r['log_se']}")
+        if abs(round(100 * wi / sum(w), 1) - pr["weight"]) > 1e-9:
+            raise AnalysisRefused(f"{slug}: row {r['label']}: printed weight {pr['weight']}% is not its inverse-variance share")
+    y = sum(wi * r["log_se"][0] for wi, r in zip(w, rows)) / sum(w)
+    se = (1 / sum(w)) ** 0.5
+    got = (math.exp(y), math.exp(y - Z975 * se), math.exp(y + Z975 * se))
+    if any(abs(round(x, 2) - e) > 1e-9 for x, e in zip(got, (g["estimate"], g["ci_low"], g["ci_high"]))):
+        raise AnalysisRefused(f"{slug}: the rows' common effect {tuple(round(x, 4) for x in got)} does not print as the "
+                              f"governing {g['estimate']} ({g['ci_low']}-{g['ci_high']})")
+
+
 def weight_concentration(rows: list, scale: str) -> Optional[dict]:
     """V1.0.1 (semaglutide-obesity review): how much of the comparator's inverse-variance weight one trial carries.
     Log OR / log RR from each row's counts; 0.5 is added to every cell of a row with a zero cell (a row with no events in
     either arm carries no information and is left out, named). SELECT carrying 97.44% of Stefanou 2024's MACE weight
     means agreement with that pool is agreement with SELECT, not 7-trial corroboration."""
-    if scale not in ("OR", "RR") or not rows:
+    if scale not in ("OR", "RR", "HR") or not rows or (scale == "HR" and not all("log_se" in r for r in rows)):
         return None
     import math
     w, eff, dropped = {}, {}, []
+    if all("log_se" in r for r in rows):
+        w = {r["label"]: 1 / r["log_se"][1] ** 2 for r in rows}
+        tot = sum(w.values())
+        top = max(w, key=w.get)
+        return {"scale": scale, "top": top, "top_share": round(100 * w[top] / tot, 2), "top_crude": None,
+                "shares": {k: round(100 * v / tot, 2) for k, v in w.items()}, "no_events_left_out": [], "k": len(rows),
+                "from": "printed SE"}
     for r in rows:
         a, n1, c, n2 = r["counts"]
         if a == 0 and c == 0:
@@ -162,11 +215,14 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
     if mem:
         members = []
         for r in mem["rows"]:
-            m = {"label": r["label"], "counts": r["counts"]}
+            m = {"label": r["label"], **({"log_se": r["log_se"], "printed": r["printed"]} if "log_se" in r
+                                         else {"counts": r["counts"]})}
             flag = next((f for f in doc.get("row_flags") or [] if f["row"] == r["label"]), None)
             if r.get("report_pmid") and flag and flag.get("state") == "COMPARATOR_ROW_UNRECONCILED":
                 # REV-R2: an unreconciled row is never copied into anything, so it never counts as shared inputs
                 raise AnalysisRefused(f"row {r['label']}: COMPARATOR_ROW_UNRECONCILED rows are never bound to our pool")
+            if r.get("report_pmid") and "log_se" in r:
+                raise AnalysisRefused(f"row {r['label']}: a log-effect row binds through its panel row, not by counts")
             if r.get("report_pmid"):
                 t = ours.get(str(r["report_pmid"]))
                 if t is None:
@@ -241,7 +297,7 @@ def render(a: Optional[dict]) -> str:
     elif g:
         parts.append(f"<p><strong>Comparator analysis for our outcome:</strong> {e(g['analysis'])} &mdash; {e(g['label'])}: "
                      f"{e(g['scale'])} {e(g['estimate'])} ({e(g['ci_low'])} to {e(g['ci_high'])}), {e(g['k'])} studies, "
-                     f"{e(g['n'])} participants.</p>")
+                     + (f"{e(g['n'])} participants." if g.get("n") is not None else "participants not stated.") + "</p>")
     m = a.get("membership")
     if m:
         f = m["figure"]
@@ -249,13 +305,21 @@ def render(a: Optional[dict]) -> str:
                 else f"not held: {e(f['why_not_held'])}")
         parts.append(f"<p>Membership of {e((g or {}).get('analysis'))}: {e(len(m['members']))} rows read from its forest plot "
                      f"({e(f['caption']['quote'])}; {e(f['url'])}, sha256 {e(f['sha256'][:16])}&hellip;, {held}; read by "
-                     f"{e(f['read_by'])}). Shared with our pool, with the same counts: "
-                     f"{e(', '.join(m['shared_same_counts']) or 'none')}.</p>")
+                     f"{e(f['read_by'])}). "
+                     + ("Rows as printed (log effect, SE, effect and interval, weight): "
+                        + "; ".join(f"{e(x['label'])} {e(x['log_se'][0])}, {e(x['log_se'][1])}, {e(x['printed']['effect'][0])} "
+                                    f"({e(x['printed']['effect'][1])}-{e(x['printed']['effect'][2])}), {e(x['printed']['weight'])}%"
+                                    for x in m["members"])
+                        + ". Which rows are trials of ours is decided by the comparator panel rows they name (the overlap "
+                          "relation below), never by matching effect sizes.</p>"
+                        if m["members"] and "log_se" in m["members"][0] else
+                        f"Shared with our pool, with the same counts: {e(', '.join(m['shared_same_counts']) or 'none')}.</p>"))
         wc = m.get("weight_concentration")
         if wc:
             parts.append(f"<p><strong>Weight concentration:</strong> {e(wc['top'])} carries {e(wc['top_share'])}% of the "
-                         f"comparator's inverse-variance weight (log {e(wc['scale'])} from the plotted counts; 0.5 added to "
-                         f"rows with a zero cell)"
+                         f"comparator's inverse-variance weight "
+                         + (f"(from the plot's printed SEs)" if wc.get("from") == "printed SE" else
+                            f"(log {e(wc['scale'])} from the plotted counts; 0.5 added to rows with a zero cell)")
                          + (f"; its own crude {e(wc['scale'])} is {e(wc['top_crude'])}" if wc.get("top_crude") else "")
                          + ". " + (f"The pooled result is close to {e(wc['top'])} alone, so agreement with it is agreement "
                                    f"with one trial, not {e(wc['k'])}-trial corroboration." if wc["top_share"] >= 50 else

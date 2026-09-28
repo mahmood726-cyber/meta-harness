@@ -212,6 +212,19 @@ def validate(comparator, root=ROOT):
                         or name not in re.sub(r"<[^>]+>", " ", alias["span"]["quote"]).lower()):
                     raise ValueError("COMPARATOR_PANEL: stated-k member not in the comparator's cited range")
                 continue
+            if alias.get("cited_name_span"):
+                # V1.0.1 (MRA-HFrEF review; scripts/comparator_trial_tables.py text route): a transcription row bound
+                # through the comparator's OWN prose citation -- the located span begins with the row's printed name
+                # and ends with the first citation after it, which links rid; the alias span IS <ref id=rid>
+                cn = alias["cited_name_span"]
+                q = cn.get("quote") or ""
+                xs = re.findall(r"<xref\b[^>]*>", q)
+                if (not rid or not validate_span(alias_raw.decode("utf-8"), cn) or not q.lower().startswith(name)
+                        or len(xs) != 1 or not q.endswith(xs[0]) or 'ref-type="bibr"' not in xs[0]
+                        or rid not in (re.search(r'rid="([^"]+)"', xs[0]) or [None, ""])[1].split()
+                        or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"])):
+                    raise ValueError("COMPARATOR_PANEL: cited-name alias not located as the comparator's own citation")
+                continue
             if rid:
                 # bound by the row's own reference link: the located row cites rid, and the alias span IS <ref id=rid>
                 cites = any(rid in m.split() for m in re.findall(r'rid="([^"]+)"', trial["span"]["quote"]))

@@ -36,6 +36,8 @@ def main():
             records = family_pub_links.merge(root, slug, records)
             from harness import comparator_named
             records = comparator_named.merge(root, slug, records)
+            from harness import parent_registration
+            records = parent_registration.merge(root, slug, records)
             config = load(root/'topics'/f'{slug}.json')
             ledger = load(directory/'retrieval_ledger.json') if (directory/'retrieval_ledger.json').exists() else None
             nodes = trial_family.prepare(root,slug,records['records']+records.get('ctgov',[]),config,ledger)

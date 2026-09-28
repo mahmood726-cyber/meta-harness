@@ -94,6 +94,10 @@ def build_identities(records, *, strict=False):
                 idobj["pmid"].add(_norm(r.get("id")))
             if r.get("nct"):
                 idobj["nct"].add(str(r.get("nct")).strip())
+            # a registry record's own id IS its registration (V1.0.1, statins-older-adults review: this was masked
+            # while design_key.registry_designs overwrote registry records' ids with AACT design-row ids)
+            if _norm(r.get("id")).upper().startswith("NCT"):
+                idobj["nct"].add(_norm(r.get("id")).upper())
             if r.get("doi"):
                 idobj["doi"].add(str(r.get("doi")).strip())
             if r.get("acronym"):

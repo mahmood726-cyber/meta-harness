@@ -946,9 +946,13 @@ def _load_recall(slug):
     if not os.path.exists(p):
         return None
     try:
-        return json.load(open(p, encoding="utf-8"))
+        rc = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    # V1.0.1 (statins-older-adults review): a missed report whose parent registration is recorded is registered
+    from . import parent_registration as _preg
+    parents = {k: v for k, v in _preg.by_pmid(ROOT, slug).items() if k in {str(m) for m in rc.get("missed") or []}}
+    return dict(rc, parent_registrations=parents) if parents else rc
 
 
 def _load_outcome_judgments(slug):
@@ -2055,6 +2059,12 @@ def outcome_inputs(slug, config, records):
     _held_all = {str(x.get("id")): x for v in records.values() if isinstance(v, list) for x in v if isinstance(x, dict)}
     _cc.apply(scr, family_nodes, config,
               lambda rid: " ".join(str((_held_all.get(str(rid)) or {}).get(k) or "") for k in ("title", "abstract")).strip())
+    # V1.0.1 (statins-older-adults review): a registered condition the trial's own exclusion criteria refuse at entry is
+    # what it prevents, not whom it enrols (PREVENTABLE lists "Dementia"); an X2 resting only on such a condition is
+    # withdrawn and the record screened again (harness/condition_role.py)
+    from . import condition_role as _cr
+    _cr.apply(scr, merged, trial_family_mod.load_registry(ROOT, slug), config,
+              lambda rec, cfg: screen.run([rec], cfg)["decisions"][0])
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
     interv = config.get("intervention_terms", ["colchicine"])
@@ -2107,6 +2117,10 @@ def build_review_core(slug, config, records, protocol_sha):
     # V1.0.1 (PCSK9 review): every trial a held comparator names, and we did not hold, enters screening
     from . import comparator_named as _cnamed
     records = _cnamed.merge(ROOT, slug, records)
+    # V1.0.1 (statins-older-adults review): a secondary report whose parent registration is recorded with evidence joins
+    # its parent trial's family (JUPITER's older-adults report is NCT00239681; a blank link is not "unregistered")
+    from . import parent_registration as _preg
+    records = _preg.merge(ROOT, slug, records)
     _inp = outcome_inputs(slug, config, records)
     config = _inp["config"]
     merged, retrieval_ledger, family_nodes = _inp["merged"], _inp["retrieval_ledger"], _inp["family_nodes"]
@@ -2253,6 +2267,7 @@ def build_review_core(slug, config, records, protocol_sha):
                 **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                 **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
                    if d.get("arm_object_hidden_eligible_contrast") else {}),
+                **({"condition_role": d["condition_role"]} if d.get("condition_role") else {}),
             })
     else:
         screening_records = [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
@@ -2263,7 +2278,8 @@ def build_review_core(slug, config, records, protocol_sha):
                               **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
                               **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
                               **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
-                                 if d.get("arm_object_hidden_eligible_contrast") else {})}
+                                 if d.get("arm_object_hidden_eligible_contrast") else {}),
+                              **({"condition_role": d["condition_role"]} if d.get("condition_role") else {})}
                              for d in scr["decisions"]]
 
     _adj = _apply_adjudicator_flags(slug, screening_records)

@@ -318,3 +318,51 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
   only a title or a primary-outcome sentence does (labelled protocol erratum).
   - This also resolves the round-4 hold-out: the comparator-named candidates for this topic are now committed, and
     Kosiborod 2017 is refused as X-SETTING.
+
+## MRA HFrEF (Zhang 2025, Frontiers)
+
+- **Governing analysis:** Figure 4D (HFrEF all-cause mortality): RALES, EPHESUS, EMPHASIS-HF. The comparator's 9
+  trials are not our target. OVERLAPPING, shared 2 (RALES, EMPHASIS-HF).
+  - EPHESUS (acute post-MI LV dysfunction) is X2 by our protocol: a scope difference, not a missed trial.
+  - J-EMPHASIS-HF (ours) is not in Figure 4D.
+- **Membership:** the comparator's Table 1 transcribed (`comparator_table_spec.json`). RALES binds through the
+  comparator's own prose citation (`RALES (...) ( <xref rid="B1"> )`, reference B1 = PMID 10471456): a pre-registration
+  trial has no acronym in our records, so its name cannot bind it. New alias type `cited_name_span`, validated in
+  `harness/comparator_panel.py`.
+- **Generic inverse-variance rows** (`harness/comparator_analysis.py`): Figure 4D prints log[HR] and SE, not counts.
+  Each row's printed HR/interval and weight are checked from log[HR] and SE, and the rows' common effect against the
+  printed total, to the plot's own precision. The figure is held (CC BY 4.0).
+- **Positive control:** FE inverse-variance through our engine: HR 0.782269 (0.717895–0.852414), Q 3.530321,
+  I² 43.35%, exact. It controls the engine; one of its three rows is outside our population.
+
+## Statins older adults (Huang 2022)
+
+- **CONDITION_AS_OUTCOME** (`harness/condition_role.py`). PREVENTABLE (NCT04262206) was X2 because its registry
+  conditions list "Dementia", which is what it aims to prevent: its own exclusion criteria refuse "Dementia
+  (clinically evident or previously diagnosed)".
+  - A population_none term is a prevention target only when an exclusion criterion names the registered condition
+    itself, unqualified, no inclusion criterion names it, and the title does not.
+  - `population_witness` never reads such a condition as a diagnosis.
+  - Over all 32 topics this changes one decision. The first, looser versions matched qualified subsets ("diabetes
+    insipidus", "metastatic breast cancer") and were tightened before landing.
+  - PREVENTABLE is eligible, ongoing (RECRUITING), and has no results: no pooled input.
+- **Root cause found on the way:** `design_key.registry_designs` stored each ctgov record object and then `update()`d
+  it with the cached AACT design row, overwriting the record's own `id` with the design-row id. Any included
+  registry-only record then lost its NCT, and PREVENTABLE was labelled "completed".
+  - Fixed with a copy. `identity` now counts a registry record's own NCT as its registration.
+  - The old `NCT…` family labels on registry rows were a fallback that only worked because of the mutation.
+- **Parent registration** (`harness/parent_registration.py`, `cache/<slug>/parent_registrations.json`).
+  - JUPITER's older-adults report (20404379) is NCT00239681, located in the report's own text and in the held
+    registration.
+  - ALLHAT-LLT's report (30251369, ALLHAT NCT00000542) is the same class but is not linked this round. With the link,
+    `pipeline._dedup` collapsed it into ALLHAT's other report (28531241) and it vanished from screening, with no row
+    saying so. The link waits until that collapse is disclosed.
+  - The recovery panel no longer calls a blank AACT link "unregistered / pre-registration-era".
+  - Family ledger: contributing 2 of 26, pooled 2, matching the pooled k of 2. NCT00239681 is disclosed as
+    contributing without established structural eligibility (its AACT arm rows are not in this topic's family
+    registry).
+- **Comparator:** Huang 2022 is observational; shared RCT inputs: none.
+- **RCT checkpoint:** Ridker 2017 (JUPITER + HOPE-3, aged ≥ 70), expected 0.7441 (0.6053–0.9147).
+  - The letter is not held: it is not in PMC, and the publisher answers with a bot check, which was not bypassed.
+  - So the control is PENDING_SOURCE and is never run from memory.
+  - Its HOPE-3 ≥ 70 stratum is a discovery case, recorded in the labelled protocol erratum (7eb31d5e).

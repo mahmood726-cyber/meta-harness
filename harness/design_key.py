@@ -101,7 +101,9 @@ def registry_designs(records: dict[str, Any]) -> dict[str, dict[str, Any]]:
     for row in records.get("ctgov") or []:
         nct = str(row.get("id") or row.get("nct_id") or "").upper()
         if nct:
-            out[nct] = row
+            # a COPY: the design rows merged below carry their own AACT 'id' (V1.0.1, statins-older-adults review --
+            # updating the screened record in place renamed PREVENTABLE's record to '227809937')
+            out[nct] = dict(row)
     for row in records.get("designs") or []:
         nct = str(row.get("nct_id") or row.get("id") or "").upper()
         if nct:

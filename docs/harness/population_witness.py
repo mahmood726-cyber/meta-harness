@@ -284,7 +284,16 @@ def decide(family: dict, config: dict, report_role=None) -> dict:
     strong = {w["verdict"] for w in witnesses}
     if conds:
         text = lexicon.fold(" | ".join(str(c) for c in conds))
-        bad = [h for h in _hits(text, none) if not h[3]]
+        # V1.0.1 (statins-older-adults review): a registered condition the criteria EXCLUDE at entry is a prevention
+        # target (PREVENTABLE's "Dementia"), never a baseline diagnosis (harness/condition_role.py)
+        from .condition_role import prevention_targets
+        _titles = " ".join(str(r.get("title") or "") for r in family.get("source_records") or [])
+        _prev = {t["term"] for t in prevention_targets(crit.get("value"), conds, _titles, none)}
+        if _prev:
+            witnesses.append({"source": "registry conditions", "verdict": "PREVENTION_TARGET", "strength": "WEAK",
+                              "quote": conds, "why": "registered condition(s) " + ", ".join(sorted(_prev)) + " are "
+                              "refused at entry by the trial's own exclusion criteria: what it prevents, not whom it enrols"})
+        bad = [h for h in _hits(text, none) if not h[3] and h[0] not in _prev]
         from .trial_family import population_matches
         if bad and population_matches(target, conds):
             witnesses.append({"source": "registry conditions", "verdict": "MIXED", "strength": "WEAK", "quote": conds,
