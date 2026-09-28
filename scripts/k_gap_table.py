@@ -604,6 +604,7 @@ def main(argv=None):
                         "drug": drug, "pmids": ident["pmids"], "ncts": ident["ncts"], "identity_basis": ident["basis"],
                         "pubmed_query": u.get("pubmed_query"), "design_stated": u.get("design_stated"),
                         "cited_doi": [c.get("doi") for c in u["cited"] if c.get("doi")],
+                        "cited_pmids": sorted({c["pmid"] for c in u["cited"] if c.get("pmid")}),
                         "status": status, "family_id": fam["family_id"] if fam else "",
                         "family_eligibility": fam["eligibility"] if fam else "",
                         "declared_absent": absent, "aact": src, "comparator_scope": scope,
