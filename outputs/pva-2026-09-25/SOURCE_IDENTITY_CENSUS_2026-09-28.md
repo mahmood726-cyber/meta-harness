@@ -25,7 +25,11 @@ cites together name one publication, and does the cited text occur in it?
 
 ## Result
 
-### PMID / PMCID / DOI: 10 of 10,557 citation instances... reported as distinct defects: **1 PMCID + 9 DOI** (69 candidates, 59 artefacts)
+### PMID / PMCID / DOI: **29 of 10,557 citation instances** carry a wrong identifier = **10 distinct defects (1 PMCID + 9 DOI)**
+
+(69 instances were flagged; 29 are verified real -- 12 for the PMCID, 17 for eight of the DOIs -- and 40 are artefacts. The ninth
+DOI record, 30912409, was not flagged by the comparison at all, because PubMed records no DOI for it and "not PubMed's DOI"
+cannot fire; it was found by the root-cause census below, which is how that gap in the comparison was noticed.)
 
 | | candidates (instances / distinct) | verified real (distinct) | artefacts, and why |
 |---|---|---|---|
