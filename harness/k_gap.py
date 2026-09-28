@@ -411,3 +411,208 @@ def jats_body_text(body: bytes) -> str:
     for tw in root.iter("table-wrap"):
         parts.append(_text(tw))
     return "\n".join(parts)
+
+
+class AactStore:
+    """Persistent, incremental AACT index for repeated k-gap runs (the snapshot is read-only and slow to
+    scan). Built maps: acronym -> NCTs (INTERVENTIONAL), pmid -> [(nct, RESULT|DERIVED)]; per-NCT facts
+    (study, interventions, results outcomes) are scanned only for NCTs not already held. Keyed by the
+    snapshot folder, so a newer snapshot starts a fresh store rather than mixing dates."""
+
+    def __init__(self, path: str, root: str | None = None):
+        from harness import aact
+        self.aact = aact
+        self.snap = aact.snapshot_dir(root)
+        self.path = path
+        d = {}
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as fh:
+                d = json.load(fh)
+        if d.get("snapshot") != self.snap:
+            d = {"snapshot": self.snap}
+        self.d = d
+        for k in ("acr", "pmid", "study", "interventions", "outcomes"):
+            self.d.setdefault(k, {})
+
+    def save(self):
+        with open(self.path, "w", encoding="utf-8") as fh:
+            json.dump(self.d, fh)
+
+    def _t(self, name):
+        return os.path.join(self.snap, name + ".txt")
+
+    def build_maps(self, log=print):
+        if not self.snap or (self.d["acr"] and self.d["pmid"]):
+            return
+        log("AACT: scanning studies (acronyms)")
+        for r in self.aact._iter_rows(self._t("studies")):
+            a = norm_acronym(r.get("acronym") or "")
+            if a and (r.get("study_type") or "").upper() == "INTERVENTIONAL":
+                self.d["acr"].setdefault(a, []).append(r["nct_id"].upper())
+        log("AACT: scanning study_references")
+        for r in self.aact._iter_rows(self._t("study_references")):
+            t = (r.get("reference_type") or "").upper()
+            p = (r.get("pmid") or "").strip()
+            if p.isdigit() and t in ("RESULT", "DERIVED"):
+                lst = self.d["pmid"].setdefault(p, [])
+                n = r["nct_id"].upper()
+                if [n, t] not in lst:
+                    lst.append([n, t])
+        self.save()
+
+    def ensure_ncts(self, ncts, log=print):
+        want = {n.upper() for n in ncts if n} - set(self.d["study"])
+        if not want or not self.snap:
+            return
+        log(f"AACT: facts for {len(want)} new NCTs")
+        for n in want:
+            self.d["study"][n] = {}
+            self.d["interventions"][n] = []
+            self.d["outcomes"][n] = []
+        for r in self.aact._iter_rows(self._t("studies")):
+            n = r["nct_id"].upper()
+            if n in want:
+                self.d["study"][n] = {k: r.get(k) or "" for k in (
+                    "acronym", "brief_title", "overall_status", "phase", "enrollment", "results_first_posted_date",
+                    "completion_date", "study_type")}
+        for r in self.aact._iter_rows(self._t("interventions")):
+            n = r["nct_id"].upper()
+            if n in want:
+                self.d["interventions"][n].append(r.get("name") or "")
+        for r in self.aact._iter_rows(self._t("outcomes")):
+            n = r["nct_id"].upper()
+            if n in want:
+                self.d["outcomes"][n].append({k: (r.get(k) or "")[:300] for k in (
+                    "id", "outcome_type", "title", "time_frame", "population", "param_type", "units")})
+        self.save()
+
+    def index(self, agent_terms) -> dict:
+        """The dict shape resolve_unit / aact_source consume, with agent flags for THIS topic's agents."""
+        agent_re = re.compile("|".join(re.escape(a) for a in agent_terms), re.I) if agent_terms else None
+        if not hasattr(self, "_rev"):
+            self._rev = {}
+            for p, v in self.d["pmid"].items():
+                for n, _t in v:
+                    self._rev.setdefault(n, []).append(p)
+        return {"snapshot": self.snap, "acr_nct": self.d["acr"], "nct_pmids": self._rev,
+                "pmid_nct": {p: [tuple(x) for x in v] for p, v in self.d["pmid"].items()},
+                "study": self.d["study"], "interventions": self.d["interventions"], "outcomes": self.d["outcomes"],
+                "agent_nct": {n: bool(agent_re and any(agent_re.search(x) for x in v))
+                              for n, v in self.d["interventions"].items()}}
+
+
+def held_text(slug: str, date: str = "2026-09-28") -> tuple[str, str]:
+    """(text, ref) of a topic's comparator as held: its own JATS body+tables when k_gap fetched open JATS,
+    else the committed held document (records.json#comparator_fulltext or the document_ref file). ONE
+    function for the proposal step and the table step, so the gate searches the bytes the model was shown."""
+    with open(os.path.join(ROOT, "cache", slug, "comparators.json"), encoding="utf-8") as fh:
+        c = json.load(fh)[0]
+    m = re.search(r"PMID (\d+)", c.get("citation", ""))
+    pmid = m.group(1) if m else str(c["id"])
+    jp = os.path.join(COMP_DIR, pmid, f"{date}_kgap_jats.xml")
+    if os.path.exists(jp):
+        with open(jp, "rb") as fh:
+            return jats_body_text(fh.read()), os.path.relpath(jp, ROOT).replace(os.sep, "/") + "#body"
+    ref = c["document_ref"]
+    with open(os.path.join(ROOT, ref), encoding="utf-8") as fh:
+        raw = fh.read()
+    if ref.endswith("records.json"):
+        return json.loads(raw)["comparator_fulltext"], ref + "#comparator_fulltext"
+    return raw, ref
+
+
+# ------------------------------------------------- comparator REFERENCE SEEDING (open reference lists)
+
+def fetch_epmc_references(pmid: str, date: str) -> dict:
+    """The comparator's cited-reference list from Europe PMC (/MED/<pmid>/references), cached raw with
+    sha256. Open metadata, so it exists for comparators whose full text is not open."""
+    from harness import http
+    name = f"{date}_kgap_epmc_refs.json"
+    p = os.path.join(COMP_DIR, pmid, name)
+    if os.path.exists(p):
+        with open(p, "rb") as fh:
+            body = fh.read()
+    else:
+        pages, page = [], 1
+        while page <= 5:
+            try:
+                d = http.get_json(f"https://www.ebi.ac.uk/europepmc/webservices/rest/MED/{pmid}/references",
+                                  {"format": "json", "pageSize": 1000, "page": page})
+            except Exception as exc:  # noqa: BLE001
+                return {"state": "FETCH_FAILED", "error": str(exc)[:200], "refs": []}
+            pages.append(d)
+            if len(pages) * 1000 >= int(d.get("hitCount") or 0):
+                break
+            page += 1
+        body = json.dumps(pages, sort_keys=True).encode("utf-8")
+        _cache_write(pmid, name, body)
+    pages = json.loads(body.decode("utf-8"))
+    refs = []
+    for d in pages:
+        for r in (d.get("referenceList") or {}).get("reference", []):
+            refs.append({"pmid": str(r.get("id") or "") if r.get("source") == "MED" else "",
+                         "title": r.get("title") or "", "year": str(r.get("pubYear") or ""),
+                         "author": (r.get("authorString") or "").split(",")[0], "doi": r.get("doi") or ""})
+    return {"state": "REFS_HELD" if refs else "NO_REFS", "refs": refs, "sha256": sha256(body),
+            "file": os.path.relpath(p, ROOT).replace(os.sep, "/")}
+
+
+def pubmed_pubtypes(pmids, cache_path: str) -> dict:
+    """PMID -> {pubtypes, title} via NCBI esummary (batched, cached)."""
+    from harness import http
+    cache = {}
+    if os.path.exists(cache_path):
+        with open(cache_path, encoding="utf-8") as fh:
+            cache = json.load(fh)
+    todo = sorted({p for p in pmids if p and p.isdigit() and p not in cache})
+    for i in range(0, len(todo), 150):
+        chunk = todo[i:i + 150]
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                              {"db": "pubmed", "id": ",".join(chunk), "retmode": "json"})
+        except Exception as exc:  # noqa: BLE001
+            print("esummary failed", exc)
+            continue
+        res = d.get("result", {})
+        for p in chunk:
+            r = res.get(p) or {}
+            cache[p] = {"pubtypes": r.get("pubtype") or [], "title": r.get("title") or ""}
+    if todo:
+        with open(cache_path, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def reference_seed_units(refs: list[dict], pubtypes: dict, agent_terms: list[str]) -> list[dict]:
+    """Candidate members from a comparator's reference list: PubMed-typed RCT reports whose title names a
+    topic agent. A SUPERSET candidate (a review cites trials it excludes), never the included set itself."""
+    agent_re = re.compile("|".join(re.escape(a) for a in agent_terms), re.I) if agent_terms else None
+    out = []
+    for r in refs:
+        pt = pubtypes.get(r["pmid"], {})
+        title = pt.get("title") or r["title"]
+        rct = any(t in ("Randomized Controlled Trial", "Clinical Trial, Phase III", "Clinical Trial, Phase II")
+                  for t in pt.get("pubtypes", []))
+        if r["pmid"] and rct and agent_re and agent_re.search(title):
+            out.append({"table": "reference_seed", "layout": "reference", "label": title[:160], "context": title,
+                        "rids": [], "cited": [{"pmid": r["pmid"], "doi": r.get("doi")}], "ncts": [],
+                        "acronyms": [], "author": "", "year": r["year"], "agent_hit": True,
+                        "drug_match": "DRUG_MATCH"})
+    return out
+
+
+def _shingles(t: str, n: int = 6) -> set:
+    w = re.findall(r"[a-z0-9]+", (t or "").lower())
+    return {" ".join(w[i:i + n]) for i in range(len(w) - n + 1)}
+
+
+def held_text_identity(abstract: str, held: str) -> dict:
+    """Is the held comparator text the article whose PubMed abstract this is? Measured by shared 6-word
+    shingles. On the 32 served comparators (2026-09-28) the correct articles share 22-874 abstract shingles;
+    two held texts share ZERO -- they are different articles. A bag-of-title-words check was tried first and
+    passed both (9/10 and 6/7 title words present): topical vocabulary is not identity."""
+    a, h = _shingles(abstract), _shingles(held)
+    shared = len(a & h)
+    state = ("NO_ABSTRACT" if not a else "NAMED_ARTICLE" if shared >= 10 else
+             "HELD_TEXT_NOT_NAMED_ARTICLE" if shared == 0 else "IDENTITY_UNCERTAIN")
+    return {"abstract_shingles": len(a), "shared": shared, "state": state}

@@ -143,9 +143,7 @@ def resolve_unit(u, parsed, idx, agents_re):
             if len(cands) > 1:
                 basis.append(f"acronym_ambiguous:{a}:{','.join(cands[:4])}")
     for n in list(ncts):
-        for p, lst in idx["pmid_nct"].items():
-            if any(x == n and t in ("RESULT", "DERIVED") for x, t in lst):
-                pmids.add(p)
+        pmids |= set(idx.get("nct_pmids", {}).get(n, []))
     return {"pmids": sorted(pmids), "ncts": sorted(ncts), "basis": basis}
 
 
@@ -265,9 +263,75 @@ def oa_probe(pmids: list[str], offline: bool) -> dict:
     return cache
 
 
+PROP = os.path.join(ROOT, "registry", "model_proposals", "comparator_members.json")
+STORE = os.environ.get("K_GAP_AACT_STORE") or os.path.join(OUT, "_aact_store.json")
+_AUTH_YR = re.compile(r"^([A-Z][A-Za-z'À-ſ‐-]+)[^0-9]{0,14}((?:19|20)\d\d)[a-z]?$")
+
+
+def comparator_abstracts(pmids, offline) -> dict:
+    """PMID -> PubMed abstract text for the comparators (cached outputs/k_gap/comparator_abstracts.json)."""
+    cp = os.path.join(OUT, "comparator_abstracts.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [p for p in pmids if p not in cache]
+    if todo and not offline:
+        import xml.etree.ElementTree as ET
+        from harness import http
+        x = http.get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                          {"db": "pubmed", "id": ",".join(todo), "retmode": "xml"})
+        for a in ET.fromstring(x).iter("PubmedArticle"):
+            cache[a.find(".//PMID").text] = " ".join("".join(e.itertext()) for e in a.iter("AbstractText"))
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def proposal_units(slug: str, agents: list[str]) -> list[dict]:
+    if not os.path.exists(PROP):
+        return []
+    it = _j(PROP)["items"].get(slug) or {}
+    v = it.get("verification") or {}
+    agent_re = re.compile("|".join(re.escape(a) for a in agents), re.I) if agents else None
+    out = []
+    for s in v.get("admitted", []):
+        lab = s["label"].strip()
+        toks = k_gap._label_tokens(lab)
+        m = _AUTH_YR.match(lab)
+        acr = toks["acronyms"] or ([lab] if re.match(r"^[A-Z][A-Z0-9-]{2,}", lab) else [])
+        out.append({"table": "proposal:" + it.get("record_id", ""), "layout": "text", "label": lab,
+                    "context": s["quote"], "rids": [], "cited": [], "ncts": toks["ncts"], "acronyms": acr,
+                    "author": toks["author"] or (m.group(1) if m else ""), "year": toks["year"] or (m.group(2) if m else ""),
+                    "agent_hit": bool(agent_re and agent_re.search(s["quote"])), "drug_match": "AGENT_IMPLICIT",
+                    "design_stated": s["design_stated"]})
+    return out
+
+
+def pubmed_author_year(author, year, agents, offline):
+    """PMID for 'Author Year' + topic agent via NCBI ESearch -- admitted only when EXACTLY one hit.
+    Queries and answers are cached (outputs/k_gap/pubmed_author_year.json) so a rerun replays them."""
+    cp = os.path.join(OUT, "pubmed_author_year.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents[:6])
+    q = f"{author}[1au] AND {year}[dp] AND ({ag}) AND (randomized controlled trial[pt] OR randomi*[tiab])"
+    if q not in cache and not offline:
+        import time
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                              {"db": "pubmed", "term": q, "retmode": "json", "retmax": 5})
+            cache[q] = d.get("esearchresult", {}).get("idlist", [])
+        except Exception as exc:  # noqa: BLE001
+            cache[q] = {"error": str(exc)[:200]}
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+        time.sleep(0.4)
+    ids = cache.get(q)
+    return (ids[0] if isinstance(ids, list) and len(ids) == 1 else None), q, ids
+
+
 def main(argv=None):
     argv = argv or sys.argv[1:]
     offline = "--offline" in argv
+    log = lambda m: print(m, flush=True)  # noqa: E731
     os.makedirs(OUT, exist_ok=True)
     topics = []
     for f in sorted(glob.glob(os.path.join(ROOT, "cache", "*", "comparators.json"))):
@@ -275,34 +339,73 @@ def main(argv=None):
         c = _j(f)[0]
         m = re.search(r"PMID (\d+)", c.get("citation", ""))
         topics.append((slug, m.group(1) if m else str(c["id"]), c.get("citation", "")))
-    per, all_p, all_n, all_a, all_agents = {}, set(), set(), set(), set()
+    store = k_gap.AactStore(STORE)
+    store.build_maps(log=log)
+    abstracts = comparator_abstracts([t[1] for t in topics], offline)
+    per = {}
     for slug, cpmid, cit in topics:
         topic = _j(os.path.join(ROOT, "topics", slug + ".json"))
         agents = topic_agents(topic)
         inc, parsed = comparator_units(slug, cpmid, agents)
-        o = ours(slug)
-        per[slug] = {"topic": topic, "agents": agents, "inc": inc, "parsed": parsed, "ours": o,
-                     "comparator_pmid": cpmid, "citation": cit}
-        all_agents |= set(agents)
-        for u in inc["units"]:
-            all_p |= {c["pmid"] for c in u["cited"] if c.get("pmid")}
-            all_n |= set(u["ncts"])
-            all_a |= set(u["acronyms"])
-        all_p |= {x for x in o["pooled"] if x.isdigit()} | {x for x in o["absent"] if x.isdigit()}
-        all_n |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
-        if parsed:
-            all_p |= {r["pmid"] for r in parsed["refs"].values() if r.get("pmid")}
-    print(f"AACT index: {len(all_p)} pmids, {len(all_n)} ncts, {len(all_a)} acronyms", flush=True)
-    idx = k_gap.aact_index(all_p, all_n, all_a, sorted(all_agents))
+        src = "JATS_TABLE"
+        try:
+            text, ref = k_gap.held_text(slug, DATE)
+        except Exception as exc:  # noqa: BLE001
+            text, ref = "", f"UNREADABLE: {exc}"
+        held = {"ref": ref, **k_gap.held_text_identity(abstracts.get(cpmid, ""), text)}
+        named = held["state"] == "NAMED_ARTICLE"
+        if not inc["units"] and named:
+            pu = proposal_units(slug, agents)
+            if pu:
+                inc = {"state": "PROPOSAL_GATED", "units": pu, "tables_used": [pu[0]["table"]]}
+                src = "MODEL_PROPOSAL_GATED"
+        if not inc["units"]:
+            # third source, open metadata: the comparator's own reference list, RCT-typed + agent-named.
+            # A CANDIDATE superset, labelled so; never counted as the comparator's confirmed included set.
+            er = k_gap.fetch_epmc_references(cpmid, DATE) if not offline else {"refs": []}
+            pt = k_gap.pubmed_pubtypes([r["pmid"] for r in er["refs"]], os.path.join(OUT, "pubmed_pubtypes.json")) \
+                if er["refs"] and not offline else {}
+            su = k_gap.reference_seed_units(er["refs"], pt, agents)
+            if su:
+                inc = {"state": "REFERENCE_SEEDED_CANDIDATES", "units": su,
+                       "tables_used": [er.get("file", "epmc references")]}
+                src = "REFERENCE_SEED"
+        per[slug] = {"topic": topic, "agents": agents, "inc": inc, "parsed": parsed, "ours": ours(slug),
+                     "comparator_pmid": cpmid, "citation": cit, "unit_source": src,
+                     "held": held}
+    need = set()
+    for slug, P in per.items():
+        for u in P["inc"]["units"]:
+            if not u["cited"] and not u["ncts"] and u["author"] and u["year"]:
+                refhit = None
+                if P["parsed"]:
+                    hits = [r for r in P["parsed"]["refs"].values() if r.get("pmid") and
+                            r.get("first_author", "").lower() == u["author"].lower() and r.get("year") == u["year"]]
+                    refhit = hits[0]["pmid"] if len(hits) == 1 else None
+                if refhit:
+                    u["cited"] = [{"pmid": refhit, "basis": "author_year_ref_list"}]
+                else:
+                    pm, q, ids = pubmed_author_year(u["author"], u["year"], P["agents"], offline)
+                    u["pubmed_query"] = {"q": q, "ids": ids}
+                    if pm:
+                        u["cited"] = [{"pmid": pm, "basis": "pubmed_author_year_single_hit"}]
+            for c in u["cited"]:
+                for n, _t in store.d["pmid"].get(c.get("pmid") or "", []):
+                    need.add(n)
+            need |= set(u["ncts"])
+            for a in u["acronyms"]:
+                need |= set(store.d["acr"].get(k_gap.norm_acronym(a), [])[:25])
+        o = P["ours"]
+        need |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
+    store.ensure_ncts(need, log=log)
     rows = []
     for slug, cpmid, cit in topics:
         P = per[slug]
+        tidx = store.index(P["agents"])
         agents_re = re.compile("|".join(re.escape(a) for a in P["agents"]), re.I)
-        # per-topic agent flag: recompute over this topic's agents only
-        tidx = dict(idx)
-        tidx["agent_nct"] = {n: any(agents_re.search(x) for x in v) for n, v in idx["interventions"].items()}
         for u in P["inc"]["units"]:
             ident = resolve_unit(u, P["parsed"], tidx, agents_re)
+            ident["basis"] += [c["basis"] for c in u["cited"] if c.get("basis")]
             reg = registry_agent(ident["ncts"], tidx)
             if u["drug_match"] == "OTHER_AGENT" or (u["drug_match"] == "AGENT_IMPLICIT" and reg is False):
                 drug = "OTHER_AGENT"
@@ -315,52 +418,61 @@ def main(argv=None):
             else:
                 status, fam, absent = match_ours(ident, u["acronyms"], P["ours"])
             src = aact_source(ident["ncts"], tidx, outcome_keywords(P["topic"]), P["ours"]["estimand"])
-            rows.append({"slug": slug, "comparator_pmid": cpmid, "table": u["table"], "layout": u["layout"],
-                         "label": u["label"], "context": u["context"][:300], "drug": drug,
+            rows.append({"slug": slug, "comparator_pmid": cpmid, "unit_source": P["unit_source"], "table": u["table"],
+                         "layout": u["layout"], "label": u["label"], "context": u["context"][:300], "drug": drug,
                          "pmids": ident["pmids"], "ncts": ident["ncts"], "identity_basis": ident["basis"],
+                         "pubmed_query": u.get("pubmed_query"),
                          "cited_doi": [c.get("doi") for c in u["cited"] if c.get("doi")],
                          "status": status, "family_id": fam["family_id"] if fam else "",
                          "family_eligibility": fam["eligibility"] if fam else "",
                          "declared_absent": absent, "aact": src, "study": {n: tidx["study"].get(n) for n in ident["ncts"]}})
-    oa = oa_probe([p for r in rows for p in r["pmids"] if r["status"] not in ("POOLED",)], offline)
+    oa = oa_probe([p for r in rows for p in r["pmids"] if r["status"] != "POOLED"], offline)
     for r in rows:
         oas = [oa.get(p, {}) for p in r["pmids"]]
         r["pmc_oa"] = [{"pmid": p, **oa.get(p, {})} for p in r["pmids"] if oa.get(p, {}).get("pmcid")]
         is_oa = any(v.get("is_oa") for v in oas)
         r["gap_class"] = classify(r["status"], r["declared_absent"], None, r["aact"], is_oa)
         r["closable_by"] = closable_by(r["gap_class"], r["aact"], is_oa)
-    # ---- per-topic rollup
     topics_out = []
     for slug, cpmid, cit in topics:
         P = per[slug]
         tr = [r for r in rows if r["slug"] == slug]
         elig = [r for r in tr if r["drug"] != "OTHER_AGENT" and r["status"] != "UNRESOLVED"]
+        if P["held"]["state"] != "NAMED_ARTICLE" and P["unit_source"] == "MODEL_PROPOSAL_GATED":
+            state, elig = "HELD_TEXT_NOT_NAMED_ARTICLE", []
+        elif elig:
+            state = P["inc"]["state"]
+        elif not tr:
+            state = "NOT_ENUMERABLE_OPEN"
+        else:
+            state = "NO_DRUG_SPECIFIC_RESOLVED"
         topics_out.append({
-            "slug": slug, "comparator_pmid": cpmid, "comparator": cit[:160],
-            "comparator_table_state": P["inc"]["state"], "tables_used": P["inc"]["tables_used"],
-            "our_k": P["ours"]["k"], "comparator_units": len(tr),
-            "drug_specific_resolved": len(elig),
+            "slug": slug, "comparator_pmid": cpmid, "comparator": cit[:160], "unit_source": P["unit_source"],
+            "comparator_set_state": state, "held_text": P["held"], "tables_used": P["inc"]["tables_used"],
+            "our_k": P["ours"]["k"], "comparator_units": len(tr), "drug_specific_resolved": len(elig),
             "other_agent": sum(r["drug"] == "OTHER_AGENT" for r in tr),
             "unresolved_labels": sum(r["status"] == "UNRESOLVED" for r in tr),
             "pooled_of_theirs": sum(r["gap_class"] == "POOLED" for r in elig),
             "missing": sum(r["gap_class"] != "POOLED" for r in elig),
             "by_class": dict(Counter(r["gap_class"] for r in elig if r["gap_class"] != "POOLED")),
             "by_source": dict(Counter(r["closable_by"] for r in elig if r["closable_by"])),
+            "missing_trials": [{"label": r["label"], "pmids": r["pmids"], "ncts": r["ncts"], "gap_class": r["gap_class"],
+                                "closable_by": r["closable_by"]} for r in elig if r["gap_class"] != "POOLED"],
         })
-    out = {"generated": DATE, "aact_snapshot": idx["snapshot"], "topics": topics_out, "trials": rows}
+    out = {"generated": DATE, "aact_snapshot": store.snap, "topics": topics_out, "trials": rows}
     with open(os.path.join(OUT, "k_gap_table.json"), "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False, default=list)
-    cols = ["slug", "comparator_pmid", "label", "drug", "status", "gap_class", "closable_by", "pmids", "ncts",
-            "identity_basis", "family_id", "family_eligibility", "declared_reason_code", "aact_results_posted",
+    cols = ["slug", "comparator_pmid", "unit_source", "label", "drug", "status", "gap_class", "closable_by", "pmids",
+            "ncts", "identity_basis", "family_id", "family_eligibility", "declared_reason_code", "aact_results_posted",
             "aact_outcome_match", "aact_param_type", "aact_time_frame", "aact_population", "pmc_oa", "table"]
     with open(os.path.join(OUT, "k_gap_table.csv"), "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(cols)
         for r in rows:
             m = r["aact"]["outcome_matches"][0] if r["aact"]["outcome_matches"] else {}
-            w.writerow([r["slug"], r["comparator_pmid"], r["label"], r["drug"], r["status"], r["gap_class"],
-                        r["closable_by"], ";".join(r["pmids"]), ";".join(r["ncts"]), ";".join(r["identity_basis"]),
-                        r["family_id"], r["family_eligibility"],
+            w.writerow([r["slug"], r["comparator_pmid"], r["unit_source"], r["label"], r["drug"], r["status"],
+                        r["gap_class"], r["closable_by"], ";".join(r["pmids"]), ";".join(r["ncts"]),
+                        ";".join(r["identity_basis"]), r["family_id"], r["family_eligibility"],
                         (r["declared_absent"] or {}).get("reason_code", ""), r["aact"]["results_posted"],
                         m.get("title", ""), m.get("param_type", ""), m.get("time_frame", ""), m.get("population", "")[:160],
                         ";".join(x["pmcid"] for x in r["pmc_oa"] if x.get("is_oa")), r["table"]])
@@ -371,6 +483,6 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     o = main()
     for t in o["topics"]:
-        print(f"{t['slug'][:38]:38s} state={t['comparator_table_state'][:12]:12s} ourk={t['our_k']} units={t['comparator_units']:3d} "
+        print(f"{t['slug'][:38]:38s} state={t['comparator_set_state'][:14]:14s} ourk={t['our_k']} units={t['comparator_units']:3d} "
               f"elig={t['drug_specific_resolved']:3d} pooled={t['pooled_of_theirs']:2d} miss={t['missing']:2d} "
               f"other={t['other_agent']:2d} unres={t['unresolved_labels']:2d} {t['by_class']} {t['by_source']}")
