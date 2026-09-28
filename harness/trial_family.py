@@ -269,12 +269,90 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
                         status[key] = cell('YES',evidence)
                     status['extractable']['scope'] = 'Typed registry outcome values; not automatically a poolable contrast or target effect measure.'
                     break
+        phases = phase_declaration(config, fid)
+        if phases:
+            attach_phases(f, phases, agents, comparators)
         f['eligibility'] = screen_family(f, config)
         decl = programme_declaration(config, [r['report_id'] for r in reports])
         if decl:
             attach_programme(f, decl, registry, config, agents, comparators)
         out.append(f)
     return sorted(out, key=lambda f:f['family_id'])
+
+
+def phase_declaration(config, family_id):
+    """TRIAL -> PHASE -> COMPARISON -> ANALYSIS PERIOD (docs/trial_phases.json). A registry record carries ONE design field;
+    for a trial with a double-blind phase and a later open-label extension, that field can describe the extension
+    (EMPHASIS-HF NCT00232180: 'NON_RANDOMIZED / SINGLE_GROUP / NONE', one 'Eplerenone arm', while its own results name a
+    'Double-blind (DB) Phase' with eplerenone and placebo groups and an 'Open Label Phase'). The declaration is witnessed in
+    held bytes (re-verified, fail closed). Returns it, or None."""
+    import json as _json
+    from .comparison_family import _verified, _ROOT
+    p = Path(_ROOT)/'docs'/'trial_phases.json'
+    if not p.exists():
+        return None
+    d = ((_json.loads(p.read_text(encoding='utf8')).get('topics') or {}).get(config.get('slug')) or {}).get(family_id)
+    if not d:
+        return None
+    for ph in d.get('phases') or []:
+        for w in ph.get('witnesses') or []:
+            _verified(_ROOT, {'witness': w['witness']})
+    return d
+
+
+def attach_phases(f, decl, agents, comparators):
+    """The RANDOMISED phase's design and arms are what the family is screened on; an EXTENSION phase keeps its OWN
+    design and never supplies, redefines or inherits the randomised comparison. Fail closed on a declaration that would:
+      * an extension carrying a comparison, a randomised allocation, masking, or a placebo arm (inheriting the placebo
+        design);
+      * not exactly one randomised phase carrying the comparison;
+      * a claim that the registry's design field describes a phase whose declared design is not that field."""
+    phases = decl.get('phases') or []
+    rand = [p for p in phases if p.get('kind') == 'RANDOMISED']
+    if len(rand) != 1 or str((rand[0].get('design') or {}).get('allocation')).upper() != 'RANDOMIZED' \
+            or not rand[0].get('comparisons'):
+        raise ValueError(f"PHASE_DECLARATION_INVALID: {f['family_id']}: exactly one RANDOMISED phase must carry the comparison")
+    for p in phases:
+        if p.get('kind') != 'EXTENSION':
+            continue
+        d = p.get('design') or {}
+        arms = [a for c in p.get('comparisons') or [] for a in c.get('arms') or []] + list(p.get('arms') or [])
+        if p.get('comparisons') or str(d.get('allocation')).upper() == 'RANDOMIZED' \
+                or str(d.get('masking') or 'NONE').upper() != 'NONE' \
+                or any('placebo' in ' '.join(a.get('interventions') or []).lower() for a in arms):
+            raise ValueError(f"PHASE_DECLARATION_INVALID: {f['family_id']}: extension phase {p.get('phase_id')} may not carry "
+                             "a comparison or inherit the randomised/placebo design")
+    latest = f.get('registry_design') or {}
+    described = next((p for p in phases if p.get('phase_id') == decl.get('registry_design_field_describes')), None)
+    if described is not None:
+        for k in ('allocation', 'intervention_model', 'masking'):
+            if str((described.get('design') or {}).get(k) or '').upper() != str(latest.get(k) or '').upper():
+                raise ValueError(f"PHASE_DECLARATION_INVALID: {f['family_id']}: the registry design field ({k}="
+                                 f"{latest.get(k)}) is not the design of phase {described.get('phase_id')}")
+    r = rand[0]
+    comp = r['comparisons'][0]
+    witness_span = [{'source': 'phase witness', 'kind': w['kind'], 'path': w['witness']['path'], 'span': w['witness']['span']}
+                    for w in r.get('witnesses') or []]
+    arms = []
+    for i, a in enumerate(comp.get('arms') or []):
+        names = list(a.get('interventions') or [])
+        arms.append({'arm_id': f"{f['family_id']}:{r['phase_id']}:{i}", 'label': {'value': a.get('label')},
+                     'active_interventions': [n.lower() for n in names if 'placebo' not in n.lower()],
+                     'background_therapy': [], 'drug': {'value': names, 'span': witness_span},
+                     'linkage_complete': True, 'span': {'source': 'phase witness', 'phase': r['phase_id']}})
+    f['registry_design_latest'] = latest
+    f['registry_arms_latest'] = f.get('arms') or []
+    f['registry_design'] = dict(r['design'], nct_id=f['family_id'], basis='PHASE_WITNESS', phase=r['phase_id'])
+    f['arms'] = arms
+    f['arm_absence_code'] = None
+    f['randomised_contrasts'] = randomised_contrasts(arms, agents, True, comparators)
+    f['phases'] = [{'phase_id': p.get('phase_id'), 'kind': p.get('kind'), 'label': p.get('label'), 'design': p.get('design'),
+                    'comparisons': p.get('comparisons') or [],
+                    'witnesses': [{'kind': w['kind'], 'span': w['witness']['span'], 'path': w['witness']['path']}
+                                  for w in p.get('witnesses') or []]} for p in phases]
+    f['phase_served'] = {'phase': r['phase_id'], 'comparison': comp.get('comparison_id'),
+                         'analysis_period': next((ap.get('period_id') for ap in comp.get('analysis_periods') or []
+                                                  if ap.get('served')), None)}
 
 
 def programme_declaration(config, report_ids):
@@ -664,6 +742,9 @@ def attach_review(review, nodes):
                                             'REGISTRY_ANCHORED' if f['identity_basis']['registry_ids'] else
                                             'PUBLICATION_ANCHORED' if f['identity_basis']['primary_report_ids'] else
                                             'UNRESOLVED_REPORT_CANDIDATE')
+            if f.get('phase_served'):
+                # the row belongs to the randomised phase's comparison and analysis period, never an extension's
+                row['analysis_phase'] = dict(f['phase_served'])
             if f.get('programme'):
                 # one programme-level input representing several trials: never a trial, never its constituents
                 row['programme'] = {'programme_id': f['programme']['programme_id'], 'label': f['programme']['label'],

@@ -1766,6 +1766,10 @@ def _trial_inputs(o):
             details.append(f"safety window: {t.get('safety_window')}")
         if t.get("safety_population"):
             details.append(f"population: {t.get('safety_population')}")
+        if t.get("analysis_phase"):
+            ap = t["analysis_phase"]
+            details.append(f"phase: {ap.get('phase')}; comparison: {ap.get('comparison')}; analysis period: "
+                           f"{ap.get('analysis_period')} (an extension phase never supplies this comparison)")
         if t.get("programme"):
             p = t["programme"]
             details.append(f"{p.get('label')}: ONE programme-level input representing {len(p.get('constituents') or [])} "

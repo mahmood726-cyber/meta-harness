@@ -98,7 +98,10 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
                               "this outcome, so no count from it is a count of this outcome (not 'not reported', not zero)")}
     ex = extraction_of(row)
     zero_span = row.get("zero_events_span")
-    if zero_span or (ex and ex.get("ai") == 0 and ex.get("ci") == 0):
+    # a 0-vs-0 extraction is a zero for THIS outcome only when it is this outcome's: a row held out because it measures a
+    # NARROWER outcome (J-EMPHASIS-HF 'gynaecomastia 0 vs 0' for 'gynaecomastia OR breast pain') is not a zero event
+    # count of the composite -- it stays EXTRACTED_NOT_ADMITTED with its reason
+    if zero_span or (ex and ex.get("ai") == 0 and ex.get("ci") == 0 and not row.get("not_admitted_because")):
         return {"state": REPORTED_ZERO_EVENTS, "span": zero_span or ex.get("span"),
                 "note": (f"zero events in {row['zero_events_scope']}: reported; not estimable on a ratio scale"
                          if row.get("zero_events_scope") else

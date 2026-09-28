@@ -44,6 +44,13 @@ HARM_DECISIONS_SUPERSEDED = {
                    "counts are in CREDENCE's own Table (accepted manuscript held; excerpt committed), ON-STUDY window (all "
                    "treated patients through the end of the trial), unlike its on-treatment safety events; result-change "
                    "notice OPEN")},
+    ("spironolactone-hfref-mortality", "Hyperkalemia", "28824029"): {
+        "before": "REFUSED_ON_EVIDENCE (absent)", "after": "POOLED",
+        "values_after": {"ai": 8, "n1i": 111, "ci": 6, "n2i": 110},
+        "reason": ("the refusal was true of the abstract ('Adverse events, including hyperkalemia, were similar', no counts); "
+                   "the counts are in J-EMPHASIS-HF's own Table 5 -- INVESTIGATOR-REPORTED hyperkalaemia, patients with at "
+                   "least one dose (J-STAGE PDF held; excerpt committed), a definition typed apart from RALES's SERIOUS and "
+                   "EMPHASIS-HF's LABORATORY-threshold hyperkalaemia, never pooled with them; result-change notice OPEN")},
 }
 
 

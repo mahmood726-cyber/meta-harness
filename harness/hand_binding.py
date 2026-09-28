@@ -395,6 +395,20 @@ def _ownership(spec: dict[str, Any], cand: dict[str, Any], prose: str, tup: dict
             te._components_from_text(x, expand_named_composites=False)
             or te._NAMED_COMPOSITE_RX.search(x.lower()) or _family_match_tolerant(spec, x)))
     canon = te.canonical_components(spec)
+    # a table ROW whose own label names a SINGLE-endpoint outcome binds to itself: the caption is the table's context, not
+    # the row's endpoint. J-EMPHASIS-HF Table 3 is titled 'Primary and Secondary Outcomes', so its caption's role words
+    # sent every row -- 'Death from any cause' included -- down the named-composite route, where a single outcome has no
+    # component set to resolve. Only for outcomes with no canonical components, and only when the label itself names
+    # the outcome family and is neither a named composite nor a component set.
+    if (cand["kind"] == "table_row" and not canon and cand.get("label")
+            and not te._NAMED_COMPOSITE_RX.search(cand["label"].lower())
+            and not te._components_from_text(cand["label"], expand_named_composites=False)
+            and _family_match_tolerant(spec, cand["label"])):
+        return {"target_endpoint_class": te.EXACT_TARGET, "target_components": [], "extra_components": [],
+                "missing_components": [], "component_distance": 0,
+                "endpoint_binding": te.BINDING_SELF, "endpoint_result_span": cand["text"],
+                "endpoint_definition_span": cand["label"],
+                "endpoint_binding_reason": "the row's own label names the outcome (the caption is context)"}
     own = te._components_from_text(own_text, expand_named_composites=False)
     if own:
         cls = te._classify(spec, own_text, components=own)

@@ -900,3 +900,64 @@ infections.
 - STEP 11's GI row, the original case, is a harm, so it is unaffected.
 - Still failing, known debt: `test_stage_additions::test_error_rate_is_fresh_against_current_pooled_population`. The
   error-rate census needs a blind re-extraction; it is not a code fix.
+
+## Round 2026-09-28h: MRA-HFrEF mortality (spironolactone-hfref-mortality)
+
+### Served number corrected: J-EMPHASIS-HF all-cause mortality
+- **Defect.** `source_hierarchy._effect_candidates_in_outcome` matched RAW topic keywords, which include the ROLE
+  anchors "primary endpoint/outcome". J-EMPHASIS-HF's COMPOSITE primary HR 0.85 (0.53-1.36) therefore became an
+  all-cause mortality "published effect". PUBLISHED_EFFECT_TARGET_CLASS then preferred it over the verified mortality
+  counts 17/111 vs 10/110.
+- **Scale.** EMPHASIS-HF's composite primary HR 0.63 was also surfaced as a candidate. It was not selected, because its
+  mortality HR came first.
+- **Fix.** Role anchors pass through `extract._effective_kws`, as the extractor filters them (plant: a trial whose primary
+  IS death keeps the anchor). No other topic moved on the full rebuild.
+- **Residual, not fixed.** The keyword "died" still surfaces EMPHASIS-HF's CV-death HR 0.76 (0.61-0.94) as a second
+  candidate. It is not selected.
+- **New input.** J-EMPHASIS-HF contributes its own Table 3 HR 1.77 (0.81-3.87), from the held J-STAGE PDF (excerpt
+  committed; PDF local). Audit-queue item 7 had recorded that HR as "not in committed source".
+- **Binder fix (`hand_binding._ownership`).** A table row whose own label names a single-endpoint outcome binds to itself.
+  The caption "Primary and Secondary Outcomes" is the table's context, not the row's endpoint. Composite outcomes are
+  unchanged. Plant: a different outcome's row under the same caption does not bind.
+- **Result.** All-cause mortality k=3 moves from 0.7294 (0.5609-0.9486) to 0.8759 (0.2918-2.629). NOTICE OPEN.
+
+### TRIAL -> PHASE -> COMPARISON -> ANALYSIS PERIOD (docs/trial_phases.json; `trial_family.attach_phases`)
+- EMPHASIS-HF's registry has one design field, NON_RANDOMIZED / SINGLE_GROUP / NONE, and one "Eplerenone arm". That
+  field is the OPEN-LABEL EXTENSION's.
+- Its own posted results name a "Double-blind (DB) Phase" (eplerenone and placebo groups) and an "Open Label Phase":
+  1,246 of the 1,597 who completed the double-blind phase entered it.
+- The family is screened on the randomised phase and is now ELIGIBLE; it had been screened INELIGIBLE while contributing.
+- The latest field is kept as `registry_design_latest`.
+- Fail closed (4 plants): an extension carrying a comparison, masking or a placebo arm, or a mis-attributed design field,
+  raises PHASE_DECLARATION_INVALID.
+- The served row carries phase DOUBLE_BLIND / eplerenone-vs-placebo / DB_TO_CUTOFF_2010-05-25. The complete
+  double-blind period to 2011 has registry counts only (205 vs 253) and no HR, and it is not served.
+
+### Safety: definitions typed, population-specific denominators
+- **J-EMPHASIS-HF Table 5 (held; at least one dose).**
+  - Investigator-reported hyperkalaemia 8/111 vs 6/110 is ADMITTED: k=1, 1.3213 (0.474-3.683). NOTICE OPEN.
+  - "Gynecomastia 0 vs 0" is gynaecomastia ALONE, so EXTRACTED_NOT_ADMITTED for the composite.
+  - Harness rule (`result_status`): a 0-vs-0 row held out with `not_admitted_because` is no longer REPORTED_ZERO_EVENTS
+    (plant both ways).
+- **RALES (NEJM 403; not held), RELAYED, REPORTED_UNRESOLVED.**
+  - Serious hyperkalaemia 14/822 vs 10/841.
+  - Gynaecomastia or breast pain among MEN 61/603 vs 9/614: men-only denominators, the unique-patient aggregate, never a
+    sum of overlapping rows.
+- **EMPHASIS-HF laboratory threshold (K > 5.5).**
+  - Percentages only. The counts are not held (NEJM 403) and are never computed.
+  - The registry posts only adjudicated HOSPITALISATION for hyperkalaemia (4 vs 3), another definition, not used.
+- `outcome_restrictions` types hyperkalaemia definitions as SERIOUS / INVESTIGATOR_REPORTED / LAB_GT_5_5.
+
+### Udelson 2010 (PMID 20299607)
+- The committed search is a frozen snapshot (`fetch.ensure` never re-runs it), so adding a query would claim a search
+  that never ran.
+- Instead, `harness.screen.screen_record` was RUN on the held Europe PMC record under the topic's include rules. Decision:
+  INCLUDE.
+- Inventoried in `docs/known_eligible_missing.json`, with the decision recorded; a test re-runs the screen.
+- The remodelling primary supplies no mortality HR, and the full report is not open, so its mortality is
+  NOT_YET_RETRIEVED, never "not reported".
+
+### Decisions for Mahmood
+- Signatures: 2 numeric notices and 2 served-change notices.
+- RALES is still "contributing without structural eligibility" (1999, no registry record). Not in these fixtures; left
+  as it was.

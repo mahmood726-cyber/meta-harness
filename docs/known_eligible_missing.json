@@ -2,7 +2,56 @@
  "_doc": "Per-topic KNOWN ELIGIBLE MISSING trials, populated from the adversarial audit record. Each entry names a trial the audits identified as eligible under the topic's registered PICO yet NOT in the pool, with the recovery MECHANISM that should retrieve it (vocabulary / concept-query / registry-geography / no-PMID / reference-seeding / domain-screening / access-tier). This is an invalidation trigger: a topic with a known eligible missing trial is STALE (its pooled result and completeness claim cannot be current). Trial identifiers are being externally verified against CT.gov/PubMed/EuropePMC by a read-only session; entries carry status=audit_identified until a citation lands, per our law that an unverified signal reads NOT OBSERVED, never SAFE. A named-but-unverified missing trial still invalidates the completeness claim.",
  "populated_utc": "2026-09-13",
  "topics": {
-  "spironolactone-hfref-mortality": [],
+  "spironolactone-hfref-mortality": [
+   {
+    "trial": "Udelson 2010 (eplerenone LV remodelling)",
+    "registration": null,
+    "pmid": "20299607",
+    "mechanism": "inventory (absent from the committed search snapshot); SCREENED by harness.screen.screen_record on the held record under this topic's protocol",
+    "screening": {
+     "decision": "include",
+     "rule_id": "INCLUDE",
+     "reason": "eligible double-blind/placebo-controlled RCT: intervention eplerenone, comparator placebo, population heart failure — P/I/C/design met.",
+     "evidence": "population “…s with mild-to-moderate heart failure and left ventricular sy…”; comparator “…ble-blind, multicenter, placebo-controlled study evalua…”",
+     "screened_by": "harness.screen.screen_record (topic include rules; re-run by tests on the held record)"
+    },
+    "status": "source_held_published",
+    "acquisition": {
+     "route": "acquisition cascade: Europe PMC record (abstract; not open access); no registration found in the record",
+     "held_path": "evidence/acquisition_cascade/held/Udelson-2010/europepmc_record_20299607.json",
+     "held_sha256": "d129d90b9520ea666e909c9d56570d8395e1295e0c5c0e07f3d7ec4641bccd70"
+    },
+    "design": "randomised, double-blind, placebo-controlled; 226 randomised (117 eplerenone, 109 placebo); NYHA II/III, LVEF <= 35%; 36 weeks",
+    "design_note": "its primary is LV REMODELLING (end-diastolic volume index): eligibility is on P/I/C/design, so the remodelling primary does not exclude it, and it supplies no mortality hazard ratio",
+    "per_outcome": {
+     "All-cause mortality": "NOT_YET_RETRIEVED (the held abstract reports no deaths; the full report is not open -- no mortality HR is supplied and none is inferred)",
+     "Hyperkalemia": "NOT_YET_RETRIEVED (the full report is not open)",
+     "Gynecomastia or breast pain": "NOT_YET_RETRIEVED (the full report is not open)"
+    },
+    "result_states": {
+     "All-cause mortality": {
+      "state": "NOT_YET_RETRIEVED",
+      "span": "The primary efficacy analysis was the between-group comparison of the change in LV end-diastolic volume index.",
+      "witness": {
+       "path": "evidence/acquisition_cascade/held/Udelson-2010/europepmc_record_20299607.json",
+       "sha256": "d129d90b9520ea666e909c9d56570d8395e1295e0c5c0e07f3d7ec4641bccd70",
+       "span": "The primary efficacy analysis was the between-group comparison of the change in LV end-diastolic volume index."
+      },
+      "basis": "the held abstract names a remodelling primary and reports no deaths; the full report is not open, so whether it reports deaths is unknown -- never 'not reported', never a zero"
+     }
+    },
+    "witnesses": [
+     {
+      "kind": "randomisation",
+      "witness": {
+       "path": "evidence/acquisition_cascade/held/Udelson-2010/europepmc_record_20299607.json",
+       "sha256": "d129d90b9520ea666e909c9d56570d8395e1295e0c5c0e07f3d7ec4641bccd70",
+       "span": "Of the total 226 patients enrolled, 117 were randomly assigned to receive eplerenone and 109 to receive placebo."
+      }
+     }
+    ]
+   }
+  ],
   "ticagrelor-vs-clopidogrel-acs": [],
   "colchicine-secondary-cv-prevention": [],
   "corticosteroids-cap-mortality": [

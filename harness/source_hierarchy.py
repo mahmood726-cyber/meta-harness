@@ -58,7 +58,11 @@ def reported_effect_candidate(eff: dict[str, Any] | None, provenance: str, sourc
 
 def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 260) -> list[dict[str, Any]]:
     text = extract._norm(text or "")
-    kl = [str(k).lower() for k in kws or []]
+    # ROLE anchors ('primary outcome/endpoint') name THIS trial's primary, not ours: enabled only when the trial's primary
+    # IS our outcome, exactly as the extractor enables them (extract._effective_kws). Unfiltered, J-EMPHASIS-HF's
+    # composite primary HR 0.85 ('The primary endpoint occurred in ...') was surfaced as an ALL-CAUSE MORTALITY published
+    # effect and replaced the verified mortality counts 17/111 vs 10/110.
+    kl = [str(k).lower() for k in extract._effective_kws(text, list(kws or []))]
     candidates: list[dict[str, Any]] = []
     for sentence in extract._sentences(text):
         low = sentence.lower()
