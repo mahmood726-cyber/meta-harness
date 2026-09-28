@@ -92,10 +92,13 @@ def test_hfpef_prefixed_include_then_population_inconsistency():
     pre = _prefixed_screen_row("semaglutide-obesity-weight", "41045908")
     assert pre["decision"] == "include"
 
+    # V1.0.1 (semaglutide-weight review): 'heart failure' is an executable exclusion no protocol text states
+    # (harness/rule_trace.py); it is flagged and NOT applied, so this record is NEEDS_ADJUDICATION -- neither excluded
+    # by that keyword (what this test used to require) nor included
     post = _post_screen_row("semaglutide-obesity-weight", "41045908")
-    assert post["decision"] == "exclude"
-    assert post["rule_id"] == "ELIGIBILITY_STATE_INCONSISTENT"
-    assert "population_none:heart failure" in post["reason"]
+    assert post["decision"] == "adjudicate"
+    assert post["rule_id"] == "X-UNTRACED"
+    assert "'heart failure'" in post["reason"]
 
 
 def test_step7_and_step12_mixed_t2d_population_refused():
