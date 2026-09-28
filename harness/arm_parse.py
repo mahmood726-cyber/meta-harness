@@ -141,6 +141,32 @@ def interest_in_every_arm(labels, keywords) -> bool:
     return len(arms) >= 2 and all(exposure(a, keywords) == "ACTIVE" for a in arms)
 
 
+def allocation_arms(record: dict) -> list[str]:
+    """Read arms, never infer them from incidental title/background drug mentions.
+
+    Publications require a bounded allocation sentence with explicit alternatives.
+    Unsupported syntax is deliberately unresolved, not a guessed contrast.
+    """
+    if record.get("id_type") != "pmid":
+        if str(record.get("allocation", "")).upper() != "RANDOMIZED":
+            return []
+        groups = record.get("arm_groups") or record.get("armGroups") or []
+        labels = [g.get("title", g.get("label", "")) if isinstance(g, dict) else g for g in groups]
+        labels = labels or record.get("arms") or record.get("interventions") or []
+        return list(dict.fromkeys(x.strip() for x in labels if isinstance(x, str) and x.strip()))
+    for sentence in re.split(r"(?<=[.!?])\s+", record.get("abstract") or ""):
+        match = re.search(
+            r"\b(?:randomi[sz]ed(?:\s+(?:assigned|allocated))?|randomly\s+(?:assigned|allocated))"
+            r"\s+(?:in\s+a\s+[\d:]+\s+ratio\s+)?to\s+(?:receive\s+)?(.+)", sentence, re.I)
+        if not match:
+            continue
+        body = re.split(r"\s+(?:for\s+\d|for\s+a\s+duration|with\s+the\s+primary)\b", match[1], maxsplit=1, flags=re.I)[0]
+        labels = [x.strip(" .;") for x in re.split(r"\s*(?:,\s*(?:or\s+|and\s+)?|\s+or\s+|\s+versus\s+|\s+vs\.?\s+)\s*", body)]
+        if len(labels) >= 2 and all(labels):
+            return list(dict.fromkeys(labels))
+    return []
+
+
 def design_object(registry_row: dict[str, Any] | None) -> dict[str, Any]:
     """The trial design as the held registry states it. A crossover carries within-person dependence; its periods,
     period length, washout and carryover handling are filled only from held bytes (NOT_IN_HELD_BYTES otherwise)."""

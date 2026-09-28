@@ -369,7 +369,7 @@ def describe_eligibility(inc: dict) -> str:
         if inc.get("population_none_entry_condition_only"):
             clauses.append(f"and none of {pn} as the entry condition when the required population is absent")
         else:
-            clauses.append(f"and none of {pn}")
+            clauses.append(f"and none of {pn}, except verified randomized arm names when an eligible comparison exists")
     ia = inc.get("intervention_any")
     if ia:
         loc = "named in title/conditions" if inc.get("intervention_in_title") else "present in the record"
@@ -386,7 +386,75 @@ def describe_eligibility(inc: dict) -> str:
             + ". Excluded (rule id + verbatim span on each record): " + " · ".join(excl) + ".")
 
 
+class ComparisonScreenDecision(ScreenDecision):
+    """Keep legacy four-value unpacking while carrying the selected contrast."""
+
+    def __new__(cls, decision, rule_id, reason, evidence, comparison):
+        value = super().__new__(cls, decision, rule_id, reason, evidence)
+        value.comparison = comparison
+        return value
+
+
+def comparison_context(rec, inc):
+    """Remove only verified arm terms, and only with a usable eligible contrast.
+
+    RETROSPECTIVE decision, Dispatch under Mahmood's delegation, 2026-09-28,
+    semaglutide-weight rule e209c1d5: use the MATCHED placebo. Pooled placebo is
+    at most a labelled supportive alternative: one trial never contributes both,
+    and no placebo arm is counted twice in the same analysis.
+    """
+    labels = arm_parse.allocation_arms(rec)
+    parsed = [arm_parse.parse_arm(x) for x in labels]
+    arm_terms = [t for t in inc.get("population_none", [])
+                 if any(arm_parse.exposure(a, [t]) == "ACTIVE" for a in parsed)]
+    if not arm_terms:
+        return inc, None
+    interest = inc.get("intervention_any") or []
+    comparators = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
+    candidates = []
+    for a in parsed:
+        if arm_parse.exposure(a, interest) != "ACTIVE":
+            continue
+        for b in parsed:
+            if a is b or arm_parse.exposure(b, interest) not in ("ABSENT", "MATCHED_PLACEBO"):
+                continue
+            if not _has(b["label"], comparators):
+                continue
+            # A placebo for another regimen does not blind this contrast.
+            if any(c["kind"] == "MATCHED_PLACEBO" and not _has(c["matched_to"], interest)
+                   for c in b["components"]):
+                continue
+            placebo = any(c["kind"] in ("PLACEBO", "MATCHED_PLACEBO") for c in b["components"])
+            if placebo and arm_parse._other_actives(a, arm_parse._kws(interest)) != arm_parse._other_actives(b, arm_parse._kws(interest)):
+                continue
+            kind = "MATCHED_PLACEBO" if arm_parse.exposure(b, interest) == "MATCHED_PLACEBO" else ("PLACEBO" if placebo else "ACTIVE")
+            candidates.append({"experimental_arm": a["label"], "comparator_arm": b["label"],
+                               "comparator_kind": kind,
+                               "other_arms": [x for x in labels if x not in (a["label"], b["label"])]})
+    if not candidates:
+        return inc, None  # Fail closed: retain the population exclusion.
+    candidates.sort(key=lambda c: c["comparator_kind"] != "MATCHED_PLACEBO")
+    comparison = candidates[0]  # One selected contrast; never reuse a placebo.
+    placebos = [a["label"] for a in parsed if a["components"] and
+                all(c["kind"] in ("PLACEBO", "MATCHED_PLACEBO") for c in a["components"])]
+    if comparison["comparator_kind"] == "MATCHED_PLACEBO" and len(placebos) > 1:
+        comparison["pooled_placebo_alternative"] = {
+            "arms": placebos, "state": "NOT_THE_ELIGIBLE_CONTRAST",
+            "reason": "pools a placebo matched to a different regimen that is not blinded against the experimental regimen"}
+    return {**inc, "population_none": [t for t in inc.get("population_none", []) if t not in arm_terms]}, comparison
+
+
 def screen_record(rec, inc, neg_pmids):
+    effective, comparison = comparison_context(rec, inc)
+    if comparison and rec.get("id_type") != "pmid":
+        rec = {**rec, "interventions": arm_parse.allocation_arms(rec)}
+    result = _screen_record(rec, effective, neg_pmids)
+    if result[0] == "include" and comparison:
+        return ComparisonScreenDecision(*result, comparison=comparison)
+    return result
+
+
+def _screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""
     text = _text(rec)
@@ -508,6 +576,9 @@ def screen_record_2(rec, inc):
     screener 1 are exactly the title-anchored-vs-body question that caused past defects. NOT
     independent of screener 1 in the statistical sense (same author, same criteria) — that caveat is
     stated on the page; the rule-based screener 1 remains the adjudicator."""
+    inc, _comparison = comparison_context(rec, inc)
+    if _comparison and rec.get("id_type") != "pmid":
+        rec = {**rec, "interventions": arm_parse.allocation_arms(rec)}
     if _is_review(rec):
         return "exclude"
     text = _text(rec)
@@ -642,7 +713,8 @@ def run(all_recs: list, config: dict) -> dict:
                                         f"trial; its parent is handled separately.",
                               "span": (rec.get("title") or "")[:120]})
             continue
-        decision, rule, reason, span = screen_record(rec, inc, neg)
+        screened = screen_record(rec, inc, neg)
+        decision, rule, reason, span = screened
         arm_obj = None
         hidden = []
         arm_refusal = None
@@ -663,6 +735,8 @@ def run(all_recs: list, config: dict) -> dict:
         row = {"id": rec["id"], "id_type": rec["id_type"],
                "label": rec.get("acronym") or "", "decision": decision,
                "rule_id": rule, "reason": reason, "span": span}
+        if decision == "include" and getattr(screened, "comparison", None):
+            row["comparison"] = screened.comparison
         if arm_obj is not None and (arm_refusal or hidden or config.get("arm_object")):
             row["arm_object"] = arm_obj
         if hidden:
