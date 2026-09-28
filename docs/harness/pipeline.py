@@ -1135,6 +1135,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            # REPORTED_UNRESOLVED (with the span), never 'retrieved, not reported'
                            **({"reported_unresolved_span": _abs_over.get("reported_unresolved_span")}
                               if _abs_over.get("reported_unresolved_span") else {}),
+                           # a value HELD in the cited span but refused (post hoc; another outcome's attribution):
+                           # EXTRACTED_NOT_ADMITTED, never 'not reported'
+                           **({"held_out_row": _abs_over["held_out_row"]} if _abs_over.get("held_out_row") else {}),
+                           **({"attribution": _abs_over["attribution"]} if _abs_over.get("attribution") else {}),
+                           **({"not_admitted_because": _abs_over["not_admitted_because"]}
+                              if _abs_over.get("not_admitted_because") else {}),
                            "reason": _abs_over.get("reason", "declared absent (override): the committed source "
                                      "reports no value for this outcome; the extracted number was a different endpoint")})
             continue
@@ -2142,6 +2148,11 @@ def build_review_core(slug, config, records, protocol_sha):
     arm_label_conflict_mod.attach(review, slug)
     from . import relayed_values as relayed_values_mod
     relayed_values_mod.attach(review, slug)
+    # REGISTRY-ONLY entries linked to their publications (a report of the registration, never a second trial)
+    from . import registry_publications as registry_publications_mod
+    registry_publications_mod.attach(review, slug)
+    from . import outcome_restriction as outcome_restriction_mod
+    outcome_restriction_mod.attach(review, slug)
     # SOURCE VERSIONS: per-result version chains (original / corrections / regulatory) with a governing decision
     from . import source_versions as source_versions_mod
     source_versions_mod.attach(review)

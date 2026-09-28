@@ -163,4 +163,8 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("Death fell. Stroke rose.", ["Death fell.", "Stroke rose."]),
                               ("Was it lower? Yes!  No.", ["Was it lower?", "Yes!", "No."])],
                    "refuse": ["HR 0.80 (95% CI 0.70-0.90)", "rate 0.87 per 100"]}},
+    "target_endpoint.py:fullmatch:ceb88ddb19": {
+        "kind": "search", "what": "_keyword_family_match: an '-ing' keyword with a stem of 4+ letters (its event noun 'major bleed' is then matched as a whole word)",
+        "plants": {"accept": [("major bleeding", None), ("vomiting", None)],
+                   "refuse": ["safety outcome", "sing", "major bleeds"]}},
 }

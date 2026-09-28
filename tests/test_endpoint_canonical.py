@@ -60,7 +60,10 @@ def test_mixed_effect_label_plant_and_live_labels():
     live_doac = _primary(_live_review("doac-vte-recurrence"))
     live_noac = _primary(_live_review("noac-vs-warfarin-af-stroke"))
     assert live_doac["result"]["effect_label"] == "pooled first-event ratio (5 HR + 1 RR)"
-    assert live_noac["result"]["effect_label"] == "pooled first-event ratio (3 HR + 1 RR)"
+    # the requirement is that a label never HIDES a mix. Since 2026-09-28 RE-LY is served from the governing version of
+    # its chain (HR 0.65, FDA 2024 Table 11 = EMA SmPC Table 22), so NOAC pools 4 HR: no mix, nothing to label
+    assert [t.get("scale") for t in live_noac["trials"]] == ["HR"] * 4
+    assert live_noac["result"].get("effect_label") in (None, "pooled first-event ratio (4 HR)")
     assert "LABEL_HIDES_MIX" not in _codes(live_doac, "doac-vte-recurrence")
     assert "LABEL_HIDES_MIX" not in _codes(live_noac, "noac-vs-warfarin-af-stroke")
 

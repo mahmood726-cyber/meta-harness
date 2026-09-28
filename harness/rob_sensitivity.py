@@ -243,7 +243,10 @@ def sensitivity(review):
     if not prim or not prim.get("trials"):
         return None
     trials = prim["trials"]
-    estimand = prim.get("estimand", "RR")
+    # the SERVED pool's scale, not the topic's declared estimand: corticosteroids-covid19 declares OR but pools RR, and
+    # a count row (CoDEX 85/151 vs 91/148) re-pooled as an OR moved the 'full' stratum off the served number
+    # (0.8288 vs 0.85). The full stratum must reproduce the page's estimate with the identical estimator.
+    estimand = (prim.get("result") or {}).get("scale") or prim.get("estimand", "RR")
     rob = (review.get("rob2") or {}).get("trials") or {}
     membership = outcome_membership(prim, review)
     pooled_keys = membership.get("pooled") or [str(t.get("id")) for t in trials]

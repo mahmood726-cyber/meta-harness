@@ -121,6 +121,11 @@ def _derive_analysis_set(
     rec: dict[str, Any] | None,
     audit_row: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    # a hand row BOUND to held bytes with a declared analysis set (checked against its own located span by the binder,
+    # hand_binding._analysis_set_ok) keeps it: ROCKET-AF major bleeding is 'On Treatment Plus 2 Days' (the safety
+    # population of the regulator's Table 5), never the abstract's per-protocol EFFICACY population
+    if trial.get("hand_binding_state") == "BOUND" and trial.get("analysis_set") and trial.get("source_span"):
+        return _derived(str(trial["analysis_set"]), "declared with the bound held span", str(trial["source_span"]))
     text = _trial_text(trial, rec, audit_row)
     rules = [
         (r"\bmodified[-\s]+intention[-\s]+to[-\s]+treat\b|\bmodified\s+ITT\b|\bmITT\b",

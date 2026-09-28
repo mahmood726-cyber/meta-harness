@@ -275,7 +275,9 @@ def _expects_value(code: str, row: dict[str, Any]) -> bool:
     )
 
 
-_NUMERIC_RESULT = re.compile(r"\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*(?:to|-|–)\s*\d+(?:\.\d+)?")
+_POST_HOC = re.compile(r"\bpost[\s-]?hoc\b", re.I)
+# a percentage, an interval, or a table count cell 'n (x.x)' (FOURIER Table 3: '226 (1.6) | 201 (1.5)')
+_NUMERIC_RESULT = re.compile(r"\d+(?:\.\d+)?\s*%|\d+(?:\.\d+)?\s*(?:to|-|–)\s*\d+(?:\.\d+)?|\b\d[\d,]*\s*\(\d+(?:\.\d+)?\)")
 
 
 def _cited_value_present(row: dict[str, Any], sources: list[dict[str, str]]) -> dict[str, str] | None:
@@ -283,7 +285,15 @@ def _cited_value_present(row: dict[str, Any], sources: list[dict[str, str]]) -> 
     span = " ".join(str(row.get("verbatim_span") or row.get("source_span") or "").split())
     if not span or not _NUMERIC_RESULT.search(span):
         return None
-    for s in sources or []:
+    sources = list(sources or [])
+    if row.get("document_ref"):
+        # the held document the refusal CITES (an excerpt of a table), read as well as the abstract / full text
+        from .hand_binding import resolve_document
+        doc = resolve_document(row["document_ref"], str(row.get("id") or "").replace("PMID ", ""))
+        if doc:
+            sources.append({"source_id": f"cited:{doc['ref']}", "text": " ".join(doc["text"].split()).replace(" | ", " ")
+                            + " " + " ".join(doc["text"].split())})
+    for s in sources:
         if span in " ".join(str(s.get("text") or "").split()):
             return {"source_id": s.get("source_id") or s.get("source_kind") or "held source", "span": span}
     return None
@@ -311,6 +321,12 @@ def audit_reason_row(
             "stated_reason_code": code,
         }
     found = find_value_in_sources(sources, spec.get("keywords") or [], outcome.get("name"))
+    if found and code == absence.OUTCOME_POST_HOC_NOT_POOLED and _POST_HOC.search(found.get("span") or ""):
+        # the value IS held, and the very span that carries it labels the analysis post hoc: the refusal is about
+        # the analysis, not the value's presence -- pointing at the HR does not disprove it (ODYSSEY LONG TERM MACE)
+        return {"verdict": REASON_TRUE,
+                "detail": f"value held in a span that itself labels the analysis post hoc: \"{found['span'][:200]}\"",
+                "stated_reason_code": code, "source_id": found["source_id"], "source_span": found["span"]}
     if found:
         return {
             "verdict": REASON_FALSE_VALUE_HELD,

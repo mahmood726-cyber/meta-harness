@@ -92,10 +92,12 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
     zero_span = row.get("zero_events_span")
     if zero_span or (ex and ex.get("ai") == 0 and ex.get("ci") == 0):
         return {"state": REPORTED_ZERO_EVENTS, "span": zero_span or ex.get("span"),
-                "note": "zero events in every arm: reported; not estimable on a ratio scale"}
+                "note": (f"zero events in {row['zero_events_scope']}: reported; not estimable on a ratio scale"
+                         if row.get("zero_events_scope") else
+                         "zero events in every arm: reported; not estimable on a ratio scale")}
     if ex:
         code = row.get("reason_code") or row.get("state") or row.get("absent_kind")
-        why = code
+        why = row.get("not_admitted_because") or code
         if code == "EXTRACTION_NOT_PERFORMED" or (row.get("reason_code_audit") or {}).get("verdict") == "REASON_FALSE_VALUE_HELD":
             # the stored code says no extraction was done; the row holds one -- say what actually happened
             why = ("an extraction is held but was not admitted"
@@ -119,6 +121,11 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
             or "PROTOCOL_PREFERRED_ANALYSIS_IN_SUPPLEMENT" in (acq.get("states") or [])):
         return {"state": REPORTED_UNRESOLVED, "basis": code or row.get("absent_kind"),
                 **({"span": row["reported_unresolved_span"]} if row.get("reported_unresolved_span") else {})}
+    if "MAIN_RESULT_NOT_HELD" in (acq.get("states") or []):
+        # the report that holds this result is not held (GLAGOV: its Table 4 is in the full report; the abstract is
+        # silent): the inspected abstract's silence is never 'not reported'
+        return {"state": NOT_YET_RETRIEVED, "basis": code or row.get("absent_kind"),
+                "statement": "the report that holds this result is not held; " + str(acq.get("basis") or "")}
     cov = (row.get("source_coverage") or {}).get("coverage")
     if cov in ("EXCERPT", "ALTERED"):
         # the inspected text is an abridged excerpt of the publication: it can support no absence claim at all

@@ -293,13 +293,28 @@ def test_composite_component_mismatch_guard():
     assert not extract.composite_component_mismatch("Kidney composite outcome", tecos)
 
 
-def test_dpp4_tecos_declared_absent_for_estimand():
-    """dpp4-mace-t2d must NOT pool TECOS under the 3-point label (its abstract is a 4-point composite)."""
+def test_dpp4_tecos_never_pools_its_4_point_abstract_value_as_3_point():
+    """dpp4-mace-t2d must NOT pool TECOS's abstract value under the 3-point label (the abstract gives the 4-point
+    primary). Until 2026-09-27 this asserted TECOS was declared absent; the DPP-4 fixture then recovered the 3-point
+    SECONDARY composite from the EMA Januvia SmPC Table 3 (745 vs 746, HR 0.99 (0.89-1.10), ITT) -- the requirement is
+    the estimand, not the absence: if pooled, it is the SmPC 3-point row, never the 4-point 0.98."""
     r = json.load(open(os.path.join(DOCS, "reviews", "dpp4-mace-t2d", "review.json"), encoding="utf-8"))
     prim = next(o for o in r["outcomes"] if o.get("primary"))
-    assert "26052984" not in [str(t.get("label")) for t in prim.get("trials", [])], "TECOS still pooled 3-point"
-    da = [t for t in prim.get("declared_absent_trials", []) if str(t.get("label")) == "26052984"]
-    assert da and ("estimand" in da[0]["reason"].lower() or "4-point" in da[0]["reason"].lower() or "component" in da[0]["reason"].lower())
+    tecos = [t for t in prim.get("trials", []) if str(t.get("label")) == "26052984"]
+    if tecos:
+        t = tecos[0]
+        assert (t.get("effect"), t.get("ci_low"), t.get("ci_high")) == (0.99, 0.89, 1.10), "TECOS pooled with a non-3-point value"
+        assert "TECOS_EMA_SmPC_table3" in str(t.get("document_ref") or ""), "TECOS 3-point not bound to the SmPC table"
+    else:
+        da = [t for t in prim.get("declared_absent_trials", []) if str(t.get("label")) == "26052984"]
+        assert da and ("estimand" in da[0]["reason"].lower() or "4-point" in da[0]["reason"].lower()
+                       or "component" in da[0]["reason"].lower())
+    # PLANT: the 4-point abstract value under the 3-point label is always refused by the component guard
+    from harness import extract
+    assert extract.composite_component_mismatch(
+        "3-point major adverse cardiovascular events",
+        "composite of cardiovascular death, nonfatal myocardial infarction, nonfatal stroke, or hospitalization for "
+        "unstable angina (hazard ratio 0.98)")
 
 
 # ---- population guard + definition-audit fixes (cross-family definition sweep) -------------------

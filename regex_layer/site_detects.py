@@ -87,6 +87,10 @@ DETECTS: dict = {
         "detects": None,
         "why_not_labellable": "whitespace normalisation inside _fold; matches formatting, not meaning",
         "text_source": _FOLD_SRC, "lowercased": True},
+    "target_endpoint.py:fullmatch:ceb88ddb19": {
+        "detects": "the outcome keyword is a gerund event noun (major bleeding, vomiting) whose bare noun a table row may use instead",
+        "trigger": r"ing$",
+        "text_source": "one outcome keyword of the topic protocol (folded)", "lowercased": True},
     "target_endpoint.py:search:b01e38dc40": {
         "detects": "the text names coronary heart disease (CHD) death as an outcome or component",
         "trigger": r"chd|coronary",

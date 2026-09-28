@@ -122,6 +122,11 @@ def test_hm2_evidence_spans_are_held_and_all_new_entries_audited():
     items = json.loads((root / "outputs/handover/HM2_item_evidence.json").read_text(encoding="utf-8"))
     audits = json.loads((root / "docs/evidence/override-audit-2026-09-14/overrides.json").read_text(encoding="utf-8"))
     keys = {(x["topic"], x["file"], str(x["trial"]), x["outcome"]) for x in audits}
+    # an audited row whose override was later superseded is MOVED to superseded.json with what replaced it (never
+    # deleted): it stays audited, by declaration (FIGARO / PIONEER 6 / FOURIER / ODYSSEY rows, 2026-09-27/28)
+    sp = root / "docs/evidence/override-audit-2026-09-14/superseded.json"
+    sup = json.loads(sp.read_text(encoding="utf-8"))["rows"] if sp.exists() else []
+    keys |= {(x["topic"], x["file"], str(x["trial"]), x["outcome"]) for x in sup if str(x.get("superseded_by") or "").strip()}
     for item in items:
         if item["category"] == "unresolved":
             continue

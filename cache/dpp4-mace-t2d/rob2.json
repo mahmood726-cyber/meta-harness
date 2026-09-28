@@ -334,6 +334,250 @@
         }
       ]
     },
+    "26052984": {
+      "nct": "NCT00790205",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "some concerns",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 1.0% (overall 5.4%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 5.4,
+              "differential_pct": 1.0,
+              "groups": [
+                [
+                  7332,
+                  6972
+                ],
+                [
+                  7339,
+                  6905
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "some concerns",
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Maj') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)",
+                "title": "",
+                "description": "Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+              },
+              {
+                "measure": "Percentage of Participants With First Confirmed CV Event of Major Adverse Cardiovascular Event (MACE) Plus (Intent to Treat Population)",
+                "title": "",
+                "description": "Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population)",
+                "title": "",
+                "description": "CV composite endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke."
+              },
+              {
+                "measure": "Percentage of Participants With First Confirmed CV Event of MACE (Intent to Treat Population)",
+                "title": "",
+                "description": "CV composite endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke."
+              },
+              {
+                "measure": "Percent Incidence of All-cause Mortality (Per Protocol Population)",
+                "title": "",
+                "description": "Percent incidence of all-cause mortality is reported as the percentage of participants who died due to any cause."
+              },
+              {
+                "measure": "Percent Incidence of All-cause Mortality (Intent to Treat Population)",
+                "title": "",
+                "description": "Percent incidence of all-cause mortality is reported as the percentage of participants who died due to any cause."
+              },
+              {
+                "measure": "Percent Incidence of Congestive Heart Failure (CHF) Requiring Hospitalization (Per Protocol Population)",
+                "title": "",
+                "description": "Percent incidence of CHF requiring hospitalization was reported as the percentage of participants who were admitted to the hospital for CHF."
+              },
+              {
+                "measure": "Percent Incidence of CHF Requiring Hospitalization (Intent to Treat Population)",
+                "title": "",
+                "description": "Percent incidence of CHF requiring hospitalization was reported as the percentage of participants who were admitted to the hospital for CHF."
+              },
+              {
+                "measure": "Change From Baseline in Renal Function Over Time (Per Protocol Population)",
+                "title": "",
+                "description": "Change in renal function based on estimated glomerular filtration rate \\[eGFR\\] using the Modification of Diet in Renal Disease \\[MDRD\\] method."
+              },
+              {
+                "measure": "Change From Baseline in Renal Function Over Time (Intent to Treat Population)",
+                "title": "",
+                "description": "Change in renal function based on eGFR using the MDRD method."
+              },
+              {
+                "measure": "Change From Baseline in HbA1c Over Time (Per Protocol Population)",
+                "title": "",
+                "description": "HbA1c is a measure of the percentage of glycated hemoglobin in the blood. Estimated mean difference between sitagliptin and placebo controlling for baseline HbA1c and region."
+              },
+              {
+                "measure": "Change From Baseline in HbA1c Over Time (Intent to Treat Population)",
+                "title": "",
+                "description": "HbA1c is a measure of the percentage of glycated hemoglobin in the blood. Estimated mean difference between sitagliptin and placebo controlling for baseline HbA1c and region."
+              },
+              {
+                "measure": "Change From Baseline in Urine Albumin:Creatinine Ratio Over Time (Per Protocol Population)",
+                "title": "",
+                "description": "Change from baseline reflects the difference between the urine albumin:creatinine ratio reported time point and baseline value."
+              },
+              {
+                "measure": "Change From Baseline in Urine Albumin:Creatinine Ratio Over Time (Intent to Treat Population)",
+                "title": "",
+                "description": "Change from baseline reflects the difference between the urine albumin:creatinine ratio reported time point and baseline value."
+              },
+              {
+                "measure": "Percentage of Participants Who Initiated Chronic Insulin Therapy (Per Protocol Population)",
+                "title": "",
+                "description": "Chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months."
+              },
+              {
+                "measure": "Percentage of Participants Who Initiated Chronic Insulin Therapy (Intent to Treat Population)",
+                "title": "",
+                "description": "Chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months."
+              },
+              {
+                "measure": "Percentage of Participants With Initiation of Co-interventional Agent (Per Protocol Population)",
+                "title": "",
+                "description": "In participants not receiving insulin at baseline, time to addition of first co-interventional agent (i.e., next oral antihyperglycemic agent \\[AHA\\] or chronic insulin, where chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months.)"
+              },
+              {
+                "measure": "Percentage of Participants With Initiation of Co-interventional Agent (Intent to Treat Population)",
+                "title": "",
+                "description": "In participants not receiving insulin at baseline, time to addition of first co-interventional agent (i.e., next oral AHA or chronic insulin, where chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months.)"
+              }
+            ],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)",
+              "matched": false,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "NONFATAL_MI",
+                "NONFATAL_STROKE",
+                "UNSTABLE_ANGINA"
+              ],
+              "registered_text": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population) Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "some concerns"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    },
     "28893244": {
       "nct": "NCT01703208",
       "registry_in_aact": true,

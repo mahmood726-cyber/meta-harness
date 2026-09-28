@@ -635,6 +635,12 @@ def _keyword_family_match(spec: dict[str, Any], text: str | None) -> bool:
         k = _fold(kw)
         if len(k) > 3 and k in s:
             return True
+        # the event noun of an '-ing' keyword, as a whole word: a regulator's table labels the row 'Major bleed'
+        # (FDA PRADAXA label, RE-LY) for the keyword 'major bleeding'. Stem of at least 4 letters, then a word end
+        # or a plural 's' -- never a prefix of a longer word
+        m = re.fullmatch(r"(.*\b[a-z]{4,})ing", k)
+        if m and re.search(r"(?<![a-z])" + re.escape(m.group(1)) + r"s?(?![a-z])", s):
+            return True
     canon = set(canonical_components(spec))
     return bool(canon and (canon & _components_from_text(text)))
 

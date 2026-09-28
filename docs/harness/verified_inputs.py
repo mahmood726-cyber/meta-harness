@@ -4,6 +4,7 @@ Legacy entries without a verbatim span retain their existing verification path.
 An explicit source_span is never treated as free-form citation commentary.
 """
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -87,8 +88,12 @@ def _validate(entry, directory, pid, canonical=False):
     if entry['kind'] == 'typed_refusal' and entry.get('provenance') not in {
             'REFUSED_ON_EVIDENCE', 'SIGNAL_SPURIOUS', 'MULTI_ARM_UNRESOLVED',
             'TIMEPOINT_MISMATCH', 'POPULATION_MISMATCH',
-            'EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH'}:
+            'EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH', 'outcome_post_hoc_not_pooled'}:
         raise ValueError(f'{directory.name}/{pid}: unrecognized typed refusal provenance')
+    # a post-hoc refusal is typed only on a span that ITSELF labels the analysis post hoc (fail closed)
+    if (entry['kind'] == 'typed_refusal' and entry.get('provenance') == 'outcome_post_hoc_not_pooled'
+            and not re.search(r'\bpost[\s-]?hoc\b', span, re.I)):
+        raise ValueError(f'{directory.name}/{pid}: a post-hoc refusal span must itself say post hoc')
 
 
 def load(slug, cache_root=None):
@@ -110,7 +115,8 @@ def load(slug, cache_root=None):
 def validate_referenced_span(row):
     """Recheck an explicitly cited held document during absence annotation."""
     ref = Path((row.get('document_ref') or '').split('#')[0])
-    if (len(ref.parts) < 3 or ref.parts[0] not in ('cache', 'outputs')
+    # committed excerpts of held documents live under evidence/ (evidence/acquisition_cascade/excerpts/...)
+    if (len(ref.parts) < 3 or ref.parts[0] not in ('cache', 'outputs', 'evidence')
             or not (ROOT / ref).resolve().is_relative_to(ROOT.resolve())):
         raise ValueError('Typed refusal requires a held verbatim span in an identified held document')
     entry = dict(row, kind='typed_refusal',

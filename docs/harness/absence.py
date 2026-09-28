@@ -279,7 +279,7 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     span = row.get("source_span") or row.get("verbatim_span")
     allowed = {REFUSED_ON_EVIDENCE, SIGNAL_SPURIOUS, MULTI_ARM_UNRESOLVED,
                TIMEPOINT_MISMATCH, POPULATION_MISMATCH,
-               EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH}
+               EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH, OUTCOME_POST_HOC_NOT_POOLED}
     if row.get("typed_refusal") or ((row.get("absent_kind") == "adjudicated_absent" or row.get("source_adjudicated")) and span and code in allowed):
         if code not in allowed or not reason or not span:
             raise ValueError("Typed refusal requires a recognized code, reason and held verbatim span")

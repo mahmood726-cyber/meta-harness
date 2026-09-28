@@ -581,3 +581,116 @@ other topics have not been swept for this.
 - 551 tests passed, 0 failed, in a per-file run. The first combined run crashed (exit 127, memory) after two failures;
   both were real (the HM3 contract and pages tests) and are fixed. A pass count taken through `tail` also hides
   "N failed, M passed" lines, so the grep for "failed" is explicit.
+
+## Round 2026-09-28b: NOAC-AF and PCSK9 fixtures
+
+### NOAC-AF (generator: `outputs/handover/noac_sources/make_noac_fixtures.py`, idempotent)
+- **RE-LY stroke/SE, version chain `RE-LY:stroke-SE:150mg`, governing DECIDED on v3.**
+  - Versions:
+    - v0: NEJM 2009 abstract, RR 0.66 (0.53-0.82), with counts 134 vs 199 relayed.
+    - v1: FDA PRADAXA label, Oct 2010, Table 4: 134 vs 202, HR 0.65 (0.52, 0.81).
+    - v2: the investigators' "Newly identified events in the RE-LY trial" (PMID 21047252). NOT held (NEJM 403, not OA).
+    - v3: FDA label, Jan 2024, Table 11, "Randomized ITT": 135 vs 203, HR 0.65 (0.52, 0.81).
+    - v3b: EMA SmPC Table 22, which reproduces v3.
+  - The served row (`dose_selection.json`, 150 mg) is now 0.65 (0.52-0.81). Pool 0.8069 -> 0.8040, and the interval
+    stays below 1. A plant confirms that serving 0.66 under the DECIDED chain raises VERSION_SUPERSEDED_SERVED.
+- **Major bleeding recovered (k 0 -> 4, 0.8544, 0.6439-1.1336).**
+  - RE-LY: bound to FDA 2010 Table 2, 399 vs 421, HR 0.93 (0.81, 1.07), randomised. Chain PENDING:
+    - the original 375 vs 397 carries the same tuple with different counts (an identical effect is not an identical
+      version);
+    - the EMA SmPC gives 409 vs 426 with no HR;
+    - FDA 2024's 0.97 (0.84, 1.12) is a different population (treated patients, on treatment + 2 days).
+  - ROCKET-AF: bound to the FDA XARELTO label Table 5, 395 vs 386, HR 1.04 (0.90, 1.20), on treatment plus 2 days
+    (safety population). A plant confirms the major + CRNM composite 1.03 (0.96-1.11) never binds as major bleeding.
+  - Two root causes fixed:
+    - `target_endpoint._keyword_family_match`: an "-ing" keyword now also matches its whole-word event noun ("Major
+      bleed"; stem of 4 or more letters).
+    - `compat_check._derive_analysis_set`: a BOUND hand row keeps its declared analysis set instead of the abstract's
+      per-protocol efficacy population.
+- **Edoxaban phase II** (`docs/registry_publications.json`, `harness/registry_publications.py`, witnesses fail closed).
+  Each publication is a report of its registration, never a second trial:
+  - Weitz 2010 -> NCT00504556: abstract only; NOT_YET_RETRIEVED.
+  - Chung 2011 -> NCT00806624: stroke/SE REPORTED_ZERO_EVENTS ("No thromboembolic events occurred in any treatment
+    group"). The publication says 235 randomised vs the registry's 234; recorded, not resolved.
+  - Yamashita 2012 -> NCT00829933 (J-STAGE PDF held locally, excerpt committed):
+    - stroke/SE: zero events in the compared 60 mg and warfarin arms (the one event was in the 45 mg arm);
+    - major bleeding: 2/130 vs 0/125, EXTRACTED_NOT_ADMITTED.
+- **J-ROCKET AF** (NCT00494871, PMID 22664783) goes in `docs/known_eligible_missing.json`: an independent phase III
+  trial, absent from the inventory, NOT pooled.
+  - The three held analyses: PP on treatment 0.49 (0.24-1.00); ITT including 30-day follow-up 0.82 (0.46-1.45), the
+    candidate; ITT on treatment 0.48 (0.23-1.00).
+  - Compatibility decisions are pending (15 mg dose; INR 1.6-2.6 for patients aged 70 or over). The page is STALE for it.
+
+### PCSK9 (generator: `outputs/handover/pcsk9_sources/make_pcsk9_fixtures.py`, idempotent)
+- **GLAGOV MACE**: never "not reported". NOT_YET_RETRIEVED via the acquisition state MAIN_RESULT_NOT_HELD (the new
+  rule in `result_status`).
+  - Table 4 is not held: JAMA not open; Amsterdam UMC PDF 403; ruj.uj.edu.pl URLError twice (recorded); the registry
+    posts no MACE.
+  - 59/484 vs 74/484 is relayed, not held.
+  - COMPONENT_SUM_AS_COMPOSITE (blocking) stops component rows being summed into a patient composite.
+- **ODYSSEY LONG TERM MACE**: the post-hoc refusal stands; the row is EXTRACTED_NOT_ADMITTED.
+  - The reason auditor had called it REASON_FALSE_VALUE_HELD. It is now REASON_TRUE when the span carrying the value
+    itself says "post hoc"; a plant confirms a span without "post hoc" stays falsifiable.
+  - `outcome_post_hoc_not_pooled` is a typed refusal only on a span that says post hoc (fail closed).
+  - POST_HOC_POOLED is blocking.
+- **Safety rows, from the trials' own Table 3s** (FOURIER UNIGE published version; ODYSSEY Szeged accepted manuscript;
+  both held locally, committed as TABLES excerpts):
+  - injection-site: FOURIER 296/13,769 vs 219/13,756, ODYSSEY 360/9,451 vs 203/9,443 (k 0 -> 2);
+  - AE -> discontinuation: ODYSSEY 343/9,451 vs 324/9,443 (k 0 -> 1).
+- **Restricted discontinuation rows** (`docs/outcome_restrictions.json`, `harness/outcome_restriction.py`):
+  - FOURIER's treatment-attributed 226 vs 201 is EXTRACTED_NOT_ADMITTED, attribution TREATMENT_ATTRIBUTED.
+  - OUTCOME_RESTRICTION_MISMATCH (blocking) refuses that row, and ODYSSEY's 26 vs 3 injection-site discontinuations,
+    for the unrestricted outcome.
+  - The reason auditor now reads the held document a refusal cites, and recognises table count cells "n (x.x)".
+
+### Notices (OPEN, reason-locked; history untouched)
+- Four new notices were appended to `docs/result_changes.json`:
+  - NOAC stroke/SE (the RE-LY governing change plus the J-ROCKET inventory change: two changes, signable separately);
+  - NOAC major bleeding;
+  - PCSK9 injection-site;
+  - PCSK9 AE -> discontinuation.
+- Caution: `scripts/refresh_result_change_notices.py` DROPS history notices whose change predates the base commit
+  (probiotics, tocilizumab, tranexamic acid) and would overwrite signed ones. It must not be run to rewrite the file;
+  append new notices instead.
+
+### Decisions for Mahmood
+- Signatures for the four notices.
+- RE-LY major bleeding: keep the randomised 0.93, or adopt the on-treatment 0.97 to match the other three trials.
+- J-ROCKET AF compatibility: the dose and the INR target.
+- Whether to admit the phase II edoxaban trials.
+- GLAGOV: once Table 4 can be held, a compatible HR for the first-MACE counts.
+
+### Latent debt surfaced by the FULL suite (and what was done)
+The previous round's "551 passed" covered a 53-file SUBSET. This round ran all 240 test files, one file at a time,
+and found failures accumulated by earlier rounds of this lane. They are fixed at the source, except one.
+- **RoB sensitivity re-pooled on the declared estimand (OR), not the served scale (RR).**
+  - COVID's "full" stratum read 0.8288 vs the served 0.85 once the CoDEX count row entered the pool.
+  - `rob_sensitivity.sensitivity` now uses `result.scale`.
+- **RoB and arm-contrast coverage were missing for newly pooled trials** (COVID CoDEX 32876695, DPP-4 TECOS
+  26052984). Added by `scripts/rob2_build.py --write` and `scripts/arm_contrast_build.py --write`: purely additive,
+  no existing assessment changed.
+- **The override audit was out of 1:1.**
+  - 8 new override rows were added, each with its judgement.
+  - 7 superseded rows were MOVED to `docs/evidence/override-audit-2026-09-14/superseded.json`, with what replaced
+    them; none was deleted.
+  - The HM2 contract now accepts a row that is declared superseded.
+- **Notices lacked two required sentences.** "the numbers are not asserted wrong" and "eligible evidence awaiting
+  adjudication" were missing on 14 OPEN notices of this lane. Appended; no signed notice was edited.
+- **Two tests pinned old behaviour, now rewritten as requirements.**
+  - The TECOS test still asserted "declared absent". The requirement is now that, if TECOS is pooled, it is the SmPC
+    3-point row, never the 4-point 0.98.
+  - The NOAC effect label expected "3 HR + 1 RR". The requirement is now that the label never hides a mix; there are
+    now 4 HR.
+- **Stale derived renders:** the fix ledger and the fix-state lines were re-rendered.
+- **The one new regex site now has plants and a labelling spec** (`regex_layer`; N_SITES 375 -> 376).
+- **OPEN, not fixable here:** `test_error_rate_is_fresh_against_current_pooled_population`. The error-rate census
+  must be re-run for the newly pooled numbers: a blind re-extraction (`scripts/error_rate_compare.py` +
+  `error_rate_pass2.py`), then hand adjudication of each mismatch. It is a measurement, not a code fix.
+
+### Verification (final state)
+- 32/32 topics rebuilt after the last harness change.
+- Gate: 21/32 pass. The 11 designed holds are 9 pages with OPEN notices and 2 HARMS_INCOMPLETE pages.
+- Served diff vs 7e70759a: 14 moved outcomes, each with exactly one OPEN notice; no notice without a move.
+- GLP-1 signature bundle regenerated: **5160a1d6**. HM3 supersession regenerated.
+- Full per-file suite: 240 files, 239 green, **4679 passed, 1 failed** (the error-rate census above).
+  - `test_architecture_identity` needs 12m50s alone. The first run's 1500 s limit was hit under contention.

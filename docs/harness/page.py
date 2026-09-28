@@ -1828,6 +1828,16 @@ def _trial_inputs(o):
             _rv = t["relayed_not_held"]
             reason_detail += (f"<br><span class='muted' data-relayed-not-held='1'>relayed, NOT held (not data): "
                               f"{_e(_rv.get('value'))} &mdash; {_e(_rv.get('why_not_held'))}</span>")
+        if t.get("linked_publication"):
+            _lp = t["linked_publication"]
+            reason_detail += (f"<br><span class='muted' data-linked-publication='1'>publication of this registration "
+                              f"(a report of it, not a second trial): {_e(_lp.get('label'))}, PMID {_e(_lp.get('pmid'))} "
+                              f"[{_e(_lp.get('coverage'))}]; identity: {_e(_lp.get('identity_check'))}</span>")
+        if t.get("publication_statement"):
+            reason_detail += f"<br><span class='muted'>publication: {_e(t.get('publication_statement'))}</span>"
+        if t.get("attribution"):
+            reason_detail += (f"<br><span class='muted'>attribution of the held row: <code>{_e(t.get('attribution'))}</code> "
+                              "(a restricted outcome; not this outcome's number)</span>")
         if t.get("completeness_basis"):
             reason_detail += f"<br><span class='muted'>completeness basis: {_e(t.get('completeness_basis'))}</span>"
         hm = t.get("harm_absence_state")
