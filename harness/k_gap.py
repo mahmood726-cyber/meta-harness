@@ -153,7 +153,10 @@ def parse_refs(root) -> dict[str, dict]:
         sn = ref.find(".//surname")
         if sn is not None and sn.text:
             surname = sn.text.strip()
+        lab = ref.find("label")
+        ref_label = _text(lab).strip(" .[]()") if lab is not None else ""
         out[rid] = {"rid": rid, **ids, "title": title, "year": year, "first_author": surname,
+                    "label": ref_label, "ordinal": len(out) + 1,
                     "text": txt[:400], "ncts": sorted(set(NCT_RE.findall(txt)))}
     return out
 
@@ -207,6 +210,7 @@ _FURNITURE = re.compile(r"^(?:study|trial|author|year|\d{4}|n|total|overall|refe
                         r"participants?|treatment|control|intervention|placebo|mean|median|[-–— ]*)$", re.I)
 _ACRO = re.compile(r"\b([A-Z][A-Z0-9]{2,}(?:[- ][A-Z0-9]{1,}){0,3})\b")
 _AUTHOR_YEAR = re.compile(r"^([A-Z][A-Za-z'À-ſ-]+)(?:\s+et\s+al\.?)?,?\s*\(?((?:19|20)\d\d)\)?")
+_PAREN_ACRO = re.compile(r"\(([A-Z][A-Za-z0-9]*[A-Z0-9][A-Za-z0-9]*(?:[- ][A-Za-z0-9]+){0,3})\)")
 _NOT_ACRO = {"RCT", "RCTS", "USA", "UK", "NA", "NR", "HR", "RR", "OR", "CI", "BMI", "LDL", "HDL", "CKD", "HF",
              "HFREF", "HFPEF", "LVEF", "NYHA", "ACS", "MI", "CAD", "PCI", "CABG", "DM", "T2DM", "AF", "VTE",
              "DVT", "PE", "ITT", "MACE", "COVID", "SARS", "ICU", "ARDS", "CAP", "PPH", "MADRS", "TRD",
@@ -440,7 +444,7 @@ class AactStore:
         if d.get("snapshot") != self.snap:
             d = {"snapshot": self.snap}
         self.d = d
-        for k in ("acr", "pmid", "study", "interventions", "outcomes"):
+        for k in ("acr", "acr_title", "pmid", "study", "interventions", "outcomes", "design_groups"):
             self.d.setdefault(k, {})
 
     def save(self):
@@ -451,13 +455,24 @@ class AactStore:
         return os.path.join(self.snap, name + ".txt")
 
     def build_maps(self, log=print):
-        if not self.snap or (self.d["acr"] and self.d["pmid"]):
+        if not self.snap or (self.d["acr"] and self.d["pmid"] and self.d["acr_title"]):
             return
-        log("AACT: scanning studies (acronyms)")
+        log("AACT: scanning studies (acronyms + parenthesised title acronyms)")
+        self.d["acr"], self.d["acr_title"] = {}, {}
         for r in self.aact._iter_rows(self._t("studies")):
+            if (r.get("study_type") or "").upper() != "INTERVENTIONAL":
+                continue
+            n = r["nct_id"].upper()
             a = norm_acronym(r.get("acronym") or "")
-            if a and (r.get("study_type") or "").upper() == "INTERVENTIONAL":
-                self.d["acr"].setdefault(a, []).append(r["nct_id"].upper())
+            if a:
+                self.d["acr"].setdefault(a, []).append(n)
+            # RE-LY (NCT00262600) and ROCKET AF (NCT00403767) carry an EMPTY acronym field; the acronym is
+            # only in the title, parenthesised. A parenthesised token in a title is the registrant naming it.
+            for t in (r.get("brief_title") or "", r.get("official_title") or ""):
+                for m in _PAREN_ACRO.finditer(t):
+                    ta = norm_acronym(m.group(1))
+                    if len(ta) >= 4 and n not in self.d["acr_title"].get(ta, []):
+                        self.d["acr_title"].setdefault(ta, []).append(n)
         log("AACT: scanning study_references")
         for r in self.aact._iter_rows(self._t("study_references")):
             t = (r.get("reference_type") or "").upper()
@@ -495,6 +510,23 @@ class AactStore:
                     "id", "outcome_type", "title", "time_frame", "population", "param_type", "units")})
         self.save()
 
+    def ensure_design_groups(self, log=print):
+        """design_groups (group_type + title) for every held NCT that lacks them: the arm TYPE is how a
+        double-dummy active-comparator trial (placebo named in its intervention list) is told apart from a
+        placebo-controlled one."""
+        want = {n for n in self.d["study"] if n not in self.d["design_groups"]}
+        if not want or not self.snap:
+            return
+        log(f"AACT: design_groups for {len(want)} NCTs")
+        for n in want:
+            self.d["design_groups"][n] = []
+        for r in self.aact._iter_rows(self._t("design_groups")):
+            n = r["nct_id"].upper()
+            if n in want:
+                self.d["design_groups"][n].append({"group_type": r.get("group_type") or "",
+                                                   "title": (r.get("title") or "")[:200]})
+        self.save()
+
     def index(self, agent_terms) -> dict:
         """The dict shape resolve_unit / aact_source consume, with agent flags for THIS topic's agents."""
         agent_re = re.compile("|".join(re.escape(a) for a in agent_terms), re.I) if agent_terms else None
@@ -503,9 +535,11 @@ class AactStore:
             for p, v in self.d["pmid"].items():
                 for n, _t in v:
                     self._rev.setdefault(n, []).append(p)
-        return {"snapshot": self.snap, "acr_nct": self.d["acr"], "nct_pmids": self._rev,
+        return {"snapshot": self.snap, "acr_nct": self.d["acr"], "acr_title_nct": self.d["acr_title"],
+                "nct_pmids": self._rev,
                 "pmid_nct": {p: [tuple(x) for x in v] for p, v in self.d["pmid"].items()},
                 "study": self.d["study"], "interventions": self.d["interventions"], "outcomes": self.d["outcomes"],
+                "design_groups": self.d["design_groups"],
                 "agent_nct": {n: bool(agent_re and any(agent_re.search(x) for x in v))
                               for n, v in self.d["interventions"].items()}}
 
@@ -532,7 +566,7 @@ def held_text(slug: str, date: str = "2026-09-28") -> tuple[str, str]:
 
 # ------------------------------------------------- comparator REFERENCE SEEDING (open reference lists)
 
-def fetch_epmc_references(pmid: str, date: str) -> dict:
+def fetch_epmc_references(pmid: str, date: str, offline: bool = False) -> dict:
     """The comparator's cited-reference list from Europe PMC (/MED/<pmid>/references), cached raw with
     sha256. Open metadata, so it exists for comparators whose full text is not open."""
     from harness import http
@@ -541,6 +575,8 @@ def fetch_epmc_references(pmid: str, date: str) -> dict:
     if os.path.exists(p):
         with open(p, "rb") as fh:
             body = fh.read()
+    elif offline:
+        return {"state": "NOT_CACHED_OFFLINE", "refs": []}
     else:
         pages, page = [], 1
         while page <= 5:
@@ -566,14 +602,14 @@ def fetch_epmc_references(pmid: str, date: str) -> dict:
             "file": os.path.relpath(p, ROOT).replace(os.sep, "/")}
 
 
-def pubmed_pubtypes(pmids, cache_path: str) -> dict:
+def pubmed_pubtypes(pmids, cache_path: str, offline: bool = False) -> dict:
     """PMID -> {pubtypes, title} via NCBI esummary (batched, cached)."""
     from harness import http
     cache = {}
     if os.path.exists(cache_path):
         with open(cache_path, encoding="utf-8") as fh:
             cache = json.load(fh)
-    todo = sorted({p for p in pmids if p and p.isdigit() and p not in cache})
+    todo = [] if offline else sorted({p for p in pmids if p and p.isdigit() and p not in cache})
     for i in range(0, len(todo), 150):
         chunk = todo[i:i + 150]
         try:
@@ -625,3 +661,26 @@ def held_text_identity(abstract: str, held: str) -> dict:
     state = ("NO_ABSTRACT" if not a else "NAMED_ARTICLE" if shared >= 10 else
              "HELD_TEXT_NOT_NAMED_ARTICLE" if shared == 0 else "IDENTITY_UNCERTAIN")
     return {"abstract_shingles": len(a), "shared": shared, "state": state}
+
+
+_REFNUM = re.compile(r"[\[(]\s*(\d{1,3})\s*[\])]|\^(\d{1,3})|(?<=[A-Za-z])(\d{1,3})$")
+
+
+def refs_by_number(label: str, refs: dict) -> list[dict]:
+    """A proposal label copied with its citation number ('Imazio [19]', 'Zinman (8)') cites the comparator's
+    own reference list. Resolve the number by the ref's JATS <label> first, else by its ordinal position; the
+    two agreeing is not required, but a number matching NEITHER resolves nothing (never a nearest guess)."""
+    nums = [int(next(g for g in m.groups() if g)) for m in _REFNUM.finditer(label or "")]
+    out = []
+    for n in nums:
+        hit = [r for r in refs.values() if r.get("label") == str(n)] or \
+              [r for r in refs.values() if r.get("ordinal") == n and not r.get("label")]
+        if len(hit) == 1:
+            r = hit[0]
+            sur = re.match(r"^\s*([A-Z][A-Za-z'À-ſ-]{1,})", label or "")
+            if sur and r.get("first_author") and not (
+                    r["first_author"].lower().startswith(sur.group(1).lower()[:5])
+                    or sur.group(1).lower().startswith(r["first_author"].lower()[:5])):
+                continue            # the surname on the label and the cited ref disagree: resolve nothing
+            out.append(r)
+    return out

@@ -138,3 +138,48 @@ def test_reference_seed_keeps_only_rct_typed_agent_named_reports():
     u = k_gap.reference_seed_units(refs, pt, ["tocilizumab"])
     assert [x["cited"][0]["pmid"] for x in u] == ["1"]          # review, other agent, and no-PMID refs are out
     assert u[0]["table"] == "reference_seed"                     # labelled a candidate source, not a table
+
+
+def test_title_parenthesised_acronym_is_read():
+    # PLANT (RE-LY NCT00262600 / ROCKET AF NCT00403767): AACT's acronym field is EMPTY; the acronym exists only
+    # in the title. Reading the acronym field alone left both unresolved in the 2026-09-28 run.
+    got = [k_gap.norm_acronym(m.group(1)) for m in k_gap._PAREN_ACRO.finditer(
+        "Randomized Evaluation of Long Term Anticoagulant Therapy (RE-LY) With Dabigatran Etexilate (ROCKET AF)")]
+    assert got == ["RELY", "ROCKETAF"]
+
+
+def test_family_acronym_match_is_exact_or_long_prefix():
+    m = _table_mod()
+    fams = [{"family_id": "NCT02465515", "reports": {"30291013"}, "acronyms": {"HARMONYOUTCOMES"}, "eligibility": "ELIGIBLE"},
+            {"family_id": "SYN-1", "reports": {"10471456"}, "acronyms": {"RALES"}, "eligibility": "ELIGIBLE"}]
+    assert m.family_by_acronym(["RALES1999"], fams)["family_id"] == "SYN-1"
+    assert m.family_by_acronym(["HARMONY"], fams)["family_id"] == "NCT02465515"
+    assert m.family_by_acronym(["RAL"], fams) is None           # too short to be an identity
+
+
+def test_active_comparator_trial_is_scope_not_gap():
+    # PLANT (ARTS-HF: finerenone vs EPLERENONE, double-dummy -- 'placebo' is in its intervention list, so an
+    # intervention-name check called it placebo-controlled). The ARM TYPE says ACTIVE_COMPARATOR.
+    m = _table_mod()
+    idx = {"interventions": {"NCT01807221": ["Finerenone (BAY94-8862)", "Eplerenone", "Placebo"]},
+           "design_groups": {"NCT01807221": [{"group_type": "EXPERIMENTAL", "title": "Finerenone"},
+                                             {"group_type": "ACTIVE_COMPARATOR", "title": "Eplerenone [25 mg] + Placebo"}],
+                             "NCT00232180": [{"group_type": "EXPERIMENTAL", "title": "Eplerenone"},
+                                             {"group_type": "PLACEBO_COMPARATOR", "title": "Placebo"}],
+                             "NCT00262600": [{"group_type": "EXPERIMENTAL", "title": "Dabigatran 150"},
+                                             {"group_type": "ACTIVE_COMPARATOR", "title": "Warfarin"}]}}
+    placebo_topic = {"include": {"comparator_any": ["placebo"]}}
+    warfarin_topic = {"include": {"comparator_any": ["warfarin", "VKA"]}}
+    assert m.comparator_scope(["NCT01807221"], idx, placebo_topic)["state"] == "COMPARATOR_NOT_IN_REGISTRY_ARMS"
+    assert m.comparator_scope(["NCT00232180"], idx, placebo_topic)["state"] == "COMPARATOR_IN_REGISTRY_ARMS"
+    assert m.comparator_scope(["NCT00262600"], idx, warfarin_topic)["state"] == "COMPARATOR_IN_REGISTRY_ARMS"
+    assert m.comparator_scope([], idx, placebo_topic)["state"] == "UNKNOWN"
+
+
+def test_label_citation_number_resolves_against_ref_list_with_surname_guard():
+    # PLANT (7 topics in the 2026-09-28 run): proposal labels carry the comparator's citation number
+    # ('Imazio [19]', 'Zinman (8)'). Unresolved, the proposal instrument scored 0 trials where the table scored 8-36.
+    parsed = k_gap.parse_jats(JATS)
+    assert [r["pmid"] for r in k_gap.refs_by_number("Smith [4]", parsed["refs"])] == ["22222222"]
+    assert k_gap.refs_by_number("Jones [4]", parsed["refs"]) == []     # surname disagrees with ref 4 -> nothing
+    assert k_gap.refs_by_number("Smith [99]", parsed["refs"]) == []    # no such ref -> nothing, never nearest
