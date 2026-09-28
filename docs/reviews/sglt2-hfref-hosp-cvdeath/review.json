@@ -330,13 +330,13 @@
               },
               "Volume depletion or hypotension": {
                 "state": "DECLARED_ABSENT",
-                "code": "OUTCOME_NOT_IN_SOURCE",
-                "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+                "code": "REFUSED_ON_EVIDENCE",
+                "reason": "EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory"
               },
               "Diabetic ketoacidosis": {
                 "state": "DECLARED_ABSENT",
-                "code": "OUTCOME_NOT_IN_SOURCE",
-                "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+                "code": "REFUSED_ON_EVIDENCE",
+                "reason": "EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory"
               }
             }
           },
@@ -1972,6 +1972,105 @@
         "k": 2,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "known_missing_sensitivity": {
+        "claim_id": "sglt2-hfref-hosp-cvdeath::primary::known_missing_sensitivity",
+        "depends_on": {
+          "input_set_version": "d7bd647a469878cb0205df24ba13a121e6617449e334ecd8eafab95e9e03280b"
+        },
+        "depends_on_detail": [
+          {
+            "path": "/invalidation/reasons",
+            "codes": [
+              "search_not_executed",
+              "known_eligible_missing",
+              "eligible_declared_absent"
+            ]
+          },
+          {
+            "path": "/outcomes/primary/result",
+            "k": 2,
+            "estimate": 0.75
+          }
+        ],
+        "heading": "Known eligible trials not in this pool, and what they would do",
+        "label": "SENSITIVITY",
+        "rows": [
+          {
+            "trial_key": "DEFINE-HF",
+            "name": "DEFINE-HF",
+            "source_ref": null,
+            "source_span": null,
+            "verify_basis": "named trial is not present in the committed topic cache",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "known_eligible_missing via inventory (absent from the committed search); eligible by P/I/C/design (HFrEF, dapagliflozin vs placebo, randomised)",
+            "sensitivity_label": "SENSITIVITY",
+            "result_status": {
+              "state": "PUBLISHED_NO_TARGET_OUTCOME",
+              "span": "Dual primary outcomes were (1) mean NT-proBNP (N-terminal pro b-type natriuretic peptide) and (2) proportion of patients with ≥5-point increase in HF disease-specific health status on the Kansas City Cardiomyopathy Questionnaire overall summary score, or a ≥20% decrease in NT-proBNP.",
+              "basis": "the held abstract names its primary outcomes: a biomarker and a symptom/biomarker responder"
+            },
+            "design_note": "its dual primary outcomes are a BIOMARKER (NT-proBNP) and a SYMPTOM/biomarker responder (KCCQ >= 5 points or NT-proBNP -20%): never relabelled as clinical events",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "EMPERIAL-Reduced",
+            "name": "EMPERIAL-Reduced",
+            "source_ref": null,
+            "source_span": null,
+            "verify_basis": "named trial is not present in the committed topic cache",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "known_eligible_missing via inventory (absent from the committed search); eligible by P/I/C/design (HFrEF, empagliflozin vs placebo)",
+            "sensitivity_label": "SENSITIVITY",
+            "result_status": {
+              "state": "PUBLISHED_NO_TARGET_OUTCOME",
+              "span": "The primary endpoint was 6-minute walk test distance (6MWTD) change to Week 12.",
+              "basis": "the joint paper's primary endpoint for both EMPERIAL trials is walk distance"
+            },
+            "comparisons": "EMPERIAL-Reduced only (EMPERIAL-Preserved, the paper's other trial, is not an HFrEF population)",
+            "design_note": "its primary outcome is 6-minute walk distance; KCCQ and dyspnoea scores are symptoms: never relabelled as clinical events. SAFETY (relayed, not held -- the paper is not open): hypotension category (hypotension / orthostatic hypotension / syncope) 6/155 vs 2/156; ketoacidosis 0/155 vs 0/156. HELD (registry, coded terms on safety denominators 155/156): Hypotension 2 vs 0; Syncope 0 vs 1 -- separate coded terms, never summed into the category; the registry names no ketoacidosis term, which bounds only what it lists, so 0 vs 0 is not claimed from held bytes",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "NCT04304560",
+            "name": "Value of SGLT2 Inhibitor (Dapagliflozin) as an Added Therapy in Diabetic Patients With Heart Failure With Reduced Ejection Fraction; Randomized Controlled Clinical Trial",
+            "source_ref": "cache/sglt2-hfref-hosp-cvdeath/records.json#NCT04304560.abstract",
+            "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention SGLT2, comparator placebo, population heart failure — P/I/C/design met.",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "NCT06229678",
+            "name": "Ketones, SGLT2, HFrEF",
+            "source_ref": "cache/sglt2-hfref-hosp-cvdeath/records.json#NCT06229678.abstract",
+            "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention SGLT2, comparator placebo, population heart failure — P/I/C/design met.",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "NCT04385589",
+            "name": "Dapagliflozin in Diabetic Patients (Type 2) With Decompensated Heart Failure",
+            "source_ref": "cache/sglt2-hfref-hosp-cvdeath/records.json#NCT04385589.abstract",
+            "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention dapagliflozin, comparator insulin, population heart failure — P/I/C/design met.",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          }
+        ],
+        "headline_conclusion_effect": "NOT_COMPUTABLE"
       }
     },
     {
@@ -2018,6 +2117,12 @@
           "registry_status": "COMPLETED",
           "completion_date": "2019-07-17",
           "results_first_posted_date": "2020-09-01",
+          "relayed_not_held": {
+            "value": "volume depletion 178/2,368 dapagliflozin vs 162/2,368 placebo (Table 2, at least one dose)",
+            "relayed_by": "the orchestrating lane (SGLT2-HFrEF review fixtures, 2026-09-28)",
+            "said_to_be_in": "DAPA-HF, NEJM 2019, Table 2",
+            "why_not_held": "NEJM PDF 403; the Groningen repository PDF 403; Europe PMC not open access (recorded). The registry's posted rows are CODED terms (hypotension, orthostatic hypotension, syncope, dehydration; diabetic ketoacidosis, ketoacidosis, DKA coma): a different definition, never summed into the aggregate"
+          },
           "state_basis": "REFUSED_ON_EVIDENCE: source span: \"The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.\"; The source reports volume depletion narratively; AACT separates hypotension, orthostatic hypotension and dehydration in a treated safety population, without a deduplicated as-randomized composite.",
           "trial_id": "PMID 31535829",
           "report_id": "PMID 31535829",
@@ -2036,7 +2141,7 @@
           "source_coverage": {
             "inspected": "the committed record abstract",
             "coverage": "VERBATIM",
-            "verbatim_path": "evidence/acquisition_cascade/held/PMID31535829/europepmc_record_31535829.json",
+            "verbatim_path": "evidence/acquisition_cascade/held/DAPA-HF/europepmc_record_31535829.json",
             "verbatim_sha256": "2203c7f252a8639b4eb82acc83087ae29594463f6abc3a3d53ec22210f3b8b74",
             "missing_text": [],
             "inserted_text": [],
@@ -2056,8 +2161,20 @@
         {
           "label": "32865377",
           "id": "PMID 32865377",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "Adverse events of interest are listed in Table S2.",
+          "verbatim_span": "Adverse events of interest are listed in Table S2.",
+          "source": "Adverse events of interest are listed in Table S2.",
+          "document_ref": "evidence/acquisition_cascade/excerpts/EMPEROR-Reduced_adverse_events_sentence.txt",
+          "source_level": null,
+          "reported_unresolved_span": "Adverse events of interest are listed in Table S2.",
+          "reason": "EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory",
           "trial_family_id": "NCT03057977",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2065,38 +2182,32 @@
           "registry_status": "COMPLETED",
           "completion_date": "2020-05-28",
           "results_first_posted_date": "2021-05-18",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"BACKGROUND: Sodium-glucose cotransporter 2 (SGLT2) inhibitors reduce the risk of hospitalization for heart failure in patients regardless of the presence or absence of diabetes. More evidence is need...\"; no sentence matching the outcome terms was found",
-          "source_span": "BACKGROUND: Sodium-glucose cotransporter 2 (SGLT2) inhibitors reduce the risk of hospitalization for heart failure in patients regardless of the presence or absence of diabetes. More evidence is need...",
-          "verbatim_span": "BACKGROUND: Sodium-glucose cotransporter 2 (SGLT2) inhibitors reduce the risk of hospitalization for heart failure in patients regardless of the presence or absence of diabetes. More evidence is need...",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"Adverse events of interest are listed in Table S2.\"; EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory",
           "trial_id": "PMID 32865377",
           "report_id": "PMID 32865377",
           "outcome_effect_id": "sglt2-hfref-hosp-cvdeath::Volume depletion or hypotension::PMID 32865377::PMID 32865377",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
+          "harm_source_reported": true,
           "family_id": "NCT03057977",
           "family_identity_state": "REGISTRY_ANCHORED",
           "source_coverage": {
             "inspected": "the committed record abstract",
             "coverage": "VERBATIM",
-            "verbatim_path": "evidence/acquisition_cascade/held/PMID32865377/europepmc_record_32865377.json",
-            "verbatim_sha256": "693bab05cd19b1d15b454b7c20798b1c781af52ac3016f12f74bdbf7440f0916",
+            "verbatim_path": "evidence/acquisition_cascade/held/EMPEROR-Reduced/europepmc_record_32865377.json",
+            "verbatim_sha256": "ba271a2e4bd4236047ef88ab26461080740239dfe862a1d0b036477f21798b3d",
             "missing_text": [],
             "inserted_text": [],
             "missing_sentences": 0
           },
           "result_status": {
-            "state": "RETRIEVED_NOT_REPORTED",
-            "scope": "the inspected abstract",
-            "basis": "OUTCOME_NOT_IN_SOURCE",
-            "coverage": "VERBATIM",
-            "statement": "not found in the inspected abstract (verbatim) (a scoped statement, not a claim about the trial's design)"
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE",
+            "span": "Adverse events of interest are listed in Table S2."
           },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "4b766f9365ea3543",
@@ -2306,7 +2417,7 @@
         "reported_by": [
           "31535829"
         ],
-        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -2347,9 +2458,38 @@
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
+          },
+          {
+            "id": "32865377",
+            "label": "32865377",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
+            "span": "Adverse events of interest are listed in Table S2.",
+            "extracted": false,
+            "reason_code": "REFUSED_ON_EVIDENCE",
+            "reason": "EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "NOT_CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: evidence/acquisition_cascade/excerpts/EMPEROR-Reduced_adverse_events_sentence.txt",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
           }
         ],
-        "harm_reporting_trials_n": 1,
+        "harm_reporting_trials_n": 2,
         "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 5,
         "harms_synthesis_suppressed": true,
@@ -2405,6 +2545,12 @@
           "registry_status": "COMPLETED",
           "completion_date": "2019-07-17",
           "results_first_posted_date": "2020-09-01",
+          "relayed_not_held": {
+            "value": "adjudicated diabetic ketoacidosis 3/2,368 vs 0/2,368, all in patients with diabetes (Table 2); a ZERO CELL: if admitted, the declared sparse-data method (0.5 added to all four cells of that study only) applies",
+            "relayed_by": "the orchestrating lane (SGLT2-HFrEF review fixtures, 2026-09-28)",
+            "said_to_be_in": "DAPA-HF, NEJM 2019, Table 2",
+            "why_not_held": "NEJM PDF 403; the Groningen repository PDF 403; Europe PMC not open access (recorded). The registry's posted rows are CODED terms (hypotension, orthostatic hypotension, syncope, dehydration; diabetic ketoacidosis, ketoacidosis, DKA coma): a different definition, never summed into the aggregate"
+          },
           "state_basis": "REFUSED_ON_EVIDENCE: source span: \"The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.\"; The abstract signal concerns volume depletion, renal dysfunction and hypoglycemia; AACT has separate diabetic-ketoacidosis and ketoacidosis preferred terms in treated patients, without a deduplicated as-randomized ketoacidosis total.",
           "trial_id": "PMID 31535829",
           "report_id": "PMID 31535829",
@@ -2423,7 +2569,7 @@
           "source_coverage": {
             "inspected": "the committed record abstract",
             "coverage": "VERBATIM",
-            "verbatim_path": "evidence/acquisition_cascade/held/PMID31535829/europepmc_record_31535829.json",
+            "verbatim_path": "evidence/acquisition_cascade/held/DAPA-HF/europepmc_record_31535829.json",
             "verbatim_sha256": "2203c7f252a8639b4eb82acc83087ae29594463f6abc3a3d53ec22210f3b8b74",
             "missing_text": [],
             "inserted_text": [],
@@ -2443,8 +2589,20 @@
         {
           "label": "32865377",
           "id": "PMID 32865377",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "Adverse events of interest are listed in Table S2.",
+          "verbatim_span": "Adverse events of interest are listed in Table S2.",
+          "source": "Adverse events of interest are listed in Table S2.",
+          "document_ref": "evidence/acquisition_cascade/excerpts/EMPEROR-Reduced_adverse_events_sentence.txt",
+          "source_level": null,
+          "reported_unresolved_span": "Adverse events of interest are listed in Table S2.",
+          "reason": "EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory",
           "trial_family_id": "NCT03057977",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2452,38 +2610,32 @@
           "registry_status": "COMPLETED",
           "completion_date": "2020-05-28",
           "results_first_posted_date": "2021-05-18",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"BACKGROUND: Sodium-glucose cotransporter 2 (SGLT2) inhibitors reduce the risk of hospitalization for heart failure in patients regardless of the presence or absence of diabetes. More evidence is need...\"; no sentence matching the outcome terms was found",
-          "source_span": "BACKGROUND: Sodium-glucose cotransporter 2 (SGLT2) inhibitors reduce the risk of hospitalization for heart failure in patients regardless of the presence or absence of diabetes. More evidence is need...",
-          "verbatim_span": "BACKGROUND: Sodium-glucose cotransporter 2 (SGLT2) inhibitors reduce the risk of hospitalization for heart failure in patients regardless of the presence or absence of diabetes. More evidence is need...",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"Adverse events of interest are listed in Table S2.\"; EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory",
           "trial_id": "PMID 32865377",
           "report_id": "PMID 32865377",
           "outcome_effect_id": "sglt2-hfref-hosp-cvdeath::Diabetic ketoacidosis::PMID 32865377::PMID 32865377",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
+          "harm_source_reported": true,
           "family_id": "NCT03057977",
           "family_identity_state": "REGISTRY_ANCHORED",
           "source_coverage": {
             "inspected": "the committed record abstract",
             "coverage": "VERBATIM",
-            "verbatim_path": "evidence/acquisition_cascade/held/PMID32865377/europepmc_record_32865377.json",
-            "verbatim_sha256": "693bab05cd19b1d15b454b7c20798b1c781af52ac3016f12f74bdbf7440f0916",
+            "verbatim_path": "evidence/acquisition_cascade/held/EMPEROR-Reduced/europepmc_record_32865377.json",
+            "verbatim_sha256": "ba271a2e4bd4236047ef88ab26461080740239dfe862a1d0b036477f21798b3d",
             "missing_text": [],
             "inserted_text": [],
             "missing_sentences": 0
           },
           "result_status": {
-            "state": "RETRIEVED_NOT_REPORTED",
-            "scope": "the inspected abstract",
-            "basis": "OUTCOME_NOT_IN_SOURCE",
-            "coverage": "VERBATIM",
-            "statement": "not found in the inspected abstract (verbatim) (a scoped statement, not a claim about the trial's design)"
+            "state": "REPORTED_UNRESOLVED",
+            "basis": "REFUSED_ON_EVIDENCE",
+            "span": "Adverse events of interest are listed in Table S2."
           },
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "365826702031f8e4",
@@ -2693,7 +2845,7 @@
         "reported_by": [
           "31535829"
         ],
-        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -2734,9 +2886,38 @@
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
+          },
+          {
+            "id": "32865377",
+            "label": "32865377",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
+            "span": "Adverse events of interest are listed in Table S2.",
+            "extracted": false,
+            "reason_code": "REFUSED_ON_EVIDENCE",
+            "reason": "EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "NOT_CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: evidence/acquisition_cascade/excerpts/EMPEROR-Reduced_adverse_events_sentence.txt",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
           }
         ],
-        "harm_reporting_trials_n": 1,
+        "harm_reporting_trials_n": 2,
         "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 5,
         "harms_synthesis_suppressed": true,
@@ -3572,6 +3753,10 @@
         "detail": "no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial."
       },
       {
+        "code": "known_eligible_missing",
+        "detail": "a trial identified as eligible under the registered PICO is not pooled (DEFINE-HF, EMPERIAL-Reduced) — the pooled result and completeness claim cannot be current"
+      },
+      {
         "code": "eligible_declared_absent",
         "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: REC:NCT04304560, REC:NCT06229678, REC:NCT04385589; the completeness claim cannot be current"
       }
@@ -3588,9 +3773,9 @@
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
     "N": 13,
     "counts": {
-      "REASON_TRUE": 11,
+      "REASON_TRUE": 9,
       "REASON_FALSE_VALUE_HELD": 0,
-      "REASON_WRONG_KIND": 2,
+      "REASON_WRONG_KIND": 4,
       "NOT_VERIFIABLE": 0
     },
     "n_false_value_held": 0,
@@ -3605,13 +3790,7 @@
       "REFUSED_ON_EVIDENCE": {
         "REASON_TRUE": 0,
         "REASON_FALSE_VALUE_HELD": 0,
-        "REASON_WRONG_KIND": 2,
-        "NOT_VERIFIABLE": 0
-      },
-      "OUTCOME_NOT_IN_SOURCE": {
-        "REASON_TRUE": 2,
-        "REASON_FALSE_VALUE_HELD": 0,
-        "REASON_WRONG_KIND": 0,
+        "REASON_WRONG_KIND": 4,
         "NOT_VERIFIABLE": 0
       }
     },
@@ -3667,9 +3846,9 @@
         "trial_key": "32865377",
         "label": "32865377",
         "id": "PMID 32865377",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "sglt2-hfref-hosp-cvdeath",
@@ -3722,9 +3901,9 @@
         "trial_key": "32865377",
         "label": "32865377",
         "id": "PMID 32865377",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "sglt2-hfref-hosp-cvdeath",
@@ -3852,7 +4031,7 @@
         "outcome_kind": "harm",
         "status": "NOT_IN_HELD_SOURCES",
         "scope": "not found in the held sources inspected (a scoped statement)",
-        "reason_code": "OUTCOME_NOT_IN_SOURCE"
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "sglt2-hfref-hosp-cvdeath",
@@ -3901,7 +4080,7 @@
         "outcome_kind": "harm",
         "status": "NOT_IN_HELD_SOURCES",
         "scope": "not found in the held sources inspected (a scoped statement)",
-        "reason_code": "OUTCOME_NOT_IN_SOURCE"
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "sglt2-hfref-hosp-cvdeath",
@@ -4039,11 +4218,11 @@
         "assessed": false,
         "direction_conflict": false,
         "i2": 0.0,
-        "basis": "not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "basis": "not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
         "stale": true,
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
-          "not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+          "not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
         ]
       },
       "imprecision": {
@@ -31662,6 +31841,10 @@
     "trial_families": 17,
     "eligible_families": 2,
     "contributing": 2,
+    "analysis_inputs": 2,
+    "trials_represented": 2,
+    "programmes": [],
+    "programme_anchored": 0,
     "registry_anchored": 17,
     "publication_anchored": 0,
     "pooled": 2,
@@ -31794,6 +31977,16 @@
           "basis": "pooled"
         },
         {
+          "family": "DEFINE-HF (known missing: not in the inventory)",
+          "state": "PUBLISHED_NO_TARGET_OUTCOME",
+          "basis": "PUBLISHED_NO_TARGET_OUTCOME (NT-proBNP / KCCQ; no CV death or HF hospitalisation outcome)"
+        },
+        {
+          "family": "EMPERIAL-Reduced (known missing: not in the inventory)",
+          "state": "PUBLISHED_NO_TARGET_OUTCOME",
+          "basis": "PUBLISHED_NO_TARGET_OUTCOME (6-minute walk distance; KCCQ / dyspnoea symptoms)"
+        },
+        {
           "family": "NCT04304560",
           "state": "NOT_YET_RETRIEVED",
           "basis": "NOT_YET_RETRIEVED"
@@ -31822,8 +32015,18 @@
         },
         {
           "family": "32865377",
-          "state": "PUBLISHED_NO_TARGET_OUTCOME",
-          "basis": "RETRIEVED_NOT_REPORTED"
+          "state": "REPORTED_UNRESOLVED",
+          "basis": "REPORTED_UNRESOLVED"
+        },
+        {
+          "family": "DEFINE-HF (known missing: not in the inventory)",
+          "state": "NOT_YET_RETRIEVED",
+          "basis": "NOT_YET_RETRIEVED (the full report is not open)"
+        },
+        {
+          "family": "EMPERIAL-Reduced (known missing: not in the inventory)",
+          "state": "REPORTED_UNRESOLVED",
+          "basis": "REPORTED_UNRESOLVED (category relayed 6/155 vs 2/156; registry coded rows held, never summed)"
         },
         {
           "family": "NCT04304560",
@@ -31841,7 +32044,7 @@
           "basis": "lifecycle ONGOING, planned completion 2027-03-01"
         }
       ],
-      "statement": "Volume depletion or hypotension: INCOMPLETE -- 31535829 REPORTED_UNRESOLVED; NCT04304560 NOT_YET_RETRIEVED; NCT04385589 NOT_YET_RETRIEVED"
+      "statement": "Volume depletion or hypotension: INCOMPLETE -- 31535829 REPORTED_UNRESOLVED; 32865377 REPORTED_UNRESOLVED; NCT04304560 NOT_YET_RETRIEVED; NCT04385589 NOT_YET_RETRIEVED; DEFINE-HF (known missing: not in the inventory) NOT_YET_RETRIEVED; EMPERIAL-Reduced (known missing: not in the inventory) REPORTED_UNRESOLVED"
     },
     {
       "outcome": "Diabetic ketoacidosis",
@@ -31854,8 +32057,18 @@
         },
         {
           "family": "32865377",
-          "state": "PUBLISHED_NO_TARGET_OUTCOME",
-          "basis": "RETRIEVED_NOT_REPORTED"
+          "state": "REPORTED_UNRESOLVED",
+          "basis": "REPORTED_UNRESOLVED"
+        },
+        {
+          "family": "DEFINE-HF (known missing: not in the inventory)",
+          "state": "NOT_YET_RETRIEVED",
+          "basis": "NOT_YET_RETRIEVED (the full report is not open)"
+        },
+        {
+          "family": "EMPERIAL-Reduced (known missing: not in the inventory)",
+          "state": "REPORTED_UNRESOLVED",
+          "basis": "REPORTED_UNRESOLVED (0 vs 0 relayed; the paper is not held)"
         },
         {
           "family": "NCT04304560",
@@ -31873,7 +32086,7 @@
           "basis": "lifecycle ONGOING, planned completion 2027-03-01"
         }
       ],
-      "statement": "Diabetic ketoacidosis: INCOMPLETE -- 31535829 REPORTED_UNRESOLVED; NCT04304560 NOT_YET_RETRIEVED; NCT04385589 NOT_YET_RETRIEVED"
+      "statement": "Diabetic ketoacidosis: INCOMPLETE -- 31535829 REPORTED_UNRESOLVED; 32865377 REPORTED_UNRESOLVED; NCT04304560 NOT_YET_RETRIEVED; NCT04385589 NOT_YET_RETRIEVED; DEFINE-HF (known missing: not in the inventory) NOT_YET_RETRIEVED; EMPERIAL-Reduced (known missing: not in the inventory) REPORTED_UNRESOLVED"
     }
   ],
   "claimgraph": {
@@ -32015,8 +32228,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: REC:NCT04304560, REC:NCT06229678, REC:NCT04385589; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "2585cb47da17a04abf171b4408314a35e051815ed16f6760e9a97a5119a7db6a",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>a trial identified as eligible under the registered PICO is not pooled (DEFINE-HF, EMPERIAL-Reduced) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: REC:NCT04304560, REC:NCT06229678, REC:NCT04385589; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "a57a7fb9ca847c7c9ab7106ea29c699cd2de301831fd7bd41c9e8461c1c6fbb7",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -32025,7 +32238,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/invalidation/stale",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -32049,7 +32262,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -32129,7 +32342,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval/enumeration_only",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -32153,7 +32366,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -32176,7 +32389,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/search_provenance",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -32246,8 +32459,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>31535829</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The source reports volume depletion narratively; AACT separates hypotension, orthostatic hypotension and dehydration in a treated safety population, without a deduplicated as-randomized composite.</td><td>The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-hfref-hosp-cvdeath/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "fcad202d3231eb8dfeb66640dc2ebe269e8ceb97eb9d1e4e42f8326c303944e7",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>31535829</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The source reports volume depletion narratively; AACT separates hypotension, orthostatic hypotension and dehydration in a treated safety population, without a deduplicated as-randomized composite.</td><td>The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-hfref-hosp-cvdeath/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32865377</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory</td><td>Adverse events of interest are listed in Table S2.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: evidence/acquisition_cascade/excerpts/EMPEROR-Reduced_adverse_events_sentence.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "d559e6a2e6b4b9d34a25a54f11af2913afea7241899f9f18b8fea07f34cebe24",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -32269,8 +32482,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>31535829</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract signal concerns volume depletion, renal dysfunction and hypoglycemia; AACT has separate diabetic-ketoacidosis and ketoacidosis preferred terms in treated patients, without a deduplicated as-randomized ketoacidosis total.</td><td>The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-hfref-hosp-cvdeath/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "9f02eb24b5116555c966870c0eb455150d931fb8e1d5929c24a49fcdabc34c62",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>31535829</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract signal concerns volume depletion, renal dysfunction and hypoglycemia; AACT has separate diabetic-ketoacidosis and ketoacidosis preferred terms in treated patients, without a deduplicated as-randomized ketoacidosis total.</td><td>The frequency of adverse events related to volume depletion, renal dysfunction, and hypoglycemia did not differ between treatment groups.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-hfref-hosp-cvdeath/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32865377</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: EMPEROR-Reduced reports its adverse events of interest in Table S2 of its supplement, which is not held: the outcome is reported, the counts are not extracted, and none is supplied from memory</td><td>Adverse events of interest are listed in Table S2.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: evidence/acquisition_cascade/excerpts/EMPEROR-Reduced_adverse_events_sentence.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "43fcda8b3c34113cbf215d78ea460b885daec1762e8b5ce3091f58396aeb0b67",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -32404,8 +32617,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; served pooled CI (refused); clinical threshold / MID with basis; information-size assessment with adequacy and basis | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (21 of ~86 completed unpublished, 24%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "fd73538da7ff703d5bd246801bc87e5a1632cd4aa519f5004c2ea9f397782b31",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; served pooled CI (refused); clinical threshold / MID with basis; information-size assessment with adequacy and basis | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (21 of ~86 completed unpublished, 24%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "e6e2df60717996202a196cd95a784d5009964699739253f0e2f7b76b65372e57",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -32473,7 +32686,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/outcomes/*/result/claim",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -32600,7 +32813,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-    "review_sha256": "116b1f380abe7e6f4ca1bbc6c76fb2b16f20b439fd2394d95272da0ec3facb6d",
+    "review_sha256": "f0fdee8a2cbe64dc47f067533010da965a75da28567de347a3afc0f1c7329dad",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -32658,6 +32871,36 @@
       },
       "claim_kind": "parity"
     },
+    "result_changes": [
+      {
+        "slug": "sglt2-hfref-hosp-cvdeath",
+        "outcome": "Composite cardiovascular death or hospitalisation for heart failure",
+        "before": {
+          "k": 2,
+          "estimate": 0.75,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "after": {
+          "k": 2,
+          "estimate": 0.75,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "left_pool": [],
+        "entered_pool": [],
+        "served_change": "INVENTORY_ADDITION",
+        "reason": "No number moves: DEFINE-HF (NCT02653482; 263 randomised, 12 weeks, NT-proBNP / KCCQ primary) and EMPERIAL-Reduced (NCT03448419; 312 randomised, 12 weeks, 6-minute walk primary; the joint EMPERIAL paper) are listed as known eligible trials; neither reports a clinical-event outcome (PUBLISHED_NO_TARGET_OUTCOME), and symptoms, biomarkers and walk distance are never relabelled as events. The previously served result is superseded, not refuted: the numbers are not asserted wrong, and any trial set aside or not yet admitted stays eligible evidence awaiting adjudication.",
+        "reason_locked": true,
+        "by": "Claude Opus 5.5 (lane evid/v1.0.1-acquisition-cascade, 2026-09-28); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-28T18:00:00Z",
+        "reviewer_countersignature": {
+          "state": "OPEN",
+          "note": "sign with scripts/countersign_result_change.py after reading it"
+        },
+        "conclusion_changed": null
+      }
+    ],
     "dual": {
       "agree": 2,
       "reconcile": 0,
@@ -32740,8 +32983,8 @@
       "retrieved_corpus_sha256": "056f66b4ee5d662da89d29419256ab672b960aede660d2ef1e9d0ecb75e85477",
       "records_file_sha256": "86b2a5f2cc247a234c321652a35d7ec5e790bbad9eca8c5a00483f158986c22f",
       "retrieval_ledger_sha256": "7b030afcb8a401477726ed40d7b9b235ff6e330c6229536a436926b48a652697",
-      "screening_ledger_sha256": "3f5faa003ca5c16a78c3edd2e77463f10e6d3ddbfb7fab606e4b8b960ad5f07f",
-      "extraction_objects_sha256": "e682e39f42ba99fd2663184f60739d4f0ce32eaa488053dbe450d994c9410cce",
+      "screening_ledger_sha256": "ef3a2abeff55c0be93f662aa4973f60225bd519c638e8569ac796238ca31840b",
+      "extraction_objects_sha256": "8d95f37ec628d7346338b9c700ec4625e4b03c9bb0252c0e227ba612caf27149",
       "trial_family_map_sha256": "2850131c7c3eb64c838c349de559b601b46e0b143859577642f13ad2571cad44",
       "rob_object_sha256": "b98c1d9a826da2ec8ebcd49ac2c0faaad678bbb264638adbb351aa89a4119171",
       "held_documents": [
@@ -32755,7 +32998,7 @@
         }
       ],
       "config_sha256": "de45e05fcbb805e25f88dc3e2d9269dbca49b2d50c27b40ea0a1e99ab696b076",
-      "analysis_code_sha256": "1d7c25ef7dbcf3121481a880deaddb616fcc1061faeb44b5c4e58a5cf91d2107",
+      "analysis_code_sha256": "00fb9660c8b2cbef85e86d4a1f401bd41d8bf5dd331d32506be17adf9b5df94f",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -32775,14 +33018,15 @@
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "cc27d161436cf1aefee4e10b97f520dffa4d405b",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
+        "harness/collection_scope.py": "8be3cf62acb02c0ded22b9d82418bd3e83274bc2",
         "harness/comparator_panel.py": "0a0b550f2a13e29c94e1a01ca2690c82650373b1",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
-        "harness/comparison_family.py": "70875d7ddf567f30a5c52f7c53cbef0427f8a68c",
+        "harness/comparison_family.py": "d1868ce71eb138120f87302a039844dab760eb64",
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "ec768def3e6609b5a06bbed537256d292c51468d",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/completeness.py": "ebedebad58dc2b2153ab715850ba90400ba83360",
+        "harness/completeness.py": "9bf2a82efb588bdda805e6ff65ecb8fecfd20377",
         "harness/consumer_consistency.py": "5a2e65fb3cd656ab5ce67247e48b1b5326ca4f3d",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "827356b454bb9db76ecacd65bc1685b1e27c7b80",
@@ -32796,7 +33040,7 @@
         "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
-        "harness/family_invariant.py": "4c04e088c6f663dd03cf863a1b69d853d3f0526e",
+        "harness/family_invariant.py": "982ea22c0f350d4906280e207766693302136cc2",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/fulltext_coverage.py": "73bfa5b206ce7a48b1077d01a6c093589cab0b84",
@@ -32815,17 +33059,17 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "c72eb103da5ebfcbfe53c9d1cb7b9d34ea6ba9ee",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/lifecycle.py": "13a0a52775355745ac238e63457f7043c4841fb4",
+        "harness/lifecycle.py": "b450e7b5796ed03430f1796a4e296aa1bdc7051e",
         "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/multi_trial_report.py": "579ae83090d8439889b7208eea50dc9141035710",
-        "harness/outcome_restriction.py": "72b63e6ac1ede3e18dbf474630fbd7df62ac2f16",
-        "harness/page.py": "f646249db7494d244b6013f3f603e241cd6cf8dd",
+        "harness/outcome_restriction.py": "76ea7ad867f6cd37b4c4fa2030e823d0d2ce3527",
+        "harness/page.py": "58393a5b8f2c915e43fb15139fa8a3858ecd9dfd",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "caeb8fc26c3c282db964ddf5d3897063803a3214",
+        "harness/pipeline.py": "b949fb1b8cb49280eec891405427c2dbcd3198ae",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -32835,28 +33079,29 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
-        "harness/registry_publications.py": "675d59f2e1f72624c579f884bb3b5d39c05f86f1",
+        "harness/registry_publications.py": "27b5913f92199e5a2ba1af94a105460a196696a2",
         "harness/relayed_values.py": "f5a004e8c045e89b639365e7f7cc462de92a3bac",
         "harness/report_family.py": "593b5294dc94c05603c597c1906e2494451b7010",
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
-        "harness/result_status.py": "0046eed6361cfdd738ea9cf8fd19f8a08ce7defb",
+        "harness/result_status.py": "995ec856b1535d35c600bb0dd9ee52780267710c",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "a68ef073493c7d32be944013416f4029a0609e0f",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_decision.py": "1d6dca0ea5e55fc64d943d270c701bf8174ea3f5",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "c70a53682eeca4a41047001222a644f859b0b6ca",
+        "harness/screen.py": "1d2c7417d061a17c5c47b123d1e3efbf92865918",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/screening_record.py": "3525e8e4af151a1973e0d38ee40e8737ae764066",
+        "harness/screening_record.py": "e9f4cf5c7c4b6f1aa189c868764540cf4d20fe6e",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_coverage.py": "9bb689a92399b39e581c5857d778fe330b99b0f5",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/source_precedence.py": "b65234a79aeb122f3c8964370f00ffb8e7ef81bf",
         "harness/source_versions.py": "ea18bf024d686175dfc269cbf8e4f71b377ec569",
+        "harness/sparse_data.py": "b626aebc0f1bbcc404cacb50eff056feb43e89e4",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "24c716c38d6b1267dced0f48f0d916fd1fa704bd",
-        "harness/trial_family.py": "9aab45df0b0aa635af9112e38aaaaf280c5f14fa",
+        "harness/trial_family.py": "f490f97fbb4baa1f39e4f3717ef433c23f4d075a",
         "harness/unextracted.py": "06e9faa6fb5e9806da307dd0cff2a5649d023dfa",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "a99f61b675e30f79de62303feb49cfd80184c1ad",
@@ -32876,7 +33121,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "106 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "108 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -32894,6 +33139,7 @@
             "harness/registry_multi.py",
             "harness/search_completeness.py",
             "harness/search_v2.py",
+            "harness/source_identity.py",
             "harness/spec_curve.py"
           ],
           "why": "not reached from any root, so not part of building, rendering, gating or replaying this page: repository-level standard limbs run by scripts/verify_all.py on the whole tree (fix-state ledger, honest ratchet, held-out leak detector, served-artefact leak scan, search completeness), the search_v2 acquisition engine -- whose blob the search-completeness limb pins to the sealed measurement, not this certificate -- and adapters or stages outside the default build path. They are identified by the anchoring commit, not here.",
@@ -32905,8 +33151,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "3af73b09893fb6799a5a028a113413afbe6e6f9a9b1b4f97594ebbff41490603",
-      "review_sha256": "116b1f380abe7e6f4ca1bbc6c76fb2b16f20b439fd2394d95272da0ec3facb6d",
+      "manuscript_sha256": "62ae25937090e19a89c76354257f82f7de10a6dbbf879f61657e5d3bd151175d",
+      "review_sha256": "f0fdee8a2cbe64dc47f067533010da965a75da28567de347a3afc0f1c7329dad",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sglt2-hfref-hosp-cvdeath.md UTF-8 text, universal newlines",
@@ -32926,7 +33172,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "caa4838a52cae77dcfe61a58b9fc562aa2aafa0e1294830a3edbc3d3b6cb4ba1"
+      "release_sha256": "6bed853159e7d9ac5e51d5e57dcbd40ca3e559c54bbadc96e04723dd2f1f1ace"
     }
   }
 }

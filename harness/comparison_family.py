@@ -158,6 +158,28 @@ def _family_for(rec: dict[str, Any], fams: list[dict[str, Any]]) -> dict[str, An
     return next((f for f in fams if f.get("registration") in keys), None)
 
 
+def term_only_in_ineligible(rec: dict[str, Any], cf: dict[str, Any], term: str, root: str = _ROOT) -> bool:
+    """True when `term` is named by the witnessed arms/comparator/population of the family's INELIGIBLE comparisons
+    and by none of its ELIGIBLE comparisons' -- the term describes another comparison, not the eligible one (STEP 8:
+    'liraglutide' is the liraglutide arm's name, not the semaglutide-vs-placebo comparison's population)."""
+    fam = _family_for(rec, load(root))
+    if not fam:
+        return False
+    elig = {c["comparison_id"]: c.get("eligibility") for c in cf.get("comparisons") or []}
+    t = term.lower()
+    in_ineligible = in_eligible = False
+    for c in fam.get("comparisons") or []:
+        texts = [(_verified(root, c[f]) or {}).get("text") or "" for f in ("population", "comparator") if c.get(f)]
+        texts += [(_verified(root, c["arm_pair"][s]) or {}).get("text") or ""
+                  for s in ("experimental", "comparator") if (c.get("arm_pair") or {}).get(s)]
+        hit = any(t in x.lower() for x in texts)
+        if elig.get(c["comparison_id"]) == ELIGIBLE:
+            in_eligible = in_eligible or hit
+        else:
+            in_ineligible = in_ineligible or hit
+    return in_ineligible and not in_eligible
+
+
 def screen_registration(rec: dict[str, Any], config: dict[str, Any], root: str = _ROOT) -> dict[str, Any] | None:
     """The comparison-level screening of a registration record, or None when it is not a comparison family."""
     if rec.get("id_type") != "nct":
@@ -230,7 +252,9 @@ def hold_whole_trial(slug: str | None, outcome_name: str, trials: list[dict[str,
         m = re.search(r"NCT\d{8}", str(t.get("id")) + " " + str(t.get("nct") or ""))
         fam = fams.get(m.group(0)) if m else None
         if fam and not t.get("comparison_id"):
-            absent.append({"id": t.get("id"), "reason_code": "WHOLE_TRIAL_ACROSS_COMPARISONS",
+            # the same row shape every other absent-row builder emits (label + absent_kind): consumers key on both
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                           "reason_code": "WHOLE_TRIAL_ACROSS_COMPARISONS",
                            "state": "WHOLE_TRIAL_ACROSS_COMPARISONS",
                            "reason": (f"{fam.get('label')}: a whole-trial result spans comparisons with different "
                                       "comparators (" + "; ".join(c["comparison_id"] for c in fam["comparisons"])

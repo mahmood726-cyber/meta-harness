@@ -25,6 +25,25 @@ HARM_DECISIONS_SUPERSEDED = {
         "reason": ("the refusal was true of the abstract and the registry's unaggregated infection terms; the aggregate is in "
                    "Table 1 of FREEDOM's own infection report (PMID 21892677, open access), a companion report of the same "
                    "trial, bound (EXACT_TARGET); result-change notice OPEN")},
+    ("semaglutide-obesity-weight", "Gastrointestinal adverse events", "33567185"): {
+        "before": "REFUSED_ON_EVIDENCE (absent)", "after": "POOLED",
+        "values_after": {"ai": 969, "n1i": 1306, "ci": 314, "n2i": 655},
+        "reason": ("the refusal was true of the abstract (GI discontinuations, not all GI events); the aggregate -- PATIENTS "
+                   "with any GI disorder, on-treatment -- is in STEP 1's own safety table (repository copy held; excerpt "
+                   "committed), never the adjacent EVENTS column (4309 vs 739); result-change notice OPEN")},
+    ("semaglutide-obesity-weight", "Gastrointestinal adverse events", "33625476"): {
+        "before": "REFUSED_ON_EVIDENCE (absent)", "after": "POOLED",
+        "values_after": {"ai": 337, "n1i": 407, "ci": 129, "n2i": 204},
+        "reason": ("the refusal was true of the abstract (percentages, no numerators); the aggregate -- PATIENTS with any GI "
+                   "disorder, on-treatment -- is in STEP 3's Table 3 (PMC page held; excerpt committed); result-change "
+                   "notice OPEN")},
+    ("sglt2-ckd-progression", "Lower-limb amputation", "30990260"): {
+        "before": "REFUSED_ON_EVIDENCE (absent)", "after": "POOLED",
+        "values_after": {"ai": 70, "n1i": 2200, "ci": 63, "n2i": 2197},
+        "reason": ("the refusal was true of the abstract ('no significant differences in rates of amputation', no counts); the "
+                   "counts are in CREDENCE's own Table (accepted manuscript held; excerpt committed), ON-STUDY window (all "
+                   "treated patients through the end of the trial), unlike its on-treatment safety events; result-change "
+                   "notice OPEN")},
 }
 
 

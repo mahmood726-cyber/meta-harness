@@ -109,6 +109,13 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
             if _POST_HOC.search(text):
                 out.append({"kind": "POST_HOC_POOLED", "report_id": rid,
                             "detail": f"{o.get('name')}: pooled row's own span labels the analysis post hoc"})
+            # an EVENTS column read as patients (STEP 1: 4309 GI events among 1306 patients): a count above its own
+            # denominator is never a count of patients
+            a, n1, c, n2 = (row.get(k) for k in ("ai", "n1i", "ci", "n2i"))
+            if None not in (a, n1, c, n2) and (a > n1 or c > n2):
+                out.append({"kind": "COUNT_EXCEEDS_DENOMINATOR", "report_id": rid,
+                            "detail": f"{o.get('name')}: {a}/{n1} vs {c}/{n2} -- more events than patients: an events "
+                                      "column, not the patients column"})
             if row.get("components_summed") or _COMPONENT_SUM.search(str(row.get("derivation") or "")):
                 out.append({"kind": "COMPONENT_SUM_AS_COMPOSITE", "report_id": rid,
                             "detail": f"{o.get('name')}: pooled counts were summed from component rows; a patient "

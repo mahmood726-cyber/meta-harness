@@ -428,7 +428,12 @@ _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level"
                 "companion_report", "safety_population", "supersedes",
                 # a harm row's own typed definition (symptomatic vs threshold hypotension; laboratory vs coded
                 # hyperkalaemia) and a ratio reconstructed from counts, labelled so
-                "harm_definition", "harm_definition_key", "effect_reconstructed_from_counts")
+                "harm_definition", "harm_definition_key", "effect_reconstructed_from_counts",
+                # the SAFETY WINDOW of THIS outcome's row -- it can differ within one trial (CREDENCE: ketoacidosis
+                # on-treatment, to 30 days after the last dose; amputation on-study), so it rides on the row
+                "safety_window",
+                # the COMPARISON a multi-comparison family's row belongs to (STEP 8: semaglutide vs pooled placebo)
+                "comparison_id")
 
 
 def _hand_fields(entry, slug, pid, rec=None):
@@ -1727,6 +1732,26 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    # The same false-absence evidence WHEN A POOL EXISTS: an included, NOT-pooled trial whose held abstract names the
+    # outcome reports it, whether or not other trials were pooled. The guard above ran only when nothing was pooled, so
+    # pooling STEP 1/3/8's GI aggregates silently turned STEP 11's 'GI events were the most common AEs' into 'not
+    # reported'. Kept under its own key at OUTCOME level (bookkeeping, never part of the scientific result).
+    # HARMS only, like the guard above: a harm's keywords are its own names, while an efficacy outcome's keywords carry
+    # component terms ('eGFR') and ROLE anchors ('primary outcome'), which locate sentences for extraction and never
+    # establish that a trial reports THIS outcome (ARTS-DN's albuminuria primary is not the kidney composite). Role
+    # anchors are filtered by extract._effective_kws as the extractor filters them.
+    if out.get("trials") and kind == "harm":
+        _kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
+        _pooled_ids = {str(t.get("id")) for t in out.get("trials") or []}
+        _mention = []
+        for d in included:
+            if f"PMID {d['id']}" in _pooled_ids or d["id"] in _pooled_ids:
+                continue
+            _ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
+            if _ab and any(k in _ab for k in [str(x).lower() for x in extract._effective_kws(_ab, _kws)]):
+                _mention.append(d["id"])
+        if _mention:
+            out["mentioned_by_not_pooled"] = _mention[:20]
     if out.get("design_refusals"):
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):
@@ -2156,6 +2181,11 @@ def build_review_core(slug, config, records, protocol_sha):
     registry_publications_mod.attach(review, slug)
     from . import outcome_restriction as outcome_restriction_mod
     outcome_restriction_mod.attach(review, slug)
+    # COLLECTION SCOPE (an outcome the trial's safety collection never ascertained) and SPARSE DATA (the zero-cell method,
+    # declared on the rows that need it)
+    from . import collection_scope as collection_scope_mod, sparse_data as sparse_data_mod
+    collection_scope_mod.attach(review, slug)
+    sparse_data_mod.attach(review)
     # SOURCE VERSIONS: per-result version chains (original / corrections / regulatory) with a governing decision
     from . import source_versions as source_versions_mod
     source_versions_mod.attach(review)

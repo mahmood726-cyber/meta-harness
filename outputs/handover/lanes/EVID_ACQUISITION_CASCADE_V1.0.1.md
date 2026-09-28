@@ -755,3 +755,148 @@ and found failures accumulated by earlier rounds of this lane. They are fixed at
 - Source-identity incident, found while acquiring for the next rounds: a DOI typed from memory for EMPERIAL
   (10.1002/ejhf.2084, a different paper) made Unpaywall hold the wrong PMC page under EMPERIAL. The executable
   source-identity check (SGLT2-CKD round) is built to catch exactly this.
+
+## Round 2026-09-28d: semaglutide (MACE, weight), SGLT2-CKD, SGLT2-HFrEF, ticagrelor (one rebuild)
+
+### New harness pieces (each with plants in `tests/test_batch_2026_09_28_fixtures.py`)
+- **`result_status.NOT_SYSTEMATICALLY_COLLECTED`**, with `harness/collection_scope.py` and `docs/collection_scope.json`
+  (the witnessed collection rule). COLLECTION_SCOPE_POOLED is blocking.
+- **Source-backed population**: `trial_family.population_witness` and `docs/population_witnesses.json`. It records a
+  SOURCE_WITNESS basis and uses evid2's state names, so evid2's computed `population_witness` can replace the
+  declaration at integration.
+- **`completeness.AVAILABLE_AT_OTHER_TIMEPOINT`**, declared in `docs/timepoint_availability.json` with a witness. Not a
+  gap.
+- **Comparison-level screening**: `comparison_family.term_only_in_ineligible` plus the `screen.py` hook. A title term
+  that names only an ineligible comparison's arm does not veto the eligible comparison (STEP 8).
+- **`harness/source_identity.py`** and `scripts/source_identity_check.py` (exit 1 on mismatch):
+  - a cited PMID, PMCID, DOI, title and registration must resolve to one publication;
+  - every held article's own title must match its record;
+  - the cascade records IDENTITY_MISMATCH and quarantines what a wrong DOI fetched.
+  - Ledger: 46 verified, 1 quarantined. The quarantined one is EMPERIAL/pmc_article.html, held via a DOI typed from
+    memory; that was this lane's error.
+- **`harness/sparse_data.py`**: the outcome-level zero-cell method (`result.sparse_data_method`). The row-level
+  disclosure already existed in harms.py and is never overwritten.
+- **Per-row `safety_window` and `comparison_id`** hand fields.
+- **Lifecycle**: a future (or estimated) start date is never COMPLETED.
+- **Blocking checks**: COUNT_EXCEEDS_DENOMINATOR (an events column read as patients) and CROSSOVER_AS_PARALLEL.
+- **Root-cause fix**: the false-absence evidence (`mentioned_by_not_pooled`) is kept when a pool exists. Before this,
+  pooling some trials silently turned other trials' reported GI events into "not reported".
+- **Fix: `comparison_family.hold_whole_trial` rows had no `label`/`absent_kind`**
+  - This was latent until STEP 8, the first included multi-comparison family. Its whole-trial weight row is held out,
+    and `build_topic` crashed printing it.
+  - The row now has the same shape as every other absent row, with a plant.
+  - consumer_consistency then retypes that row KNOWN_REPORTED_NOT_YET_EXTRACTED, which is honest: the comparison-level
+    week-68 weight is not extracted. But this overwrites the "whole trial spans comparisons" reason. That is left as
+    is and recorded here.
+
+### Per review
+- **Semaglutide-MACE**
+  - SELECT "any GI AE" is NOT_SYSTEMATICALLY_COLLECTED. Witnesses: the Table 4 footnote and the Kushner 2025 sentence.
+  - Table 4 rows are their own outcomes: SAE 2941 vs 3204; serious GI 342 vs 323; GI discontinuation 880 vs 172. The
+    two "Gastrointestinal disorders" rows are excerpted in separate tables.
+  - HbA1c analysis 38907684: X-DEDUP report of SELECT.
+  - Kushner (39948761) is a declared report; it is not in the screened records.
+  - SELECT's family is ELIGIBLE by SOURCE_WITNESS. MACE is unchanged (0.80).
+- **Semaglutide-weight**
+  - STEP 11 (week 44) and STEP 10 (week 52) are AVAILABLE_AT_OTHER_TIMEPOINT.
+  - STEP 8 is included per comparison (semaglutide vs pooled placebo).
+  - GI is pooled from the PATIENTS columns: 969/1306 vs 314/655; 337/407 vs 129/204; 106/126 vs 47/85. RR 1.451
+    (1.143-1.841), on-treatment windows. The HM3-pinned refusals are superseded by declaration.
+  - STEP 4 stays excluded (plant).
+- **SGLT2-CKD**
+  - DAPA-CKD safety counts come from the Glasgow manuscript (CC BY-SA); CREDENCE's from its table, with DKA
+    ON-TREATMENT and amputation ON-STUDY (the footnote is held).
+  - DKA is suppressed across two definitions: EMPA-KIDNEY's ketoacidosis includes a non-diabetic participant.
+    - Its Europe PMC manuscript (PMC7614055) is CC BY-ND 4.0, so it is held locally and gitignored, like FIDELITY's
+      BY-NC XML.
+    - The definition witness binds to the committed one-sentence excerpt
+      `excerpts/EMPA-KIDNEY_ketoacidosis_footnote.txt`, which names the held file's sha256.
+    - The follow-up manuscript (PMC7616743) is CC BY 4.0 and is committed.
+  - Amputation k=3: 1.090 (0.637-1.865).
+  - The EMPA-KIDNEY follow-up is a COMPANION_REPORT version with a separate policy; governing is DECIDED on the
+    active trial.
+  - DIAMOND is linked and declared a crossover. EMPA-CKD is never COMPLETED.
+- **SGLT2-HFrEF**
+  - DEFINE-HF and EMPERIAL-Reduced are known eligible, with PUBLISHED_NO_TARGET_OUTCOME.
+  - EMPERIAL's safety category and its 0/0 ketoacidosis are relayed; the paper is not held. The registry's coded rows
+    are never summed.
+  - DAPA-HF harms: relayed Table 2 (volume depletion 178 vs 162; DKA 3 vs 0, with its zero-cell method). Never absent.
+  - EMPEROR-Reduced harms: "listed in Table S2" (supplement not held). No counts from memory.
+- **Ticagrelor**: the PLATO diabetes substudy (20802246) is a declared SUBGROUP report (X-DEDUP). The new
+  FAMILY_DESIGN_CONFLICT rule found it.
+
+### Decisions for Mahmood
+- Signatures for this batch's OPEN notices.
+- The protocol-harms extension for SELECT's three new outcomes (under "any further outcome the resolved comparator
+  reports").
+- DKA definitions (SGLT2-CKD): whether EMPA-KIDNEY's ketoacidosis may join adjudicated DKA.
+- Harms held nowhere open: EMPERIAL's paper, DAPA-HF Table 2, EMPEROR Table S2.
+
+## Round 2026-09-28g: SGLT2 HHF-in-CVOTs (sglt2-primary-prevention-hf)
+
+### PROGRAMME vs TRIALS
+- New `docs/programmes.json`, read by `trial_family.programme_declaration` / `attach_programme`.
+- The CANVAS Program (PMID 28605608) is ONE programme-level input. It represents two trials: CANVAS (NCT01032629) and
+  CANVAS-R (NCT01989754).
+- Its eligibility is DERIVED: each constituent is screened on its own held registry rows, and both are ELIGIBLE. An
+  unheld or unresolved constituent leaves the programme PROGRAMME_CONSTITUENT_NOT_ESTABLISHED (plant).
+- The family count chain gains `analysis_inputs`, `trials_represented`, `programmes` and `programme_anchored`. Here that
+  is 4 inputs representing 5 trials, and the count sentence and the pooled row both say so.
+- New blocking check PROGRAMME_WITH_CONSTITUENT (`family_invariant`): a programme pooled alongside one of its own
+  constituents (plant).
+- The HHF pool is unchanged: k=4, 0.6956 (0.5763-0.8397).
+
+### Family ledger reconciled
+"Contributing without structural eligibility" is now none. Each case was a source-witnessed decision, not a relaxed rule:
+- **EMPA-REG**
+  - Held registry: the drug is named only by its code, BI 10773, and the arms are double-dummy, so no contrast is
+    derivable by name.
+  - New `docs/contrast_witnesses.json`, read by `trial_family.source_witness`. Witnesses: the registry title
+    ("BI 10773 (Empagliflozin) ..."), the placebo arm, and the report's randomisation sentence.
+  - The same family undeclared stays INTERVENTION_CONTRAST_NOT_PROVEN (plant).
+- **DECLARE**
+  - The registry condition reads "Diabetes Mellitus, Non-Insulin-Dependent".
+  - `docs/population_witnesses.json` entry, witnessed by the inclusion criteria and the enrolment sentence.
+- **CANVAS Program**: the programme above.
+- **Registrations**: all four (NCT01131676, NCT01730534, NCT01032629, NCT01989754) are held from ClinicalTrials.gov
+  (targets `-28g`).
+
+### EMPA-REG Table 2: relayed, not held
+- The NEJM PDF returned 403, the repository copy returned 403, and Europe PMC has no open copy (ATTEMPTS.jsonl).
+- Relayed values (docs/relayed_values.json), in patients, at least one dose, on treatment + 7 days:
+  - any AE 4,230/4,687 vs 2,139/2,333;
+  - genital-infection-consistent 301 vs 42;
+  - DKA 4 vs 1.
+- All three rows are REPORTED_UNRESOLVED and none is admitted:
+  - AE and genital infection use the abstract's safety sentence as their reported evidence.
+  - DKA uses its held registry ketoacidosis row. It was RETRIEVED_NOT_REPORTED, which was false: only the abstract is
+    held.
+- EMPA-REG's genital-infection refusal carried DECLARE's reason (a copy error in an earlier hand entry). It now has its
+  own reason.
+- Registry coded rows are never summed into the source's categories.
+
+### DECLARE genital-infection refusal: kept (plant)
+Its reported outcome is genital infections leading to discontinuation or serious. That is narrower than all genital
+infections.
+
+### Decisions for Mahmood
+- Signatures on the four STATE_CHANGE notices.
+- An open source for EMPA-REG Table 2, if one exists.
+- CANVAS-R: its registered primary is a renal endpoint (condition "Albuminuria"). Its entry population is not kidney
+  disease, so it screens eligible under "not a kidney-outcome-entry trial". Please confirm this reading of the protocol
+  wording.
+
+### Correction to round 2026-09-28d: `mentioned_by_not_pooled` was too broad (found by the full suite)
+- The pooled-case false-absence evidence matched an outcome's RAW keywords on every outcome. On efficacy outcomes those
+  keywords include component terms and ROLE anchors ("eGFR", "primary outcome").
+- The result: ARTS-DN (an albuminuria primary) was read as reporting the finerenone kidney composite. Its family moved
+  from PUBLISHED_NO_TARGET_OUTCOME to REPORTED_UNRESOLVED, and the completeness claim moved from PROVISIONAL to
+  INCOMPLETE. That is a false report, caught by `test_finerenone_fixtures`.
+- Now:
+  - HARM outcomes only (like the no-pool guard it extends);
+  - role anchors filtered by `extract._effective_kws`;
+  - kept at OUTCOME level, never inside the scientific `result`. `test_held_source_never_not_in_committed_source`
+    compares that block.
+- STEP 11's GI row, the original case, is a harm, so it is unaffected.
+- Still failing, known debt: `test_stage_additions::test_error_rate_is_fresh_against_current_pooled_population`. The
+  error-rate census needs a blind re-extraction; it is not a code fix.

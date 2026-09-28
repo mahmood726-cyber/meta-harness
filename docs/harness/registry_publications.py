@@ -102,6 +102,14 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     outcome -- PIONEER-HF's extension reports a 12-WEEK HR (0.69, 0.49-0.97) spanning the open-label switch; it is never
     the 8-week randomised contrast."""
     out = []
+    # CROSSOVER_AS_PARALLEL: a registration declared a crossover (DIAMOND) never contributes arm counts or an effect as
+    # if its two SEQUENCES were parallel arms (the within-person correlation is unknown, the unit is not a patient-arm)
+    xover = {p["registration"] for p in review.get("registry_publications") or [] if p.get("design") == "CROSSOVER"}
+    for o in review.get("outcomes") or []:
+        for row in o.get("trials") or []:
+            if _nct(row.get("id")) in xover or _nct(row.get("nct")) in xover:
+                out.append({"kind": "CROSSOVER_AS_PARALLEL", "report_id": str(row.get("id")),
+                            "detail": f"{o.get('name')}: a crossover trial's sequences pooled as parallel arms"})
     for nt in review.get("registry_publications_not_this") or []:
         span = " ".join(str(nt["span"]).split())
         for o in review.get("outcomes") or []:

@@ -1760,6 +1760,16 @@ def _trial_inputs(o):
             details.append("components: " + "; ".join(str(x) for x in (t.get("components") or [])))
         if t.get("continuity_correction"):
             details.append(t.get("continuity_correction"))
+        if t.get("harm_definition"):
+            details.append(f"definition: {t.get('harm_definition')}")
+        if t.get("safety_window"):
+            details.append(f"safety window: {t.get('safety_window')}")
+        if t.get("safety_population"):
+            details.append(f"population: {t.get('safety_population')}")
+        if t.get("programme"):
+            p = t["programme"]
+            details.append(f"{p.get('label')}: ONE programme-level input representing {len(p.get('constituents') or [])} "
+                           f"trials ({', '.join(p.get('constituents') or [])})")
         if details:
             src += "<div class='ident'><em>compatibility row fields:</em> " + _e("; ".join(details)) + "</div>"
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_id_cell(t)}</td>"
@@ -1835,6 +1845,17 @@ def _trial_inputs(o):
                               f"[{_e(_lp.get('coverage'))}]; identity: {_e(_lp.get('identity_check'))}</span>")
         if t.get("publication_statement"):
             reason_detail += f"<br><span class='muted'>publication: {_e(t.get('publication_statement'))}</span>"
+        if isinstance(t.get("collection_scope"), dict):
+            _cs = t["collection_scope"]
+            reason_detail += (f"<br><span class='muted' data-collection-scope='1'>NOT SYSTEMATICALLY COLLECTED: the trial "
+                              f"collected {_e(_cs.get('collected'))}; rule (held): &ldquo;{_e(_cs.get('rule_span'))}&rdquo;"
+                              "</span>")
+        if isinstance(t.get("timepoint_availability"), dict):
+            _ta = t["timepoint_availability"]
+            reason_detail += (f"<br><span class='muted'>available at another timepoint: {_e(_ta.get('available'))} "
+                              f"(protocol {_e(_ta.get('protocol'))}); witness: {_e(_ta.get('span'))}</span>")
+        if t.get("safety_window"):
+            reason_detail += f"<br><span class='muted'>safety window: {_e(t.get('safety_window'))}</span>"
         if t.get("attribution"):
             reason_detail += (f"<br><span class='muted'>attribution of the held row: <code>{_e(t.get('attribution'))}</code> "
                               "(a restricted outcome; not this outcome's number)</span>")

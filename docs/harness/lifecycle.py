@@ -53,6 +53,13 @@ def lifecycle(row: dict[str, Any] | None, source_date: str | None,
         state = _ENDED[status]
         if state == "COMPLETED" and pva == "PLANNED":
             state = "CONFLICT"     # the registry says completed, but its own completion date has not happened
+        # nor can a trial that has not STARTED have completed (EMPA-CKD, NCT07060417: start 2026-10-01 and completion
+        # 2029-09-30, both after the source was taken)
+        start = str(row.get("start_date") or "").strip()[:10]
+        if (state == "COMPLETED" and start and
+                (str(row.get("start_date_type") or "").upper() in ("ESTIMATED", "ANTICIPATED")
+                 or (source_date and start > str(source_date)[:10]))):
+            state = "CONFLICT"
     else:
         state = "UNKNOWN"          # '' / UNKNOWN / anything unrecognised: never 'completed'
     return {"state": state,

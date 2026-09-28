@@ -35,11 +35,14 @@ WITHDRAWN = "WITHDRAWN"
 REPORTED_ZERO_EVENTS = "REPORTED_ZERO_EVENTS"
 REPORTED_UNRESOLVED = "REPORTED_UNRESOLVED"
 NOT_MEASURED = "NOT_MEASURED"
+# the trial's own collection rules did not ascertain this outcome (SELECT: selective safety collection -- serious AEs,
+# AEs leading to discontinuation, AEs of special interest). Not 'not reported', not 'not retrieved', never zero.
+NOT_SYSTEMATICALLY_COLLECTED = "NOT_SYSTEMATICALLY_COLLECTED"
 RETRIEVED_NOT_REPORTED = "RETRIEVED_NOT_REPORTED"
 NOT_YET_RETRIEVED = "NOT_YET_RETRIEVED"
 SOURCE_ABSENT = NOT_YET_RETRIEVED          # the earlier name of the same state (one state, one string)
 STATES = (ADMITTED_PENDING_SIGNATURE, ADMITTED, REPORTED_ZERO_EVENTS, EXTRACTED_NOT_ADMITTED, WITHDRAWN,
-          REPORTED_UNRESOLVED, NOT_MEASURED, RETRIEVED_NOT_REPORTED, NOT_YET_RETRIEVED)
+          REPORTED_UNRESOLVED, NOT_MEASURED, RETRIEVED_NOT_REPORTED, NOT_YET_RETRIEVED, NOT_SYSTEMATICALLY_COLLECTED)
 _NOT_HELD = {"SOURCE_NOT_RETRIEVED", "DISCOVERED_NOT_RETRIEVED", "NOT_DISCOVERED", "NOT_HELD"}
 # codes that say the outcome IS reported but no admissible value was resolved from it
 _REPORTED_CODES = {"TIMEPOINT_MISMATCH", "MULTI_ARM_UNRESOLVED", "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
@@ -88,6 +91,11 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
     if pooled:
         st = ADMITTED_PENDING_SIGNATURE if _pid(row.get("id")) in pending_ids else ADMITTED
         return {"state": st, **({"withdrawn": wd} if wd else {})}
+    cs = row.get("collection_scope") or {}
+    if cs.get("state") == NOT_SYSTEMATICALLY_COLLECTED:
+        return {"state": NOT_SYSTEMATICALLY_COLLECTED, "span": cs.get("rule_span"), "collected": cs.get("collected"),
+                "statement": ("not systematically collected: the trial's own safety-collection rules did not ascertain "
+                              "this outcome, so no count from it is a count of this outcome (not 'not reported', not zero)")}
     ex = extraction_of(row)
     zero_span = row.get("zero_events_span")
     if zero_span or (ex and ex.get("ai") == 0 and ex.get("ci") == 0):
@@ -171,6 +179,8 @@ def derive(review: dict[str, Any], keywords: dict[str, list[str]] | None = None)
     for o in review.get("outcomes") or []:
         pend = _pending_ids(review, o.get("name"))
         mentioned = {_pid(x) for x in ((o.get("result") or {}).get("reported_by") or [])}
+        # a pooled outcome keeps the same evidence for its NOT-pooled trials (pipeline: mentioned_by_not_pooled)
+        mentioned |= {_pid(x) for x in (o.get("mentioned_by_not_pooled") or [])}
         kws = (keywords or {}).get(o.get("name")) or [o.get("name") or ""]
         for t in o.get("trials") or []:
             t["result_status"] = status_of(t, True, pend)

@@ -38,6 +38,22 @@ def problems(review: dict[str, Any]) -> list[dict[str, Any]]:
         out.append({"kind": "FAMILY_INVARIANT", "report_id": "family_count_chain",
                     "detail": (f"the family count says {chain.get('contributing')} contributing famil(ies); the pooled inputs "
                                f"come from {len(contributing)} independent populations: {sorted(contributing)}")})
+    # PROGRAMME vs TRIALS (SGLT2 HHF in CVOTs): the CANVAS Program's one estimate combines CANVAS + CANVAS-R. A pool may
+    # hold the programme OR its constituents, never both -- the combined estimate alongside a constituent's counts the
+    # constituent's patients twice.
+    for o in review.get("outcomes") or []:
+        fids = {t.get("family_id") for t in o.get("trials") or [] if t.get("family_id") in fams}
+        for fid in sorted(fids):
+            prog = fams[fid].get("programme")
+            if not prog:
+                continue
+            cons = {c["registry_id"] for c in prog.get("constituents") or []}
+            for other in sorted(fids - {fid}):
+                regs = set((fams[other].get("identity_basis") or {}).get("registry_ids") or []) | {other}
+                if regs & cons:
+                    out.append({"kind": "PROGRAMME_WITH_CONSTITUENT", "report_id": str(other),
+                                "detail": (f"{o.get('name')}: {prog.get('label')} ({fid}) is pooled alongside its own "
+                                           f"constituent {other} ({sorted(regs & cons)}): one population counted twice")})
     # ONE RECORD, ONE DESIGN DECISION (sacubitril-HFrEF, PARALLEL-HF): a family that contributes data may not have one
     # of its reports excluded for its DESIGN -- the trial is either eligible by design or it is not. The publication
     # read as 'not double-blind' from an abstract that is silent on masking, while the same trial pooled via its

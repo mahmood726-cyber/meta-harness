@@ -26,7 +26,13 @@ _FROM_STATUS = {"ADMITTED": "ACCEPTED", "ADMITTED_PENDING_SIGNATURE": "ACCEPTED"
                 "RETRIEVED_NOT_REPORTED": "PUBLISHED_NO_TARGET_OUTCOME", "NOT_MEASURED": "PUBLISHED_NO_TARGET_OUTCOME",
                 "REPORTED_UNRESOLVED": "REPORTED_UNRESOLVED", "EXTRACTED_NOT_ADMITTED": "REPORTED_UNRESOLVED",
                 "REPORTED_ZERO_EVENTS": "REPORTED_UNRESOLVED", "WITHDRAWN": "REPORTED_UNRESOLVED",
-                "NOT_YET_RETRIEVED": "NOT_YET_RETRIEVED"}
+                "NOT_YET_RETRIEVED": "NOT_YET_RETRIEVED",
+                # the trial's own collection rules did not ascertain the outcome (SELECT): not a gap, never zero
+                "NOT_SYSTEMATICALLY_COLLECTED": "NOT_SYSTEMATICALLY_COLLECTED"}
+# a trial that REPORTS at another timepoint than the protocol's (STEP 11 at week 44, STEP 10 at week 52, for a week-68
+# question): in the inventory, its result available at its own timepoint -- never 'missing week-68 inputs' (a gap it can
+# never close) and never silently pooled as week 68. Declared in docs/timepoint_availability.json with a witness.
+AVAILABLE_AT_OTHER_TIMEPOINT = "AVAILABLE_AT_OTHER_TIMEPOINT"
 
 
 def _ids(x) -> set[str]:
@@ -42,6 +48,11 @@ def _family_state(sr: dict[str, Any], rows: list[dict[str, Any]]) -> tuple[str, 
         return "ONGOING", f"lifecycle {lc}, planned completion {comp}{pend}"
     if sr.get("decision") == "awaiting_classification":
         return "UNRESOLVED_ELIGIBILITY", sr.get("rule_id") or "awaiting classification"
+    for r in rows:
+        ta = r.get("timepoint_availability")
+        if ta:
+            return AVAILABLE_AT_OTHER_TIMEPOINT, (f"reports at {ta['available']} (protocol timepoint {ta['protocol']}); "
+                                                  f"witness: {ta['span']}")
     for r in rows:
         st = (r.get("result_status") or {}).get("state")
         if st in _FROM_STATUS:
@@ -83,8 +94,26 @@ def build(review: dict[str, Any], known_missing: list[dict[str, Any]] | None = N
     return out
 
 
+def attach_timepoints(review: dict[str, Any], slug: str | None) -> None:
+    """Tag each declared trial x outcome with the timepoint it reports at (witness re-verified, fail closed)."""
+    import json, os
+    from .comparison_family import _verified, _ROOT
+    p = os.path.join(_ROOT, "docs", "timepoint_availability.json")
+    decl = ((json.load(open(p, encoding="utf-8")).get("topics") or {}).get(slug) or []) if os.path.exists(p) else []
+    for d in decl:
+        _verified(_ROOT, {"witness": d["witness"]})
+        for o in review.get("outcomes") or []:
+            if o.get("name") != d["outcome"]:
+                continue
+            for r in (o.get("declared_absent_trials") or []):
+                if _ids(r.get("id")) & _ids(d["trial"]):
+                    r["timepoint_availability"] = {"available": d["available"], "protocol": d["protocol"],
+                                                   "span": d["witness"]["span"], "why": d.get("why")}
+
+
 def attach(review: dict[str, Any], slug: str | None) -> None:
     import json, os
+    attach_timepoints(review, slug)
     p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "known_eligible_missing.json")
     km = (json.load(open(p, encoding="utf-8")).get("topics") or {}).get(slug) or [] if os.path.exists(p) else []
     review["completeness_by_outcome"] = build(review, [k for k in km if k.get("per_outcome")])

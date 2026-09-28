@@ -789,6 +789,16 @@ def run(all_recs: list, config: dict) -> dict:
             decision, rule, reason, span = _dec
         else:
             decision, rule, reason, span = screen_record(rec, inc, neg)
+            # ONE DECISION PER COMPARISON (STEP 8, semaglutide-weight): a DECLARED family with an eligible comparison is
+            # not vetoed by a title mention that belongs only to its INELIGIBLE comparisons -- 'liraglutide' in STEP 8's
+            # title is the liraglutide arm's name, not the semaglutide-vs-placebo comparison's population
+            if _cf is not None and _cf["decision"] == "include" and rule == "X2":
+                _term = _re.search(r"mention '([^']+)'", reason or "")
+                if _term and comparison_family.term_only_in_ineligible(rec, _cf, _term.group(1)):
+                    decision, rule = "include", "INCLUDE"
+                    reason = (_cf["reason"] + f" The title's mention of '{_term.group(1)}' names an arm of an INELIGIBLE "
+                              "comparison of the same declared family, not this comparison's population (comparison-level "
+                              "decision).")
         arm_obj = None
         hidden = []
         arm_refusal = None

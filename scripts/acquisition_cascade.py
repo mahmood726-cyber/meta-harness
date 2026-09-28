@@ -378,8 +378,23 @@ def main(argv=None):
                 continue
             for q in t.get("discovery_queries") or []:
                 route_discover(t, q)
+            run_start = _now()
             route_unpaywall(t)
             epmc = route_europepmc(t) or {}
+            # SOURCE IDENTITY (2026-09-28): a DOI that is not the PMID's own DOI names ANOTHER publication (EMPERIAL:
+            # a DOI typed from memory made Unpaywall hand over a different paper's PMC page). Recorded, and every file
+            # the DOI route held for this target in this run is QUARANTINED in the ledger -- never used.
+            if t.get("doi") and epmc.get("doi") and t["doi"].lower() != str(epmc["doi"]).lower():
+                _record("identity_check", t["trial"], f"doi:{t['doi']}", "IDENTITY_MISMATCH", b"",
+                        note=f"target DOI {t['doi']} is not PMID {epmc.get('pmid')}'s DOI {epmc.get('doi')}")
+                led = os.path.join(HELD, "HELD.json")
+                ledger = json.load(open(led, encoding="utf-8")) if os.path.exists(led) else {}
+                for rel, meta in ledger.items():
+                    if (rel.startswith(t["trial"] + "/") and meta.get("route", "").startswith(("unpaywall", "repository"))
+                            and str(meta.get("retrieved_utc", "")) >= run_start):
+                        meta["identity_quarantine"] = (f"held via DOI {t['doi']}, which is not PMID {epmc.get('pmid')}'s "
+                                                       f"DOI {epmc.get('doi')}: another publication; never used")
+                json.dump(ledger, open(led, "w", encoding="utf-8", newline="\n"), indent=1, sort_keys=True, ensure_ascii=False)
             # SUPPLEMENTS BY DEFAULT (sacubitril-HFrEF, 2026-09-28): LIFE's clinical outcomes are only in its
             # supplement, and this route used to run only when a target opted in AND the article was open access --
             # so no attempt was made or recorded. Now: whenever a PMCID is known (from Europe PMC, or declared on the

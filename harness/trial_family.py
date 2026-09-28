@@ -270,8 +270,63 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
                     status['extractable']['scope'] = 'Typed registry outcome values; not automatically a poolable contrast or target effect measure.'
                     break
         f['eligibility'] = screen_family(f, config)
+        decl = programme_declaration(config, [r['report_id'] for r in reports])
+        if decl:
+            attach_programme(f, decl, registry, config, agents, comparators)
         out.append(f)
     return sorted(out, key=lambda f:f['family_id'])
+
+
+def programme_declaration(config, report_ids):
+    """A PROGRAMME (docs/programmes.json): ONE effect estimated across several registered trials (the CANVAS Program =
+    CANVAS NCT01032629 + CANVAS-R NCT01989754). Its report names several registrations, so it is neither one trial's
+    report nor an alias bridge between them; the declaration names the constituents and is witnessed in held bytes
+    (re-verified, fail closed). Returns the declaration for a family holding the programme's report, or None."""
+    import json as _json
+    from .comparison_family import _verified, _ROOT
+    p = Path(_ROOT)/'docs'/'programmes.json'
+    if not p.exists():
+        return None
+    for d in ((_json.loads(p.read_text(encoding='utf8')).get('topics') or {}).get(config.get('slug')) or []):
+        if str(d.get('report_id')) in {str(x) for x in report_ids}:
+            for w in d.get('witnesses') or []:
+                _verified(_ROOT, {'witness': w['witness']})
+            return d
+    return None
+
+
+def attach_programme(f, decl, registry, config, agents, comparators):
+    """The programme is ONE analysis input representing its constituent trials. Its eligibility is DERIVED: every
+    constituent is screened on its own held registry rows (the same P/I/C/design contract as any family); a constituent
+    that is not held, or not eligible, keeps the programme unresolved. Never a declaration of eligibility."""
+    cons = []
+    for n in decl['constituents']:
+        held = registry.get(n) or {}
+        acronym = next((s.get('acronym') for s in held.get('raw', {}).get('studies', []) if s.get('acronym')), None)
+        if not held:
+            cons.append({'registry_id': n, 'acronym': acronym, 'eligibility': cell(code='CONSTITUENT_REGISTRY_NOT_HELD')})
+            continue
+        node = {'family_id': n, 'registry_design': held.get('design', {}), 'population': held.get('population', {}),
+                'arms': held.get('arms') or [],
+                'randomised_contrasts': randomised_contrasts(held.get('arms') or [], agents, held.get('randomized', False),
+                                                             comparators)}
+        cons.append({'registry_id': n, 'acronym': acronym, 'eligibility': screen_family(node, config)})
+    states = [c['eligibility']['state'] for c in cons]
+    witnesses = [{'kind': w['kind'], 'span': w['witness']['span'], 'path': w['witness']['path']}
+                 for w in decl.get('witnesses') or []]
+    f['programme'] = {'programme_id': decl['programme_id'], 'label': decl.get('label'), 'effect_level': 'PROGRAMME',
+                      'constituents': cons, 'witnesses': witnesses, 'basis': decl.get('basis'),
+                      'decided_by': decl.get('decided_by')}
+    f['identity_flag'], f['flags'] = 'PROGRAMME', ['PROGRAMME']
+    f['identity_basis']['programme_constituents'] = list(decl['constituents'])
+    if 'INELIGIBLE' in states:
+        f['eligibility'] = cell('INELIGIBLE', {'basis': 'PROGRAMME_CONSTITUENTS', 'constituents': cons})
+    elif all(s == 'ELIGIBLE' for s in states):
+        f['eligibility'] = cell('ELIGIBLE', {'basis': 'PROGRAMME_CONSTITUENTS', 'constituents': cons,
+                                             'programme_witnesses': witnesses})
+    else:
+        f['eligibility'] = cell(code='PROGRAMME_CONSTITUENT_NOT_ESTABLISHED')
+        f['eligibility']['constituents'] = cons
 
 def refresh_registered_outcomes(nodes, config):
     """Match outcome identity without claiming that a latest snapshot proves timing."""
@@ -416,14 +471,20 @@ def screen_family(family, config):
         if float(age.group(1)) < 18:
             return cell('INELIGIBLE', bound.get('span'))
     clarification = None
+    witnessed = None
     if inc.get('population_any') and not population_matches(inc['population_any'], conditions):
         clarification = population_clarification(config, conditions)
         if not clarification:
-            return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
+            witnessed = population_witness(config, family)
+            if not witnessed:
+                return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
     if any(t.lower() in text for t in inc.get('population_none') or []):
         return cell('INELIGIBLE', family['population']['conditions']['span'])
+    contrast_witnessed = None
     if not family['randomised_contrasts']:
-        return cell(code='INTERVENTION_CONTRAST_NOT_PROVEN')
+        contrast_witnessed = source_witness('contrast_witnesses.json', config, family)
+        if not contrast_witnessed:
+            return cell(code='INTERVENTION_CONTRAST_NOT_PROVEN')
     if (inc.get('design_double_blind') or requirements.get('double_blind')) and design.get('masking','').upper() not in {'DOUBLE','TRIPLE','QUADRUPLE'}:
         return cell(code='BLINDING_NOT_PROVEN')
     # A drug-vs-active comparator pair is not evidence of placebo control.
@@ -438,7 +499,58 @@ def screen_family(family, config):
         # discloses it and nothing downstream can read this as a pre-specified match.
         span['population_basis'] = 'RETROSPECTIVE_VOCABULARY_CLARIFICATION'
         span['population_clarification'] = clarification
+    if witnessed:
+        span['population_basis'] = 'SOURCE_WITNESS'
+        span['population_witness'] = witnessed
+    if contrast_witnessed:
+        span['contrast_basis'] = 'SOURCE_WITNESS'
+        span['contrast_witness'] = contrast_witnessed
     return cell('ELIGIBLE', span)
+
+
+def source_witness(name, config, family):
+    """A structural fact the held registry rows cannot DERIVE, ESTABLISHED from source witnesses (docs/<name>), each
+    re-verified against held bytes (fail closed). contrast_witnesses.json: the registry names the drug by its sponsor code
+    in a double-dummy design (EMPA-REG OUTCOME: 'BI 10773 low dose' + 'Placebo BI 10773 high dose'), so no arm pair is a
+    drug-vs-placebo contrast by name, while the registry's own title and the report's randomisation sentence state it.
+    Only the state ESTABLISHED admits. Returns the record, or None."""
+    import json as _json
+    from .comparison_family import _verified, _ROOT
+    p = Path(_ROOT)/'docs'/name
+    if not p.exists():
+        return None
+    d = (((_json.loads(p.read_text(encoding='utf8')).get('topics') or {}).get(config.get('slug')) or {})
+         .get(family.get('family_id')))
+    if not d or d.get('state') != 'ESTABLISHED':
+        return None
+    for w in d.get('witnesses') or []:
+        _verified(_ROOT, {'witness': w['witness']})
+    return {k: d.get(k) for k in ('state', 'contrast', 'basis', 'decided_by') if d.get(k) is not None} | {
+        'witnesses': [{'kind': w['kind'], 'span': w['witness']['span'], 'path': w['witness']['path']}
+                      for w in d.get('witnesses') or []]}
+
+
+def population_witness(config, family):
+    """The entry population ESTABLISHED from source evidence (docs/population_witnesses.json), for a family whose
+    registry `conditions` -- the registrant's topic label, not an entry criterion -- do not name the protocol's population
+    (SELECT lists 'Overweight; Obesity'). The witnesses are the held registry eligibility criteria and the primary
+    report's own enrolment sentence; each is re-verified against held bytes (fail closed). Only the state ESTABLISHED
+    admits; the state names follow evid2's population_witness (EXCLUDED / CONFLICT / MIXED / ESTABLISHED / NOT_ESTABLISHED)
+    so its computed witness can replace this declaration at integration. Returns the record, or None."""
+    import json as _json
+    from .comparison_family import _verified, _ROOT
+    p = Path(_ROOT)/'docs'/'population_witnesses.json'
+    if not p.exists():
+        return None
+    decl = ((_json.loads(p.read_text(encoding='utf8')).get('topics') or {}).get(config.get('slug')) or {})
+    d = decl.get(family.get('family_id'))
+    if not d or d.get('state') != 'ESTABLISHED':
+        return None
+    for w in d.get('witnesses') or []:
+        _verified(_ROOT, {'witness': w['witness']})
+    return {'state': d['state'], 'witnesses': [{'kind': w['kind'], 'span': w['witness']['span'], 'path': w['witness']['path']}
+                                               for w in d.get('witnesses') or []],
+            'decided_by': d.get('decided_by'), 'basis': d.get('basis')}
 
 def protocol_requirements(root, slug, config):
     """Apply explicit structured B-prime design/population declarations only.
@@ -548,18 +660,25 @@ def attach_review(review, nodes):
             if f is None:
                 raise ValueError('FAMILY_LINK_UNRESOLVED: '+str(row.get('id')))
             fid = f['family_id']
-            row['family_identity_state'] = ('REGISTRY_ANCHORED' if f['identity_basis']['registry_ids'] else
+            row['family_identity_state'] = ('PROGRAMME' if f.get('programme') else
+                                            'REGISTRY_ANCHORED' if f['identity_basis']['registry_ids'] else
                                             'PUBLICATION_ANCHORED' if f['identity_basis']['primary_report_ids'] else
                                             'UNRESOLVED_REPORT_CANDIDATE')
+            if f.get('programme'):
+                # one programme-level input representing several trials: never a trial, never its constituents
+                row['programme'] = {'programme_id': f['programme']['programme_id'], 'label': f['programme']['label'],
+                                    'constituents': [c['registry_id'] for c in f['programme']['constituents']]}
             if fid in seen:
                 raise ValueError('DUPLICATE_FAMILY: '+fid+' in '+outcome['name'])
             seen.add(fid)
     _attach_legacy(review, nodes)
     for f in nodes:
-        f['is_trial_family'] = bool(f['identity_basis']['registry_ids'])
+        # a PROGRAMME is anchored on its declared constituent registrations (docs/programmes.json), not left unresolved
+        f['is_trial_family'] = bool(f['identity_basis']['registry_ids']) or bool(f.get('programme'))
         # the identity ANCHOR: a registry, or -- for a trial with no registry link -- its own primary publication. A
         # publication-anchored family is an independent population: it is counted, never dropped from the family count
-        f['identity_anchor'] = ('REGISTRY' if f['identity_basis']['registry_ids'] else
+        f['identity_anchor'] = ('PROGRAMME' if f.get('programme') else
+                                'REGISTRY' if f['identity_basis']['registry_ids'] else
                                 'PUBLICATION' if f['identity_basis']['primary_report_ids'] else 'NONE')
         held_ids = {identity._norm(r['id']) for r in f['source_records']}
         missing = {r['report_id'] for r in f['reports']} - held_ids
@@ -635,7 +754,8 @@ def attach_review(review, nodes):
                 f = by_report.get(identity._norm(row.get('id')))
                 if f:
                     row['family_id'] = f['family_id']
-                    row['family_identity_state'] = ('REGISTRY_ANCHORED' if f['is_trial_family'] else
+                    row['family_identity_state'] = ('PROGRAMME' if f.get('programme') else
+                                                    'REGISTRY_ANCHORED' if f['is_trial_family'] else
                                                     'PUBLICATION_ANCHORED' if f.get('identity_anchor') == 'PUBLICATION' else
                                                     'UNRESOLVED_REPORT_CANDIDATE')
         outcome['membership'] = membership.build_outcome_membership(outcome, review.get('screening',{}).get('records',[]))
@@ -651,7 +771,17 @@ def derive_count_chain(nodes):
     eligible = {f['family_id'] for f in families if f['eligibility']['state']=='ELIGIBLE'}
     contributing = {f['family_id'] for f in families if any(p.get('analysis_input') for p in f['poolability'])}
     primary = {f['family_id'] for f in families if any(s['in_primary_pool']['state']=='YES' for s in f['outcome_status'])}
+    # a PROGRAMME is one analysis input representing several trials: inputs and trials are counted separately, never
+    # the programme's combined estimate alongside its constituents'
+    progs = [f for f in families if f.get('programme')]
+    width = {f['family_id']: (len(f['programme']['constituents']) if f.get('programme') else 1) for f in families}
     return {'trial_families':len(families),'eligible_families':len(eligible),'contributing':len(contributing),
+            'analysis_inputs':len(contributing),'trials_represented':sum(width[x] for x in contributing),
+            'programmes':[{'family_id':f['family_id'],'programme_id':f['programme']['programme_id'],
+                           'label':f['programme']['label'],
+                           'constituents':[c['registry_id'] for c in f['programme']['constituents']],
+                           'contributing':f['family_id'] in contributing} for f in progs],
+            'programme_anchored':len(progs),
             'registry_anchored':sum(f.get('identity_anchor') == 'REGISTRY' for f in families),
             'publication_anchored':sum(f.get('identity_anchor') == 'PUBLICATION' for f in families),
             'pooled':len(primary),'eligibility_unresolved':sum(f['eligibility']['state']=='UNKNOWN' for f in families),
@@ -675,4 +805,9 @@ def count_sentence(chain):
             f"Unresolved eligibility {chain['eligibility_unresolved']} of {n}. "
             f"Unresolved report-only candidates {chain['unresolved_report_candidates']} (outside family denominator). "
             f"Contributing without established structural eligibility: {', '.join(chain['contributing_without_structural_eligibility']) or 'none'}. "
-            'These are separate evidence states, not a nested eligibility funnel.')
+            + ''.join(f"{p['label']} is ONE programme-level input representing {len(p['constituents'])} trials "
+                      f"({', '.join(p['constituents'])}); its combined estimate is never pooled alongside its constituents'. "
+                      for p in chain.get('programmes') or [] if p.get('contributing'))
+            + (f"{chain['contributing']} analysis inputs represent {chain['trials_represented']} trials. "
+               if chain.get('trials_represented', chain['contributing']) != chain['contributing'] else '')
+            + 'These are separate evidence states, not a nested eligibility funnel.')
