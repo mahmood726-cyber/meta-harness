@@ -1,5 +1,7 @@
 # V1.0.1 findings register -- ADDENDUM from the pva internal topic audit (27 Sep 2026)
 
+**Correction 28 Sep:** finding sglt2-ckd-progression #4 was downgraded on 27 Sep to 'identifier inconsistency only'. That was wrong: PMC9761906 is a different publication (PMID 35359313). It is accepted as written, class C5. See SOURCE_IDENTITY_CENSUS_2026-09-28.md.
+
 **For the release captain to merge into F:/mh-gate/outputs/V1_0_1_FINDINGS_REGISTER.md (this lane does not edit that file).**
 
 - Scope: the **22** served topics the external reviewer has not covered; **22 of 22 audited** on V1 = main 9eacfe09.
