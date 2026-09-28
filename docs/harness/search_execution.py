@@ -7,7 +7,8 @@ now carries an execution record built only from held artefacts:
 
   query, date, returned IDs (or 'not held'), dispositions (screening / registry decisions), family links, and
   entered_via -- EXECUTED_QUERY (an independent concept query), SEEDED_IDENTIFIER (a PMID/NCT/DOI enumeration of known
-  items), MANUAL_ADDITION (a recorded link a person added), LEGACY_UNRECORDED (a retrieval with no per-query record).
+  items), COMPARATOR_NAMED (a trial named by a held comparator's table, fetched by its identifier), MANUAL_ADDITION
+  (a recorded link a person added), LEGACY_UNRECORDED (a retrieval with no per-query record).
 
 A declared source with no execution is NOT_EXECUTED, never absent. Seeded and manual rows are rendered visibly
 distinct from independently retrieved ones. A run whose raw responses are not held (the 15 Sep search_v2 run: its
@@ -130,6 +131,19 @@ def build(root, slug, review: dict) -> dict | None:
                           "entered_via": "MANUAL_ADDITION", "query": f"recorded link bound by '{x['binding_token']}' ({x.get('reported_by')})",
                           "date": x.get("retrieved_utc"), "state": "RAN_OK", "returned_ids": [x["pmid"]], "n_returned": 1,
                           "dispositions": dispositions([x["pmid"]]), "family_links": 1, "integrated": True})
+    if (cache / "comparator_named.json").exists():
+        # V1.0.1 (PCSK9 review): trials named by a held comparator's enumerated table, fetched by their identifiers --
+        # seeded by the comparator, never an independent retrieval
+        cn = json.loads((cache / "comparator_named.json").read_text(encoding="utf-8"))
+        for x in cn.get("rows") or []:
+            if x["state"] not in ("CANDIDATE", "NOT_IN_PUBMED"):
+                continue
+            ids = x.get("pmids") or []
+            execs.append({"source": "PubMed/MEDLINE", "id": f"comparator_named:{x['row']}", "entered_via": "COMPARATOR_NAMED",
+                          "query": x.get("query") or f"PMID {', '.join(ids)} (cited by the comparator row)",
+                          "date": cn.get("retrieved_utc"), "state": "RAN_OK" if ids else "RAN_ZERO", "returned_ids": ids,
+                          "n_returned": len(ids), "dispositions": dispositions(ids) if ids else None,
+                          "family_links": None, "integrated": True})
     v2 = _v2_funnels(root, slug)
     # calls logged in the latest held search_v2 snapshot index with no funnel record (e.g. ISRCTN): the call is on
     # record, its outcome is not
@@ -162,7 +176,7 @@ def build(root, slug, review: dict) -> dict | None:
             state = "EXECUTED_IDS_NOT_HELD"
         elif any(e["state"] == "CALL_LOGGED_ONLY" and e["entered_via"] == "EXECUTED_QUERY" for e in ex):
             state = "CALLED_NO_RESULT_RECORD"
-        elif any(e["entered_via"] == "SEEDED_IDENTIFIER" for e in ex):
+        elif any(e["entered_via"] in ("SEEDED_IDENTIFIER", "COMPARATOR_NAMED") for e in ex):
             state = "SEEDED_ONLY"
         elif any(e["entered_via"] == "MANUAL_ADDITION" for e in ex):
             state = "MANUAL_ONLY"
@@ -187,7 +201,8 @@ def render(obj: dict | None) -> str:
             trs.append(f"<tr class='not-executed'><td>{e(r['source'])}</td><td><code>{e(r['state'])}</code></td>"
                        "<td colspan='6'>declared by the protocol; no execution record held</td></tr>")
         for x in r["executions"]:
-            cls = {"SEEDED_IDENTIFIER": "seeded", "MANUAL_ADDITION": "manual", "LEGACY_UNRECORDED": "legacy"}.get(x["entered_via"], "independent")
+            cls = {"SEEDED_IDENTIFIER": "seeded", "COMPARATOR_NAMED": "seeded", "MANUAL_ADDITION": "manual",
+                   "LEGACY_UNRECORDED": "legacy"}.get(x["entered_via"], "independent")
             ids = ("not held" if x["returned_ids"] is None else f"{len(x['returned_ids'])} held")
             trs.append(f"<tr class='{cls}'><td>{e(r['source'])}</td><td><code>{e(r['state'])}</code></td>"
                        f"<td><strong>{e(x['entered_via'])}</strong>{' (not integrated)' if not x['integrated'] else ''}</td>"

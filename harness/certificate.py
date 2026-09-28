@@ -68,7 +68,8 @@ DECISION_OBJECTS = ("pmc_links.json", "comparator_identity.json", "comparator_ne
                     "comparator_member_reports.json", "ghost_pub_links.json", "comparator_pmc_jats.xml",
                     "family_pub_links.json", "comparator_row_checks.json", "external_checkpoints.json",
                     "ascertainment_evidence.json", "ascertainment_pubmed.xml", "ascertainment_aact_rows.json",
-                    "comparator_figure_rows.json", "comparator_figure_g001.png")
+                    "comparator_figure_rows.json", "comparator_figure_g001.png",
+                    "comparator_analysis.json", "comparator_named.json", "comparator_named_pubmed.xml")
 
 
 def _held(cache, review, objects):

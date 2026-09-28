@@ -68,7 +68,9 @@ def test_PLANT_pericarditis_overlap_from_the_committed_transcription_table():
     assert rev["comparator"]["overlap"]["only_ours"] == ["NCT00235079"]                               # not ICAP
     inv = {r["comparator_trial"]: r for r in o["inventory_comparison"]["rows"]}
     assert inv["COPPS (row 4)"]["status"] == "SCREENED_OUT"                                         # postoperative
-    assert inv["COPE (row 2)"]["status"] == "NOT_IN_OUR_RECORDS"
+    # V1.0.1 (PCSK9 review): a trial a held comparator names enters screening (harness/comparator_named.py); COPE is now
+    # screened and excluded (no placebo arm), never "missing eligible"
+    assert inv["COPE (row 2)"]["status"] == "SCREENED_OUT"
     assert "open-label" in inv["COPE (row 2)"]["row_design_as_printed"].lower()                   # not 'missing eligible'
 
 
@@ -92,9 +94,12 @@ def test_PLANT_esketamine_transform3_is_shared_through_screenings_dedup_parent()
     assert inv["D"]["status"] == "POOLED" and inv["D"]["family"] == "NCT02422186"
     assert inv["B"]["family"] == "NCT02417064"          # TRANSFORM-1, held by registry only: bound by its title acronym
     # SUSTAIN-2 (row E) is outside the comparator's Day-28 MADRS pool (outcome-level membership A-D, row n = stated
-    # participants); it is listed as out of scope with its endpoint, never dropped, and no family of ours carries it
+    # participants); it is listed as out of scope with its endpoint, never dropped. Since comparator-named trials enter
+    # screening (V1.0.1, PCSK9 review) its cited report 32316080 is screened, so it binds to that family -- which is
+    # never pooled
     oos = {m["name"].split(" ")[1]: m for m in o["theirs"]["out_of_scope"]}
-    assert oos["E"]["family"] is None and oos["E"]["endpoint"] == "maintenance randomised-withdrawal analysis"
+    assert oos["E"]["family"] == "NCT02497287" and oos["E"]["endpoint"] == "maintenance randomised-withdrawal analysis"
+    assert "NCT02497287" not in o["shared"]
     assert "E" not in inv
 
 

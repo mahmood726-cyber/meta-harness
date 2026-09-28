@@ -20,7 +20,9 @@ import re
 from pathlib import Path
 from typing import Optional
 
-DIMS = ("control", "endpoint", "effect_measure", "population", "intervention")
+# V1.0.1 (metformin review): the TREATMENT CONTRAST is its own dimension -- Cochrane's OR 2.64 is metformin vs
+# placebo/no treatment, while our question is metformin ADDED to clomifene; same drug, same population, other contrast
+DIMS = ("contrast", "control", "endpoint", "effect_measure", "population", "intervention")
 SAME, RELATED, NOT_EST = "SAME_QUESTION", "RELATED_TRIAL_INVENTORY_MAP", "NOT_ESTABLISHED"
 WORDS = {SAME: "same question", RELATED: "related: trial-inventory map", NOT_EST: "same question not established"}
 
@@ -53,7 +55,8 @@ def load(root, slug) -> Optional[dict]:
     for dim in DIMS:
         d = (doc.get("dimensions") or {}).get(dim)
         if not d:
-            raise QuestionRefused(f"{slug}: dimension {dim} missing")
+            # a dimension a record never checked is NOT_ESTABLISHED (it can never earn SAME_QUESTION by omission)
+            doc.setdefault("dimensions", {})[dim] = d = {"agrees": "NOT_ESTABLISHED", "why": "not checked by the record"}
         if d.get("agrees") not in ("YES", "NO", "NOT_ESTABLISHED"):
             raise QuestionRefused(f"{slug}: {dim}.agrees must be YES, NO or NOT_ESTABLISHED")
         if d["agrees"] != "NOT_ESTABLISHED" and not d.get("evidence"):
@@ -93,7 +96,9 @@ def decide(doc: Optional[dict], measure: Optional[dict] = None) -> dict:
         return {"label": NOT_EST, "words": WORDS[NOT_EST],
                 "why": "control, endpoint and effect measure have not been checked against the comparator; drug class "
                        "and population alone do not make it the same question"}
-    a = {k: doc["dimensions"][k]["agrees"] for k in DIMS}
+    # a dimension the document never checked is NOT_ESTABLISHED here too, not a KeyError (load() fills it; a caller
+    # passing a raw document must not earn SAME_QUESTION by omission either)
+    a = {k: (doc["dimensions"].get(k) or {}).get("agrees", "NOT_ESTABLISHED") for k in DIMS}
     if all(v == "YES" for v in a.values()):
         label = SAME
     elif "NO" in a.values():

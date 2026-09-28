@@ -21,6 +21,9 @@ ADJUDICATION = ("Different defensible trial-set definitions repeatedly yield a c
 FACTS = ("k", "effect", "ci", "i2", "pi", "method")
 
 
+_SEEDED_NOTE = "Registered comparator identity; unextracted quantities and trial membership remain unknown."
+
+
 def span(text, quote):
     start = text.index(quote)
     return {"start": start, "end": start + len(quote), "quote": quote}
@@ -358,6 +361,8 @@ def render(review):
     parts.append(_checkpoints_block(review.get("external_checkpoints")))
     from .comparator_rows import render as _rows_block
     parts.append(_rows_block((review.get("comparator") or {}).get("row_checks")))
+    from .comparator_analysis import render as _analysis_block
+    parts.append(_analysis_block((review.get("comparator") or {}).get("analysis")))
     from .comparator_display import render as _display_block
     parts.append(_display_block((review.get("comparator") or {}).get("display_check")))
     from .outcome_match import render as _outcome_match_block
@@ -373,8 +378,16 @@ def render(review):
                      + "".join(f"<li><strong>{e(m['member'])}</strong>: comparator prints &ldquo;{e(m['comparator_prints'])}&rdquo;; "
                                f"<code>{e(m['ef_state'])}</code> from PMID {e(m['report_pmid'])}: &ldquo;{e(m['report_quote'])}&rdquo; "
                                f"&mdash; {e(m['note'])}.</li>" for m in mp) + "</ul></div>")
+    from .comparator_named import render as _named_block
+    parts.append(_named_block(review.get("comparator_named")))
     for c in review.get("comparator_panel", []):
-        parts.append(f"<article data-comparator='{esc(c['id'])}'><h4>{esc(c['citation'])}</h4><p>{esc(c['scope_note'])}</p>")
+        note = c["scope_note"]
+        if c.get("trial_set") and note == _SEEDED_NOTE:
+            # V1.0.1 (PCSK9 review): the seeded note said membership was unknown on pages whose trial set IS
+            # enumerated from a located table -- the note must not contradict the overlap rendered above it
+            note = (f"Registered comparator identity; trial membership enumerated ({len(c['trial_set'])} rows, located "
+                    f"spans); unextracted quantities remain unknown.")
+        parts.append(f"<article data-comparator='{esc(c['id'])}'><h4>{esc(c['citation'])}</h4><p>{esc(note)}</p>")
         cc = c.get("citation_column") or {}
         refused = [m for m in c.get("trial_set") or [] if m.get("binding_refused")]
         if cc.get("state") == "UNRELIABLE":

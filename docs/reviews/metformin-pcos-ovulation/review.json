@@ -4,11 +4,11 @@
   "question": "In women with polycystic ovary syndrome undergoing clomifene ovulation induction, does adding metformin to clomifene versus clomifene plus placebo increase ovulation rate? (Placebo-controlled RCTs.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
+    "sha": "fcaf781d2da1803006a2315036b23caa3f178c25",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['polycystic ovary syndrome', 'polycystic ovarian syndrome', 'pcos', 'polycystic ovaries']; and none of ['ivf', 'icsi', 'vitro fertilization', 'vitro fertilisation', 'intracytoplasmic sperm', 'assisted reproduction', 'assisted reproductive', 'ovarian hyperstimulation', 'hyperstimulation syndrome', 'gestational', 'offspring', 'first-trimester', 'preconception', 'n-acetylcysteine', 'oocyte', 'embryo', 'sitagliptin', 'sitaformin', 'myo-inositol', 'inositol', 'l-carnitine', 'ziziphus', 'cabergoline', 'doppler', 'oral contraceptive', 'cyproterone', 'simvastatin', 'liraglutide', 'acupuncture']; randomised intervention is one of ['metformin'] (named in title/conditions); a comparator among ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - metformin for ovulation in polycystic ovary syndrome\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page. The protocol is committed before the synthesis runs.\n\n## PICO\n- **P** - women with polycystic ovary syndrome (PCOS) undergoing ovulation induction,\n  including clomiphene-resistant or anovulatory PCOS populations.\n- **I** - metformin, alone or added to the same background ovulation-induction regimen\n  in both trial arms.\n- **C** - placebo or placebo-controlled non-metformin treatment, with the same\n  background regimen where a background regimen is used.\n- **O (primary)** - ovulation rate.\n- **O (harms)** - gastrointestinal adverse events; treatment discontinuation due to\n  adverse events.\n\n## Estimand / population / timepoint\n- **Estimand** - odds ratio (OR), metformin vs placebo.\n- **Population** - as randomised.\n- **Timepoint** - end of treatment.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is women with PCOS, polycystic ovarian syndrome, or polycystic\n  ovaries in an ovulation-induction/subfertility context;\n- **I3** - the randomised contrast is metformin vs placebo, including trials with the\n  same background ovulation-induction treatment in both arms;\n- **design** - placebo-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population/context (e.g. IVF/ICSI or pregnancy/offspring follow-up);\n- **X3** - wrong intervention/comparison (no metformin-vs-placebo contrast, or an\n  active non-metformin intervention is the randomised contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative\n  control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports ovulation rate,\n> and whether it reports it as a 2x2 table versus only an effect plus CI, is recorded\n> as target-result status at extraction - never as an exclusion. A published effect\n> plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: metformin x PCOS/polycystic ovary syndrome x placebo x ovulation/randomised.\n- ClinicalTrials.gov: condition \"polycystic ovary syndrome\", intervention \"metformin\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(OR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nSharpe et al., *Cochrane Database of Systematic Reviews* 2019, \"Metformin for\novulation induction (excluding gonadotrophins) in women with polycystic ovary\nsyndrome\" (PMID 31845767, PMCID PMC6915832, DOI 10.1002/14651858.CD013505;\nUnpaywall is_oa=true). It reports ovulation OR 2.64 (95% CI 1.85 to 3.75) for\nmetformin versus placebo/no treatment and gastrointestinal side effects OR 4.00\n(95% CI 2.63 to 6.09).\n\n## Controls\n- **Positive** - the search must recover and include canonical placebo-controlled\n  PCOS ovulation-induction metformin trials: Moll 2006 (PMID 16769748), Ng 2001\n  (PMID 11473953), and Sturrock 2002 (PMID 11994052).\n- **Negative** - the Diabetes Prevention Program metformin trial in impaired glucose\n  tolerance/type 2 diabetes prevention (PMID 11832527) must be recovered and EXCLUDED\n  as wrong population/topic.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that ovulation\ninduction context and the gonadotrophin exclusion in the comparator review were\nnot executable. The config now requires ovulation-induction / clomiphene context\nand excludes hMG / human menopausal gonadotrophin add-on designs. The PCOS title\nmiss for PMID 19552097 is fixed mechanically in screening negation handling rather\nthan by a record-specific override. This amendment changes screening only.\n"
+    "text": "# Protocol - metformin for ovulation in polycystic ovary syndrome\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page. The protocol is committed before the synthesis runs.\n\n## PICO\n- **P** - women with polycystic ovary syndrome (PCOS) undergoing ovulation induction,\n  including clomiphene-resistant or anovulatory PCOS populations.\n- **I** - metformin, alone or added to the same background ovulation-induction regimen\n  in both trial arms.\n- **C** - placebo or placebo-controlled non-metformin treatment, with the same\n  background regimen where a background regimen is used.\n- **O (primary)** - ovulation rate.\n- **O (harms)** - gastrointestinal adverse events; treatment discontinuation due to\n  adverse events.\n\n## Estimand / population / timepoint\n- **Estimand** - odds ratio (OR), metformin vs placebo.\n- **Population** - as randomised.\n- **Timepoint** - end of treatment.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is women with PCOS, polycystic ovarian syndrome, or polycystic\n  ovaries in an ovulation-induction/subfertility context;\n- **I3** - the randomised contrast is metformin vs placebo, including trials with the\n  same background ovulation-induction treatment in both arms;\n- **design** - placebo-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population/context (e.g. IVF/ICSI or pregnancy/offspring follow-up);\n- **X3** - wrong intervention/comparison (no metformin-vs-placebo contrast, or an\n  active non-metformin intervention is the randomised contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative\n  control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports ovulation rate,\n> and whether it reports it as a 2x2 table versus only an effect plus CI, is recorded\n> as target-result status at extraction - never as an exclusion. A published effect\n> plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: metformin x PCOS/polycystic ovary syndrome x placebo x ovulation/randomised.\n- ClinicalTrials.gov: condition \"polycystic ovary syndrome\", intervention \"metformin\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(OR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nSharpe et al., *Cochrane Database of Systematic Reviews* 2019, \"Metformin for\novulation induction (excluding gonadotrophins) in women with polycystic ovary\nsyndrome\" (PMID 31845767, PMCID PMC6915832, DOI 10.1002/14651858.CD013505;\nUnpaywall is_oa=true). It reports ovulation OR 2.64 (95% CI 1.85 to 3.75) for\nmetformin versus placebo/no treatment and gastrointestinal side effects OR 4.00\n(95% CI 2.63 to 6.09).\n\n## Controls\n- **Positive** - the search must recover and include canonical placebo-controlled\n  PCOS ovulation-induction metformin trials: Moll 2006 (PMID 16769748), Ng 2001\n  (PMID 11473953), and Sturrock 2002 (PMID 11994052).\n- **Negative** - the Diabetes Prevention Program metformin trial in impaired glucose\n  tolerance/type 2 diabetes prevention (PMID 11832527) must be recovered and EXCLUDED\n  as wrong population/topic.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that ovulation\ninduction context and the gonadotrophin exclusion in the comparator review were\nnot executable. The config now requires ovulation-induction / clomiphene context\nand excludes hMG / human menopausal gonadotrophin add-on designs. The PCOS title\nmiss for PMID 19552097 is fixed mechanically in screening negation handling rather\nthan by a record-specific override. This amendment changes screening only.\n\n## Retrospective protocol erratum (2026-09-28) -- the comparator benchmark is the wrong comparison\n**Labelled retrospective: written after data were seen; the sections above are left unchanged as registered.**\n- The comparator section quotes ovulation OR 2.64 (95% CI 1.85 to 3.75). That is Sharpe 2019's metformin versus\n  placebo or no treatment comparison. This review's question is metformin ADDED to clomifene, so 2.64 answers a\n  different treatment contrast and is labelled WRONG_COMPARISON on the page (reported by an external review).\n- The governing analysis is Sharpe 2019 Analysis 2.4, metformin plus clomiphene versus clomiphene alone: OR 1.65\n  (1.35 to 2.03), 21 studies, 1,568 women. Its \"clomiphene alone\" control is broader than this protocol's placebo\n  requirement, which is recorded as a CONTROL difference (harness/same_question.py): the two questions are related,\n  not the same.\n- The Analysis 2.4 forest plot is read row by row (cache/metformin-pcos-ovulation/comparator_analysis.json; the image\n  is Cochrane's and is not held, its URL and sha256 are recorded). All three of our pooled trials are rows of it with\n  the same counts. Its Legro 2007 row (108/209 vs 106/209) disagrees with the trial's own \"subjects who ovulated\"\n  (174 vs 157) and is COMPARATOR_ROW_UNRECONCILED; it is never copied.\n- Scope: this erratum changes which comparator analysis is shown beside the result. It changes no eligibility rule,\n  no outcome, no model and no result of this review.\n"
   },
   "search": {
     "n_records": 154,
@@ -35,8 +35,8 @@
       }
     ],
     "retrieval_class": {
-      "class": "TITLE_SEEDED_RETRIEVAL",
-      "label": "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH",
+      "class": "HAND_WRITTEN_KEYWORD_SEARCH",
+      "label": "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH",
       "basis": [
         {
           "query": "\"metformin\"[Title] AND \"polycystic ovary syndrome\"[Title] AND placebo AND ovulation AND randomized",
@@ -65,13 +65,16 @@
         },
         {
           "query": "\"metformin\"[Title] AND \"polycystic ovary syndrome\"[Title] AND placebo AND ovulation AND randomized || \"metformin\"[Title] AND \"clomiphene-resistant\" AND \"polycystic ovary syndrome\" AND placebo || \"metformin\"[Title] AND \"ovulation rate\" AND polycystic AND placebo",
-          "kind": "TITLE_ANCHORED",
+          "kind": "TITLE_RESTRICTED_CONCEPT",
           "features": [
             "title_field_tag:[Title]",
             "title_field_tag:[Title]",
+            "title_restricted_concept",
             "title_field_tag:[Title]",
+            "title_restricted_concept",
             "title_field_tag:[Title]",
-            "title_reconstruction:4_title_terms"
+            "title_restricted_concept",
+            "joined_queries:3"
           ]
         }
       ],
@@ -80,7 +83,7 @@
       "axes": {
         "can_retrieve_unknown_trial": {
           "answer": "YES",
-          "basis": "3 of 4 queries search a concept (free text or a title-restricted concept)"
+          "basis": "4 of 4 queries search a concept (free text or a title-restricted concept)"
         },
         "execution_documented": {
           "answer": "PARTIAL",
@@ -96,8 +99,8 @@
       "search_provenance": {
         "heading": "Search provenance — not a completed systematic search.",
         "registry_first_status": "NOT_RUN",
-        "class_statement": "its evidence set was assembled by TITLE-SEEDED RETRIEVAL (title/name-anchored queries for pre-identified trials)",
-        "discovery_statement": "which cannot discover an unknown eligible trial. A query seeded with the names of known trials is not a systematic search.",
+        "class_statement": "its PubMed queries are hand-written keyword strings that were never registered as a concept search",
+        "discovery_statement": "whose discovery reach is unmeasured — a zero here reads as not observed, never as absent. A hand-written keyword query is not a documented systematic search.",
         "retraction": "We retract any claim of a registry-first or systematic search for this topic."
       }
     },
@@ -2484,9 +2487,9 @@
       "description": ""
     },
     "search_scope": {
-      "type": "PRE_IDENTIFIED_SET",
-      "retrieval_class": "TITLE_SEEDED_RETRIEVAL",
-      "retrieval_label": "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH",
+      "type": "UNREGISTERED_HAND_WRITTEN_KEYWORD",
+      "retrieval_class": "HAND_WRITTEN_KEYWORD_SEARCH",
+      "retrieval_label": "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH",
       "query_count": 4,
       "queries": [
         "\"metformin\"[Title] AND \"polycystic ovary syndrome\"[Title] AND placebo AND ovulation AND randomized",
@@ -2499,11 +2502,10 @@
         "PUBMED_LEGACY_QUERY"
       ],
       "discovery_capable_source_count": 3,
-      "description": "retrieval can test only named PMIDs/titles/trial identifiers already supplied"
+      "description": "not a pre-identified PMID set, but not a registered concept search; discovery reach is unmeasured"
     },
-    "verdict": "SCOPE_MISMATCH",
-    "reason": "open P/I/C/design eligibility was evaluated only inside a pre-identified retrieval set; the open eligibility universe was not tested",
-    "render_requirement": "N of the pre-identified set met eligibility; eligibility over the open scope was NOT tested (search class TITLE_SEEDED_RETRIEVAL)"
+    "verdict": "HAND_WRITTEN_KEYWORD_SCOPE",
+    "reason": "hand-written keyword retrieval is not a pre-identified PMID/title set, but it was not a registered concept search; discovery reach remains unmeasured"
   },
   "outcomes": [
     {
@@ -2570,10 +2572,10 @@
               "validity_critical": false
             }
           },
-          "clomifene_status": "NOT_STATED",
-          "endpoint_event_time": "END_OF_TREATMENT",
           "treatment_strategy": "METFORMIN_ADDON_CC",
           "background_therapy": "clomifene",
+          "clomifene_status": "NOT_STATED",
+          "endpoint_event_time": "END_OF_TREATMENT",
           "study_effect": {
             "effect_estimate": 2.7777777777777772,
             "standard_error": 0.7302967433402214,
@@ -2690,10 +2692,10 @@
               "validity_critical": false
             }
           },
-          "clomifene_status": "NAIVE",
-          "endpoint_event_time": "END_OF_TREATMENT",
           "treatment_strategy": "METFORMIN_ADDON_CC",
           "background_therapy": "clomifene",
+          "clomifene_status": "NAIVE",
+          "endpoint_event_time": "END_OF_TREATMENT",
           "study_effect": {
             "effect_estimate": 0.6926829268292682,
             "standard_error": 0.2872797051541808,
@@ -2804,10 +2806,10 @@
               "validity_critical": false
             }
           },
-          "clomifene_status": "RESISTANT",
-          "endpoint_event_time": "END_OF_TREATMENT",
           "treatment_strategy": "METFORMIN_ADDON_CC",
           "background_therapy": "clomifene",
+          "clomifene_status": "RESISTANT",
+          "endpoint_event_time": "END_OF_TREATMENT",
           "study_effect": {
             "effect_estimate": 8.249999999999998,
             "standard_error": 0.8862017464175611,
@@ -3911,10 +3913,21 @@
     "reported": [
       {
         "outcome": "Ovulation with metformin added to clomifene",
-        "estimate": 2.64,
+        "estimate": 1.65,
         "scale": "OR",
-        "ci_low": 1.85,
-        "ci_high": 3.75,
+        "ci_low": 1.35,
+        "ci_high": 2.03,
+        "analysis": "Analysis 2.4",
+        "source": "The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03; I 2 = 63%;21 studies, 1568 women; low‐quality evidence).",
+        "replaces_protocol_benchmark": {
+          "analysis": "Analysis 1.4",
+          "label": "metformin versus placebo or no treatment, ovulation rate",
+          "estimate": 2.64,
+          "ci_low": 1.85,
+          "ci_high": 3.75,
+          "state": "WRONG_COMPARISON",
+          "why": "metformin vs placebo or no treatment is not metformin added to clomifene; it is kept as recorded and never used as our benchmark"
+        },
         "claim": {
           "present": true,
           "significant": true,
@@ -3968,26 +3981,123 @@
       "intervention_level_match": true,
       "population_match": true,
       "scope_valid": false,
-      "note": "same question not established -- control, endpoint and effect measure have not been checked against the comparator; drug class and population alone do not make it the same question. Class and population match; that alone is not the same question",
+      "note": "related: trial-inventory map -- differs on control; not established: population, intervention. Class and population match; that alone is not the same question",
       "same_question": {
-        "label": "NOT_ESTABLISHED",
-        "words": "same question not established",
-        "why": "control, endpoint and effect measure have not been checked against the comparator; drug class and population alone do not make it the same question"
+        "label": "RELATED_TRIAL_INVENTORY_MAP",
+        "words": "related: trial-inventory map",
+        "agrees": {
+          "contrast": "YES",
+          "control": "NO",
+          "endpoint": "YES",
+          "effect_measure": "YES",
+          "population": "NOT_ESTABLISHED",
+          "intervention": "NOT_ESTABLISHED"
+        },
+        "differs": [
+          "control"
+        ],
+        "not_established": [
+          "population",
+          "intervention"
+        ],
+        "dimensions": {
+          "contrast": {
+            "ours": "metformin added to clomifene vs clomifene plus placebo",
+            "theirs": "metformin plus clomiphene citrate vs clomiphene citrate alone (Analysis 2.4)",
+            "agrees": "YES",
+            "evidence": [
+              {
+                "document_ref": "topics/metformin-pcos-ovulation.json",
+                "quote": "question\": \"In women with polycystic ovary syndrome undergoing clomifene ovulation induction, does adding metformin to clomifene versus clomifene plus placebo increase ovulation rate? (Placebo-controlled RCTs.)\""
+              },
+              {
+                "document_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+                "quote": "Comparison 2 Metformin and clomiphene citrate versus clomiphene citrate alone, Outcome 4 Ovulation rate."
+              }
+            ],
+            "note": "the protocol's benchmark OR 2.64 is Comparison 1 (metformin vs placebo or no treatment): a different contrast, never our comparator"
+          },
+          "control": {
+            "ours": "clomifene plus placebo",
+            "theirs": "clomiphene citrate alone (placebo not required)",
+            "agrees": "NO",
+            "evidence": [
+              {
+                "document_ref": "topics/metformin-pcos-ovulation.json",
+                "quote": "question\": \"In women with polycystic ovary syndrome undergoing clomifene ovulation induction, does adding metformin to clomifene versus clomifene plus placebo increase ovulation rate? (Placebo-controlled RCTs.)\""
+              },
+              {
+                "document_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+                "quote": "Metformin plus CC versus CC alone"
+              }
+            ],
+            "note": "the comparator's 'CC alone' control is broader than our placebo requirement"
+          },
+          "endpoint": {
+            "ours": "ovulation (per woman)",
+            "theirs": "ovulation rate per woman",
+            "agrees": "YES",
+            "evidence": [
+              {
+                "document_ref": "topics/metformin-pcos-ovulation.json",
+                "quote": "question\": \"In women with polycystic ovary syndrome undergoing clomifene ovulation induction, does adding metformin to clomifene versus clomifene plus placebo increase ovulation rate? (Placebo-controlled RCTs.)\""
+              },
+              {
+                "document_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+                "quote": "improve ovulation per woman compared with CC alone, (OR 1.65, 95% CI 1.35 to 2.03; I 2 = 63%; 21 studies, 1568 women; low‐quality evidence; Analysis 2.4 )"
+              }
+            ]
+          },
+          "effect_measure": {
+            "ours": "OR",
+            "theirs": "OR",
+            "agrees": "YES",
+            "derived": true,
+            "why": "our served pooled OR vs the comparator's reported OR (Ovulation with metformin added to clomifene)"
+          },
+          "population": {
+            "ours": "PCOS undergoing clomifene ovulation induction",
+            "theirs": "women with PCOS (CC-resistant and CC-sensitive subgroups)",
+            "agrees": "NOT_ESTABLISHED"
+          },
+          "intervention": {
+            "ours": "metformin",
+            "theirs": "metformin",
+            "agrees": "NOT_ESTABLISHED"
+          }
+        },
+        "why": "differs on control; not established: population, intervention"
       }
     },
     "overlap": {
       "ours_k": 3,
-      "theirs_k": 41,
-      "theirs_k_source": {
-        "source": "comparator abstract",
-        "quote": "MAIN RESULTS: We included 41 studies (4552 women)."
-      },
-      "shared_k": "not computed: comparator trial set not enumerated",
+      "theirs_k": 21,
+      "theirs_k_source": "governing analysis forest plot (Comparison 2 Metformin and clomiphene citrate versus clomiphene citrate alone, Outcome 4 Ovulation rate.; read from source, image not held): 21 comparator trial(s) for this outcome",
+      "shared_k": 3,
       "only_ours": [],
-      "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
-      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator trial set is not known well enough to compare); our pooled trial families 3; basis: comparator trial set not enumerated.",
-      "relation": "NOT_ENUMERABLE"
+      "only_theirs": [
+        "Boudhraa 2010",
+        "Kar 2015",
+        "Liu 2004",
+        "Machado 2012",
+        "Malkawi 2002",
+        "Ng 2001",
+        "PCOSMIC 2010",
+        "Heathcote 2013",
+        "Jakubowicz 2001",
+        "Khorram 2006",
+        "Ko 2001",
+        "Legro 2007",
+        "Nestler 1998",
+        "Refaie 2005",
+        "Siebert 2009",
+        "Sturrock 2002",
+        "Zain 2009",
+        "Raja 2005"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: SUBSET (subset -- every pooled family is in the comparator set); our pooled trial families 3, comparator trials 21, shared 3; basis: set operation on the enumerated comparator trial set.",
+      "relation": "SUBSET"
     },
     "comparator_trial_set": {
       "status": "NOT_EXPOSED",
@@ -4013,10 +4123,21 @@
     "reported_original": [
       {
         "outcome": "Ovulation with metformin added to clomifene",
-        "estimate": 2.64,
+        "estimate": 1.65,
         "scale": "OR",
-        "ci_low": 1.85,
-        "ci_high": 3.75,
+        "ci_low": 1.35,
+        "ci_high": 2.03,
+        "analysis": "Analysis 2.4",
+        "source": "The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03; I 2 = 63%;21 studies, 1568 women; low‐quality evidence).",
+        "replaces_protocol_benchmark": {
+          "analysis": "Analysis 1.4",
+          "label": "metformin versus placebo or no treatment, ovulation rate",
+          "estimate": 2.64,
+          "ci_low": 1.85,
+          "ci_high": 3.75,
+          "state": "WRONG_COMPARISON",
+          "why": "metformin vs placebo or no treatment is not metformin added to clomifene; it is kept as recorded and never used as our benchmark"
+        },
         "claim": {
           "present": true,
           "significant": true,
@@ -4035,6 +4156,271 @@
         "ci_high": 6.09
       }
     ],
+    "analysis": {
+      "outcome": "Ovulation with metformin added to clomifene",
+      "governing": {
+        "analysis": "Analysis 2.4",
+        "label": "metformin plus clomiphene citrate versus clomiphene citrate alone, ovulation rate",
+        "scale": "OR",
+        "estimate": 1.65,
+        "ci_low": 1.35,
+        "ci_high": 2.03,
+        "k": 21,
+        "n": 1568,
+        "document_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+        "quote": "The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03; I 2 = 63%;21 studies, 1568 women; low‐quality evidence)."
+      },
+      "protocol_benchmark": {
+        "analysis": "Analysis 1.4",
+        "label": "metformin versus placebo or no treatment, ovulation rate",
+        "scale": "OR",
+        "estimate": 2.64,
+        "ci_low": 1.85,
+        "ci_high": 3.75,
+        "k": 13,
+        "n": 684,
+        "document_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+        "quote": "There may be higher rates of ovulation with metformin (OR 2.64, 95% CI 1.85 to 3.75; I 2 = 61%; 13 studies, 684 women; low‐quality evidence).",
+        "state": "WRONG_COMPARISON",
+        "why": "metformin vs placebo or no treatment is not metformin added to clomifene; it is kept as recorded and never used as our benchmark"
+      },
+      "membership": {
+        "figure": {
+          "caption": {
+            "document_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
+            "quote": "Comparison 2 Metformin and clomiphene citrate versus clomiphene citrate alone, Outcome 4 Ovulation rate."
+          },
+          "url": "https://cdn.ncbi.nlm.nih.gov/pmc/blobs/8d3f/6915832/69a0d3129ba2/nCD013505-CMP-002-04.jpg",
+          "sha256": "5f09c84f583f3ec781661d555d625331c610387e4db78a23076d6471419a027a",
+          "held": false,
+          "why_not_held": "Cochrane figure without an open licence; the numbers are transcribed, the image is not redistributed",
+          "read_by": "Claude Opus 5.5 (lane evid2), from the fetched image, 28 Sep 2026"
+        },
+        "members": [
+          {
+            "label": "Ben Ayed 2009",
+            "counts": [
+              10,
+              16,
+              6,
+              16
+            ],
+            "report_pmid": "19522426",
+            "inputs": "SAME_COUNTS"
+          },
+          {
+            "label": "Boudhraa 2010",
+            "counts": [
+              17,
+              32,
+              10,
+              31
+            ]
+          },
+          {
+            "label": "Kar 2015",
+            "counts": [
+              20,
+              35,
+              18,
+              35
+            ]
+          },
+          {
+            "label": "Liu 2004",
+            "counts": [
+              25,
+              30,
+              16,
+              20
+            ]
+          },
+          {
+            "label": "Machado 2012",
+            "counts": [
+              15,
+              21,
+              5,
+              15
+            ]
+          },
+          {
+            "label": "Malkawi 2002",
+            "counts": [
+              11,
+              12,
+              8,
+              16
+            ]
+          },
+          {
+            "label": "Moll 2006",
+            "counts": [
+              71,
+              111,
+              82,
+              114
+            ],
+            "report_pmid": "16769748",
+            "inputs": "SAME_COUNTS"
+          },
+          {
+            "label": "Ng 2001",
+            "counts": [
+              4,
+              9,
+              1,
+              9
+            ]
+          },
+          {
+            "label": "PCOSMIC 2010",
+            "counts": [
+              27,
+              35,
+              23,
+              36
+            ]
+          },
+          {
+            "label": "Heathcote 2013",
+            "counts": [
+              10,
+              13,
+              10,
+              14
+            ]
+          },
+          {
+            "label": "Jakubowicz 2001",
+            "counts": [
+              26,
+              28,
+              22,
+              28
+            ]
+          },
+          {
+            "label": "Khorram 2006",
+            "counts": [
+              7,
+              16,
+              1,
+              15
+            ]
+          },
+          {
+            "label": "Ko 2001",
+            "counts": [
+              6,
+              10,
+              2,
+              11
+            ]
+          },
+          {
+            "label": "Legro 2007",
+            "counts": [
+              108,
+              209,
+              106,
+              209
+            ],
+            "flag": {
+              "row": "Legro 2007",
+              "state": "COMPARATOR_ROW_UNRECONCILED",
+              "printed": "108/209 vs 106/209",
+              "source_says": "the trial report's 'subjects who ovulated' rows are 174 vs 157",
+              "source_state": "REPORTED_NOT_HELD (the Legro 2007 full text is not held)",
+              "reported_by": "external review of the metformin-pcos-ovulation topic (28 Sep 2026)",
+              "rule": "never copied into any pool or comparison"
+            }
+          },
+          {
+            "label": "Nestler 1998",
+            "counts": [
+              17,
+              21,
+              2,
+              25
+            ]
+          },
+          {
+            "label": "Refaie 2005",
+            "counts": [
+              14,
+              20,
+              3,
+              14
+            ]
+          },
+          {
+            "label": "Siebert 2009",
+            "counts": [
+              34,
+              52,
+              36,
+              55
+            ]
+          },
+          {
+            "label": "Sturrock 2002",
+            "counts": [
+              5,
+              12,
+              4,
+              14
+            ]
+          },
+          {
+            "label": "Vandermolen 2001",
+            "counts": [
+              9,
+              12,
+              4,
+              15
+            ],
+            "report_pmid": "11172832",
+            "inputs": "SAME_COUNTS"
+          },
+          {
+            "label": "Zain 2009",
+            "counts": [
+              26,
+              41,
+              23,
+              41
+            ]
+          },
+          {
+            "label": "Raja 2005",
+            "counts": [
+              34,
+              50,
+              18,
+              50
+            ]
+          }
+        ],
+        "endpoint": "Ovulation with metformin added to clomifene",
+        "shared_same_counts": [
+          "Ben Ayed 2009",
+          "Moll 2006",
+          "Vandermolen 2001"
+        ]
+      },
+      "row_flags": [
+        {
+          "row": "Legro 2007",
+          "state": "COMPARATOR_ROW_UNRECONCILED",
+          "printed": "108/209 vs 106/209",
+          "source_says": "the trial report's 'subjects who ovulated' rows are 174 vs 157",
+          "source_state": "REPORTED_NOT_HELD (the Legro 2007 full text is not held)",
+          "reported_by": "external review of the metformin-pcos-ovulation topic (28 Sep 2026)",
+          "rule": "never copied into any pool or comparison"
+        }
+      ]
+    },
     "overlap_relation": {
       "outcome": "Ovulation with metformin added to clomifene",
       "comparator_pmid": "31845767",
@@ -4072,17 +4458,353 @@
       "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
-        "status": "NOT_ENUMERATED",
-        "note": "the registered comparator's trial set is not enumerated in a typed, located source"
+        "status": "ENUMERATED",
+        "source": "governing analysis forest plot (Comparison 2 Metformin and clomiphene citrate versus clomiphene citrate alone, Outcome 4 Ovulation rate.; read from source, image not held)",
+        "endpoint_for_outcome": "Ovulation with metformin added to clomifene",
+        "members": [
+          {
+            "name": "Ben Ayed 2009",
+            "family": "SYN-a65b65385197",
+            "alias_ids": [
+              "19522426"
+            ],
+            "identity": "bound to our report PMID 19522426 (same counts in the plot and our row)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Ben Ayed 2009 [10, 16, 6, 16]",
+            "bound_to": "SYN-a65b65385197"
+          },
+          {
+            "name": "Boudhraa 2010",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Boudhraa 2010 [17, 32, 10, 31]",
+            "bound_to": null
+          },
+          {
+            "name": "Kar 2015",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Kar 2015 [20, 35, 18, 35]",
+            "bound_to": null
+          },
+          {
+            "name": "Liu 2004",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Liu 2004 [25, 30, 16, 20]",
+            "bound_to": null
+          },
+          {
+            "name": "Machado 2012",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Machado 2012 [15, 21, 5, 15]",
+            "bound_to": null
+          },
+          {
+            "name": "Malkawi 2002",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Malkawi 2002 [11, 12, 8, 16]",
+            "bound_to": null
+          },
+          {
+            "name": "Moll 2006",
+            "family": "ISRCTN55906981",
+            "alias_ids": [
+              "16769748"
+            ],
+            "identity": "bound to our report PMID 16769748 (same counts in the plot and our row)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Moll 2006 [71, 111, 82, 114]",
+            "bound_to": "ISRCTN55906981"
+          },
+          {
+            "name": "Ng 2001",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Ng 2001 [4, 9, 1, 9]",
+            "bound_to": null
+          },
+          {
+            "name": "PCOSMIC 2010",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: PCOSMIC 2010 [27, 35, 23, 36]",
+            "bound_to": null
+          },
+          {
+            "name": "Heathcote 2013",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Heathcote 2013 [10, 13, 10, 14]",
+            "bound_to": null
+          },
+          {
+            "name": "Jakubowicz 2001",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Jakubowicz 2001 [26, 28, 22, 28]",
+            "bound_to": null
+          },
+          {
+            "name": "Khorram 2006",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Khorram 2006 [7, 16, 1, 15]",
+            "bound_to": null
+          },
+          {
+            "name": "Ko 2001",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Ko 2001 [6, 10, 2, 11]",
+            "bound_to": null
+          },
+          {
+            "name": "Legro 2007",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Legro 2007 [108, 209, 106, 209]",
+            "bound_to": null
+          },
+          {
+            "name": "Nestler 1998",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Nestler 1998 [17, 21, 2, 25]",
+            "bound_to": null
+          },
+          {
+            "name": "Refaie 2005",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Refaie 2005 [14, 20, 3, 14]",
+            "bound_to": null
+          },
+          {
+            "name": "Siebert 2009",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Siebert 2009 [34, 52, 36, 55]",
+            "bound_to": null
+          },
+          {
+            "name": "Sturrock 2002",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Sturrock 2002 [5, 12, 4, 14]",
+            "bound_to": null
+          },
+          {
+            "name": "Vandermolen 2001",
+            "family": "SYN-90e1fc6ced9d",
+            "alias_ids": [
+              "11172832"
+            ],
+            "identity": "bound to our report PMID 11172832 (same counts in the plot and our row)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Vandermolen 2001 [9, 12, 4, 15]",
+            "bound_to": "SYN-90e1fc6ced9d"
+          },
+          {
+            "name": "Zain 2009",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Zain 2009 [26, 41, 23, 41]",
+            "bound_to": null
+          },
+          {
+            "name": "Raja 2005",
+            "family": null,
+            "alias_ids": [],
+            "identity": "unbound (name only)",
+            "endpoint": "Ovulation with metformin added to clomifene",
+            "span": "forest-plot row: Raja 2005 [34, 50, 18, 50]",
+            "bound_to": null
+          }
+        ],
+        "out_of_scope": []
       },
-      "theirs_k": null,
-      "shared": null,
-      "shared_k": null,
-      "only_ours": null,
-      "only_theirs": null,
-      "relation": "NOT_ENUMERABLE",
-      "label": "not enumerable -- the comparator trial set is not known well enough to compare",
-      "basis": "comparator trial set not enumerated",
+      "theirs_k": 21,
+      "inventory_comparison": {
+        "rows": [
+          {
+            "comparator_trial": "Ben Ayed 2009",
+            "status": "POOLED",
+            "family": "SYN-a65b65385197"
+          },
+          {
+            "comparator_trial": "Boudhraa 2010",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Kar 2015",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Liu 2004",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Machado 2012",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Malkawi 2002",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Moll 2006",
+            "status": "POOLED",
+            "family": "ISRCTN55906981"
+          },
+          {
+            "comparator_trial": "Ng 2001",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "PCOSMIC 2010",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Heathcote 2013",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Jakubowicz 2001",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Khorram 2006",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Ko 2001",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Legro 2007",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Nestler 1998",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Refaie 2005",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Siebert 2009",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Sturrock 2002",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Vandermolen 2001",
+            "status": "POOLED",
+            "family": "SYN-90e1fc6ced9d"
+          },
+          {
+            "comparator_trial": "Zain 2009",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Raja 2005",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          }
+        ],
+        "counts": {
+          "POOLED": 3,
+          "NOT_IN_OUR_RECORDS": 18
+        },
+        "note": "comparison with our eligible inventory; separate from the pooled-set relation"
+      },
+      "shared": [
+        "ISRCTN55906981",
+        "SYN-90e1fc6ced9d",
+        "SYN-a65b65385197"
+      ],
+      "shared_k": 3,
+      "only_ours": [],
+      "only_theirs": [
+        "Boudhraa 2010",
+        "Kar 2015",
+        "Liu 2004",
+        "Machado 2012",
+        "Malkawi 2002",
+        "Ng 2001",
+        "PCOSMIC 2010",
+        "Heathcote 2013",
+        "Jakubowicz 2001",
+        "Khorram 2006",
+        "Ko 2001",
+        "Legro 2007",
+        "Nestler 1998",
+        "Refaie 2005",
+        "Siebert 2009",
+        "Sturrock 2002",
+        "Zain 2009",
+        "Raja 2005"
+      ],
+      "relation": "SUBSET",
+      "label": "subset -- every pooled family is in the comparator set",
+      "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
         "value": 41,
         "source": {
@@ -5086,7 +5808,7 @@
     "reasons": [
       {
         "code": "search_not_executed",
-        "detail": "no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic."
+        "detail": "no genuine executed concept search (HAND_WRITTEN_KEYWORD_SEARCH): We retract any claim of a registry-first or systematic search for this topic."
       },
       {
         "code": "eligible_declared_absent",
@@ -77799,8 +78521,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:22419702, PMID:19552097, PMID:11994052, PMID:11473953; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "f31d215a87ce4e4b62acf0b837c8e1c8da4203fa129897389cbd3d20650ed23d",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (HAND_WRITTEN_KEYWORD_SEARCH): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:22419702, PMID:19552097, PMID:11994052, PMID:11473953; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "d86dcb7e17f10108429473f0a32d6f831c8b20b809d3595b744dad4e4ea09bee",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -77823,8 +78545,8 @@
         "/search/retrieval_class/class",
         "/search/retrieval_class/basis"
       ],
-      "rendered_text": "<div class='absent'><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 1 title/name-seeded queries; 3 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>YES</strong> &mdash; 3 of 4 queries search a concept (free text or a title-restricted concept)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 4 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
-      "text_sha256": "0da6a8a2079d046a7fb9e91f46cf59d4fdf3be8520ce01a3bcc02404d1133b54",
+      "rendered_text": "<div class='absent'><strong>HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process. 0 PMID-enumeration queries; 0 title/name-seeded queries; 4 free-text or title-restricted concept queries.</div><ul class='retrieval-axes'><li>Can it retrieve an unknown trial? <strong>YES</strong> &mdash; 4 of 4 queries search a concept (free text or a title-restricted concept)</li><li>Was execution documented? <strong>PARTIAL</strong> &mdash; 4 of 4 ledger sources record a run state and date; 0 record the hit count</li><li>Is coverage adequate? <strong>NOT_ESTABLISHED</strong> &mdash; no measured recall against an independent reference set is attached to this search</li></ul>",
+      "text_sha256": "cbd7bdbd9e77ea537350f10f4bc87075c84ffe9e119c48762b0935a09ad9b078",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -77904,8 +78626,8 @@
         "/search/retrieval_class/label",
         "/search/retrieval_class/retrieval_auditable"
       ],
-      "rendered_text": "<div class='absent'><p><strong>TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process.</p></div>",
-      "text_sha256": "df2e756b259459ab064ecc3cc872f7214766e0e6e0117975689e5b438104b4f9",
+      "rendered_text": "<div class='absent'><p><strong>HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH</strong> We retract any claim of a registry-first or systematic search for this topic. an auditable screening ledger attached to an unauditable retrieval process.</p></div>",
+      "text_sha256": "0be8c74ca85ed050b5c8db84888718210920644c9790b8669368ddebce87bca0",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
@@ -77927,8 +78649,8 @@
       "source_fields": [
         "/search/retrieval_class/search_provenance"
       ],
-      "rendered_text": "<div class='absent'><strong>Search provenance — not a completed systematic search.</strong> The registry-first (AACT) adapter status for this topic is <strong>NOT_RUN</strong>; its evidence set was assembled by TITLE-SEEDED RETRIEVAL (title/name-anchored queries for pre-identified trials), which cannot discover an unknown eligible trial. A query seeded with the names of known trials is not a systematic search. We retract any claim of a registry-first or systematic search for this topic.</div>",
-      "text_sha256": "4e3179da895ac44e80ac6b52fa1bb8fb1935716a204d3d3887b170626b33c0cc",
+      "rendered_text": "<div class='absent'><strong>Search provenance — not a completed systematic search.</strong> The registry-first (AACT) adapter status for this topic is <strong>NOT_RUN</strong>; its PubMed queries are hand-written keyword strings that were never registered as a concept search, whose discovery reach is unmeasured — a zero here reads as not observed, never as absent. A hand-written keyword query is not a documented systematic search. We retract any claim of a registry-first or systematic search for this topic.</div>",
+      "text_sha256": "3c8d45cee2e6a16b0ad26288786fbe51756da6474ea0cf2c4f639c07bf524eb4",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:search-provenance",
@@ -78283,14 +79005,14 @@
   ],
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "714be7f7f12f4d28f836dc2b02da41f78416a19d57fb4e3b7325c63204f06d93",
+    "protocol_sha": "fcaf781d2da1803006a2315036b23caa3f178c25",
+    "review_sha256": "f43636592aef6eead6ae30976b308929dc8b89261c7b1962bbd2a235029a7042",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
       "sha": null,
-      "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9"
+      "kind": "protocol first committed inside a build; later protocol-only commits are amendments or errata, not a registration",
+      "build_sha": "fcaf781d2da1803006a2315036b23caa3f178c25"
     },
     "refusals": [
       {
@@ -78433,8 +79155,8 @@
     "certificate": {
       "schema_version": 1,
       "slug": "metformin-pcos-ovulation",
-      "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-      "protocol_text_sha256": "52208f808c13d4bc2dea72808960f31cd5c0a4e302843dd2db8d055af9fcc87f",
+      "protocol_sha": "fcaf781d2da1803006a2315036b23caa3f178c25",
+      "protocol_text_sha256": "668440596a14fcd13fde078e7907be61cbea7b7b12b531313dc89765e959b68a",
       "search_query_sha256": "ced88710be827c1d72cce409cf8146145b4432a8bd36da057fb86aa29f9d400e",
       "retrieved_corpus_sha256": "1fdb53f8fac5c9d956f5e04c03f4f4317a5b61bbf1047d85d36bfeef06b8daa3",
       "records_file_sha256": "28ea760d2cc752ae9c616a49baa270ca44ce55d58099781bd659580faf119662",
@@ -78449,12 +79171,20 @@
           "sha256": "57ad8236f86b8f3b2b1dac0cb3f67bd585953b5441a2a76711509d84f3853139"
         },
         {
+          "ref": "cache/metformin-pcos-ovulation/comparator_analysis.json",
+          "sha256": "9518742951c2040271ebae8f88f1a66a9adca653fc6f09d5ad4e48c1a6a2d198"
+        },
+        {
           "ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
           "sha256": "e09bc23f48f9f4d7fbc7475473049b9971aa2e39af5a2eddb6967b437fa58614"
         },
         {
           "ref": "cache/metformin-pcos-ovulation/comparator_identity.json",
           "sha256": "dc5a0b7d442acbda0c7b235c1bcb4ef74fae83fdb3636456cc2527bfe63a5ddb"
+        },
+        {
+          "ref": "cache/metformin-pcos-ovulation/comparator_question.json",
+          "sha256": "6e079e62d3a765d47905bbbd32d2af0f974aa43db7f0af4bef95effd6be2be2a"
         },
         {
           "ref": "cache/metformin-pcos-ovulation/ft_11994052.txt",
@@ -78470,7 +79200,7 @@
         }
       ],
       "config_sha256": "41e648f8d59a5d726ec7f6b073beb26e75500dfdc714ca84723d05d7eadbedc1",
-      "analysis_code_sha256": "7b1dcb6b7aeb78c558d2f15cf763980ee59f293bcbfdf752cb9941625576be16",
+      "analysis_code_sha256": "dbe643d57f118562ac9ab5712791ad1d702ed06246b2cfe3562abb31143dc596",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -78484,15 +79214,17 @@
         "harness/ascertainment.py": "2d22de0240c8ab07dfbfef84e78bc58041dba1ab",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "00c432b9c719abb5b02a99f5285efba72497b4ba",
+        "harness/certificate.py": "e58875abab1a380c92f3c2539706245412d3aa44",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
+        "harness/comparator_analysis.py": "9450dc4aeb14a66f1dee10fedf97b89ebf76368a",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
         "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
+        "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "27eec7c95ad1bb1cf528e4dc82de737200c66aff",
+        "harness/comparator_panel.py": "0102e27adf67c5435dc7c14157cc64e0b675949f",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -78513,7 +79245,7 @@
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/family_pub_links.py": "8e57a4ae6137f7563aa48648b82df50aa76f7890",
-        "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
+        "harness/fetch.py": "75367a9becdd5d68adb92cf262815b7cfd5ad2c9",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
         "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
@@ -78539,10 +79271,10 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/overlap_relation.py": "3f5b4558c47af0e4e50ea49531497cf0ef3a9ec8",
         "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "69c23eaaa515be63a4d6b3186e2d67c872fa99d0",
+        "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
         "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -78554,18 +79286,18 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
-        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
+        "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "89ea00f42968cd8d8c09ac5ef9dfa1b7fd162678",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/search_execution.py": "d7e1d989e83f7dd17a8521da47ee40e15ae7c1e8",
+        "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "e21ea037c9adfe7480b700db77dd62716630a106",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "a0719dea9bf295d8b9385769ad379e303d47032a",
+        "harness/trial_family.py": "b184c50a76df30d4b5f0853da97fc56c1403b94a",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -78585,7 +79317,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "100 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "102 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -78615,8 +79347,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "fdd841c5e4c3e8f7de299e0e38ec6a5c27b48e6b15463f898199896a97a53516",
-      "review_sha256": "714be7f7f12f4d28f836dc2b02da41f78416a19d57fb4e3b7325c63204f06d93",
+      "manuscript_sha256": "4133daf458f6f1091ea0e1e4ee543f94a11cbf3fca5a7f3fa978d72354e46e39",
+      "review_sha256": "f43636592aef6eead6ae30976b308929dc8b89261c7b1962bbd2a235029a7042",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/metformin-pcos-ovulation.md UTF-8 text, universal newlines",
@@ -78636,7 +79368,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "2b0fa5a6b641a06b2cd0f37257d55e5b72f2f5d689cef788580cd3d20a46eb50"
+      "release_sha256": "49b30fda7390a0ec75c25a53c0e474a17e7ad3ca53ce02b88760da41ede7af1b"
     }
   }
 }

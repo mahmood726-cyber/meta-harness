@@ -215,8 +215,9 @@ def _title_terms_seed(terms, exempt=()) -> list:
             why.append(f"trial_name_in_title:{acr[0]}")
         elif len(t.split()) >= 5:
             why.append(f"paper_title_in_title_field:{t[:40]}")
-    if len(terms) >= 4:
-        why.append(f"title_reconstruction:{len(terms)}_title_terms")
+    distinct = {t.strip().lower() for t in terms}          # V1.0.1 (metformin review): a repeated concept is one term
+    if len(distinct) >= 4:
+        why.append(f"title_reconstruction:{len(distinct)}_title_terms")
     return why
 
 
@@ -265,6 +266,15 @@ def _query_classification(query, exempt_tokens=None):
     sole caller); they are reported as vocabulary_token features instead of trial_acronym_token and do not make
     the query NAME_SEEDED. With no context (every caller that renders a served page) the classifier is unchanged."""
     text = str(query or "")
+    # V1.0.1 (metformin review): a legacy row joins SEPARATE queries with ' || '; each is classified on its own and the
+    # row takes the most seeded kind -- title terms are never pooled across queries into a 'title reconstruction'
+    parts = [p for p in re.split(r"\s\|\|\s", text) if p.strip()]
+    if len(parts) > 1:
+        got = [_query_classification(p, exempt_tokens) for p in parts]
+        order = ("PMID_ENUMERATION", "IDENTIFIER_SEEDED", "TITLE_ANCHORED", "NAME_SEEDED", "TITLE_RESTRICTED_CONCEPT",
+                 "FREE_TEXT_KEYWORD")
+        kind = min((g["kind"] for g in got), key=lambda k: order.index(k) if k in order else len(order))
+        return {"kind": kind, "features": [f for g in got for f in g["features"]] + [f"joined_queries:{len(parts)}"]}
     lower = text.lower()
     features = []
     exempt = {str(t).lower() for t in (exempt_tokens or ())}
@@ -2087,6 +2097,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # V1.0.1 (finerenone review): recorded registry -> publication links for registry-only families
     from . import family_pub_links as _fpl
     records = _fpl.merge(ROOT, slug, records)
+    # V1.0.1 (PCSK9 review): every trial a held comparator names, and we did not hold, enters screening
+    from . import comparator_named as _cnamed
+    records = _cnamed.merge(ROOT, slug, records)
     _inp = outcome_inputs(slug, config, records)
     config = _inp["config"]
     merged, retrieval_ledger, family_nodes = _inp["merged"], _inp["retrieval_ledger"], _inp["family_nodes"]
@@ -2113,6 +2126,11 @@ def build_review_core(slug, config, records, protocol_sha):
         if eff:
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
                              "ci_low": eff["ci_low"], "ci_high": eff["ci_high"]})
+    # V1.0.1 (metformin review): where the comparator's GOVERNING analysis for our contrast is recorded, it replaces the
+    # keyword-extracted row (which took the first ovulation OR -- another contrast); the protocol benchmark is kept beside it
+    from . import comparator_analysis as comparator_analysis_mod
+    _can_doc = comparator_analysis_mod.load(ROOT, slug)
+    reported = comparator_analysis_mod.apply_to_reported(reported, _can_doc)
     # comparator_k: a SOURCE-VERIFIED override for the comparator's trial count. The auto-extraction
     # below reads a number out of the comparator abstract with the topic's outcome keywords and is
     # unreliable (an external audit found it wrong on 4 topics: it grabbed a subgroup or a cited meta's
@@ -2216,7 +2234,8 @@ def build_review_core(slug, config, records, protocol_sha):
     if retrieval_ledger:
         screening_records = []
         for d in scr["decisions"]:
-            found_by = (retrieval_records.get(str(d["id"])) or {}).get("found_by") or ["UNRECORDED"]
+            found_by = ((retrieval_records.get(str(d["id"])) or {}).get("found_by")
+                        or (rec_by_id.get(d["id"]) or {}).get("found_by") or ["UNRECORDED"])
             screening_records.append({
                 "id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
                 "id_type": d["id_type"], "decision": d["decision"],
@@ -2291,6 +2310,7 @@ def build_review_core(slug, config, records, protocol_sha):
         # where the result was read, with what was published, what the held evidence holds, and why.
         **({"withdrawn": config["primary_outcome"]["withdrawn"]} if config.get("primary_outcome", {}).get("withdrawn") else {}),
         **({"comparator_scope_note": comparator_scope_note} if comparator_scope_note else {}),
+        **({"comparator_named": records["comparator_named"]} if records.get("comparator_named") else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         # Arm-contrast disclosure (TIER-1 structural fix): per pooled trial, whether the intervention of
@@ -2522,6 +2542,12 @@ def build_review_core(slug, config, records, protocol_sha):
     # THE overlap relation (V1.0.1): computed from the pooled trial-family sets and read by every surface; the legacy
     # overlap counts become a projection of it (harness/overlap_relation.py).
     from . import overlap_relation as overlap_relation_mod
+    # V1.0.1 (metformin review): the governing analysis' membership, read from its forest plot, is an enumeration of
+    # the comparator's pool for OUR outcome (rows bound to our trials must carry the same counts)
+    from . import comparator_analysis as comparator_analysis_mod
+    _can = comparator_analysis_mod.assess(comparator_analysis_mod.load(ROOT, slug), review)
+    if _can:
+        review["comparator"] = dict(review["comparator"], analysis=_can)
     review["comparator"] = overlap_relation_mod.attach(review, rec_by_id)
     # V1.0.1: the comparator's model-specific tuples and its internal mismatches (a mixed prose pair is flagged,
     # never adopted and never used to move our result) -- harness/comparator_models.py

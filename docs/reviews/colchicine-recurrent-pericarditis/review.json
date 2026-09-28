@@ -11,7 +11,7 @@
     "text": "# Protocol — colchicine for prevention of pericarditis recurrence\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run. (Revised from the initial recurrent-only draft\nto match the scope of the resolved open-access comparator and to put eligibility on\nP/I/C/**design** only — see below.)\n\n## PICO\n- **P** — patients with pericarditis (acute first episode or recurrent) treated to prevent recurrence.\n- **I** — colchicine added to conventional anti-inflammatory therapy.\n- **C** — placebo added to conventional therapy.\n- **O (primary)** — recurrent pericarditis during follow-up.\n- **O (harms / secondary)** — adverse events, treatment discontinuation, and any further\n  outcome the resolved comparator reports.\n\n## Estimand / population / timepoint\n- **Estimand** — risk ratio (RR), colchicine vs placebo.\n- **Population** — intention-to-treat as randomised.\n- **Timepoint** — longest recurrence follow-up each trial reports.\n\n## Eligibility — on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** — randomised controlled trial;\n- **I2** — population is pericarditis (acute or recurrent), treated to prevent recurrence;\n- **I3** — colchicine vs placebo, both added to conventional therapy;\n- **design** — double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** — not an RCT (review, guideline, observational, protocol-only);\n- **X2** — wrong population (e.g. postpericardiotomy-syndrome prophylaxis);\n- **X3** — wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** — not double-blind and placebo-controlled (e.g. open-label);\n- **X5** — off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports the recurrence\n> outcome, or gives a 2×2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction — never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: colchicine × pericarditis × (recurrent OR trial); plus meta-analysis sweeps to resolve the comparator.\n- ClinicalTrials.gov: condition \"recurrent pericarditis\", intervention \"colchicine\".\n\n## Synthesis method (DECLARED; served method must equal this — gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** τ²; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`μ ± t_{k-1}·√(τ²+se²)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nImazio et al., *Heart* 2012, \"Efficacy and safety of colchicine for pericarditis\nprevention\" (PMID 22442198, DOI 10.1136/heartjnl-2011-301306; Unpaywall is_oa=true). It\nreports pooled recurrence RR 0.40 (0.30–0.54) over 5 controlled trials plus adverse\nevents and drug-withdrawal. Trial-set overlap is stated on the page.\n\n## Controls\n- **Positive** — the search must recover the canonical double-blind colchicine-vs-placebo\n  pericarditis RCTs (CORP, CORP-2, ICAP).\n- **Negative** — COLCOT (colchicine, double-blind, placebo-controlled, but post-MI coronary\n  disease — another topic in this set) must be recovered and EXCLUDED (X5).\n"
   },
   "search": {
-    "n_records": 53,
+    "n_records": 56,
     "cache_ref": "cache/colchicine-recurrent-pericarditis/records.json",
     "run_utc": "2026-09-11",
     "databases": [
@@ -50,7 +50,9 @@
         {
           "query": "colchicine AND pericarditis AND (recurrent OR recurrence) AND (randomized OR randomised OR trial) || colchicine pericarditis randomized double-blind placebo",
           "kind": "FREE_TEXT_KEYWORD",
-          "features": []
+          "features": [
+            "joined_queries:2"
+          ]
         }
       ],
       "screening_auditable": true,
@@ -844,6 +846,45 @@
         "publication_role": "primary"
       },
       {
+        "id": "12574898",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'postpericardiotomy'.",
+        "span": "…e for the prevention of postpericardiotomy syndrome.",
+        "found_by": [
+          "COMPARATOR_NAMED"
+        ],
+        "trial_family_id": "PMID:12574898",
+        "publication_role": "primary"
+      },
+      {
+        "id": "16186437",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo']).",
+        "span": "examined: “Colchicine in addition to conventional therapy for acute pericarditis: results of the COlc…”",
+        "found_by": [
+          "COMPARATOR_NAMED"
+        ],
+        "trial_family_id": "PMID:16186437",
+        "publication_role": "primary"
+      },
+      {
+        "id": "16186468",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo']).",
+        "span": "examined: “Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchi…”",
+        "found_by": [
+          "COMPARATOR_NAMED"
+        ],
+        "trial_family_id": "PMID:16186468",
+        "publication_role": "primary"
+      },
+      {
         "id": "PAPERS · NCT04906720",
         "id_type": "nct",
         "decision": "exclude",
@@ -955,11 +996,11 @@
     "positive_control": "Recovered & included the canonical trials ['21873705', '24694983', '23992557'] that a comparator includes; none missed.",
     "negative_control": "Cross-topic trial(s) ['31733140'] recovered by the search and correctly EXCLUDED ['31733140'] by rule (same drug/design, wrong topic).",
     "dual": {
-      "n": 53,
-      "agree": 51,
+      "n": 56,
+      "agree": 54,
       "disagree": 2,
       "unresolved": 0,
-      "disagreement_rate_pct": 3.8,
+      "disagreement_rate_pct": 3.6,
       "disagreements": [
         {
           "id": "36316102",
@@ -2801,11 +2842,12 @@
       "intervention_level_match": true,
       "population_match": true,
       "scope_valid": false,
-      "note": "related: trial-inventory map -- differs on endpoint, population; not established: control, intervention. Class and population match; that alone is not the same question",
+      "note": "related: trial-inventory map -- differs on endpoint, population; not established: contrast, control, intervention. Class and population match; that alone is not the same question",
       "same_question": {
         "label": "RELATED_TRIAL_INVENTORY_MAP",
         "words": "related: trial-inventory map",
         "agrees": {
+          "contrast": "NOT_ESTABLISHED",
           "control": "NOT_ESTABLISHED",
           "endpoint": "NO",
           "effect_measure": "YES",
@@ -2817,6 +2859,7 @@
           "population"
         ],
         "not_established": [
+          "contrast",
           "control",
           "intervention"
         ],
@@ -2869,9 +2912,13 @@
             "ours": "colchicine",
             "theirs": "Colchicine",
             "agrees": "NOT_ESTABLISHED"
+          },
+          "contrast": {
+            "agrees": "NOT_ESTABLISHED",
+            "why": "not checked by the record"
           }
         },
-        "why": "differs on endpoint, population; not established: control, intervention"
+        "why": "differs on endpoint, population; not established: contrast, control, intervention"
       }
     },
     "overlap": {
@@ -2926,7 +2973,7 @@
         "members": [
           {
             "name": "Finkelstein (row 1)",
-            "family": null,
+            "family": "SYN-4f4cc86a5998",
             "alias_ids": [
               "12574898"
             ],
@@ -2937,7 +2984,7 @@
           },
           {
             "name": "COPE (row 2)",
-            "family": null,
+            "family": "SYN-419f30d99c7f",
             "alias_ids": [
               "16186437"
             ],
@@ -2948,7 +2995,7 @@
           },
           {
             "name": "CORE (row 3)",
-            "family": null,
+            "family": "SYN-7d0c06899e3c",
             "alias_ids": [
               "16186468"
             ],
@@ -2987,20 +3034,29 @@
         "rows": [
           {
             "comparator_trial": "Finkelstein (row 1)",
-            "status": "NOT_IN_OUR_RECORDS",
-            "note": "no held record carries this trial's identity",
+            "status": "SCREENED_OUT",
+            "family": "SYN-4f4cc86a5998",
+            "record": "12574898",
+            "rule": "X2",
+            "reason": "wrong population: title/conditions mention 'postpericardiotomy'.",
             "row_design_as_printed": "Double-blind RCT"
           },
           {
             "comparator_trial": "COPE (row 2)",
-            "status": "NOT_IN_OUR_RECORDS",
-            "note": "no held record carries this trial's identity",
+            "status": "SCREENED_OUT",
+            "family": "SYN-419f30d99c7f",
+            "record": "16186437",
+            "rule": "X3",
+            "reason": "no eligible comparator (none of ['placebo']).",
             "row_design_as_printed": "Open-label RCT"
           },
           {
             "comparator_trial": "CORE (row 3)",
-            "status": "NOT_IN_OUR_RECORDS",
-            "note": "no held record carries this trial's identity",
+            "status": "SCREENED_OUT",
+            "family": "SYN-7d0c06899e3c",
+            "record": "16186468",
+            "rule": "X3",
+            "reason": "no eligible comparator (none of ['placebo']).",
             "row_design_as_printed": "Open-label RCT"
           },
           {
@@ -3020,8 +3076,7 @@
           }
         ],
         "counts": {
-          "NOT_IN_OUR_RECORDS": 3,
-          "SCREENED_OUT": 1,
+          "SCREENED_OUT": 4,
           "POOLED": 1
         },
         "note": "comparison with our eligible inventory; separate from the pooled-set relation"
@@ -3089,6 +3144,79 @@
   },
   "estimand_exclusions": [],
   "comparator_scope_note": "The 2012 Heart meta-analysis (PMID 22442198) is a RELATED, BROADER comparator, not a same-scope one: it pooled more trials including open-label studies and mixed primary/secondary prevention (first-attack and recurrent) populations, whereas this review pools double-blind recurrence-outcome trials. Treat the overlap as approximate.",
+  "comparator_named": {
+    "rows": [
+      {
+        "comparator": "22442198",
+        "row": "Finkelstein (row 1)",
+        "identifiers": [
+          "12574898"
+        ],
+        "state": "ENTERED_SCREENING",
+        "pmids": [
+          "12574898"
+        ],
+        "entered": [
+          "12574898"
+        ]
+      },
+      {
+        "comparator": "22442198",
+        "row": "COPE (row 2)",
+        "identifiers": [
+          "16186437"
+        ],
+        "state": "ENTERED_SCREENING",
+        "pmids": [
+          "16186437"
+        ],
+        "entered": [
+          "16186437"
+        ]
+      },
+      {
+        "comparator": "22442198",
+        "row": "CORE (row 3)",
+        "identifiers": [
+          "16186468"
+        ],
+        "state": "ENTERED_SCREENING",
+        "pmids": [
+          "16186468"
+        ],
+        "entered": [
+          "16186468"
+        ]
+      },
+      {
+        "comparator": "22442198",
+        "row": "COPPS (row 4)",
+        "identifiers": [
+          "20805112"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "20805112"
+        ]
+      },
+      {
+        "comparator": "22442198",
+        "row": "CORP (row 5)",
+        "identifiers": [
+          "21873705"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "21873705"
+        ]
+      }
+    ],
+    "entered": [
+      "12574898",
+      "16186437",
+      "16186468"
+    ]
+  },
   "evidence_base_caveat": "The registered PICO is broad (acute first episode OR recurrent pericarditis, treated to prevent recurrence), so ICAP — a first-attack acute-pericarditis trial — is ELIGIBLE and is NOT refused for population. It is not pooled only because its recurrence-specific outcome is not extractable from an accessible source: its abstract reports only the incessant-or-recurrent composite (a different endpoint) and its NEJM full text is not open-access. This pool is therefore the two recurrent-pericarditis trials (CORP and CORP-2), which agree with no between-study heterogeneity and both favour colchicine; the conventional common-effect interval shown alongside the HKSJ interval excludes no-effect, and a later randomised-evidence meta-analysis that includes ICAP reports essentially the same point estimate. The wide HKSJ interval is a two-trial small-sample artefact, not evidence that colchicine is ineffective — adding ICAP (were its recurrence component retrievable) would tighten the interval to exclude no-effect.",
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
@@ -3733,7 +3861,7 @@
   },
   "publication_units": {
     "source": "harness.identity.build_publication_units",
-    "n_records_annotated": 64
+    "n_records_annotated": 67
   },
   "protocol_config": {
     "divergences": [
@@ -44026,6 +44154,1070 @@
       ]
     },
     {
+      "family_id": "SYN-419f30d99c7f",
+      "identity_flag": "NO_REGISTRY_RECORD",
+      "flags": [
+        "NO_REGISTRY_RECORD"
+      ],
+      "identity_basis": {
+        "primary_report_ids": [
+          "16186437"
+        ],
+        "registry_ids": [],
+        "fallback_report_ids": []
+      },
+      "aliases": {
+        "acronym": [],
+        "registry_ids": [],
+        "mentioned_registry_ids": [],
+        "report_ids": [
+          "16186437"
+        ],
+        "dois": [
+          "10.1161/CIRCULATIONAHA.105.542738"
+        ],
+        "bib_keys": []
+      },
+      "reports": [
+        {
+          "report_id": "16186437",
+          "role": "PRIMARY",
+          "span_basis": {
+            "source": "record.pubtypes",
+            "quote": "Journal Article Multicenter Study Randomized Controlled Trial",
+            "match": "Randomized Controlled Trial"
+          },
+          "retrieved_via": [
+            "COMPARATOR_NAMED"
+          ]
+        }
+      ],
+      "arms": [],
+      "arm_absence_code": "NO_COMPLETE_ARM_STRUCTURE",
+      "abstract_arm_objects": [
+        {
+          "source": "harness.arm_object",
+          "trial": {
+            "id": {
+              "value": "16186437",
+              "span": "16186437",
+              "source": "record.id"
+            },
+            "nct": {
+              "value": "NOT_DERIVABLE",
+              "span": "16186437",
+              "source": "record.nct"
+            },
+            "label": {
+              "value": "16186437",
+              "span": "16186437",
+              "source": "record"
+            },
+            "title": {
+              "value": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis (COPE) trial.",
+              "span": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis (COPE) trial.",
+              "source": "record.title"
+            }
+          },
+          "randomised_arm": [
+            {
+              "name": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "role": "NOT_DERIVABLE",
+              "drug": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "dose": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "background_therapy": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              }
+            }
+          ],
+          "randomised_contrasts": [],
+          "population": {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis ...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis ...",
+              "source": "record.title_abstract_conditions"
+            }
+          },
+          "timepoint": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "analysis_set": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "effect_source": {
+            "value": "abstract",
+            "span": "...ent of the first episode of acute pericarditis. METHODS AND RESULTS: A prospective, randomized, open-label design was used. A to...",
+            "source": "record.abstract"
+          }
+        }
+      ],
+      "randomised_contrasts": [],
+      "population": {
+        "absence_code": "REGISTRY_ELIGIBILITY_NOT_HELD",
+        "report_fields": [
+          {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis ...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis ...",
+              "source": "record.title_abstract_conditions"
+            }
+          }
+        ]
+      },
+      "analysis_sets": [
+        {
+          "report_id": "16186437",
+          "value": "NOT_DERIVABLE",
+          "span": "NOT_DERIVABLE",
+          "source": "record"
+        }
+      ],
+      "lifecycle": {
+        "registered": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "started": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "completed": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "results_posted": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "publication_found": {
+          "value": "2005",
+          "span": {
+            "report_id": "16186437",
+            "source": "record.year",
+            "precision": "year"
+          }
+        }
+      },
+      "entered_via": [
+        "COMPARATOR_NAMED"
+      ],
+      "outcome_status": [
+        {
+          "outcome": "Recurrent pericarditis",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-419f30d99c7f"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Symptom persistence at 72 hours",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-419f30d99c7f"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Disease-related hospitalisation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-419f30d99c7f"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Adverse events (gastrointestinal)",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-419f30d99c7f"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-419f30d99c7f"
+            }
+          },
+          "registered_outcome_candidates": []
+        }
+      ],
+      "eligibility": {
+        "state": "UNKNOWN",
+        "absence_code": "REGISTRY_PARENT_UNRESOLVED"
+      },
+      "registry_design": {},
+      "source_records": [
+        {
+          "id": "16186437",
+          "id_type": "pmid",
+          "title": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis (COPE) trial.",
+          "abstract": "BACKGROUND: Colchicine is effective and safe for the treatment and prevention of recurrent pericarditis and might ultimately serve as the initial mode of treatment, especially in idiopathic cases. The aim of this work was to verify the safety and efficacy of colchicine as an adjunct to conventional therapy for the treatment of the first episode of acute pericarditis. METHODS AND RESULTS: A prospective, randomized, open-label design was used. A total of 120 patients (mean age 56.9+/-18.8 years, 54 males) with a first episode of acute pericarditis (idiopathic, viral, postpericardiotomy syndromes, and connective tissue diseases) were randomly assigned to conventional treatment with aspirin (group I) or conventional treatment plus colchicine 1.0 to 2.0 mg for the first day and then 0.5 to 1.0 mg/d for 3 months (group II). Corticosteroid therapy was restricted to patients with aspirin contraindications or intolerance. The primary end point was recurrence rate. During the 2873 patient-month follow-up, colchicine significantly reduced the recurrence rate (recurrence rates at 18 months were, respectively, 10.7% versus 32.3%; P=0.004; number needed to treat=5) and symptom persistence at 72 hours (respectively, 11.7% versus 36.7%; P=0.003). After multivariate analysis, corticosteroid use (OR 4.30, 95% CI 1.21 to 15.25; P=0.024) was an independent risk factor for recurrences. Colchicine was discontinued in 5 cases (8.3%) because of diarrhea. No serious adverse effects were observed. CONCLUSIONS: Colchicine plus conventional therapy led to a clinically important and statistically significant benefit over conventional treatment, decreasing the recurrence rate in patients with a first episode of acute pericarditis. Corticosteroid therapy given in the index attack can favor the occurrence of recurrences.",
+          "pubtypes": [
+            "Journal Article",
+            "Multicenter Study",
+            "Randomized Controlled Trial"
+          ],
+          "year": "2005",
+          "journal": "Circulation",
+          "doi": "10.1161/CIRCULATIONAHA.105.542738",
+          "nct": "",
+          "found_by": [
+            "COMPARATOR_NAMED"
+          ],
+          "comparator_named": {
+            "comparator": "22442198",
+            "row": "COPE (row 2)"
+          },
+          "registry_ids": []
+        }
+      ],
+      "is_trial_family": false,
+      "strand": {
+        "state": "NONE",
+        "span": {
+          "source": "review.strands",
+          "names": []
+        }
+      },
+      "sources": [
+        {
+          "source_id": "16186437",
+          "role": "PRIMARY",
+          "sha256": "f565b9709aa75ddcdc08bcdd45d28524097077b1c06165b510ecd5e13e922c5f",
+          "retrieval_origin": [
+            "COMPARATOR_NAMED"
+          ],
+          "span": {
+            "source": "held record",
+            "record": {
+              "id": "16186437",
+              "id_type": "pmid",
+              "title": "Colchicine in addition to conventional therapy for acute pericarditis: results of the COlchicine for acute PEricarditis (COPE) trial.",
+              "abstract": "BACKGROUND: Colchicine is effective and safe for the treatment and prevention of recurrent pericarditis and might ultimately serve as the initial mode of treatment, especially in idiopathic cases. The aim of this work was to verify the safety and efficacy of colchicine as an adjunct to conventional therapy for the treatment of the first episode of acute pericarditis. METHODS AND RESULTS: A prospective, randomized, open-label design was used. A total of 120 patients (mean age 56.9+/-18.8 years, 54 males) with a first episode of acute pericarditis (idiopathic, viral, postpericardiotomy syndromes, and connective tissue diseases) were randomly assigned to conventional treatment with aspirin (group I) or conventional treatment plus colchicine 1.0 to 2.0 mg for the first day and then 0.5 to 1.0 mg/d for 3 months (group II). Corticosteroid therapy was restricted to patients with aspirin contraindications or intolerance. The primary end point was recurrence rate. During the 2873 patient-month follow-up, colchicine significantly reduced the recurrence rate (recurrence rates at 18 months were, respectively, 10.7% versus 32.3%; P=0.004; number needed to treat=5) and symptom persistence at 72 hours (respectively, 11.7% versus 36.7%; P=0.003). After multivariate analysis, corticosteroid use (OR 4.30, 95% CI 1.21 to 15.25; P=0.024) was an independent risk factor for recurrences. Colchicine was discontinued in 5 cases (8.3%) because of diarrhea. No serious adverse effects were observed. CONCLUSIONS: Colchicine plus conventional therapy led to a clinically important and statistically significant benefit over conventional treatment, decreasing the recurrence rate in patients with a first episode of acute pericarditis. Corticosteroid therapy given in the index attack can favor the occurrence of recurrences.",
+              "pubtypes": [
+                "Journal Article",
+                "Multicenter Study",
+                "Randomized Controlled Trial"
+              ],
+              "year": "2005",
+              "journal": "Circulation",
+              "doi": "10.1161/CIRCULATIONAHA.105.542738",
+              "nct": "",
+              "found_by": [
+                "COMPARATOR_NAMED"
+              ],
+              "comparator_named": {
+                "comparator": "22442198",
+                "row": "COPE (row 2)"
+              },
+              "registry_ids": []
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "poolability": [
+        {
+          "outcome": "Recurrent pericarditis",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Symptom persistence at 72 hours",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Disease-related hospitalisation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Adverse events (gastrointestinal)",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        }
+      ]
+    },
+    {
+      "family_id": "SYN-4f4cc86a5998",
+      "identity_flag": "NO_REGISTRY_RECORD",
+      "flags": [
+        "NO_REGISTRY_RECORD"
+      ],
+      "identity_basis": {
+        "primary_report_ids": [
+          "12574898"
+        ],
+        "registry_ids": [],
+        "fallback_report_ids": []
+      },
+      "aliases": {
+        "acronym": [],
+        "registry_ids": [],
+        "mentioned_registry_ids": [],
+        "report_ids": [
+          "12574898"
+        ],
+        "dois": [
+          "10.1007/s00059-002-2376-5"
+        ],
+        "bib_keys": []
+      },
+      "reports": [
+        {
+          "report_id": "12574898",
+          "role": "PRIMARY",
+          "span_basis": {
+            "source": "record.pubtypes",
+            "quote": "Clinical Trial Journal Article Multicenter Study Randomized Controlled Trial",
+            "match": "Randomized Controlled Trial"
+          },
+          "retrieved_via": [
+            "COMPARATOR_NAMED"
+          ]
+        }
+      ],
+      "arms": [],
+      "arm_absence_code": "NO_COMPLETE_ARM_STRUCTURE",
+      "abstract_arm_objects": [
+        {
+          "source": "harness.arm_object",
+          "trial": {
+            "id": {
+              "value": "12574898",
+              "span": "12574898",
+              "source": "record.id"
+            },
+            "nct": {
+              "value": "NOT_DERIVABLE",
+              "span": "12574898",
+              "source": "record.nct"
+            },
+            "label": {
+              "value": "12574898",
+              "span": "12574898",
+              "source": "record"
+            },
+            "title": {
+              "value": "Colchicine for the prevention of postpericardiotomy syndrome.",
+              "span": "Colchicine for the prevention of postpericardiotomy syndrome.",
+              "source": "record.title"
+            }
+          },
+          "randomised_arm": [
+            {
+              "name": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "role": "NOT_DERIVABLE",
+              "drug": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "dose": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "background_therapy": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              }
+            }
+          ],
+          "randomised_contrasts": [],
+          "population": {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine for the prevention of postpericardiotomy syndrome. BACKGROUND: Postpericardiotomy syndrome (PPS) is a trouble...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine for the prevention of postpericardiotomy syndrome. BACKGROUND: Postpericardiotomy syndrome (PPS) is a trouble...",
+              "source": "record.title_abstract_conditions"
+            }
+          },
+          "timepoint": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "analysis_set": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "effect_source": {
+            "value": "abstract",
+            "span": "...or the first 3 postoperative months for development of PPS. RESULTS: 52 of the 163 patients were excluded because of postoperati...",
+            "source": "record.abstract"
+          }
+        }
+      ],
+      "randomised_contrasts": [],
+      "population": {
+        "absence_code": "REGISTRY_ELIGIBILITY_NOT_HELD",
+        "report_fields": [
+          {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine for the prevention of postpericardiotomy syndrome. BACKGROUND: Postpericardiotomy syndrome (PPS) is a trouble...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine for the prevention of postpericardiotomy syndrome. BACKGROUND: Postpericardiotomy syndrome (PPS) is a trouble...",
+              "source": "record.title_abstract_conditions"
+            }
+          }
+        ]
+      },
+      "analysis_sets": [
+        {
+          "report_id": "12574898",
+          "value": "NOT_DERIVABLE",
+          "span": "NOT_DERIVABLE",
+          "source": "record"
+        }
+      ],
+      "lifecycle": {
+        "registered": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "started": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "completed": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "results_posted": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "publication_found": {
+          "value": "2002",
+          "span": {
+            "report_id": "12574898",
+            "source": "record.year",
+            "precision": "year"
+          }
+        }
+      },
+      "entered_via": [
+        "COMPARATOR_NAMED"
+      ],
+      "outcome_status": [
+        {
+          "outcome": "Recurrent pericarditis",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-4f4cc86a5998"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Symptom persistence at 72 hours",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-4f4cc86a5998"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Disease-related hospitalisation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-4f4cc86a5998"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Adverse events (gastrointestinal)",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-4f4cc86a5998"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-4f4cc86a5998"
+            }
+          },
+          "registered_outcome_candidates": []
+        }
+      ],
+      "eligibility": {
+        "state": "UNKNOWN",
+        "absence_code": "REGISTRY_PARENT_UNRESOLVED"
+      },
+      "registry_design": {},
+      "source_records": [
+        {
+          "id": "12574898",
+          "id_type": "pmid",
+          "title": "Colchicine for the prevention of postpericardiotomy syndrome.",
+          "abstract": "BACKGROUND: Postpericardiotomy syndrome (PPS) is a troublesome complication of cardiac surgery, occurring in 10-45% of cases. Accepted modalities of treatment include nonsteroidal anti-inflammatory drugs, corticosteroids, and pericardiectomy in severe cases. The optimal method for prevention of PPS has not been established. Recent trial data have shown that colchicine is efficient in the secondary prevention of recurrent episodes of pericarditis. The aim of the present study was to evaluate the possible benefit of colchicine for the primary prevention of PPS in patients after cardiac surgery. To the best of our knowledge, this is the first study addressing this issue. PATIENTS AND METHODS: A prospective, randomized, double-blind design was used. The initial study group included 163 patients who underwent cardiac surgery in two centers in Israel between October 1997 and September 1998. On the 3rd postoperative day, the patients were randomly assigned to receive colchicine (1.5 mg/day) or placebo for 1 month. All were evaluated monthly for the first 3 postoperative months for development of PPS. RESULTS: 52 of the 163 patients were excluded because of postoperative complications, noncompliance, or gastrointestinal side effects of treatment. Of the 111 patients who completed the study, 47 (42.3%) received colchicine and 64 (57.7%) placebo. There was no statistically significant difference between the groups in clinical or surgical characteristics. PPS was diagnosed in 19 patients (17.1%), 5/47 cases (10.6%) in the colchicine group and 14/64 (21.9%) in the placebo group. The difference showed a trend toward statistical significance (p < 0.135). CONCLUSIONS: Colchicine may be efficacious for the prevention of PPS in patients after cardiac surgery. Further evaluations in larger clinical trials are warranted.",
+          "pubtypes": [
+            "Clinical Trial",
+            "Journal Article",
+            "Multicenter Study",
+            "Randomized Controlled Trial"
+          ],
+          "year": "2002",
+          "journal": "Herz",
+          "doi": "10.1007/s00059-002-2376-5",
+          "nct": "",
+          "found_by": [
+            "COMPARATOR_NAMED"
+          ],
+          "comparator_named": {
+            "comparator": "22442198",
+            "row": "Finkelstein (row 1)"
+          },
+          "registry_ids": []
+        }
+      ],
+      "is_trial_family": false,
+      "strand": {
+        "state": "NONE",
+        "span": {
+          "source": "review.strands",
+          "names": []
+        }
+      },
+      "sources": [
+        {
+          "source_id": "12574898",
+          "role": "PRIMARY",
+          "sha256": "8852b65b4906128976d25eac193d5d9657c2eff6277accd2cc92b00a85108ec0",
+          "retrieval_origin": [
+            "COMPARATOR_NAMED"
+          ],
+          "span": {
+            "source": "held record",
+            "record": {
+              "id": "12574898",
+              "id_type": "pmid",
+              "title": "Colchicine for the prevention of postpericardiotomy syndrome.",
+              "abstract": "BACKGROUND: Postpericardiotomy syndrome (PPS) is a troublesome complication of cardiac surgery, occurring in 10-45% of cases. Accepted modalities of treatment include nonsteroidal anti-inflammatory drugs, corticosteroids, and pericardiectomy in severe cases. The optimal method for prevention of PPS has not been established. Recent trial data have shown that colchicine is efficient in the secondary prevention of recurrent episodes of pericarditis. The aim of the present study was to evaluate the possible benefit of colchicine for the primary prevention of PPS in patients after cardiac surgery. To the best of our knowledge, this is the first study addressing this issue. PATIENTS AND METHODS: A prospective, randomized, double-blind design was used. The initial study group included 163 patients who underwent cardiac surgery in two centers in Israel between October 1997 and September 1998. On the 3rd postoperative day, the patients were randomly assigned to receive colchicine (1.5 mg/day) or placebo for 1 month. All were evaluated monthly for the first 3 postoperative months for development of PPS. RESULTS: 52 of the 163 patients were excluded because of postoperative complications, noncompliance, or gastrointestinal side effects of treatment. Of the 111 patients who completed the study, 47 (42.3%) received colchicine and 64 (57.7%) placebo. There was no statistically significant difference between the groups in clinical or surgical characteristics. PPS was diagnosed in 19 patients (17.1%), 5/47 cases (10.6%) in the colchicine group and 14/64 (21.9%) in the placebo group. The difference showed a trend toward statistical significance (p < 0.135). CONCLUSIONS: Colchicine may be efficacious for the prevention of PPS in patients after cardiac surgery. Further evaluations in larger clinical trials are warranted.",
+              "pubtypes": [
+                "Clinical Trial",
+                "Journal Article",
+                "Multicenter Study",
+                "Randomized Controlled Trial"
+              ],
+              "year": "2002",
+              "journal": "Herz",
+              "doi": "10.1007/s00059-002-2376-5",
+              "nct": "",
+              "found_by": [
+                "COMPARATOR_NAMED"
+              ],
+              "comparator_named": {
+                "comparator": "22442198",
+                "row": "Finkelstein (row 1)"
+              },
+              "registry_ids": []
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "poolability": [
+        {
+          "outcome": "Recurrent pericarditis",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Symptom persistence at 72 hours",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Disease-related hospitalisation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Adverse events (gastrointestinal)",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        }
+      ]
+    },
+    {
       "family_id": "SYN-555fdbd2e1ce",
       "identity_flag": "NO_REGISTRY_RECORD",
       "flags": [
@@ -47481,6 +48673,539 @@
               "journal": "Pol Arch Intern Med",
               "doi": "10.20452/pamw.17327",
               "nct": "",
+              "registry_ids": []
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "poolability": [
+        {
+          "outcome": "Recurrent pericarditis",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Symptom persistence at 72 hours",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": null,
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Disease-related hospitalisation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Adverse events (gastrointestinal)",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "state": "UNKNOWN",
+          "span": {
+            "measured": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "reported": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            },
+            "extractable": {
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            }
+          },
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
+        }
+      ]
+    },
+    {
+      "family_id": "SYN-7d0c06899e3c",
+      "identity_flag": "NO_REGISTRY_RECORD",
+      "flags": [
+        "NO_REGISTRY_RECORD"
+      ],
+      "identity_basis": {
+        "primary_report_ids": [
+          "16186468"
+        ],
+        "registry_ids": [],
+        "fallback_report_ids": []
+      },
+      "aliases": {
+        "acronym": [],
+        "registry_ids": [],
+        "mentioned_registry_ids": [],
+        "report_ids": [
+          "16186468"
+        ],
+        "dois": [
+          "10.1001/archinte.165.17.1987"
+        ],
+        "bib_keys": []
+      },
+      "reports": [
+        {
+          "report_id": "16186468",
+          "role": "PRIMARY",
+          "span_basis": {
+            "source": "record.pubtypes",
+            "quote": "Clinical Trial Comparative Study Journal Article Randomized Controlled Trial",
+            "match": "Randomized Controlled Trial"
+          },
+          "retrieved_via": [
+            "COMPARATOR_NAMED"
+          ]
+        }
+      ],
+      "arms": [],
+      "arm_absence_code": "NO_COMPLETE_ARM_STRUCTURE",
+      "abstract_arm_objects": [
+        {
+          "source": "harness.arm_object",
+          "trial": {
+            "id": {
+              "value": "16186468",
+              "span": "16186468",
+              "source": "record.id"
+            },
+            "nct": {
+              "value": "NOT_DERIVABLE",
+              "span": "16186468",
+              "source": "record.nct"
+            },
+            "label": {
+              "value": "16186468",
+              "span": "16186468",
+              "source": "record"
+            },
+            "title": {
+              "value": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditis) trial.",
+              "span": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditis) trial.",
+              "source": "record.title"
+            }
+          },
+          "randomised_arm": [
+            {
+              "name": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "role": "NOT_DERIVABLE",
+              "drug": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "dose": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              },
+              "background_therapy": {
+                "value": "NOT_DERIVABLE",
+                "span": "NOT_DERIVABLE",
+                "source": "record.interventions"
+              }
+            }
+          ],
+          "randomised_contrasts": [],
+          "population": {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditi...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditi...",
+              "source": "record.title_abstract_conditions"
+            }
+          },
+          "timepoint": {
+            "value": "NOT_DERIVABLE",
+            "span": "NOT_DERIVABLE",
+            "source": "record"
+          },
+          "analysis_set": {
+            "value": "intention-to-treat",
+            "span": "...lly tapered. The primary end point was the recurrence rate. Intention-to-treat analyses were performed by treatment group. RESULTS: During...",
+            "source": "record.title_abstract"
+          },
+          "effect_source": {
+            "value": "abstract",
+            "span": "...ention-to-treat analyses were performed by treatment group. RESULTS: During 1682 patient-months (mean follow-up, 20 months), tre...",
+            "source": "record.abstract"
+          }
+        }
+      ],
+      "randomised_contrasts": [],
+      "population": {
+        "absence_code": "REGISTRY_ELIGIBILITY_NOT_HELD",
+        "report_fields": [
+          {
+            "age_range": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditi...",
+              "source": "record.title_abstract_conditions"
+            },
+            "entry_condition": {
+              "value": "NOT_DERIVABLE",
+              "span": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditi...",
+              "source": "record.title_abstract_conditions"
+            }
+          }
+        ]
+      },
+      "analysis_sets": [
+        {
+          "report_id": "16186468",
+          "value": "intention-to-treat",
+          "span": "...lly tapered. The primary end point was the recurrence rate. Intention-to-treat analyses were performed by treatment group. RESULTS: During...",
+          "source": "record.title_abstract"
+        }
+      ],
+      "lifecycle": {
+        "registered": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "started": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "completed": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "results_posted": {
+          "value": null,
+          "absence_code": "REGISTRY_DATE_NOT_HELD"
+        },
+        "publication_found": {
+          "value": "2005",
+          "span": {
+            "report_id": "16186468",
+            "source": "record.year",
+            "precision": "year"
+          }
+        }
+      },
+      "entered_via": [
+        "COMPARATOR_NAMED"
+      ],
+      "outcome_status": [
+        {
+          "outcome": "Recurrent pericarditis",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7d0c06899e3c"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Symptom persistence at 72 hours",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7d0c06899e3c"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Disease-related hospitalisation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7d0c06899e3c"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Adverse events (gastrointestinal)",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7d0c06899e3c"
+            }
+          },
+          "registered_outcome_candidates": []
+        },
+        {
+          "outcome": "Treatment discontinuation",
+          "prospectively_specified": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+          },
+          "measured": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "reported": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "extractable": {
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          },
+          "in_primary_pool": {
+            "state": "NO",
+            "span": {
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7d0c06899e3c"
+            }
+          },
+          "registered_outcome_candidates": []
+        }
+      ],
+      "eligibility": {
+        "state": "UNKNOWN",
+        "absence_code": "REGISTRY_PARENT_UNRESOLVED"
+      },
+      "registry_design": {},
+      "source_records": [
+        {
+          "id": "16186468",
+          "id_type": "pmid",
+          "title": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditis) trial.",
+          "abstract": "BACKGROUND: Colchicine seems to be a good drug for treating recurrences of pericarditis after conventional treatment failure, but no clinical trial has tested the effects of colchicine as first-line drug for the treatment of the first recurrence of pericarditis. METHODS: A prospective, randomized, open-label design was used to investigate the safety and efficacy of colchicine therapy as adjunct to conventional therapy for the first episode of recurrent pericarditis. Eighty-four consecutive patients with a first episode of recurrent pericarditis were randomly assigned to receive conventional treatment with aspirin alone or conventional treatment plus colchicine (1.0-2.0 mg the first day and then 0.5-1.0 mg/d for 6 months). When aspirin was contraindicated, prednisone (1.0-1.5 mg/kg daily) was given for 1 month and then was gradually tapered. The primary end point was the recurrence rate. Intention-to-treat analyses were performed by treatment group. RESULTS: During 1682 patient-months (mean follow-up, 20 months), treatment with colchicine significantly decreased the recurrence rate (actuarial rates at 18 months were 24.0% vs 50.6%; P = .02; number needed to treat = 4.0; 95% confidence interval 2.5-7.1) and symptom persistence at 72 hours (10% vs 31%; P = .03). In multivariate analysis, previous corticosteroid use was an independent risk factor for further recurrences (odds ratio, 2.89; 95% confidence interval, 1.10-8.26; P = .04). No serious adverse effects were observed. CONCLUSION: Colchicine therapy led to a clinically important and statistically significant benefit over conventional treatment, decreasing the recurrence rate in patients with a first episode of recurrent pericarditis.",
+          "pubtypes": [
+            "Clinical Trial",
+            "Comparative Study",
+            "Journal Article",
+            "Randomized Controlled Trial"
+          ],
+          "year": "2005",
+          "journal": "Arch Intern Med",
+          "doi": "10.1001/archinte.165.17.1987",
+          "nct": "",
+          "found_by": [
+            "COMPARATOR_NAMED"
+          ],
+          "comparator_named": {
+            "comparator": "22442198",
+            "row": "CORE (row 3)"
+          },
+          "registry_ids": []
+        }
+      ],
+      "is_trial_family": false,
+      "strand": {
+        "state": "NONE",
+        "span": {
+          "source": "review.strands",
+          "names": []
+        }
+      },
+      "sources": [
+        {
+          "source_id": "16186468",
+          "role": "PRIMARY",
+          "sha256": "aa29219698ff2c6a3d2a66b248bb08b08b17490e5d5b45334834b45dd240b524",
+          "retrieval_origin": [
+            "COMPARATOR_NAMED"
+          ],
+          "span": {
+            "source": "held record",
+            "record": {
+              "id": "16186468",
+              "id_type": "pmid",
+              "title": "Colchicine as first-choice therapy for recurrent pericarditis: results of the CORE (COlchicine for REcurrent pericarditis) trial.",
+              "abstract": "BACKGROUND: Colchicine seems to be a good drug for treating recurrences of pericarditis after conventional treatment failure, but no clinical trial has tested the effects of colchicine as first-line drug for the treatment of the first recurrence of pericarditis. METHODS: A prospective, randomized, open-label design was used to investigate the safety and efficacy of colchicine therapy as adjunct to conventional therapy for the first episode of recurrent pericarditis. Eighty-four consecutive patients with a first episode of recurrent pericarditis were randomly assigned to receive conventional treatment with aspirin alone or conventional treatment plus colchicine (1.0-2.0 mg the first day and then 0.5-1.0 mg/d for 6 months). When aspirin was contraindicated, prednisone (1.0-1.5 mg/kg daily) was given for 1 month and then was gradually tapered. The primary end point was the recurrence rate. Intention-to-treat analyses were performed by treatment group. RESULTS: During 1682 patient-months (mean follow-up, 20 months), treatment with colchicine significantly decreased the recurrence rate (actuarial rates at 18 months were 24.0% vs 50.6%; P = .02; number needed to treat = 4.0; 95% confidence interval 2.5-7.1) and symptom persistence at 72 hours (10% vs 31%; P = .03). In multivariate analysis, previous corticosteroid use was an independent risk factor for further recurrences (odds ratio, 2.89; 95% confidence interval, 1.10-8.26; P = .04). No serious adverse effects were observed. CONCLUSION: Colchicine therapy led to a clinically important and statistically significant benefit over conventional treatment, decreasing the recurrence rate in patients with a first episode of recurrent pericarditis.",
+              "pubtypes": [
+                "Clinical Trial",
+                "Comparative Study",
+                "Journal Article",
+                "Randomized Controlled Trial"
+              ],
+              "year": "2005",
+              "journal": "Arch Intern Med",
+              "doi": "10.1001/archinte.165.17.1987",
+              "nct": "",
+              "found_by": [
+                "COMPARATOR_NAMED"
+              ],
+              "comparator_named": {
+                "comparator": "22442198",
+                "row": "CORE (row 3)"
+              },
               "registry_ids": []
             }
           }
@@ -51760,9 +53485,9 @@
     "contributing": 2,
     "pooled": 2,
     "eligibility_unresolved": 13,
-    "unresolved_report_candidates": 23,
+    "unresolved_report_candidates": 26,
     "contributing_without_structural_eligibility": [],
-    "publications_screened": 39,
+    "publications_screened": 42,
     "registry_records_screened": 10
   },
   "family_missing_evidence": [
@@ -52987,7 +54712,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "34023da4e35f9094f846361cefb31c8a6655e678",
-    "review_sha256": "b10ca4b76933d0c6812d6e885b312b27a9462dbd59c95e5844d13d844a9a70aa",
+    "review_sha256": "889fb2d4480df31159409a666e495e46121c222fa2b3b144703a667bec6800a9",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -53231,9 +54956,9 @@
       "retrieved_corpus_sha256": "570a1143dc5d8f41cf36fbd7f90c18990c4a5a711e0281a44ff149f32b69c14a",
       "records_file_sha256": "1ce798f7d39b2e650e0d21a066a8ef8648e71beac3ebe099336bc77575315a2d",
       "retrieval_ledger_sha256": "558b0a720f81be3ff47b6e88b6757f682588b5ecc6bdbc3d88b7d08de8327f12",
-      "screening_ledger_sha256": "8e1f3437142c5affcffe04b059e7ae2d2cf94cc865e13c4e296d20b91b8cc10a",
+      "screening_ledger_sha256": "8bd2e164836a889b7c5f2dfbf7aeb33f79a1655a724bd891c0b280de08dab057",
       "extraction_objects_sha256": "807d08956d5c118f88a0271627b4357da28340e506b97a22fa818928e9b892b7",
-      "trial_family_map_sha256": "43acc640cf3fa4fd9d7f4064c112a3953c84397995e3d727afd11b788bc1d748",
+      "trial_family_map_sha256": "592f4dcf31060461c3188f5ce9b22ea50fba3f7021977ac6b8009223a85d7a0c",
       "rob_object_sha256": "d1944f12a86f8d532d4b418eb9fcb285d3442ba9bf64598ffea91b1975969851",
       "held_documents": [
         {
@@ -53247,6 +54972,14 @@
         {
           "ref": "cache/colchicine-recurrent-pericarditis/comparator_identity.json",
           "sha256": "ed49aba6dd385e71d80c1aabcddc1412c5f9211344a10a5c5d528790a3ff5ea8"
+        },
+        {
+          "ref": "cache/colchicine-recurrent-pericarditis/comparator_named.json",
+          "sha256": "bb43d37f9f849ac30c07b25f662eb7bff632f1960dd0ac22c558113f917232d4"
+        },
+        {
+          "ref": "cache/colchicine-recurrent-pericarditis/comparator_named_pubmed.xml",
+          "sha256": "15109ee40d82020a45c10d12f74279442037cfc69d617135a7bfbabc6b6b2d50"
         },
         {
           "ref": "cache/colchicine-recurrent-pericarditis/comparator_question.json",
@@ -53266,7 +54999,7 @@
         }
       ],
       "config_sha256": "fb849b3b032885799231b74dc48acdd3945de804edf04cf18eb54fdb56e74a8d",
-      "analysis_code_sha256": "7b1dcb6b7aeb78c558d2f15cf763980ee59f293bcbfdf752cb9941625576be16",
+      "analysis_code_sha256": "dbe643d57f118562ac9ab5712791ad1d702ed06246b2cfe3562abb31143dc596",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -53280,15 +55013,17 @@
         "harness/ascertainment.py": "2d22de0240c8ab07dfbfef84e78bc58041dba1ab",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "00c432b9c719abb5b02a99f5285efba72497b4ba",
+        "harness/certificate.py": "e58875abab1a380c92f3c2539706245412d3aa44",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
+        "harness/comparator_analysis.py": "9450dc4aeb14a66f1dee10fedf97b89ebf76368a",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
         "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
+        "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "27eec7c95ad1bb1cf528e4dc82de737200c66aff",
+        "harness/comparator_panel.py": "0102e27adf67c5435dc7c14157cc64e0b675949f",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -53309,7 +55044,7 @@
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/family_pub_links.py": "8e57a4ae6137f7563aa48648b82df50aa76f7890",
-        "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
+        "harness/fetch.py": "75367a9becdd5d68adb92cf262815b7cfd5ad2c9",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
         "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
@@ -53335,10 +55070,10 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "8cfd1b6a939729e438d8fc882faed372d96c540c",
+        "harness/overlap_relation.py": "3f5b4558c47af0e4e50ea49531497cf0ef3a9ec8",
         "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "69c23eaaa515be63a4d6b3186e2d67c872fa99d0",
+        "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
         "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -53350,18 +55085,18 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
-        "harness/same_question.py": "981d54c09c275d74c508ff6b1467154bda1633ec",
+        "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "89ea00f42968cd8d8c09ac5ef9dfa1b7fd162678",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/search_execution.py": "d7e1d989e83f7dd17a8521da47ee40e15ae7c1e8",
+        "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "e21ea037c9adfe7480b700db77dd62716630a106",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
-        "harness/trial_family.py": "a0719dea9bf295d8b9385769ad379e303d47032a",
+        "harness/trial_family.py": "b184c50a76df30d4b5f0853da97fc56c1403b94a",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -53381,7 +55116,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "100 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "102 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -53411,8 +55146,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "f440c6d99e8bf2bc7ccb10b691ec068fab411e816cc3409974ac546bdf9033f9",
-      "review_sha256": "b10ca4b76933d0c6812d6e885b312b27a9462dbd59c95e5844d13d844a9a70aa",
+      "manuscript_sha256": "e5527c1f975736b8f866b0a8681fea757ee20177fbfd7a67348bbe4e2e00e050",
+      "review_sha256": "889fb2d4480df31159409a666e495e46121c222fa2b3b144703a667bec6800a9",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-recurrent-pericarditis.md UTF-8 text, universal newlines",
@@ -53432,7 +55167,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "c14ac61a3b3d4c7046a24cb9bcde62455dcad25a39ea6eb1a86e2f8b0f7a2af7"
+      "release_sha256": "0dba36957acb1715cdac5e55f576c81cd73045fc04c9fdfabdc8bd02b92ec86f"
     }
   }
 }

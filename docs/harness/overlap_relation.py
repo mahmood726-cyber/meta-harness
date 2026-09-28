@@ -32,6 +32,7 @@ differs from ours, the shared family is reported as SAME_TRIAL_DIFFERENT_PARTICI
 """
 from __future__ import annotations
 
+import json
 import re
 from typing import Callable, Optional
 
@@ -86,12 +87,40 @@ def _panel_entry(review: dict) -> Optional[dict]:
     return None
 
 
+# a hyphenated acronym ('RE-LY', 'ROCKET-AF') or a spaced one of capital-led words ('ROCKET AF'); never a drug code
+# with digits after a space ('BAY 59-7939')
+_TITLE_ACR = re.compile(r"\(([A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]+)+|[A-Z][A-Z0-9]{2,}(?: [A-Z][A-Z0-9]*){0,3})\)")
+
+
+def _held_registry_acronyms(registry_ids) -> list:
+    """V1.0.1 (NOAC-AF review): the acronym a trial's own HELD registry record prints -- its acronym field, or a
+    parenthesised acronym in its brief/official title ('Randomized Evaluation of Long Term Anticoagulant Therapy (RE-LY)').
+    RE-LY's family carried no acronym, so COMBINE AF's four named trials could not all bind."""
+    from pathlib import Path
+    out = []
+    base = Path(__file__).resolve().parents[1] / "evidence" / "held" / "registry"
+    for r in registry_ids:
+        p = base / f"{r}.json"
+        if not str(r).upper().startswith("NCT") or not p.exists():
+            continue
+        try:
+            im = (json.loads(p.read_text(encoding="utf-8")).get("protocolSection") or {}).get("identificationModule") or {}
+        except (OSError, ValueError):
+            continue
+        if im.get("acronym"):
+            out.append(im["acronym"])
+        for t in (im.get("briefTitle"), im.get("officialTitle")):
+            out += _TITLE_ACR.findall(str(t or ""))
+    return out
+
+
 def _acronym_index(review: dict, report_acronym: Callable[[str], Optional[str]]) -> dict:
     """normalised acronym -> set of family ids (ledger acronyms + the family's registry records' acronym field)."""
     idx = {}
     for f in _families(review):
         al = f.get("aliases") or {}
         names = list(al.get("acronym") or []) + [a for r in al.get("registry_ids") or [] for a in [report_acronym(r)] if a]
+        names += _held_registry_acronyms(al.get("registry_ids") or [])
         for n in names:
             if norm_name(n):
                 idx.setdefault(norm_name(n), set()).add(f["family_id"])
@@ -189,6 +218,20 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
                  "the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)")
         return {"source": f"comparator panel trial_set ({doc}, located spans; {scope})",
                 "endpoint_for_outcome": expected}, ins, outs
+    am = (comp.get("analysis") or {}).get("membership") or {}
+    if am.get("members"):
+        # V1.0.1 (metformin review): the governing analysis' forest-plot rows (harness/comparator_analysis.py), an
+        # outcome-specific enumeration; a row binds to a family of ours only through a report whose counts matched ours
+        fam_idx = _family_index(review)
+        ins = []
+        for m in am["members"]:
+            fam = fam_idx.get(_key(m["report_pmid"])) if m.get("report_pmid") else None
+            ins.append({"name": m["label"], "family": fam, "alias_ids": [m["report_pmid"]] if m.get("report_pmid") else [],
+                        "identity": ("bound to our report PMID " + m["report_pmid"] + " (same counts in the plot and our row)")
+                                    if fam else "unbound (name only)",
+                        "endpoint": am.get("endpoint"), "span": f"forest-plot row: {m['label']} {m['counts']}"})
+        return {"source": f"governing analysis forest plot ({am['figure']['caption']['quote']}; read from source, image not held)",
+                "endpoint_for_outcome": am.get("endpoint")}, ins, []
     named, src = None, None
     if truth.get("relation") == "IDENTICAL_SET" and truth.get("present"):
         named = [{"name": p.get("trial"), "span": p.get("span")} for p in truth["present"] if p.get("trial")]

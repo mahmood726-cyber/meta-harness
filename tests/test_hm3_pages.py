@@ -18,7 +18,13 @@ def test_rebuilt_pages_account_for_every_baseline_harm():
         folder = ROOT/'docs/reviews'/d['topic']
         review = json.loads((folder/'review.json').read_text(encoding='utf-8'))
         outcome = next(o for o in review['outcomes'] if o['name'] == d['outcome'])
-        assert not outcome['result'].get('harms_incomplete'), (d['topic'],d['outcome'])
+        if outcome['result'].get('harms_incomplete'):
+            # V1.0.1 (PCSK9 review): a trial a held comparator names now enters screening; one that reports harms not
+            # yet extracted makes the outcome honestly incomplete. That is allowed only for such entrants -- every
+            # BASELINE harm must still be accounted for
+            entrants = set((review.get('comparator_named') or {}).get('entered') or [])
+            open_ = [t['id'] for t in outcome['result']['harm_reporting_trials'] if t['state'] == 'KNOWN_REPORTED_NOT_YET_EXTRACTED']
+            assert open_ and set(open_) <= entrants and d['trial'] not in open_, (d['topic'], d['outcome'], open_)
         if d['entry'].get('absent'):
             row = next(t for t in outcome['declared_absent_trials'] if t['id'].replace('PMID ','')==d['trial'])
             assert row['harm_absence_state'] in (harms.RETRIEVED_REFUSED_WITH_REASON,harms.RETRIEVED_INCOMPATIBLE_STRUCTURE)
@@ -62,7 +68,10 @@ def test_primary_trial_values_and_membership_are_unchanged():
         # V1.0.1 (empagliflozin review): a registry record the registry itself states is not randomised (allocation
         # NA / NON_RANDOMIZED) is now excluded on X1 before any later rule. The only allowed difference from the pinned
         # control is exactly that: same record, same decision, rule X1, and a span quoting the registry allocation.
-        b_recs, a_recs = before['screening_records'], after['screening']['records']
+        # V1.0.1 (PCSK9 review): records a held comparator names are APPENDED to screening (found by COMPARATOR_NAMED);
+        # every pinned record keeps its place and decision
+        b_recs = before['screening_records']
+        a_recs = [x for x in after['screening']['records'] if x.get('found_by') != ['COMPARATOR_NAMED']]
         assert [(x['id'], x['decision']) for x in b_recs] == [(x['id'], x['decision']) for x in a_recs], slug
         for x, y in zip(b_recs, a_recs):
             if x != y:

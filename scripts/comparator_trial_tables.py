@@ -105,6 +105,63 @@ def trial_tables(xml):
     return found
 
 
+# V1.0.1 (PCSK9 review): an included-trial table may identify its rows by the REGISTRATION it prints, not by a
+# reference link (Wang 2022, PMC9755489: "ODYSSEY COMBO I<break/> NCT01644175"). Accepted only when the caption names
+# the included studies and every data row's first cell prints exactly one NCT; the row's <tr> is the alias span, so
+# the identifier and the printed name are bound by the same located row, never by a name match.
+_NCT = re.compile(r"(?<![A-Za-z0-9])NCT\d{8}(?!\d)")
+
+
+def registry_tables(xml):
+    """(caption, [(row_match, first_cell_raw, nct)]) for included-caption tables whose data rows print one NCT each."""
+    found = []
+    for tw in re.finditer(r"<table-wrap\b.*?</table-wrap>", xml, re.S):
+        cap = _text((re.search(r"<caption>(.*?)</caption>", tw.group(0), re.S) or [None, ""])[1])
+        if not INCLUDED_CAPTION.search(cap):
+            continue
+        body = re.search(r"<tbody\b[^>]*>.*?</tbody>", tw.group(0), re.S)     # REV-R2: <tbody valign="top">
+        if not body:
+            continue
+        rows, bad = [], False
+        off = tw.start() + body.start()
+        for tr in re.finditer(r"<tr\b[^>]*>.*?</tr>", body.group(0), re.S):
+            cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr.group(0), re.S)
+            ncts = sorted(set(_NCT.findall(_text(cells[0])))) if cells else []
+            if len(ncts) != 1:
+                bad = True
+                break
+            rows.append(((off + tr.start(), off + tr.end()), cells[0], ncts[0]))
+        if not bad and len(rows) >= 2:
+            found.append((cap, rows))
+    return found
+
+
+def choose_route(xml):
+    """('REFERENCE_LINKED', reference tables) or ('REGISTRY_ID_IN_ROW', registry tables). REV-R2 (codex review,
+    reproduced): a reference-linked table whose caption does not name the included studies (e.g. an excluded-studies
+    table) must not win over an included-caption registry table."""
+    tables = trial_tables(xml)
+    if tables and not (not any(INCLUDED_CAPTION.search(c) for c, _ in tables) and registry_tables(xml)):
+        return "REFERENCE_LINKED", tables
+    return "REGISTRY_ID_IN_ROW", registry_tables(xml)
+
+
+def build_registry_rows(xml, xml_raw, rel, rows):
+    sha = hashlib.sha256(xml_raw).hexdigest()
+    entries = []
+    for (s, e), cell, nct in rows:
+        head = _text(re.split(r"<break\s*/>|<ext-link|NCT\d{8}", cell)[0]).strip()
+        name = head if head and head in xml[s:e] else None
+        span = {"start": s, "end": e, "quote": xml[s:e]}
+        m = {"family_id": f"{name or nct} [{nct}]", "span": span, "endpoint": None,
+             "aliases": [{"id": nct, "document_ref": rel, "document_sha256": sha, "span": span,
+                          "bound_by": "registration printed in the same table row"}]}
+        if name:
+            m["name_in_source"] = name
+        entries.append(m)
+    return entries
+
+
 def build(slug, write):
     cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8"))
     pmid = str(cfg.get("comparator_pmid") or "")
@@ -132,9 +189,29 @@ def build(slug, write):
         if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", xml) else None
     if not lic and 'license-type="open-access"' not in xml:
         return {"state": "NOT_OPEN_LICENSE", "pmcid": pmcid}
-    tables = trial_tables(xml)
-    if not tables:
-        return {"state": "NO_INCLUDED_TABLE", "pmcid": pmcid, "license": lic}
+    route, tables = choose_route(xml)
+    if route == "REGISTRY_ID_IN_ROW":
+        reg = tables
+        if len(reg) != 1:
+            return {"state": "NO_INCLUDED_TABLE" if not reg else "AMBIGUOUS_TABLES", "pmcid": pmcid, "license": lic}
+        cap, rows = reg[0]
+        rel = f"cache/{slug}/comparator_pmc_jats.xml"
+        entries = build_registry_rows(xml, xml_raw, rel, rows)
+        result = {"state": "WRITTEN" if write else "WOULD_WRITE", "route": "REGISTRY_ID_IN_ROW", "pmcid": pmcid,
+                  "license": lic, "caption": cap, "k": len(entries), "bound": len(entries),
+                  "rows": [m["family_id"] for m in entries], "notes": []}
+        if write:
+            open(os.path.join(ROOT, rel), "wb").write(xml_raw)
+            entry["trial_set"] = entries
+            entry["trial_set_document"] = {"document_ref": rel, "document_sha256": hashlib.sha256(xml_raw).hexdigest(),
+                                           "source": "PMC JATS (efetch db=pmc)", "pmcid": pmcid, "license": lic,
+                                           "fetched_utc": LOG[-1]["utc"], "table_caption": cap,
+                                           "row_identity": "REGISTRY_ID_IN_ROW"}
+            comparator_panel.validate(entry, ROOT)
+            open(ppath, "w", encoding="utf-8", newline="\n").write(
+                json.dumps(panel, indent=2 if raw_panel.startswith("[\n  ") else 1, ensure_ascii=False)
+                + ("\n" if raw_panel.endswith("\n") else ""))
+        return result
     sets = {tuple(sorted({r for _, _, rids in rows for r in rids})) for _, rows in tables}
     if len(sets) > 1:
         # several reference-linked tables with different sets: take the ONE whose caption names the included (or

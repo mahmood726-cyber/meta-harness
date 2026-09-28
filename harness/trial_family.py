@@ -234,7 +234,10 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         for sid in sources:
             src = source_by_id.get(sid,{})
             kind = str(src.get('kind',''))
-            if 'SEED' in kind or 'IDENTIFIER' in kind:
+            if sid == 'COMPARATOR_NAMED':
+                # V1.0.1 (PCSK9 review): named by a held comparator's enumerated table -- seeded, never independent
+                entered.append('COMPARATOR_NAMED')
+            elif 'SEED' in kind or 'IDENTIFIER' in kind:
                 entered.append('SEEDED_IDENTIFIER')
             elif src.get('state') in {'RAN_OK','RAN_ZERO'} and src.get('discovery_capable'):
                 entered.append('EXECUTED_QUERY('+sid+')')
@@ -447,8 +450,10 @@ def screen_family(family, config):
         pop = population_witness.decide(family, config, report_role)
         family['population_decision'] = pop
         if pop['state'] == 'EXCLUDED':
+            # never the ascertainment evidence map: it is the whole topic's, and it was printed into every
+            # population-excluded family's row (glp1: 35 KB per row naming other trials)
             return cell('INELIGIBLE', {'axis':'population','population_decision':_deciding(pop),
-                                       'protocol_requirements':requirements})
+                                       'protocol_requirements':{k: v for k, v in requirements.items() if k != 'ascertainment'}})
     if not design or not (conditions or criteria) or not family.get('arms'):
         return cell(code='INSUFFICIENT_PICD_EVIDENCE')
     if requirements.get('parallel') and design.get('intervention_model','').upper() not in {'PARALLEL','PARALLEL ASSIGNMENT'}:

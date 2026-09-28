@@ -138,11 +138,16 @@ def test_hand_written_keyword_pages_are_separate_unregistered_scope_rows():
         "esketamine-trd-madrs",
         "melatonin-primary-insomnia-sol",
         "probiotics-aad-prevention",
+        # V1.0.1 (metformin review): a legacy row joining separate queries with ' || ' is classified query by query;
+        # pooling their title terms had made two concept-query pages look title-seeded
+        "metformin-pcos-ovulation",
+        "corticosteroids-covid19-mortality",
     }
     assert {row["verdict"] for row in hand.values()} == {scope_identity.HAND_WRITTEN_SCOPE}
     assert all("not a pre-identified PMID/title set" in row["reason"] for row in hand.values())
 
     sweep = scope_identity.sweep(ROOT)
     assert sweep["n_pages"] == 32
-    # 28 -> 26: esketamine and melatonin moved to the hand-written keyword verdict above (4 -> 6 pages)
-    assert sweep["n_scope_mismatch"] == 26
+    # 28 -> 26: esketamine and melatonin moved to the hand-written keyword verdict above (4 -> 6 pages); 26 -> 24:
+    # metformin and corticosteroids-covid19 did too (6 -> 8). Every page is exactly one of the two verdicts.
+    assert sweep["n_scope_mismatch"] == 24 and sweep["n_scope_mismatch"] + len(hand) == sweep["n_pages"]

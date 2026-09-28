@@ -35,13 +35,19 @@ def test_patoulias_is_a_trial_inventory_map_not_the_same_question():
     assert set(d["differs"]) == {"control", "endpoint", "effect_measure"}
 
 
+_Y = {"contrast": "YES"}      # V1.0.1 (metformin review): the treatment contrast is a dimension of the same question
+
+
 @pytest.mark.parametrize("agrees,label", [
-    ({"control": "YES", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "SAME_QUESTION"),
-    ({"control": "NO", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
-    ({"control": "YES", "endpoint": "YES", "effect_measure": "NO", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
-    ({"control": "YES", "endpoint": "YES", "effect_measure": "YES", "population": "NO", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
-    ({"control": "NOT_ESTABLISHED", "endpoint": "NO", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
-    ({"control": "NOT_ESTABLISHED", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "NOT_ESTABLISHED"),
+    ({**_Y, "control": "YES", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "SAME_QUESTION"),
+    ({**_Y, "control": "NO", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
+    ({**_Y, "control": "YES", "endpoint": "YES", "effect_measure": "NO", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
+    ({**_Y, "control": "YES", "endpoint": "YES", "effect_measure": "YES", "population": "NO", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
+    ({**_Y, "control": "NOT_ESTABLISHED", "endpoint": "NO", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
+    ({**_Y, "control": "NOT_ESTABLISHED", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "NOT_ESTABLISHED"),
+    ({"contrast": "NO", "control": "YES", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "RELATED_TRIAL_INVENTORY_MAP"),
+    # every other dimension agreeing never makes it the same question while the contrast was not checked
+    ({"control": "YES", "endpoint": "YES", "effect_measure": "YES", "population": "YES", "intervention": "YES"}, "NOT_ESTABLISHED"),
 ])
 def test_PLANT_the_label_is_derived_from_the_dimensions(agrees, label):
     doc = {"dimensions": {k: {"agrees": v} for k, v in agrees.items()}}

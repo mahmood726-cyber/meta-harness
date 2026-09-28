@@ -97,6 +97,11 @@ def _efetch(pmids: list[str]) -> list[dict]:
                         {"db": "pubmed", "id": ",".join(pmids), "retmode": "xml",
                          "tool": "meta-harness", "email": "meta-harness@example.org"})
     time.sleep(0.34)
+    return parse_pubmed_xml(xml)
+
+
+def parse_pubmed_xml(xml: str) -> list[dict]:
+    """The record dicts of a PubMed efetch XML body (also re-derived from HELD bytes, e.g. harness/comparator_named)."""
     root = ET.fromstring(xml)
     out = []
     for art in root.findall(".//PubmedArticle"):

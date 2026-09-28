@@ -118,3 +118,81 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
   conditional on the one row not held (Hokusai on-treatment 66/4,118 vs 80/4,122).
 - With our held Hokusai row the same pool is 0.913907 (0.78938-1.05808).
 - The comparator's phase-3 scope is recorded as the comparator's; our screening has no phase rule.
+
+## Metformin-PCOS (Sharpe 2019, Cochrane)
+
+- **Wrong comparison:** the protocol benchmarked OR 2.64, metformin vs placebo/no treatment. Analysis 2.4 (metformin
+  plus clomiphene vs clomiphene alone; OR 1.65, 1.35–2.03; 21 studies; 1,568 women) now governs. 2.64 is kept,
+  labelled WRONG_COMPARISON. Labelled protocol erratum, protocol-only commit.
+- **Same question:** a `contrast` dimension is added. The two questions are RELATED, differing on control
+  ("clomiphene alone" is broader than placebo).
+- **Membership:** 21 rows are read from the forest plot (Cochrane's image, not held; URL and sha256 recorded). Row
+  count and 789 + 779 women are checked against the stated totals. All 3 of our trials are shared, with the same
+  counts (SUBSET).
+- **Legro 2007:** the plot's 108/209 vs 106/209 disagrees with the paper's ovulated rows (174 vs 157), so it is
+  COMPARATOR_ROW_UNRECONCILED and never copied.
+- **Search:** a row joining separate queries with ` || ` is now classified query by query. It had been read as one
+  title reconstruction.
+
+## NOAC-AF (COMBINE AF, Carnicelli 2022)
+
+- IDENTICAL_SET, 4 of 4: RE-LY is now bound by the acronym in the held registry record's title.
+- **Same trials, different model:** IPD, a trial-stratified Cox model with random effects, and 32-month censoring are
+  quoted from the held text. Its narrower interval (0.81, 0.74–0.89) is that model's. Agreement is a checkpoint on
+  the same trials, not an independent result.
+- J-ROCKET AF is a V1.1 recall case (`evid2/v11-discovery-glp1`, 93013008).
+
+## PCSK9 (Wang 2022, Frontiers)
+
+- **Enumerated:** its trial table identifies rows by printed NCT, not reference links. A registry-ID route in
+  `scripts/comparator_trial_tables.py` binds each row by the NCT printed in the same located `<tr>`. There are 12
+  rows, shared 2 (FOURIER, ODYSSEY OUTCOMES), ours-only 0.
+- **Scope, in its own words:**
+  - OSLER-1's control is standards of care, not placebo (the abstract's "25 812 received placebos" does not hold for
+    that row).
+  - Eight of the others are 1–1.5-year lipid or imaging trials, and one is PACMAN-AMI.
+  - All are pooled as RRs.
+  - So 12 vs 2 is not 10 omissions.
+- **Not independent:** FOURIER and ODYSSEY OUTCOMES hold 46,488 of its 53,486 patients.
+- **Panel note:** the seeded note "trial membership remain unknown" is no longer printed where the set is enumerated
+  (it contradicted the overlap on every such page).
+
+## Trials named by a held comparator enter screening (`harness/comparator_named.py`)
+
+- Every enumerated comparator row we did not hold is fetched by its identifier:
+  - a PMID row, by the cited PMID;
+  - an NCT row, by every PubMed record whose DataBank lists that NCT and is attributed to a named trial.
+- The records enter screening with `found_by: COMPARATOR_NAMED`.
+- Records are re-derived from the held XML (sha256 checked).
+- A candidate never displaces a record or trial we hold, which is why seeding had been disabled.
+- Rows with no identifier are listed as not screened.
+- 17 topics have an enumerated comparator.
+
+| Topic | Screening includes | Families |
+|---|---|---|
+| pcsk9-mace | 5 → 7 (PACMAN-AMI 35368058, ODYSSEY FH I 24842558) | 11 → 20 |
+| melatonin-primary-insomnia-sol | 8 → 10 | 92 → 106 |
+| semaglutide-obesity-mace | 1 → 2 (STEP 8) | 41 → 57 |
+| colchicine-recurrent-pericarditis | 3 → 3 | 41 → 44 |
+| esketamine-trd-madrs | 4 → 4 | 103 → 104 |
+| omega3-cardiovascular-events | 20 → 20 | 105 → 113 |
+| statins-primary-prevention-elderly | 4 → 4 | 27 → 39 |
+| ticagrelor-vs-clopidogrel-acs | 3 → 3 | 25 → 26 |
+
+- **No pooled result moved** (32 pages compared with HEAD).
+- **Held out: sglt2-primary-prevention-hf.** Its candidate Kosiborod 2017 (PMID 28284707) is a post-hoc analysis of
+  patients WITH heart failure, pooled from five dapagliflozin trials. Screening admitted it as an "eligible
+  double-blind/placebo-controlled RCT", and it moved HF hospitalisation from k 4 (0.6956, 0.5763–0.8397) to k 5
+  (0.6920). That is a screening false inclusion (a pooled analysis, and the wrong population), not a trial. The
+  candidate file is not committed. The screening defect is for the captain.
+- **Harms of the entrants:** there are four typed refusals (`cache/<slug>/verified_effects.json`, each span in the
+  held PubMed XML).
+  - PACMAN-AMI discontinuation.
+  - STEP 8 GI AEs (MULTI_ARM_UNRESOLVED) and STEP 8 discontinuation.
+  - Ellis 1996 AEs.
+  - No harm is left KNOWN_REPORTED_NOT_YET_EXTRACTED on any page.
+- **Codex REV-R2:** it found 7 defects in this round's modules, all reproduced, fixed and pinned (quote tag-stripping,
+  held DOI at merge, ALREADY_HELD recheck, unreconciled row binding, excluded-table route, DOI-only rows, `<tbody>`
+  attributes).
+- **Round-3 leak fixed:** population-excluded GLP-1 family rows no longer print the topic's ascertainment evidence
+  map.
