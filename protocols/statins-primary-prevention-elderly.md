@@ -69,3 +69,23 @@ found during resolution were not open access.
 - **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,
   PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong
   population.
+
+## Retrospective protocol erratum (2026-09-28) -- an RCT-only elderly analysis exists; conditions are not diagnoses
+**Labelled retrospective: written after data were seen; the sections above are left unchanged as registered.**
+- The comparator section says RCT-only elderly primary-prevention meta-analyses "were not open access". An external
+  review reproduced one: Ridker 2017 (Circulation 135:1979-81, PMID 28385949), JUPITER + HOPE-3 participants aged
+  >= 70, MI/stroke/CV death, HR 0.74 (0.61-0.91). It is free to read at the publisher but is not under an open
+  licence, is not in PMC, and the publisher page answers automated requests with a bot check (not bypassed), so it
+  is not held here. It is registered as an RCT checkpoint (registry/positive_controls.json, PENDING_SOURCE), never as
+  the comparator; Huang 2022 stays the registered comparator and is observational (shared RCT inputs: none).
+- The letter's HOPE-3 age >= 70 stratum is the same kind of input as JUPITER's older-adults report; the
+  title-seeded search could not find it. It is recorded as a discovery case, not added, while the letter is not held.
+- A registry "conditions" entry can be what a trial PREVENTS. The X2 population exclusions are read against the
+  trial's own eligibility criteria: a registered condition that the trial's exclusion criteria refuse at entry is
+  never a baseline diagnosis (harness/condition_role.py). PREVENTABLE (NCT04262206; aged >= 75 without
+  cardiovascular disease, disability or dementia) is therefore eligible; it is ongoing (RECRUITING) with no results,
+  so it adds no pooled input.
+- A secondary report's registration is its parent trial's: JUPITER's older-adults report (PMID 20404379) is
+  NCT00239681 and ALLHAT-LLT's older-adults report (PMID 30251369) is NCT00000542, recorded with located evidence in
+  cache/statins-primary-prevention-elderly/parent_registrations.json. A blank registry link is not "unregistered".
+- Scope: screening and the family ledger only. The pooled trials and the pooled result are unchanged.
