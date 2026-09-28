@@ -153,12 +153,19 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
     whether that family is in our POOL is decided by the caller."""
     comp = review.get("comparator") or {}
     truth = (comp.get("truth") or {}).get("completeness") or {}
-    panel_outcome_specific = bool(panel and panel.get("trial_set") and (panel.get("outcome_endpoints") or {}).get(prim_name))
+    # V1.0.1 (semaglutide-obesity review): the governing analysis' plot rows name the panel rows they are
+    # (harness/comparator_analysis.py panel_row); only those are this outcome's pool -- Stefanou 2024's MACE plot is 7 of
+    # its 16 table rows
+    _am = (comp.get("analysis") or {}).get("membership") or {}
+    plot_rows = {m["panel_row"] for m in _am.get("members") or [] if m.get("panel_row")}
+    plot_label = _am.get("endpoint_label") or "the governing analysis"
+    panel_outcome_specific = bool(panel and panel.get("trial_set") and ((panel.get("outcome_endpoints") or {}).get(prim_name)
+                                                                         or plot_rows))
     truth_outcome_specific = truth.get("relation") == "IDENTICAL_SET" and bool(truth.get("present"))
     # "the comparator's pool FOR THE SAME OUTCOME": an outcome-specific enumeration (a panel whose endpoints are bound
     # to this outcome, or comparator-truth's named set for it) outranks a whole included-studies table
     if panel and panel.get("trial_set") and (panel_outcome_specific or not truth_outcome_specific):
-        expected = (panel.get("outcome_endpoints") or {}).get(prim_name)
+        expected = (panel.get("outcome_endpoints") or {}).get(prim_name) or (plot_label if plot_rows else None)
         alias_of, collisions = {}, []
         for m in panel["trial_set"]:
             for key in [m["family_id"]] + [a["id"] for a in m.get("aliases", [])] + ([m["bib_key"]] if m.get("bib_key") else []):
@@ -187,6 +194,8 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
         ins, outs = [], []
         for m in panel["trial_set"]:
             ep = m.get("endpoint")
+            if plot_rows:
+                ep = plot_label if m["family_id"] in plot_rows else f"not in {plot_label}"
             ids = [a["id"] for a in m.get("aliases", [])] + ([m["bib_key"]] if m.get("bib_key") else [])
             hits = {fam_idx[_key(i)] for i in ids if _key(i) in fam_idx}
             via = [parent_of[h] for h in hits if h in parent_of]

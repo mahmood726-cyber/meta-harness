@@ -224,3 +224,46 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
 - **Comparator-named:** all 10 rows are already held, so nothing new entered screening. No pooled result moved.
 - **LIFE** (NCT02816736, 34730769) is a V1.1 recall case (`evid2/v11-discovery-glp1`, a3475bd7). Its primary endpoint
   is NT-proBNP, yet its report states a clinical-event composite and hyperkalaemia by arm.
+
+## Semaglutide obesity MACE (Stefanou 2024)
+
+- **Membership:** Figure 2 (the MACE forest plot) is held (CC BY-NC, sha256-pinned) and read row by row. There are 7
+  rows, and the column totals 13,696 / 11,008 match the plot's Total. Each row names its row in the comparator's 16-row
+  table.
+  - The outcome's pool is those 7: SUBSET, shared 1 (SELECT), ours-only 0.
+  - The other 9 are listed as out of scope, not dropped.
+- **WEIGHT CONCENTRATION** (`comparator_analysis.weight_concentration`, general, from any counted plot) is computed as
+  log-OR inverse variance, with 0.5 added to rows with a zero cell. SELECT carries 97.44% (crude OR 0.7985), so
+  agreement is agreement with SELECT, not 7-trial corroboration.
+- **Positive control** `stefanou-2024-glp1-obesity-mace`: our engine reproduces OR 0.793265 (0.708299–0.888423),
+  τ² 0, Q 1.374405 at 5e-7. The comparator used DL; with Q < df the DL τ² is 0 and DL equals the common effect. Our
+  engine implements no DL estimator.
+- **COMPARATOR_METHOD_INCONSISTENCY** (a new code): its methods set Egger p < 0.10, yet it reports p = 0.0795 for MACE
+  and concludes "no asymmetry". Both sides are held and quoted. Neither the reassuring wording nor a bias claim is
+  made.
+  - This exposed the REV-R2 tag-strip defect in `comparator_models`: its normaliser deleted "p < 0.10 … >". Fixed.
+- **"Per-trial inputs are not machine-exposed"** was a fixed sentence on every page. It is now derived from what is
+  held (page and `transparency_score.py`).
+- **V1.1 discovery** (`evid2/v11-discovery-glp1`, 17e3fcc9): the search is PMID/title anchors on SELECT alone. All
+  eight semaglutide RCTs Stefanou includes are unreachable by it.
+
+## Semaglutide obesity weight (Medicine 2026)
+
+- **WRITTEN vs EXECUTABLE** (`harness/rule_trace.py`): every executable exclusion term is TRACED_LITERAL,
+  TRACED_BY_CLAUSE (`registry/rule_trace/<slug>.json`, quote located in the protocol) or UNTRACED.
+  - **On an enforced topic** an untraced term is flagged and not applied. A record it would have caught, if otherwise
+    included, is NEEDS_ADJUDICATION (decision `adjudicate`, rule X-UNTRACED).
+    - Weight is enforced, with 5 untraced terms: type 1 diabetes, knee osteoarthritis, heart failure, bimagrumab,
+      cagrilintide.
+    - 4 records now await adjudication. The pool is unchanged.
+    - Served eligibility lists only the applied terms.
+  - **Fixture:** STEP 9 (39476339, held) is adjudicated under the trace and was keyword-excluded without it.
+  - **Every other page** lists its untraced terms. They are still applied, because no trace exists yet. Codex lane
+    TRACE-T1 is proposing traces for the remaining 350 terms (unverified).
+- **Comparator:** Table 1 rows print "Surname, year". Each binds to the one reference in the held JATS with that first
+  author and year, re-proved in `comparator_panel.validate`.
+  - Result: SUBSET, 2 of 4 (STEP 1, STEP 3).
+  - O'Neil 2018 (daily dose-ranging, 52 weeks) and STEP 4 (withdrawal) answer other questions, so 4 vs 2 ≠ 2
+    omissions.
+  - Its MD -11.85 vs our -11.84 is a coincidence of different sets and methods, not validation.
+  - It is RELATED, not SAME_QUESTION.

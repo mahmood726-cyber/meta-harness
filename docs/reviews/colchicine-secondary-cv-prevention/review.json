@@ -10,6 +10,160 @@
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['coronary', 'myocardial infarction', 'acute coronary', 'stable angina', 'atherosclerotic cardiovascular', 'percutaneous coronary intervention', 'stent restenosis', 'bare-metal stent']; and none of ['pericarditis', 'postpericardiotomy', 'post-pericardiotomy', 'post pericardiotomy', 'atrial fibrillation', 'cardiac surgery', 'coronary artery bypass', 'coronary artery bypass grafting', 'cabg', 'postoperative', 'ablation', 'stroke', 'transient ischemic', 'intracerebral', 'covid', 'osteoarthritis', 'hypertension', 'aortic stenosis', 'gout']; randomised intervention is one of ['colchicine'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
     "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n\n## Retrospective protocol erratum (2026-09-27) -- comparator result as quoted above\n**Labelled retrospective: written after data were seen; the sentence above is left unchanged as registered.**\nThe \"Comparator\" section quotes the comparator's result as \"MACE (RR 0.65, 95% CI 0.38-0.77)\". That pair\nrepeats the comparator's own prose, which mixes two models: its Figure 3A (MACE) prints\n**fixed effect (Mantel-Haenszel) RR 0.65 [0.56, 0.75]** and **random effects RR 0.54 [0.38, 0.77]**\n(I2 = 70%), so the quoted point is the fixed-effect row and the quoted interval the random-effects row. The\nsame prose sentence gives the reduction as 46%, which is the random-effects point (1 - 0.54), not 0.65.\nThe comparator's methods select random effects when I2 > 50%.\n- Corrected reading: the comparator's MACE result is model-specific --\n  FE 0.65 (0.56-0.75); RE 0.54 (0.38-0.77). The mixed pair 0.65 (0.38-0.77) is not a result of either model.\n- Source: Figure 3A of PMID 36176989 (PMC9512890), transcribed with the image sha256 in\n  cache/colchicine-secondary-cv-prevention/comparator_figures.json; both rows are reproduced by recomputing\n  the pools from the figure's seven per-trial rows.\n- Scope: this erratum corrects a quotation of the comparator. It changes no eligibility rule, no outcome, no\n  model and no result of this review; our pooled result is not moved toward either comparator row.\n- Recorded as COMPARATOR_INTERNAL_MISMATCH on the page (harness/comparator_models.py).\n"
   },
+  "rule_trace": {
+    "enforced": false,
+    "rows": [
+      {
+        "key": "population_none",
+        "term": "pericarditis",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "postpericardiotomy",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "post-pericardiotomy",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "post pericardiotomy",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "atrial fibrillation",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "cardiac surgery",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "coronary artery bypass",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "coronary artery bypass grafting",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "cabg",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "postoperative",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "ablation",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "stroke",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "transient ischemic",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "intracerebral",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "covid",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "osteoarthritis",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "hypertension",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "aortic stenosis",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "gout",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "cost-effectiveness",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "design_none",
+        "term": "cost effectiveness",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "cost-utility",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "design_none",
+        "term": "quality-adjusted life years",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "secondary analysis",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "subgroup analysis",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "relation to prior acute coronary syndrome",
+        "state": "UNTRACED"
+      }
+    ],
+    "untraced": [
+      "postpericardiotomy",
+      "post-pericardiotomy",
+      "post pericardiotomy",
+      "cardiac surgery",
+      "coronary artery bypass",
+      "coronary artery bypass grafting",
+      "cabg",
+      "ablation",
+      "transient ischemic",
+      "intracerebral",
+      "aortic stenosis",
+      "gout",
+      "cost effectiveness",
+      "quality-adjusted life years",
+      "secondary analysis",
+      "subgroup analysis",
+      "relation to prior acute coronary syndrome"
+    ]
+  },
   "search": {
     "n_records": 120,
     "cache_ref": "cache/colchicine-secondary-cv-prevention/records.json",
@@ -2253,7 +2407,6 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "death from cardiovascular causes",
             "resuscitated cardiac arrest",
@@ -2262,6 +2415,7 @@
             "urgent hospitalization for angina leading to coronary revascularization"
           ],
           "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.77,
             "standard_error": 0.11568435207776077,
@@ -2373,15 +2527,15 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
           "components": [
             "cardiovascular death",
             "spontaneous myocardial infarction",
             "ischemic stroke",
             "ischemia-driven coronary revascularization"
           ],
-          "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
           "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.69,
             "standard_error": 0.09586638910873521,
@@ -2502,7 +2656,6 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "death from cardiovascular causes",
             "recurrent myocardial infarction",
@@ -2510,6 +2663,7 @@
             "unplanned ischemia-driven coronary revascularization"
           ],
           "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.99,
             "standard_error": 0.07932261436146144,
@@ -114181,7 +114335,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "22d1741a08a4582ac008b468e4ceb9c543c91dd5",
-    "review_sha256": "61c0f37443121de971732ac237c5c4921b29f7bff572faf4af1cd4459979f14f",
+    "review_sha256": "77686d19b6e738faa024b2af8a81eb33dcf947b14d690a63942222ec235702c1",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -114353,7 +114507,7 @@
         }
       ],
       "config_sha256": "ce5daab70cc053271f088b14e44a9a7941fa5e183a91eb1020b277d1e2cc6ef3",
-      "analysis_code_sha256": "81e70ec78c6a67586c8dfc116fe0bb755b4c9e72a2004a22c302d63789722b4e",
+      "analysis_code_sha256": "001b5d064ab8ad68fc2cb51a14230db19e2b7107380036a3f38266f8b8e06b58",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -114367,17 +114521,17 @@
         "harness/ascertainment.py": "2d22de0240c8ab07dfbfef84e78bc58041dba1ab",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "e58875abab1a380c92f3c2539706245412d3aa44",
+        "harness/certificate.py": "8447f82da9a56c3c0af13e379a3eb8b4964afa40",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_analysis.py": "9450dc4aeb14a66f1dee10fedf97b89ebf76368a",
+        "harness/comparator_analysis.py": "243c168973df2f467ced3c816254c67ee278765f",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
-        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
+        "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
         "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "49757dc0caf03d92cefd7c7cf88062adee32c6b5",
+        "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -114402,7 +114556,7 @@
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
         "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
-        "harness/gate.py": "e997154ebfeb093e3e54c9bf9ee3264aa5feb77d",
+        "harness/gate.py": "731d5953e9e03ec20a721fe745837880d439d598",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -114424,10 +114578,10 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "2f882ddb91983da62ec64070de92c5245a137a73",
-        "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
+        "harness/overlap_relation.py": "3f8dd0182d40df952e94ad144ca976f5a2d11af0",
+        "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
+        "harness/pipeline.py": "c1fe2579fca91550384cafa090b88ec8bcf01e2f",
         "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -114439,10 +114593,11 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/rule_trace.py": "58694689a6479e9710deab52d4d1335ad0385e59",
         "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "89ea00f42968cd8d8c09ac5ef9dfa1b7fd162678",
+        "harness/screen.py": "2375327b836e1411db6b970d453faf39046bb9b8",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
@@ -114470,7 +114625,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "102 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "103 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -114501,7 +114656,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "df73a2367e17615d5693946bbe46b40d0fba1e8e87737375b792a37ca1717315",
-      "review_sha256": "61c0f37443121de971732ac237c5c4921b29f7bff572faf4af1cd4459979f14f",
+      "review_sha256": "77686d19b6e738faa024b2af8a81eb33dcf947b14d690a63942222ec235702c1",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-secondary-cv-prevention.md UTF-8 text, universal newlines",
@@ -114521,7 +114676,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "c731a93d462fcc71f6d329159a91225036483a97776b38a5d53f13b6319532a8"
+      "release_sha256": "98e85a9cac4575acbbd5164edd6186b5bf8c40b07fd9e331d3a45258ceaff880"
     }
   }
 }

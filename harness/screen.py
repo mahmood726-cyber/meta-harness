@@ -647,6 +647,11 @@ def with_protocol_entry_only(config: dict) -> dict:
 
 def run(all_recs: list, config: dict) -> dict:
     config = with_protocol_entry_only(config)
+    # V1.0.1 (semaglutide-weight review): an executable exclusion that traces to no protocol text is flagged and NOT
+    # applied on a topic whose terms have been traced (harness/rule_trace.py)
+    import os as _os
+    from . import rule_trace
+    config, untraced = rule_trace.enforce(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), config)
     inc = config.get("include", {})
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
@@ -692,6 +697,13 @@ def run(all_recs: list, config: dict) -> dict:
                               "span": (rec.get("title") or "")[:120]})
             continue
         decision, rule, reason, span = screen_record(rec, inc, neg)
+        if decision == "include" and untraced:
+            _u = _has(_text(rec), untraced)
+            if _u:
+                decision, rule = rule_trace.ADJUDICATE, rule_trace.RULE
+                reason = (f"NEEDS_ADJUDICATION: the record mentions '{_u}', an executable exclusion that traces to no "
+                          "protocol text; it is not applied, so the record is neither included nor excluded by it")
+                span = _span(_text_raw(rec), _u)
         arm_obj = None
         hidden = []
         arm_refusal = None

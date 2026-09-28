@@ -54,6 +54,24 @@ RETRIEVAL_UNAUDITABLE_DISTINCTION = "an auditable screening ledger attached to a
 RETRIEVAL_RETRACTION = "We retract any claim of a registry-first or systematic search for this topic."
 
 
+
+def comparator_exposure(r) -> str:
+    """V1.0.1 (semaglutide-obesity review): what of the comparator's per-trial material this repository HOLDS and has
+    located, derived from the review -- never the fixed sentence 'its per-trial inputs are not machine-exposed', which was
+    false wherever a held figure or a located trial table exists."""
+    comp = r.get("comparator") or {}
+    mem = (comp.get("analysis") or {}).get("membership") or {}
+    if mem.get("members"):
+        fig = mem.get("figure") or {}
+        return (f"its per-trial inputs ARE machine-exposed for the {len(mem['members'])} rows of "
+                f"{mem.get('endpoint_label') or 'its governing analysis'} (counts read from its "
+                + ("held" if fig.get("document_ref") else "not-held") + " forest plot, sha256-pinned)")
+    rows = sum(len(c.get("trial_set") or []) for c in r.get("comparator_panel") or [])
+    if rows:
+        return (f"its trial membership is machine-exposed ({rows} located included-trial rows); its per-trial inputs "
+                "are not")
+    return "its per-trial inputs are not machine-exposed"
+
 def _e(x: Any) -> str:
     return html.escape("" if x is None else str(x), quote=True)
 
@@ -839,7 +857,7 @@ def _overview(r, neutral):
                 "pooled number carries its PMID/NCT and verbatim span; each declared-absent trial its reason; "
                 "each risk-of-bias domain the field it read; the reproduction its protocol SHA and replay. "
                 f"The published comparator exposes {_e(_tcomp)} such claim(s) — its reported estimate(s) with "
-                "one citation; its per-trial inputs are not machine-exposed. "
+                f"one citation; {_e(comparator_exposure(r))}. "
                 "<span class='muted'>Score: scripts/transparency_score.py (committed docs/transparency.json).</span></p>")
         parts.append(
             "<h3>Stated limitations</h3><ul class='limits'>"
@@ -1112,6 +1130,8 @@ def _screening(r, neutral):
     if reason:
         return _absent_block(reason)
     recs = s.get("records", []) or []
+    from . import rule_trace as _rt
+    _trace_html = _rt.render(r.get("rule_trace"), [x for x in recs if x.get("decision") == _rt.ADJUDICATE])
     show_units = _has_publication_units(r) and any(x.get("trial_family_id") for x in recs)
     unit_heads = "<th>Trial family</th><th>Publication role</th>" if show_units else ""
     show_completeness = any(x.get("completeness_state") for x in recs)
@@ -1246,7 +1266,7 @@ def _screening(r, neutral):
                      f"{_e(ma.get('note'))} Flags: {_e(flag_txt)}</p>")
     included_phrase = ((f"{_identity_mod.count_phrase(inc_counts, 'trial family')} included")
                        if show_units else f"{n_inc} included")
-    body = (_identifier_scope_block(r) + flow + integ_html + f"<p>{len(recs)} records screened; <strong>{included_phrase}</strong>. "
+    body = (_identifier_scope_block(r) + flow + integ_html + _trace_html + f"<p>{len(recs)} records screened; <strong>{included_phrase}</strong>. "
             f"{_e(_eligibility_screen_sentence(r))} every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
             f"<table class='recs'>{head}{rows}</table>")

@@ -10,6 +10,200 @@
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['polycystic ovary syndrome', 'polycystic ovarian syndrome', 'pcos', 'polycystic ovaries']; and none of ['ivf', 'icsi', 'vitro fertilization', 'vitro fertilisation', 'intracytoplasmic sperm', 'assisted reproduction', 'assisted reproductive', 'ovarian hyperstimulation', 'hyperstimulation syndrome', 'gestational', 'offspring', 'first-trimester', 'preconception', 'n-acetylcysteine', 'oocyte', 'embryo', 'sitagliptin', 'sitaformin', 'myo-inositol', 'inositol', 'l-carnitine', 'ziziphus', 'cabergoline', 'doppler', 'oral contraceptive', 'cyproterone', 'simvastatin', 'liraglutide', 'acupuncture']; randomised intervention is one of ['metformin'] (named in title/conditions); a comparator among ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
     "text": "# Protocol - metformin for ovulation in polycystic ovary syndrome\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page. The protocol is committed before the synthesis runs.\n\n## PICO\n- **P** - women with polycystic ovary syndrome (PCOS) undergoing ovulation induction,\n  including clomiphene-resistant or anovulatory PCOS populations.\n- **I** - metformin, alone or added to the same background ovulation-induction regimen\n  in both trial arms.\n- **C** - placebo or placebo-controlled non-metformin treatment, with the same\n  background regimen where a background regimen is used.\n- **O (primary)** - ovulation rate.\n- **O (harms)** - gastrointestinal adverse events; treatment discontinuation due to\n  adverse events.\n\n## Estimand / population / timepoint\n- **Estimand** - odds ratio (OR), metformin vs placebo.\n- **Population** - as randomised.\n- **Timepoint** - end of treatment.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is women with PCOS, polycystic ovarian syndrome, or polycystic\n  ovaries in an ovulation-induction/subfertility context;\n- **I3** - the randomised contrast is metformin vs placebo, including trials with the\n  same background ovulation-induction treatment in both arms;\n- **design** - placebo-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population/context (e.g. IVF/ICSI or pregnancy/offspring follow-up);\n- **X3** - wrong intervention/comparison (no metformin-vs-placebo contrast, or an\n  active non-metformin intervention is the randomised contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative\n  control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports ovulation rate,\n> and whether it reports it as a 2x2 table versus only an effect plus CI, is recorded\n> as target-result status at extraction - never as an exclusion. A published effect\n> plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: metformin x PCOS/polycystic ovary syndrome x placebo x ovulation/randomised.\n- ClinicalTrials.gov: condition \"polycystic ovary syndrome\", intervention \"metformin\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(OR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nSharpe et al., *Cochrane Database of Systematic Reviews* 2019, \"Metformin for\novulation induction (excluding gonadotrophins) in women with polycystic ovary\nsyndrome\" (PMID 31845767, PMCID PMC6915832, DOI 10.1002/14651858.CD013505;\nUnpaywall is_oa=true). It reports ovulation OR 2.64 (95% CI 1.85 to 3.75) for\nmetformin versus placebo/no treatment and gastrointestinal side effects OR 4.00\n(95% CI 2.63 to 6.09).\n\n## Controls\n- **Positive** - the search must recover and include canonical placebo-controlled\n  PCOS ovulation-induction metformin trials: Moll 2006 (PMID 16769748), Ng 2001\n  (PMID 11473953), and Sturrock 2002 (PMID 11994052).\n- **Negative** - the Diabetes Prevention Program metformin trial in impaired glucose\n  tolerance/type 2 diabetes prevention (PMID 11832527) must be recovered and EXCLUDED\n  as wrong population/topic.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that ovulation\ninduction context and the gonadotrophin exclusion in the comparator review were\nnot executable. The config now requires ovulation-induction / clomiphene context\nand excludes hMG / human menopausal gonadotrophin add-on designs. The PCOS title\nmiss for PMID 19552097 is fixed mechanically in screening negation handling rather\nthan by a record-specific override. This amendment changes screening only.\n\n## Retrospective protocol erratum (2026-09-28) -- the comparator benchmark is the wrong comparison\n**Labelled retrospective: written after data were seen; the sections above are left unchanged as registered.**\n- The comparator section quotes ovulation OR 2.64 (95% CI 1.85 to 3.75). That is Sharpe 2019's metformin versus\n  placebo or no treatment comparison. This review's question is metformin ADDED to clomifene, so 2.64 answers a\n  different treatment contrast and is labelled WRONG_COMPARISON on the page (reported by an external review).\n- The governing analysis is Sharpe 2019 Analysis 2.4, metformin plus clomiphene versus clomiphene alone: OR 1.65\n  (1.35 to 2.03), 21 studies, 1,568 women. Its \"clomiphene alone\" control is broader than this protocol's placebo\n  requirement, which is recorded as a CONTROL difference (harness/same_question.py): the two questions are related,\n  not the same.\n- The Analysis 2.4 forest plot is read row by row (cache/metformin-pcos-ovulation/comparator_analysis.json; the image\n  is Cochrane's and is not held, its URL and sha256 are recorded). All three of our pooled trials are rows of it with\n  the same counts. Its Legro 2007 row (108/209 vs 106/209) disagrees with the trial's own \"subjects who ovulated\"\n  (174 vs 157) and is COMPARATOR_ROW_UNRECONCILED; it is never copied.\n- Scope: this erratum changes which comparator analysis is shown beside the result. It changes no eligibility rule,\n  no outcome, no model and no result of this review.\n"
   },
+  "rule_trace": {
+    "enforced": false,
+    "rows": [
+      {
+        "key": "population_none",
+        "term": "ivf",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "icsi",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "vitro fertilization",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "vitro fertilisation",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "intracytoplasmic sperm",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "assisted reproduction",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "assisted reproductive",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "ovarian hyperstimulation",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "hyperstimulation syndrome",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "gestational",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "offspring",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "first-trimester",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "preconception",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "n-acetylcysteine",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "oocyte",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "embryo",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "sitagliptin",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "sitaformin",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "myo-inositol",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "inositol",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "l-carnitine",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "ziziphus",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "cabergoline",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "doppler",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "oral contraceptive",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "cyproterone",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "simvastatin",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "liraglutide",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "acupuncture",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "human menopausal gonadotrophin",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "design_none",
+        "term": "human menopausal gonadotropin",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "design_none",
+        "term": "HMG",
+        "state": "TRACED_LITERAL"
+      }
+    ],
+    "untraced": [
+      "vitro fertilization",
+      "vitro fertilisation",
+      "intracytoplasmic sperm",
+      "assisted reproduction",
+      "assisted reproductive",
+      "ovarian hyperstimulation",
+      "hyperstimulation syndrome",
+      "gestational",
+      "first-trimester",
+      "preconception",
+      "n-acetylcysteine",
+      "oocyte",
+      "embryo",
+      "sitagliptin",
+      "sitaformin",
+      "myo-inositol",
+      "inositol",
+      "l-carnitine",
+      "ziziphus",
+      "cabergoline",
+      "doppler",
+      "oral contraceptive",
+      "cyproterone",
+      "simvastatin",
+      "liraglutide",
+      "acupuncture",
+      "human menopausal gonadotropin"
+    ]
+  },
   "search": {
     "n_records": 154,
     "cache_ref": "cache/metformin-pcos-ovulation/records.json",
@@ -2572,9 +2766,9 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "END_OF_TREATMENT",
-          "background_therapy": "clomifene",
           "treatment_strategy": "METFORMIN_ADDON_CC",
+          "background_therapy": "clomifene",
+          "endpoint_event_time": "END_OF_TREATMENT",
           "clomifene_status": "NOT_STATED",
           "study_effect": {
             "effect_estimate": 2.7777777777777772,
@@ -2692,9 +2886,9 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "END_OF_TREATMENT",
-          "background_therapy": "clomifene",
           "treatment_strategy": "METFORMIN_ADDON_CC",
+          "background_therapy": "clomifene",
+          "endpoint_event_time": "END_OF_TREATMENT",
           "clomifene_status": "NAIVE",
           "study_effect": {
             "effect_estimate": 0.6926829268292682,
@@ -2806,9 +3000,9 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "END_OF_TREATMENT",
-          "background_therapy": "clomifene",
           "treatment_strategy": "METFORMIN_ADDON_CC",
+          "background_therapy": "clomifene",
+          "endpoint_event_time": "END_OF_TREATMENT",
           "clomifene_status": "RESISTANT",
           "study_effect": {
             "effect_estimate": 8.249999999999998,
@@ -4403,11 +4597,43 @@
           }
         ],
         "endpoint": "Ovulation with metformin added to clomifene",
+        "endpoint_label": "Analysis 2.4",
         "shared_same_counts": [
           "Ben Ayed 2009",
           "Moll 2006",
           "Vandermolen 2001"
-        ]
+        ],
+        "weight_concentration": {
+          "scale": "OR",
+          "top": "Legro 2007",
+          "top_share": 31.47,
+          "top_crude": 1.039,
+          "shares": {
+            "Ben Ayed 2009": 2.26,
+            "Boudhraa 2010": 4.41,
+            "Kar 2015": 5.22,
+            "Liu 2004": 2.18,
+            "Machado 2012": 2.26,
+            "Malkawi 2002": 0.9,
+            "Moll 2006": 14.6,
+            "Ng 2001": 0.77,
+            "PCOSMIC 2010": 4.27,
+            "Heathcote 2013": 1.54,
+            "Jakubowicz 2001": 1.61,
+            "Khorram 2006": 0.91,
+            "Ko 2001": 1.17,
+            "Legro 2007": 31.47,
+            "Nestler 1998": 1.41,
+            "Refaie 2005": 1.82,
+            "Siebert 2009": 7.29,
+            "Sturrock 2002": 1.74,
+            "Vandermolen 2001": 1.53,
+            "Zain 2009": 5.9,
+            "Raja 2005": 6.74
+          },
+          "no_events_left_out": [],
+          "k": 21
+        }
       },
       "row_flags": [
         {
@@ -79006,7 +79232,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "fcaf781d2da1803006a2315036b23caa3f178c25",
-    "review_sha256": "f43636592aef6eead6ae30976b308929dc8b89261c7b1962bbd2a235029a7042",
+    "review_sha256": "6f4e39693917015ff1143180ae5a813436775815a413381f122e82081d24c61c",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -79200,7 +79426,7 @@
         }
       ],
       "config_sha256": "41e648f8d59a5d726ec7f6b073beb26e75500dfdc714ca84723d05d7eadbedc1",
-      "analysis_code_sha256": "81e70ec78c6a67586c8dfc116fe0bb755b4c9e72a2004a22c302d63789722b4e",
+      "analysis_code_sha256": "001b5d064ab8ad68fc2cb51a14230db19e2b7107380036a3f38266f8b8e06b58",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -79214,17 +79440,17 @@
         "harness/ascertainment.py": "2d22de0240c8ab07dfbfef84e78bc58041dba1ab",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "e58875abab1a380c92f3c2539706245412d3aa44",
+        "harness/certificate.py": "8447f82da9a56c3c0af13e379a3eb8b4964afa40",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_analysis.py": "9450dc4aeb14a66f1dee10fedf97b89ebf76368a",
+        "harness/comparator_analysis.py": "243c168973df2f467ced3c816254c67ee278765f",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
-        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
+        "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
         "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "49757dc0caf03d92cefd7c7cf88062adee32c6b5",
+        "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -79249,7 +79475,7 @@
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
         "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
-        "harness/gate.py": "e997154ebfeb093e3e54c9bf9ee3264aa5feb77d",
+        "harness/gate.py": "731d5953e9e03ec20a721fe745837880d439d598",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -79271,10 +79497,10 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "2f882ddb91983da62ec64070de92c5245a137a73",
-        "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
+        "harness/overlap_relation.py": "3f8dd0182d40df952e94ad144ca976f5a2d11af0",
+        "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
+        "harness/pipeline.py": "c1fe2579fca91550384cafa090b88ec8bcf01e2f",
         "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -79286,10 +79512,11 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/rule_trace.py": "58694689a6479e9710deab52d4d1335ad0385e59",
         "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "89ea00f42968cd8d8c09ac5ef9dfa1b7fd162678",
+        "harness/screen.py": "2375327b836e1411db6b970d453faf39046bb9b8",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
@@ -79317,7 +79544,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "102 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "103 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -79348,7 +79575,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "4133daf458f6f1091ea0e1e4ee543f94a11cbf3fca5a7f3fa978d72354e46e39",
-      "review_sha256": "f43636592aef6eead6ae30976b308929dc8b89261c7b1962bbd2a235029a7042",
+      "review_sha256": "6f4e39693917015ff1143180ae5a813436775815a413381f122e82081d24c61c",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/metformin-pcos-ovulation.md UTF-8 text, universal newlines",
@@ -79368,7 +79595,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "b5b6c11651d01486854c94e1be53846f0d1be885e04ae2970faa2a9aa5828dc7"
+      "release_sha256": "2ba49a398ca24a74a2a3829661e3fa34d2ac90723564481fe592dcd0b9e35014"
     }
   }
 }

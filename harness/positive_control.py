@@ -42,6 +42,15 @@ def rows_of(control: dict, root=None) -> list:
             raise PendingSource(f"{control.get('id')}: comparator_figure_rows.json not held")
         return [{"label": r["label"], "effect": r["effect"], "ci_low": r["ci_low"], "ci_high": r["ci_high"],
                  "state": "HELD"} for r in doc["rows"]]
+    if control.get("state") == "ROWS_FROM_ANALYSIS":
+        # V1.0.1 (semaglutide-obesity review): the comparator's governing-analysis plot rows (counts), read from its
+        # HELD figure image (cache/<slug>/comparator_analysis.json; image sha256, k and n verified by comparator_analysis)
+        from . import comparator_analysis
+        doc = comparator_analysis.load(root, control["rows_from"]["slug"])
+        if doc is None or not doc.get("membership"):
+            raise PendingSource(f"{control.get('id')}: comparator_analysis.json membership not held")
+        return [{"label": r["label"], "events_int": r["counts"][0], "n_int": r["counts"][1], "events_ctl": r["counts"][2],
+                 "n_ctl": r["counts"][3], "state": "HELD"} for r in doc["membership"]["rows"]]
     if control.get("state") == "ROWS_FROM_MEMBER_INPUTS":
         from . import outcome_match
         rf = control["rows_from"]

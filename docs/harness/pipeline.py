@@ -2090,6 +2090,7 @@ def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
 
 @aact_cache.cache_only_build
 def build_review_core(slug, config, records, protocol_sha):
+    from . import rule_trace as _rule_trace_mod
     from . import trial_family as trial_family_mod
     from . import held_text_identity as _hti
     # V1.0.1 (DOAC-VTE review): a held comparator full text is read only when proved to be the comparator's own text
@@ -2287,8 +2288,12 @@ def build_review_core(slug, config, records, protocol_sha):
                      "method_declared": _declared_method,
                      # Eligibility is GENERATED from the include object the screen enforces, so the
                      # declared eligibility on the page cannot drift from the code that screens.
-                     "eligibility": screen.describe_eligibility(config.get("include", {})),
+                     # V1.0.1 (semaglutide-weight review): the terms the screen ENFORCES -- an untraced term on an
+                     # enforced topic is not applied, so it is not declared either (harness/rule_trace.py)
+                     "eligibility": screen.describe_eligibility(
+                         _rule_trace_mod.enforce(ROOT, config)[0].get("include", {})),
                      "text": protocol_text},
+        "rule_trace": _rule_trace_mod.trace(ROOT, slug, config.get("include", {})),
         "search": {"n_records": len(merged), "cache_ref": f"cache/{slug}/records.json",
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},

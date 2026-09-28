@@ -72,8 +72,19 @@ def test_primary_trial_values_and_membership_are_unchanged():
         # every pinned record keeps its place and decision
         b_recs = before['screening_records']
         a_recs = [x for x in after['screening']['records'] if x.get('found_by') != ['COMPARATOR_NAMED']]
-        assert [(x['id'], x['decision']) for x in b_recs] == [(x['id'], x['decision']) for x in a_recs], slug
+        # V1.0.1 (semaglutide-weight review): on a topic whose exclusions are traced to the protocol (harness/rule_trace.py),
+        # an exclusion by a term that traces to no protocol text becomes NEEDS_ADJUDICATION -- same record, rule
+        # X-UNTRACED, and the reason names a term the topic's own trace lists as untraced
+        untraced = set((after.get('rule_trace') or {}).get('untraced') or [])
+        def _untraced_adjudication(x, y):
+            return (x['id'] == y['id'] and x['decision'] == 'exclude' and y['decision'] == 'adjudicate'
+                    and y['rule_id'] == 'X-UNTRACED' and any(f"'{t}'" in y['reason'] for t in untraced))
+        assert len(b_recs) == len(a_recs), slug
+        assert all((x['id'], x['decision']) == (y['id'], y['decision']) or _untraced_adjudication(x, y)
+                   for x, y in zip(b_recs, a_recs)), slug
         for x, y in zip(b_recs, a_recs):
+            if x != y and _untraced_adjudication(x, y):
+                continue
             if x != y:
                 assert y['rule_id'] == 'X1' and y['decision'] == 'exclude', (slug, y['id'])
                 assert re.fullmatch(r'registry allocation: (?:NA|N/A|NON_RANDOMIZED|Non-Randomized)', y['span'], re.I), (slug, y)

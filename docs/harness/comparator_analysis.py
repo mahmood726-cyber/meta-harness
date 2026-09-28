@@ -70,7 +70,54 @@ def load(root, slug) -> Optional[dict]:
             a, n1, c, n2 = r["counts"]
             if not (0 <= a <= n1 and 0 <= c <= n2):
                 raise AnalysisRefused(f"{slug}: row {r['label']} has impossible counts {r['counts']}")
+        fig = mem["figure"]
+        if fig.get("document_ref"):
+            # V1.0.1 (semaglutide-obesity review): a HELD figure image is pinned by its bytes
+            import hashlib
+            if hashlib.sha256((Path(root) / fig["document_ref"]).read_bytes()).hexdigest() != fig["sha256"]:
+                raise AnalysisRefused(f"{slug}: figure bytes do not match the recorded sha256")
+        bound = [r.get("panel_row") for r in rows]
+        if any(bound):
+            # each plot row names the comparator panel row (its located table row) it is; all or none, never twice
+            pp = Path(root) / "cache" / slug / "comparators.json"
+            panel = json.loads(pp.read_text(encoding="utf-8")) if pp.exists() else []
+            ids = {m["family_id"] for c in panel for m in c.get("trial_set") or []}
+            if not all(bound) or len(set(bound)) != len(bound) or not set(bound) <= ids:
+                raise AnalysisRefused(f"{slug}: every plot row must name a distinct row of the comparator panel's trial set")
     return doc
+
+
+def weight_concentration(rows: list, scale: str) -> Optional[dict]:
+    """V1.0.1 (semaglutide-obesity review): how much of the comparator's inverse-variance weight one trial carries.
+    Log OR / log RR from each row's counts; 0.5 is added to every cell of a row with a zero cell (a row with no events in
+    either arm carries no information and is left out, named). SELECT carrying 97.44% of Stefanou 2024's MACE weight
+    means agreement with that pool is agreement with SELECT, not 7-trial corroboration."""
+    if scale not in ("OR", "RR") or not rows:
+        return None
+    import math
+    w, eff, dropped = {}, {}, []
+    for r in rows:
+        a, n1, c, n2 = r["counts"]
+        if a == 0 and c == 0:
+            dropped.append(r["label"])
+            continue
+        b, d = n1 - a, n2 - c
+        if min(a, b, c, d) == 0:
+            a, b, c, d = a + .5, b + .5, c + .5, d + .5
+            n1, n2 = n1 + 1, n2 + 1
+        if scale == "OR":
+            y, v = math.log(a * d / (b * c)), 1 / a + 1 / b + 1 / c + 1 / d
+        else:
+            y, v = math.log((a / n1) / (c / n2)), 1 / a - 1 / n1 + 1 / c - 1 / n2
+        w[r["label"]], eff[r["label"]] = 1 / v, y
+    if not w:
+        return None
+    tot = sum(w.values())
+    top = max(w, key=w.get)
+    ra = next(r for r in rows if r["label"] == top)["counts"]
+    crude = ((ra[0] / (ra[1] - ra[0])) / (ra[2] / (ra[3] - ra[2])) if scale == "OR" else (ra[0] / ra[1]) / (ra[2] / ra[3]))         if min(ra[0], ra[2], ra[1] - ra[0], ra[3] - ra[2]) > 0 else None
+    return {"scale": scale, "top": top, "top_share": round(100 * w[top] / tot, 2), "top_crude": round(crude, 4) if crude else None,
+            "shares": {k: round(100 * v / tot, 2) for k, v in w.items()}, "no_events_left_out": dropped, "k": len(rows)}
 
 
 def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
@@ -101,8 +148,13 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
             if flag:
                 m["flag"] = flag
             members.append(m)
+        for m, r in zip(members, mem["rows"]):
+            if r.get("panel_row"):
+                m["panel_row"] = r["panel_row"]
         out["membership"] = {"figure": mem["figure"], "members": members, "endpoint": doc["outcome"],
-                             "shared_same_counts": [m["label"] for m in members if m.get("inputs") == "SAME_COUNTS"]}
+                             "endpoint_label": mem.get("endpoint_label") or (doc.get("governing") or {}).get("analysis"),
+                             "shared_same_counts": [m["label"] for m in members if m.get("inputs") == "SAME_COUNTS"],
+                             "weight_concentration": weight_concentration(mem["rows"], (doc.get("governing") or {}).get("scale"))}
     out["row_flags"] = doc.get("row_flags") or []
     return out
 
@@ -137,13 +189,30 @@ def render(a: Optional[dict]) -> str:
                      f"{e(g['estimate'])} ({e(g['ci_low'])} to {e(g['ci_high'])}), {e(g['k'])} studies, {e(g['n'])} participants. "
                      f"<code>{e(b['state'])}</code>: the protocol benchmarked {e(b['analysis'])} ({e(b['label'])}, {e(b['estimate'])}, "
                      f"{e(b['ci_low'])} to {e(b['ci_high'])}) &mdash; {e(b['why'])}.</p>")
+    elif g:
+        parts.append(f"<p><strong>Comparator analysis for our outcome:</strong> {e(g['analysis'])} &mdash; {e(g['label'])}: "
+                     f"{e(g['scale'])} {e(g['estimate'])} ({e(g['ci_low'])} to {e(g['ci_high'])}), {e(g['k'])} studies, "
+                     f"{e(g['n'])} participants.</p>")
     m = a.get("membership")
     if m:
         f = m["figure"]
+        held = (f"held as {e(f['document_ref'])} ({e(f.get('licence'))})" if f.get("document_ref")
+                else f"not held: {e(f['why_not_held'])}")
         parts.append(f"<p>Membership of {e((g or {}).get('analysis'))}: {e(len(m['members']))} rows read from its forest plot "
-                     f"({e(f['caption']['quote'])}; {e(f['url'])}, sha256 {e(f['sha256'][:16])}&hellip;, not held: "
-                     f"{e(f['why_not_held'])}; read by {e(f['read_by'])}). Shared with our pool, with the same counts: "
+                     f"({e(f['caption']['quote'])}; {e(f['url'])}, sha256 {e(f['sha256'][:16])}&hellip;, {held}; read by "
+                     f"{e(f['read_by'])}). Shared with our pool, with the same counts: "
                      f"{e(', '.join(m['shared_same_counts']) or 'none')}.</p>")
+        wc = m.get("weight_concentration")
+        if wc:
+            parts.append(f"<p><strong>Weight concentration:</strong> {e(wc['top'])} carries {e(wc['top_share'])}% of the "
+                         f"comparator's inverse-variance weight (log {e(wc['scale'])} from the plotted counts; 0.5 added to "
+                         f"rows with a zero cell)"
+                         + (f"; its own crude {e(wc['scale'])} is {e(wc['top_crude'])}" if wc.get("top_crude") else "")
+                         + ". " + (f"The pooled result is close to {e(wc['top'])} alone, so agreement with it is agreement "
+                                   f"with one trial, not {e(wc['k'])}-trial corroboration." if wc["top_share"] >= 50 else
+                                   "No single trial carries most of the weight.")
+                         + (f" Rows with no events in either arm carry no weight: {e(', '.join(wc['no_events_left_out']))}."
+                            if wc["no_events_left_out"] else "") + "</p>")
     for fl in a.get("row_flags") or []:
         parts.append(f"<p><code>{e(fl['state'])}</code> {e(fl['row'])}: the plot prints {e(fl['printed'])}; "
                      f"{e(fl['source_says'])} ({e(fl['source_state'])}, {e(fl.get('reported_by'))}). {e(fl['rule'])}.</p>")

@@ -77,6 +77,12 @@ def _held(cache, review, objects):
     paths |= {cache / n for n in DECISION_OBJECTS if (cache / n).is_file()}
     paths |= set(cache.glob("external_checkpoint_*.xml"))   # held checkpoint texts (external_checkpoints.json)
     paths |= set(cache.glob("ascertainment_PMC*.xml"))      # held full texts cited by ascertainment_evidence.json
+    # V1.0.1 (semaglutide reviews): held comparator figure images (comparator_analysis.json pins their sha256) and the
+    # topic's written-vs-executable rule trace (registry/rule_trace/<slug>.json decides which exclusions apply)
+    paths |= set(cache.glob("comparator_figure_*.jpg")) | set(cache.glob("comparator_figure_*.png"))
+    _rt = cache.parent.parent / "registry" / "rule_trace" / f"{cache.name}.json"
+    if _rt.is_file():
+        paths.add(_rt)
     # Follow explicit local source refs and their source manifest, including PDF/text pairs.
     pending = [review, *objects]
     visited = set()

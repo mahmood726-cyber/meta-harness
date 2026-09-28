@@ -7,8 +7,164 @@
     "sha": "fe53c76aad18c0fd8369e3c1fe171406c0f85e7f",
     "committed_utc": "2026-09-12",
     "method_declared": "Random-effects inverse-variance on the mean difference (raw/additive scale, no log transform); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here). (measure=MD).",
-    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['overweight', 'obesity', 'obese', 'weight management', 'body weight']; and none of ['diabetes', 'type 2 diabetes', 'type 1 diabetes', 'adolescent', 'children', 'paediatric', 'pediatric', 'maintenance', 'withdrawal', 'continued treatment', 'weight loss maintenance', 'knee osteoarthritis', 'heart failure', 'oral semaglutide', 'tablets', 'tablet', '7·2 mg', '7.2 mg', 'bimagrumab', 'cagrilintide', 'liraglutide', 'dulaglutide', 'tirzepatide', 'retatrutide']; randomised intervention is one of ['semaglutide 2.4', 'semaglutide', 'once-weekly semaglutide'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
+    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['overweight', 'obesity', 'obese', 'weight management', 'body weight']; and none of ['diabetes', 'type 2 diabetes', 'adolescent', 'children', 'paediatric', 'pediatric', 'maintenance', 'withdrawal', 'continued treatment', 'weight loss maintenance', 'oral semaglutide', 'tablets', 'tablet', '7·2 mg', '7.2 mg', 'liraglutide', 'dulaglutide', 'tirzepatide', 'retatrutide']; randomised intervention is one of ['semaglutide 2.4', 'semaglutide', 'once-weekly semaglutide'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
     "text": "# Semaglutide 2.4 mg vs placebo for percent body-weight change in overweight/obesity without diabetes\n\n## PICO\n- **Population:** adults with overweight or obesity (BMI thresholds per trial) WITHOUT type 2 diabetes.\n- **Intervention:** once-weekly subcutaneous semaglutide 2.4 mg plus lifestyle intervention.\n- **Comparator:** placebo plus lifestyle intervention.\n- **Primary outcome:** percent change in body weight from baseline to Week 68 (mean difference in percentage points; a more-negative value = greater weight loss, so a negative mean difference favours semaglutide).\n\n## Eligibility - P/I/C/design only\nInclude randomized controlled trials when all of the following are true:\n- The population is adults with overweight or obesity without type 2 diabetes, judged from the title or registry conditions.\n- The randomized intervention is once-weekly semaglutide 2.4 mg for weight management.\n- The randomized comparator is placebo (both arms with the same lifestyle intervention).\n- The trial is double-blind or placebo-controlled.\n\nExclude records for wrong population (type 2 diabetes, adolescents/children), wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide), wrong comparator, non-randomized design, reviews, protocol-only reports, **weight-loss-MAINTENANCE / continued-treatment-vs-withdrawal designs** (a different estimand: change measured from a post-run-in randomization, not from the untreated baseline — e.g. STEP-4), and fixed-dose multi-arm trials without a pre-specified dose comparison.\n\nEligibility is not based on whether the abstract reports the target outcome. If an otherwise eligible trial does not report the Week-68 percent body-weight change as a per-arm mean and standard deviation (in the abstract or in eligible structured registry results), it is declared absent rather than substituted with another endpoint or timepoint or an imputed variance.\n\n## Outcomes\nPrimary outcome:\n- Percent change in body weight from baseline to Week 68, including phrasings such as change in body weight (%), percent/percentage change in body weight, and the Week-68 body-weight-change endpoint.\n\nThe estimand is the mean difference (percentage points) in the Week-68 percent body-weight change, semaglutide 2.4 mg versus placebo. Pooling is random-effects inverse-variance on the mean difference; a single included trial is presented as that trial's own effect.\n\n## Sources and verification\n- Per-arm change-from-baseline mean and standard deviation are taken verbatim from the trial's structured ClinicalTrials.gov posted results (paramType MEAN with a Standard-Deviation dispersion), never a least-squares mean with a standard error, and never imputed. **A single estimand is used consistently across trials** (the ClinicalTrials.gov *in-trial / treatment-policy* observation-period row, all-randomized denominator, from baseline to Week 68); the on-treatment row is a sensitivity analysis, not mixed into the primary pool. The estimand actually pooled is stated on the page, and it may differ slightly from a trial publication's headline treatment-policy number, which is noted where it differs.\n- The change is measured from the UNTREATED baseline (Week 0), never from a post-run-in randomization; a maintenance/withdrawal design is excluded rather than mixed.\n- Every pooled number is verified against the committed source span before it is pooled.\n\n## Comparator\n- Published open-access meta-analysis of semaglutide 2.4 mg for weight reduction in non-diabetic overweight/obesity, for trial-set overlap and reporting comparison only. An identical estimate on an identical trial set is arithmetic, not corroboration; the overlap is stated on the page.\n"
+  },
+  "rule_trace": {
+    "enforced": true,
+    "rows": [
+      {
+        "key": "population_none",
+        "term": "diabetes",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "type 2 diabetes",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "type 1 diabetes",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "adolescent",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "children",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "paediatric",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong population (type 2 diabetes, adolescents/children)",
+        "why": "paediatric = the adolescents/children the protocol excludes"
+      },
+      {
+        "key": "population_none",
+        "term": "pediatric",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong population (type 2 diabetes, adolescents/children)",
+        "why": "pediatric = the adolescents/children the protocol excludes"
+      },
+      {
+        "key": "population_none",
+        "term": "maintenance",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "withdrawal",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "continued treatment",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "weight-loss-MAINTENANCE / continued-treatment-vs-withdrawal designs",
+        "why": "the continued-treatment-vs-withdrawal design the protocol excludes"
+      },
+      {
+        "key": "population_none",
+        "term": "weight loss maintenance",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "weight-loss-MAINTENANCE / continued-treatment-vs-withdrawal designs",
+        "why": "the weight-loss-maintenance design the protocol excludes"
+      },
+      {
+        "key": "population_none",
+        "term": "knee osteoarthritis",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "heart failure",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "oral semaglutide",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "an oral formulation as the randomized arm"
+      },
+      {
+        "key": "population_none",
+        "term": "tablets",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "an oral (tablet) formulation as the randomized arm"
+      },
+      {
+        "key": "population_none",
+        "term": "tablet",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "an oral (tablet) formulation as the randomized arm"
+      },
+      {
+        "key": "population_none",
+        "term": "7·2 mg",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "a different semaglutide dose (7.2 mg, not 2.4 mg)"
+      },
+      {
+        "key": "population_none",
+        "term": "7.2 mg",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "a different semaglutide dose (7.2 mg, not 2.4 mg)"
+      },
+      {
+        "key": "population_none",
+        "term": "bimagrumab",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "cagrilintide",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "liraglutide",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "a different GLP-1 agonist"
+      },
+      {
+        "key": "population_none",
+        "term": "dulaglutide",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "a different GLP-1 agonist"
+      },
+      {
+        "key": "population_none",
+        "term": "tirzepatide",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "retatrutide",
+        "state": "TRACED_BY_CLAUSE",
+        "protocol_quote": "wrong intervention (a different GLP-1 agonist, a different semaglutide dose or an oral formulation as the randomized arm, tirzepatide)",
+        "why": "a different (GLP-1/GIP/glucagon) receptor agonist in the randomized arm"
+      }
+    ],
+    "untraced": [
+      "type 1 diabetes",
+      "knee osteoarthritis",
+      "heart failure",
+      "bimagrumab",
+      "cagrilintide"
+    ]
   },
   "search": {
     "n_records": 143,
@@ -621,9 +777,9 @@
       {
         "id": "41772149",
         "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'bimagrumab'.",
+        "decision": "adjudicate",
+        "rule_id": "X-UNTRACED",
+        "reason": "NEEDS_ADJUDICATION: the record mentions 'bimagrumab', an executable exclusion that traces to no protocol text; it is not applied, so the record is neither included nor excluded by it",
         "span": "Bimagrumab plus semaglutide alone…",
         "found_by": [
           "legacy_unrecorded#1"
@@ -804,9 +960,9 @@
       {
         "id": "41290376",
         "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'heart failure'.",
+        "decision": "adjudicate",
+        "rule_id": "X-UNTRACED",
+        "reason": "NEEDS_ADJUDICATION: the record mentions 'heart failure', an executable exclusion that traces to no protocol text; it is not applied, so the record is neither included nor excluded by it",
         "span": "…tide in obesity-related heart failure with preserved ejection…",
         "found_by": [
           "legacy_unrecorded#1"
@@ -843,118 +999,13 @@
       {
         "id": "41045908",
         "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "ELIGIBILITY_STATE_INCONSISTENT",
-        "reason": "ELIGIBILITY_STATE_INCONSISTENT(rule=population_none:heart failure): the arm object derives a heart-failure/HFpEF population even though this screened-in record should be excluded by the population-none rule.",
-        "span": "... walk distance (6MWD) is severely impaired in patients with heart failure with preserved ejection fraction (HFpEF). OBJECTIVES: This ...",
+        "decision": "adjudicate",
+        "rule_id": "X-UNTRACED",
+        "reason": "NEEDS_ADJUDICATION: the record mentions 'heart failure', an executable exclusion that traces to no protocol text; it is not applied, so the record is neither included nor excluded by it",
+        "span": "…paired in patients with heart failure with preserved ejection…",
         "found_by": [
           "legacy_unrecorded#1"
         ],
-        "arm_object": {
-          "source": "harness.arm_object",
-          "trial": {
-            "id": {
-              "value": "41045908",
-              "span": "41045908",
-              "source": "record.id"
-            },
-            "nct": {
-              "value": "NCT04916470",
-              "span": "NCT04916470",
-              "source": "record.nct"
-            },
-            "label": {
-              "value": "41045908",
-              "span": "41045908",
-              "source": "record"
-            },
-            "title": {
-              "value": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights From the STEP-HFpEF Program.",
-              "span": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights From the STEP-HFpEF Program.",
-              "source": "record.title"
-            }
-          },
-          "randomised_arm": [
-            {
-              "name": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              },
-              "role": "NOT_DERIVABLE",
-              "drug": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              },
-              "dose": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              },
-              "background_therapy": {
-                "value": "NOT_DERIVABLE",
-                "span": "NOT_DERIVABLE",
-                "source": "record.interventions"
-              }
-            }
-          ],
-          "randomised_contrasts": [
-            {
-              "drug": {
-                "value": "semaglutide",
-                "span": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights Fr...",
-                "source": "contrast"
-              },
-              "dose": {
-                "value": "NOT_DERIVABLE",
-                "span": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights From the STEP-HFpEF Program. BACKGROUND: Exercise f...",
-                "source": "contrast"
-              },
-              "comparator": {
-                "value": "placebo",
-                "span": "...TS: The authors randomized 1,145 patients to semaglutide or placebo. Compared with patients who had obesity-related HFpEF and h...",
-                "source": "contrast"
-              },
-              "background_therapy": {
-                "value": "NOT_DERIVABLE",
-                "span": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights From the STEP-HFpEF Program. BACKGROUND: Exercise f...",
-                "source": "contrast"
-              },
-              "span": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights From the STEP-HFpEF Program. BACKGROUND: Exercise f...",
-              "code": "RANDOMISED_CONTRAST",
-              "hidden_by_title": false,
-              "strategy_bundle": false
-            }
-          ],
-          "population": {
-            "age_range": {
-              "value": "NOT_DERIVABLE",
-              "span": "Semaglutide and Exercise Function in Obesity-Related HFpEF: Insights From the STEP-HFpEF Program. BACKGROUND: Exercise f...",
-              "source": "record.title_abstract_conditions"
-            },
-            "entry_condition": {
-              "value": "heart failure",
-              "span": "... walk distance (6MWD) is severely impaired in patients with heart failure with preserved ejection fraction (HFpEF). OBJECTIVES: This ...",
-              "source": "record.title_abstract_conditions"
-            }
-          },
-          "timepoint": {
-            "value": "NOT_DERIVABLE",
-            "span": "NOT_DERIVABLE",
-            "source": "record"
-          },
-          "analysis_set": {
-            "value": "NOT_DERIVABLE",
-            "span": "NOT_DERIVABLE",
-            "source": "record"
-          },
-          "effect_source": {
-            "value": "abstract",
-            "span": "...ory endpoints were contrasted by tertiles of baseline 6MWD. RESULTS: The authors randomized 1,145 patients to semaglutide or pla...",
-            "source": "record.abstract"
-          }
-        },
         "trial_family_id": "NCT04916470",
         "publication_role": "primary"
       },
@@ -1294,9 +1345,9 @@
       {
         "id": "40544433",
         "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'cagrilintide'.",
+        "decision": "adjudicate",
+        "rule_id": "X-UNTRACED",
+        "reason": "NEEDS_ADJUDICATION: the record mentions 'cagrilintide', an executable exclusion that traces to no protocol text; it is not applied, so the record is neither included nor excluded by it",
         "span": "Coadministered Cagrilintide and Semaglutide in Adul…",
         "found_by": [
           "legacy_unrecorded#1"
@@ -5109,16 +5160,59 @@
     "overlap": {
       "ours_k": 2,
       "theirs_k": 4,
-      "theirs_k_source": {
-        "source": "comparator abstract",
-        "quote": "RESULTS: Four randomized controlled trials involving 3613 participants met the eligibility criteria."
-      },
-      "shared_k": "not computed: comparator trial set not enumerated",
+      "theirs_k_source": "comparator panel trial_set (cache/semaglutide-obesity-weight/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 4 comparator trial(s) for this outcome",
+      "shared_k": 2,
       "only_ours": [],
-      "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
-      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator trial set is not known well enough to compare); our pooled trial families 2; basis: comparator trial set not enumerated.",
-      "relation": "NOT_ENUMERABLE"
+      "only_theirs": [
+        "O’Neil 2018",
+        "Rubino 2021"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: SUBSET (subset -- every pooled family is in the comparator set); our pooled trial families 2, comparator trials 4, shared 2; basis: set operation on the enumerated comparator trial set.",
+      "relation": "SUBSET"
+    },
+    "analysis": {
+      "outcome": "Percent change in body weight",
+      "governing": null,
+      "protocol_benchmark": null,
+      "method_difference": {
+        "heading": "Different sets, different methods, a coincident number",
+        "quotes": [
+          {
+            "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+            "quote": "mean difference: −11.85%; 95% confidence interval [CI]: −12.81 to − 10.90; P < .00001"
+          },
+          {
+            "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+            "quote": "a random-effects model was applied a priori for all analyses."
+          }
+        ],
+        "reading": "Its MD of -11.85 points pools four trials, two of which answer other questions, with RevMan random effects; ours (-11.84) pools STEP 1 and STEP 3 only. The near-identical numbers are a coincidence of different sets and methods, not validation and not an independent result; the two are not the same question.",
+        "reported_by": "external review of the semaglutide-obesity-weight topic (28 Sep 2026)"
+      },
+      "scope": {
+        "quotes": [
+          {
+            "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+            "quote": "Four randomized controlled trials involving 3613 participants met the eligibility criteria."
+          },
+          {
+            "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+            "quote": "Rubino’s study randomized participants to either continue with semaglutide or switch to a placebo after reaching the target dose."
+          },
+          {
+            "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+            "quote": "O’Neil et al administered a smaller daily dose of semaglutide, ranging from 0.05 mg to 0.4 mg."
+          },
+          {
+            "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+            "quote": "Wilding, Rubino, and Wadden conducted their studies over 68 weeks, while O’Neil’s study lasted 52 weeks."
+          }
+        ],
+        "reading": "Its 4 trials are STEP 1 (Wilding), STEP 3 (Wadden), STEP 4 (Rubino) and O'Neil 2018 (Table 1, each row bound to its reference). STEP 1 and STEP 3 are the two we pool. STEP 4 is a randomised withdrawal after run-in on semaglutide, and O'Neil 2018 is a 52-week daily dose-ranging trial (0.05 to 0.4 mg) -- both answer different questions from once-weekly 2.4 mg versus placebo from randomisation, so 4 vs 2 is not 2 trials missing from ours.",
+        "reported_by": "external review of the semaglutide-obesity-weight topic (28 Sep 2026)"
+      },
+      "row_flags": []
     },
     "overlap_relation": {
       "outcome": "Percent change in body weight",
@@ -5148,17 +5242,100 @@
       "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
-        "status": "NOT_ENUMERATED",
-        "note": "the registered comparator's trial set is not enumerated in a typed, located source"
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/semaglutide-obesity-weight/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
+        "endpoint_for_outcome": null,
+        "members": [
+          {
+            "name": "O’Neil 2018",
+            "family": null,
+            "alias_ids": [
+              "30122305"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">O’Neil, 2018</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">113.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">114.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">39.9</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">40.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">48</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">66/102 (65%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">88/136 (65%)</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Rubino 2021",
+            "family": null,
+            "alias_ids": [
+              "33755728"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Rubino, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">96.5</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">95.4</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">34.5</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">34.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">47</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">429/535 (80.2%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">205/268 (76.5%)</td></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "Wadden 2021",
+            "family": "NCT03611582",
+            "alias_ids": [
+              "33625476"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Wadden, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">106.9</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">103.7</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">38.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">37.8</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">315/407 (77.4%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">180/204 (88.2%)</td></tr>",
+            "bound_to": "NCT03611582"
+          },
+          {
+            "name": "Wilding 2021",
+            "family": "NCT03548935",
+            "alias_ids": [
+              "33567185"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": null,
+            "span": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Wilding, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">105.4</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">105.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">37.8</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">38</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">47</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">955/1306 (73.1%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">498/655 (76%)</td></tr>",
+            "bound_to": "NCT03548935"
+          }
+        ],
+        "out_of_scope": []
       },
-      "theirs_k": null,
-      "shared": null,
-      "shared_k": null,
-      "only_ours": null,
-      "only_theirs": null,
-      "relation": "NOT_ENUMERABLE",
-      "label": "not enumerable -- the comparator trial set is not known well enough to compare",
-      "basis": "comparator trial set not enumerated",
+      "theirs_k": 4,
+      "inventory_comparison": {
+        "rows": [
+          {
+            "comparator_trial": "O’Neil 2018",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Rubino 2021",
+            "status": "NOT_IN_OUR_RECORDS",
+            "note": "no held record carries this trial's identity"
+          },
+          {
+            "comparator_trial": "Wadden 2021",
+            "status": "POOLED",
+            "family": "NCT03611582"
+          },
+          {
+            "comparator_trial": "Wilding 2021",
+            "status": "POOLED",
+            "family": "NCT03548935"
+          }
+        ],
+        "counts": {
+          "NOT_IN_OUR_RECORDS": 2,
+          "POOLED": 2
+        },
+        "note": "comparison with our eligible inventory; separate from the pooled-set relation"
+      },
+      "shared": [
+        "NCT03548935",
+        "NCT03611582"
+      ],
+      "shared_k": 2,
+      "only_ours": [],
+      "only_theirs": [
+        "O’Neil 2018",
+        "Rubino 2021"
+      ],
+      "relation": "SUBSET",
+      "label": "subset -- every pooled family is in the comparator set",
+      "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
         "value": 4,
         "source": {
@@ -201015,20 +201192,181 @@
       "held": true,
       "document_ref": "cache/semaglutide-obesity-weight/comparator_fulltext.txt",
       "document_sha256": "f127d447a9c1f090bcbc1707694a8ba05a272e03befed093349ecc813e8482ed",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "O’Neil 2018",
+          "name_in_source": "O’Neil",
+          "span": {
+            "start": 27927,
+            "end": 28424,
+            "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">O’Neil, 2018</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">113.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">114.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">39.9</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">40.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">48</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">66/102 (65%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">88/136 (65%)</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "30122305",
+              "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+              "document_sha256": "c3b858e0106147bb2adf32cbaf0ac28b8af8800e00f8de27fbe95c9e7bfe1cb0",
+              "span": {
+                "start": 80192,
+                "end": 81094,
+                "quote": "<ref id=\"R20\"><label>[20]</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>O’Neil</surname><given-names>PM</given-names></name><name name-style=\"western\"><surname>Birkenfeld</surname><given-names>AL</given-names></name><name name-style=\"western\"><surname>McGowan</surname><given-names>B</given-names></name><etal/></person-group>. <article-title>Efficacy and safety of semaglutide compared with liraglutide and placebo for weight loss in patients with obesity: a randomised, double-blind, placebo and active controlled, dose-ranging, phase 2 trial.</article-title>\n<source>Lancet</source>. <year>2018</year>;<volume>392</volume>:<fpage>637</fpage>–<lpage>49</lpage>.<pub-id pub-id-type=\"pmid\">30122305</pub-id>\n<pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(18)31773-2</pub-id></mixed-citation></ref>"
+              },
+              "author_year_row": {
+                "start": 27927,
+                "end": 28424,
+                "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">O’Neil, 2018</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">113.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">114.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">39.9</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">40.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">48</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">66/102 (65%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">88/136 (65%)</td></tr>"
+              },
+              "bound_by": "table row 'O’Neil, 2018' names the one reference whose first author and year are O'Neil, 2018; it carries PMID 30122305"
+            }
+          ]
+        },
+        {
+          "family_id": "Rubino 2021",
+          "name_in_source": "Rubino",
+          "span": {
+            "start": 28424,
+            "end": 28925,
+            "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Rubino, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">96.5</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">95.4</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">34.5</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">34.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">47</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">429/535 (80.2%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">205/268 (76.5%)</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "33755728",
+              "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+              "document_sha256": "c3b858e0106147bb2adf32cbaf0ac28b8af8800e00f8de27fbe95c9e7bfe1cb0",
+              "span": {
+                "start": 77491,
+                "end": 78433,
+                "quote": "<ref id=\"R17\"><label>[17]</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Rubino</surname><given-names>D</given-names></name><name name-style=\"western\"><surname>Abrahamsson</surname><given-names>N</given-names></name><name name-style=\"western\"><surname>Davies</surname><given-names>M</given-names></name><etal/></person-group>.; <collab>STEP 4 Investigators</collab>. <article-title>Effect of continued weekly subcutaneous semaglutide vs placebo on weight loss maintenance in adults with overweight or obesity: the STEP 4 randomized clinical trial.</article-title>\n<source>JAMA</source>. <year>2021</year>;<volume>325</volume>:<fpage>1414</fpage>–<lpage>25</lpage>.<pub-id pub-id-type=\"pmid\">33755728</pub-id>\n<pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2021.3224</pub-id><pub-id pub-id-type=\"pmcid\">PMC7988425</pub-id></mixed-citation></ref>"
+              },
+              "author_year_row": {
+                "start": 28424,
+                "end": 28925,
+                "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Rubino, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">96.5</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">95.4</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">34.5</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">34.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">47</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">429/535 (80.2%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">205/268 (76.5%)</td></tr>"
+              },
+              "bound_by": "table row 'Rubino, 2021' names the one reference whose first author and year are Rubino, 2021; it carries PMID 33755728"
+            }
+          ]
+        },
+        {
+          "family_id": "Wadden 2021",
+          "name_in_source": "Wadden",
+          "span": {
+            "start": 28925,
+            "end": 29428,
+            "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Wadden, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">106.9</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">103.7</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">38.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">37.8</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">315/407 (77.4%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">180/204 (88.2%)</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "33625476",
+              "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+              "document_sha256": "c3b858e0106147bb2adf32cbaf0ac28b8af8800e00f8de27fbe95c9e7bfe1cb0",
+              "span": {
+                "start": 79233,
+                "end": 80192,
+                "quote": "<ref id=\"R19\"><label>[19]</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Wadden</surname><given-names>TA</given-names></name><name name-style=\"western\"><surname>Bailey</surname><given-names>TS</given-names></name><name name-style=\"western\"><surname>Billings</surname><given-names>LK</given-names></name><etal/></person-group>.; <collab>STEP 3 Investigators</collab>. <article-title>Effect of subcutaneous semaglutide vs placebo as an adjunct to intensive behavioral therapy on body weight in adults with overweight or obesity: the STEP 3 randomized clinical trial.</article-title>\n<source>JAMA</source>. <year>2021</year>;<volume>325</volume>:<fpage>1403</fpage>–<lpage>13</lpage>.<pub-id pub-id-type=\"pmid\">33625476</pub-id>\n<pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1001/jama.2021.1831</pub-id><pub-id pub-id-type=\"pmcid\">PMC7905697</pub-id></mixed-citation></ref>"
+              },
+              "author_year_row": {
+                "start": 28925,
+                "end": 29428,
+                "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Wadden, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">106.9</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">103.7</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">38.1</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">37.8</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">315/407 (77.4%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">180/204 (88.2%)</td></tr>"
+              },
+              "bound_by": "table row 'Wadden, 2021' names the one reference whose first author and year are Wadden, 2021; it carries PMID 33625476"
+            }
+          ]
+        },
+        {
+          "family_id": "Wilding 2021",
+          "name_in_source": "Wilding",
+          "span": {
+            "start": 29428,
+            "end": 29929,
+            "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Wilding, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">105.4</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">105.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">37.8</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">38</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">47</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">955/1306 (73.1%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">498/655 (76%)</td></tr>"
+          },
+          "endpoint": null,
+          "aliases": [
+            {
+              "id": "33567185",
+              "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+              "document_sha256": "c3b858e0106147bb2adf32cbaf0ac28b8af8800e00f8de27fbe95c9e7bfe1cb0",
+              "span": {
+                "start": 78433,
+                "end": 79233,
+                "quote": "<ref id=\"R18\"><label>[18]</label><mixed-citation publication-type=\"journal\"><person-group person-group-type=\"author\"><name name-style=\"western\"><surname>Wilding</surname><given-names>JPH</given-names></name><name name-style=\"western\"><surname>Batterham</surname><given-names>RL</given-names></name><name name-style=\"western\"><surname>Calanna</surname><given-names>S</given-names></name><etal/></person-group>.; <collab>STEP 1 Study Group</collab>. <article-title>Once-weekly semaglutide in adults with overweight or obesity.</article-title>\n<source>N Engl J Med</source>. <year>2021</year>;<volume>384</volume>:<fpage>989</fpage>–<lpage>1002</lpage>.<pub-id pub-id-type=\"pmid\">33567185</pub-id>\n<pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa2032183</pub-id></mixed-citation></ref>"
+              },
+              "author_year_row": {
+                "start": 29428,
+                "end": 29929,
+                "quote": "<tr><td align=\"left\" rowspan=\"1\" colspan=\"1\">Wilding, 2021</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">105.4</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">105.2</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">37.8</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">38</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">46</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">47</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">955/1306 (73.1%)</td><td align=\"center\" rowspan=\"1\" colspan=\"1\">498/655 (76%)</td></tr>"
+              },
+              "bound_by": "table row 'Wilding, 2021' names the one reference whose first author and year are Wilding, 2021; it carries PMID 33567185"
+            }
+          ]
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+        "document_sha256": "c3b858e0106147bb2adf32cbaf0ac28b8af8800e00f8de27fbe95c9e7bfe1cb0",
+        "source": "PMC JATS (efetch db=pmc)",
+        "pmcid": "PMC13433015",
+        "license": "creativecommons.org/licenses/by/4.0",
+        "row_identity": "AUTHOR_YEAR_TO_REFERENCE",
+        "table_caption": "Patient baseline characteristics"
+      },
+      "overlaps": [
+        {
+          "pool": "Percent change in body weight",
+          "shared": [
+            "Wadden 2021",
+            "Wilding 2021"
+          ],
+          "harness_only": [],
+          "comparator_only": [
+            "O’Neil 2018",
+            "Rubino 2021"
+          ],
+          "jaccard": 0.5,
+          "contains_pool": true,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [
+            "Wadden 2021",
+            "Wilding 2021"
+          ],
+          "harness_k": 2,
+          "comparator_k": 4
+        },
+        {
+          "pool": "Gastrointestinal adverse events",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "O’Neil 2018",
+            "Rubino 2021",
+            "Wadden 2021",
+            "Wilding 2021"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 4
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "fe53c76aad18c0fd8369e3c1fe171406c0f85e7f",
-    "review_sha256": "2d2ba3a32accfdcf26dd6cc87a1b4b0affe26cce824a259179d70004d436b9ae",
+    "review_sha256": "ee5c683be224830ce8fbd63ab457d9b6ab3ce09b1c398d473d85bcdfbb5f10a6",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -201040,20 +201378,20 @@
       "slug": "semaglutide-obesity-weight",
       "our_k": 2,
       "comparable_comparator_k": 2,
-      "status": "NOT_ENUMERABLE",
+      "status": "SUBSET",
       "reason": "EXACT same-scope, same-timepoint parity. Our pool = STEP-1 (Wilding) + STEP-3 (Wadden), both once-weekly semaglutide 2.4 mg vs placebo at the pre-registered Week 68 primary; both are in the comparator's (PMID 42536519) pool too. The comparator's other 2 of 4 are out of our pre-registered scope: O'Neil-2018 is a phase-2 DAILY dose-ranging trial with a liraglutide arm, and Rubino/STEP-4 is a weight-loss-MAINTENANCE (randomised-withdrawal) estimand we exclude. We also RETRIEVED two regional 2.4 mg-vs-placebo trials (STEP-12 China, Korean STEP) but DECLARED THEM ABSENT for TIMEPOINT MISMATCH (Week 44 end-of-treatment, not the pre-registered Week 68) — a timepoint-consistency guard refusing to pad k by mixing follow-up durations. Pooled MD -11.84% (-25.13, 1.44), tau2=1.86; the wide CI is the honest k=2 HKSJ interval (t on 1 df), not a lowered bar.",
       "parity_relation": {
-        "relation": "NOT_ENUMERABLE",
-        "label": "not enumerable -- comparator trial list and k are not exposed",
+        "relation": "SUBSET",
+        "label": "subset -- ours is contained in the comparator",
         "inferred": false,
         "our_k": 2,
         "hand_our_k": 2,
         "hand_our_k_stale": false,
-        "their_k": 2,
-        "their_k_source": "comparable_comparator_k",
-        "shared_k": null,
+        "their_k": 4,
+        "their_k_source": "computed overlap relation (enumerated comparator set)",
+        "shared_k": 2,
         "only_ours_n": 0,
-        "only_theirs_n": 0,
+        "only_theirs_n": 2,
         "dominance": null,
         "hand_status": "IDENTICAL_SET",
         "hand_status_normalized": "IDENTICAL_SET",
@@ -201144,7 +201482,7 @@
       "retrieved_corpus_sha256": "195d48c1ef53714b6364cc0af61463adf76f50c12752ce8857886bcd812e3be9",
       "records_file_sha256": "b940d64e3dde87ed94322fb0da23c6aec1e813eed811481c7a668e646e475e4f",
       "retrieval_ledger_sha256": "765c7038f3717d7799b4c860cbcbf55216c3dabefc7ca4bce7e4d8b4b3969bb8",
-      "screening_ledger_sha256": "4b4b899b82025acb6ddd9e58f8236eec7b670f4c8791bd1b3992ad9768edaf0e",
+      "screening_ledger_sha256": "dfd0eeefdc4a5c270dc9b133eb4037764e395755425b002124d251c6a797d485",
       "extraction_objects_sha256": "d709f2ea8fd95784ae57040f2dbb4d8c765ad9e9f22d09818f01db1d9f752ab7",
       "trial_family_map_sha256": "46695924b962f63197d428861fd57a743fe3d0b21d34ff0f7c6bf2b9d9c2cdd1",
       "rob_object_sha256": "f31a9d112c837d12af7bb62cc693cab310f7ab3209ad2640c057dc0d424fbf96",
@@ -201154,12 +201492,20 @@
           "sha256": "c1081da2beeb8e23feebb75eedfe3eab36f010c96b9b62c43376e1cfddca614c"
         },
         {
+          "ref": "cache/semaglutide-obesity-weight/comparator_analysis.json",
+          "sha256": "9d89f647732bab03280894ff477b974bda93695fcaece5da65e0cd74b24dce71"
+        },
+        {
           "ref": "cache/semaglutide-obesity-weight/comparator_fulltext.txt",
           "sha256": "f127d447a9c1f090bcbc1707694a8ba05a272e03befed093349ecc813e8482ed"
         },
         {
           "ref": "cache/semaglutide-obesity-weight/comparator_identity.json",
           "sha256": "d54743bd42eb26e78af2b1393c2b765713a76c3afb01ab3c37fda296d02eef2f"
+        },
+        {
+          "ref": "cache/semaglutide-obesity-weight/comparator_pmc_jats.xml",
+          "sha256": "c3b858e0106147bb2adf32cbaf0ac28b8af8800e00f8de27fbe95c9e7bfe1cb0"
         },
         {
           "ref": "cache/semaglutide-obesity-weight/comparator_question.json",
@@ -201176,10 +201522,14 @@
         {
           "ref": "cache/semaglutide-obesity-weight/pmc_links.json",
           "sha256": "5a92a1a53f1bcd6d996981100e6afce9e280aa81f67601b9474fad75f4c75346"
+        },
+        {
+          "ref": "registry/rule_trace/semaglutide-obesity-weight.json",
+          "sha256": "958b438abe300b22b8cafe571bef4936fe6721960f6f90369f298bb4158e6fea"
         }
       ],
       "config_sha256": "b5de9224a0aaa849b447846546c1bb3a8a3d397ed714dcc7feb2b7c4fabdd905",
-      "analysis_code_sha256": "81e70ec78c6a67586c8dfc116fe0bb755b4c9e72a2004a22c302d63789722b4e",
+      "analysis_code_sha256": "001b5d064ab8ad68fc2cb51a14230db19e2b7107380036a3f38266f8b8e06b58",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -201193,17 +201543,17 @@
         "harness/ascertainment.py": "2d22de0240c8ab07dfbfef84e78bc58041dba1ab",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "e58875abab1a380c92f3c2539706245412d3aa44",
+        "harness/certificate.py": "8447f82da9a56c3c0af13e379a3eb8b4964afa40",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_analysis.py": "9450dc4aeb14a66f1dee10fedf97b89ebf76368a",
+        "harness/comparator_analysis.py": "243c168973df2f467ced3c816254c67ee278765f",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
-        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
+        "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
         "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "49757dc0caf03d92cefd7c7cf88062adee32c6b5",
+        "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -201228,7 +201578,7 @@
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
         "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
-        "harness/gate.py": "e997154ebfeb093e3e54c9bf9ee3264aa5feb77d",
+        "harness/gate.py": "731d5953e9e03ec20a721fe745837880d439d598",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -201250,10 +201600,10 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "2f882ddb91983da62ec64070de92c5245a137a73",
-        "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
+        "harness/overlap_relation.py": "3f8dd0182d40df952e94ad144ca976f5a2d11af0",
+        "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
+        "harness/pipeline.py": "c1fe2579fca91550384cafa090b88ec8bcf01e2f",
         "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -201265,10 +201615,11 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/rule_trace.py": "58694689a6479e9710deab52d4d1335ad0385e59",
         "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "89ea00f42968cd8d8c09ac5ef9dfa1b7fd162678",
+        "harness/screen.py": "2375327b836e1411db6b970d453faf39046bb9b8",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
@@ -201296,7 +201647,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "102 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "103 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -201326,8 +201677,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "685971f2cd3287348a256e3a2523a0414532b41c7cc974523cbb0e8cb7919d3b",
-      "review_sha256": "2d2ba3a32accfdcf26dd6cc87a1b4b0affe26cce824a259179d70004d436b9ae",
+      "manuscript_sha256": "02268d2a7c3cc952b99b4912d9048de4b32da7a8ebfc602b49891e4f2afd9edb",
+      "review_sha256": "ee5c683be224830ce8fbd63ab457d9b6ab3ce09b1c398d473d85bcdfbb5f10a6",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/semaglutide-obesity-weight.md UTF-8 text, universal newlines",
@@ -201347,7 +201698,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "d8789ef32cededce01ca355d82bac91cf74666124481c59f0d9de990f0972666"
+      "release_sha256": "6110ae17ee6f0247e2fc5fdf86efed3d1a154f3b26e6a3e13f2ab5ad9869ea2f"
     }
   }
 }

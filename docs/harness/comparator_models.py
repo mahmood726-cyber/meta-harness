@@ -34,6 +34,9 @@ from pathlib import Path
 from typing import Optional
 
 MISMATCH = "COMPARATOR_INTERNAL_MISMATCH"
+# V1.0.1 (semaglutide-obesity review): the comparator's stated method and its own conclusion disagree (Stefanou 2024 sets
+# Egger p < 0.10, reports p = 0.0795 for MACE, and concludes no asymmetry) -- recorded, neither side imported
+METHOD_INCONSISTENCY = "COMPARATOR_METHOD_INCONSISTENCY"
 _TUPLE = re.compile(r"\bRR:?\s*(\d+\.\d+)\s*[;,]\s*95%\s*CI:?\s*(\d+\.\d+)\s*[–—-]\s*(\d+\.\d+)")
 
 
@@ -194,8 +197,10 @@ def load_reported(root, slug) -> Optional[dict]:
         return None
     doc = json.loads(p.read_text(encoding="utf-8"))
     for m in doc.get("mismatches") or []:
-        if m.get("code") != MISMATCH:
+        if m.get("code") not in (MISMATCH, METHOD_INCONSISTENCY):
             raise FigureRefused("REPORTED: unknown code")
+        if m.get("code") == METHOD_INCONSISTENCY and not m.get("reading"):
+            raise FigureRefused("REPORTED: a method inconsistency needs a reading of what is (and is not) concluded")
         for side in m.get("sides") or []:
             if side.get("state") == "HELD":
                 raw = (Path(root) / side["document_ref"]).read_text(encoding="utf-8")
@@ -207,7 +212,9 @@ def load_reported(root, slug) -> Optional[dict]:
                                  if isinstance(r, dict) and str(r.get("id")) == str(side["record_id"])), "")
                 else:   # V1.0.1 (DPP-4 review): a held document other than a record abstract, e.g. the comparator JATS
                     text = raw
-                _n = lambda s: re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s)).strip()  # noqa: E731
+                # REV-R2 class (semaglutide-obesity review): '<[^>]+>' deleted text between '<' and '>' ('p < 0.10 ...'),
+                # so a true quote containing '<' could never be located; strip only markup and unescape entities
+                _n = lambda s: re.sub(r"\s+", " ", _h.unescape(re.sub(r"</?[A-Za-z!?][^<>]*>", " ", s))).strip()  # noqa: E731
                 if side["quote"] not in text and _n(side["quote"]) not in _n(text):   # tags/whitespace on BOTH sides
                     raise FigureRefused(f"REPORTED: HELD side quote not located in {side['document_ref']}")
             elif side.get("state") != "REPORTED_NOT_HELD" or not side.get("reported_by"):
@@ -254,7 +261,8 @@ def render_reported(comp: dict) -> str:
         f"<li><code>{e(m['code'])}</code> {e(m['kind'])} ({e(m['evidence_state'])}): " + "; ".join(
             f"{e(sd['where'])} says {e(sd.get('as_reported') or sd['value'])} [{e(sd['state'])}"
             + (f": &ldquo;{e(sd['quote'])}&rdquo;" if sd.get("quote") else f", reported by {e(sd['reported_by'])}; "
-               f"{e(sd['why_not_held'])}") + "]" for sd in m["sides"]) + ". Neither number is used as truth.</li>"
+               f"{e(sd['why_not_held'])}") + "]" for sd in m["sides"])
+        + (f". {e(m['reading'])}</li>" if m.get("reading") else ". Neither number is used as truth.</li>")
         for m in rep_)
     tmh = (f"<p class='small'>Trial membership reported but not held ({e(tm['state'])}): {e(tm['claim'])}. Not used for "
            f"the computed overlap: {e(tm['why'])}.</p>" if tm else "")

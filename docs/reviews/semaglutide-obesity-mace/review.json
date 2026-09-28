@@ -14,6 +14,68 @@
       "results_known_at_rule_time": true
     }
   },
+  "rule_trace": {
+    "enforced": false,
+    "rows": [
+      {
+        "key": "population_none",
+        "term": "type 2 diabetes",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "type 2 diabetic",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "diabetes mellitus",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "t2d",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "t2dm",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "type 1 diabetes",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "gestational diabetes",
+        "state": "UNTRACED"
+      },
+      {
+        "key": "population_none",
+        "term": "heart failure",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "chronic kidney disease",
+        "state": "TRACED_LITERAL"
+      },
+      {
+        "key": "population_none",
+        "term": "sleep apnea",
+        "state": "TRACED_LITERAL"
+      }
+    ],
+    "untraced": [
+      "type 2 diabetic",
+      "diabetes mellitus",
+      "t2d",
+      "t2dm",
+      "gestational diabetes"
+    ]
+  },
   "search": {
     "n_records": 82,
     "cache_ref": "cache/semaglutide-obesity-mace/records.json",
@@ -2692,8 +2754,8 @@
     },
     "overlap": {
       "ours_k": 1,
-      "theirs_k": 16,
-      "theirs_k_source": "comparator panel trial_set (cache/semaglutide-obesity-mace/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table)): 16 comparator trial(s) for this outcome",
+      "theirs_k": 7,
+      "theirs_k_source": "comparator panel trial_set (cache/semaglutide-obesity-mace/comparator_pmc_jats.xml, located spans; per-outcome membership bound (Figure 2 (MACE))): 7 comparator trial(s) for this outcome; 9 with another endpoint excluded",
       "shared_k": 1,
       "only_ours": [],
       "only_theirs": [
@@ -2701,21 +2763,159 @@
         "SCALE 2015 [bibr26-17562864241281903]",
         "SCALE 2016 [bibr27-17562864241281903]",
         "O‘Neil et al 2018 [bibr28-17562864241281903]",
-        "STEP 1 2021 [bibr29-17562864241281903]",
-        "STEP 3 2021 [bibr30-17562864241281903]",
-        "STEP 4 2021 [bibr35-17562864241281903]",
-        "STEP 5 2022 [bibr34-17562864241281903]",
-        "STEP 6 2022 [bibr32-17562864241281903]",
-        "STEP 8 2022 [bibr31-17562864241281903]",
-        "OASIS 1 2023 [bibr36-17562864241281903]",
-        "STEP 7 2024 [bibr33-17562864241281903]",
         "SURMOUNT-1 2022 [bibr39-17562864241281903]",
-        "SURMOUNT-3 2023 [bibr17-17562864241281903]",
-        "SURMOUNT-4 2024 [bibr16-17562864241281903]"
+        "SURMOUNT-3 2023 [bibr17-17562864241281903]"
       ],
       "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
-      "note": "Computed overlap relation with the published comparator: SUBSET (subset -- every pooled family is in the comparator set); our pooled trial families 1, comparator trials 16, shared 1; basis: set operation on the enumerated comparator trial set.",
+      "note": "Computed overlap relation with the published comparator: SUBSET (subset -- every pooled family is in the comparator set); our pooled trial families 1, comparator trials 7, shared 1; basis: set operation on the enumerated comparator trial set.",
       "relation": "SUBSET"
+    },
+    "analysis": {
+      "outcome": "3-point major adverse cardiovascular events",
+      "governing": {
+        "analysis": "Figure 2 (MACE)",
+        "label": "GLP-1 RA or GIP/GLP-1 RA vs placebo, MACE, Mantel-Haenszel random effects",
+        "scale": "OR",
+        "estimate": 0.79,
+        "ci_low": 0.71,
+        "ci_high": 0.89,
+        "k": 7,
+        "n": 24704,
+        "document_ref": "cache/semaglutide-obesity-mace/comparator_pmc_jats.xml",
+        "quote": "(7 RCTs; OR: 0.79; 95% CI: 0.71–0.89; p < 0.01; I 2 = 0%; Figure 2 )"
+      },
+      "protocol_benchmark": null,
+      "method_difference": {
+        "heading": "One trial, a different representation",
+        "quotes": [
+          {
+            "document_ref": "cache/semaglutide-obesity-mace/comparator_pmc_jats.xml",
+            "quote": "(7 RCTs; OR: 0.79; 95% CI: 0.71–0.89; p < 0.01; I 2 = 0%; Figure 2 )"
+          }
+        ],
+        "reading": "Its 0.79 is a Mantel-Haenszel random-effects odds ratio of event proportions; we pool SELECT's time-to-event hazard ratio. Because SELECT carries almost all of its weight (below), the two agree because they are largely the same trial, not an independent result.",
+        "reported_by": "external review of the semaglutide-obesity-mace topic (28 Sep 2026)"
+      },
+      "scope": {
+        "quotes": [
+          {
+            "document_ref": "cache/semaglutide-obesity-mace/comparator_pmc_jats.xml",
+            "quote": "we identified 18 eligible studies for inclusion reporting on 16 RCTs"
+          },
+          {
+            "document_ref": "cache/semaglutide-obesity-mace/comparator_pmc_jats.xml",
+            "quote": "(7 RCTs; OR: 0.79; 95% CI: 0.71–0.89; p < 0.01; I 2 = 0%; Figure 2 )"
+          }
+        ],
+        "reading": "Stefanou 2024 includes 16 RCTs of GLP-1 and GIP/GLP-1 receptor agonists, but its MACE plot has 7 of them; the other 9 do not enter its MACE analysis, so its 16 are not trials missing from our MACE pool. Of the 7, SELECT is the one we pool (shared 1, ours-only 0); the other six are weight-management trials with a handful of MACE events each.",
+        "reported_by": "external review of the semaglutide-obesity-mace topic (28 Sep 2026)"
+      },
+      "membership": {
+        "figure": {
+          "caption": {
+            "document_ref": "cache/semaglutide-obesity-mace/comparator_pmc_jats.xml",
+            "quote": "Forest plot comparing the risk of MACE in overweight or obese adults without diabetes treated with GLP-1 or GIP/GLP-1 RAs versus placebo."
+          },
+          "url": "https://cdn.ncbi.nlm.nih.gov/pmc/blobs/30df/11437580/ed325c8ae50e/10.1177_17562864241281903-fig2.jpg",
+          "document_ref": "cache/semaglutide-obesity-mace/comparator_figure_fig2.jpg",
+          "sha256": "b524cd3a23e3abfb6e4834e4b083555aa668de8d73e2de5ee75c7b5c6461295f",
+          "licence": "CC BY-NC 4.0 (PMC11437580)",
+          "read_by": "Claude Opus 5.5 (lane evid2), from the held image, 28 Sep 2026; column totals 13,696 and 11,008 match the plot's Total row"
+        },
+        "members": [
+          {
+            "label": "SCALE Maintenance, 2013",
+            "counts": [
+              0,
+              212,
+              1,
+              210
+            ],
+            "panel_row": "SCALE 2013 [bibr25-17562864241281903]"
+          },
+          {
+            "label": "SCALE Sleep Apnea, 2016",
+            "counts": [
+              0,
+              176,
+              2,
+              179
+            ],
+            "panel_row": "SCALE 2016 [bibr27-17562864241281903]"
+          },
+          {
+            "label": "SCALE Obesity and Prediabetes, 2017",
+            "counts": [
+              6,
+              1501,
+              4,
+              747
+            ],
+            "panel_row": "SCALE 2015 [bibr26-17562864241281903]"
+          },
+          {
+            "label": "O'Neil et al, 2018",
+            "counts": [
+              4,
+              821,
+              1,
+              136
+            ],
+            "panel_row": "O‘Neil et al 2018 [bibr28-17562864241281903]"
+          },
+          {
+            "label": "SELECT, 2023",
+            "counts": [
+              569,
+              8803,
+              701,
+              8801
+            ],
+            "panel_row": "SELECT 2023 [bibr18-17562864241281903]"
+          },
+          {
+            "label": "SURMOUNT-1, 2022",
+            "counts": [
+              9,
+              1896,
+              5,
+              643
+            ],
+            "panel_row": "SURMOUNT-1 2022 [bibr39-17562864241281903]"
+          },
+          {
+            "label": "SURMOUNT-3, 2023",
+            "counts": [
+              1,
+              287,
+              1,
+              292
+            ],
+            "panel_row": "SURMOUNT-3 2023 [bibr17-17562864241281903]"
+          }
+        ],
+        "endpoint": "3-point major adverse cardiovascular events",
+        "endpoint_label": "Figure 2 (MACE)",
+        "shared_same_counts": [],
+        "weight_concentration": {
+          "scale": "OR",
+          "top": "SELECT, 2023",
+          "top_share": 97.44,
+          "top_crude": 0.7985,
+          "shares": {
+            "SCALE Maintenance, 2013": 0.12,
+            "SCALE Sleep Apnea, 2016": 0.14,
+            "SCALE Obesity and Prediabetes, 2017": 0.8,
+            "O'Neil et al, 2018": 0.27,
+            "SELECT, 2023": 97.44,
+            "SURMOUNT-1, 2022": 1.07,
+            "SURMOUNT-3, 2023": 0.17
+          },
+          "no_events_left_out": [],
+          "k": 7
+        }
+      },
+      "row_flags": []
     },
     "overlap_relation": {
       "outcome": "3-point major adverse cardiovascular events",
@@ -2737,8 +2937,8 @@
       "constraints": [],
       "theirs": {
         "status": "ENUMERATED",
-        "source": "comparator panel trial_set (cache/semaglutide-obesity-mace/comparator_pmc_jats.xml, located spans; the comparator's included-trial table (all outcomes; per-outcome pool membership is not in the table))",
-        "endpoint_for_outcome": null,
+        "source": "comparator panel trial_set (cache/semaglutide-obesity-mace/comparator_pmc_jats.xml, located spans; per-outcome membership bound (Figure 2 (MACE)))",
+        "endpoint_for_outcome": "Figure 2 (MACE)",
         "members": [
           {
             "name": "SCALE 2013 [bibr25-17562864241281903]",
@@ -2748,7 +2948,7 @@
               "28950422"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SCALE<break/>Maintenance<sup><xref rid=\"bibr25-17562864241281903\" ref-type=\"bibr\">25</xref>,<xref rid=\"bibr38-17562864241281903\" ref-type=\"bibr\">38</xref></sup></td><td rowspan=\"1\" colspan=\"1\">2013</td><td rowspan=\"1\" colspan=\"1\">Liraglutide 3.0 mg per day or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">56 weeks; plus 12-week follow-up</td><td rowspan=\"1\" colspan=\"1\">422</td><td rowspan=\"1\" colspan=\"1\">212</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td></tr>",
             "bound_to": null
           },
@@ -2760,7 +2960,7 @@
               "28237263"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SCALE<break/>Obesity and Prediabetes<sup><xref rid=\"bibr26-17562864241281903\" ref-type=\"bibr\">26</xref>,<xref rid=\"bibr37-17562864241281903\" ref-type=\"bibr\">37</xref></sup></td><td rowspan=\"1\" colspan=\"1\">2015</td><td rowspan=\"1\" colspan=\"1\">Liraglutide 3.0 mg per day or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">56 weeks; plus 12-week follow-up</td><td rowspan=\"1\" colspan=\"1\">3731</td><td rowspan=\"1\" colspan=\"1\">2487</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td></tr>",
             "bound_to": null
           },
@@ -2771,7 +2971,7 @@
               "27005405"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SCALE<break/>Sleep Apnea<sup>\n<xref rid=\"bibr27-17562864241281903\" ref-type=\"bibr\">27</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2016</td><td rowspan=\"1\" colspan=\"1\">Liraglutide 3.0 mg per day or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese participants (⩾18 years, BMI ⩾30 kg/m<sup>2</sup>) with moderate or severe obstructive sleep apnea without diabetes</td><td rowspan=\"1\" colspan=\"1\">32 weeks; plus<break/>12-week follow-up</td><td rowspan=\"1\" colspan=\"1\">359</td><td rowspan=\"1\" colspan=\"1\">180</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+++</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td></tr>",
             "bound_to": null
           },
@@ -2782,85 +2982,8 @@
               "30122305"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">O‘Neil et al.<sup>\n<xref rid=\"bibr28-17562864241281903\" ref-type=\"bibr\">28</xref>\n</sup>\n<break/><ext-link xmlns:xlink=\"http://www.w3.org/1999/xlink\" ext-link-type=\"pmc:clinical-trial\" xlink:href=\"NCT02453711\">NCT02453711</ext-link></td><td rowspan=\"1\" colspan=\"1\">2018</td><td rowspan=\"1\" colspan=\"1\">Semaglutide (0.05, 0.1, 0.2, 0.3, or 0.4 mg) or liraglutide (3.0 mg) per day or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo, and active controlled</td><td rowspan=\"1\" colspan=\"1\">Obese participants (⩾18 years, BMI ⩾30 kg/m<sup>2</sup>) without diabetes</td><td rowspan=\"1\" colspan=\"1\">52 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">957</td><td rowspan=\"1\" colspan=\"1\">821</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "STEP 1 2021 [bibr29-17562864241281903]",
-            "family": "NCT03548935",
-            "alias_ids": [
-              "33567185"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 1<sup>\n<xref rid=\"bibr29-17562864241281903\" ref-type=\"bibr\">29</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2021</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">1961</td><td rowspan=\"1\" colspan=\"1\">1306</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "STEP 3 2021 [bibr30-17562864241281903]",
-            "family": "NCT03611582",
-            "alias_ids": [
-              "33625476"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 3<sup>\n<xref rid=\"bibr30-17562864241281903\" ref-type=\"bibr\">30</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2021</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">611</td><td rowspan=\"1\" colspan=\"1\">407</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "STEP 4 2021 [bibr35-17562864241281903]",
-            "family": "NCT03548987",
-            "alias_ids": [
-              "33755728"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 4<sup>\n<xref rid=\"bibr35-17562864241281903\" ref-type=\"bibr\">35</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2021</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled withdrawal trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">48 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">803</td><td rowspan=\"1\" colspan=\"1\">535</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "STEP 5 2022 [bibr34-17562864241281903]",
-            "family": "NCT03693430",
-            "alias_ids": [
-              "36216945"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 5<sup>\n<xref rid=\"bibr34-17562864241281903\" ref-type=\"bibr\">34</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or<break/>placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">104 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">304</td><td rowspan=\"1\" colspan=\"1\">152</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "STEP 6 2022 [bibr32-17562864241281903]",
-            "family": "NCT03811574",
-            "alias_ids": [
-              "35131037"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 6<sup>\n<xref rid=\"bibr32-17562864241281903\" ref-type=\"bibr\">32</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 1.7 or 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, double-dummy, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾35 kg/m<sup>2</sup> with ⩾1 comorbidity or BMI ⩾27 kg/m<sup>2</sup> with ⩾1 comorbidities); only subgroup without diabetes included in the current meta-analysis</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">401</td><td rowspan=\"1\" colspan=\"1\">300</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "STEP 8 2022 [bibr31-17562864241281903]",
-            "family": "NCT04074161",
-            "alias_ids": [
-              "35015037"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 8<sup>\n<xref rid=\"bibr31-17562864241281903\" ref-type=\"bibr\">31</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or liraglutide (3.0 mg) per day or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, open-label, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">338</td><td rowspan=\"1\" colspan=\"1\">253</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
-          },
-          {
-            "name": "OASIS 1 2023 [bibr36-17562864241281903]",
-            "family": "NCT05035095",
-            "alias_ids": [
-              "37385278"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">OASIS 1<sup>\n<xref rid=\"bibr36-17562864241281903\" ref-type=\"bibr\">36</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2023</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 50 mg once per day orally/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">667</td><td rowspan=\"1\" colspan=\"1\">334</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
             "bound_to": null
           },
           {
@@ -2870,20 +2993,9 @@
               "37952131"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SELECT<sup>\n<xref rid=\"bibr18-17562864241281903\" ref-type=\"bibr\">18</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2023</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, double-blind, randomized, placebo-controlled, event-driven superiority trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾45 years, BMI ⩾27 kg/m<sup>2</sup> with established cardiovascular disease: previous myocardial infarction, previous stroke, or symptomatic peripheral arterial disease) without diabetes</td><td rowspan=\"1\" colspan=\"1\">Mean (±SD) 34.2 ± 13.7 months</td><td rowspan=\"1\" colspan=\"1\">17,604</td><td rowspan=\"1\" colspan=\"1\">8803</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td></tr>",
             "bound_to": "NCT03574597"
-          },
-          {
-            "name": "STEP 7 2024 [bibr33-17562864241281903]",
-            "family": "NCT04251156",
-            "alias_ids": [
-              "38330988"
-            ],
-            "identity": "bound by panel alias",
-            "endpoint": null,
-            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 7<sup>\n<xref rid=\"bibr33-17562864241281903\" ref-type=\"bibr\">33</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2024</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾35 kg/m<sup>2</sup> with ⩾1 comorbidity or BMI ⩾27 kg/m<sup>2</sup> with ⩾1 comorbidities); only subgroup without diabetes included in the current meta-analysis</td><td rowspan=\"1\" colspan=\"1\">44 weeks</td><td rowspan=\"1\" colspan=\"1\">375</td><td rowspan=\"1\" colspan=\"1\">249</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
-            "bound_to": null
           },
           {
             "name": "SURMOUNT-1 2022 [bibr39-17562864241281903]",
@@ -2892,7 +3004,7 @@
               "35658024"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SURMOUNT-1<sup>\n<xref rid=\"bibr39-17562864241281903\" ref-type=\"bibr\">39</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Tirzepatide (5, 10, or 15 mg) once a week or placebo SC/GIP/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">72 weeks; plus 4-week follow-up</td><td rowspan=\"1\" colspan=\"1\">2539</td><td rowspan=\"1\" colspan=\"1\">1896</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
             "bound_to": null
           },
@@ -2903,8 +3015,98 @@
               "37840095"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SURMOUNT-3<sup>\n<xref rid=\"bibr17-17562864241281903\" ref-type=\"bibr\">17</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2023</td><td rowspan=\"1\" colspan=\"1\">Tirzepatide (10 or 15 mg) once a week or placebo SC/GIP/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">72 weeks; plus 4-week follow-up</td><td rowspan=\"1\" colspan=\"1\">579</td><td rowspan=\"1\" colspan=\"1\">287</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td></tr>",
+            "bound_to": null
+          }
+        ],
+        "out_of_scope": [
+          {
+            "name": "STEP 1 2021 [bibr29-17562864241281903]",
+            "family": "NCT03548935",
+            "alias_ids": [
+              "33567185"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 1<sup>\n<xref rid=\"bibr29-17562864241281903\" ref-type=\"bibr\">29</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2021</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">1961</td><td rowspan=\"1\" colspan=\"1\">1306</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "STEP 3 2021 [bibr30-17562864241281903]",
+            "family": "NCT03611582",
+            "alias_ids": [
+              "33625476"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 3<sup>\n<xref rid=\"bibr30-17562864241281903\" ref-type=\"bibr\">30</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2021</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">611</td><td rowspan=\"1\" colspan=\"1\">407</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "STEP 4 2021 [bibr35-17562864241281903]",
+            "family": "NCT03548987",
+            "alias_ids": [
+              "33755728"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 4<sup>\n<xref rid=\"bibr35-17562864241281903\" ref-type=\"bibr\">35</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2021</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled withdrawal trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">48 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">803</td><td rowspan=\"1\" colspan=\"1\">535</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "STEP 5 2022 [bibr34-17562864241281903]",
+            "family": "NCT03693430",
+            "alias_ids": [
+              "36216945"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 5<sup>\n<xref rid=\"bibr34-17562864241281903\" ref-type=\"bibr\">34</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or<break/>placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">104 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">304</td><td rowspan=\"1\" colspan=\"1\">152</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "STEP 6 2022 [bibr32-17562864241281903]",
+            "family": "NCT03811574",
+            "alias_ids": [
+              "35131037"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 6<sup>\n<xref rid=\"bibr32-17562864241281903\" ref-type=\"bibr\">32</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 1.7 or 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, double-dummy, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾35 kg/m<sup>2</sup> with ⩾1 comorbidity or BMI ⩾27 kg/m<sup>2</sup> with ⩾1 comorbidities); only subgroup without diabetes included in the current meta-analysis</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">401</td><td rowspan=\"1\" colspan=\"1\">300</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "STEP 8 2022 [bibr31-17562864241281903]",
+            "family": "NCT04074161",
+            "alias_ids": [
+              "35015037"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 8<sup>\n<xref rid=\"bibr31-17562864241281903\" ref-type=\"bibr\">31</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2022</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or liraglutide (3.0 mg) per day or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, open-label, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">338</td><td rowspan=\"1\" colspan=\"1\">253</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "OASIS 1 2023 [bibr36-17562864241281903]",
+            "family": "NCT05035095",
+            "alias_ids": [
+              "37385278"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">OASIS 1<sup>\n<xref rid=\"bibr36-17562864241281903\" ref-type=\"bibr\">36</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2023</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 50 mg once per day orally/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">68 weeks; plus 7-week follow-up</td><td rowspan=\"1\" colspan=\"1\">667</td><td rowspan=\"1\" colspan=\"1\">334</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
+            "bound_to": null
+          },
+          {
+            "name": "STEP 7 2024 [bibr33-17562864241281903]",
+            "family": "NCT04251156",
+            "alias_ids": [
+              "38330988"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "not in Figure 2 (MACE)",
+            "span": "<tr><td rowspan=\"1\" colspan=\"1\">STEP 7<sup>\n<xref rid=\"bibr33-17562864241281903\" ref-type=\"bibr\">33</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2024</td><td rowspan=\"1\" colspan=\"1\">Semaglutide 2.4 mg once a week or placebo SC/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾35 kg/m<sup>2</sup> with ⩾1 comorbidity or BMI ⩾27 kg/m<sup>2</sup> with ⩾1 comorbidities); only subgroup without diabetes included in the current meta-analysis</td><td rowspan=\"1\" colspan=\"1\">44 weeks</td><td rowspan=\"1\" colspan=\"1\">375</td><td rowspan=\"1\" colspan=\"1\">249</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
             "bound_to": null
           },
           {
@@ -2914,14 +3116,13 @@
               "38078870"
             ],
             "identity": "bound by panel alias",
-            "endpoint": null,
+            "endpoint": "not in Figure 2 (MACE)",
             "span": "<tr><td rowspan=\"1\" colspan=\"1\">SURMOUNT-4<sup>\n<xref rid=\"bibr16-17562864241281903\" ref-type=\"bibr\">16</xref>\n</sup></td><td rowspan=\"1\" colspan=\"1\">2024</td><td rowspan=\"1\" colspan=\"1\">Tirzepatide (10 or 15 mg) once a week or placebo SC/GIP/GLP-1 RA</td><td rowspan=\"1\" colspan=\"1\">Multicenter, randomized, parallel-arm, double-blind, placebo-controlled withdrawal trial</td><td rowspan=\"1\" colspan=\"1\">Obese/overweight participants (⩾18 years, BMI ⩾30 or ⩾27 kg/m<sup>2</sup> with comorbidities) without diabetes</td><td rowspan=\"1\" colspan=\"1\">72 weeks; preceded by 36-week, open-label tirzepatide lead-in period</td><td rowspan=\"1\" colspan=\"1\">670</td><td rowspan=\"1\" colspan=\"1\">335</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\">+</td><td rowspan=\"1\" colspan=\"1\"/></tr>",
             "bound_to": null
           }
-        ],
-        "out_of_scope": []
+        ]
       },
-      "theirs_k": 16,
+      "theirs_k": 7,
       "inventory_comparison": {
         "rows": [
           {
@@ -2957,74 +3158,10 @@
             "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
           },
           {
-            "comparator_trial": "STEP 1 2021 [bibr29-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT03548935",
-            "record": "33567185",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "STEP 3 2021 [bibr30-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT03611582",
-            "record": "33625476",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "STEP 4 2021 [bibr35-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT03548987",
-            "record": "33755728",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "STEP 5 2022 [bibr34-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT03693430",
-            "record": "36216945",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "STEP 6 2022 [bibr32-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT03811574",
-            "record": "35131037",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "STEP 8 2022 [bibr31-17562864241281903]",
-            "status": "ELIGIBLE_NOT_POOLED",
-            "family": "NCT04074161",
-            "record": "35015037",
-            "state": "OUTCOME_NOT_IN_SOURCE",
-            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-          },
-          {
-            "comparator_trial": "OASIS 1 2023 [bibr36-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT05035095",
-            "record": "37385278",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
             "comparator_trial": "SELECT 2023 [bibr18-17562864241281903]",
             "status": "POOLED",
             "family": "NCT03574597",
             "row_design_as_printed": "double-blind, randomized"
-          },
-          {
-            "comparator_trial": "STEP 7 2024 [bibr33-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT04251156",
-            "record": "38330988",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
           },
           {
             "comparator_trial": "SURMOUNT-1 2022 [bibr39-17562864241281903]",
@@ -3041,19 +3178,10 @@
             "record": "37840095",
             "rule": "X2",
             "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
-          },
-          {
-            "comparator_trial": "SURMOUNT-4 2024 [bibr16-17562864241281903]",
-            "status": "SCREENED_OUT",
-            "family": "NCT04660643",
-            "record": "38078870",
-            "rule": "X2",
-            "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
           }
         ],
         "counts": {
-          "SCREENED_OUT": 14,
-          "ELIGIBLE_NOT_POOLED": 1,
+          "SCREENED_OUT": 6,
           "POOLED": 1
         },
         "note": "comparison with our eligible inventory; separate from the pooled-set relation"
@@ -3068,17 +3196,8 @@
         "SCALE 2015 [bibr26-17562864241281903]",
         "SCALE 2016 [bibr27-17562864241281903]",
         "O‘Neil et al 2018 [bibr28-17562864241281903]",
-        "STEP 1 2021 [bibr29-17562864241281903]",
-        "STEP 3 2021 [bibr30-17562864241281903]",
-        "STEP 4 2021 [bibr35-17562864241281903]",
-        "STEP 5 2022 [bibr34-17562864241281903]",
-        "STEP 6 2022 [bibr32-17562864241281903]",
-        "STEP 8 2022 [bibr31-17562864241281903]",
-        "OASIS 1 2023 [bibr36-17562864241281903]",
-        "STEP 7 2024 [bibr33-17562864241281903]",
         "SURMOUNT-1 2022 [bibr39-17562864241281903]",
-        "SURMOUNT-3 2023 [bibr17-17562864241281903]",
-        "SURMOUNT-4 2024 [bibr16-17562864241281903]"
+        "SURMOUNT-3 2023 [bibr17-17562864241281903]"
       ],
       "relation": "SUBSET",
       "label": "subset -- every pooled family is in the comparator set",
@@ -3088,7 +3207,31 @@
         "source": "Comparator (Stefanou 2024, PMID 39345822), verbatim: \"we identified 18 eligible studies for inclusion reporting on 16 RCTs (13 RCTs on GLP-1 RAs)\". SCOPE: this comparator pools ALL GLP-1 RAs / tirzepatide for MACE, broader than our semaglutide-only pool (SELECT, k=1) — the k values are not scope-matched."
       }
     },
-    "internal_mismatches": [],
+    "internal_mismatches": [
+      {
+        "code": "COMPARATOR_METHOD_INCONSISTENCY",
+        "kind": "STATED_THRESHOLD_VS_CONCLUSION",
+        "sides": [
+          {
+            "where": "methods (stated Egger threshold)",
+            "value": "Egger's test significant at p < 0.10",
+            "quote": "Egger’s linear regression test was used for funnel plot asymmetry assessment, 23 and the threshold of the statistical significance was set at p < 0.10.",
+            "state": "HELD",
+            "document_ref": "cache/semaglutide-obesity-mace/comparator_fulltext.txt"
+          },
+          {
+            "where": "results (MACE)",
+            "value": "Egger p = 0.0795, reported as no asymmetry",
+            "quote": "no asymmetry was revealed for assessment of publication bias among trials reporting MACE ( p = 0.0795;",
+            "state": "HELD",
+            "document_ref": "cache/semaglutide-obesity-mace/comparator_fulltext.txt"
+          }
+        ],
+        "reading": "By the comparator's own stated threshold, p = 0.0795 for MACE is below 0.10, yet it concludes that no asymmetry was revealed. The conflict is recorded as it stands: this page does not repeat the reassuring wording, and it does not claim small-study bias either (an Egger test over 7 trials, one of which carries 97.44% of the inverse-variance weight, has very little power in either direction).",
+        "found_by": "external review of the semaglutide-obesity-mace topic (28 Sep 2026); both sides located by Claude Opus 5.5 (lane evid2)",
+        "evidence_state": "BOTH_SIDES_HELD"
+      }
+    ],
     "identity": {
       "state": "MATCH",
       "checks": {
@@ -42374,7 +42517,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "ea52931473388728da75215ad7665f8688c680166a6fbef426a6d823dae72431",
+    "review_sha256": "eedfb677c5dd6c3fc388210cda969b7523edba3185236432fb0e104fd18b4a16",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -42474,6 +42617,14 @@
           "sha256": "8969247e5bfdf52fc512309ad3cc971e7cc0afdca2374255c741f3b248324089"
         },
         {
+          "ref": "cache/semaglutide-obesity-mace/comparator_analysis.json",
+          "sha256": "417e16c2eb3147e55d9e7415539ea28ef1750f98189f745f82bd892cda2deb2e"
+        },
+        {
+          "ref": "cache/semaglutide-obesity-mace/comparator_figure_fig2.jpg",
+          "sha256": "b524cd3a23e3abfb6e4834e4b083555aa668de8d73e2de5ee75c7b5c6461295f"
+        },
+        {
           "ref": "cache/semaglutide-obesity-mace/comparator_fulltext.txt",
           "sha256": "33ad3c32755c332c23c97a92d380267890721090696a185ece08c01ebfed17ba"
         },
@@ -42494,6 +42645,10 @@
           "sha256": "b9e7135f80254591aee140042322fe43a9a07f8c2c61de8c2fa87a10218949b6"
         },
         {
+          "ref": "cache/semaglutide-obesity-mace/comparator_reported_mismatches.json",
+          "sha256": "6738735b59fae0bf24ab012853fb325b46d48763de125b0aac89655e69cd6f2f"
+        },
+        {
           "ref": "cache/semaglutide-obesity-mace/ghost_pub_links.json",
           "sha256": "8d07ccf535aab9cf1c348b508c54283474a894aea5e437b709218d5b5eee6c2e"
         },
@@ -42503,7 +42658,7 @@
         }
       ],
       "config_sha256": "0655eddf09e444cb5c209e1785f280eb0d35076dbe4d2f68c590b67cd1b3a8fd",
-      "analysis_code_sha256": "81e70ec78c6a67586c8dfc116fe0bb755b4c9e72a2004a22c302d63789722b4e",
+      "analysis_code_sha256": "001b5d064ab8ad68fc2cb51a14230db19e2b7107380036a3f38266f8b8e06b58",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -42517,17 +42672,17 @@
         "harness/ascertainment.py": "2d22de0240c8ab07dfbfef84e78bc58041dba1ab",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
         "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
-        "harness/certificate.py": "e58875abab1a380c92f3c2539706245412d3aa44",
+        "harness/certificate.py": "8447f82da9a56c3c0af13e379a3eb8b4964afa40",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
         "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-        "harness/comparator_analysis.py": "9450dc4aeb14a66f1dee10fedf97b89ebf76368a",
+        "harness/comparator_analysis.py": "243c168973df2f467ced3c816254c67ee278765f",
         "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
         "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
-        "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
+        "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
         "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "49757dc0caf03d92cefd7c7cf88062adee32c6b5",
+        "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -42552,7 +42707,7 @@
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
         "harness/funding_typed.py": "798de499d03b74d426350d14e216c1ffce8214dc",
-        "harness/gate.py": "e997154ebfeb093e3e54c9bf9ee3264aa5feb77d",
+        "harness/gate.py": "731d5953e9e03ec20a721fe745837880d439d598",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
@@ -42574,10 +42729,10 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "2f882ddb91983da62ec64070de92c5245a137a73",
-        "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
+        "harness/overlap_relation.py": "3f8dd0182d40df952e94ad144ca976f5a2d11af0",
+        "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-        "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
+        "harness/pipeline.py": "c1fe2579fca91550384cafa090b88ec8bcf01e2f",
         "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -42589,10 +42744,11 @@
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
+        "harness/rule_trace.py": "58694689a6479e9710deab52d4d1335ad0385e59",
         "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-        "harness/screen.py": "89ea00f42968cd8d8c09ac5ef9dfa1b7fd162678",
+        "harness/screen.py": "2375327b836e1411db6b970d453faf39046bb9b8",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
@@ -42620,7 +42776,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "102 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "103 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -42650,8 +42806,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "0039bc66ab0eab96ab6b386d0f1b04e4dfe41cc03361d114e73a0b12adfa3359",
-      "review_sha256": "ea52931473388728da75215ad7665f8688c680166a6fbef426a6d823dae72431",
+      "manuscript_sha256": "3da59834c6f70e181250bcb38e1684deb4b893ae84fbc66e1faf4f57c61df900",
+      "review_sha256": "eedfb677c5dd6c3fc388210cda969b7523edba3185236432fb0e104fd18b4a16",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/semaglutide-obesity-mace.md UTF-8 text, universal newlines",
@@ -42671,7 +42827,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "5b9d398cbe410c044710f718934c29ea913554cd4a3db0a54a75b97467ca5803"
+      "release_sha256": "d8dfeb745fa3642f22f547883b72d5784cfa91d018350cfce14fef342de3dc1e"
     }
   }
 }

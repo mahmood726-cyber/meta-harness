@@ -74,6 +74,15 @@ def outcome_list_rids(fragment: str):
     return rids if len(rids) == len(set(rids)) else None
 
 
+def ref_author_year(ref: str):
+    """('Surname', 'YYYY') of a JATS <ref>: its FIRST <surname> and its <year>; apostrophes normalised. None if absent."""
+    s = re.search(r"<surname>(.*?)</surname>", ref or "", re.S)
+    y = re.search(r"<year>(\d{4})", ref or "")
+    if not s or not y:
+        return None
+    return (visible_text(s.group(1)).replace("’", "'"), y.group(1))
+
+
 def validate_span(text, source):
     return (isinstance(source, dict) and isinstance(source.get("start"), int)
             and isinstance(source.get("end"), int) and source["start"] >= 0
@@ -162,6 +171,19 @@ def validate(comparator, root=ROOT):
                         or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"])
                         or (year and year not in alias["span"]["quote"])):
                     raise ValueError("COMPARATOR_PANEL: alias table row / reference / year not located")
+                continue
+            if alias.get("author_year_row"):
+                # V1.0.1 (semaglutide-weight review; scripts/comparator_author_year_rows.py): an included-trial table
+                # row that prints only "Surname, year" (no reference link) binds to the ONE <ref> in the same held JATS
+                # whose first author and year are those -- re-proved here, uniqueness over the whole reference list
+                alias_text = alias_raw.decode("utf-8")
+                row = alias["author_year_row"]
+                key = ref_author_year(alias["span"]["quote"])
+                cell = visible_text((re.search(r"<t[dh][^>]*>(.*?)</t[dh]>", row.get("quote") or "", re.S) or [None, ""])[1])
+                if (not validate_span(alias_text, row) or not key or cell.replace("’", "'") != f"{key[0]}, {key[1]}"
+                        or sum(1 for rm in re.finditer(r"<ref id=\"[^\"]+\">.*?</ref>", alias_text, re.S)
+                               if ref_author_year(rm.group(0)) == key) != 1):
+                    raise ValueError("COMPARATOR_PANEL: author-year row does not name exactly one reference")
                 continue
             if alias.get("outcome_list_span"):
                 # V1.0.1 (sacubitril review; scripts/comparator_outcome_list_members.py): a member of the comparator's

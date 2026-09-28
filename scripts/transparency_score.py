@@ -89,10 +89,13 @@ def _score_topic(rev):
         "coverage": round(ours_checkable / len(claims), 3) if claims else None,
         "gaps": gaps,
         "comparator_independently_checkable": comp_checkable,
+        # V1.0.1 (semaglutide-obesity review): derived from what is held, never a fixed sentence
         "comparator_note": ("comparator exposes its reported pooled estimate(s) with one citation; "
-                            "its per-trial inputs are not machine-exposed, so a reader cannot check "
-                            "them independently (0/15 parseable tables, 0/23 data supplements)"),
+                            + comparator_exposure(rev)),
     }
+
+
+from harness.page import comparator_exposure  # noqa: E402
 
 
 def main(argv):

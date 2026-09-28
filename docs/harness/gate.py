@@ -356,9 +356,16 @@ def check_comparator_internal_mismatch_kept(review_dir, html=None):
         if rows and not all((r.get("internal_mismatch") or {}).get("code") == "COMPARATOR_INTERNAL_MISMATCH" for r in rows):
             out.append(f"COMPARATOR_MISMATCH: reported row {pr['point']} ({pr['ci_low']}-{pr['ci_high']}) repeats a mixed "
                        "pair without the flag")
-    if html is not None and mm and html.count("COMPARATOR_INTERNAL_MISMATCH") < len(mm):
-        out.append(f"COMPARATOR_MISMATCH: {len(mm)} internal mismatch(es) in the object, "
-                   f"{html.count('COMPARATOR_INTERNAL_MISMATCH')} rendered")
+    # V1.0.1 (semaglutide-obesity review): each record is counted under ITS OWN code (a COMPARATOR_METHOD_INCONSISTENCY
+    # is rendered under that code, never as an internal mismatch); every code's records must all be rendered
+    if html is not None and mm:
+        codes = {}
+        for x in mm:
+            c = x.get("code") or "COMPARATOR_INTERNAL_MISMATCH"
+            codes[c] = codes.get(c, 0) + 1
+        for c, k in sorted(codes.items()):
+            if html.count(c) < k:
+                out.append(f"COMPARATOR_MISMATCH: {k} {c} record(s) in the object, {html.count(c)} rendered")
     return out
 
 
