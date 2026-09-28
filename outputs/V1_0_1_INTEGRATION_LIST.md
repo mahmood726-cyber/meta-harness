@@ -131,3 +131,54 @@ Step-by-step execution, with the artefact that proves each step:
                                      direction token.
     verify_all buffered stdout       a killed hook leaves no trace; rai found this independently.
     evid2 Q1/Q3 notices              if they did not make the V1.0 cut.
+
+---
+
+## 4. Root of trust: the bundle pin (rai, folded into the POOL rebase)
+
+**The finding, worded as the auditor left it after withdrawing the stronger framing.**
+`BUNDLE.json` is **not an input to `release_sha256`**. It *is* covered by the commit and by the
+production manifest, so this is **not** an external release-identity bypass — a trusted commit or
+production manifest may pin the bundle even though the certificate does not. Two things remain true
+and are the actual defect:
+
+1. **the standalone verifier trusts the bundle before checking it**, so a self-consistent bundle
+   rewrite passes with release and review hashes unchanged;
+2. **`build_bundle --check` was not idempotent** (found and fixed 26 Sep).
+
+**The instance that proved (2), kept because it is the only worked example.** The candidate's bundle
+recorded the P4 endpoint-components producer step as `harness/target_endpoint.py` at blob
+`f605e0f5…`, while the file hashes to `1b309c5b…`. CI refused it; the local gate did not. The stale
+value came from `registry/fixes.json → entries[95]`, the seal of fix
+`M2-hand-row-binding-2026-09-20`, whose `seal.dependencies` pinned the blob as of seal time; rai's
+`e403573d` later changed that file. Everything else was byte-identical to main — `fixes.json`,
+`build_bundle.py`, `gitblob.py`, `target_endpoint.py`, `verify_bundle.py` — and **main's own bundle
+quoted the correct blob**. A second `build_bundle` run on unchanged inputs produced the correct
+value, which is what identifies it as non-idempotence rather than a stale input.
+
+**The seal was not rewritten, and must not be.** A seal pins the blob as of seal time; re-dating it
+to match current code destroys the evidence it exists to carry. `limb 8` (fix-state discipline)
+passes on it. The defect is in the bundle/verifier contract, not the seal.
+
+**Scope for V1.0.1:** the BUNDLE pin, the POOL references and `POOL_CONTAINS_INADMISSIBLE_ROW`, all
+in rai's POOL rebase. `build_bundle` must be idempotent in one pass, and `--check` must be able to
+fail when the committed bundle disagrees with the code — a check whose two sides are computed from
+the same non-converged state cannot refuse anything.
+
+## 5. Acceptance criterion for V1.0.1 — the F.6 suite through the EXACT implementation
+
+Not a rewritten harness and not a sketch: the real path, with all four legs required.
+
+    1. valid case                                          -> ACCEPT
+    2. one incorrect clinical assignment, integrity satisfied -> a SPECIFIC refusal
+                                                              (not a generic failure, and not an
+                                                               integrity complaint standing in for
+                                                               a semantic one)
+    3. restore                                             -> ACCEPT again
+    4. logs show the rejected result CANNOT enter the selected inputs
+
+Leg 2 is the one that decides it: the refusal must name the clinical assignment, with integrity
+already satisfied, so it cannot be an integrity failure wearing a semantic label. Leg 4 is the one
+usually skipped — a refusal that still lets the value reach the selected inputs is not a refusal.
+Leg 3 guards against a suite that refuses everything: a positive control that cannot accept is not a
+control.
