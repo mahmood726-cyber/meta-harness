@@ -10,6 +10,7 @@ import re as _re
 
 from . import arm_object
 from . import arm_parse
+from . import comparison_blinding
 from . import lexicon
 from . import armcontrast
 from . import screen_entry
@@ -230,8 +231,9 @@ def _double_blind(rec, text) -> bool:
         return True
     if ("double-blind" in text) or ("double blind" in text) or ("masked" in text):
         return True
-    # A placebo-controlled RCT is inherently blinded (open-label trials do not use a placebo);
-    # abstracts frequently omit the literal "double-blind". Accept placebo-controlled as evidence.
+    # Legacy fallback for text without established allocation-level blinding.
+    # The comparison-specific gate must run first: placebo alone cannot override
+    # an explicitly open eligible comparison or unresolved mixed blinding.
     return "placebo" in text
 
 
@@ -465,7 +467,17 @@ def screen_record(rec, inc, neg_pmids):
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
                 f"examined: “{_quote(raw_all)}”")
     comp_term = comp or (comp_override or {}).get("term")
-    if inc.get("design_double_blind") and not _double_blind(rec, text):
+    if refusal := comparison_blinding.screening_refusal(rec, inc):
+        rule, reason, span = refusal
+        if (rule == "X-DESIGN" and comparison_blinding.read_blinding(
+                " ".join(str(rec.get(k) or "") for k in ("title", "abstract")))["state"]
+                == comparison_blinding.OPEN_LABEL):
+            # Preserve the uniform-design evidence contract. Masking is quoted
+            # as metadata only; the text-based refusal above already decided.
+            span += f"; registry masking = {rec.get('masking') or '(masking not stated)'}"
+        return ScreenDecision("exclude", rule, reason, span)
+    if (inc.get("design_double_blind") and not comparison_blinding.established_blinded(rec, inc)
+            and not _double_blind(rec, text)):
         masking = rec.get("masking") or "(masking not stated)"
         return ScreenDecision("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).",
                 f"no 'placebo'/'double-blind'/'masked' in text; registry masking = {masking}")
@@ -532,7 +544,10 @@ def screen_record_2(rec, inc):
     if (comparator_any and not _has(text, comparator_any)
             and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
-    if inc.get("design_double_blind") and not _double_blind(rec, text):
+    if comparison_blinding.screening_refusal(rec, inc):
+        return "exclude"
+    if (inc.get("design_double_blind") and not comparison_blinding.established_blinded(rec, inc)
+            and not _double_blind(rec, text)):
         return "exclude"
     return "include"
 
