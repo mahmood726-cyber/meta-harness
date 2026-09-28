@@ -86,6 +86,9 @@ found during resolution were not open access.
   cardiovascular disease, disability or dementia) is therefore eligible; it is ongoing (RECRUITING) with no results,
   so it adds no pooled input.
 - A secondary report's registration is its parent trial's: JUPITER's older-adults report (PMID 20404379) is
-  NCT00239681 and ALLHAT-LLT's older-adults report (PMID 30251369) is NCT00000542, recorded with located evidence in
-  cache/statins-primary-prevention-elderly/parent_registrations.json. A blank registry link is not "unregistered".
+  NCT00239681, recorded with located evidence in cache/statins-primary-prevention-elderly/parent_registrations.json.
+  A blank registry link is not "unregistered". ALLHAT-LLT's older-adults RMST report (PMID 30251369) is of the same
+  class (ALLHAT, NCT00000542) but is NOT linked here: a linked report sharing an NCT with ALLHAT's other older-adults
+  report (PMID 28531241) is collapsed by the build's same-registration de-duplication without a screening row, so the
+  link waits until that collapse is disclosed.
 - Scope: screening and the family ledger only. The pooled trials and the pooled result are unchanged.
