@@ -91,3 +91,39 @@ def test_members_gate_refuses_paraphrase_and_label_outside_quote():
 
 def test_members_gate_refuses_untyped_claim():
     assert k_gap.verify_members({"studies": []}, HELD)["state"] == "VERIFIER_REFUSED"
+
+
+def _table_mod():
+    import importlib.util
+    import os
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "k_gap_table.py")
+    spec = importlib.util.spec_from_file_location("k_gap_table", p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_held_text_of_a_different_article_is_caught():
+    # PLANT (the doac-vte-recurrence / corticosteroids-cap-mortality defect): the held text is a DIFFERENT article
+    # on the same topic. It shares the topic's vocabulary (a title-word check passed both real cases) but none of
+    # the comparator abstract's 6-word shingles.
+    abstract = ("Direct oral anticoagulants were compared with vitamin K antagonists in six phase 3 trials that "
+                "enrolled 27023 patients with acute venous thromboembolism; recurrent VTE occurred in 2.0 percent "
+                "of DOAC recipients and 2.2 percent of VKA recipients")
+    wrong = ("Venous thromboembolism is a multifactorial disease; thrombophilia testing is requested in patients "
+             "treated with direct oral anticoagulants or vitamin K antagonists after acute venous thromboembolism")
+    right = "Methods ... six phase 3 trials that enrolled 27023 patients with acute venous thromboembolism; recurrent VTE occurred in 2.0 percent of DOAC recipients ..."
+    assert k_gap.held_text_identity(abstract, wrong)["state"] == "HELD_TEXT_NOT_NAMED_ARTICLE"
+    assert k_gap.held_text_identity(abstract, right)["state"] == "NAMED_ARTICLE"
+    assert k_gap.held_text_identity("", right)["state"] == "NO_ABSTRACT"
+
+
+def test_reference_seed_keeps_only_rct_typed_agent_named_reports():
+    refs = [{"pmid": "1", "title": "", "year": "2019"}, {"pmid": "2", "title": "", "year": "2019"},
+            {"pmid": "3", "title": "", "year": "2019"}, {"pmid": "", "title": "Tocilizumab RCT", "year": "2020"}]
+    pt = {"1": {"pubtypes": ["Randomized Controlled Trial"], "title": "Tocilizumab in hospitalized COVID-19"},
+          "2": {"pubtypes": ["Review"], "title": "Tocilizumab: a review"},
+          "3": {"pubtypes": ["Randomized Controlled Trial"], "title": "Sarilumab in COVID-19"}}
+    u = k_gap.reference_seed_units(refs, pt, ["tocilizumab"])
+    assert [x["cited"][0]["pmid"] for x in u] == ["1"]          # review, other agent, and no-PMID refs are out
+    assert u[0]["table"] == "reference_seed"                     # labelled a candidate source, not a table

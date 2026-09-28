@@ -29,18 +29,7 @@ DATE = "2026-09-28"
 
 
 def held_text(slug: str) -> tuple[str, str]:
-    """(text, ref). Prefer the comparator's own JATS body (fetched by k_gap); else the committed held document."""
-    c = json.load(open(os.path.join(ROOT, "cache", slug, "comparators.json"), encoding="utf-8"))[0]
-    m = re.search(r"PMID (\d+)", c.get("citation", ""))
-    pmid = m.group(1) if m else str(c["id"])
-    jp = os.path.join(ROOT, "cache", "comparators", pmid, f"{DATE}_kgap_jats.xml")
-    if os.path.exists(jp):
-        return k_gap.jats_body_text(open(jp, "rb").read()), os.path.relpath(jp, ROOT).replace(os.sep, "/") + "#body"
-    ref = c["document_ref"]
-    raw = open(os.path.join(ROOT, ref), encoding="utf-8").read()
-    if ref.endswith("records.json"):
-        return json.loads(raw)["comparator_fulltext"], ref + "#comparator_fulltext"
-    return raw, ref
+    return k_gap.held_text(slug, DATE)
 
 
 def _load():
