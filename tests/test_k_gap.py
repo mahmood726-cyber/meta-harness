@@ -26,7 +26,7 @@ JATS = b"""<article><front><article-meta><title-group><article-title>MA</article
 
 def _units():
     parsed = k_gap.parse_jats(JATS)
-    return parsed, k_gap.included_trials(parsed, ["alirocumab", "evolocumab"])
+    return parsed, k_gap.included_trials(parsed, ["alirocumab", "evolocumab"], ["spironolactone", "finerenone"])
 
 
 def test_transposed_table_header_citations_are_units():
@@ -60,6 +60,17 @@ def test_agent_filter_marks_other_agent_only_when_some_row_names_a_topic_agent()
     by = {u["label"]: u["drug_match"] for u in inc["units"]}
     assert by["RALES1999"] == "OTHER_AGENT"         # a spironolactone row in a PCSK9 topic
     assert by["Smith 2010"] == "DRUG_MATCH"
+
+
+def test_row_without_a_drug_name_is_not_another_drug():
+    # PLANT (the colchicine-postop-af / tranexamic defect): in a single-agent comparator one row names the agent
+    # and the rest do not. The pre-fix rule marked every unnamed row OTHER_AGENT because SOME row named the agent.
+    parsed = k_gap.parse_jats(JATS)
+    inc = k_gap.included_trials(parsed, ["tranexamic acid", "evolocumab"], ["spironolactone"])
+    by = {u["label"]: u["drug_match"] for u in inc["units"]}
+    assert by["Smith 2010"] == "DRUG_MATCH"
+    assert by["WOMAN1"] == "AGENT_IMPLICIT" and by["TRAAP2"] == "AGENT_IMPLICIT"
+    assert by["RALES1999"] == "OTHER_AGENT"       # names another served topic's molecule, and none of ours
 
 
 def test_norm_acronym_strips_trailing_year_only():
