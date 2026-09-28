@@ -31,7 +31,15 @@ def test_rebuilt_pages_account_for_every_baseline_harm():
         # a DECIDED harm row that a later landing moved must be declared by name, with the values it moved to
         sup = (_declared(d['topic']).get('harm_decisions_superseded') or {}).get(f"{d['outcome']}|{d['trial']}")
         if sup:
-            assert sup.get('reason') and sup.get('after') == 'POOLED', (d['topic'], d['outcome'], d['trial'])
+            assert sup.get('reason') and sup.get('after') in ('POOLED', 'LINKED_NOT_A_TRIAL'), (d['topic'], d['outcome'], d['trial'])
+            if sup['after'] == 'LINKED_NOT_A_TRIAL':
+                # the report was found to be a pooled/secondary report of already-counted trials: it is screened as
+                # X-DEDUP and is no trial row of this outcome at all (neither pooled nor declared absent)
+                scr = next(r for r in review['screening']['records'] if str(r['id']).split('·')[-1].strip() == d['trial'])
+                assert scr['rule_id'] == 'X-DEDUP', (d['topic'], d['trial'])
+                rows = outcome['trials'] + outcome['declared_absent_trials']
+                assert not any(t['id'].replace('PMID ', '') == d['trial'] for t in rows), (d['topic'], d['trial'])
+                continue
             row = next(t for t in outcome['trials'] if t['id'].replace('PMID ', '') == d['trial'])
             assert {k: row.get(k) for k in sup['values_after']} == sup['values_after'], (d['topic'], d['trial'])
             continue

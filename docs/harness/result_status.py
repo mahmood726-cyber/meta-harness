@@ -108,6 +108,12 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
     code = str(row.get("reason_code") or row.get("state") or row.get("provenance") or "")
     if code in _NOT_HELD or row.get("absent_kind") == "not_retrieved":
         return {"state": NOT_YET_RETRIEVED, "basis": code}
+    if code == "SIGNAL_SPURIOUS":
+        # the outcome's keywords matched text about ANOTHER outcome (Moll: 'discontinued treatment because of side
+        # effects' is not gastrointestinal incidence): the source does not report THIS outcome -- never 'reported'
+        return {"state": RETRIEVED_NOT_REPORTED, "scope": _scope(row), "basis": code,
+                "statement": (f"not reported in {_scope(row)}: its mention matched this outcome's keywords but is about a "
+                              "different outcome (a scoped statement, not a claim about the trial's design)")}
     acq = row.get("acquisition_state") or {}
     if (code in _REPORTED_CODES or mentioned or row.get("reported_unresolved_span")
             or "PROTOCOL_PREFERRED_ANALYSIS_IN_SUPPLEMENT" in (acq.get("states") or [])):

@@ -23,8 +23,8 @@ from .comparison_family import _verified
 
 PATH = os.path.join("docs", "source_versions.json")
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KINDS = ("ORIGINAL", "CORRECTION", "ERRATUM", "CSR", "CSR_ERRATUM", "REGULATORY")
-_VAL_KEYS = ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high")
+KINDS = ("ORIGINAL", "CORRECTION", "ERRATUM", "CSR", "CSR_ERRATUM", "REGULATORY", "COMPANION_REPORT")
+_VAL_KEYS = ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2")
 
 
 def load(root: str, slug: str | None) -> list[dict[str, Any]]:
@@ -48,7 +48,7 @@ def verify_chain(root: str, chain: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"{chain['chain_id']}/{v['version_id']}: a version not held must say why")
         ids.add(v["version_id"])
         shown.append({k: v.get(k) for k in ("version_id", "kind", "date", "source", "value", "cells", "relation",
-                                            "not_held_reason")} | {"held": bool(held),
+                                            "not_held_reason", "relayed_value")} | {"held": bool(held),
                                                                    **({"span": held["span"]} if held else {})})
     gov = chain.get("governing") or {}
     if gov.get("state") not in ("DECIDED", "PENDING") or gov.get("version_id") not in ids or not gov.get("reason"):

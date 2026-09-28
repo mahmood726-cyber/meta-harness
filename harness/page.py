@@ -1824,6 +1824,10 @@ def _trial_inputs(o):
             reason_detail += f"<br><span class='muted'>basis: {_e(t.get('state_basis'))}</span>"
         if t.get("completeness_state"):
             reason_detail += f"<br><span class='muted'>completeness: {_e(t.get('completeness_state'))}</span>"
+        if t.get("relayed_not_held"):
+            _rv = t["relayed_not_held"]
+            reason_detail += (f"<br><span class='muted' data-relayed-not-held='1'>relayed, NOT held (not data): "
+                              f"{_e(_rv.get('value'))} &mdash; {_e(_rv.get('why_not_held'))}</span>")
         if t.get("completeness_basis"):
             reason_detail += f"<br><span class='muted'>completeness basis: {_e(t.get('completeness_basis'))}</span>"
         hm = t.get("harm_absence_state")

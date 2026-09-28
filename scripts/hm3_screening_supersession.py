@@ -13,6 +13,12 @@ LANDING = "evid/v1.0.1-screening-roles + evid/v1.0.1-acquisition-cascade"
 ADDED_KEYS = ("screening_record", "comparisons", "pending_decisions")
 # a DECIDED harm row (decisions.json) that a later landing moved, named with its new state and the reason
 HARM_DECISIONS_SUPERSEDED = {
+    ("melatonin-primary-insomnia-sol", "Adverse events", "22346363"): {
+        "before": "POPULATION_MISMATCH (absent)", "after": "LINKED_NOT_A_TRIAL",
+        "reason": ("Lemoine (22346363) is a post-hoc pooled analysis of four already-counted RCTs (its own text: 'A post hoc, "
+                   "pooled analysis of four randomized, double-blind trials'; refs 25-28), with a safety set that also pools "
+                   "single-blind and open-label studies: it is linked to its constituent trials (X-DEDUP, "
+                   "docs/multi_trial_reports.json), never a trial row. The refusal's own reason (pooled safety set) stands.")},
     ("denosumab-vertebral-fracture", "Serious infection", "19671655"): {
         "before": "REFUSED_ON_EVIDENCE (absent)", "after": "POOLED",
         "values_after": {"ai": 159, "n1i": 3886, "ci": 133, "n2i": 3876},

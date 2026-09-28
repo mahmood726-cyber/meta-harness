@@ -532,3 +532,52 @@ NONE). Both were screened in by the "placebo implies blinded" default, and neith
 A row whose REPORTED_UNRESOLVED state rested only on the outcome's "reported but not extracted" flag drops to
 "retrieved, not reported" once the outcome gains its first pooled row. FIDELIO's rows now carry their own evidence;
 other topics have not been swept for this.
+
+## Round 2026-09-28: melatonin and metformin-PCOS fixtures
+
+### Melatonin
+- **Wade 2011** (21091391): a companion of Wade 2010 in family NCT00397189, never a second trial.
+  - Its Table 3 all-adult result (18-80: -14.6 (43.9, 360) vs -7.9 (50.9, 362); 55-80: -15.4 vs -5.5) is **not openly
+    held** (Curr Med Res Opin: Europe PMC not OA, Unpaywall no open location). It is a RELAYED version in chain
+    NCT00397189:SOL-diary-3wk.
+  - Governing is **PENDING**: the protocol itself adopted the pre-specified 65-80 subgroup (served: -19.1 (47.3, 137)
+    vs -1.7 (47.8, 144)). Whether the all-adult result should govern once held is Mahmood's protocol decision.
+  - Wade 2010's own Table 3 has no all-adult row: its other block is the low-excretor subgroup (86 vs 86).
+- **Lemoine** (22346363): a post-hoc pooled analysis of four already-counted RCTs (18036082, 19584739, 20712869,
+  17875243); its safety set also pools open-label studies.
+  - Now X-DEDUP, linked to its constituents, and its pools are never imported.
+  - Its pinned HM3 harm decision is declared superseded as LINKED_NOT_A_TRIAL (a new supersession kind: the report must
+    be X-DEDUP and must be no trial row at all).
+- **ABSTRACT_ONLY full texts:** a committed `ft_` file whose publisher withholds the XML body is never handed to a
+  consumer as a full text. That is 14 of 61 corpus files, including Almeida Montes, Moll and CARMELINA. Almeida Montes'
+  funding row had said "full text scanned". The page lists these files.
+- **Wade 2010 arm labels:** PDF Table 8 (394 = placebo) vs PDF Table 9 and the held XML (394 = melatonin).
+  - ADJUDICATED only through the registry's posted results (flow and AE groups: Circadin 394, Placebo 395). This is
+    computed, never declared.
+  - Same-article corroboration does not count, and nothing is auto-flipped. Plants cover same-article-only, none at
+    all, and a flipped pooled row.
+  - PDF Table 8 is not held by this lane: the BMC PDF location answered a 3 KB non-PDF page.
+- **Luthringer 2009:** 3-week randomised period; "outcome reported; analysis-ready extraction pending", no SDs imputed.
+
+### Metformin-PCOS
+- **Moll discontinuation:** REPORTED_UNRESOLVED on the abstract's risk difference. The reason audit no longer calls it
+  "value absent": a cited span with a numeric result held verbatim means a value present in another estimand class.
+  - The full report's 18/111 vs 6/114 is in `docs/relayed_values.json` as relayed, NOT held (BMJ 403, PMC bot-check;
+    the `ft_` file is abstract-only). It is shown beside the discontinuation row only, never as data.
+  - The pinned HM3 entry is NOT edited. A first attempt edited it; the HM3 contract test caught that, and it was
+    reverted.
+  - The GI row is SIGNAL_SPURIOUS, so it reads "not reported", never "reported".
+- **Family invariant** (`harness/family_invariant.py`, blocking): every pooled input belongs to exactly one family, and
+  the contributing count equals the number of distinct families pooled.
+  - Trials with no registry link get a stable identity, `PMID:<primary report>`, and are counted: metformin now has 3
+    contributing families for 3 inputs.
+  - 0 violations across all 32 topics. Family denominators rise where publication-only trials were dropped (probiotics
+    +106).
+
+### Verification
+- 32/32 topics rebuilt. No served number moved this round; Lemoine left melatonin's declared-absent lists.
+- Gate 23/32 (the same 9 designed holds). Served diff vs 7e70759a: 10 moved outcomes, each with one OPEN notice.
+- GLP-1 signature bundle regenerated: **8244e2c9**.
+- 551 tests passed, 0 failed, in a per-file run. The first combined run crashed (exit 127, memory) after two failures;
+  both were real (the HM3 contract and pages tests) and are fixed. A pass count taken through `tail` also hides
+  "N failed, M passed" lines, so the grep for "failed" is explicit.

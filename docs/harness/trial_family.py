@@ -180,7 +180,11 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
             reports.append(report)
         primaries = sorted(r['report_id'] for r in reports if r['role'] in {'PRIMARY','PRIMARY_WITH_POOLED_ANALYSIS'})
         seed = primaries or sorted(r['report_id'] for r in reports)
-        fid = regs[0] if regs else 'SYN-'+hashlib.sha256(json.dumps(seed,separators=(',',':')).encode()).hexdigest()[:12]
+        # a trial with no registry link keeps a STABLE, readable identity anchored on its primary publication (the same
+        # key the screening layer uses, 'PMID:<id>'); a hash only where no primary PMID exists
+        fid = (regs[0] if regs else
+               f'PMID:{primaries[0]}' if primaries and re.fullmatch(r'\d{7,8}', str(primaries[0])) else
+               'SYN-'+hashlib.sha256(json.dumps(seed,separators=(',',':')).encode()).hexdigest()[:12])
         flags = [] if regs else ['NO_REGISTRY_RECORD']
         if any(r.get('parent_link_absence_code') for r in members):
             flags = ['MULTIPLE_REGISTRY_PARENTS','PARENT_UNRESOLVED']
@@ -544,13 +548,19 @@ def attach_review(review, nodes):
             if f is None:
                 raise ValueError('FAMILY_LINK_UNRESOLVED: '+str(row.get('id')))
             fid = f['family_id']
-            row['family_identity_state'] = 'REGISTRY_ANCHORED' if f['identity_basis']['registry_ids'] else 'UNRESOLVED_REPORT_CANDIDATE'
+            row['family_identity_state'] = ('REGISTRY_ANCHORED' if f['identity_basis']['registry_ids'] else
+                                            'PUBLICATION_ANCHORED' if f['identity_basis']['primary_report_ids'] else
+                                            'UNRESOLVED_REPORT_CANDIDATE')
             if fid in seen:
                 raise ValueError('DUPLICATE_FAMILY: '+fid+' in '+outcome['name'])
             seen.add(fid)
     _attach_legacy(review, nodes)
     for f in nodes:
         f['is_trial_family'] = bool(f['identity_basis']['registry_ids'])
+        # the identity ANCHOR: a registry, or -- for a trial with no registry link -- its own primary publication. A
+        # publication-anchored family is an independent population: it is counted, never dropped from the family count
+        f['identity_anchor'] = ('REGISTRY' if f['identity_basis']['registry_ids'] else
+                                'PUBLICATION' if f['identity_basis']['primary_report_ids'] else 'NONE')
         held_ids = {identity._norm(r['id']) for r in f['source_records']}
         missing = {r['report_id'] for r in f['reports']} - held_ids
         if missing:
@@ -625,7 +635,9 @@ def attach_review(review, nodes):
                 f = by_report.get(identity._norm(row.get('id')))
                 if f:
                     row['family_id'] = f['family_id']
-                    row['family_identity_state'] = 'REGISTRY_ANCHORED' if f['is_trial_family'] else 'UNRESOLVED_REPORT_CANDIDATE'
+                    row['family_identity_state'] = ('REGISTRY_ANCHORED' if f['is_trial_family'] else
+                                                    'PUBLICATION_ANCHORED' if f.get('identity_anchor') == 'PUBLICATION' else
+                                                    'UNRESOLVED_REPORT_CANDIDATE')
         outcome['membership'] = membership.build_outcome_membership(outcome, review.get('screening',{}).get('records',[]))
     review['family_count_chain'] = derive_count_chain(nodes)
     review['family_missing_evidence'] = missing_evidence(nodes)
@@ -633,11 +645,15 @@ def attach_review(review, nodes):
 
 
 def derive_count_chain(nodes):
-    families = [f for f in nodes if f.get('is_trial_family')]
+    # families = every node with an identity anchor (registry OR its own primary publication): a trial with no registry
+    # link used to fall out of the count while its data were pooled (metformin: 3 inputs, '1 contributing family')
+    families = [f for f in nodes if f.get('is_trial_family') or f.get('identity_anchor') == 'PUBLICATION']
     eligible = {f['family_id'] for f in families if f['eligibility']['state']=='ELIGIBLE'}
     contributing = {f['family_id'] for f in families if any(p.get('analysis_input') for p in f['poolability'])}
     primary = {f['family_id'] for f in families if any(s['in_primary_pool']['state']=='YES' for s in f['outcome_status'])}
     return {'trial_families':len(families),'eligible_families':len(eligible),'contributing':len(contributing),
+            'registry_anchored':sum(f.get('identity_anchor') == 'REGISTRY' for f in families),
+            'publication_anchored':sum(f.get('identity_anchor') == 'PUBLICATION' for f in families),
             'pooled':len(primary),'eligibility_unresolved':sum(f['eligibility']['state']=='UNKNOWN' for f in families),
             'unresolved_report_candidates':len(nodes)-len(families),
             'contributing_without_structural_eligibility':sorted(contributing-eligible),

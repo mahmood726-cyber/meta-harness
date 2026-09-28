@@ -89,6 +89,7 @@ def test_moll_discontinuation_is_reported_unresolved_and_never_gi_incidence():
     assert disc["reason_code_audit"]["verdict"] == "REASON_TRUE"                 # the auditor no longer calls it absent
     gi = _row(MET, "Gastrointestinal adverse events", "16769748")
     assert gi["result_status"]["state"] == rs.RETRIEVED_NOT_REPORTED           # its mention is discontinuation, not GI
+    assert "18/111" in disc["relayed_not_held"]["value"] and "relayed_not_held" not in gi   # recorded, on its outcome only
     pooled = [t for o in _rv(MET)["outcomes"] for t in o["trials"] if "16769748" in t["id"]]
     assert all((t.get("ai"), t.get("ci")) != (18, 6) for t in pooled)          # relayed counts are never data
 
