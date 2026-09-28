@@ -75,3 +75,19 @@ not executable. The config now requires ovulation-induction / clomiphene context
 and excludes hMG / human menopausal gonadotrophin add-on designs. The PCOS title
 miss for PMID 19552097 is fixed mechanically in screening negation handling rather
 than by a record-specific override. This amendment changes screening only.
+
+## Retrospective protocol erratum (2026-09-28) -- the comparator benchmark is the wrong comparison
+**Labelled retrospective: written after data were seen; the sections above are left unchanged as registered.**
+- The comparator section quotes ovulation OR 2.64 (95% CI 1.85 to 3.75). That is Sharpe 2019's metformin versus
+  placebo or no treatment comparison. This review's question is metformin ADDED to clomifene, so 2.64 answers a
+  different treatment contrast and is labelled WRONG_COMPARISON on the page (reported by an external review).
+- The governing analysis is Sharpe 2019 Analysis 2.4, metformin plus clomiphene versus clomiphene alone: OR 1.65
+  (1.35 to 2.03), 21 studies, 1,568 women. Its "clomiphene alone" control is broader than this protocol's placebo
+  requirement, which is recorded as a CONTROL difference (harness/same_question.py): the two questions are related,
+  not the same.
+- The Analysis 2.4 forest plot is read row by row (cache/metformin-pcos-ovulation/comparator_analysis.json; the image
+  is Cochrane's and is not held, its URL and sha256 are recorded). All three of our pooled trials are rows of it with
+  the same counts. Its Legro 2007 row (108/209 vs 106/209) disagrees with the trial's own "subjects who ovulated"
+  (174 vs 157) and is COMPARATOR_ROW_UNRECONCILED; it is never copied.
+- Scope: this erratum changes which comparator analysis is shown beside the result. It changes no eligibility rule,
+  no outcome, no model and no result of this review.
