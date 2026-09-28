@@ -2049,6 +2049,12 @@ def outcome_inputs(slug, config, records):
     except (OSError, ValueError):
         pass
     scr = screen.run(merged, config)
+    # V1.0.1 (SGLT2-HFrEF review): an arm LABELLED placebo whose registered interventions are only the experimental
+    # arm's background is not a placebo comparator (harness/comparison_contrast.py)
+    from . import comparison_contrast as _cc
+    _held_all = {str(x.get("id")): x for v in records.values() if isinstance(v, list) for x in v if isinstance(x, dict)}
+    _cc.apply(scr, family_nodes, config,
+              lambda rid: " ".join(str((_held_all.get(str(rid)) or {}).get(k) or "") for k in ("title", "abstract")).strip())
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
     interv = config.get("intervention_terms", ["colchicine"])
@@ -2553,7 +2559,8 @@ def build_review_core(slug, config, records, protocol_sha):
     _can = comparator_analysis_mod.assess(comparator_analysis_mod.load(ROOT, slug), review)
     if _can:
         review["comparator"] = dict(review["comparator"], analysis=_can)
-    review["comparator"] = overlap_relation_mod.attach(review, rec_by_id)
+    review["comparator"] = overlap_relation_mod.attach(
+        review, rec_by_id, {str(x.get("id")): x for v in records.values() if isinstance(v, list) for x in v if isinstance(x, dict)})
     # V1.0.1: the comparator's model-specific tuples and its internal mismatches (a mixed prose pair is flagged,
     # never adopted and never used to move our result) -- harness/comparator_models.py
     from . import comparator_models as comparator_models_mod

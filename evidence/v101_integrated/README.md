@@ -267,3 +267,54 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
     omissions.
   - Its MD -11.85 vs our -11.84 is a coincidence of different sets and methods, not validation.
   - It is RELATED, not SAME_QUESTION.
+
+## SGLT2 CKD (SMART-C, JAMA 2026)
+
+- **Comparator type** `CONSORTIUM_ANALYSIS`: a consortium's pooled analysis of its own member trials, not a systematic
+  review. Its list is never used as a discovery source; `comparator_named` skips consortium comparators.
+- **Membership, as the comparator states it:** the 10 member trials are named in the PMC full text (PMC12595549).
+  - That text carries no open licence, so it is recorded as `VERIFIED_NOT_HELD`: PMC ID, body sha256 and a short
+    quote that prints every name.
+  - Result: SUBSET, shared 3 of our 3 (CREDENCE, DAPA-CKD, EMPA-KIDNEY).
+- **Not the same outcome:** its 0.62 is a harmonised kidney-only outcome (cardiovascular death excluded). It was served
+  beside our trial-defined composite and is now labelled `DIFFERENT_OUTCOME`.
+  - Our results are the composite (0.684) and a kidney-only sensitivity (0.651). Same-question endpoint = NO.
+  - The review's cardiovascular-death-inclusive 0.75 is not in the text we read, and is attributed to the review.
+
+## SGLT2 HFrEF (Pandey 2022)
+
+- **Participant totals** now derive from the same contributing set as the pool.
+  - An effect-only row counts its arms from its own located result sentence, and a missing n refuses the total.
+  - A set/sum invariant is pinned by a plant.
+  - ours_n: 4,744 (DAPA-HF alone) → 8,474. Excess: 4,455 → 725.
+- **Membership:** Pandey's Table 1 is bound from the committed transcription by printed acronyms that name exactly one
+  family. SUBSET, shared 2.
+  - SOLOIST-WHF (sotagliflozin) is outside our dapagliflozin-or-empagliflozin scope, and EMPEROR-Preserved is an
+    LVEF > 40% trial.
+  - So the excess is not missing evidence. Its HR 0.74 is a checkpoint only.
+- **Comparison-level contrast** (`harness/comparison_contrast.py`, rule X3-CONTRAST). NCT04385589 (Ibrahim; paper
+  33426003 now linked) had a "Placebo group" whose only intervention is the experimental arm's background insulin.
+  - Refusal needs three facts: a background-only arm, no placebo product, and the trial's own publication never
+    mentioning placebo or blinding.
+  - Measured over all 32 topics, it fires on this family, plus one probiotics family that was already excluded.
+  - A first, intervention-only version fired on dozens of genuine placebo trials (VERTIS CV, ODYSSEY, lixisenatide)
+    and was discarded.
+- **V1.1 recall cases** (26f6cc4f): DEFINE-HF and EMPERIAL-Reduced.
+
+## SGLT2 HHF in CVOTs (Zhang 2020)
+
+- **Overlap:** SUBSET, all 4 of our trials shared (this branch had served 2 since before round 3).
+  - EMPA-REG is cited through a NEJM correspondence whose title equals the trial's own title.
+  - CANVAS is cited through Rådholm 2018, whose own PubMed record registers NCT01032629, a registration named by our
+    report-only CANVAS Program family.
+  - Both routes bind only to exactly one family, and an unlinked cited item is disclosed.
+- **COMPARATOR_ARM_REVERSAL:** Zhang's plot prints EMPA-REG as 95/4,687 vs 126/2,333. EMPA-REG's own held report
+  (pmc_26819227) prints 126/4,687 vs 95/2,333. Our EMPA-REG HR (0.65) is unchanged.
+- **Positive controls** (DerSimonian-Laird, used only for published-analysis reproduction):
+  - as printed: 0.6262 (0.5328–0.7359), I² 73.6%;
+  - corrected: 0.6951 (0.6444–0.7497), I² 0.
+- **Input types:** Kosiborod 2017 is a `POOLED_ANALYSIS` (quoted from its own record).
+- **Setting vs outcome:** SIMPLE and EMPA-HEART are now X-SETTING. A background sentence never establishes a CVOT;
+  only a title or a primary-outcome sentence does (labelled protocol erratum).
+  - This also resolves the round-4 hold-out: the comparator-named candidates for this topic are now committed, and
+    Kosiborod 2017 is refused as X-SETTING.

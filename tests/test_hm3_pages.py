@@ -72,13 +72,25 @@ def test_primary_trial_values_and_membership_are_unchanged():
         # every pinned record keeps its place and decision
         b_recs = before['screening_records']
         a_recs = [x for x in after['screening']['records'] if x.get('found_by') != ['COMPARATOR_NAMED']]
+        # V1.0.1 (SGLT2-HFrEF review): a pinned registry record whose trial is now represented by its LINKED publication
+        # (same trial family; the registry twin is dropped by dedup) is compared as that record
+        b_ids = {str(x['id']) for x in b_recs}
+        a_ids = {str(x['id']) for x in a_recs}
+        a_recs = [dict(y, id=y['trial_family_id'], _linked_publication=y['id'])
+                  if str(y['id']) not in b_ids and str(y.get('trial_family_id')) in b_ids - a_ids else y for y in a_recs]
+        a_order = {str(y['id']): y for y in a_recs}
+        a_recs = [a_order[str(x['id'])] for x in b_recs if str(x['id']) in a_order] +                  [y for y in a_recs if str(y['id']) not in b_ids]
         # V1.0.1 (semaglutide-weight review): on a topic whose exclusions are traced to the protocol (harness/rule_trace.py),
         # an exclusion by a term that traces to no protocol text becomes NEEDS_ADJUDICATION -- same record, rule
         # X-UNTRACED, and the reason names a term the topic's own trace lists as untraced
         untraced = set((after.get('rule_trace') or {}).get('untraced') or [])
         def _untraced_adjudication(x, y):
             return (x['id'] == y['id'] and x['decision'] == 'exclude' and y['decision'] == 'adjudicate'
-                    and y['rule_id'] == 'X-UNTRACED' and any(f"'{t}'" in y['reason'] for t in untraced))
+                    and y['rule_id'] == 'X-UNTRACED' and any(f"'{t}'" in y['reason'] for t in untraced)) or (
+                # V1.0.1 (SGLT2-HFrEF review): an arm LABELLED placebo that receives only background therapy is refused
+                # at the comparison level (harness/comparison_contrast.py) -- the one allowed include -> exclude
+                x['id'] == y['id'] and x['decision'] == 'include' and y['decision'] == 'exclude'
+                and y['rule_id'] == 'X3-CONTRAST')
         assert len(b_recs) == len(a_recs), slug
         assert all((x['id'], x['decision']) == (y['id'], y['decision']) or _untraced_adjudication(x, y)
                    for x, y in zip(b_recs, a_recs)), slug

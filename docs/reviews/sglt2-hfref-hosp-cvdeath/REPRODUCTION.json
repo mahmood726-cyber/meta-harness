@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-  "review_sha256": "ed3f527326ded7e9838ac028e963d2caf685a943c56aa7829a11fff53ce86273",
+  "review_sha256": "9f77096befd65508797919694bc76248949d1bcc89b83aff0b66a8ba2131665c",
   "from_cache": true,
   "preregistration": {
     "prospective": false,
@@ -17,14 +17,14 @@
     "reason": "Pandey LVEF<=40 subgroup reports n=9199 in cached comparator text, while our shared DAPA-HF + EMPEROR-Reduced rows sum to n=8474; excess 725 indicates the comparator subgroup includes an additional reduced-EF subset outside our SGLT2-only HFrEF pool.",
     "parity_relation": {
       "relation": "PARITY_REFUTED_BY_N",
-      "label": "participant-count refutation -- comparator n 9199 exceeds our shared-trial n 4744 by 4455; sets differ",
+      "label": "participant-count refutation -- comparator n 9199 exceeds our shared-trial n 8474 by 725; sets differ",
       "inferred": false,
       "our_k": 2,
       "their_k": 2,
       "their_k_source": "comparable_comparator_k",
       "shared_k": null,
       "only_ours_n": 0,
-      "only_theirs_n": 0,
+      "only_theirs_n": 2,
       "dominance": null,
       "hand_status": "PARITY_REFUTED_BY_N",
       "hand_status_normalized": "PARITY_REFUTED_BY_N",
@@ -32,15 +32,19 @@
       "participant_reconciliation": {
         "code": "PARITY_REFUTED_BY_N",
         "theirs_n": 9199,
-        "ours_n": 4744,
+        "ours_n": 8474,
         "ours_trials": [
           {
             "trial": "31535829",
             "n": 4744
+          },
+          {
+            "trial": "32865377",
+            "n": 3730
           }
         ],
-        "excess": 4455,
-        "detail": "PARITY_REFUTED_BY_N(theirs=9199, ours=4744, excess=4455)",
+        "excess": 725,
+        "detail": "PARITY_REFUTED_BY_N(theirs=9199, ours=8474, excess=725)",
         "theirs_n_span": {
           "value": 9199,
           "status": "FOUND",
@@ -141,14 +145,18 @@
     "retrieved_corpus_sha256": "056f66b4ee5d662da89d29419256ab672b960aede660d2ef1e9d0ecb75e85477",
     "records_file_sha256": "86b2a5f2cc247a234c321652a35d7ec5e790bbad9eca8c5a00483f158986c22f",
     "retrieval_ledger_sha256": "7b030afcb8a401477726ed40d7b9b235ff6e330c6229536a436926b48a652697",
-    "screening_ledger_sha256": "ca20f888a0f48460b0b6689def390608c623f816c2b28b184ddaf041df1cd9f5",
+    "screening_ledger_sha256": "f58ac1a4ebcf445a4d233b67332663b43aa1e7a86d176b76db384fa2c747addb",
     "extraction_objects_sha256": "e682e39f42ba99fd2663184f60739d4f0ce32eaa488053dbe450d994c9410cce",
-    "trial_family_map_sha256": "383e3e2b6cc252bd435ba667520793552f81227e22030eb32b59ecd7cbb88329",
+    "trial_family_map_sha256": "0adc06dfa5709c3f3c4ec333605b87b1b658bcd1b279f8af70dd8c02a546bf76",
     "rob_object_sha256": "b98c1d9a826da2ec8ebcd49ac2c0faaad678bbb264638adbb351aa89a4119171",
     "held_documents": [
       {
         "ref": "cache/sglt2-hfref-hosp-cvdeath/aact_inputs.json",
         "sha256": "db9d5321ad0b220ee21ef81358e8592e4d86f48c8b6811ee1a22f3d0f8ca15e8"
+      },
+      {
+        "ref": "cache/sglt2-hfref-hosp-cvdeath/comparator_analysis.json",
+        "sha256": "b12c9961b2f16ddceafadac1288effee9b44499777d84c7ffdbf6a52b7b7d34f"
       },
       {
         "ref": "cache/sglt2-hfref-hosp-cvdeath/comparator_fulltext.txt",
@@ -163,6 +171,10 @@
         "sha256": "2bcb81b14c5efa8935d392af1e081f225d329601ca29eb2366a903c51cb51981"
       },
       {
+        "ref": "cache/sglt2-hfref-hosp-cvdeath/family_pub_links.json",
+        "sha256": "d8f2a758084802623d0c6767a0d539e26861851effd1a6869668c00820dafdbc"
+      },
+      {
         "ref": "cache/sglt2-hfref-hosp-cvdeath/ghost_pub_links.json",
         "sha256": "8216a0e264b9a40cc2ea9d7c790f2da714cc647e70cb9b87e1866fe5b4430697"
       },
@@ -172,7 +184,7 @@
       }
     ],
     "config_sha256": "de45e05fcbb805e25f88dc3e2d9269dbca49b2d50c27b40ea0a1e99ab696b076",
-    "analysis_code_sha256": "001b5d064ab8ad68fc2cb51a14230db19e2b7107380036a3f38266f8b8e06b58",
+    "analysis_code_sha256": "1be63d087c25bf9a1ac3d3a4660c3a37cb647b1a2f61425b422713b757f26f2e",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
       "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -190,16 +202,17 @@
       "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
       "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
       "harness/code_closure.py": "a9add23d6affca6b57d2967a67bddeca5dc611fa",
-      "harness/comparator_analysis.py": "243c168973df2f467ced3c816254c67ee278765f",
+      "harness/comparator_analysis.py": "4460d85c6fadfa37155f5e23df2338e5ce5f8471",
       "harness/comparator_display.py": "42a77af88014807d86022f9273b2efcb369fcb6c",
       "harness/comparator_identity.py": "3a362e56b6efd41259752441a4bfb84f29975f14",
       "harness/comparator_models.py": "0a32845835d676f793a8a4fe6fe3785c92f80326",
-      "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
+      "harness/comparator_named.py": "7df2bf010d5e1985e506557da973019be3695d45",
       "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
       "harness/comparator_panel.py": "d15b5f60be979ad79e398e5082017b7eff4124a1",
       "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
       "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
-      "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
+      "harness/comparator_truth.py": "e69bc67465ddd3539f72f6faa361a31846de12f3",
+      "harness/comparison_contrast.py": "2d978f0030ef8cd85804e16663575418fec4f6b3",
       "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
       "harness/compat_check.py": "6c3c05c2a5d6d30ea077110248d4353d744e03d6",
       "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
@@ -243,10 +256,10 @@
       "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
       "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
       "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-      "harness/overlap_relation.py": "3f8dd0182d40df952e94ad144ca976f5a2d11af0",
+      "harness/overlap_relation.py": "b0934f1bcff05a5d84a12f94798f538ccea6b71e",
       "harness/page.py": "6d3be4cb8e140c6738e387b9a027f5af5d2e940b",
       "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
-      "harness/pipeline.py": "c1fe2579fca91550384cafa090b88ec8bcf01e2f",
+      "harness/pipeline.py": "295bb6b1de4466b039e572f88b3912fca81d1ffa",
       "harness/population_witness.py": "d4e4efad23edceb6732f2375276ef952da4a2361",
       "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
       "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -262,10 +275,11 @@
       "harness/same_question.py": "d3dd45f4a30aa748958f667f7d8afde180993ca0",
       "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
       "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
-      "harness/screen.py": "2375327b836e1411db6b970d453faf39046bb9b8",
+      "harness/screen.py": "88e2ca53fadfab806b36aca62446cbfd88c40a08",
       "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
       "harness/search_execution.py": "46d7d5a11a04a23bd8d2bb6714af904320462360",
       "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
+      "harness/setting_scope.py": "f17e9212ae15e53090c6d1e78b9d0a3a28b32bcc",
       "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
       "harness/synth.py": "e21ea037c9adfe7480b700db77dd62716630a106",
       "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
@@ -290,7 +304,7 @@
         "harness/certificate.py",
         "scripts/reproduce_review.py"
       ],
-      "covers": "103 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+      "covers": "105 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
       "declared_but_absent": [
         "harness/effect_type.py"
       ],
@@ -320,8 +334,8 @@
       "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
-    "manuscript_sha256": "b691a24087539e7e4c81550076fdd4998caf10fe83fc119fb50d67ea1839fa59",
-    "review_sha256": "ed3f527326ded7e9838ac028e963d2caf685a943c56aa7829a11fff53ce86273",
+    "manuscript_sha256": "b70d16929a60d9173cf7edb31ef80593248b347606a7bc8145652a2a511f441e",
+    "review_sha256": "9f77096befd65508797919694bc76248949d1bcc89b83aff0b66a8ba2131665c",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
       "protocol_text_sha256": "protocols/sglt2-hfref-hosp-cvdeath.md UTF-8 text, universal newlines",
@@ -341,9 +355,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "c672cdb971d7cab4e36322be49be8a885c7d073c4526e1cf17debb9949105e22"
+    "release_sha256": "4e5fce3bdfaf8644c7d744e046e50c3729ed1ea42bf250b5304e68f0d950f098"
   },
-  "html_sha256": "384376534584e2b75a5ddd956f49be672574a54b3fd13ba6a07909387c453cac",
+  "html_sha256": "8ddd97ab6b4912154d4e7ab36f3e8e51107b4c3d368c5b2ba763fe91ffbd411c",
   "checks": [
     {
       "check": "render is deterministic",

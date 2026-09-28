@@ -56,6 +56,23 @@ def load(root, slug) -> Optional[dict]:
     for part in ("method_difference", "scope"):
         for q in (doc.get(part) or {}).get("quotes") or []:
             locate(q)
+    nm = doc.get("named_membership")
+    if nm:
+        # V1.0.1 (SGLT2-CKD review): a comparator that STATES its membership in its methods (SMART-C) needs no table;
+        # the statement is held and located, or -- when the text has no open licence -- VERIFIED_NOT_HELD: read from its
+        # PMC full text, the body's sha256 recorded, and a short quote that prints every name
+        st = nm["statement"]
+        if st.get("state") == "HELD":
+            locate(st)
+        elif st.get("state") == "VERIFIED_NOT_HELD":
+            if not (st.get("pmcid") and len(str(st.get("body_sha256") or "")) == 64 and st.get("why_not_held")):
+                raise AnalysisRefused(f"{slug}: a VERIFIED_NOT_HELD statement needs its PMCID, body sha256 and why it is not held")
+        else:
+            raise AnalysisRefused(f"{slug}: membership statement must be HELD or VERIFIED_NOT_HELD")
+        if not nm.get("names") or not all(n in st.get("quote", "") for n in nm["names"]):
+            raise AnalysisRefused(f"{slug}: every named member must be printed in the membership statement")
+    if doc.get("comparator_type") not in (None, "SYSTEMATIC_REVIEW", "CONSORTIUM_ANALYSIS", "NETWORK_META_ANALYSIS"):
+        raise AnalysisRefused(f"{slug}: unknown comparator_type {doc.get('comparator_type')!r}")
     mem = doc.get("membership")
     if mem:
         locate(mem["figure"]["caption"])
@@ -70,6 +87,16 @@ def load(root, slug) -> Optional[dict]:
             a, n1, c, n2 = r["counts"]
             if not (0 <= a <= n1 and 0 <= c <= n2):
                 raise AnalysisRefused(f"{slug}: row {r['label']} has impossible counts {r['counts']}")
+            # V1.0.1 (SGLT2 HHF-in-CVOTs review): a row's per-arm counts checked against the cited trial's OWN held
+            # report, and a row's input type (a pooled analysis is not a trial) -- each quote located, each count printed
+            sc = r.get("source_check")
+            if sc:
+                locate(sc)
+                q = re.sub(r"[,\s]", "", _norm(sc["quote"]))
+                if len(sc.get("counts") or []) != 4 or not all(str(x) in q for x in sc["counts"]):
+                    raise AnalysisRefused(f"{slug}: row {r['label']}: source counts {sc.get('counts')} not all printed in its quote")
+            if r.get("input_type"):
+                locate(r["input_type"])
         fig = mem["figure"]
         if fig.get("document_ref"):
             # V1.0.1 (semaglutide-obesity review): a HELD figure image is pinned by its bytes
@@ -127,7 +154,10 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
     ours = {str(t.get("label")): t for t in prim.get("trials") or []}
     out = {"outcome": doc["outcome"], "governing": doc.get("governing"), "protocol_benchmark": doc.get("protocol_benchmark"),
            **({"method_difference": doc["method_difference"]} if doc.get("method_difference") else {}),
-           **({"scope": doc["scope"]} if doc.get("scope") else {})}
+           **({"scope": doc["scope"]} if doc.get("scope") else {}),
+           **({"named_membership": doc["named_membership"]} if doc.get("named_membership") else {}),
+           **({"comparator_type": doc["comparator_type"], "comparator_type_reading": doc.get("comparator_type_reading")}
+              if doc.get("comparator_type") else {})}
     mem = doc.get("membership")
     if mem:
         members = []
@@ -147,6 +177,15 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
                 m.update(report_pmid=str(r["report_pmid"]), inputs="SAME_COUNTS")
             if flag:
                 m["flag"] = flag
+            sc = r.get("source_check")
+            if sc:
+                s_ = sc["counts"]
+                state = ("SAME_COUNTS_AS_ITS_OWN_REPORT" if r["counts"] == s_ else
+                         "COMPARATOR_ARM_REVERSAL" if [r["counts"][2], r["counts"][1], r["counts"][0], r["counts"][3]] == s_
+                         else "COMPARATOR_ROW_UNRECONCILED")
+                m["source_check"] = dict(sc, state=state, printed=r["counts"])
+            if r.get("input_type"):
+                m["input_type"] = r["input_type"]
             members.append(m)
         for m, r in zip(members, mem["rows"]):
             if r.get("panel_row"):
@@ -176,6 +215,16 @@ def render(a: Optional[dict]) -> str:
     e = lambda s: _html.escape(str(s), quote=True)  # noqa: E731
     g, b = a.get("governing"), a.get("protocol_benchmark")
     parts = []
+    if a.get("comparator_type"):
+        parts.append(f"<p><strong>Comparator type:</strong> <code>{e(a['comparator_type'])}</code>. "
+                     f"{e(a.get('comparator_type_reading') or '')}</p>")
+    nm = a.get("named_membership")
+    if nm:
+        st = nm["statement"]
+        src = (f"held: {e(st.get('document_ref'))}" if st.get("state") == "HELD" else
+               f"read from {e(st['pmcid'])} (body sha256 {e(st['body_sha256'][:16])}&hellip;), not held: {e(st['why_not_held'])}")
+        parts.append(f"<p><strong>Membership, as the comparator states it:</strong> &ldquo;{e(st['quote'])}&rdquo; "
+                     f"(<code>{e(st['state'])}</code>; {src}). {e(nm.get('reading') or '')}</p>")
     sc = a.get("scope")
     if sc:
         parts.append("<p><strong>Scope, in the comparator's words:</strong> "
@@ -213,6 +262,16 @@ def render(a: Optional[dict]) -> str:
                                    "No single trial carries most of the weight.")
                          + (f" Rows with no events in either arm carry no weight: {e(', '.join(wc['no_events_left_out']))}."
                             if wc["no_events_left_out"] else "") + "</p>")
+    for mm in (m or {}).get("members") or []:
+        sc = mm.get("source_check")
+        if sc and sc["state"] != "SAME_COUNTS_AS_ITS_OWN_REPORT":
+            parts.append(f"<p><code>{e(sc['state'])}</code> {e(mm['label'])}: the plot prints {e(sc['printed'][0])}/"
+                         f"{e(sc['printed'][1])} vs {e(sc['printed'][2])}/{e(sc['printed'][3])}; the trial's own report "
+                         f"({e(sc['document_ref'])}): &ldquo;{e(sc['quote'])}&rdquo; &mdash; {e(sc.get('reading') or '')}</p>")
+        it = mm.get("input_type")
+        if it:
+            parts.append(f"<p>Input type of {e(mm['label'])}: <code>{e(it['type'])}</code> &mdash; &ldquo;{e(it['quote'])}&rdquo; "
+                         f"({e(it['document_ref'])}). {e(it.get('reading') or '')}</p>")
     for fl in a.get("row_flags") or []:
         parts.append(f"<p><code>{e(fl['state'])}</code> {e(fl['row'])}: the plot prints {e(fl['printed'])}; "
                      f"{e(fl['source_says'])} ({e(fl['source_state'])}, {e(fl.get('reported_by'))}). {e(fl['rule'])}.</p>")

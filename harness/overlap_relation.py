@@ -116,7 +116,7 @@ def _held_registry_acronyms(registry_ids) -> list:
 
 def _acronym_index(review: dict, report_acronym: Callable[[str], Optional[str]]) -> dict:
     """normalised acronym -> set of family ids (ledger acronyms + the family's registry records' acronym field)."""
-    idx = {}
+    idx, borrowed = {}, {}
     for f in _families(review):
         al = f.get("aliases") or {}
         names = list(al.get("acronym") or []) + [a for r in al.get("registry_ids") or [] for a in [report_acronym(r)] if a]
@@ -124,6 +124,19 @@ def _acronym_index(review: dict, report_acronym: Callable[[str], Optional[str]])
         for n in names:
             if norm_name(n):
                 idx.setdefault(norm_name(n), set()).add(f["family_id"])
+        if not al.get("registry_ids"):
+            # V1.0.1 (SGLT2 HHF-in-CVOTs review): a REPORT-ONLY family (a programme paper with no registration of its
+            # own, e.g. the CANVAS Program: SYN-..., naming CANVAS NCT01032629 and CANVAS-R NCT01989754) is known by the
+            # acronyms of the registrations its report names -- BORROWED names, used only where no family carries that
+            # acronym itself (a paper that merely mentions TRANSFORM-1's registration must never make TRANSFORM-1's own
+            # acronym ambiguous: esketamine regression, caught by its plant)
+            mr = al.get("mentioned_registry_ids") or []
+            for n in [a for r in mr for a in [report_acronym(r)] if a] + _held_registry_acronyms(mr):
+                if norm_name(n):
+                    borrowed.setdefault(norm_name(n), set()).add(f["family_id"])
+    for k, fams in borrowed.items():
+        if k not in idx:
+            idx[k] = fams
     return idx
 
 
@@ -147,7 +160,7 @@ def generic_label(name) -> bool:
     return bool(_GENERIC.match(str(name or "")))
 
 
-def _members(review, panel, prim_name, acr_idx, ours_keys):
+def _members(review, panel, prim_name, acr_idx, ours_keys, title_idx=None, cited_nct=None):
     """(source, in_scope members, out_of_scope members, endpoint) from the best typed enumeration, or None.
     A member is {name, family (ANY family of our ledger it is, or None), alias_ids, identity, endpoint, span};
     whether that family is in our POOL is decided by the caller."""
@@ -180,6 +193,8 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
                     "endpoint_for_outcome": None, "ambiguous": collisions}, [], []
         fam_idx = _family_index(review)
         fam_reg = {f["family_id"]: list((f.get("aliases") or {}).get("registry_ids") or []) for f in _families(review)}
+        fam_mentioned = {f["family_id"]: list((f.get("aliases") or {}).get("mentioned_registry_ids") or [])
+                         for f in _families(review)}
         # screening's X-DEDUP decision is a typed link: a record it excluded as the companion/secondary publication of
         # a trial names that trial's registration. A comparator row bound to such a record IS the parent trial (the
         # family ledger kept the publication as a separate node, e.g. a trial pooled from its registry record only).
@@ -221,9 +236,59 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
                         unlinked = sorted(hits)
                     title_acr, fam = acr_hits[0]
                     hits = {fam}
+            printed_acr = None
+            if not hits and not m.get("aliases") and not m.get("bib_key") and m.get("name_in_source")                     and not generic_label(m["name_in_source"]):
+                # V1.0.1 (SGLT2-HFrEF review): a transcribed table row with no identifier (Pandey 2022 prints 'DAPA-HF (n =
+                # 4744)') binds by the same rule as a comparator's named set: its printed name equals an acronym held for
+                # exactly ONE family of ours
+                fams = acr_idx.get(norm_name(m["name_in_source"])) or set()
+                if len(fams) == 1:
+                    printed_acr, hits = m["name_in_source"], set(fams)
+            same_title = None
+            unregistered_only = unregistered_only and not title_acr   # still only report-only families bound
+            if (not hits or unregistered_only) and m.get("aliases") and title_idx:
+                # V1.0.1 (SGLT2 HHF-in-CVOTs review): the row cites an item we do not hold whose article title is
+                # EXACTLY the title of one of our held reports (Zhang cites EMPA-REG through a NEJM correspondence,
+                # 26981940, titled like the trial's own paper); it binds only when that title belongs to ONE family
+                for t in re.findall(r"<article-title>(.*?)</article-title>", " ".join(
+                        (a.get("span") or {}).get("quote") or "" for a in m["aliases"]), re.S):
+                    fams = title_idx.get(norm_name(re.sub(r"<[^>]+>", " ", t))) or set()
+                    fams = {f for f in fams if not unregistered_only or fam_reg.get(f)}
+                    if len(fams) == 1:
+                        if unregistered_only:
+                            unlinked = sorted(hits)
+                        same_title, hits = t, set(fams)
+                        unregistered_only = False
+                        break
+            via_reg = None
+            # a cited report bound to a report-only PROGRAMME family (its report names several registrations, e.g. SMART:
+            # SMART-MED and SMART-SURG) is that programme -- never narrowed to one of its registrations
+            programme = unregistered_only and any(len(fam_mentioned.get(h) or []) > 1 for h in hits)
+            if (not hits or unregistered_only) and not programme and m.get("aliases") and cited_nct:
+                # V1.0.1 (SGLT2 HHF-in-CVOTs review): the cited item is a HELD report of a trial we pool under another
+                # report (Zhang cites CANVAS through Radholm 2018, 29526832, whose own PubMed record registers it as
+                # NCT01032629); the registration binds it when it belongs to ONE family (its registrations, or for a
+                # report-only programme family the registrations its report names)
+                for a in m["aliases"]:
+                    n = cited_nct[0](a["id"])
+                    fams = cited_nct[1].get(n) or set() if n else set()
+                    fams = {f for f in fams if not unregistered_only or fam_reg.get(f)}
+                    if len(fams) == 1 and fams != hits:
+                        if unregistered_only:
+                            unlinked = sorted(hits)
+                        via_reg, hits = (a["id"], n), set(fams)
+                        break
             rec = {"name": m["family_id"], "family": (next(iter(hits)) if len(hits) == 1 else None),
                    "alias_ids": [a["id"] for a in m.get("aliases", [])],
-                   "identity": ("bound by the acronym printed in its cited article title (" + title_acr + ")"
+                   "identity": (f"bound by its printed name ({printed_acr}), an acronym held for exactly one family"
+                                if printed_acr else
+                                (f"bound by the registration its cited report {via_reg[0]} carries ({via_reg[1]})"
+                                 if via_reg else
+                                 "bound by its cited article title, identical to the title of our report of that trial")
+                                + (f"; the cited item is held as unlinked report-only family {', '.join(unlinked)}"
+                                   if unlinked else "")
+                                if (via_reg or same_title) else
+                                "bound by the acronym printed in its cited article title (" + title_acr + ")"
                                 + (f"; the cited paper is held as unlinked report-only family {', '.join(unlinked)}"
                                    if unlinked else "") if title_acr else
                                 "bound by panel alias to record " + via[0][1] + ", which screening excluded (X-DEDUP) as a "
@@ -254,7 +319,13 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
         return {"source": f"governing analysis forest plot ({am['figure']['caption']['quote']}; read from source, image not held)",
                 "endpoint_for_outcome": am.get("endpoint")}, ins, []
     named, src = None, None
-    if truth.get("relation") == "IDENTICAL_SET" and truth.get("present"):
+    nmem = (comp.get("analysis") or {}).get("named_membership") or {}
+    if nmem.get("names"):
+        # V1.0.1 (SGLT2-CKD review): the comparator's own membership statement (harness/comparator_analysis.py)
+        named = [{"name": n, "span": nmem["statement"].get("quote")} for n in nmem["names"]]
+        src = (f"the comparator's own membership statement ({nmem['statement'].get('state')}"
+               + (f"; {nmem['statement'].get('pmcid')}" if nmem["statement"].get("pmcid") else "") + ")")
+    if named is None and truth.get("relation") == "IDENTICAL_SET" and truth.get("present"):
         named = [{"name": p.get("trial"), "span": p.get("span")} for p in truth["present"] if p.get("trial")]
         src = "comparator-truth named set (trials located in the comparator text; count " \
               f"{truth.get('expected_count')} stated there)"
@@ -276,7 +347,9 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
 
 
 def compute(review: dict, report_year: Callable[[str], Optional[int]],
-            report_acronym: Callable[[str], Optional[str]] = lambda _r: None) -> dict:
+            report_acronym: Callable[[str], Optional[str]] = lambda _r: None,
+            report_title: Callable[[str], Optional[str]] = lambda _r: None,
+            report_nct: Callable[[str], Optional[str]] = lambda _r: None) -> dict:
     """The overlap relation of the primary outcome's pool with the registered comparator.
     report_year(report_id): a PUBLICATION report's year (None for registry records / unknown).
     report_acronym(registry_id): the registry record's own acronym field, or None."""
@@ -302,7 +375,19 @@ def compute(review: dict, report_year: Callable[[str], Optional[int]],
     if not ours:
         return _finish(out, "NOT_ENUMERABLE", basis="no pooled trials for the primary outcome")
 
-    got = _members(review, _panel_entry(review), prim.get("name"), _acronym_index(review, report_acronym), ours_keys)
+    title_idx = {}
+    for f in _families(review):
+        for rid in (f.get("aliases") or {}).get("report_ids") or []:
+            t = norm_name(report_title(rid))
+            if len(t) >= 20:
+                title_idx.setdefault(t, set()).add(f["family_id"])
+    nct_idx = {}
+    for f in _families(review):
+        al = f.get("aliases") or {}
+        for n in list(al.get("registry_ids") or []) + ([] if al.get("registry_ids") else list(al.get("mentioned_registry_ids") or [])):
+            nct_idx.setdefault(n, set()).add(f["family_id"])
+    got = _members(review, _panel_entry(review), prim.get("name"), _acronym_index(review, report_acronym), ours_keys,
+                   title_idx, (report_nct, nct_idx))
     if got is None:
         out["theirs"] = {"status": "NOT_ENUMERATED",
                          "note": "the registered comparator's trial set is not enumerated in a typed, located source"}
@@ -453,7 +538,7 @@ def sentence(obj: Optional[dict]) -> str:
             f"{', '.join(parts)}; basis: {obj.get('basis')}{extra}.")
 
 
-def attach(review: dict, rec_by_id: dict) -> dict:
+def attach(review: dict, rec_by_id: dict, all_held: Optional[dict] = None) -> dict:
     """Compute THE relation for this review and make the legacy `comparator.overlap` counts a projection of it, so
     every surface that prints ours/theirs/shared or a relation word reads this one object. Returns the comparator."""
     comp = dict(review.get("comparator") or {})
@@ -467,7 +552,17 @@ def attach(review: dict, rec_by_id: dict) -> dict:
         r = rec_by_id.get(str(rid)) or {}
         return r.get("acronym") if r.get("id_type") == "nct" else None
 
-    obj = compute(review, report_year, report_acronym)
+    def report_title(rid):
+        r = rec_by_id.get(str(rid)) or {}
+        return r.get("title") if r.get("id_type") == "pmid" else None
+
+    def report_nct(rid):
+        # every HELD record, not only the deduplicated ones: a cited report that lost dedup to another report of the
+        # same trial (Radholm 2018 vs the CANVAS Program paper) is still that trial's report
+        r = (all_held or rec_by_id).get(str(rid)) or {}
+        return r.get("nct") if r.get("id_type") == "pmid" else None
+
+    obj = compute(review, report_year, report_acronym, report_title, report_nct)
     stated = ov.get("theirs_k")
     obj["theirs_k_stated"] = {"value": stated, "source": ov.get("theirs_k_source")} if stated is not None else None
     comp["overlap_relation"] = obj

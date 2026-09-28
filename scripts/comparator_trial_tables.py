@@ -331,9 +331,11 @@ def from_text_spec(slug, write):
     entries, notes = [], []
     for row, a, b in zip(spec["rows"], starts, ends):
         name = row["name_in_source"]
-        pat = re.compile(r"(?<![A-Za-z0-9-])" + re.escape(name) + r"(?![A-Za-z0-9]|-\d)")
+        # V1.0.1 (SGLT2-HFrEF review): a transcription prints 'DAPA‐HF' with a Unicode hyphen; compare as '-'
+        _hy = {c: "-" for c in (0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212)}
+        pat = re.compile(r"(?<![A-Za-z0-9-])" + re.escape(name.translate(_hy)) + r"(?![A-Za-z0-9]|-\d)")
         prim = [rid for rid, r in recs.items()
-                if pat.search((r.get("title") or "") + " " + (r.get("acronym") or ""))
+                if pat.search(((r.get("title") or "") + " " + (r.get("acronym") or "")).translate(_hy))
                 and trial_family.report_role(r)[0] in ("PRIMARY", "PRIMARY_WITH_POOLED_ANALYSIS")]
         m = {"family_id": f"{name} (row {len(entries) + 1})", "name_in_source": name,
              "span": {"start": a, "end": a + len(text[a:b].rstrip()), "quote": text[a:b].rstrip()},

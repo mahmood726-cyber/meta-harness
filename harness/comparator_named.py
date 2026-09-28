@@ -35,6 +35,11 @@ def panel_rows(root, slug) -> list:
     p = Path(root) / "cache" / slug / "comparators.json"
     if not p.exists():
         return []
+    # V1.0.1 (SGLT2-CKD review): a CONSORTIUM analysis pools its own member trials; its list is membership, not a search
+    # result, and is never used as a discovery source
+    ap = Path(root) / "cache" / slug / "comparator_analysis.json"
+    if ap.exists() and json.loads(ap.read_text(encoding="utf-8")).get("comparator_type") == "CONSORTIUM_ANALYSIS":
+        return []
     out = []
     for c in json.loads(p.read_text(encoding="utf-8")):
         for m in c.get("trial_set") or []:

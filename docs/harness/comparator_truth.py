@@ -154,20 +154,49 @@ def _row_n(row: dict[str, Any]) -> int | None:
         n = _as_int(row.get(key))
         if n is not None:
             return n
+    # V1.0.1 (SGLT2-HFrEF review): an effect-only row still states its arms in its own LOCATED result sentence
+    # ("361 of 1863 patients ... 462 of 1867 patients"); exactly two "x of N" statements give N1 + N2
+    arms = _ARM_OF.findall(str(row.get("endpoint_result_span") or ""))
+    if len(arms) == 2:
+        try:
+            return sum(int(n.replace(",", "")) for _, n in arms)
+        except ValueError:
+            return None
     return None
 
+
+
+_ARM_OF = re.compile(r"\b(\d[\d,]*) of (\d[\d,]*) (?:patients|participants|subjects)\b")
+
+
+def set_sum_invariant(rows, parts, total) -> bool:
+    """A participant total exists only as the sum over EVERY contributing row: the summed trials are exactly the pooled
+    trials, and the total is their sum. A total over a subset (one contributing trial dropped) fails."""
+    if total is None:
+        return True
+    labels = [str(r.get("label") or r.get("id")) for r in rows]
+    summed = [str(p["trial"]) for p in parts]
+    return sorted(labels) == sorted(summed) and total == sum(p["n"] for p in parts)
 
 def participant_reconciliation(theirs_n: Any, ours_rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
     """Compare comparator participant n with the sum of our shared trial rows."""
     theirs = _as_int(theirs_n)
-    row_parts = []
-    for row in ours_rows or []:
+    rows = list(ours_rows or [])
+    row_parts, missing = [], []
+    for row in rows:
         n = _row_n(row or {})
-        if n is not None:
-            row_parts.append({"trial": row.get("label") or row.get("id"), "n": n})
-    ours = sum(part["n"] for part in row_parts) if row_parts else None
+        (row_parts.append({"trial": row.get("label") or row.get("id"), "n": n}) if n is not None
+         else missing.append(row.get("label") or row.get("id")))
+    # V1.0.1 (SGLT2-HFrEF review): the participant total is derived from the SAME contributing set as the pool -- every
+    # pooled trial summed, or no total at all. A row without an n was silently dropped (ours_n 4,744 = DAPA-HF alone for
+    # a pool of DAPA-HF + EMPEROR-Reduced), turning an excess of 725 into 4,455.
+    ours = sum(part["n"] for part in row_parts) if row_parts and not missing else None
+    if not set_sum_invariant(rows, row_parts, ours):
+        raise ValueError("participant total is not the sum over exactly the pooled trials")
     if theirs is None:
         code = "N_NOT_IN_HELD_TEXT"
+    elif missing:
+        code = "OURS_N_INCOMPLETE"
     elif ours is None:
         code = "OURS_N_NOT_COMPUTABLE"
     elif theirs > ours:
@@ -176,7 +205,8 @@ def participant_reconciliation(theirs_n: Any, ours_rows: Iterable[dict[str, Any]
         code = "N_RECONCILIATION_MATCH"
     else:
         code = "N_RECONCILIATION_NOT_REFUTED"
-    out = {"code": code, "theirs_n": theirs, "ours_n": ours, "ours_trials": row_parts}
+    out = {"code": code, "theirs_n": theirs, "ours_n": ours, "ours_trials": row_parts,
+           **({"ours_n_missing_for": missing} if missing else {})}
     if theirs is not None and ours is not None:
         out["excess"] = theirs - ours
         out["detail"] = (

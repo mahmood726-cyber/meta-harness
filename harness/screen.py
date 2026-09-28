@@ -495,6 +495,16 @@ def screen_record(rec, inc, neg_pmids):
         return ScreenDecision("exclude", "X-DESIGN", f"excluded design/context: record mentions '{design_bad}'.",
                 _span(raw_all, design_bad))
     design_terms = inc.get("design_any")
+    if design_terms and inc.get("design_any_where") == "own_design":
+        # V1.0.1 (SGLT2 HHF-in-CVOTs review): the SETTING (a broad CVOT) is established only by the trial's own design
+        # statements -- title or primary-outcome sentence -- never by a background sentence (harness/setting_scope.py)
+        from . import setting_scope
+        if not setting_scope.setting_hit(rec, design_terms, _has):
+            return ScreenDecision("exclude", "X-SETTING",
+                    f"setting not established: none of {design_terms} in the trial's own title or primary-outcome "
+                    "statement (a background or discussion sentence about other trials never establishes the design; "
+                    "outcome availability is a separate question).",
+                    _quote(str(rec.get("title") or "")))
     design_ok = _has(text, design_terms)
     if design_terms and not design_ok:
         return ScreenDecision("exclude", "X-DESIGN",
