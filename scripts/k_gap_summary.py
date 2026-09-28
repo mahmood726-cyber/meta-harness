@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "outputs", "k_gap")
 
 GAP_ORDER = ["IDENTIFICATION", "SCREEN_OR_ELIGIBILITY", "ACQUISITION", "EXTRACTION_FROM_TABLE", "MEASURE_MISMATCH",
-             "GENUINELY_UNAVAILABLE_OPEN"]
+             "SCOPE_MISMATCH", "GENUINELY_UNAVAILABLE_OPEN"]
 SRC_ORDER = ["AACT_RESULTS", "PMC_OA_FULLTEXT", "NONE_OPEN_PROBED"]
 
 
@@ -27,7 +27,11 @@ def fam_key(r):
 
 def main():
     t = json.load(open(os.path.join(OUT, "k_gap_table.json"), encoding="utf-8"))
-    topics, rows = t["topics"], t["trials"]
+    topics, all_rows = t["topics"], t["trials"]
+    # KINDS: confirmed members (citing table / gated proposal) and reference-seed CANDIDATES are different
+    # objects. The headline counts confirmed members only; candidates are reported on their own line.
+    rows = [r for r in all_rows if r["unit_source"] != "REFERENCE_SEED"]
+    seed = [r for r in all_rows if r["unit_source"] == "REFERENCE_SEED"]
     N = len(topics)
     st = Counter(x["comparator_set_state"] for x in topics)
     wrong = [x["slug"] for x in topics if x["held_text"]["state"] == "HELD_TEXT_NOT_NAMED_ARTICLE"]
@@ -45,7 +49,7 @@ def main():
     miss = [r for r in uniq if r["gap_class"] != "POOLED"]
     M = len(miss)
     gc = Counter(r["gap_class"] for r in miss)
-    closable = [r for r in miss if r["gap_class"] not in ("MEASURE_MISMATCH",)]
+    closable = [r for r in miss if r["gap_class"] not in ("MEASURE_MISMATCH", "SCOPE_MISMATCH")]
     sc = Counter(r["closable_by"] for r in closable)
     unres = sum(r["status"] == "UNRESOLVED" for r in rows)
     other = sum(r["drug"] == "OTHER_AGENT" for r in rows)
@@ -55,11 +59,12 @@ def main():
         if r["closable_by"] == "AACT_RESULTS":
             pt = {m.get("param_type") for m in r["aact"]["outcome_matches"]}
             typed["COUNT_OF_PARTICIPANTS" if "COUNT_OF_PARTICIPANTS" in pt else "OTHER_PARAM_TYPE"] += 1
-    per = sorted(topics, key=lambda x: -x["missing"])
+    per = sorted([x for x in topics if x["comparator_set_state"] in ("TABLE_ENUMERATED", "PROPOSAL_ENUMERATED_GATED")],
+                 key=lambda x: -x["missing"])
     lines = [
         f"# K-GAP summary ({t['generated']}, AACT snapshot {os.path.basename(t['aact_snapshot'] or 'NONE')})",
         "",
-        f"1. Topics with a comparator meta: **{N}**. Comparator trial set enumerated from: citing JATS table "
+        f"1. Topics with a comparator meta: **{N}**; lines 3-7 count the {N - st['REFERENCE_SEED_CANDIDATES'] - st['NOT_ENUMERABLE_OPEN']} whose set is CONFIRMED. Comparator trial set enumerated from: citing JATS table "
         f"{st['TABLE_ENUMERATED']}, gated model proposal {st['PROPOSAL_ENUMERATED_GATED']}, open reference-list seed "
         f"(candidate superset) {st['REFERENCE_SEED_CANDIDATES']}, not enumerable from open sources {st['NOT_ENUMERABLE_OPEN']}.",
         f"2. Held comparator text is a DIFFERENT article than the cited comparator: **{len(wrong)} of {N}** ({', '.join(wrong) or 'none'}).",
@@ -71,6 +76,10 @@ def main():
         + ", ".join(f"{k} {sc[k]} of {len(closable)}" for k in SRC_ORDER) + ".",
         f"7. AACT-closable by result type: COUNT_OF_PARTICIPANTS {typed['COUNT_OF_PARTICIPANTS']}, other param types "
         f"{typed['OTHER_PARAM_TYPE']} (hazard ratios / rates / means need a measure-compatible estimand, not a 2x2).",
+        f"7b. Reference-seed CANDIDATES (not confirmed members; {len({r['slug'] for r in seed})} topics whose comparator "
+        f"set is not enumerable from an open table or quoted text): {len(seed)} RCT-typed, agent-named reports cited "
+        f"by the comparator; pooled by us {sum(r['gap_class'] == 'POOLED' for r in seed)}, not pooled "
+        f"{sum(r['gap_class'] != 'POOLED' for r in seed)}.",
         "8. Largest gaps: " + "; ".join(f"{x['slug']} {x['missing']}/{x['drug_specific_resolved']}" for x in per[:6]) + ".",
         "9. NOT probed yet (so absent from 'closable'): Drugs@FDA reviews, EMA EPARs, NICE committee papers, "
         "Unpaywall non-PMC OA copies, OA supplements. 'NONE_OPEN_PROBED' means none of AACT posted results / PMC OA held it.",

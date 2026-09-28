@@ -148,6 +148,14 @@ def resolve_unit(u, parsed, idx, agents_re):
                 break
             if len(cands) > 1:
                 basis.append(f"acronym_ambiguous:{a}:{','.join(cands[:4])}")
+                continue
+            tc = sorted({n for n in idx.get("acr_title_nct", {}).get(k_gap.norm_acronym(a), []) if idx["agent_nct"].get(n)})
+            if len(tc) == 1:
+                ncts.add(tc[0])
+                basis.append(f"acronym_aact_title:{a}")
+                break
+            if len(tc) > 1:
+                basis.append(f"acronym_title_ambiguous:{a}:{','.join(tc[:4])}")
     for n in list(ncts):
         pmids |= set(idx.get("nct_pmids", {}).get(n, []))
     return {"pmids": sorted(pmids), "ncts": sorted(ncts), "basis": basis}
@@ -201,6 +209,8 @@ def classify(status, absent, reg_agent, aact_src, oa):
         return "POOLED"
     if status == "UNRESOLVED":
         return "UNRESOLVED_IDENTITY"
+    if status == "SCOPE_MISMATCH":
+        return "SCOPE_MISMATCH"
     if status == "DECLARED_ABSENT":
         rc, kind = absent["reason_code"], absent["absent_kind"]
         if rc in MEASURE or kind in ("refused_on_evidence", "engine_cannot_consume"):
@@ -220,7 +230,7 @@ def classify(status, absent, reg_agent, aact_src, oa):
 
 
 def closable_by(cls, aact_src, oa):
-    if cls in ("POOLED", "MEASURE_MISMATCH", "UNRESOLVED_IDENTITY"):
+    if cls in ("POOLED", "MEASURE_MISMATCH", "UNRESOLVED_IDENTITY", "SCOPE_MISMATCH"):
         return ""
     if aact_src["n_matches"] > 0:
         return "AACT_RESULTS"
@@ -314,6 +324,76 @@ def proposal_units(slug: str, agents: list[str], others: list[str] | None = None
     return out
 
 
+def family_by_acronym(acronyms, families):
+    """Our own trial family whose registered acronym equals, or is a >=5-char prefix-extension of, the unit's
+    acronym (RALES == RALES; HARMONY -> 'HARMONY Outcomes'). Our families are a small, topic-scoped set, so a
+    prefix here cannot wander into an unrelated trial the way a registry-wide prefix search would."""
+    for a in acronyms:
+        na = k_gap.norm_acronym(a)
+        if len(na) < 4:
+            continue
+        hits = [f for f in families if any(fa == na or (len(na) >= 5 and fa.startswith(na)) for fa in f["acronyms"])]
+        if len(hits) == 1:
+            return hits[0]
+    return None
+
+
+_COMP_DEFAULT = ["placebo", "sham", "usual care", "standard care", "standard of care", "no treatment", "control"]
+
+
+_PLACEBO_TYPES = {"PLACEBO_COMPARATOR", "SHAM_COMPARATOR", "NO_INTERVENTION"}
+
+
+def comparator_scope(ncts, idx, topic):
+    """Does the trial's registered design contain the topic's registered comparator? A comparator meta can
+    include active-comparator trials (finerenone vs EPLERENONE in an MRA-vs-placebo topic); such a trial is a
+    SCOPE difference, not a gap. Read from the ARM TYPE (design_groups.group_type), not intervention names: a
+    double-dummy active-comparator trial lists 'placebo' among its interventions. For a placebo topic the
+    comparator is present iff some arm is PLACEBO/SHAM/NO_INTERVENTION; for an active-comparator topic iff some
+    arm's title names a comparator term. UNKNOWN when no NCT resolved or AACT holds no arms."""
+    terms = list((topic.get("include") or {}).get("comparator_any") or []) or _COMP_DEFAULT
+    groups = [g for n in ncts for g in (idx.get("design_groups") or {}).get(n, [])]
+    if not groups:
+        return {"state": "UNKNOWN"}
+    placebo_topic = any(t.lower() in ("placebo", "sham", "control", "no treatment", "usual care") for t in terms)
+    types = [g["group_type"].upper() for g in groups]
+    tre = re.compile("|".join(re.escape(t) for t in terms), re.I)
+    # placebo topic: the arm TYPE alone decides ('Eplerenone [25 mg] + Placebo' is ARTS-HF's ACTIVE arm, so a
+    # title match on 'placebo' would call a double-dummy active-comparator trial placebo-controlled)
+    present = any(t in _PLACEBO_TYPES for t in types) if placebo_topic else any(tre.search(g["title"]) for g in groups)
+    st = "COMPARATOR_IN_REGISTRY_ARMS" if present else "COMPARATOR_NOT_IN_REGISTRY_ARMS"
+    return {"state": st, "arm_types": sorted(set(types)), "terms": terms[:6]}
+
+
+def pubmed_acronym(acr, agents, offline):
+    """Last-resort identity for an acronym-only label (pre-registry trials): PubMed acronym[tiab] + topic agent +
+    RCT publication type. One hit -> that PMID; several -> the EARLIEST (lowest PMID), with the hit count
+    recorded in the basis so a reader sees it was a choice among n. Cached for replay.
+    CHANGED 2026-09-29: several hits now resolve NOTHING. 'Earliest of n' mapped HARMONY (Outcomes) to a
+    HARMONY-3 report (earliest of 14) -- a choice among n reports of a programme is not an identity."""
+    cp = os.path.join(OUT, "pubmed_acronym.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents[:6])
+    acr = re.sub(r"(?<=[A-Za-z])(?:19|20)\d\d$", "", acr)       # 'RALES1999' -> 'RALES'
+    q = f'"{acr}"[tiab] AND ({ag}) AND randomized controlled trial[pt]'
+    if q not in cache and not offline:
+        import time
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                              {"db": "pubmed", "term": q, "retmode": "json", "retmax": 50})
+            cache[q] = d.get("esearchresult", {}).get("idlist", [])
+        except Exception as exc:  # noqa: BLE001
+            cache[q] = {"error": str(exc)[:200]}
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+        time.sleep(0.4)
+    ids = cache.get(q)
+    if isinstance(ids, list) and len(ids) == 1:
+        return ids[0], q, 1
+    return None, q, len(ids) if isinstance(ids, list) else 0
+
+
 def pubmed_author_year(author, year, agents, offline):
     """PMID for 'Author Year' + topic agent via NCBI ESearch -- admitted only when EXACTLY one hit.
     Queries and answers are cached (outputs/k_gap/pubmed_author_year.json) so a rerun replays them."""
@@ -376,6 +456,10 @@ def main(argv=None):
     def prep(P, units):
         need = set()
         for u in units:
+            if not u["cited"] and P["parsed"] and u["layout"] == "text":
+                rs = k_gap.refs_by_number(u["label"], P["parsed"]["refs"])
+                if rs and all(r.get("pmid") for r in rs):
+                    u["cited"] = [{"pmid": r["pmid"], "doi": r.get("doi"), "basis": "label_ref_number"} for r in rs]
             if not u["cited"] and not u["ncts"] and u["author"] and u["year"]:
                 refhit = None
                 if P["parsed"]:
@@ -403,7 +487,23 @@ def main(argv=None):
         for u in units:
             ident = resolve_unit(u, P["parsed"], tidx, agents_re)
             ident["basis"] += [c["basis"] for c in u["cited"] if c.get("basis")]
+            if not ident["pmids"] and not ident["ncts"]:
+                fam_hit = family_by_acronym(u["acronyms"], P["ours"]["families"])
+                if fam_hit:
+                    ident["ncts"] = [fam_hit["family_id"]] if fam_hit["family_id"].startswith("NCT") else []
+                    ident["pmids"] = sorted(x for x in fam_hit["reports"] if x.isdigit())
+                    ident["basis"].append("acronym_our_family:" + fam_hit["family_id"])
+                elif u["acronyms"] and u["layout"] == "text":
+                    # only for a label the model QUOTED as an included study -- never a table row (the noac IPD
+                    # baseline table's 'CHADS2 score' row resolved to a RE-LY sub-analysis through this path)
+                    pm, q, n_hits = pubmed_acronym(u["acronyms"][0], P["agents"], offline)
+                    u["pubmed_query"] = {"q": q, "n": n_hits}
+                    if pm:
+                        ident["pmids"] = [pm]
+                        ident["basis"].append("pubmed_acronym_single_hit")
+                        ident["ncts"] = [n for n, _t in tidx["pmid_nct"].get(pm, [])]
             reg = registry_agent(ident["ncts"], tidx)
+            scope = comparator_scope(ident["ncts"], tidx, P["topic"])
             # the unit's own text naming our agent wins; else the REGISTRY decides when an NCT resolved; the
             # text "names another served topic's molecule" check applies only when the registry cannot speak.
             if u["agent_hit"] or reg:
@@ -416,6 +516,9 @@ def main(argv=None):
                 status, fam, absent = "UNRESOLVED", None, None
             else:
                 status, fam, absent = match_ours(ident, u["acronyms"], P["ours"])
+                if status in ("NOT_IDENTIFIED", "IDENTIFIED_NOT_POOLED") and \
+                        scope["state"] == "COMPARATOR_NOT_IN_REGISTRY_ARMS":
+                    status = "SCOPE_MISMATCH"
             src = aact_source(ident["ncts"], tidx, outcome_keywords(P["topic"]), P["ours"]["estimand"])
             out.append({"slug": slug, "comparator_pmid": P["comparator_pmid"], "unit_source": source,
                         "table": u["table"], "layout": u["layout"], "label": u["label"], "context": u["context"][:300],
@@ -424,7 +527,8 @@ def main(argv=None):
                         "cited_doi": [c.get("doi") for c in u["cited"] if c.get("doi")],
                         "status": status, "family_id": fam["family_id"] if fam else "",
                         "family_eligibility": fam["eligibility"] if fam else "",
-                        "declared_absent": absent, "aact": src, "study": {n: tidx["study"].get(n) for n in ident["ncts"]}})
+                        "declared_absent": absent, "aact": src, "comparator_scope": scope,
+                        "study": {n: tidx["study"].get(n) for n in ident["ncts"]}})
         return out
 
     def n_elig(rs):
@@ -438,6 +542,7 @@ def main(argv=None):
         o = P["ours"]
         need |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
     store.ensure_ncts(need, log=log)
+    store.ensure_design_groups(log=log)
     for slug, P in per.items():
         P["chosen"] = None
         for src, inc in P["cands"]:
@@ -448,16 +553,17 @@ def main(argv=None):
     # round 2: reference seeding, only where no held source resolved a drug-specific trial
     need = set()
     for slug, P in per.items():
-        if P["chosen"] or offline:
+        if P["chosen"]:
             continue
-        er = k_gap.fetch_epmc_references(P["comparator_pmid"], DATE)
-        pt = k_gap.pubmed_pubtypes([r["pmid"] for r in er["refs"]], os.path.join(OUT, "pubmed_pubtypes.json")) \
+        er = k_gap.fetch_epmc_references(P["comparator_pmid"], DATE, offline)
+        pt = k_gap.pubmed_pubtypes([r["pmid"] for r in er["refs"]], os.path.join(OUT, "pubmed_pubtypes.json"), offline) \
             if er["refs"] else {}
         su = k_gap.reference_seed_units(er["refs"], pt, P["agents"])
         P["seed"] = {"state": "REFERENCE_SEEDED_CANDIDATES", "units": su, "tables_used": [er.get("file", "")],
                      "refs_held": len(er["refs"])}
         need |= prep(P, su)
     store.ensure_ncts(need, log=log)
+    store.ensure_design_groups(log=log)
     rows = []
     for slug, P in per.items():
         if not P["chosen"] and P.get("seed"):
