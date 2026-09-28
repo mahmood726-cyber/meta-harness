@@ -48,11 +48,17 @@ def test_plant_prefixed_ticagrelor_direction_conflict_and_live_refuses_pool_row(
     live = live_o["result"]
     assert live["pool_refused"]["code"] == k2.DIRECTION_CONFLICT_K2
     assert live.get("estimate") is None and live.get("ci_low") is None and live.get("ci_high") is None
-    assert live["pool_refused"]["honest_k1_anchor"]["name"] == "PLATO"
-    assert [x["label"] for x in live["pool_refused"]["named_remainders"]] == ["PHILO"]
+    # sacubitril-HFrEF review (2026-09-28): this used to assert that a pre-named "honest k=1 anchor" (PLATO) is shown in
+    # place of the withheld pool -- a single trial swapped in to remove the sign conflict. That is refused now: withholding
+    # is a PRESENTATION policy, both trials stay admissible and are shown as named results, and the model computation is valid.
+    ref = live["pool_refused"]
+    assert ref["decision_type"] == "PRESENTATION_POLICY" and ref["label"] == "withheld under a conservative presentation policy"
+    assert ref["eligibility"]["state"] == "ALL_ADMISSIBLE" and ref["model_validity"]["state"] == "COMPUTED_VALID"
+    assert "honest_k1_anchor" not in ref and ref["anchor_substitution_refused"]["configured"] == "PLATO"
+    assert sorted(x["label"] for x in ref["named_results"]) == sorted(str(t["label"]) for t in live_o["trials"])
     html = page.render_outcome_block(live_o)
-    assert "Pooled result REFUSED" in html and "Honest k=1 anchor" in html
-    assert "PLATO" in html and "PHILO" in html
+    assert "WITHHELD under a conservative presentation policy" in html and "Honest k=1 anchor" not in html
+    assert all(str(t["label"]) in html for t in live_o["trials"])  # both trials shown by their own labels
 
 
 def test_plant_prefixed_ticagrelor_grade_inconsistency_missing_and_live_has_state():

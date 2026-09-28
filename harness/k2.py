@@ -188,18 +188,36 @@ def apply_k2_policy(result: dict[str, Any], trials: list[dict[str, Any]] | None 
             "would_be_ci_high": result.get("ci_high"),
             "would_be_tau2": result.get("tau2"),
             "would_be_i2": result.get("i2"),
-            "note": "invalid as a pooled row because the two k=2 trials conflict in direction or interval support",
+            "note": ("a VALID model computation, withheld under a conservative presentation policy (the two k=2 trials "
+                     "conflict in direction or interval support); not an eligibility or validity decision"),
         }
-        anchor, remainders = _match_anchor(trials or [], anchor_config, result.get("scale"))
+        # PRESENTATION RULE != EVIDENCE DECISION (sacubitril-HFrEF review, 2026-09-28; retrospective, Dispatch under Mahmood's
+        # delegation). Two admissible trials whose point estimates straddle the null (PARADIGM 0.80, PARALLEL 1.09 -- intervals
+        # overlapping, heterogeneity p ~ 0.25) give a VALID model computation. Withholding it is a conservative PRESENTATION policy,
+        # recorded separately from eligibility (both trials stay admissible) and from model validity. No trial is made
+        # inadmissible and no single "anchor" trial is swapped in to remove the sign conflict: both are shown as named results.
+        named = [trial_effect_interval(t, result.get("scale")) for t in (trials or [])]
+        q = result.get("Q")
+        het_p = (math.erfc(math.sqrt(float(q) / 2.0)) if q is not None else None)
         result["pool_refused"] = {
             "code": DIRECTION_CONFLICT_K2,
-            "detail": "k=2 pooled row refused because " + "; ".join(diag.get("reasons") or []),
-            "rule": ("At k=2, if point estimates are on opposite sides of the null or trial CIs do not "
-                     "overlap, no pooled row is served. A k=1 anchor is shown only when it is explicitly "
-                     "pre-named in the topic configuration/protocol metadata; otherwise both trials are "
-                     "shown only as named individual results."),
+            "decision_type": "PRESENTATION_POLICY",
+            "label": "withheld under a conservative presentation policy",
+            "detail": "k=2 pooled row withheld under a conservative presentation policy because " + "; ".join(diag.get("reasons") or []),
+            "rule": ("Presentation policy: at k=2, when the two point estimates are on opposite sides of the null or the trial CIs "
+                     "do not overlap, the pooled row is not shown; both trials are shown as named results. This is not an "
+                     "eligibility decision (both trials remain admissible) and not a model-validity finding."),
+            "eligibility": {"state": "ALL_ADMISSIBLE", "trials": [t.get("id") or t.get("label") for t in (trials or [])]},
+            "model_validity": {"state": "COMPUTED_VALID", "estimate": result.get("estimate"), "ci_low": result.get("ci_low"),
+                               "ci_high": result.get("ci_high"), "method": "PM tau^2 + HKSJ on t(1)",
+                               "heterogeneity": {"Q": q, "df": 1, "p": (round(het_p, 4) if het_p is not None else None),
+                                                 "i2": result.get("i2")}},
+            "named_results": named,
             "diagnostics": diag,
-            **({"honest_k1_anchor": anchor, "named_remainders": remainders} if anchor else {}),
+            **({"anchor_substitution_refused": {
+                "configured": anchor_config.get("name") or anchor_config.get("id"),
+                "reason": ("a pre-named single trial is never presented in place of the pool to remove a sign conflict; both "
+                           "trials are shown as named results")}} if anchor_config else {}),
         }
         result["counterfactual"] = old
         if old.get("would_be_ci_low") is not None or old.get("would_be_ci_high") is not None:
@@ -207,7 +225,7 @@ def apply_k2_policy(result: dict[str, Any], trials: list[dict[str, Any]] | None 
                 "ci_low": old.get("would_be_ci_low"),
                 "ci_high": old.get("would_be_ci_high"),
                 "method": "PM tau^2 + HKSJ on t(1)",
-                "note": "computed for auditability only; not served because the k=2 pooled row is refused",
+                "note": "computed and valid; not shown because a conservative presentation policy withholds the k=2 row",
             }
         for key in ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed",
                     "ci_high_fixed", "pi_low", "pi_high", "pi_note", "fixed_note", "leave_one_out"):

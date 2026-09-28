@@ -376,31 +376,25 @@ def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:
     ref = res.get("pool_refused") or {}
     cf = res.get("counterfactual") or {}
     line = (
-        "<div class='absent'><strong>Pooled result REFUSED (k=2 direction conflict).</strong> "
+        "<div class='absent'><strong>Pooled result WITHHELD under a conservative presentation policy (k=2 direction conflict).</strong> "
         f"{_e(ref.get('detail'))} {_e(ref.get('rule'))}"
     )
     if cf.get("would_be_estimate") is not None:
         line += (
-            f" <em>The invalid pooled row is quarantined for audit only: "
+            f" <em>The valid pooled computation, withheld by presentation policy (not an eligibility or validity decision): "
             f"{_num(cf.get('would_be_estimate'))} ({_num(cf.get('would_be_ci_low'))}-"
             f"{_num(cf.get('would_be_ci_high'))}), tau^2={_e(cf.get('would_be_tau2'))}, "
             f"I^2={_e(cf.get('would_be_i2'))}%. {_e(stale_reason)}</em>"
         )
-    anchor = ref.get("honest_k1_anchor") or {}
-    if anchor:
-        line += (
-            f"<p><strong>Honest k=1 anchor:</strong> {_e(anchor.get('name') or anchor.get('label'))} "
-            f"{_e(anchor.get('scale') or res.get('scale'))} {_num(anchor.get('effect'))} "
-            f"(95% CI {_num(anchor.get('ci_low'))}-{_num(anchor.get('ci_high'))}). "
-            f"{_e(anchor.get('basis') or '')}</p>"
+    named = ref.get("named_results") or []
+    if named:
+        items = "".join(
+            f"<li>{_e(x.get('label'))}: {_e(x.get('scale') or res.get('scale'))} {_num(x.get('effect'))} "
+            f"(95% CI {_num(x.get('ci_low'))}-{_num(x.get('ci_high'))})</li>" for x in named
         )
-        rem = ref.get("named_remainders") or []
-        if rem:
-            items = "".join(
-                f"<li>{_e(x.get('label'))}: {_e(x.get('scale') or res.get('scale'))} {_num(x.get('effect'))} "
-                f"(95% CI {_num(x.get('ci_low'))}-{_num(x.get('ci_high'))})</li>" for x in rem
-            )
-            line += f"<p><strong>Named remainder(s), not pooled:</strong></p><ul>{items}</ul>"
+        line += f"<p><strong>Named results (both admissible; neither substituted for the pool):</strong></p><ul>{items}</ul>"
+    if ref.get("anchor_substitution_refused"):
+        line += f"<p>{_e(ref['anchor_substitution_refused'].get('reason'))}.</p>"
     return line + "</div>"
 
 

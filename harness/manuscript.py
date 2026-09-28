@@ -318,15 +318,14 @@ def render(review, neutral: bool = False) -> str:
     # ---- structured abstract ----
     if res.get("pool_refused"):
         ref = res.get("pool_refused") or {}
-        anchor = ref.get("honest_k1_anchor") or {}
-        if anchor:
-            rem = ", ".join(str(x.get("label")) for x in (ref.get("named_remainders") or []))
+        named = ref.get("named_results") or []
+        if named:
+            parts = "; ".join(f"{_e(x.get('label'))} {_e(x.get('scale') or scale)} {_fmt(x.get('effect'))} "
+                              f"(95% CI {_fmt(x.get('ci_low'))} to {_fmt(x.get('ci_high'))})" for x in named)
             result_sentence = (
-                f"The two eligible trials conflict in direction, so no pooled effect is reported. "
-                f"The pre-named k=1 anchor is {_e(anchor.get('name') or anchor.get('label'))}: "
-                f"{_e(anchor.get('scale') or scale)} {_fmt(anchor.get('effect'))} "
-                f"(95% CI {_fmt(anchor.get('ci_low'))} to {_fmt(anchor.get('ci_high'))}); "
-                f"the named remainder is {_e(rem)}."
+                "The two eligible trials' point estimates fall on opposite sides of the null, so the pooled effect is "
+                "withheld under a conservative presentation policy (both trials remain admissible and the model "
+                f"computation is valid). The trials' own results are: {parts}."
             )
         else:
             result_sentence = (

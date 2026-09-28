@@ -15,6 +15,7 @@ import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import effect_identity as effect_identity_mod
+from . import strategy_periods as strategy_periods_mod
 from . import continuous_identity as continuous_identity_mod
 from . import outcome_tiers as outcome_tiers_mod
 from . import composite_rule as composite_rule_mod
@@ -1613,6 +1614,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                          if _rc else None))
                     break
     _apply_trial_annotations(spec, trials)
+    # STRATEGY CONTINUITY (sacubitril-HFrEF review): a result past a stated switch of the randomised strategies (PIONEER-HF:
+    # enalapril switched to sacubitril/valsartan at week 8) estimates EARLY vs DELAYED initiation, not the randomised
+    # comparison. It is held as its own period, never used as "longest follow-up" of the randomised contrast.
+    _strategy_held = []
+    for t in list(trials):
+        _pid = str(t.get("id") or "").replace("PMID ", "")
+        _txt = ((rec_by_id.get(_pid) or {}).get("abstract") or "") + " " + str((fulltext_by_pmid or {}).get(_pid) or "")
+        _sc = strategy_periods_mod.continuity(t, _txt)
+        if not _sc:
+            continue
+        t["strategy_continuity"] = _sc
+        if _sc["state"] == "STRATEGY_CHANGED":
+            trials.remove(t)
+            _strategy_held.append(t)
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                           "state": "STRATEGY_CHANGED_DURING_FOLLOW_UP", "reason_code": "STRATEGY_CHANGED_DURING_FOLLOW_UP",
+                           "endpoint_admissibility": "STRATEGY_CHANGED_DURING_FOLLOW_UP", "reason": _sc["reason"],
+                           "strategy_periods": _sc["periods"], "refused_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale")}})
     for t in trials:
         if t.get("cross_source"):
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
