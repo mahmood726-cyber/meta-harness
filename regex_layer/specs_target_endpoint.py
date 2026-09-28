@@ -6,7 +6,7 @@ reads s_cv); _EFFECT_RE and the sentence split read raw abstract text.
 """
 
 SITE_SPECS: dict = {
-    'target_endpoint.py:L904': {
+    'target_endpoint.py:_WORSENING_HF': {
         "kind": 'search', "what": 'title_components: expand worsening heart failure in a composite title',
         "plants": {"accept": [('worsening heart failure', None)],
                    "refuse": ['stable heart failure']}},
@@ -80,16 +80,19 @@ SITE_SPECS: dict = {
                    "refuse": ['patients without influenza']}},
     'target_endpoint.py:_RECURRENT_METHOD': {
         "kind": 'search', "what": 'event_process: identify explicit recurrent-event analysis methods',
-        "plants": {"accept": [('negative binomial model', None)],
-                   "refuse": ['cox model']}},
+        "plants": {"accept": [('negative binomial model', None), ('lwyy proportional rates model', None),
+                              ('semiparametric proportional-rates model', None)],
+                   "refuse": ['cox model', 'proportional hazards model']}},
     'target_endpoint.py:_TIME_OR_STOP': {
         "kind": 'search', "what": '_death_composite: remove time and generic count words before testing event content',
         "plants": {"accept": [('within 30 days', None)],
                    "refuse": ['ventilation']}},
     'target_endpoint.py:_TOTAL_EVENTS': {
         "kind": 'search', "what": 'event_process: identify total or recurrent-event counting',
-        "plants": {"accept": [('total heart failure hospitalizations', None)],
-                   "refuse": ['recurrent vte']}},
+        "plants": {"accept": [('total heart failure hospitalizations', None),
+                              ('events included in the composite endpoint of cv death', None),
+                              ('rate ratio (lwyy proportional rates model)', None)],
+                   "refuse": ['recurrent vte', 'subjects included in the composite endpoint of cv death']}},
     'target_endpoint.py:_TOTAL_NEGATED_AFTER': {
         "kind": 'search', "what": 'event_process: detect exclusion following a total-event phrase',
         "plants": {"accept": [(' were not counted', None)],

@@ -42,10 +42,15 @@ _TOTAL_EVENTS = re.compile(
     r"\bincluding\s+(?:all\s+)?(?:recurrences|recurrent\s+(?:events|hospitali[sz]ations))\b|"
     r"\brecurrent[\s-]+event\s+(?:model|analysis|analyses|method)\b|\bjoint\s+frailty\b|\bnegative\s+binomial\b|"
     r"\blin[\s-]+wei\b|\bandersen[\s-]+gill\b|\bevent\s+rate\s+ratio\b|\brate\s+of\s+(?:total|recurrent)\b|"
-    r"\bannuali[sz]ed\s+(?:event\s+)?rate\b", re.I)
+    r"\bannuali[sz]ed\s+(?:event\s+)?rate\b|"
+    # the recurrent-event rate models themselves (SGLT2-HFrEF review: DAPA-HF's 'LWYY proportional rates model', 'semiparametric
+    # proportional-rates model'); and the registry's own event-count label ('Events Included in ...', beside 'Subjects
+    # Included in ...' for the first-event measure)
+    r"\blwyy\b|\bproportional[\s-]+rates?\b|\bghosh[\s-]+lin\b|\bmean\s+(?:cumulative\s+)?frequency\b|"
+    r"\bevents\s+included\s+in\b", re.I)
 _COX = re.compile(r"\bcox\b|\bproportional[\s-]+hazards?\b", re.I)
 _RECURRENT_METHOD = re.compile(r"joint\s+frailty|negative\s+binomial|lin[\s-]+wei|andersen[\s-]+gill|recurrent[\s-]+event\s+"
-                               r"(?:model|analysis|analyses|method)", re.I)
+                               r"(?:model|analysis|analyses|method)|lwyy|proportional[\s-]+rates?|ghosh[\s-]+lin", re.I)
 # a total-event phrase that is NEGATED is a first-event statement ('recurrent events were not included')
 _TOTAL_NEGATED_AFTER = re.compile(r"\s*(?:were|was)\s+(?:not\s+(?:included|counted|analy[sz]ed)|excluded)\b", re.I)
 _TOTAL_NEGATED_BEFORE = re.compile(r"\b(?:excluding|without|not\s+including|other\s+than)\s+$", re.I)
@@ -901,8 +906,8 @@ def optional_components(spec: dict[str, Any]) -> set[str]:
 # ---- the composite's declaration must account for its title ---------------------------------------------------------
 COMPOSITE_DECLARATION_INCOMPLETE = "COMPOSITE_DECLARATION_INCOMPLETE"
 # title vocabulary ONLY (not the general reader, where trials define these differently): what a composite TITLE names
-_TITLE_TERMS = ((re.compile(r"\bworsening\s+(?:heart\s+failure|hf)\b", re.I),
-                 {"heart failure hospitalization", "urgent heart failure visit"}),)
+_WORSENING_HF = re.compile(r"\bworsening\s+(?:heart\s+failure|hf)\b", re.I)   # named: a stable regex-inventory key
+_TITLE_TERMS = ((_WORSENING_HF, {"heart failure hospitalization", "urgent heart failure visit"}),)
 
 
 def title_components(name: str | None) -> set[str]:

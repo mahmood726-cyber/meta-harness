@@ -171,6 +171,30 @@ The calls are logged in `C:/mh-lanes/nr/codex/CALL_LOG.jsonl` (NR-C03 … NR-C17
   - The error-rate census: 131 pooled rows, 26 NOT_INDEPENDENTLY_RECHECKED.
   - The fix ledger and the README fix-state lines.
 
+### Event process: DAPA-HF's identical 0.75 (SGLT2-HFrEF review), follow-up commit
+- **The fixture:** DAPA-HF's registry holds two results with the same point estimate.
+  - First-event: 'Subjects Included in the Composite Endpoint of CV Death or Hospitalization Due to Heart Failure', HR 0.75
+    (0.65-0.85), Cox. This is the pooled input.
+  - Total-event: 'Events Included in the Composite Endpoint of Recurrent Hospitalizations Due to Heart Failure and CV
+    Death', 567 vs 742 events, rate ratio 0.75 (0.65-0.88), LWYY proportional rates model.
+  - The live page listed the total-event result as an EXACT_TARGET alternative.
+- **Result:** it is refused (`EVENT_PROCESS_MISMATCH`), and the refusal holds even without the word 'recurrent'.
+- **Signals:** the rate models (LWYY, proportional rates, semiparametric, Ghosh-Lin) and the registry's own event-count
+  label ('Events Included in', paired with 'Subjects Included in') are now total-event evidence.
+- **Not a signal on its own:** a 'Rate Ratio' parameter type. ASCEND's registry uses it for first-occurrence results, so
+  the 'Rate Ratio (RR)' scale reading is left unchanged.
+- **Radius** (this change alone, against the batch-2 rebuild):
+  - 0 of 797 served rows change.
+  - 0 of 652 metadata fields rebound.
+  - 2 of 939 registry EXACT labels downgraded: sacubitril-valsartan's 'Events Included in the Composite Endpoint of CV
+    Death or Recurrent Heart Failure Event ...', a total-events measure the previous phrasing missed.
+- **Tests:** full suite 4249 passed; the same 19 failed / 12 errors as batch 2, 0 new.
+- **Regex inventory:** the 'worsening heart failure' title pattern is now named (`_WORSENING_HF`), because its line-number
+  key broke whenever lines were added above it.
+- **Note for lane oc:** `NOTE_TO_OC_sglt2_dapa_hf.md`. The compatibility narrative (`docs/definition_audit.json`, and the
+  topic's `trial_annotations` for 31535829) still describes DAPA-HF's broader primary, including urgent HF visits, while
+  the pooled input is the first-event CV death/HHF secondary. Keep the input and fix the narrative; no number changes.
+
 ## Tests (full suite, sequential, temp on C:)
 - **Result:** 4237 passed, 71 xfailed, 19 failed, 12 errors, all accounted for.
 - **Environment:**

@@ -242,3 +242,48 @@ def test_the_classifier_reads_the_process_from_the_definition_and_its_own_result
     assert te._classify(spec, definition, result_span=result)["target_endpoint_class"] != te.EVENT_PROCESS_MISMATCH
     rec = te.registry_outcome_match(spec, {}, definition, result_span=result)
     assert rec["target_endpoint_class"] != te.EVENT_PROCESS_MISMATCH
+
+
+# ---- SGLT2-HFrEF review: DAPA-HF's first-event and total-event results share the SAME estimate (0.75) -------------------
+# Component match is not enough: the recurrent-event result (567 vs 742 EVENTS, rate ratio 0.75 (0.65-0.88), LWYY /
+# semiparametric proportional-rates model) was labelled EXACT_TARGET beside the first-event HR 0.75 (0.65-0.85) on the
+# live page. The event process must match too, and it must not rest on the word 'recurrent' alone.
+SGLT2 = _json.loads((Path(__file__).resolve().parents[1] / "topics/sglt2-hfref-hosp-cvdeath.json").read_text(
+    encoding="utf-8"))["primary_outcome"]
+DAPA_FIRST = ("Subjects Included in the Composite Endpoint of CV Death or Hospitalization Due to Heart Failure.",
+              "Hazard Ratio (HR) 0.75 (95% CI 0.65 to 0.85; Regression, Cox)")
+
+
+def _reg(measure, analysis):
+    return te.registry_outcome_match(SGLT2, {}, measure, result_span=analysis)["target_endpoint_class"]
+
+
+def test_dapa_hf_first_event_result_is_the_target():
+    assert _reg(*DAPA_FIRST) == te.EXACT_TARGET
+
+
+@pytest.mark.parametrize("measure,analysis", [
+    # as held in the registry
+    ("Events Included in the Composite Endpoint of Recurrent Hospitalizations Due to Heart Failure and CV Death.",
+     "Rate Ratio (RR) 0.75 (95% CI 0.65 to 0.88; LWYY proportional rates model)"),
+    # the same result without the word 'recurrent': the registry's event-count label and the rate model decide
+    ("Events Included in the Composite Endpoint of Hospitalizations Due to Heart Failure and CV Death.",
+     "Rate Ratio (RR) 0.75 (95% CI 0.65 to 0.88; LWYY proportional rates model)"),
+    ("Composite Endpoint of Hospitalizations Due to Heart Failure and CV Death.",
+     "Rate Ratio (RR) 0.75 (95% CI 0.65 to 0.88; semiparametric proportional-rates model)"),
+])
+def test_dapa_hf_total_event_result_with_the_identical_estimate_is_refused(measure, analysis):
+    assert _reg(measure, analysis) == te.EVENT_PROCESS_MISMATCH
+
+
+def test_dapa_hf_total_event_prose_is_refused():
+    prose = ("The total number of hospitalizations for heart failure and cardiovascular deaths was lower with dapagliflozin "
+             "(567 vs 742 events; rate ratio, 0.75; 95% CI, 0.65 to 0.88) in a semiparametric proportional-rates model.")
+    assert te._classify(SGLT2, prose)["target_endpoint_class"] == te.EVENT_PROCESS_MISMATCH
+
+
+def test_a_first_occurrence_rate_ratio_is_not_a_total_event_result():
+    # ASCEND-style registry rows call a first-occurrence comparison a 'Rate Ratio' (log rank): the parameter name alone
+    # never decides the event process
+    assert te.event_process("Number of Participants With First Occurrence of Any Serious Vascular Event "
+                            "Rate Ratio 0.88 (95% CI 0.79 to 0.97; Log Rank)")["process"] != te.TOTAL_EVENTS
