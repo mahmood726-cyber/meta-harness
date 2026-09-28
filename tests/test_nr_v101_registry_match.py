@@ -119,3 +119,36 @@ def test_until_the_date_of_discharge_is_an_in_hospital_window():
     out = te.registry_outcome_match(spec, {}, "The Number of Participants With Atrial Fibrillation",
                                     time_frame="From date of randomization until the date of discharge, assessed up to 30 days")
     assert out["target_endpoint_class"] == te.EXACT_TARGET, out
+
+
+# ---- lane NR rebuild diff: two regressions of the V1.0.1 registry fixes, planted ----------------------------------------
+def test_a_target_range_above_zero_accepts_any_timepoint_inside_it():
+    # balanced-crystalloids: '28-90 day or in-hospital' is the set of acceptable timepoints, not a window ending at 90
+    assert te._timepoint_agreement("28-90 day or in-hospital", "28 days") == "AGREE"
+    assert te._timepoint_agreement("28-90 day or in-hospital", "Day 28") == "AGREE"
+    assert te._timepoint_agreement("0-90 days", "28 days") == "CONFLICT"          # a cumulative window still conflicts
+    assert te._timepoint_agreement("28 days", "0-90 days") == "CONFLICT"
+
+
+def test_a_title_part_written_as_its_abbreviation_is_named():
+    spec = {"name": "Stroke or systemic embolism"}
+    assert te._classify(spec, "Yearly Event Rate for Composite Endpoint of Stroke/SEE")["target_endpoint_class"] == \
+        te.EXACT_TARGET
+    assert te._classify(spec, "Stroke or systemic embolic event occurred in 1.1%")["target_endpoint_class"] == \
+        te.EXACT_TARGET
+    assert te._classify(spec, "Stroke occurred in 1.0% (HR 0.70)")["target_endpoint_class"] == \
+        te.COMPOSITE_DECLARATION_INCOMPLETE                                          # still refused: stroke alone
+
+
+@pytest.mark.parametrize("measure,composite", [
+    # a setting or qualifier of mortality is not a second event (lane NR rebuild diff)
+    ("ICU, hospital and 28 day all-cause mortality", False),
+    ("ICU and Hospital Mortality", False),
+    ("Clinical outcomes - Cardiac and non-cardiac mortality", False),
+    # a second EVENT still makes a death composite (NR-C04 #2, NR-C07 #7)
+    ("30-day all-cause sepsis or all-cause mortality", True),
+    ("Death and dependence", True),
+    ("Death or invasive mechanical ventilation", True),
+])
+def test_a_mortality_qualifier_is_not_a_second_event(measure, composite):
+    assert te._death_composite(measure) is composite

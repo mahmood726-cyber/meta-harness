@@ -6,11 +6,13 @@ into an auditable object.  It does not change pooling arithmetic.
 """
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 import json
 import os
 import re
 from typing import Any
+
+from . import component_identity
 
 
 FIRST_EVENT_RATIO = "FIRST_EVENT_RATIO"
@@ -126,6 +128,25 @@ def _component_tokens(o: dict[str, Any], t: dict[str, Any], slug: str | None = N
     return []
 
 
+def _component_identities(o: dict[str, Any], t: dict[str, Any], slug: str | None = None) -> list[dict[str, Any]]:
+    """The trial's components as typed identities. The vocabulary-mapped topics keep their names; any eGFR component,
+    wherever it comes from, is read by the typed parser with its threshold as a parameter (from the component phrase,
+    else from the trial's own definition sentence)."""
+    span = t.get("endpoint_definition_span")
+    comps = [str(c) for c in (t.get("components") or [])]
+    typed = {x["name"]: x for x in component_identity.identities(comps, span)
+             if x["name"].startswith("EGFR_") or x["name"] == "KIDNEY_FAILURE"}
+    out = {}
+    for tok in _component_tokens(o, t, slug):
+        if "EGFR" in tok or (typed.get("KIDNEY_FAILURE") and (tok.startswith("KIDNEY_FAILURE")
+                                                            or tok == "END_STAGE_KIDNEY_DISEASE")):
+            continue                                   # replaced by the typed identity below
+        out[tok] = {"name": tok, "params": {}}
+    for name, ident in typed.items():
+        out[name] = ident
+    return [out[k] for k in sorted(out)]
+
+
 def _event_time(o: dict[str, Any], slug: str | None = None) -> str | None:
     trials = o.get("trials") or []
     vals = sorted({str(t.get("endpoint_event_time")) for t in trials if t.get("endpoint_event_time")})
@@ -163,15 +184,35 @@ def endpoint_canonical(o: dict[str, Any], slug: str | None = None) -> dict[str, 
     if res.get("present") is False or res.get("suppressed_incompatible") or not res.get("k"):
         return None
     trials = o.get("trials") or []
-    by_set: dict[tuple[str, ...], list[str]] = defaultdict(list)
+    # Each trial's components as TYPED identities (name + parameters, harness/component_identity.py): a threshold is a
+    # parameter, never a string suffix, so 'sustained eGFR decline' with its '>= 40%' stated in the trial's own
+    # definition is the same component as 'sustained >=40% eGFR decline' (FIDELIO vs FIGARO, finerenone review 00a2b7e4),
+    # while 40% vs 57% is a real difference.
+    groups: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
     for t in trials:
-        toks = tuple(_component_tokens(o, t, slug))
-        if toks:
-            by_set[toks].append(t.get("label") or t.get("id") or _trial_id(t))
-    component_sets = [
-        {"components": list(k), "trials": v}
-        for k, v in sorted(by_set.items(), key=lambda item: (item[0], item[1]))
-    ]
+        idents = _component_identities(o, t, slug)
+        if not idents:
+            continue
+        label = t.get("label") or t.get("id") or _trial_id(t)
+        for g in groups:
+            cmp = component_identity.compare(g["identities"], idents)
+            if cmp["same"]:
+                g["trials"].append(label)
+                unresolved.extend(dict(u, trial=label) for u in cmp["unresolved"])
+                for mine, theirs in zip(g["identities"], idents):     # parameters stated by either side
+                    for k, v in theirs["params"].items():
+                        mine["params"].setdefault(k, v)
+                break
+        else:
+            groups.append({"identities": [dict(x, params=dict(x["params"])) for x in idents], "trials": [label]})
+    component_sets = []
+    for g in sorted(groups, key=lambda g: ([x["name"] for x in g["identities"]], g["trials"])):
+        row = {"components": [x["name"] for x in g["identities"]], "trials": g["trials"]}
+        params = {x["name"]: x["params"] for x in g["identities"] if x["params"]}
+        if params:
+            row["component_parameters"] = params
+        component_sets.append(row)
     all_components = sorted({c for row in component_sets for c in row["components"]})
     if not component_sets:
         status = "NOT_DECLARED"
@@ -182,13 +223,17 @@ def endpoint_canonical(o: dict[str, Any], slug: str | None = None) -> dict[str, 
         status = "HETEROGENEOUS_DECLARED" if (
             "trial-defined" in name or "components differ" in name or "cardiorenal" in name
         ) else "HETEROGENEOUS"
-    return {
+    out = {
         "label": _label(slug, o),
         "event_time": _event_time(o, slug),
         "components": all_components,
         "component_sets": component_sets,
         "status": status,
     }
+    if unresolved:
+        # a parameter one trial states and another does not: disclosed, not a heterogeneity
+        out["unresolved_component_parameters"] = unresolved
+    return out
 
 
 def _normal_analysis_literal(x: Any) -> str | None:

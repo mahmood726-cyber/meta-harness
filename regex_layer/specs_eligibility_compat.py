@@ -7,6 +7,111 @@ comparator text; _summarize_follow reads derived follow-up value strings ('56 da
 """
 
 SITE_SPECS: dict = {
+    'compat_check.py:_ASSESSED': {
+        "kind": 'search', "what": '_speech_score: identify an assessment statement about an outcome',
+        "plants": {"accept": [('was assessed at 14 days', None)],
+                   "refuse": ['followed for 14 days']}},
+    'compat_check.py:_EFFECT_WORD': {
+        "kind": 'search', "what": '_analysis_statement / _reports_other_estimate: recognize effect labels, with case-sensitive abbreviations',
+        "plants": {"accept": [('HR 0.80', None)],
+                   "refuse": ['stroke or systemic embolism']}},
+    'compat_check.py:_PRIMARY_DEF': {
+        "kind": 'search', "what": '_row_is_primary: identify a primary endpoint reference',
+        "plants": {"accept": [('primary efficacy outcome', None)],
+                   "refuse": ['secondary efficacy outcome']}},
+    'compat_check.py:_TRIAL_WIDE': {
+        "kind": 'search', "what": '_speech_score: recognize trial-wide follow-up language',
+        "plants": {"accept": [('patients were followed for 12 months', None)],
+                   "refuse": ['clinical cure at 14 days']}},
+    'compat_check.py:findall:1cdf5b6602': {
+        "kind": 'search', "what": '_reports_other_estimate: collect complete decimal estimates',
+        "plants": {"accept": [('HR 0.80', None)],
+                   "refuse": ['version 1.2.3']}},
+    'compat_check.py:findall:2c65a104df': {
+        "kind": 'search', "what": '_row_terms: capture parenthesized outcome acronyms',
+        "plants": {"accept": [('myocardial infarction (MI)', ('MI',))],
+                   "refuse": ['myocardial infarction (M)']}},
+    'compat_check.py:findall:68f9162183': {
+        "kind": 'search', "what": '_defined_phrase: tokenize the lowercased definition head',
+        "plants": {"accept": [('new vertebral fracture', None)],
+                   "refuse": ['123']}},
+    'compat_check.py:findall:68f9162183#2': {
+        "kind": 'search', "what": '_defines_this_row: tokenize the lowercased row and outcome for whole-word comparison',
+        "plants": {"accept": [('nonvertebral fracture', None)],
+                   "refuse": ['123']}},
+    'compat_check.py:findall:fa98b9de0a': {
+        "kind": 'search', "what": '_row_terms: tokenize the folded outcome name for its head and modifiers',
+        "plants": {"accept": [('antibiotic-associated diarrhea', None)],
+                   "refuse": ['123']}},
+    'compat_check.py:findall:fa98b9de0a#2': {
+        "kind": 'search', "what": '_row_terms: tokenize the folded outcome name to derive acronym initials',
+        "plants": {"accept": [('major adverse events', None)],
+                   "refuse": ['123']}},
+    'compat_check.py:findall:fa98b9de0a#3': {
+        "kind": 'search', "what": '_speech_score: tokenize folded words preceding the full outcome name',
+        "plants": {"accept": [('patients developed', None)],
+                   "refuse": ['123']}},
+    'compat_check.py:findall:fa98b9de0a#4': {
+        "kind": 'search', "what": '_speech_score: tokenize the folded sentence for head and modifier matching',
+        "plants": {"accept": [('minor bleeding', None)],
+                   "refuse": ['123']}},
+    'compat_check.py:finditer:86e524ad3a': {
+        "kind": 'search', "what": '_speech_score: match a complete folded outcome name without a hyphenated prefix',
+        "bind": {'full': 'major bleeding'},
+        "plants": {"accept": [('major bleeding occurred', None)],
+                   "refuse": ['non-major bleeding']}},
+    'compat_check.py:fullmatch:6687b4a806': {
+        "kind": 'search', "what": '_row_terms: recognize numeric or numeric-hyphen tokens to omit from content',
+        "plants": {"accept": [('30-day', None)],
+                   "refuse": ['day']}},
+    'compat_check.py:match:159a89219d': {
+        "kind": 'search', "what": '_speech_score: recognize a numeric preceding token at the full-name match',
+        "plants": {"accept": [('30', None)],
+                   "refuse": ['major']}},
+    'compat_check.py:match:159a89219d#2': {
+        "kind": 'search', "what": '_speech_score: recognize a numeric preceding token at a head-noun match',
+        "plants": {"accept": [('14', None)],
+                   "refuse": ['minor']}},
+    'compat_check.py:match:633ec5d533': {
+        "kind": 'search', "what": '_analysis_statement: identify a following sentence that continues the analysis',
+        "plants": {"accept": [('In the primary analysis, HR was 0.8', None)],
+                   "refuse": ['Results were similar.']}},
+    'compat_check.py:search:85c1af4051': {
+        "kind": 'search', "what": '_defined_phrase: capture the definition after its linking verb',
+        "plants": {"accept": [('the outcome was new vertebral fracture', ('new vertebral fracture',))],
+                   "refuse": ['the outcome occurred']}},
+    'compat_check.py:search:85c1af4051#2': {
+        "kind": 'search', "what": '_defines_this_row: capture the defined components after the linking verb',
+        "plants": {"accept": [('the outcome included death or stroke', ('death or stroke',))],
+                   "refuse": ['the outcome occurred']}},
+    'compat_check.py:search:93d74681ed': {
+        "kind": 'search', "what": '_analysis_statement: distinguish analysis statements from population statements',
+        "plants": {"accept": [('primary analyses', None)],
+                   "refuse": ['analysiswide population']}},
+    'compat_check.py:search:bba6783b13': {
+        "kind": 'search', "what": '_row_estimates: capture an effect from a serialized refused-effect dictionary',
+        "plants": {"accept": [("{'effect': 0.80}", ('0.80',))],
+                   "refuse": ["{'effect_estimate': 0.80}"]}},
+    'compat_check.py:split:27175a5a8a': {
+        "kind": 'split', "what": '_sentences: split after a period or semicolon before uppercase, parenthesis or digit',
+        "plants": {"accept": [('Cure fell. Death rose; (Details)', ['Cure fell.', 'Death rose;', '(Details)'])],
+                   "refuse": ['HR 0.80 was reported']}},
+    'compat_check.py:split:7af4648997': {
+        "kind": 'split', "what": '_defined_phrase: stop the definition head at a bracket or list delimiter',
+        "plants": {"accept": [('death, stroke; bleeding: severe (MI)', ['death', ' stroke', ' bleeding', ' severe ', 'MI)'])],
+                   "refuse": ['new vertebral fracture']}},
+    'compat_check.py:sub:7b4eac99d8#2': {
+        "kind": 'search', "what": '_speech_score: formatting helper collapsing whitespace in the folded full name',
+        "plants": {"accept": [('major  bleeding', None)],
+                   "refuse": ['bleeding']}},
+    'compat_check.py:sub:c4b470f596': {
+        "kind": 'search', "what": '_row_terms: formatting helper removing parenthetical aliases from the folded name',
+        "plants": {"accept": [('infarction (mi)', None)],
+                   "refuse": ['infarction']}},
+    'compat_check.py:sub:c4b470f596#2': {
+        "kind": 'search', "what": '_speech_score: formatting helper removing parenthetical aliases before full-name matching',
+        "plants": {"accept": [('infarction (mi)', None)],
+                   "refuse": ['infarction']}},
     # ---- harness/eligibility_chain.py ----------------------------------------------------------------------------
     "eligibility_chain.py:_PMID_RE": {
         "kind": "search",

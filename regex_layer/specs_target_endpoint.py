@@ -6,6 +6,191 @@ reads s_cv); _EFFECT_RE and the sentence split read raw abstract text.
 """
 
 SITE_SPECS: dict = {
+    'target_endpoint.py:L904': {
+        "kind": 'search', "what": 'title_components: expand worsening heart failure in a composite title',
+        "plants": {"accept": [('worsening heart failure', None)],
+                   "refuse": ['stable heart failure']}},
+    'target_endpoint.py:_ANCHOR_RX': {
+        "kind": 'search', "what": '_anchors: identify the event from which a follow-up clock starts',
+        "plants": {"accept": [('after hospital discharge', ('discharge', None))],
+                   "refuse": ['before discharge']}},
+    'target_endpoint.py:_BACKGROUND': {
+        "kind": 'search', "what": '_definition_sentences: distinguish background uncertainty from an endpoint definition',
+        "plants": {"accept": [('the effect is unknown', None)],
+                   "refuse": ['the outcome was death']}},
+    'target_endpoint.py:_COMPARISON_PREFIX': {
+        "kind": 'search', "what": 'registry_outcome_match: detect comparison words in a registry label',
+        "plants": {"accept": [('randomization comparison', None)],
+                   "refuse": ['influenza mortality']}},
+    'target_endpoint.py:_COX': {
+        "kind": 'search', "what": 'event_process: recognize Cox or proportional-hazards analysis',
+        "plants": {"accept": [('cox model', None)],
+                   "refuse": ['negative binomial model']}},
+    'target_endpoint.py:_DEATH_OR': {
+        "kind": 'split', "what": '_death_composite: split candidate event alternatives',
+        "plants": {"accept": [('death or ventilation', ['death', 'ventilation'])],
+                   "refuse": ['mortality']}},
+    'target_endpoint.py:_DEFINING': {
+        "kind": 'search', "what": '_definition_sentences: recognize endpoint-defining language',
+        "plants": {"accept": [('a composite of death or stroke', None)],
+                   "refuse": ['the effect is unknown']}},
+    'target_endpoint.py:_FIRST_EVENT': {
+        "kind": 'search', "what": 'event_process: identify a first-event or patients-with-event statement',
+        "plants": {"accept": [('time to first admission', None)],
+                   "refuse": ['recurrent admissions']}},
+    'target_endpoint.py:_GENERIC_PREFIX': {
+        "kind": 'search', "what": 'registry_outcome_match: strip generic endpoint-label words before population checks',
+        "plants": {"accept": [('primary outcome', None)],
+                   "refuse": ['influenza']}},
+    'target_endpoint.py:_IN_HOSPITAL': {
+        "kind": 'search', "what": '_windows: identify a hospital-stay time window',
+        "plants": {"accept": [('until hospital discharge', None)],
+                   "refuse": ['during outpatient follow-up']}},
+    'target_endpoint.py:_LABELLED_COMPOSITE': {
+        "kind": 'search', "what": '_labelled_definitions: capture a composite body and its parenthesized label',
+        "plants": {"accept": [('composite of death or stroke (two-point)', ('death or stroke', 'two-point'))],
+                   "refuse": ['composite of death or stroke']}},
+    'target_endpoint.py:_MORTALITY': {
+        "kind": 'search', "what": 'registry_outcome_match / _death_composite: detect mortality or survival language',
+        "plants": {"accept": [('all-cause mortality', None)],
+                   "refuse": ['hospitalization']}},
+    'target_endpoint.py:_MORT_QUALIFIER': {
+        "kind": 'search', "what": '_death_composite: remove settings and mortality qualifiers before testing residual events',
+        "plants": {"accept": [('intensive care', None)],
+                   "refuse": ['ventilation']}},
+    'target_endpoint.py:_NEGATED_BEFORE': {
+        "kind": 'search', "what": '_names_excluded_population: identify negation preceding a population mention',
+        "plants": {"accept": [('patients without ', None)],
+                   "refuse": ['patients with ']}},
+    'target_endpoint.py:_NOT_DEATH': {
+        "kind": 'search', "what": 'registry_outcome_match: detect alive/discharge outcomes incompatible with death',
+        "plants": {"accept": [('days alive', None)],
+                   "refuse": ['days until death']}},
+    'target_endpoint.py:_OPEN_ENDED': {
+        "kind": 'search', "what": '_timepoint_agreement: recognize an unconstrained end-of-study window',
+        "plants": {"accept": [('trial end', None)],
+                   "refuse": ['30 days']}},
+    'target_endpoint.py:_PATIENT_COUNTS': {
+        "kind": 'search', "what": 'event_process: identify explicit counts of patients with events rather than denominators',
+        "plants": {"accept": [('occurred in 12 patients', None)],
+                   "refuse": ['assessed in 120 patients']}},
+    'target_endpoint.py:_POP_PHRASE': {
+        "kind": 'search', "what": 'registry_outcome_match: capture a disease population stated in an outcome body',
+        "plants": {"accept": [('in patients with influenza', ('influenza',))],
+                   "refuse": ['patients without influenza']}},
+    'target_endpoint.py:_RECURRENT_METHOD': {
+        "kind": 'search', "what": 'event_process: identify explicit recurrent-event analysis methods',
+        "plants": {"accept": [('negative binomial model', None)],
+                   "refuse": ['cox model']}},
+    'target_endpoint.py:_TIME_OR_STOP': {
+        "kind": 'search', "what": '_death_composite: remove time and generic count words before testing event content',
+        "plants": {"accept": [('within 30 days', None)],
+                   "refuse": ['ventilation']}},
+    'target_endpoint.py:_TOTAL_EVENTS': {
+        "kind": 'search', "what": 'event_process: identify total or recurrent-event counting',
+        "plants": {"accept": [('total heart failure hospitalizations', None)],
+                   "refuse": ['recurrent vte']}},
+    'target_endpoint.py:_TOTAL_NEGATED_AFTER': {
+        "kind": 'search', "what": 'event_process: detect exclusion following a total-event phrase',
+        "plants": {"accept": [(' were not counted', None)],
+                   "refuse": [' were counted']}},
+    'target_endpoint.py:_TOTAL_NEGATED_BEFORE': {
+        "kind": 'search', "what": 'event_process: detect exclusion immediately preceding a total-event phrase',
+        "plants": {"accept": [('excluding ', None)],
+                   "refuse": ['including ']}},
+    'target_endpoint.py:_WINDOW': {
+        "kind": 'search', "what": '_windows: capture normalized numeric follow-up windows',
+        "plants": {"accept": [('28-90 days', ('28', '90', 'day', None, None, None, None))],
+                   "refuse": ['during hospitalization']}},
+    'target_endpoint.py:findall:4016d0ec8a': {
+        "kind": 'search', "what": '_title_parts: capture parenthetical candidate component enumerations',
+        "plants": {"accept": [('vte (dvt / pe)', ('dvt / pe',))],
+                   "refuse": ['vte']}},
+    'target_endpoint.py:findall:55411db8ac': {
+        "kind": 'search', "what": '_row_names_part: collect uppercase abbreviations from raw row text',
+        "plants": {"accept": [('Stroke/SEE', None)],
+                   "refuse": ['stroke/see']}},
+    'target_endpoint.py:findall:96f7c78bb6': {
+        "kind": 'search', "what": '_part_words: tokenize folded title or row words of at least three characters',
+        "plants": {"accept": [('systemic embolism', None)],
+                   "refuse": ['mi 12']}},
+    'target_endpoint.py:findall:96f7c78bb6#2': {
+        "kind": 'search', "what": '_row_names_part: tokenize sorted folded part words to derive initials',
+        "plants": {"accept": [('embolism systemic', None)],
+                   "refuse": ['mi 12']}},
+    'target_endpoint.py:finditer:2d7cf5318e': {
+        "kind": 'search', "what": '_names_excluded_population: locate a whole excluded population term before negation checks',
+        "bind": {'p': 'influenza'},
+        "plants": {"accept": [('with influenza', None)],
+                   "refuse": ['with parainfluenza']}},
+    'target_endpoint.py:finditer:82f706181f': {
+        "kind": 'search', "what": 'composite_declaration_problem: capture an explicitly unassessed component',
+        "plants": {"accept": [('stroke was not assessed', ('stroke',))],
+                   "refuse": ['stroke was assessed']}},
+    'target_endpoint.py:search:307f8c03f6': {
+        "kind": 'search', "what": '_title_parts.readable: recognize an event term in a candidate title part',
+        "plants": {"accept": [('nonfatal PE', None)],
+                   "refuse": ['peptide']}},
+    'target_endpoint.py:search:7480a6002c': {
+        "kind": 'search', "what": '_classify: detect remaining general stroke wording after ischemic-stroke removal',
+        "plants": {"accept": [('any stroke', None)],
+                   "refuse": ['stroke (ischemic)']}},
+    'target_endpoint.py:search:84dadd9c38': {
+        "kind": 'search', "what": '_death_composite: detect residual event words after removing time and mortality qualifiers',
+        "plants": {"accept": [('ventilation', None)],
+                   "refuse": ['   ']}},
+    'target_endpoint.py:search:92e4e814d8': {
+        "kind": 'search', "what": '_classify: identify a narrower ischemic-stroke description',
+        "plants": {"accept": [('ischaemic stroke', None)],
+                   "refuse": ['hemorrhagic stroke']}},
+    'target_endpoint.py:search:9303f4dadd': {
+        "kind": 'search', "what": '_components_from_text: identify hospitalization for heart failure in folded text',
+        "plants": {"accept": [('hospitalized for heart failure', None)],
+                   "refuse": ['hospitalized for pneumonia']}},
+    'target_endpoint.py:split:ec12adc24a': {
+        "kind": 'split', "what": '_names_excluded_population: reset negation scope at punctuation or contrast',
+        "plants": {"accept": [('without diabetes, but influenza', ['without diabetes', ' ', ' influenza'])],
+                   "refuse": ['patients without influenza']}},
+    'target_endpoint.py:sub:2130bc52f0': {
+        "kind": 'search', "what": '_death_composite: formatting helper removing parenthetical details before splitting events',
+        "plants": {"accept": [('death (all causes)', None)],
+                   "refuse": ['death']}},
+    'target_endpoint.py:sub:39dc6f1454': {
+        "kind": 'search', "what": '_unhyphen: formatting helper replacing only letter-to-letter hyphens',
+        "plants": {"accept": [('all-cause', None)],
+                   "refuse": ['30-day']}},
+    'target_endpoint.py:sub:4182931ebf': {
+        "kind": 'search', "what": '_windows: reorder unit-first timepoints to numeric-first form',
+        "plants": {"accept": [('week 12', ('week', '12'))],
+                   "refuse": ['12 weeks']}},
+    'target_endpoint.py:sub:69b6307f8e': {
+        "kind": 'search', "what": '_title_parts: remove the leading composite label before enumerating components',
+        "plants": {"accept": [('the composite outcome of death or stroke', None)],
+                   "refuse": ['death or stroke']}},
+    'target_endpoint.py:sub:72f1aed8e4': {
+        "kind": 'search', "what": '_death_composite: normalize an event conjunction to the alternative separator',
+        "plants": {"accept": [('death and ventilation', None)],
+                   "refuse": ['death/ventilation']}},
+    'target_endpoint.py:sub:7b4eac99d8#3': {
+        "kind": 'search', "what": '_ws_lower: formatting helper collapsing whitespace before lowercasing',
+        "plants": {"accept": [('Heart  Failure', None)],
+                   "refuse": ['Heart-Failure']}},
+    'target_endpoint.py:sub:7b4eac99d8#4': {
+        "kind": 'search', "what": '_labelled_definitions: formatting helper collapsing whitespace in a captured label',
+        "plants": {"accept": [('3-point  MACE', None)],
+                   "refuse": ['MACE']}},
+    'target_endpoint.py:sub:92e4e814d8': {
+        "kind": 'search', "what": '_classify: remove ischemic-stroke wording before seeking general stroke',
+        "plants": {"accept": [('nonhemorrhagic stroke', None)],
+                   "refuse": ['hemorrhagic stroke']}},
+    'target_endpoint.py:sub:c4b470f596': {
+        "kind": 'search', "what": '_title_parts: formatting helper removing parentheses to check the outer umbrella label',
+        "plants": {"accept": [('vte (dvt / pe)', None)],
+                   "refuse": ['vte']}},
+    'target_endpoint.py:sub:c4b470f596#2': {
+        "kind": 'search', "what": '_title_parts: formatting helper removing parentheses before top-level slash splitting',
+        "plants": {"accept": [('mortality (all causes)', None)],
+                   "refuse": ['mortality']}},
     # ---- named compiled patterns -------------------------------------------------------------------------------
     "target_endpoint.py:_NAMED_COMPOSITE_RX": {
         "kind": "search",

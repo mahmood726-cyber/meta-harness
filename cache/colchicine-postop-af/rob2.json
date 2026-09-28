@@ -142,6 +142,174 @@
         }
       ]
     },
+    "36286314": {
+      "nct": "NCT04224545",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Triple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Triple (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Number of participants with postoperative atrial fibrillation.'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Postoperative atrial fibrillation",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of participants with postoperative atrial fibrillation.",
+                "title": "",
+                "description": "POAF detected on continuous ECG monitoring."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of participants with lethal and non-lethal events.",
+                "title": "",
+                "description": "The main nosocomial lethal and non-lethal events (death, stroke, myocardial infarction, heart failure)."
+              },
+              {
+                "measure": "Fluid in the pericardium.",
+                "title": "",
+                "description": "Fluid in the pericardium evaluated by echocardiography."
+              },
+              {
+                "measure": "Fluid in the pleura.",
+                "title": "",
+                "description": "Fluid in the pleura evaluated by echocardiography."
+              },
+              {
+                "measure": "Acute kidney damage (according to the dynamics of creatinine clearance).",
+                "title": "",
+                "description": "Dynamics of creatinine clearance."
+              },
+              {
+                "measure": "Inflammation in blood plasma.",
+                "title": "",
+                "description": "Dynamics of biomarker of inflammation in blood plasma (neutrophils)."
+              },
+              {
+                "measure": "Liver damage",
+                "title": "",
+                "description": "Dynamics of biomarkers of liver damage (aspartate aminotransferase, alanine aminotransferase)."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Number of participants with postoperative atrial fibrillation.",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Number of participants with postoperative atrial fibrillation. POAF detected on continuous ECG monitoring."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    },
     "32720823": {
       "nct": "NCT03015831",
       "registry_in_aact": true,

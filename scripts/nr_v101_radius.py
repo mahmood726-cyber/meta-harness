@@ -76,9 +76,14 @@ def dump(out: Path) -> int:
                 res["fu_compat"][key] = {"value": fu.get("value"), "source": fu.get("source"), "span": fu.get("span")}
                 rec = rmap.get(pid) or {}
                 text = eligibility_chain._record_text(rec, t)
-                try:                      # production passes the row's own result span (V1.0.1); head code may not take it
+                # exactly what admission_record passes in THIS tree (V1.0.1: the row's window span and its estimates; the
+                # head tree: the raw result span, or nothing)
+                if hasattr(compat_check, "_window_span"):
+                    v, s = eligibility_chain._follow_up_value(pid, text, compat_check._window_span(t, str(o.get("name") or "")),
+                                                              compat_check._row_estimates(t))
+                elif hasattr(compat_check, "_result_span"):
                     v, s = eligibility_chain._follow_up_value(pid, text, compat_check._result_span(t))
-                except (TypeError, AttributeError):
+                else:
                     v, s = eligibility_chain._follow_up_value(pid, text)
                 res["fu_adm"][key] = {"value": v, "span": s}
                 res["ep_adm"][key] = {"value": eligibility_chain._endpoint_definition(pid, text).get("surveillance_window")}

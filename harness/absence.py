@@ -183,6 +183,11 @@ def _candidate_sentences(text, keywords, outcome_name=None):
 
 def _effect_class(scale, span):
     label = (scale or "").upper()
+    from . import target_endpoint as _te
+    if _te.event_process(span)["process"] == _te.TOTAL_EVENTS:
+        # a total (first and recurrent) event ratio is a RATE-class result whatever its label says: EMPEROR-Preserved's
+        # 'total number of hospitalizations ... hazard ratio, 0.73' was attached as FIRST_EVENT_RATIO
+        return "RATE"
     if label == "RR" and getattr(extract, "_RECURRENT_PERSONTIME").search(span or ""):
         return "RATE"
     canon = estmeasure.classify(label, span).get("canonical_estimand")
@@ -272,6 +277,7 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     # RESULT_INCOMPATIBLE refusal with EXTRACTION_NOT_PERFORMED -- the right reason, mislabelled before
     # publication (M2, 2026-09-20).
     if (row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND", "ENDPOINT_COMPONENT_EXCLUDED",
+                                               "EVENT_PROCESS_MISMATCH",
                                             "COMPOSITE_DECLARATION_INCOMPLETE")
             and row.get("reason_code")):
         span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""

@@ -175,6 +175,12 @@ def _conflict(conflicts, ev, n, pct, span):
                           "computed_pct": round(ev * 100.0 / n, 3) if n else None, "span": span.strip()[:200]})
 
 
+def _count_text(text):
+    """Normalize complete comma-grouped integers before reading counts or sizes."""
+    return re.sub(r"(?<![\w.,])\d{1,3}(?:,\d{3})+(?![\d,]|\.\d)",
+                  lambda m: m.group().replace(",", ""), text)
+
+
 def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_ns=None, conflicts=None):
     """Return (ai,n1i,ci,n2i) if two corroborated arm groups are found, else None.
 
@@ -189,31 +195,119 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
     precision. When count, denominator and percentage are bound together and disagree -- an explicit fraction with its
     %, or a count paired with its own arm's size -- the disagreement is appended to `conflicts` (COUNT_PCT_CONFLICT),
     never accepted and never silently dropped."""
+    sentence = _count_text(_norm(sentence))
+    # Refuse a multi-ARM result before filtering failed corroborations or negations. Counts belong to ONE result unless
+    # the text between them marks a NEW result -- a statistic ('absolute difference', 'CI', 'ratio', 'P') or a past-tense
+    # outcome verb ('9 of 12 (75%) and 4 of 15 (27%) ovulated, and 6 of 11 ... conceived'; COPPS-2's AF, then effusion).
+    # More than two counts in one result is a THIRD ARM and is refused, whatever the arm is called ('with adalimumab',
+    # 'the intensive regimen', 'usual care', 'high-dose' -- an undeclared arm must never be read as the comparator;
+    # NR-C15), except the explicit paired layout 'A versus B and C versus D, respectively', whose first pair is the result.
+    spans = {(m.start(), m.end()) for rx in (_ARM, _ARM2, _ARM3, _ARM4, _ARMP)
+             for m in rx.finditer(sentence)}
+    outer = sorted(s for s in spans if not any(
+        t != s and t[0] <= s[0] and s[1] <= t[1] for t in spans))
+    arm_verbs = {"randomized", "randomised", "assigned", "allocated", "treated", "compared", "combined", "based",
+                 "enrolled", "included", "exposed"}
+    cluster, gaps = 1, []
+    for (_s1, e1), (s2, _e2) in zip(outer, outer[1:]):
+        gap = sentence[e1:s2]
+        # 'p = 0.04' needs no word boundary after the operator (NR-C17: '\b' after '=' failed before whitespace)
+        new_result = (re.search(r"\b(?:difference|ci|ratio|risk|odds|p-value|interval)\b|\bp\s*[=<>]", gap, re.I)
+                      or any(w.lower().endswith("ed") and w.lower() not in arm_verbs
+                             for w in re.findall(r"[A-Za-z]{4,}", gap)))
+        if new_result:
+            break
+        cluster += 1
+        gaps.append(gap)
+    paired = (cluster >= 4 and cluster % 2 == 0 and re.search(r"\brespectively\b", sentence, re.I)
+              and all(re.fullmatch(r"\W*(?:versus|vs\.?)\W*", g, re.I) if i % 2 == 0
+                      else re.fullmatch(r"\W*(?:and|,)\W*", g, re.I) for i, g in enumerate(gaps)))
+    if cluster > 2 and not paired:
+        return None
+    local_ns = {int(m.group(1)) for m in re.finditer(
+        r"(?<![\d.,])(\d+)\s+(?:treated\s+)?(?:patients?|participants?|subjects?)\s+per\s+arm\b",
+        sentence, re.I)}
+    if len(local_ns) > 1:
+        return None
+    if local_ns:
+        denom_each = next(iter(local_ns))
+        arm_ns = {"i": denom_each, "c": denom_each}
+    # Mask declared labels only for negation, preserving all offsets.
+    negation_text = sentence
+    for term in sorted(set(interv_terms + comp_terms), key=len, reverse=True):
+        if term:
+            negation_text = re.sub(r"(?<!\w)" + re.escape(term) + r"(?!\w)",
+                                   lambda m: " " * len(m.group()), negation_text, flags=re.I)
+
+    def count_labels(hits):
+        """Local labels override sentence order only when both are unambiguous."""
+        if len(hits) != 2:
+            return None
+        spans = []
+        for hit in hits:
+            matches = [rx.match(sentence, hit[0])
+                       for rx in (_ARM, _ARM2, _ARM3, _ARM4, _ARMP)]
+            spans.append((hit[0], max(m.end() for m in matches if m)))
+        terms = [(m.start(), m.end(), arm)
+                 for arm, words in (("i", interv_terms), ("c", comp_terms))
+                 for word in words if word
+                 for m in re.finditer(r"(?<!\w)" + re.escape(word) + r"(?!\w)",
+                                      sentence, re.I)]
+        # A longer term owns nested aliases, e.g. "no colchicine".
+        terms = sorted(set(t for t in terms if not any(
+            u[0] <= t[0] and t[1] <= u[1] and u[1] - u[0] > t[1] - t[0]
+            for u in terms)))
+        tail = sentence[spans[1][1]:]
+        respectively = re.search(r"\brespectively\b", tail, re.I)
+        if respectively:
+            ordered = [t for t in terms
+                       if spans[1][1] <= t[0] < spans[1][1] + respectively.start()]
+            # A shared trailing list is positional, not a label for count two.
+            if (len(ordered) == 2 and re.fullmatch(
+                    r"\s+(?:(?:group|arm|patients)\s+)?(?:and|versus|vs\.?)\s+(?:the\s+)?",
+                    sentence[ordered[0][1]:ordered[1][0]], re.I)):
+                return [t[2] for t in ordered]
+        labels = []
+        for start, end in spans:
+            candidates = []
+            for left, right, arm in terms:
+                a, b = (right, start) if right <= start else (end, left)
+                if a > b or any(a <= s and e <= b for s, e in spans):
+                    continue
+                if re.search(r"[,;!?]|\.(?!\d)|\b(?:and|but|versus|vs)\b",
+                             sentence[a:b], re.I):
+                    continue
+                candidates.append((b - a, arm))
+            nearest = {arm for distance, arm in candidates
+                       if distance == min(d for d, _ in candidates)}
+            labels.append(next(iter(nearest)) if len(nearest) == 1 else None)
+        return labels if all(labels) else None
+
     groups = []
     for m in _ARM.finditer(sentence):
         ev, pct, n = int(m.group(1)), m.group(2), int(m.group(3))
-        if n > 0 and not _negated(sentence, m.start()):
+        if n > 0 and not _negated(negation_text, m.start()):
             if pct_consistent(ev, n, pct):
                 groups.append(ArmHit(m.start(), ev, n))
             elif _near_miss(ev, n, pct, 1.5):
                 _conflict(conflicts, ev, n, pct, m.group(0))
     for m in _ARM2.finditer(sentence):
         ev, n, pct = int(m.group(1)), int(m.group(2)), m.group(3)
-        if n > 0 and not _negated(sentence, m.start()):
+        if n > 0 and not _negated(negation_text, m.start()):
             if pct_consistent(ev, n, pct):
                 groups.append(ArmHit(m.start(), ev, n))
             elif _near_miss(ev, n, pct, 1.5):
                 _conflict(conflicts, ev, n, pct, m.group(0))
     for m in _ARM3.finditer(sentence):
         ev, n, pct = int(m.group(1)), int(m.group(2)), m.group(3)
-        if n > 0 and ev <= n and not _negated(sentence, m.start()):
+        if n > 0 and ev <= n and not _negated(negation_text, m.start()):
             if pct_consistent(ev, n, pct):
                 groups.append(ArmHit(m.start(), ev, n))
             elif _near_miss(ev, n, pct, 1.5):
                 _conflict(conflicts, ev, n, pct, m.group(0))
     for m in _ARM4.finditer(sentence):  # "P% (N/M)" percentage-first
         pct, ev, n = m.group(1), int(m.group(2)), int(m.group(3))
-        if n > 0 and ev <= n and not _negated(sentence, m.start()):
+        if n > 0 and ev <= n and not _negated(negation_text, m.start()):
             if pct_consistent(ev, n, pct):
                 groups.append(ArmHit(m.start(), ev, n))
             elif _near_miss(ev, n, pct, 1.5):
@@ -227,7 +321,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         cands = denom_each if isinstance(denom_each, (list, tuple, set)) else [denom_each]
         cands = [int(c) for c in cands if c]
         arm_ns = arm_ns or {}
-        _armp_m = [m for m in _ARMP.finditer(sentence) if not _negated(sentence, m.start())]
+        _armp_m = [m for m in _ARMP.finditer(sentence) if not _negated(negation_text, m.start())]
         armp = [ArmPercentHit(m.start(), int(m.group(1)), float(m.group(2))) for m in _armp_m]
         pct_text = {m.start(): m.group(2) for m in _armp_m}          # the percentage AS WRITTEN (its precision)
         span_at = {m.start(): m.group(0) for m in _armp_m}
@@ -243,7 +337,12 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         if len(armp) == 2 and arm_ns.get("i") and arm_ns.get("c") and ipos >= 0 and cpos >= 0:
             first_arm = "i" if ipos <= cpos else "c"
             order = [first_arm, "c" if first_arm == "i" else "i"]
-            paired, arm_conflict = [], False
+            labels = count_labels(armp)
+            if labels:
+                if labels[0] == labels[1]:
+                    return None
+                order = labels
+            paired = []
             for (pos, ev, pct), arm in zip(armp, order):
                 d = int(arm_ns[arm])
                 if d > 0 and ev <= d and pct_consistent(ev, d, pct_text[pos]):
@@ -252,12 +351,11 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
                     # the count is paired with ITS OWN arm's size and the stated % nearly -- but not -- agrees: a
                     # conflict, not a failed guess; it may not be rescued by another candidate denominator below
                     _conflict(conflicts, ev, d, pct_text[pos], span_at[pos])
-                    arm_conflict = True
             if len(paired) == 2:
                 groups.extend(paired)
                 used_reading_order = True
-            elif arm_conflict:
-                return None
+            else:
+                return None  # Never rescue failed identity-bound pairing by swapping sizes.
         # FALLBACK (backward compatible): flat best-corroborating candidate per count.
         if not used_reading_order:
             for pos, ev, pct in armp:
@@ -294,7 +392,10 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         return None
     # assign the two arm-groups to intervention/comparator by reading order
     (p1, e1, n1), (p2, e2, n2) = groups[0], groups[1]
-    if i_pos <= c_pos:
+    labels = count_labels(groups[:2])
+    if labels and labels[0] == labels[1]:
+        return None  # R4: independently labelled counts claim the same arm.
+    if (labels[0] == "i") if labels else (i_pos <= c_pos):
         return ArmCounts(e1, n1, e2, n2)
     return ArmCounts(e2, n2, e1, n1)
 

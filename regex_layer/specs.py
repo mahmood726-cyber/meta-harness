@@ -139,6 +139,51 @@ ROLES.update({"_DEF_CUE": "conjunct:_ANCHOR_RX", "_ANCHOR_RX": "conjunct:_DEF_CU
 # The test reads each pattern FROM THE SOURCE by AST, so a changed literal gets a new key and fails the ratchet until
 # its plants are restated. kind: "search" (accept = must match, with groups when given) or "split" (accept = parts).
 INLINE_SPECS = {
+    'extract.py:findall:c2035bd13a': {
+        "kind": 'search', "what": 'extract_arm_counts: collect words long enough to test for past-tense result verbs',
+        "plants": {"accept": [(' ovulated and conceived ', None)],
+                   "refuse": [' vs ']}},
+    'extract.py:finditer:2f67ffb2b2': {
+        "kind": 'search', "what": 'extract_arm_counts: capture an explicit local per-arm denominator',
+        "plants": {"accept": [('120 treated patients per arm', ('120',))],
+                   "refuse": ['1.5 patients per arm']}},
+    'extract.py:fullmatch:3d99f70b4d': {
+        "kind": 'search', "what": 'extract_arm_counts: recognize the separator between two respectively paired comparisons',
+        "plants": {"accept": [(' and ', None)],
+                   "refuse": [' versus ']}},
+    'extract.py:fullmatch:7ff0f9b7da': {
+        "kind": 'search', "what": 'extract_arm_counts.count_labels: recognize a shared trailing arm-list separator',
+        "plants": {"accept": [(' group and the ', None)],
+                   "refuse": [' group with the ']}},
+    'extract.py:fullmatch:c2ebb730fa': {
+        "kind": 'search', "what": 'extract_arm_counts: recognize a within-pair comparison separator',
+        "plants": {"accept": [(' versus ', None)],
+                   "refuse": [' and ']}},
+    'extract.py:search:285a173f2d': {
+        "kind": 'search', "what": 'extract_arm_counts.count_labels: detect punctuation or conjunctions blocking local arm attribution',
+        "plants": {"accept": [(' versus ', None)],
+                   "refuse": [' 0.5 mg ']}},
+    'extract.py:search:4c502f11b5': {
+        "kind": 'search', "what": 'extract_arm_counts: identify explicitly respectively paired multi-count layouts',
+        "plants": {"accept": [('respectively.', None)],
+                   "refuse": ['irrespectively']}},
+    'extract.py:search:4c502f11b5#2': {
+        "kind": 'search', "what": 'extract_arm_counts.count_labels: identify a positional trailing list',
+        "plants": {"accept": [('in the active and placebo groups, respectively', None)],
+                   "refuse": ['in the active group']}},
+    'extract.py:search:036df5ac98': {
+        "kind": 'search', "what": 'extract_arm_counts: recognize a statistic separating distinct results',
+        "plants": {"accept": [(' absolute difference ', None), (' p = 0.04 ', None), (' p<0.001; ', None)],
+                   "refuse": [' with placebo ', ' in the placebo group ']}},
+    'extract.py:search:835120f33b': {
+        "kind": 'search', "what": '_arm_ns_in_the_group: capture a whole count for the bound arm',
+        "bind": {'t': 'colchicine'},
+        "plants": {"accept": [('113 in the colchicine group', ('113',))],
+                   "refuse": ['113 in the placebo group']}},
+    'extract.py:sub:dd1779ecbe': {
+        "kind": 'search', "what": '_count_text: formatting helper removing commas only from complete grouped integers',
+        "plants": {"accept": [('2,523 patients', None)],
+                   "refuse": ['2,523.5 patients']}},
     "extract.py:split:328973b9f2": {
         "kind": "split", "what": "_sentences: split after a full stop before a capital or '('",
         "plants": {"accept": [("Mortality fell. The HR was 0.8.", ["Mortality fell.", "The HR was 0.8."]),

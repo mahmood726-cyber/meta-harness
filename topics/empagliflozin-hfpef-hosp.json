@@ -104,7 +104,19 @@
     "estimand": "HR",
     "population": "intention-to-treat",
     "timepoint": "trial end / longest randomized follow-up",
-    "withdrawn": {
+    "components": [
+      "cardiovascular death",
+      "heart failure hospitalization"
+    ],
+    "optional_components": [
+      "urgent heart failure visit"
+    ],
+    "components_basis": "protocols/empagliflozin-hfpef-hosp.md, O (primary): 'time to first composite cardiovascular death or worsening heart failure, where worsening heart failure includes hospitalization or urgent visit for heart failure as defined by the trial' -- declared by lane NR V1.0.1 (empagliflozin HFmrEF/HFpEF review 56710eb5): cardiovascular death and heart-failure hospitalization are required; an urgent heart-failure visit counts only where the trial defines it (optional_components), so the title is accounted for (harness.target_endpoint.composite_declaration_problem) and a component-only result fails the composite",
+    "event_process": "FIRST_EVENT",
+    "count_unit": "PATIENTS_WITH_EVENT",
+    "event_process_basis": "protocols/empagliflozin-hfpef-hosp.md, O (primary): 'time to first composite ...'; HR estimand. A total (first and recurrent) event result is a different endpoint (harness.target_endpoint.event_process): EMPEROR-Preserved's total HHF, 407 vs 541 events, HR 0.73, is not this outcome",
+    "withdrawal_history": {
+      "resolved": "V1.0.1 (lane NR): the composite is declared (components above; the urgent visit optional as the protocol defines it), a component-only or total-event result fails it through the endpoint module, and the registry analysis carries its own interval level (95.03%, AACT outcome_analyses.ci_percent) as a typed field; the corrected estimate is restored as a result-change notice owed Mahmood's countersignature. The record of the withdrawal is kept below as it was served.",
       "date": "2026-09-19",
       "summary": "The result previously published on this page for its primary outcome was a cardiovascular-death-only registry measure served as the composite outcome. It is withdrawn.",
       "statements": [

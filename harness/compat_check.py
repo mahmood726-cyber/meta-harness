@@ -133,9 +133,20 @@ def _derive_analysis_set(
         (r"\bintention[-\s]+to[-\s]+treat\b|\bITT population\b|\banalys(?:is|es) (?:was|were )?based on allocated treatment\b|\banalyzed according to the intention-to-treat principle\b|\bdata were analyzed according to the intention-to-treat principle\b",
          "intention-to-treat"),
     ]
+    # 1. the analysis set the row's OWN result sentence states ('In the intention-to-treat analysis, the primary end point
+    #    occurred in 269 ... (hazard ratio, 0.88 ...)'): metadata binds to the selected analysis's own sentence
+    rs = _result_span(trial) if _owns_result(trial) else ""
     for pattern, value in rules:
-        m = _search(pattern, text)
+        m = _search(pattern, rs)
         if m:
+            return _derived(value, "result span", _short_span(rs, m))
+    # 2. elsewhere in the text, never a sentence that reports a DIFFERENT estimate: ROCKET-AF's 'per-protocol, as-treated'
+    #    analysis (HR 0.79) does not label its ITT estimate (HR 0.88) (NOAC-AF review, lane NR)
+    ests = _row_estimates(trial)
+    for pattern, value in rules:
+        for m in re.finditer(pattern, text or "", re.I):
+            if ests and _reports_other_estimate(_analysis_statement(text, m), ests):
+                continue
             return _derived(value, "committed source text", _short_span(text, m))
     existing = ((trial.get("study_effect") or {}).get("analysis_population")
                 or (trial.get("compat_dimensions") or {}).get("analysis_set"))
@@ -144,12 +155,77 @@ def _derive_analysis_set(
     return _derived(None, "underivable", "")
 
 
+# effect words case-insensitive, their abbreviations case-SENSITIVE ('stroke or systemic embolism' is not an odds ratio)
+_EFFECT_WORD = re.compile(r"(?i:\b(?:hazard|risk|odds|rate)\s+ratio\b|\brelative\s+risk\b)|\b(?:HR|RR|OR|IRR)\b")
+
+
+def _analysis_statement(text: str, m: re.Match[str]) -> str:
+    """The analysis statement a label belongs to: its sentence, and the next one when the label's sentence reports no
+    effect ('The per-protocol, as-treated primary analysis was designed to ... In the per-protocol population, ... (hazard
+    ratio, 0.79 ...)')."""
+    here = _sentence_at(text, m)
+    if _EFFECT_WORD.search(here) or not re.search(r"\banalys[ie]s\b", here, re.I):
+        return here             # a population statement ('the mITT population included 249 ...') stands on its own
+    start = text.find(". ", m.end())
+    if start < 0:
+        return here
+    end = text.find(". ", start + 2)
+    nxt = text[start + 2:end if end >= 0 else len(text)]
+    # only a sentence that CONTINUES that analysis reports its estimate ('In the primary analysis, ... 0.79')
+    if re.match(r"\s*(?:in|under|for)\s+(?:the|this|that)\s+(?:[\w-]+[\s,]+){0,3}?(?:analys[ie]s|population)\b", nxt, re.I):
+        return here + " " + nxt
+    return here
+
+
+def _reports_other_estimate(statement: str, ests: list[float]) -> bool:
+    """The statement reports an effect estimate, and none of its numbers is this row's estimate."""
+    if not _EFFECT_WORD.search(statement or ""):
+        return False
+    nums = [float(x) for x in re.findall(r"(?<![\d.])\d+\.\d+(?![\d.])", statement)]
+    return bool(nums) and not any(abs(n - e) < 5e-3 for n in nums for e in ests)
+
+
 def _result_span(trial: dict[str, Any]) -> str:
     """The sentence (or table cell) that OWNS this row's number: the extractor's `source` after its route label
     ('abstract arm-level counts (percentage-corroborated): <sentence>'), else the study effect's provenance span."""
     src = str(trial.get("source") or ((trial.get("study_effect") or {}).get("source_provenance") or {}).get("span") or "")
     head, sep, tail = src.partition(": ")
     return tail if sep and len(head) <= 120 else src
+
+
+def _owns_result(trial: dict[str, Any]) -> bool:
+    """A row OWNS a result when it carries an estimate (served or refused) or a count/percentage conflict; a declared-absent
+    row without one carries only the evidence of its absence."""
+    return bool(_row_estimates(trial) or trial.get("count_pct_conflicts") or trial.get("reason_code") == "COUNT_PCT_CONFLICT"
+                or not (trial.get("absent_kind") or trial.get("state") or trial.get("reason_code")))
+
+
+def _window_span(trial: dict[str, Any], outcome_name: str) -> str:
+    """The span whose window is this row's timepoint. A row that owns a result: its result span. A declared-absent row with
+    no result: its source only when that source speaks for the row (a trial-wide follow-up statement, or a sentence about
+    this outcome) -- ODYSSEY's 'At week 24, the difference in LDL cholesterol ...' is not an adverse-event window, CORP's
+    '... followed for 18 months' is."""
+    rs = _result_span(trial)
+    if _owns_result(trial):
+        return rs
+    return " ".join(s for s in _sentences(rs) if _speech(s, outcome_name) == "ROW")
+
+
+def _row_estimates(trial: dict[str, Any]) -> list[float]:
+    """The row's own effect estimate(s) -- served or refused -- so a window can be tied to the result group that holds it."""
+    out = []
+    for v in (trial.get("effect"), (trial.get("study_effect") or {}).get("effect_estimate"),
+              (trial.get("refused_effect") or {}).get("effect") if isinstance(trial.get("refused_effect"), dict) else None):
+        try:
+            out.append(float(v))
+        except (TypeError, ValueError):
+            pass
+    ref = trial.get("refused_effect")
+    if isinstance(ref, str):
+        m = re.search(r"'effect':\s*([0-9.]+)", ref)
+        if m:
+            out.append(float(m.group(1)))
+    return out
 
 
 _PRIMARY_DEF = re.compile(r"\bprimary\s+(?:[a-z-]+\s+){0,2}?(?:outcome|end\s*point|endpoint|measure)s?\b", re.I)
@@ -189,11 +265,129 @@ def _defines_this_row(definition: str, result_span: str, outcome_name: str = "")
     word it defines appears as a WHOLE word in the row's span or outcome name. FREEDOM: 'new vertebral fracture' defines
     the vertebral-fracture estimate, not 'nonvertebral fracture' ('nonvertebral' is not the word 'vertebral') and not
     'hip fracture'; Torres: 'treatment failure' does not define 'in-hospital mortality'."""
+    # a definition that ENUMERATES a composite ('cardiovascular death, myocardial infarction, or stroke') defines the
+    # composite: it binds to a row only when the row's own span carries every one of those components -- never to a
+    # component row ('Cardiovascular death occurred in 20 patients'; NR-C04 #1: the head-word test stopped at the first comma)
+    from harness import target_endpoint as te
+    m = re.search(r"\b(?:was|were|is|are|included|comprised)\b\s+(.*)", definition or "", re.I | re.S)
+    defined = te._mentions_from_text(m.group(1) if m else "", expand_named_composites=False)
+    if len(defined) >= 2:
+        row = te._mentions_from_text(f"{result_span} {outcome_name}", expand_named_composites=False)
+        # 'The primary outcome occurred in ...' (no component named) is the composite; 'The primary outcome component
+        # of cardiovascular death occurred in ...' is a component row, primary or not (NR-C07 #13)
+        return defined <= row or (not row and _row_is_primary(result_span))
     if _row_is_primary(result_span):
         return True
     words = _defined_phrase(definition)
     hay = set(re.findall(r"[a-z][a-z-]*", f"{result_span} {outcome_name}".lower()))
-    return bool(words) and all(w in hay for w in words)
+    if words and all(w in hay for w in words):
+        return True
+    return _names_row_head(definition, outcome_name)
+
+
+_TRIAL_WIDE = re.compile(r"\bfollowed\s+(?:for|up|until|during|over|through|to)\b|\bcontinued\s+to\s+be\s+followed\b|"
+                         r"\bfollow(?:ed)?[\s-]*up\b[^.;]{0,40}?\b(?:for|during|over|until|through)\s+(?:\d|day|week|month|year)|"
+                         r"\bmedian\s+(?:duration|follow)|\bfollow(?:ed)?[\s-]*up\s+(?:of|period|"
+                         r"was|lasted|duration)\b|\b(?:during|over)\s+(?:a|the)\s+(?:median|mean)\b|"
+                         r"\b(?:during|throughout)\s+(?:the\s+)?(?:\d+[\s-]\w+\s+)?follow[\s-]*up\b|"
+                         r"\b(?:treatment|study|observation)\s+period\b", re.I)
+_ROW_GENERIC = {"event", "events", "outcome", "outcomes", "rate", "incidence", "number", "time", "total", "any", "all",
+                "first", "the", "and", "or", "with", "from", "day", "days", "of", "to", "in", "due", "leading", "related"}
+_ASSESSED = re.compile(r"\b(?:was|were)\s+(?:assessed|measured|evaluated|determined|recorded|ascertained)\b", re.I)
+
+
+def _row_terms(outcome_name: str) -> tuple[str | None, set[str], set[str]]:
+    """(head noun, modifier words, acronyms) of an outcome name. 'Antibiotic-associated diarrhoea' -> ('diarrhea',
+    {'antibiotic-associated'}, {'aad'}); 'Major bleeding' -> ('bleeding', {'major'}, set()); 'Myocardial infarction (MI)'
+    -> ('infarction', {'myocardial'}, {'mi'}); 'Death from any cause' -> ('death', set(), ...)."""
+    from harness import lexicon
+    folded = lexicon.fold(outcome_name or "")
+    acros = {a.lower() for a in re.findall(r"\(([A-Za-z]{2,6})\)", outcome_name or "")}
+    name = re.sub(r"\([^()]*\)", " ", folded)
+    toks = re.findall(r"[a-z][a-z0-9-]*", name)
+    # a post-head specifier ('death FROM ANY CAUSE') ends the noun phrase
+    for k, t in enumerate(toks):
+        if t in ("from", "due", "leading", "related") and k:
+            toks = toks[:k]
+            break
+    content = [t for t in toks if len(t) > 1 and t not in _ROW_GENERIC and not re.fullmatch(r"\d+(?:-\w+)?", t)]
+    if not content:
+        return None, set(), acros
+    parts = [p for t in re.findall(r"[a-z][a-z0-9-]*", name) for p in t.split("-") if p]
+    if len(parts) >= 3:
+        acros.add("".join(p[0] for p in parts if p not in {"of", "to", "the", "and", "or"}))
+    return content[-1], set(content[:-1]), acros
+
+
+# words that may stand right before an outcome's head noun without making it another outcome
+_NOT_A_MODIFIER = {"developed", "develop", "had", "have", "experienced", "with", "of", "any", "a", "an", "the", "who",
+                   "in", "incidence", "occurrence", "proportion", "rate", "risk", "was", "were", "as", "for", "defined",
+                   "and", "or", "no", "fewer", "more", "total", "first", "overall", "all", "on"}
+
+
+def _speech_score(sentence: str, outcome_name: str) -> int:
+    """How strongly a single sentence is ABOUT this row's outcome: 4 the full name; 3 the head noun with all its
+    modifiers; 2 the head noun (or acronym) with no conflicting modifier right before it; 1 a trial-wide follow-up
+    statement; 0 none. A conflicting modifier ('Minor bleeding' for 'Major bleeding', 'Cardiovascular death' for 'Death
+    from any cause', 'non-cardiovascular') makes an occurrence another outcome's."""
+    from harness import lexicon
+    fold = lexicon.fold(sentence or "")
+    head, mods, acros = _row_terms(outcome_name)
+    full = re.sub(r"\s+", " ", re.sub(r"\([^()]*\)", " ", lexicon.fold(outcome_name or ""))).strip()
+    for fm in re.finditer(rf"(?<![a-z-]){re.escape(full)}(?![a-z])", fold) if full and len(full) > 3 else ():
+        before = re.findall(r"[a-z][a-z0-9-]*", fold[:fm.start()])
+        prev = before[-1] if before else ""
+        # the full name under ANOTHER modifier is another outcome ('cardiovascular death' is not the row 'Death')
+        if not prev or prev in _NOT_A_MODIFIER or re.match(r"\d", prev):
+            return 4
+    toks = re.findall(r"[a-z][a-z0-9-]*", fold)
+    best = 0
+    for k, t in enumerate(toks):
+        if not ((head and (t == head or t.endswith("-" + head))) or t in acros):
+            continue
+        prev = toks[k - 1] if k else ""
+        if prev.startswith("non") and prev[3:].lstrip("-") in mods | {head}:
+            continue
+        if prev and prev not in mods and prev not in _NOT_A_MODIFIER and not re.match(r"\d", prev) and t not in acros:
+            continue                                   # another modifier: another outcome
+        nxt = toks[k + 1] if k + 1 < len(toks) else ""
+        if mods and nxt in ("from", "due") and not all(m in toks for m in mods):
+            continue                                   # 'death from any cause' is not 'cardiovascular death'
+        best = max(best, 3 if mods and all(m in toks for m in mods) else 2)
+    if best:
+        return best
+    if _ASSESSED.search(sentence or ""):
+        return 0                                       # another outcome's assessment
+    return 1 if _TRIAL_WIDE.search(sentence or "") else 0
+
+
+def _speech(sentence: str, outcome_name: str) -> str | None:
+    """'ROW' when a single sentence is about this row's outcome, 'TRIAL' when it is a trial-wide follow-up statement."""
+    sc = _speech_score(sentence, outcome_name)
+    return "ROW" if sc >= 2 else "TRIAL" if sc == 1 else None
+
+
+def _names_row_head(definition: str, outcome_name: str) -> bool:
+    """A single-outcome definition names this row ('... who developed diarrhea in the first 21 days' names
+    'Antibiotic-associated diarrhoea'; 'new vertebral fracture' does not name 'nonvertebral fracture' or 'hip fracture';
+    'treatment failure' does not name 'in-hospital mortality')."""
+    return _speech_score(definition, outcome_name) >= 2
+
+
+def _speaks_for_row(sentence: str, result_span: str, outcome_name: str) -> bool:
+    """A window stated elsewhere in the text binds to this row only from a TRIAL-WIDE follow-up statement or a sentence
+    about THIS row's outcome. 'Clinical cure was assessed at 14 days' is not a mortality window (NR-C04 #11); 'Clinical
+    cure was assessed at the follow-up visit at 14 days' is not trial-wide (NR-C07 #9); 'Non-cardiovascular death was
+    assessed at 14 days' is not about cardiovascular death (NR-C07 #8). A sentence is about the row when it names the
+    row's HEAD noun (or the name's acronym, 'AAD') and does not negate one of its modifiers ('non-cardiovascular')."""
+    sentence = sentence or ""
+    if result_span and _norm_ws(sentence) and _norm_ws(sentence) in _norm_ws(result_span):
+        return True
+    return _speech(sentence, outcome_name) is not None
+
+
+def _sentences(text: str) -> list[str]:
+    return [s for s in re.split(r"(?<=[.;])\s+(?=[A-Z(\d])", text or "") if s.strip()]
 
 
 def _derive_follow_up(
@@ -216,25 +410,52 @@ def _derive_follow_up(
         (r"\bfollowed for a median of\s+([0-9.]+)\s+years\b", None),
         (r"\bfor\s+40\s+months\b", "40 months"),
         (r"\bmedian duration of supplementation was\s+([0-9.]+)\s+years\b", None),
+        # any other TRIAL-WIDE follow-up statement (NR-C07 #1): value from the match
+        (r"\bfollowed(?:\s+up)?\s+for\s+(?:a\s+(?:median|mean)\s+of\s+)?(\d+(?:\.\d+)?)\s+(day|week|month|year)s?\b", "UNIT"),
+        (r"(?<![\d.])(\d+(?:\.\d+)?)[\s-](day|week|month|year)s?\s+(?:of\s+)?follow[\s-]?up\b", "UNIT"),
+        (r"\bfollow(?:ed)?[\s-]*up\b[^.;]{0,40}?\b(?:for|during|over)\s+(\d+(?:\.\d+)?)\s+(day|week|month|year)s?\b", "UNIT"),
+        (r"\bfollowed\s+(?:up\s+)?(?:for|during|over)\s+(\d+(?:\.\d+)?)\s+(day|week|month|year)s?\b", "UNIT"),
+        (r"\bfollow(?:ed)?[\s-]*(?:up\s+)?(?:until|to|through)\s+(day|week|month|year)\s+(\d+)\b", "UNIT_REV"),
+        # the row's OWN sentence at any stated window ('Major bleeding was assessed at 90 days') -- accepted only from a
+        # sentence that speaks for this row (score >= 2), never from a trial-wide or another outcome's sentence
+        (r"\b(?:at|by|within|through|over|after)\s+(\d+(?:\.\d+)?)\s*(day|week|month|year)s?\b", "UNIT_ROW"),
+        (r"\b(?:at|by|within|through|on)\s+(day|week|month)\s+(\d+)\b", "UNIT_ROW_REV"),
     ]
     # 1. the window the result's OWN span states ('By day 28, death had occurred ...', 'In-hospital mortality ...')
     rs = _result_span(trial)
-    own = window_evidence.result_window(rs)
+    own = window_evidence.result_window(_window_span(trial, str(outcome.get("name") or "")),
+                                        _row_estimates(trial))
     if own:
         return _derived(own[0], "result span", _short_span(rs, own[1]))
-    # 2. elsewhere in the text: never a regimen, and never a primary-outcome sentence for a row that is not the primary
+    # 2. elsewhere in the text: never a regimen, never another outcome's sentence, and never a primary-outcome sentence
+    #    for a row that is not the primary. Every candidate is collected and the sentence that speaks MOST for this row
+    #    wins (the full name > head and modifiers > head > a trial-wide statement), then catalogue order, then position --
+    #    not the first catalogue pattern that happens to hit (NR-C14: 'Minor bleeding was assessed at 14 days' was taken
+    #    for major bleeding because '14 days' is listed before '90 days')
     oname = str(outcome.get("name") or "")
+    ws = rs if _owns_result(trial) else _window_span(trial, oname)
     refused_dosing = None
-    for pattern, value in rules:
-        # a duration is follow-up evidence only if it is not a TREATMENT/DOSING duration ('1 mg daily ... for 14
-        # days' is the regimen, not the ascertainment window): take the first match that is not dosing
-        hits = [x for x in re.finditer(pattern, text or "", re.I | re.S)
-                if not _in_primary_definition(text, x) or _defines_this_row(_sentence_at(text, x), rs, oname)]
-        m = next((x for x in hits if window_evidence.duration_role(text, x.start(), x.end()) != "DOSING"), None)
-        if not m:
-            refused_dosing = refused_dosing or (hits[0] if hits else None)
-            continue
-        if value is None and m.groups():
+    cands = []
+    for order, (pattern, value) in enumerate(rules):
+        for x in re.finditer(pattern, text or "", re.I | re.S):
+            sent = _sentence_at(text, x)
+            if _in_primary_definition(text, x) and not (ws and _defines_this_row(sent, ws, oname)) and \
+                    not (not ws and _owns_result(trial) and _defines_this_row(sent, ws, oname)):
+                continue
+            score = 5 if ws and _norm_ws(sent) and _norm_ws(sent) in _norm_ws(ws) else _speech_score(sent, oname)
+            if score == 0 or (score == 1 and "follow" not in pattern) or (str(value).startswith("UNIT_ROW") and score < 2):
+                continue                    # a trial-wide sentence gives only its follow-up-attached window
+            if window_evidence.duration_role(text, x.start(), x.end()) in window_evidence.NOT_A_WINDOW:
+                refused_dosing = refused_dosing or x
+                continue
+            cands.append((-score, order, x.start(), value, x))
+    if cands:
+        _, _, _, value, m = min(cands, key=lambda c: c[:3])
+        if value in ("UNIT", "UNIT_ROW"):
+            value = f"{m.group(1)} {m.group(2).lower()}{'' if m.group(1) == '1' else 's'}"
+        elif value in ("UNIT_REV", "UNIT_ROW_REV"):
+            value = f"{m.group(2)} {m.group(1).lower()}{'' if m.group(2) == '1' else 's'}"
+        elif value is None and m.groups():
             value = m.group(1) + " years"
         return _derived(value, "committed source text", _short_span(text, m))
     if trial.get("timeframe"):

@@ -86,7 +86,11 @@ HELD: set[str] = {
     "effect_first",   # regex_layer.radius r4_effect_first: 175 of 10,098 differ, 6 served
     "sent_hr",        # r4_sent_hr: 51 differ, 10 served
     "sent_effect",    # r4_sent_effect: 51 differ, 2 served
-    "arm_pairs",      # r4_arm_pairs: 14 differ, 2 served
+    # "arm_pairs" is no longer HELD (lane NR V1.0.1, NR-C15 cluster rule): a third count in the same result is a third
+    # arm and is refused, while counts separated by a statistic or an outcome verb are further RESULTS and keep their
+    # first pair -- so the two served rows the blanket refusal would have moved (metformin 11172832, COPPS-2 25172965)
+    # keep their values. Measured on the V1.0.1 radius: 0 of 10,520 served extractions change; 3 unserved semaglutide
+    # three-arm sentences become refusals.
     "eio_first",      # extract_trial 0, but scripts/radius_r4_comparator.py: 16 comparator effects differ, 14 on pages
     "k_first",        # scripts/radius_r4_comparator.py: 2 comparator k differ, both served
     "arm_ns",         # r4_arm_ns: 4 differ, 0 served -- but omitting the ambiguous arm lets the flat denom_each fallback

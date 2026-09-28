@@ -11,6 +11,8 @@ from collections import Counter
 import re
 from typing import Any
 
+from . import component_identity
+
 
 ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS = (
     "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS"
@@ -324,13 +326,40 @@ def _underlying(outcome: dict[str, Any], review: dict[str, Any], dimension: str)
             vals.append(value)
         per_trial.append({"trial": label, "id": t.get("id"), "value": value, "basis": basis})
     counts = Counter(v for v in vals if v is not None)
-    return {
+    out = {
         "derivable": bool(per_trial) and not missing,
         "matched": len(counts) <= 1 if vals else False,
         "values": sorted(counts),
         "missing_trials": missing,
         "per_trial": per_trial,
     }
+    if dimension == "endpoint_definition" and len(per_trial) > 1 and not missing:
+        # strings differ -- compare the TYPED components (name + parameters): a threshold one trial's string lost but its
+        # own definition sentence states is not a difference; 40% vs 57% is (finerenone review 00a2b7e4)
+        trials = [t for t in outcome.get("trials") or []]
+        # the trial's own component phrases when it has them (a derived code can drop '<' or '%'), else its value
+        typed = [component_identity.identities([str(c) for c in (t.get("components") or [])]
+                                               or [p.strip() for p in str(row["value"]).split("|") if p.strip()],
+                                               t.get("endpoint_definition_span"))
+                 for row, t in zip(per_trial, trials)]
+        cmps = [component_identity.compare(typed[0], x) for x in typed[1:]]
+        # the TYPED comparison decides both ways: identical strings can hide 40% vs 50% stated in each trial's own
+        # definition (NR-C16 #1); different strings can hide the same threshold
+        differences = [d for c in cmps for d in c["differences"]]
+        if len(counts) > 1:
+            out["matched"] = all(c["same"] for c in cmps)
+        else:
+            # the strings agree: only a PARAMETER difference on the same component overturns that (differently worded
+            # raw phrases naming the same component are not a difference)
+            differences = [d for d in differences if "parameter" in d]
+            out["matched"] = not differences
+        out["typed_match"] = out["matched"]
+        if differences:
+            out["typed_differences"] = differences
+        unresolved = [u for c in cmps for u in c["unresolved"]]
+        if unresolved:
+            out["unresolved_component_parameters"] = unresolved
+    return out
 
 
 def _derive_value(

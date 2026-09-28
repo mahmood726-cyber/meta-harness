@@ -822,7 +822,7 @@ DETECTS.update({
     "design_key.py:sub:7b4eac99d8#2": _fmt("whitespace normalisation; matches formatting, not meaning", _ROW_SPAN),
     "design_key.py:sub:7b4eac99d8#3": _fmt("whitespace normalisation; matches formatting, not meaning", _ROW_SPAN),
     # ---- harness/honest_ratchet.py -----------------------------------------------------------------------------------
-    "honest_ratchet.py:L53": {"detects": "the rendered page carries the retraction marker phrase (here 'we retract')",
+    "honest_ratchet.py:L54": {"detects": "the rendered page carries the retraction marker phrase (here 'we retract')",
                               "trigger": r"retract", "text_source": "the rendered text of a served page",
                               "lowercased": False},
     "honest_ratchet.py:sub:627bb26cb4": _fmt("<script>/<style> block remover; matches markup, not meaning", _PAGE_HTML),

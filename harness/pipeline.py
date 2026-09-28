@@ -48,6 +48,7 @@ from . import propositions as propositions_mod
 from . import eligibility_chain as eligibility_chain_mod
 from . import scope_identity as scope_identity_mod
 from .limitations import build_limitations
+from .registry_ci import registry_ci_level
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
 from .acquisition import LEDGER_FILENAME, STATES
@@ -653,6 +654,11 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     return _refresh_cross_source_identity(out, spec, trial_components)
 
 
+def _level_label(pct) -> str:
+    """'95%' unless a typed interval level says otherwise ('95.03%')."""
+    return "95%" if pct is None or abs(float(pct) - 95.0) < 1e-9 else f"{float(pct):g}%"
+
+
 def _pool_result(studies, scale="RR", *, require_study_effect=False):
     r = pool(studies, scale=scale, require_study_effect=require_study_effect)
     i2 = k2_mod.i2_from_q(r.Q, r.k)
@@ -672,7 +678,12 @@ def _pool_result(studies, scale="RR", *, require_study_effect=False):
             res["ci_low"], res["ci_high"] = s0.ci_low, s0.ci_high
             if getattr(s0, "effect", None) is not None:
                 res["estimate"] = s0.effect
-            res["ci_note"] = "k=1: point estimate and 95% CI are the single trial's reported values, verbatim."
+            # the interval keeps the level it was REPORTED at (EMPEROR-Preserved: 95.03%, alpha-adjusted), never relabelled 95%
+            lvl = getattr(s0, "ci_pct", None)
+            if lvl is not None and abs(float(lvl) - 95.0) > 1e-9:
+                res["ci_pct"] = float(lvl)
+            res["ci_note"] = (f"k=1: point estimate and {_level_label(lvl)} CI are the single trial's reported values, "
+                              "verbatim.")
             res["ci_provenance"] = "source-reported-CI:k=1-verbatim"  # not engine-pooled; the trial's own CI
         res["pi_note"] = "prediction interval undefined for k=1"
     elif r.k == 2:
@@ -1494,9 +1505,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             pooled_scale = trials[0]["scale"]
         else:
             pooled_scale = selector_estimand or spec.get("estimand", "RR")
+        for t in trials:
+            if t.get("ci_pct") is not None:
+                continue
+            if any(t.get(k) is not None for k in ("ai", "mean1", "e1i")):
+                continue
+            pid = str(t.get("id", "")).replace("PMID ", "")
+            level = registry_ci_level(
+                rec_by_id.get(pid), t.get("scale") or pooled_scale,
+                t.get("effect"), t.get("ci_low"), t.get("ci_high"), ctgov_results)
+            # only a level OTHER than 95 changes anything: a 95% registry level leaves the row as it was
+            if level is not None and abs(level["ci_pct"] - 95.0) > 1e-9:
+                t["ci_pct"] = level["ci_pct"]
+                t["ci_pct_basis"] = level["basis"]
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
-                         ci_high=t.get("ci_high"),
+                         ci_high=t.get("ci_high"), ci_pct=t.get("ci_pct"),
                          e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),
                          mean1=t.get("mean1"), sd1=t.get("sd1"), nc1=t.get("nc1"),
                          mean2=t.get("mean2"), sd2=t.get("sd2"), nc2=t.get("nc2"),
@@ -1513,6 +1537,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 analysis_population=spec.get("population"),
                 scale=pooled_scale,
             )
+            if (study.ai is None
+                    and not (study.mean1 is not None and study.sd1 is not None and study.nc1
+                             and study.mean2 is not None)
+                    and not (study.e1i is not None and study.t1i
+                             and study.e2i is not None and study.t2i)):
+                trial["study_effect"]["ci_pct"] = 95.0 if study.ci_pct is None else study.ci_pct
             study.study_effect = trial["study_effect"]
         out["result"] = _pool_result(studies, scale=pooled_scale, require_study_effect=True)
         _alts = []
@@ -1525,12 +1555,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "effect": alt.get("effect"),
                 "ci_low": alt.get("ci_low"),
                 "ci_high": alt.get("ci_high"),
+                "ci_pct": alt.get("ci_pct"),
                 "scale": alt.get("scale", t.get("scale") or pooled_scale),
                 "source": alt.get("source", t.get("source")),
             })
             alt_studies = [
                 Study(label=x["label"], effect=x.get("effect"), ci_low=x.get("ci_low"),
-                      ci_high=x.get("ci_high"),
+                      ci_high=x.get("ci_high"), ci_pct=x.get("ci_pct"),
                       ai=x.get("ai"), n1i=x.get("n1i"), ci=x.get("ci"), n2i=x.get("n2i"),
                       source=x.get("source", ""), measure=_meas(x))
                 for x in alt_trials

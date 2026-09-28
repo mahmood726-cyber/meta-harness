@@ -268,10 +268,10 @@ def _passes_design(value: str, contract: str | None) -> bool | None:
 
 
 @_typed_reading
-def _follow_up_value(pid: str, text: str, result_span: str | None = None) -> tuple[str, str]:
+def _follow_up_value(pid: str, text: str, result_span: str | None = None, estimates=()) -> tuple[str, str]:
     # The sentence that OWNS this row's number decides first: an extracted result's timepoint binds to THAT result
     # ('By day 28, death ...' -> 28 days; 'In-hospital mortality ...' -> in-hospital), before any hand row or text search.
-    own = window_evidence.result_window(result_span)
+    own = window_evidence.result_window(result_span, estimates)
     if own:
         return own[0], _norm(own[1].string[max(0, own[1].start() - 45):own[1].end() + 90])
     known = {
@@ -294,7 +294,7 @@ def _follow_up_value(pid: str, text: str, result_span: str | None = None) -> tup
         hits = [m.start() for m in re.finditer(re.escape(pat), tl)]
         # only a DURATION ('14 days', '3 months') can be a regimen's length; 'in-hospital' / 'trial end' are not tested
         ok = [i for i in hits if not window_evidence.DURATION.fullmatch(pat)
-              or window_evidence.duration_role(nt, i, i + len(pat)) != "DOSING"]
+              or window_evidence.duration_role(nt, i, i + len(pat)) not in window_evidence.NOT_A_WINDOW]
         if ok:
             # the first occurrence keeps its historical span; a later one (the first was a regimen) is cut at itself
             return val, (_span(text, pat) if ok[0] == hits[0] else
@@ -376,8 +376,9 @@ def admission_record(
         "verdict": "PASS" if (not comp_terms or comp_hit) else "FAIL",
     }
 
-    from .compat_check import _result_span            # the row's own result sentence (one definition, one place)
-    fu, fspan = _follow_up_value(pid, text, _result_span(trial))
+    from .compat_check import _row_estimates, _window_span  # the row's own result sentence (one definition)
+    fu, fspan = _follow_up_value(pid, text, _window_span(trial, str(outcome.get("name") or "")),
+                                 _row_estimates(trial))
     fcontract = (criteria.get("follow_up_window") or {}).get("value")
     fp = None
     if fcontract:

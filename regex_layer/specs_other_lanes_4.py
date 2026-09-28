@@ -126,7 +126,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_interaction_evidence: collapse whitespace in the span",
         "plants": {"accept": [("no  significant", None)], "refuse": ["no-significant", "p"]}},
     # ---- harness/honest_ratchet.py -----------------------------------------------------------------------------------
-    "honest_ratchet.py:L53": {
+    "honest_ratchet.py:L54": {
         "kind": "search", "what": "RETRACTION_RE: the rendered page carries a retraction marker phrase (compiled with phrase='we retract')",
         "bind": {"phrase": "we retract"},
         "plants": {"accept": [("We retract this estimate", None), ("we  retract", None)],

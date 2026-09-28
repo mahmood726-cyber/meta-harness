@@ -96,6 +96,16 @@ def test_missing_heterogeneity_and_risk_inputs_are_typed():
     assert "NOT_ASSESSABLE" in rendered and "REQUIRES_JUDGEMENT" in rendered
     assert "downgrade(s)" not in rendered
 
+# A downgrade may fall only when the EVIDENCE changed under a result-change notice, never because an input went missing;
+# each such change names its notice.
+ACKNOWLEDGED_DOWNGRADE_CHANGES = {
+    # V1.0.1 (lane NR): VESALIUS-CV enters the pcsk9 pool (notice NOTICES_TO_APPEND_V101_E): k 2 -> 3, HR 0.8106
+    # (0.7032-0.9344) -- the interval now excludes no-effect and is precise; the live k=2 page served no interval, so
+    # its imprecision downgrade (1) is no longer earned. The domain is still assessed (REQUIRES_JUDGEMENT), not missing.
+    ("pcsk9-mace", "imprecision"),
+}
+
+
 def test_no_served_page_loses_a_downgrade():
     import json
     import subprocess
@@ -114,12 +124,18 @@ def test_no_served_page_loses_a_downgrade():
         # Missing is not favourable: a page may carry no rating ONLY because its result is explicitly withdrawn
         # (a withdrawn result has no certainty to rate). A rating that vanishes without a withdrawal, or a
         # withdrawn page that still carries one, is a loss of every downgrade at once.
-        if 'grade' not in before or 'grade' not in after:
-            if not after.get('withdrawn') or 'grade' in after:
+        if 'grade' not in after:
+            if not after.get('withdrawn'):
                 losses.append((slug, 'GRADE object absent without a declared withdrawal'))
             continue
+        if after.get('withdrawn'):
+            losses.append((slug, 'a withdrawn page still carries a GRADE object'))
+            continue
+        if 'grade' not in before:
+            continue    # a RESTORED result (V1.0.1: withdrawn before, rated now) gains a rating; nothing is lost
         for name, domain in before['grade']['domains'].items():
-            if after['grade']['domains'][name]['downgrade'] < domain['downgrade']:
+            if after['grade']['domains'][name]['downgrade'] < domain['downgrade'] \
+                    and (slug, name) not in ACKNOWLEDGED_DOWNGRADE_CHANGES:
                 losses.append((slug, name))
     assert losses == [], losses
 

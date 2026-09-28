@@ -104,6 +104,7 @@ class Study:
     design: Optional[dict] = None
     design_adjustment: Optional[dict] = None
     study_effect: Optional[dict] = None
+    ci_pct: Optional[float] = None
 
     def yi_vi(self) -> tuple[float, float]:
         d = self.design or {}
@@ -157,7 +158,10 @@ class Study:
                 v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
             return y, v
         if self.effect is not None and self.ci_low and self.ci_high:
-            z = _norm.ppf(0.975)
+            pct = 95.0 if self.ci_pct is None else self.ci_pct
+            if not math.isfinite(pct) or not 0 < pct < 100:
+                raise ValueError("ci_pct must be finite and between 0 and 100")
+            z = _norm.ppf(1.0 - (1.0 - pct / 100.0) / 2.0)
             y = math.log(self.effect)
             se = (math.log(self.ci_high) - math.log(self.ci_low)) / (2 * z)
             return y, se * se

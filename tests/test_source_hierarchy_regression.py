@@ -53,8 +53,12 @@ def test_sglt2_abstract_hr_candidates_are_surfaced_and_selected():
     assert post["result"]["scale"] == "HR"
     assert post["result"]["estimate"] == pytest.approx(0.75, abs=5e-4)
     hksj = post["result"]["ci_hksj_unserved"]
-    assert hksj["ci_low"] == pytest.approx(0.4003, abs=5e-4)
-    assert hksj["ci_high"] == pytest.approx(1.4052, abs=5e-4)
+    # V1.0.1 (lane NR): EMPEROR-Reduced's registered analysis states its interval at 95.04% (alpha-adjusted); the level is
+    # now carried and its SE derived at z(95.04), not z(95). The unserved k=2 audit interval moves 0.4003-1.4052 ->
+    # 0.4005-1.4044; the served estimate (0.75) and the served state (no RE interval at k=2) do not change.
+    assert rows["PMID 32865377"]["ci_pct"] == 95.04
+    assert hksj["ci_low"] == pytest.approx(0.4005, abs=5e-4)
+    assert hksj["ci_high"] == pytest.approx(1.4044, abs=5e-4)
 
 
 def test_colchicine_or_is_non_target_alternative_under_rr_outcome():

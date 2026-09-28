@@ -25,6 +25,95 @@ EXACT_TARGET_IN_SOURCE_NOT_HELD = "EXACT_TARGET_IN_SOURCE_NOT_HELD"
 ENDPOINT_UNBOUND = "ENDPOINT_UNBOUND"
 # the bound endpoint EXCLUDES a target component ('nonfatal stroke was excluded from the primary outcome'): refused
 ENDPOINT_COMPONENT_EXCLUDED = "ENDPOINT_COMPONENT_EXCLUDED"
+# the bound result counts a different EVENT PROCESS from the target: total (first and recurrent) events against a
+# first-event target, or event counts against patients-with-an-event (EMPEROR-Preserved: 407 vs 541 total HHF, HR 0.73,
+# is not the time-to-first composite, HR 0.79): refused
+EVENT_PROCESS_MISMATCH = "EVENT_PROCESS_MISMATCH"
+
+# ---- EVENT PROCESS: part of endpoint identity ------------------------------------------------------------------------
+# {FIRST_EVENT, TOTAL_EVENTS} x {PATIENTS_WITH_EVENT, EVENT_COUNT}. Read only from EXPLICIT evidence; a span that says
+# neither leaves the dimension undecided (no refusal). 'Recurrent VTE' is a disease, not a total-event count.
+FIRST_EVENT, TOTAL_EVENTS = "FIRST_EVENT", "TOTAL_EVENTS"
+PATIENTS_WITH_EVENT, EVENT_COUNT = "PATIENTS_WITH_EVENT", "EVENT_COUNT"
+_TOTAL_EVENTS = re.compile(
+    r"\bfirst\s+and\s+(?:subsequent|recurrent|repeat(?:ed)?)\b|"
+    r"\btotal\s+(?:number\s+of\s+)?(?:[a-z-]+\s+){0,4}?(?:hospitali[sz]ations|admissions|events|episodes|exacerbations)\b|"
+    r"\b(?:recurrent|repeat(?:ed)?)\s+(?:(?:heart\s+failure|hf)\s+)?(?:hospitali[sz]ations|admissions|events)\b|"
+    r"\bincluding\s+(?:all\s+)?(?:recurrences|recurrent\s+(?:events|hospitali[sz]ations))\b|"
+    r"\brecurrent[\s-]+event\s+(?:model|analysis|analyses|method)\b|\bjoint\s+frailty\b|\bnegative\s+binomial\b|"
+    r"\blin[\s-]+wei\b|\bandersen[\s-]+gill\b|\bevent\s+rate\s+ratio\b|\brate\s+of\s+(?:total|recurrent)\b|"
+    r"\bannuali[sz]ed\s+(?:event\s+)?rate\b", re.I)
+_COX = re.compile(r"\bcox\b|\bproportional[\s-]+hazards?\b", re.I)
+_RECURRENT_METHOD = re.compile(r"joint\s+frailty|negative\s+binomial|lin[\s-]+wei|andersen[\s-]+gill|recurrent[\s-]+event\s+"
+                               r"(?:model|analysis|analyses|method)", re.I)
+# a total-event phrase that is NEGATED is a first-event statement ('recurrent events were not included')
+_TOTAL_NEGATED_AFTER = re.compile(r"\s*(?:were|was)\s+(?:not\s+(?:included|counted|analy[sz]ed)|excluded)\b", re.I)
+_TOTAL_NEGATED_BEFORE = re.compile(r"\b(?:excluding|without|not\s+including|other\s+than)\s+$", re.I)
+_FIRST_EVENT = re.compile(r"\bfirst\s+(?:occurrence|event|episode|hospitali[sz]ation|admission|exacerbation)\b|"
+                          r"\btime\s+to\s+(?:the\s+)?first\b|\bpatients\s+with\s+(?:at\s+least\s+one|>=\s*1|≥\s*1|an?|one\s+or\s+"
+                          r"more)\s+(?:event|hospitali[sz]ation|admission|exacerbation)s?\b", re.I)
+# an explicit count of PATIENTS WITH the event -- not a denominator ('assessed in 5988 patients', 'in 1000 patients')
+_PATIENT_COUNTS = re.compile(r"\b\d[\d,]*\s+(?:of|/)\s*\d[\d,]*\s+(?:patients|participants|subjects)\b|"
+                             r"\b\d[\d,]*\s+(?:patients|participants|subjects)\s*\(\s*\d|"
+                             r"\b(?:occurred|developed|experienced|had|reported)\s+(?:in\s+)?\d[\d,]*\s+(?:patients|participants|subjects)\b|"
+                             r"\bnumber\s+of\s+patients\s+with\b", re.I)
+
+
+def event_process(text: str | None) -> dict[str, Any]:
+    """{'process': FIRST_EVENT | TOTAL_EVENTS | None, 'count_unit': PATIENTS_WITH_EVENT | EVENT_COUNT | None,
+    'evidence': [...]} for a result span, from EXPLICIT statements only. The count unit follows the process (a first-event
+    count is a count of patients; a total-event count is a count of events); with no stated process only an explicit
+    patients-with-the-event statement decides it. A bare 'N events' decides nothing -- tables report first-event analyses
+    as 'No. of events'. Both processes stated -> undecided (never a refusal by default)."""
+    s = text or ""
+    allm = list(_TOTAL_EVENTS.finditer(s))
+    tot = [m for m in allm
+           if not _TOTAL_NEGATED_AFTER.match(s, m.end()) and not _TOTAL_NEGATED_BEFORE.search(s[:m.start()])]
+    negated = [m for m in allm if m.span() not in {t.span() for t in tot}]
+    # the ESTIMATE's own analysis method outranks a descriptive count: a Cox model is a time-to-FIRST-event analysis, so
+    # 'Exposure-adjusted incident rate ... n = total number of events' describing a registry measure whose analysis is
+    # 'Hazard Ratio ... Regression, Cox' is a first-event HR (PARALLEL-HF NCT02468232, lane NR rebuild diff); only a
+    # recurrent-event METHOD (joint frailty, negative binomial, Lin-Wei, Andersen-Gill, a recurrent-event model) makes
+    # a hazard ratio a total-event result
+    if _COX.search(s) and not any(_RECURRENT_METHOD.search(m.group(0)) for m in tot):
+        tot = []
+    rest = s
+    for m in list(tot) + negated:
+        rest = rest[:m.start()] + " " * (m.end() - m.start()) + rest[m.end():]
+    first = [m.group(0) for m in _FIRST_EVENT.finditer(rest)]
+    if negated and not tot:
+        first.append(negated[0].group(0) + " (negated)")
+    process = TOTAL_EVENTS if tot and not first else FIRST_EVENT if first and not tot else None
+    pt = [m.group(0) for m in _PATIENT_COUNTS.finditer(rest)]
+    unit = {TOTAL_EVENTS: EVENT_COUNT, FIRST_EVENT: PATIENTS_WITH_EVENT}.get(process) or \
+        (PATIENTS_WITH_EVENT if pt and not tot else None)
+    return {"process": process, "count_unit": unit, "evidence": [m.group(0) for m in tot] + first + pt}
+
+
+def target_event_process(spec: dict[str, Any]) -> dict[str, Any]:
+    """The target's event process: declared (`event_process`, `count_unit`), else read from the outcome name ('total',
+    'first and recurrent', 'recurrent hospitalizations'), else from the estimand -- a rate ratio counts total events;
+    HR / RR / OR count patients with a first event."""
+    proc = spec.get("event_process")
+    if not proc:
+        name = str(spec.get("name") or "")
+        est = str(spec.get("estimand") or "").upper()
+        if _TOTAL_EVENTS.search(name) or est in ("IRR", "RATE_RATIO", "RATE_RATIO_RECURRENT"):
+            proc = TOTAL_EVENTS
+        elif est in ("HR", "RR", "OR", "") or _FIRST_EVENT.search(name):
+            proc = FIRST_EVENT
+    unit = spec.get("count_unit") or {FIRST_EVENT: PATIENTS_WITH_EVENT, TOTAL_EVENTS: EVENT_COUNT}.get(proc)
+    return {"process": proc, "count_unit": unit}
+
+
+def event_process_problem(spec: dict[str, Any], text: str | None) -> dict[str, Any] | None:
+    """None when the result's stated event process and count unit agree with the target's (or are unstated); else the
+    two readings. Continuous outcomes have no event process."""
+    if str(spec.get("estimand") or "").upper() in ("MD", "SMD"):
+        return None
+    ep, tp = event_process(text), target_event_process(spec)
+    bad = [d for d in ("process", "count_unit") if ep[d] and tp[d] and ep[d] != tp[d]]
+    return {"result": ep, "target": tp, "dimensions": bad} if bad else None
 
 # Endpoint-span binding (external review of served glp1 edaf5f6b, defect 1 -- wrong-endpoint
 # acceptance).  Before this, an abstract candidate was classified against the WHOLE abstract and that
@@ -87,6 +176,19 @@ def _reference_of(text: str) -> dict[str, Any]:
             "timepoint": timepoint, "population": population}
 
 
+def _names_phrase(text: str, phrase: str) -> bool:
+    """`phrase` occurs in `text` as a whole phrase: not inside a longer word or number ('3-point mace' is not named by
+    '13-point mace'). Plain string search -- no pattern is built from the text."""
+    i = text.find(phrase)
+    while i >= 0:
+        before = text[i - 1] if i else " "
+        after = text[i + len(phrase)] if i + len(phrase) < len(text) else " "
+        if not (before.isalnum() or before in "-_") and not (after.isalnum() or after in "-_"):
+            return True
+        i = text.find(phrase, i + 1)
+    return False
+
+
 def _resolve_reference(rs: str, pool: list[dict[str, Any]]) -> dict[str, Any]:
     """Select the definition the result REFERS to. Returns {selected, record, how} where record carries
     definition_candidates / endpoint_reference / selected_definition / unresolved_alternatives."""
@@ -94,17 +196,22 @@ def _resolve_reference(rs: str, pool: list[dict[str, Any]]) -> dict[str, Any]:
     cands = []
     seen = set()
     for d in pool:
-        key = re.sub(r"\W+", " ", d["span"].lower()).strip()
+        key = re.sub(r"\W+", " ", (d.get("segment") or d["span"]).lower()).strip()
         if key in seen:
             continue            # an identical repeated definition is a harmless duplicate, not a second endpoint
         seen.add(key)
         cands.append(d)
-    record = {"definition_candidates": [{"span": d["span"], "components": sorted(d["components"]),
+    record = {"definition_candidates": [{"span": d["span"], "label": d.get("label"),
+                                         "components": sorted(d["components"]),
                                          "ordinal": d.get("ordinal"), "timepoint": d.get("timepoint"),
                                          "population": d.get("population")} for d in cands],
               "endpoint_reference": ref, "selected_definition": None, "unresolved_alternatives": []}
     how = []
     narrowed = list(cands)
+    rl = (rs or "").lower()
+    labelled = [d for d in narrowed if d.get("label") and _names_phrase(rl, d["label"])]
+    if labelled:
+        narrowed, how = labelled, how + ["label"]
     if len(narrowed) > 1 and ref["ordinal"]:
         explicit = [d for d in narrowed if d.get("ordinal") == ref["ordinal"]]
         if explicit:
@@ -258,6 +365,7 @@ def _mentions_from_text(text: str | None, expand_named_composites: bool = True) 
         comps.add("transient ischemic attack")
     if (("heart failure" in s and "hospitalization" in s)
             or "hospitalizations due to heart failure" in s
+            or re.search(r"\bhospitali[sz]ed for heart failure\b", s)
             # 'hospitalized HF' / 'HF hospitalisation' (CANVAS HF paper: 'hospitalized HF alone (HR, 0.67 ...)')
             or (re.search(r"\bhf\b", s) and re.search(r"hospitali[sz]", s))):
         comps.add("heart failure hospitalization")
@@ -286,7 +394,9 @@ def _mentions_from_text(text: str | None, expand_named_composites: bool = True) 
         comps.add("stroke")
     if "unstable angina" in s:
         comps.add("unstable angina")
-    if "coronary revascularization" in s or "revascularisation" in s:
+    # both spellings alike: the British 'revascularisation' was read, the American 'revascularization' only after 'coronary'
+    # (VESALIUS-CV's 4-point MACE, '... or ischemia-driven arterial revascularization', lost its fourth component)
+    if "coronary revascularization" in s or "revascularisation" in s or "revascularization" in s:
         comps.add("coronary revascularization")
     if "kidney failure" in s:
         comps.add("kidney failure")
@@ -324,6 +434,52 @@ def _result_sentence(abstract: str, source: str | None) -> str | None:
     return None
 
 
+# A DEFINITION-BEARING sentence defines an endpoint ('The two primary end points were a composite of ...', '... defined
+# as ...'); a BACKGROUND or introduction sentence merely mentions one ('The effect of evolocumab on the risk of MACE among
+# patients without a previous myocardial infarction or stroke is unknown') -- its population qualifier is not a component
+# list (VESALIUS-CV, PCSK9 review f7132bc2: the background sentence was bound as the definition and HR 0.75 refused)
+_DEFINING = re.compile(
+    r"\bcomposite\s+(?:(?:outcome|end[\s-]?point)\s+)?(?:of|including|comprising)\b|\bdefined\s+(?:as|by)\b|"
+    r"\bconsist(?:ed|ing|s)?\s+of\b|\bcompris(?:ed|ing|es)\b|"
+    # 'the primary end point of stroke or systemic embolism', 'primary outcome of the first occurrence of ...'
+    r"\b(?:end[\s-]?points?|outcomes?)\s+(?:of|was|were)\s+(?:the\s+)?(?:first\s+)?(?:occurrence\s+of\s+)?"
+    r"(?!unknown|unclear|uncertain|not\b|lower|higher|reduced|increased|similar|significant|consistent)|"
+    # 'All-cause death was the primary end point'
+    r"\b(?:was|were)\s+the\s+(?:co-?)?(?:primary|secondary|main|key)\s+(?:[a-z-]+\s+){0,2}?(?:end[\s-]?points?|outcomes?)\b|"
+    # 'The key secondary composite outcome, also assessed in a time-to-event analysis, was death from ...'
+    r"\b(?:end[\s-]?points?|outcomes?|measures?|variables?|mace)\b[^.;]{0,80}?\b(?:was|were|is|are|included|includes)\s*:?\s+"
+    r"(?!unknown|unclear|uncertain|not\b|lower|higher|reduced|increased|similar|significant|consistent|also\s+not)|"
+    # a named endpoint with its own bracketed enumeration: 'first MACE (cardiovascular mortality, nonfatal MI, or stroke)',
+    # 'the primary endpoint [first HF hospitalization or cardiovascular death]'
+    r"\b(?:mace|end[\s-]?point|outcome)\s*[(\[](?:[^()\[\]]*,)*[^()\[\]]*\b(?:or|and)\b[^()\[\]]*[)\]]|"
+    # '(MACE: ischaemic stroke, myocardial infarction, ...)'
+    r"\(\s*mace\s*:\s*[^()]*,", re.I)
+# background / introduction / conclusion text MENTIONS an endpoint; it does not define it
+_BACKGROUND = re.compile(
+    r"\b(?:is|are|remains?|was|were)\s+(?:still\s+)?(?:unknown|unclear|uncertain|not\s+known|incompletely\s+characteri[sz]ed)\b|"
+    r"\bha(?:s|ve)\s+been\s+shown\b|\breduces?\s+the\s+risk\s+of\b(?![^.;]*\bwas\b)|"
+    r"^\s*(?:background|introduction|conclusions?(?:\s+and\s+relevance)?|interpretation)\s*:", re.I)
+# 'a composite of death from coronary heart disease, myocardial infarction, or ischemic stroke (3-point MACE)'
+_LABELLED_COMPOSITE = re.compile(r"\bcomposite\s+of\s+(?P<body>[^()]+?)\s*\((?P<label>[^()]{2,40})\)", re.I)
+
+
+def _labelled_definitions(x: str) -> list[tuple[str, str, set[str]]]:
+    """[(label, segment, components)] for a sentence defining SEVERAL labelled composites; a later composite that names an
+    earlier label ('a composite of 3-point MACE or ischemia-driven arterial revascularization (4-point MACE)') includes it."""
+    out: list[tuple[str, str, set[str]]] = []
+    known: dict[str, set[str]] = {}
+    for m in _LABELLED_COMPOSITE.finditer(x):
+        label = re.sub(r"\s+", " ", m.group("label")).strip().lower()
+        body = m.group("body")
+        comps = set(_components_from_text(body, expand_named_composites=False))
+        for prior, pc in known.items():
+            if prior in body.lower():
+                comps |= pc
+        known[label] = comps
+        out.append((label, m.group(0), comps))
+    return out if len(out) >= 2 else []
+
+
 def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
     """Sentences that DEFINE a named endpoint (anchor + definition cue) and enumerate its components."""
     out = []
@@ -334,17 +490,31 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
             continue
         if not extract._DEF_CUE.search(xl):
             continue
+        if not _DEFINING.search(x) or _BACKGROUND.search(x):
+            continue                # a background / introduction sentence never defines the endpoint
         # a RESULT sentence (carries an effect+CI or arm counts) is never a definition span, even when
         # it mentions a component in passing ("... a primary outcome event occurred in 458 of 3686 ...
         # (hazard ratio 0.87 ...), with ... hospitalization for heart failure")
         if extract.extract_effect(x) or _EFFECT_RE.search(x) or re.search(r"\d+ of \d+", xl):
             continue
+        q = _QUALIFIER_RX.search(xl)
+        ref = _reference_of(x)
+        labelled = _labelled_definitions(x)
+        if labelled:
+            # one definition per labelled composite, each with its OWN components (VESALIUS-CV: 3-point MACE = CHD death,
+            # MI, ischemic stroke; 4-point MACE = 3-point MACE + ischemia-driven revascularization)
+            for label, seg, comps in labelled:
+                if not comps:
+                    continue
+                out.append({"span": x.strip(), "segment": seg, "label": label, "components": comps, "excluded": set(),
+                            "ordinal": ref["ordinal"], "timepoint": ref["timepoint"], "population": ref["population"],
+                            "primary": bool(q and q.group("pri")) or bool(extract._ANCHOR_RX.search(xl)),
+                            "secondary": bool(q and q.group("sec")), "mace": bool(_MACE_RX.search(seg + " " + label))})
+            continue
         rel = endpoint_relations(x, context=neighbourhood(abstract, x), expand_named_composites=True)
         comps = rel["includes"]
         if not comps:
             continue
-        q = _QUALIFIER_RX.search(xl)
-        ref = _reference_of(x)
         out.append({
             "span": x.strip(),
             "components": comps,
@@ -431,7 +601,7 @@ def _bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
             n = len(rec["definition_candidates"])
             by = (" by " + " + ".join(res["how"])) if res["how"] else ""
             return {"binding": BINDING_DEFINITION, "endpoint_result_span": rs,
-                    "endpoint_definition_span": d["span"], "components": set(d["components"]),
+                    "endpoint_definition_span": d.get("segment") or d["span"], "components": set(d["components"]),
                     "binding_reason": (f"result sentence names an endpoint; {n} candidate definition"
                                        f"{'s' if n != 1 else ''} in the held text; selected{by}"),
                     **rec}
@@ -468,7 +638,7 @@ def classify_bound(spec: dict[str, Any], abstract: str, source: str | None) -> d
     if binding["binding"] == BINDING_NONE:
         return _unbound_classification(binding)
     cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"],
-                    excluded=binding.get("excluded_components"))
+                    excluded=binding.get("excluded_components"), result_span=binding.get("endpoint_result_span"))
     cls.update({
         "endpoint_binding": binding["binding"],
         "endpoint_result_span": binding["endpoint_result_span"],
@@ -524,7 +694,7 @@ def bind_verified_row(spec: dict[str, Any], abstract: str, row: dict[str, Any]) 
         out["passage_location"] = "abstract"
         return out
     cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"],
-                    excluded=binding.get("excluded_components"))
+                    excluded=binding.get("excluded_components"), result_span=binding.get("endpoint_result_span"))
     cls.update({
         "endpoint_binding": binding["binding"],
         "endpoint_result_span": binding["endpoint_result_span"],
@@ -575,6 +745,11 @@ def _class_verdict(spec: dict[str, Any], cls: str | None, extra, missing, name: 
                 "reason": (f"the bound endpoint EXCLUDES a component of '{name}' (an exclusion scope or statement in the "
                            "definition, the result span or their document neighbourhood); mentioning what is excluded "
                            "does not include it -- refused rather than pooled under the composite label")}
+    if cls == EVENT_PROCESS_MISMATCH:
+        return {"admissible": False, "verdict": EVENT_PROCESS_MISMATCH,
+                "reason": (f"the bound result counts a different event process from '{name}' (first event vs total / "
+                           "recurrent events, or patients with an event vs event counts); a total-event ratio is not a "
+                           "first-event result -- refused rather than pooled under the target label")}
     if cls == ENDPOINT_UNBOUND:
         return {"admissible": False, "verdict": "ENDPOINT_UNBOUND",
                 "reason": ("the extracted number could not be bound to an endpoint-definition span in the held "
@@ -609,7 +784,7 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     # route matches digits and resolves the endpoint, it does not check the declared scale / CI level /
     # direction / analysis set, so returning on its class let SOUL pool as an OR (M2 W1b, both trees).
     if cls in (EXACT_TARGET, NEAR_MATCH, DIFFERENT_OUTCOME, ENDPOINT_UNBOUND, ENDPOINT_COMPONENT_EXCLUDED,
-               COMPOSITE_DECLARATION_INCOMPLETE) and not hand_binding.is_hand_row(row):
+               COMPOSITE_DECLARATION_INCOMPLETE, EVENT_PROCESS_MISMATCH) and not hand_binding.is_hand_row(row):
         return _class_verdict(spec, cls,
                               row.get("target_endpoint_extra_components") or row.get("extra_components"),
                               row.get("target_endpoint_missing_components") or row.get("missing_components"),
@@ -713,6 +888,16 @@ def canonical_components(spec: dict[str, Any]) -> list[str]:
     return sorted(_components_from_text(spec.get("name")))
 
 
+def optional_components(spec: dict[str, Any]) -> set[str]:
+    """Components the protocol makes part of the composite only 'as defined by the trial' (declared
+    `optional_components`, with its basis): a result that includes one is not a superset, a result without one is not
+    missing anything. Every REQUIRED component still has to be there."""
+    out: set[str] = set()
+    for x in spec.get("optional_components") or []:
+        out |= _components_from_text(str(x)) or {str(x)}
+    return out - set(canonical_components(spec))
+
+
 # ---- the composite's declaration must account for its title ---------------------------------------------------------
 COMPOSITE_DECLARATION_INCOMPLETE = "COMPOSITE_DECLARATION_INCOMPLETE"
 # title vocabulary ONLY (not the general reader, where trials define these differently): what a composite TITLE names
@@ -728,7 +913,7 @@ def title_components(name: str | None) -> set[str]:
     return comps
 
 
-def composite_declaration_problem(spec: dict[str, Any]) -> str | None:
+def composite_declaration_problem(spec: dict[str, Any], text: str | None = None) -> str | None:
     """None when the outcome's canonical components (declared, or read from its title) account for every component its
     TITLE names; else why not. DELIVER: 'Composite cardiovascular death or worsening heart failure' declared no
     components, so the canonical set was the vocabulary's reading of the title -- {cardiovascular death} -- and a
@@ -738,15 +923,109 @@ def composite_declaration_problem(spec: dict[str, Any]) -> str | None:
     if name.strip().lower().startswith("trial-defined"):
         return None
     title = title_components(name)
-    if len(title) < 2 and not extract.declared_is_composite(name):
+    if len(title) < 2 and not extract.declared_is_composite(name) and not _title_parts(name):
         return None
     canon = set(canonical_components(spec))
-    missing = sorted(title - canon)
+    missing = sorted(title - canon - optional_components(spec))
     if missing:
         return (f"{COMPOSITE_DECLARATION_INCOMPLETE}: the title '{name}' names {sorted(title)} but the "
                 f"{'declared' if spec.get('components') or spec.get('canonical_components') else 'title-derived'} "
                 f"components are {sorted(canon)} (missing {missing}); declare the composite's components")
+    # every top-level PART of the title must be accounted for, including a part the vocabulary cannot read ('...
+    # cardiovascular death or all-cause hospitalization' with only cardiovascular death declared; NR-C04 #6): an unknown
+    # part is not an absent part. Such a part is accounted for by a declared component, or -- for ONE row -- by that row's
+    # own text naming it ('stroke or systemic embolism ... HR 0.79' is the composite; 'stroke ... HR 0.70' is not).
+    # Only when the vocabulary reads SOME part: that partial reading is what lets a component row match the composite
+    # exactly. A title it cannot read at all ('Gynecomastia or breast pain') is matched by keyword family, not components.
+    if not canon:
+        return None
+    declared = [_part_words(str(c)) for c in list(spec.get("components") or spec.get("canonical_components") or [])
+                + list(spec.get("optional_components") or [])]
+    optional = [_part_words(str(c)) for c in spec.get("optional_components") or []]
+    row = _part_words(text) if text is not None else None
+    unassessed = [
+        _part_words(m.group(1))
+        for m in re.finditer(
+            r"([^.;,]+?)\s+(?:was|were|is|are)\s+not\s+(?:assessed|reported|measured|evaluated|collected)\b",
+            text or "", re.I)
+    ]
+    unread = []
+    for part in _title_parts(name):
+        words = _part_words(part) - _PART_STOP
+        if words and any(words <= subject for subject in unassessed) and not any(words <= o for o in optional):
+            return f"{COMPOSITE_DECLARATION_INCOMPLETE}: the row does not assess/report '{part.strip()}'"
+        pc = title_components(_unhyphen(part))
+        if pc and pc <= canon | optional_components(spec):
+            continue
+        words = _part_words(part) - _PART_STOP
+        if not words or any(words <= d for d in declared) or (row is not None and _row_names_part(words, text or "")):
+            continue
+        unread.append(part.strip())
+    if unread:
+        return (f"{COMPOSITE_DECLARATION_INCOMPLETE}: the title '{name}' has part(s) {unread} that no declared component "
+                f"{'or the row itself ' if text is not None else ''}accounts for (components {sorted(canon)}); declare "
+                f"the composite's components")
     return None
+
+
+_PART_STOP = {"the", "composite", "any", "first", "occurrence", "time", "rate", "incidence", "total", "combined", "endpoint",
+              "outcome", "event", "events", "from", "for", "with"}
+
+
+def _unhyphen(s: str | None) -> str:
+    return re.sub(r"(?<=[A-Za-z])-(?=[A-Za-z])", " ", s or "")
+
+
+def _part_words(s: str | None) -> set[str]:
+    return set(re.findall(r"[a-z][a-z0-9]{2,}", extract.lexicon.fold(_unhyphen(s))))
+
+
+def _row_names_part(words: set[str], text: str) -> bool:
+    """The row's own text names a title part: every part word by its stem ('embolism' ~ 'embolic'), or the part's
+    abbreviation as the text writes it ('systemic embolism' -> 'SE' / 'SEE', systemic embolic event: 'Stroke/SEE'; lane
+    NR rebuild diff -- 55 NOAC registry measures were refused for writing the part as its abbreviation)."""
+    row = _part_words(text)
+    if all(any(r.startswith(w[:6]) for r in row) for w in words):
+        return True
+    ordered = [w for w in re.findall(r"[a-z][a-z0-9]{2,}", extract.lexicon.fold(" ".join(sorted(words))))]
+    initials = "".join(w[0] for w in ordered)
+    if len(words) >= 2:
+        acro = [a.lower() for a in re.findall(r"\b[A-Z]{2,5}\b", text or "")]
+        for a in acro:
+            # the part's initials in either order, optionally followed by 'e' (event): SE / SEE
+            one_less = a[:-1] if a.endswith("e") else a
+            if sorted(one_less) == sorted(initials) or sorted(a) == sorted(initials):
+                return True
+    return False
+
+
+def _title_parts(name: str) -> list[str]:
+    """Top-level parts of a composite title, after dropping a leading 'composite (of)'. Parts are split on ',', ' or ',
+    ' and '. A parenthetical that ENUMERATES (two or more parts, '/' allowed inside it) is the part list and its head is
+    the umbrella label ('Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)'). A top-level '/'
+    joins synonymous labels only when both sides name the same endpoint."""
+    s = re.sub(r"^\s*(?:a\s+|the\s+)?composite(?:\s+(?:end\s*point|endpoint|outcome))?(?:\s+of)?\s*[:,]?\s*", "",
+               name or "", flags=re.I)
+    def split(t: str, rx: str) -> list[str]:
+        return [p for p in re.split(rx, t, flags=re.I) if p.strip()]
+    top = r"\s*,\s*(?:or\s+|and\s+)?|\s+or\s+|\s+and\s+"
+    def readable(part: str) -> bool:
+        return bool(title_components(part) or re.search(
+            r"\b(?:hospitali[sz]ation|embolism|DVT|PE|VTE|death|mortality)\b", part, re.I))
+    for inner in re.findall(r"\(([^()]*)\)", s):
+        parts = split(inner, top + r"|\s*/\s*")
+        outer = re.sub(r"\([^()]*\)", " ", s)
+        if (len(parts) >= 2 and all(readable(p) for p in parts)
+                and len(split(outer, top + r"|\s*/\s*")) == 1):
+            return parts
+    s = re.sub(r"\([^()]*\)", " ", s)
+    slash = split(s, r"\s*/\s*")
+    if len(slash) >= 2 and all(readable(p) for p in slash):
+        meanings = [title_components(p) for p in slash]
+        if not (meanings[0] and all(c == meanings[0] for c in meanings)):
+            top += r"|\s*/\s*"
+    parts = split(s, top)
+    return parts if len(parts) >= 2 else []
 
 
 # ---- a REGISTRY outcome is the target only when population, comparison, outcome AND timepoint agree ------------------
@@ -769,7 +1048,9 @@ _IN_HOSPITAL = re.compile(r"\bin[\s-]hospital\b|\bhospital\s+discharge\b|\b(?:un
 def _windows(text: str | None) -> tuple[list[tuple[float, float]], bool]:
     """([(lo_days, hi_days), ...], in_hospital) stated by a timepoint text."""
     out = []
-    for m in _WINDOW.finditer(text or ""):
+    text = re.sub(r"\b(day|week|month|year)s?[\s-]+(\d+(?:\.\d+)?)\b",
+                  r"\2 \1", text or "", flags=re.I)
+    for m in _WINDOW.finditer(text):
         if m.group(1):
             f = _UNIT_DAYS[m.group(3).lower()]
             out.append((float(m.group(1)) * f, float(m.group(2)) * f))
@@ -780,11 +1061,11 @@ def _windows(text: str | None) -> tuple[list[tuple[float, float]], bool]:
         else:
             v = float(m.group(6)) * _UNIT_DAYS[m.group(7).lower()]
             out.append((v, v))
-    return out, bool(_IN_HOSPITAL.search(text or ""))
+    return out, bool(_IN_HOSPITAL.search(text)) and "discharge" not in _anchors(text)
 
 
 def _timepoint_agreement(target: str | None, stated: str | None) -> str:
-    """AGREE / CONFLICT / UNCONFIRMED / NOT_DEMANDED. A numeric target window must overlap a stated one (the 28-vs-30-day
+    """AGREE / CONFLICT / UNCONFIRMED / NOT_DEMANDED. Numeric window ends must agree (the 28-vs-30-day
     convention is the same window: +/-10%); an open-ended target ('trial end / longest follow-up') demands nothing."""
     tw, th = _windows(target)
     if not tw and not th or (_OPEN_ENDED.search(target or "") and not tw):
@@ -792,6 +1073,13 @@ def _timepoint_agreement(target: str | None, stated: str | None) -> str:
     sw, sh = _windows(stated)
     if not sw and not sh:
         return "UNCONFIRMED"
+    ta, sa = _anchors(target), _anchors(stated)
+    if ta and sa and not (ta & sa):
+        # both state what the clock starts from and they differ: 28 days after DISCHARGE is not 28 days after
+        # RANDOMIZATION (NR-C04 #10)
+        return "CONFLICT"
+    if (th and "discharge" in sa) or (sh and "discharge" in ta):
+        return "CONFLICT"
     if th and sh:
         return "AGREE"
     if not tw or not sw:
@@ -799,20 +1087,83 @@ def _timepoint_agreement(target: str | None, stated: str | None) -> str:
         return "UNCONFIRMED"
     for lo, hi in tw:
         for slo, shi in sw:
-            if slo <= hi * 1.1 and shi >= lo * 0.9:
+            # the stated window must END where the target's does (28-vs-30-day convention: +/-10%); a cumulative window that
+            # merely CONTAINS day 28 ('0-90 days') is not mortality at day 28 (NR-C04 #15)
+            # A target RANGE that starts above zero ('28-90 day or in-hospital') is the set of ACCEPTABLE timepoints: any
+            # stated end inside it agrees (28-day mortality for balanced-crystalloids; lane NR rebuild diff), while a range
+            # from zero ('0-90 days') is one cumulative window and must end where it ends (NR-C07 #6)
+            if (lo > 0 and lo * 0.9 <= shi <= hi * 1.1) or hi * 0.9 <= shi <= hi * 1.1:
                 return "AGREE"
     return "CONFLICT"
 
 
+_ANCHOR_RX = re.compile(r"\b(?:after|following|from|since)\s+(?:the\s+)?(?:date\s+of\s+)?(?:hospital\s+)?(randomi[sz]ation|discharge|"
+                        r"surgery|operation|enrol\w*|admission|delivery|birth|diagnosis|index\s+event)\b|"
+                        r"\bpost[\s-]?(discharge|randomi[sz]ation|operative|surgery)\b", re.I)
+
+
+def _anchors(text: str | None) -> set[str]:
+    out = set()
+    for m in _ANCHOR_RX.finditer(text or ""):
+        a = (m.group(1) or m.group(2) or "").lower()
+        a = ("randomization" if a.startswith("randomi") else "enrolment" if a.startswith("enrol") else
+             "surgery" if a in ("operation", "operative") else a)
+        out.add(a)
+    return out
+
+
+# a population the topic EXCLUDES, named positively in a measure: in its label, in AACT's population field, or in a
+# population phrase of its body ('... in patients with influenza'); a negated mention ('without influenza') is not one
+_POP_PHRASE = re.compile(r"\b(?:in|among|for)\s+(?:patients?|participants?|subjects?|adults?|children|people|those|"
+                         r"individuals?|women|men)\s+(?:with|who\s+have|hospitali[sz]ed\s+(?:with|for))\s+([^,;:()]{1,60})", re.I)
+_NEGATED_BEFORE = re.compile(r"\b(?:without|excluding|excluded|no|non|not|neither|nor|other\s+than|except)\b[\s\w-]*$", re.I)
+
+
+def _names_excluded_population(text: str, pop_none: list[str]) -> list[str]:
+    hits = []
+    for p in pop_none:
+        for m in re.finditer(rf"\b{re.escape(p)}\b", text or "", re.I):
+            phrase = re.split(r"[,;:.()]|\b(?:and\s+with|but)\b", (text or "")[:m.start()], flags=re.I)[-1]
+            if not _NEGATED_BEFORE.search(phrase):
+                hits.append(p)
+                break
+    return hits
+
+
+_DEATH_OR = re.compile(r"\s+(?:or|and/or)\s+|\s*/\s*", re.I)
+_TIME_OR_STOP = re.compile(r"\b(?:\d+|days?|weeks?|months?|years?|at|by|within|after|before|from|to|the|of|in|on|a|an|"
+                           r"any|all|cause|causes|randomi[sz]ation|time|first|number|participants?|patients?|with|rate)\b", re.I)
+
+
+def _death_composite(measure: str) -> bool:
+    """'Death or invasive mechanical ventilation' is not all-cause mortality (NR-C04 #2): a part joined by 'or' that is an
+    EVENT other than death makes the measure a composite."""
+    core = re.sub(r"\([^)]*\)", " ", measure or "")
+    parts = [p for p in _DEATH_OR.split(re.sub(r"\s+and\s+", " or ", core, flags=re.I)) if p.strip()]
+    if len(parts) < 2:
+        return False
+    # a SETTING or a QUALIFIER of mortality is not a second event: 'ICU and hospital mortality', 'Cardiac and non-cardiac
+    # mortality' are mortality measures, not death composites (lane NR rebuild diff: the 'and' rule of NR-C09 read them so)
+    return any(not _MORTALITY.search(p)
+               and re.search(r"[a-z]{3,}", _MORT_QUALIFIER.sub(" ", _TIME_OR_STOP.sub(" ", p.lower())))
+               for p in parts)
+
+
+_MORT_QUALIFIER = re.compile(r"\b(?:icu|intensive\s+care|hospital|in-hospital|ward|cardiac|non-?cardiac|cardiovascular|"
+                             r"non-?cardiovascular|vascular|non-?vascular|sudden|overall|crude|total|clinical|outcomes?|"
+                             r"endpoints?|all-cause|during|stay|and|or)\b", re.I)
+
+
 def registry_outcome_match(spec: dict[str, Any], topic: dict[str, Any] | None, measure: str | None,
-                           time_frame: str | None = None, population: str | None = None) -> dict[str, Any]:
+                           time_frame: str | None = None, population: str | None = None,
+                           result_span: str | None = None) -> dict[str, Any]:
     """Classify a REGISTRY outcome (AACT design_outcomes / results title) against the target. EXACT_TARGET requires
     agreement on disease POPULATION, intervention COMPARISON, OUTCOME and TIMEPOINT; a shared platform identifier or a
     broad outcome category is never enough (RECOVERY NCT04381936: 'Influenza co-primary outcome: Time to discharge alive
     from hospital' was EXACT_TARGET for 28-day COVID-19 mortality). A conflicting dimension -> DIFFERENT_OUTCOME; a
     dimension the row cannot confirm -> NEAR_MATCH (never admitted as the target without a declaration)."""
     topic = topic or {}
-    base = _classify(spec, measure)
+    base = _classify(spec, measure, result_span=result_span)
     measure = str(measure or "")
     head, sep, body = measure.partition(":")
     label = head if sep and len(head) <= 80 else ""
@@ -825,21 +1176,22 @@ def registry_outcome_match(spec: dict[str, Any], topic: dict[str, Any] | None, m
     if label and _COMPARISON_PREFIX.search(label):
         evidence["comparison"] = label
         (agrees if any(t in label.lower() for t in interv) else conflicts).append("comparison")
-    else:
-        # population. A conflict needs a POSITIVE statement of another population: the measure-title label
-        # ('Influenza co-primary outcome:') or AACT's `population` field naming a population the topic EXCLUDES
-        # (population_none -- the COVID topics exclude influenza and community-acquired pneumonia). A title prefix is not
-        # a disease stratum by itself ('Panel A and B:', 'Composite Outcome:', 'Change in Body Composition:' all
-        # conflicted under the looser rule), and AACT's population field describes the ANALYSIS set, not the disease.
-        lab = label.lower()
-        field = (population or "").lower()
-        hit = [p for p in pop_none if p in lab or p in field]
-        if hit:
-            evidence["population"] = {"label": label or None, "aact_population": population, "excluded_population": hit}
-            conflicts.append("population")
-        elif label and any(p in lab for p in pop_any):
-            evidence["population"] = {"label": label}
-            agrees.append("population")
+    # population -- checked whatever the label is (a comparison prefix must not bypass it; NR-C04 #9). A conflict needs a
+    # POSITIVE statement of a population the topic EXCLUDES (population_none: the COVID topics exclude influenza and
+    # community-acquired pneumonia): in the label, in AACT's population field, or in a population phrase of the title body
+    # ('All-cause mortality in patients with influenza'; NR-C04 #7). 'without influenza' is not one (NR-C04 #13). A title
+    # prefix is not a disease stratum by itself ('Panel A and B:'), and AACT's population field otherwise describes the
+    # ANALYSIS set, not the disease.
+    lab = label.lower()
+    body_pops = " ; ".join(m.group(0) for m in _POP_PHRASE.finditer(body if label else measure))
+    hit = sorted(set(_names_excluded_population(lab, pop_none) + _names_excluded_population(population or "", pop_none)
+                     + _names_excluded_population(body_pops, pop_none)))
+    if hit:
+        evidence["population"] = {"label": label or None, "aact_population": population, "excluded_population": hit}
+        conflicts.append("population")
+    elif label and not _COMPARISON_PREFIX.search(label) and any(p in lab for p in pop_any):
+        evidence["population"] = {"label": label}
+        agrees.append("population")
     # outcome: a MORTALITY target is matched only by a death outcome, never by 'discharge alive'. The target is a mortality
     # outcome by its NAME, and only when it is not a composite: MACE keywords mention death, and 'Major Adverse
     # Cardiovascular Events' is not a death outcome (read from the keywords, it failed every MACE registry measure).
@@ -847,7 +1199,7 @@ def registry_outcome_match(spec: dict[str, Any], topic: dict[str, Any] | None, m
     if (_MORTALITY.search(tname) and not extract.declared_is_composite(tname)
             and len(title_components(tname) - {"cardiovascular death", "coronary heart disease death"}) == 0):
         evidence["outcome"] = body or measure
-        if _NOT_DEATH.search(measure) or not _MORTALITY.search(measure):
+        if _NOT_DEATH.search(measure) or not _MORTALITY.search(measure) or _death_composite(body or measure):
             conflicts.append("outcome")
         else:
             agrees.append("outcome")
@@ -881,16 +1233,26 @@ def _keyword_family_match(spec: dict[str, Any], text: str | None) -> bool:
 
 
 def _classify(spec: dict[str, Any], text: str | None, components: set[str] | None = None,
-              excluded: set[str] | None = None) -> dict[str, Any]:
+              excluded: set[str] | None = None, result_span: str | None = None) -> dict[str, Any]:
     """Classify an endpoint against the target from its typed relations. `components` (INCLUDES) and `excluded`
     (EXCLUDES) come from the caller's binding when it has one; the relations of `text` itself are always added. A target
     component the endpoint EXCLUDES is ENDPOINT_COMPONENT_EXCLUDED -- never EXACT, whatever else the span names."""
-    decl = composite_declaration_problem(spec)
+    decl = composite_declaration_problem(spec, text)
     if decl:
         # the composite cannot say what it contains: nothing can be matched to it (fail closed until declared)
         return {"target_endpoint_class": COMPOSITE_DECLARATION_INCOMPLETE, "target_components": [],
                 "extra_components": [], "missing_components": [], "component_distance": 999,
                 "declaration_problem": decl}
+    # the event process is read from the definition AND the row's own result span: the ESTIMATE's analysis method lives
+    # in the result ('Hazard Ratio 1.0881 ... Regression, Cox'), a descriptive count in the definition ('n = Total number
+    # of events'); read apart, the definition alone refused PARALLEL-HF's Cox HR as a total-event result
+    evp = event_process_problem(spec, " ".join(x for x in (text, result_span) if x))
+    if evp:
+        # total (first and recurrent) events are not a first-event result, and event counts are not patients with an
+        # event -- whatever components the span names (EMPEROR-Preserved: total HHF HR 0.73 vs the composite HR 0.79)
+        return {"target_endpoint_class": EVENT_PROCESS_MISMATCH, "target_components": [], "extra_components": [],
+                "missing_components": [], "component_distance": 999, "event_process": evp["result"],
+                "target_event_process": evp["target"], "event_process_dimensions": evp["dimensions"]}
     canon = set(canonical_components(spec))
     rel = endpoint_relations(text)
     exc = set(excluded or ()) | rel["excludes"]
@@ -918,10 +1280,18 @@ def _classify(spec: dict[str, Any], text: str | None, components: set[str] | Non
             **extra_rel,
         }
     cand_for_match = set(cand)
+    judgments = []
     if "cardiovascular death" in canon and "coronary heart disease death" in cand:
         cand_for_match.add("cardiovascular death")
+        judgments.append({"target": "cardiovascular death", "trial": "coronary heart disease death",
+                          "judgment": "CHD death accepted for the target's CV death (a narrower cause-specific death)"})
+    if "stroke" in canon and "stroke" in cand and re.search(r"\b(?:ischa?emic|non-?ha?emorrhagic)\s+stroke", text or "", re.I) \
+            and not re.search(r"(?<!ischemic )(?<!ischaemic )\b(?:any|all|fatal or nonfatal|nonfatal)?\s*stroke\b(?!\s*\()",
+                              re.sub(r"\b(?:ischa?emic|non-?ha?emorrhagic)\s+stroke", " ", text or "", flags=re.I), re.I):
+        judgments.append({"target": "stroke", "trial": "ischemic stroke",
+                          "judgment": "ischemic stroke accepted for the target's stroke (all types)"})
     extra = sorted(
-        c for c in (cand - canon)
+        c for c in (cand - canon - optional_components(spec))
         if not (c == "coronary heart disease death" and "cardiovascular death" in canon)
     )
     missing = sorted(canon - cand_for_match)
@@ -931,6 +1301,12 @@ def _classify(spec: dict[str, Any], text: str | None, components: set[str] | Non
         cls = NEAR_MATCH
     else:
         cls = DIFFERENT_OUTCOME
+    if judgments:
+        basis = ("the outcome's declared component compatibility (component_compat_key / allow_near_match)"
+                 if near_match_declared(spec) else "the harness's standing CHD-death / CV-death equivalence")
+        for j in judgments:
+            j["basis"] = basis
+        extra_rel = dict(extra_rel, compatibility_judgments=judgments)
     return {
         "target_endpoint_class": cls,
         "target_components": sorted(cand),
@@ -972,6 +1348,7 @@ def _effect_analysis(om: dict[str, Any]) -> dict[str, Any] | None:
                 "ci_low": lo,
                 "ci_high": hi,
                 "scale": scale,
+                "ci_pct": _num(pct),
                 "analysis_method": a.get("statisticalMethod"),
                 "analysis_param_type": a.get("paramType"),
                 "analysis_span": analysis_span,
@@ -1127,7 +1504,8 @@ def _ctgov_candidates(
         # a registry measure is the target only when population, comparison, outcome AND timepoint agree
         base.update(registry_outcome_match(spec, {"intervention_terms": list(interv or [])}, text,
                                            time_frame=om.get("timeFrame") or om.get("time_frame"),
-                                           population=om.get("populationDescription")))
+                                           population=om.get("populationDescription"),
+                                           result_span=analysis["analysis_span"] if analysis else None))
         base.update({"endpoint_binding": BINDING_REGISTRY,
                      "endpoint_definition_span": text.strip(),
                      "endpoint_result_span": f"ClinicalTrials.gov outcome measure #{order}: {title}".strip(),
@@ -1275,6 +1653,8 @@ def row_from_candidate(c: dict[str, Any]) -> dict[str, Any]:
     }
     if c.get("endpoint_binding_reason"):
         row["endpoint_binding_reason"] = c["endpoint_binding_reason"]
+    if c.get("compatibility_judgments"):
+        row["endpoint_compatibility_judgments"] = c["compatibility_judgments"]
     if c.get("target_endpoint_class") == NEAR_MATCH:
         row["near_match_reason"] = _near_reason(c)
     if c.get("effect") is not None:

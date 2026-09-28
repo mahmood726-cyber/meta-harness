@@ -1,7 +1,12 @@
 """RESULT WITHDRAWN is a typed publishable state (Mahmood, 2026-09-19): dapagliflozin-hfpef-hosp and
-empagliflozin-hfpef-hosp served a CV-death-only registry measure as their composite primary; the pages stay up,
-state what was published, what the held evidence holds, why, and that the corrected estimate is not yet
-published -- and pool nothing. The gate passes that state only when it is complete and uncontradicted."""
+empagliflozin-hfpef-hosp served a CV-death-only registry measure as their composite primary; the pages stayed up,
+stated what was published, what the held evidence holds, why, and that the corrected estimate was not yet published --
+and pooled nothing. The gate passes that state only when it is complete and uncontradicted.
+
+V1.0.1 (lane NR) RESTORED both results (DELIVER HR 0.82; EMPEROR-Preserved HR 0.79 at 95.03%) through result-change
+notices owed Mahmood's countersignature, and the topics keep the withdrawal as `withdrawal_history`. The live pages are
+therefore no longer withdrawn; the MECHANISM is still tested, on the withdrawn pages exactly as V1.0 served them
+(frozen at 3876a62d in tests/fixtures/result_withdrawn/)."""
 import json
 import shutil
 from pathlib import Path
@@ -11,12 +16,13 @@ import pytest
 from harness import gate
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURES = ROOT / "tests" / "fixtures" / "result_withdrawn"
 SLUGS = ("dapagliflozin-hfpef-hosp", "empagliflozin-hfpef-hosp")
 
 
 @pytest.mark.parametrize("slug", SLUGS)
-def test_withdrawn_page_pools_nothing_states_everything_and_passes_the_gate(slug):
-    review = json.loads((ROOT / "docs/reviews" / slug / "review.json").read_text(encoding="utf-8"))
+def test_withdrawn_page_pools_nothing_states_everything_and_passes_the_primary_check(slug):
+    review = json.loads((FIXTURES / slug / "review.json").read_text(encoding="utf-8"))
     prim = review["outcomes"][0]
     assert prim["trials"] == [] and not (prim.get("result") or {}).get("k")
     withdrawn_rows = [t for t in prim["declared_absent_trials"] if t.get("absent_kind") == "result_withdrawn"]
@@ -26,15 +32,26 @@ def test_withdrawn_page_pools_nothing_states_everything_and_passes_the_gate(slug
     for needle in ("what was published", "what the held evidence holds", "why", "not yet published", "clinicaltrials.gov"):
         assert needle in joined, needle
     assert "grade" not in review, "a withdrawn result carries no certainty rating"
-    page = (ROOT / "docs/reviews" / slug / "index.html").read_text(encoding="utf-8")
+    page = (FIXTURES / slug / "index.html").read_text(encoding="utf-8")
     assert "RESULT WITHDRAWN" in page
-    ok, reasons = gate.gate_page(str(ROOT / "docs/reviews" / slug))
-    assert ok, reasons
+    assert gate.check_primary_result(str(FIXTURES / slug)) == []
+
+
+@pytest.mark.parametrize("slug,estimate", [("dapagliflozin-hfpef-hosp", 0.82), ("empagliflozin-hfpef-hosp", 0.79)])
+def test_the_restored_page_pools_its_result_and_keeps_the_withdrawal_as_history(slug, estimate):
+    review = json.loads((ROOT / "docs/reviews" / slug / "review.json").read_text(encoding="utf-8"))
+    prim = review["outcomes"][0]
+    assert "withdrawn" not in review
+    assert prim["result"]["k"] == 1 and prim["result"]["estimate"] == pytest.approx(estimate)
+    topic = json.loads((ROOT / "topics" / f"{slug}.json").read_text(encoding="utf-8"))["primary_outcome"]
+    hist = topic["withdrawal_history"]
+    assert hist["resolved"] and len(hist["statements"]) >= 4 and "withdrawn" not in topic
+    assert gate.check_primary_result(str(ROOT / "docs/reviews" / slug)) == []
 
 
 def _copy(tmp_path, slug):
     d = tmp_path / slug
-    shutil.copytree(ROOT / "docs/reviews" / slug, d)
+    shutil.copytree(FIXTURES / slug, d)
     return d
 
 

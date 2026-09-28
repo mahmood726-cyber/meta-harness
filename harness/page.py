@@ -107,6 +107,7 @@ _ABSENCE_STATE_LABEL = {
     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
     "COUNT_PCT_CONFLICT": "excluded on evidence -- count, denominator and stated percentage disagree (conflict preserved)",
     "ENDPOINT_COMPONENT_EXCLUDED": "excluded on evidence -- the bound endpoint excludes a component of the target",
+    "EVENT_PROCESS_MISMATCH": "excluded on evidence -- the result counts total/recurrent events (or event counts), not the target's first event in patients",
     "COMPOSITE_DECLARATION_INCOMPLETE": "not matched -- the declared composite does not account for its own title",
     "MULTI_ARM_UNRESOLVED": "excluded on evidence -- multi-arm contrast unresolved",
     "TIMEPOINT_MISMATCH": "excluded on evidence -- timepoint mismatch",
@@ -323,8 +324,15 @@ def _search_provenance_html(rc: dict) -> str:
     )
 
 
+def _level(obj) -> str:
+    """The interval's level as reported: '95%' unless the row / k=1 result carries a typed ci_pct ('95.03%')."""
+    pct = (obj or {}).get("ci_pct")
+    return "95%" if pct is None or abs(float(pct) - 95.0) < 1e-9 else f"{float(pct):g}%"
+
+
 def _ci(res) -> str:
-    return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
+    return (f"{_num(res.get('estimate'))} ({res.get('scale')}), {_level(res)} CI "
+            f"{_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}")
 
 
 def _effect_label(res) -> str:
@@ -1383,7 +1391,8 @@ def _trial_inputs(o):
         elif t.get("effect") is not None:
             # Label each trial with ITS OWN reported scale (the extractor tags HR/RR/IRR from the
             # source), NOT the topic's target estimand — otherwise an HR 0.80 prints as "0.80 (RR)".
-            inp = f"{_num(t.get('effect'))} ({_e(t.get('scale') or o.get('estimand'))}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
+            inp = (f"{_num(t.get('effect'))} ({_e(t.get('scale') or o.get('estimand'))}), {_level(t)} CI "
+                   f"{_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}")
         else:
             inp = "—"
         ec = t.get("endpoint_counts") or {}
@@ -1457,6 +1466,10 @@ def _trial_inputs(o):
             comps = t.get("target_endpoint_components") or []
             if comps:
                 bits.append("components: " + "; ".join(str(x) for x in comps))
+            # a candidate row carries them as endpoint_compatibility_judgments; a hand-bound row (bind_hand_row merges the
+            # classifier's own fields) as compatibility_judgments -- both are shown (VESALIUS-CV is a hand-bound row)
+            for j in t.get("endpoint_compatibility_judgments") or t.get("compatibility_judgments") or []:
+                bits.append("compatibility judgment: " + str(j.get("judgment")) + " -- basis: " + str(j.get("basis")))
             if t.get("results_known_at_rule_time"):
                 bits.append("rule timing: applied after results were known")
             src += "<div class='ident'><em>target endpoint selector:</em> " + _e("; ".join(bits)) + "</div>"

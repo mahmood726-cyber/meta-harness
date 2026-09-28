@@ -775,13 +775,17 @@ def undetermined_death_field(definition_span) -> dict:
             "basis": "trial's own endpoint_definition_span" if definition_span else "no definition span held"}
 
 
-def statistical_input(t: dict, pmid: str, clause: str | None = None) -> dict:
+def statistical_input(t: dict, pmid: str, clause: str | None = None, *,
+                      record=None, ctgov_results=None) -> dict:
     """What the CI-to-SE conversion assumed for this row, and whether that assumption is established."""
     se = ((t.get("study_effect") or {}).get("standard_error"))
     rec = {
-        "ci_level": ci_level_record(clause, se, t.get("ci_low"), t.get("ci_high")),
+        "ci_level": ci_level_record(clause, se, t.get("ci_low"), t.get("ci_high"),
+                              (t.get("study_effect") or {}).get("ci_pct"),
+                              ci_pct_basis=t.get("ci_pct_basis"), record=record,
+                              ctgov_results=ctgov_results, scale=t.get("scale"), effect=t.get("effect")),
         "se_source": "DERIVED_FROM_CI",
-        "approximation": f"Wald: SE_log = (ln ci_high - ln ci_low) / (2 * {Z975}) -- assumes a normal-theory interval",
+        "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * z_assumed_by_derivation) -- assumes a normal-theory interval",
         "se_log_used": se,
         "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
         "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
@@ -855,7 +859,7 @@ def clause_with_effect(span, values):
     return None
 
 
-_EXCLUSION = re.compile(r"\b(excluding|except(?:ing)?|exclusive of|but not|other than|not including|without)\b\s*", re.I)
+_EXCLUSION = re.compile(r"\b(excluding|with\s+the\s+exception\s+of|except(?:ing)?|exclusive of|but not|other than|not including|without)\b\s*", re.I)
 # ', or' ends an exclusion scope like ', and' does: 'nonfatal MI excluding silent infarction, or nonfatal stroke' excludes the
 # silent infarctions, not the stroke that follows (lane NR V1.0.1: without 'or' the stroke was cut and the target refused)
 _EXCLUSION_STOP = re.compile(r",\s*(?:and|or|which|that|the|was|were|occurred|did|with|namely|i\.e\.|that is|specifically)\b|;|\("
@@ -924,8 +928,13 @@ def split_exclusions(text, namer=None):
             return included + rest, excluded.strip()
         head = rest[:m.start()]
         cue = re.sub(r"\s+", " ", m.group(1).lower())
-        clause_head = re.split(r"[,;.]", head)[-1]
+        clause_head = re.split(r"[,;.]|\b(?:was|were|is|are)\b", head, flags=re.I)[-1]
+        stop = _EXCLUSION_STOP.search(rest, m.end())
+        scope = rest[m.end():stop.start() if stop else len(rest)]
+        population = _POPULATION_NOUN.search(scope)
+        population_object = population is not None and not named(scope[:population.start()])
         if (_POPULATION_BEFORE_CUE.search(head) or _POPULATION_NOUN.search(clause_head) or _WITH_OR_BEFORE_CUE.search(head)
+                or population_object
                 or _NOT_AN_EXCLUSION_AFTER.match(rest, m.end())):
             included += rest[:m.end()]
             rest = rest[m.end():]
@@ -1209,21 +1218,120 @@ def stated_ci_pct(clause):
     return float(m.group(1).replace("\u00b7", ".")) if m else None
 
 
-def ci_level_record(clause, se_used, ci_low, ci_high):
-    """source_ci_pct with its basis, the z the derivation assumed, the z the stated level implies, and MATCH / MISMATCH / UNSTATED.
-    A mismatch is a refusal, not a relabel: an SE derived with z(95%) from a 95.03% interval is wrong, and silently so."""
+def registry_ci_level(record, scale, effect, ci_low, ci_high, ctgov_results=None):
+    """Bind a served tuple to held analyses; decimal equality, never rounding."""
+    from decimal import Decimal, InvalidOperation
+
+    aliases = {
+        "hr": "HR", "hazard ratio": "HR", "hazard ratio (hr)": "HR",
+        "rr": "RR", "risk ratio": "RR", "risk ratio (rr)": "RR",
+        "relative risk": "RR", "relative risk (rr)": "RR",
+        "or": "OR", "odds ratio": "OR", "odds ratio (or)": "OR",
+        "irr": "IRR", "rate ratio": "IRR", "rate_ratio": "IRR",
+        "incidence rate ratio": "IRR", "incidence rate ratio (irr)": "IRR",
+    }
+
+    def decimal(value):
+        try:
+            number = Decimal(str(value))
+            return number if number.is_finite() else None
+        except (InvalidOperation, ValueError):
+            return None
+
+    wanted_scale = aliases.get(str(scale).strip().lower())
+    wanted = tuple(decimal(v) for v in (effect, ci_low, ci_high))
+    if not wanted_scale or None in wanted:
+        return None
+    if not (0 < wanted[1] <= wanted[0] <= wanted[2] and wanted[1] < wanted[2]):
+        return None
+    nct = (record or {}).get("nct")
+    outcomes = (ctgov_results or {}).get(nct) if isinstance(nct, str) else None
+    if not isinstance(outcomes, list):
+        return None
+    matches = []
+    levels = set()
+    for outcome in outcomes:
+        if not isinstance(outcome, dict):
+            return None
+        for index, analysis in enumerate(outcome.get("analyses") or []):
+            if not isinstance(analysis, dict):
+                return None
+            if aliases.get(str(analysis.get("paramType")).strip().lower()) != wanted_scale:
+                continue
+            values = tuple(decimal(analysis.get(k)) for k in
+                           ("paramValue", "ciLowerLimit", "ciUpperLimit"))
+            if values != wanted:
+                continue
+            pct = decimal(analysis.get("ciPctValue"))
+            if pct is None or not 0 < pct < 100:
+                return None
+            levels.add(pct)
+            group = str(analysis.get("groupDescription") or "").strip()
+            span = (
+                (f"{group}: " if group else "")
+                + f"{analysis['paramType']} {analysis['paramValue']} "
+                + f"({analysis['ciPctValue']}% CI {analysis['ciLowerLimit']} to "
+                + f"{analysis['ciUpperLimit']}; {analysis.get('statisticalMethod') or 'method not stated'})"
+            )
+            matches.append({"source": "ClinicalTrials.gov results analysis",
+                            "nct_id": nct, "outcome_title": outcome.get("title"),
+                            "analysis_index": index, "span": span})
+    if not matches or len(levels) != 1:
+        return None
+    # Source order selects only the citation; every matching analysis agrees.
+    return {"ci_pct": float(next(iter(levels))), "basis": matches[0]}
+
+
+def ci_level_record(clause, se_used, ci_low, ci_high, ci_pct=None, *,
+                    ci_pct_basis=None, record=None, ctgov_results=None, scale=None, effect=None):
+    """Check both the recorded derivation level and its SE against the owning clause."""
     pct = stated_ci_pct(clause)
-    rec = {"assumed_ci_pct": 95.0, "z_assumed_by_derivation": Z_ASSUMED_BY_DERIVATION}
+    used_pct = 95.0 if ci_pct is None else ci_pct
+    valid_level = (isinstance(used_pct, (int, float)) and not isinstance(used_pct, bool)
+                   and math.isfinite(used_pct) and 0 < used_pct < 100)
+    z_assumed = inverse_normal(1.0 - (1.0 - used_pct / 100.0) / 2.0) if valid_level else None
+    rec = {"assumed_ci_pct": used_pct, "z_assumed_by_derivation": z_assumed, "z_used": None}
+    valid_se = all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                   and math.isfinite(v) for v in (ci_low, ci_high, se_used))
+    if valid_se and 0 < ci_low < ci_high and se_used > 0:
+        width = math.log(ci_high) - math.log(ci_low)
+        rec["z_used"] = width / (2.0 * se_used)
+        rec["se_log_used"] = se_used
+    if isinstance(ci_pct_basis, dict) and ci_pct_basis.get("source") == "ClinicalTrials.gov results analysis":
+        derived = registry_ci_level(record, scale, effect, ci_low, ci_high, ctgov_results)
+        rec.update({"source_ci_pct": derived["ci_pct"] if derived else None,
+                    "basis": "STATED_IN_REGISTRY_ANALYSIS", "level_agreement": "MISMATCH",
+                    "clause_ci_pct": pct, "clause_level_rounded": False})
+        if derived is None or not valid_level or abs(derived["ci_pct"] - used_pct) >= 1e-9:
+            return rec
+        # The supplied citation must reproduce too; it is not trusted evidence.
+        if ci_pct_basis != derived["basis"]:
+            return rec
+        rec["clause_level_rounded"] = (pct is not None and pct != derived["ci_pct"]
+                                      and round(derived["ci_pct"]) == pct)
+        rec["z_for_stated_level"] = z_assumed
+        if rec["z_used"] is not None:
+            expected_se = width / (2.0 * z_assumed)
+            rec["se_log_at_stated_level"] = expected_se
+            if math.isclose(se_used, expected_se, rel_tol=1e-6, abs_tol=0.0):
+                rec["level_agreement"] = "MATCH"
+        return rec
     if pct is None:
         rec.update({"source_ci_pct": None, "basis": "UNSTATED", "level_agreement": "UNSTATED",
-                    "note": "the tuple's clause does not state the interval's level; the derivation assumed 95% and that assumption is recorded, not verified"})
+                    "note": f"the tuple's clause does not state the interval's level; the derivation assumed {used_pct}% and that assumption is recorded, not verified"})
+        return rec
+    rec.update({"source_ci_pct": pct, "basis": "STATED_IN_OWNING_EVIDENCE",
+                "level_agreement": "MISMATCH"})
+    if not 0 < pct < 100:
         return rec
     z_stated = inverse_normal(1.0 - (1.0 - pct / 100.0) / 2.0)
-    rec.update({"source_ci_pct": pct, "basis": "STATED_IN_OWNING_EVIDENCE", "z_for_stated_level": z_stated,
-                "level_agreement": "MATCH" if abs(pct - 95.0) < 1e-9 else "MISMATCH"})
-    if ci_low and ci_high and se_used:
-        rec["se_log_at_stated_level"] = (math.log(ci_high) - math.log(ci_low)) / (2.0 * z_stated)
-        rec["se_log_used"] = se_used
+    rec["z_for_stated_level"] = z_stated
+    if rec["z_used"] is not None:
+        expected_se = width / (2.0 * z_stated)
+        rec["se_log_at_stated_level"] = expected_se
+        if (valid_level and abs(pct - used_pct) < 1e-9
+                and math.isclose(se_used, expected_se, rel_tol=1e-6, abs_tol=0.0)):
+            rec["level_agreement"] = "MATCH"
     return rec
 
 
@@ -1404,8 +1512,12 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             unregistered.append(("treatment_strategy", "on-treatment"))
         if aset["state"] == "UNRESOLVED" or win["state"] == "UNRESOLVED":
             unregistered.append(("estimand", "UNRESOLVED"))
-        cil = ci_level_record(eff_clause, (t.get("study_effect") or {}).get("standard_error"), t.get("ci_low"), t.get("ci_high"))
-        predicates["P12_ci_level"] = {"state": "FAIL" if cil["level_agreement"] == "MISMATCH" else "PASS", **{k: cil.get(k) for k in ("source_ci_pct", "basis", "level_agreement", "assumed_ci_pct")}}
+        cil = ci_level_record(eff_clause, (t.get("study_effect") or {}).get("standard_error"), t.get("ci_low"), t.get("ci_high"),
+                              (t.get("study_effect") or {}).get("ci_pct"),
+                              ci_pct_basis=t.get("ci_pct_basis"), record=selected,
+                              ctgov_results=records.get("ctgov_results"),
+                              scale=t.get("scale"), effect=t.get("effect"))
+        predicates["P12_ci_level"] = {"state": "FAIL" if cil["level_agreement"] == "MISMATCH" else "PASS", **{k: cil.get(k) for k in ("source_ci_pct", "basis", "level_agreement", "assumed_ci_pct", "clause_ci_pct", "clause_level_rounded") if k in cil}}
         predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy")},
                                                  "protocol_ref": reg["protocol_ref"], "protocol_span_start": reg["start"], "departures": unregistered,
                                                  "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"}
@@ -1473,7 +1585,8 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                                "cache/%s/records.json record (records_file_sha256)" % slug,
                                "reviews/%s/review.json trial row (review_sha256)" % slug],
             },
-            "statistical_input": statistical_input(t, pmid, eff_clause),
+            "statistical_input": statistical_input(t, pmid, eff_clause, record=selected,
+                                                   ctgov_results=records.get("ctgov_results")),
             "decision": {"selected_candidate": t.get("selected_estimator"), "selection_rule": t.get("selection_rule"), "rejected_alternatives": t.get("alternatives"),
                          "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
                          "adjudication_status": t.get("endpoint_admissibility"), "family_identity_state": t.get("family_identity_state"),

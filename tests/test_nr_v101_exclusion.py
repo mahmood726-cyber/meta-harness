@@ -157,3 +157,33 @@ def test_an_umbrella_label_never_rescues_an_excluded_component_in_the_verifier(s
 def test_umbrella_controls_still_pass_in_both(span):
     assert te._classify(SPEC, span)["target_endpoint_class"] == te.EXACT_TARGET
     assert vb.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)["state"] == "PASS"
+
+
+# ---- NR-C05 (Codex, verified by the lane): the exclusion SCOPE after an endpoint list --------------------------------
+PRIMARY = "The primary composite outcome was cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke, "
+
+
+@pytest.mark.parametrize("tail,producer,verifier", [
+    # a POPULATION object right after the cue is a population exclusion, never an excluded component (fix A)
+    ("excluding patients with prior stroke.", "EXACT_TARGET", "PASS"),
+    ("excluding those who died before discharge.", "EXACT_TARGET", "PASS"),
+    ("other than patients with prior stroke.", "EXACT_TARGET", "PASS"),
+    ("with the exception of patients with prior stroke.", "EXACT_TARGET", "PASS"),
+    # events restricted to a population name no target component: left EXACT (no inference about unspecified events)
+    ("excluding events in patients with atrial fibrillation.", "EXACT_TARGET", "PASS"),
+    # a COMPONENT object is still excluded, whatever population follows it
+    ("excluding nonfatal stroke events in patients with atrial fibrillation.", "ENDPOINT_COMPONENT_EXCLUDED",
+     "ENDPOINT_INCOMPATIBLE"),
+])
+def test_c05_exclusion_scope_after_the_endpoint_list(tail, producer, verifier):
+    text = PRIMARY + tail
+    assert te._classify(SPEC, text)["target_endpoint_class"] == producer
+    span = text[:-1] + " and occurred less often " + T + "."   # the result in the defining sentence, as UMBRELLA
+    assert vb.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)["state"] == verifier
+
+
+def test_c05_with_the_exception_of_is_an_exclusion_cue_in_both():
+    text = "The primary outcome was 3-point MACE, with the exception of nonfatal stroke."
+    assert te._classify(SPEC, text)["target_endpoint_class"] == te.ENDPOINT_COMPONENT_EXCLUDED
+    span = text[:-1] + " and occurred less often " + T + "."   # the result in the defining sentence, as UMBRELLA
+    assert vb.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)["state"] == "ENDPOINT_INCOMPATIBLE"

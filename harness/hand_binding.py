@@ -400,7 +400,7 @@ def _ownership(spec: dict[str, Any], cand: dict[str, Any], prose: str, tup: dict
     if own:
         # EXCLUDES of the owning clause AND of its document neighbourhood (a footnote after the result): polarity first
         excl = te.endpoint_relations(own_text, context=te.neighbourhood(prose, cand["text"]))["excludes"]
-        cls = te._classify(spec, own_text, components=own, excluded=excl)
+        cls = te._classify(spec, own_text, components=own, excluded=excl, result_span=cand["text"])
         cls.update({"endpoint_binding": te.BINDING_SELF, "endpoint_result_span": cand["text"],
                     "endpoint_definition_span": own_text,
                     "endpoint_binding_reason": "span names its own component set: " + ", ".join(sorted(own))})
@@ -415,7 +415,7 @@ def _ownership(spec: dict[str, Any], cand: dict[str, Any], prose: str, tup: dict
             out["endpoint_result_span"] = cand["text"]
             return out
         cls = te._classify(spec, b["endpoint_definition_span"], components=b["components"],
-                           excluded=b.get("excluded_components"))
+                           excluded=b.get("excluded_components"), result_span=cand["text"])
         cls.update({"endpoint_binding": b["binding"], "endpoint_result_span": cand["text"],
                     "endpoint_definition_span": b["endpoint_definition_span"],
                     "endpoint_binding_reason": b["binding_reason"],

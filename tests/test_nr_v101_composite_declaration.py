@@ -81,12 +81,10 @@ HHF = {"name": "Hospitalization for heart failure", "keywords": ["hospitalizatio
        "hospitalized for heart failure"], "estimand": "HR"}
 
 
-@pytest.mark.xfail(strict=True, reason="NR-C03: SAVOR false-unbound -- the verb form hospitalized-for-heart-failure is not read yet")
 def test_hospitalized_for_heart_failure_names_the_hf_hospitalisation_component():
     assert "heart failure hospitalization" in te._components_from_text(SAVOR_HF, expand_named_composites=False)
 
 
-@pytest.mark.xfail(strict=True, reason="NR-C03: SAVOR false-unbound -- the verb form hospitalized-for-heart-failure is not read yet")
 def test_savor_hf_estimate_binds_to_its_own_span():
     b = te.bind_result_span(SAVOR_HF, SAVOR_HF)
     assert b["binding"] == te.BINDING_SELF, b

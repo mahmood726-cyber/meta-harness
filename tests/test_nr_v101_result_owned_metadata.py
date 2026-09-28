@@ -130,3 +130,90 @@ def test_a_regimen_first_does_not_hide_the_real_window():
     m = next(x for x in window_evidence.DURATION.finditer(txt)
              if window_evidence.duration_role(txt, x.start(), x.end()) != "DOSING")
     assert fu["value"] == "14 days" and m.start() > txt.index("placebo for 14 days") + 5, fu   # not the regimen
+
+
+# ---- corpus radius of the NR-C04 window fixes (lane NR): two regressions caught and planted ---------------------------
+PEARL = ("The percentage of children with AAD was significantly lower in the L. reuteri group compared to the placebo group "
+         "at 14 days (7.9% vs. 16.7%; RR: 0.47, 95%CI 0.30-0.7; p < 0.001); at 21 days (8.8% vs. 17.9%; RR: 0.49, 95%CI "
+         "0.32-0.74; p < 0.001); and at 56 days (9.1% vs. 19.6%; RR: 0.46, 95%CI 0.30-0.69; p < 0.001).")
+
+
+def test_an_enumerated_timepoint_owns_the_estimate_attached_to_it():
+    # PEARL 40488914: RR 0.46 is the 56-day result; 'earliest window wins' gave it 14 days
+    assert window_evidence.result_window(PEARL, [0.46])[0] == "56 days"
+    assert window_evidence.result_window(PEARL, [0.47])[0] == "14 days"
+
+
+def test_without_an_attached_group_the_governing_window_still_wins():
+    s = "At 90 days, mortality among patients discharged by day 28 was 12.0% vs 15.0% (RR 0.80)."
+    assert window_evidence.result_window(s, [0.80])[0] == "90 days"
+    assert window_evidence.result_window(PEARL)[0] == "14 days"      # no estimate: unchanged rule
+
+
+def test_an_absent_row_with_no_result_owns_no_result_span():
+    # GLAGOV 27846344, MACE not reported: its `source` is the IVUS primary sentence; 'to week 78' is not a MACE window
+    row = {"state": "outcome_not_reported", "reason_code": "outcome_not_reported",
+           "source": "GLAGOV (PMID 27846344) abstract: The primary efficacy measure was the nominal change in percent "
+                     "atheroma volume (PAV) from baseline to week 78, measured by serial IVUS imaging."}
+    assert compat_check._window_span(row, "Major adverse cardiovascular events") == ""
+    fu = compat_check._derive_follow_up({"name": "Major adverse cardiovascular events"}, row, {"abstract": ""}, None)
+    assert fu["value"] is None, fu
+    refused = dict(row, refused_effect={"effect": 0.46, "ci_low": 0.3, "ci_high": 0.69, "scale": "RR"})
+    assert compat_check._window_span(refused, "Major adverse cardiovascular events") != ""   # a refused result owns it
+
+
+def test_an_absent_rows_trial_wide_source_still_gives_its_window():
+    # CORP 21873705: an absent row's source that states the trial's follow-up keeps it (radius round 2)
+    row = {"state": "outcome_not_reported", "source": "CORP (PMID 21873705) abstract: Patients were followed for 18 months."}
+    fu = compat_check._derive_follow_up({"name": "Treatment discontinuation"}, row, {"abstract": ""}, None)
+    assert fu["value"] == "18 months", fu
+
+
+def test_a_decimal_follow_up_is_read_whole():
+    fu = compat_check._derive_follow_up({"name": "Diabetic ketoacidosis"}, {"source": ""},
+                                        {"abstract": "During a median of 2.0 years of follow-up, events occurred."}, None)
+    assert fu["value"] == "2.0 years", fu
+
+
+# ---- NOAC-AF review: the analysis set binds to the SELECTED analysis's own sentence -------------------------------------
+ROCKET_TEXT = ("A total of 14,264 patients with nonvalvular atrial fibrillation who were at increased risk for stroke were "
+               "randomly assigned to receive either rivaroxaban (at a daily dose of 20 mg) or dose-adjusted warfarin. The "
+               "per-protocol, as-treated primary analysis was designed to determine whether rivaroxaban was noninferior to "
+               "warfarin for the primary end point of stroke or systemic embolism. In the primary analysis, the primary end "
+               "point occurred in 188 patients in the rivaroxaban group (1.7% per year) and in 241 in the warfarin group (2.2% "
+               "per year) (hazard ratio in the rivaroxaban group, 0.79; 95% confidence interval [CI], 0.66 to 0.96; P<0.001 for "
+               "noninferiority). In the intention-to-treat analysis, the primary end point occurred in 269 patients in the "
+               "rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.88; "
+               "95% CI, 0.74 to 1.03; P<0.001 for noninferiority; P=0.12 for superiority).")
+
+
+def _rocket(effect, source):
+    return {"label": "21830957", "id": "PMID 21830957", "effect": effect, "source": source, "study_effect": {}}
+
+
+def test_rocket_itt_estimate_carries_itt_not_the_per_protocol_sentence():
+    itt = _rocket(0.88, "abstract effect+CI (HR): In the intention-to-treat analysis, the primary end point occurred in 269 "
+                        "patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per "
+                        "year) (hazard ratio, 0.88; 95% CI, 0.74 to 1.03; P<0.001 for noninferiority; P=0.12 for superiority).")
+    assert compat_check._derive_analysis_set(itt, {"abstract": ROCKET_TEXT}, None)["value"] == "intention-to-treat"
+
+
+def test_the_per_protocol_estimate_still_carries_per_protocol():
+    pp = _rocket(0.79, "In the primary analysis, the primary end point occurred in 188 patients in the rivaroxaban group and "
+                       "in 241 in the warfarin group (hazard ratio in the rivaroxaban group, 0.79; 95% CI, 0.66 to 0.96).")
+    assert compat_check._derive_analysis_set(pp, {"abstract": ROCKET_TEXT}, None)["value"] == "per-protocol"
+
+
+def test_an_analysis_statement_reporting_another_estimate_never_labels_this_row():
+    row = _rocket(0.88, "")          # no owning sentence: only the text, whose per-protocol statement reports 0.79
+    assert compat_check._derive_analysis_set(row, {"abstract": ROCKET_TEXT}, None)["value"] == "intention-to-treat"
+
+
+def test_a_population_statement_is_not_attached_to_the_next_sentences_estimate():
+    # EMPACTA (33332779): the mITT population sentence stands on its own; the next sentence's estimate is not its
+    text = ("RESULTS: A total of 389 patients underwent randomization, and the modified intention-to-treat population "
+            "included 249 patients in the tocilizumab group and 128 patients in the placebo group. The cumulative "
+            "percentage of patients who had received mechanical ventilation or who had died by day 28 was 12.0% and 19.3% "
+            "(hazard ratio, 0.56; 95% CI, 0.33 to 0.97).")
+    row = {"label": "33332779", "id": "PMID 33332779", "effect": 0.73, "source": "", "study_effect": {}}
+    assert compat_check._derive_analysis_set(row, {"abstract": text}, None)["value"] == "modified intention-to-treat"
