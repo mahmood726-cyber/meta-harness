@@ -78,7 +78,24 @@ def document_title(path: str) -> str | None:
     return None
 
 
+def document_pmid(path: str) -> str | None:
+    """The PMID a held HTML/XML article DECLARES about itself (citation_pmid meta; JATS article-id pmid), or None."""
+    if not re.search(r"\.(html|xml)$", path):
+        return None
+    t = open(path, encoding="utf-8", errors="replace").read()
+    m = (re.search(r'name="citation_pmid"\s+content="(\d{6,9})"', t)
+         or re.search(r'<article-id pub-id-type="pmid">(\d{6,9})</article-id>', t))
+    return m.group(1) if m else None
+
+
 def check_held_document(path: str, rec: dict[str, Any]) -> str | None:
+    # An article that DECLARES its PMID is identified by it, before any title comparison: a declared PMID that is not the
+    # record's is a different publication whatever its title; the record's own PMID is the same publication even when an
+    # AUTHOR MANUSCRIPT carries its pre-publication title (JUPITER >= 70, NIHMS174735: 'older individuals with high
+    # C-reactive protein' vs the published 'older persons with elevated C-reactive protein').
+    declared, own = document_pmid(path), str(rec.get("pmid") or "")
+    if declared and own:
+        return None if declared == own else f"{path}: it declares PMID {declared}, not the record's {own}"
     got = document_title(path)
     if got is None:
         return f"{path}: no title could be read (identity not established)"
@@ -86,9 +103,11 @@ def check_held_document(path: str, rec: dict[str, Any]) -> str | None:
     have = norm(got)
     # formatting is not identity: subscripts and italics split words ('HbA<sub>1c</sub>' -> 'hba 1c'), a PDF breaks a
     # title across lines and hyphenates it. Compare with whitespace removed; for a PDF (title somewhere in the first
-    # pages' text) require >= 90% of the record title's words to be present.
+    # pages' text) require >= 90% of the record title's words to be present. Containment needs >= 30 characters on the
+    # contained side: a short string is contained in almost any title (a one-word 'title' matched everything).
     ns = lambda s: s.replace(" ", "")
-    if want and (ns(want)[:60] in ns(have) or ns(have)[:60] in ns(want)):
+    a, b = ns(want)[:60], ns(have)[:60]
+    if want and ((len(a) >= 30 and a in ns(have)) or (len(b) >= 30 and b in ns(want))):
         return None
     if path.endswith(".pdf") and want:
         joined = ns(have)

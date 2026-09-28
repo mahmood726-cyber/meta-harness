@@ -961,3 +961,58 @@ infections.
 - Signatures: 2 numeric notices and 2 served-change notices.
 - RALES is still "contributing without structural eligibility" (1999, no registry record). Not in these fixtures; left
   as it was.
+
+## Round 2026-09-28i: statins in older adults (statins-primary-prevention-elderly)
+
+### (1) Ridker 2017 (PMID 28385949): an investigator subgroup report, never an input
+- It is a Circulation research LETTER: no abstract, not open access, and unpaywall has no open location (its DOI was
+  taken from the held Europe PMC record). Only its record is held.
+- It is declared in `docs/multi_trial_reports.json` as a report of JUPITER (keyed by its held report, PMID 20404379;
+  JUPITER's NCT is not in any held source and is not supplied from memory) and of HOPE-3 (NCT00468923).
+- Its pooled JUPITER+HOPE-3 >= 70 estimate is NEVER_IMPORTED (plant: COMBINED_POPULATION_IMPORTED).
+- HOPE-3 (registration held: a 2x2 FACTORIAL, rosuvastatin x candesartan/HCT) is inventoried as known eligible.
+  - Its >= 70 3-point MACE HR 0.83 (0.64-1.07) is RELAYED, not admitted, because the letter is not held.
+  - The relayed diagnostic 3-input pool is 0.7101 (0.5148-0.9795).
+  - The served major-vascular-events pool is unchanged: k=2, 0.6803.
+- JUPITER >= 70 3-point MACE 0.61 (0.43-0.86) is relayed beside the served broader composite 0.61 (0.46-0.82): a
+  DIFFERENT outcome record, never substituted.
+
+### (2) ALLHAT-LLT: one family
+- Orkaby 2018 (PMID 30251369, RMST) is linked to Han 2017 (PMID 28531241; NCT00000542) in `study_families`, with the
+  witnesses 1,467 vs 1,400 and "Secondary analysis of ... ALLHAT-LLT". It is screened X-DEDUP and has no rows; RMST
+  differences are never HRs.
+- Han 2017 Table 2, from the held PMC page (excerpt committed):
+  - the >= 75 fatal CHD or nonfatal MI HR 0.70 (0.43-1.13) is held out as EXTRACTED_NOT_ADMITTED: a coronary outcome
+    without stroke, not major vascular events;
+  - the >= 75 all-cause mortality HR 1.34 (0.98-1.84) is named as a separate outcome and not substituted;
+  - the >= 65 analysis is not the >= 70 target.
+- "Specific adverse effects data were not collected": both harms are NOT_SYSTEMATICALLY_COLLECTED (`collection_scope`;
+  plant: COLLECTION_SCOPE_POOLED).
+
+### (3) JUPITER >= 70 Table 3 (held PMC page, NIH manuscript; the 70-97 columns only)
+- Muscle weakness, stiffness or pain: 494 vs 467, HR 1.04 (0.92-1.19). Muscle symptoms/myopathy k=1, served. NOTICE
+  OPEN.
+- Newly diagnosed diabetes: 82 vs 64, HR 1.25 (0.90-1.74). New-onset diabetes k=1, served. NOTICE OPEN.
+- Myopathy (4 vs 3, HR 1.31) is a separate row, never summed.
+
+### (4) STAREE outcome-specific safety supplement: not retrievable by open routes
+NEJM, Europe PMC not open, unpaywall no location. The STAREE harm rows remain REPORTED_UNRESOLVED.
+
+### Decisions for Mahmood
+- Signatures: 2 numeric notices and 1 served-change notice.
+- **JUPITER >= 70 is not pre-specified.** The topic's protocol and config call it "one pre-specified JUPITER >= 70-years
+  subgroup" (`trial_annotations.evidence_unit = prespecified_subgroup`). The paper's own abstract says "exploratory
+  analysis with age cut-point chosen after trial completion". Not changed here.
+- **HOPE-3 >= 70 admission.** Your fixture calls it a recoverable input, but the letter is not openly held. If it is
+  admitted from another source, it is a second post hoc age subgroup, of a factorial trial. The protocol wording
+  ("one whole trial and one ... subgroup") would need a decision.
+- JUPITER (PMID:20404379) is still "contributing without structural eligibility" (no registry record held). Not changed
+  here.
+- **source_identity (found by the suite)**
+  - The held JUPITER >= 70 PMC page is NIH author manuscript NIHMS174735, with its pre-publication title. It failed the
+    title comparison although it declares the record's own PMID (citation_pmid 20404379).
+  - An article that DECLARES a PMID is now identified by it: the same PMID passes, a different PMID fails, whatever the
+    titles say.
+  - Separately, the containment test accepted any title shorter than its prefix, so a one-character title matched
+    everything. Containment now needs >= 30 characters.
+  - Both are covered by plants. Ledger: 49 verified, 1 quarantined, 0 mismatches.
