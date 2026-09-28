@@ -29,5 +29,30 @@
       "relation": "SUPERSET"
     }
   },
-  "build_utc": "2026-09-11"
+  "build_utc": "2026-09-11",
+  "source": {
+    "identity": "content-addressed: served_blob_git_sha1 (git hash-object of the served bytes); verifiable against bytes you already hold",
+    "content_commit": "5524a41406694b9c8fd21943195e67e97934d10a",
+    "content_commit_meaning": "INFORMATIONAL: the most recent commit whose tree holds exactly the served blobs, or PENDING_COMMIT if the bytes are not yet committed; NOT the identity of the bytes and NOT necessarily the commit the generator ran at",
+    "generating_commit": "e6ba0f7279e0e19bdda86fd3780caaa1160947ab",
+    "generating_commit_meaning": "read from EXECUTION_RECORD.json written by the generator at the end of the build (tree_state DIRTY); the record's sha256 is in review_files and verify_bundle.py checks the record's release_sha256 against the certificate",
+    "execution_record": {
+      "served_path": "reviews/glp1-ra-mace-t2d/EXECUTION_RECORD.json",
+      "sha256": "408b1497b92c3b4b9829cb6963ac23695a9a75a44cae017c69d3220c69e91be8",
+      "tree_state": "DIRTY",
+      "utc": "2026-09-28T09:24:58Z"
+    },
+    "served_blob_git_sha1": {
+      "review.json": "ffa2e4c444f3774b5f405513ba804a64d1ae2815",
+      "index.html": "48a8d442894f5c3c7e04cb08f22469703f6260ac",
+      "CERTIFICATE.json": "897e9e325d6e5c7a9891ca55047bf05c0ea67b79",
+      "REPRODUCTION.json": "d23426d0e3b73721f972b311593e20a19c626d35"
+    },
+    "how_to_check_currency": [
+      "git ls-remote https://github.com/mahmood726-cyber/meta-harness.git refs/heads/main   -> the current main commit",
+      "git rev-parse <that commit>:docs/reviews/glp1-ra-mace-t2d/review.json   (or the GitHub contents API 'sha') -> the blob id main serves from",
+      "git hash-object review.json   on the bytes you fetched -> must equal served_blob_git_sha1.review.json above AND the blob at main; if it equals the former but not the latter, you hold a stale edge copy or a superseded build"
+    ],
+    "served_copy_may_lag": "The served copy of this directory may lag the repository. GitHub Pages serves through a CDN: a fetch with cache:'no-store' bypasses the browser cache only, and two readers can hold different versions of the same URL at the same moment. Before treating these bytes as current, compute the git blob id of the review.json you hold (git hash-object review.json) and compare it with the blob at refs/heads/main (GET https://api.github.com/repos/mahmood726-cyber/meta-harness/contents/docs/reviews/glp1-ra-mace-t2d/review.json?ref=main returns it as 'sha'); a mismatch means you are holding a stale edge copy or a superseded build."
+  }
 }
