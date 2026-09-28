@@ -86,3 +86,16 @@ protocol's broad cardiovascular-outcome-trial scope was not executable. The conf
 now requires cardiovascular-outcome / cardiovascular-events / MACE wording, so
 short glycaemic or imaging-marker diabetes trials are not included merely because
 they are randomized SGLT2 placebo trials. This amendment changes screening only.
+
+## Retrospective protocol erratum (2026-09-28) -- the setting is established by the trial's own design
+**Labelled retrospective: written after data were seen; the sections above are left unchanged as registered.**
+- The 2026-09-16 amendment executed the broad cardiovascular-outcome-trial scope as "the record mentions
+  cardiovascular outcome / events / MACE wording". That admitted SIMPLE (PMID 35061894; 13-week haemodynamics) and
+  EMPA-HEART (PMID 31434508; 6-month LV mass), whose abstracts only mention cardiovascular events in background
+  sentences about other trials (reported by an external review).
+- The setting requirement now counts that wording only in the trial's OWN design statements: its title, or a
+  sentence stating its own primary end point / outcome, never a background or discussion sentence
+  (`include.design_any_where = "own_design"`, harness/setting_scope.py; rule X-SETTING).
+- This is separate from outcome availability. A cardiovascular outcome trial that does not report heart-failure
+  hospitalisation is still in scope; a mechanistic trial that reports heart-failure events is not.
+- Scope: this changes screening only. The four pooled trials are unchanged, and no pooled result moves.
