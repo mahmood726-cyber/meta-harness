@@ -34,7 +34,8 @@ def merge(root, slug, records: dict) -> dict:
     fam_reg = None
     for x in lk:
         reg = by_id.get(str(x["nct"])) or {}
-        reg_text = str(reg.get("title") or "")
+        # V1.0.1 (sacubitril review): the registry record's acronym field is printed by the registry too ('PARALLEL-HF')
+        reg_text = " ".join(str(reg.get(k) or "") for k in ("title", "acronym"))
         sref = (x.get("registry_quote") or {}).get("source_reference")
         if not reg and sref:
             # V1.0.1 (GLP-1 review, PIONEER 8): a registry-only FAMILY whose record lives in the held family registry

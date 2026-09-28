@@ -2395,12 +2395,21 @@
     },
     "overlap": {
       "ours_k": 2,
-      "theirs_k": "not computed: network meta-analysis -- direct comparison membership not enumerated; network-wide counts are not the k of the direct comparison",
-      "shared_k": "not computed: comparator trial set not enumerated",
+      "theirs_k": 10,
+      "shared_k": 2,
       "only_ours": [],
-      "only_theirs": [],
-      "method": "computed overlap relation (harness/overlap_relation.py): comparator trial set not enumerated",
-      "note": "Computed overlap relation with the published comparator: NOT_ENUMERABLE (not enumerable -- the comparator trial set is not known well enough to compare); our pooled trial families 2; basis: comparator trial set not enumerated.",
+      "only_theirs": [
+        "Yusuf [ehf214298-bib-0002]",
+        "Yusuf [ehf214298-bib-0003]",
+        "Kato [ehf214298-bib-0005]",
+        "McMurray [ehf214298-bib-0006]",
+        "Packer [ehf214298-bib-0016]",
+        "CHARM [ehf214298-bib-0017]",
+        "CHARM [ehf214298-bib-0018]",
+        "VERTIS [ehf214298-bib-0021]"
+      ],
+      "method": "computed overlap relation (harness/overlap_relation.py): set operation on the enumerated comparator trial set",
+      "note": "Computed overlap relation with the published comparator: SUBSET (subset -- every pooled family is in the comparator set); our pooled trial families 2, comparator trials 10, shared 2; basis: set operation on the enumerated comparator trial set.",
       "network": {
         "design": "NETWORK_META_ANALYSIS",
         "whole_network": null,
@@ -2411,7 +2420,55 @@
         },
         "stated_count_read": null
       },
-      "relation": "NOT_ENUMERABLE"
+      "theirs_k_source": "comparator panel trial_set (cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml, located spans; per-outcome membership bound (CV death or HHF in HFrEF (network composite))): 10 comparator trial(s) for this outcome",
+      "relation": "SUBSET"
+    },
+    "analysis": {
+      "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+      "governing": null,
+      "protocol_benchmark": null,
+      "method_difference": {
+        "heading": "Same direct trials, a different representation",
+        "quotes": [
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "The comparison of different interventions was made using a frequentist approach for each endpoint."
+          },
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "Risk ratio (RR) and 95% confidence interval (CI) were assessed for the association between the intervention and the incidence of events."
+          },
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "Compared with RASi, ARNI significantly decreased the occurrence of CV death or HHF (RR = 0.83, 95% CI 0.77–0.89)."
+          }
+        ],
+        "reading": "Its 0.83 is a network risk ratio of event proportions, combining the two direct trials with indirect evidence through placebo; we pool time-to-event hazard ratios from the same two direct trials (PARADIGM-HF alone reports HR 0.80, 0.73 to 0.87). The two numbers are different representations of largely the same randomised evidence, so agreement near 0.83 is not validation and not an independent result. Its abstract attributes the same RR and CI to a comparison with placebo (COMPARATOR_INTERNAL_MISMATCH, recorded separately); the main text's RAS-inhibitor comparison is the one shown beside our result.",
+        "reported_by": "external review of the sacubitril-valsartan-hfref topic (28 Sep 2026)"
+      },
+      "scope": {
+        "quotes": [
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "we selected 17 studies involving a total of 61 489 participants"
+          },
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials."
+          },
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "three trials comparing ARNI with RASi."
+          },
+          {
+            "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+            "quote": "At present, there are still no published or ongoing trials directly comparing the CV outcomes of these drugs."
+          }
+        ],
+        "reading": "Ji 2023 is a network meta-analysis of SGLT2 inhibitors, RAS inhibitors and ARNI in heart failure: its 17 studies span HFrEF and HFpEF and three treatment classes, so the network-wide 17 is not the target. Its HFrEF composite (CV death or HHF) has 10 trials, cited as one list (enumerated above). Only three of its trials compare ARNI with a RAS inhibitor directly -- PARADIGM-HF, PARALLEL-HF and PARAGON-HF (reference 10, an HFpEF trial) -- so the direct sacubitril/valsartan-versus-RASi evidence in HFrEF is PARADIGM-HF and PARALLEL-HF: both of our trials. The other eight HFrEF trials compare SGLT2 inhibitors or RAS inhibitors with placebo and enter its estimate only indirectly. Our control stays a RAS inhibitor.",
+        "reported_by": "external review of the sacubitril-valsartan-hfref topic (28 Sep 2026)"
+      },
+      "row_flags": []
     },
     "overlap_relation": {
       "outcome": "Composite cardiovascular death or heart-failure hospitalization",
@@ -2438,17 +2495,226 @@
       "membership_rule": "publication year is never used to decide membership: a trial's own paper can post-date a comparator that already analysed its data (V1.0.1, COVID-corticosteroids review)",
       "constraints": [],
       "theirs": {
-        "status": "NOT_ENUMERATED",
-        "note": "the registered comparator's trial set is not enumerated in a typed, located source"
+        "status": "ENUMERATED",
+        "source": "comparator panel trial_set (cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml, located spans; per-outcome membership bound (CV death or HHF in HFrEF (network composite)))",
+        "endpoint_for_outcome": "CV death or HHF in HFrEF (network composite)",
+        "members": [
+          {
+            "name": "Yusuf [ehf214298-bib-0002]",
+            "family": "SYN-8dabf7143f08",
+            "alias_ids": [
+              "1463530"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0002\"><label>2</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0003\">\n<string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pitt</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Davis</surname>\n<given-names>CE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Hood</surname>\n<given-names>WB</given-names>\n<suffix>Jr</suffix>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cohn</surname>\n<given-names>JN</given-names>\n</string-name>. <article-title>Effect of enalapril on mortality and the development of heart failure in asymptomatic patients with reduced left ventricular ejection fractions</article-title>. <source>N Engl J Med</source>. <year>1992</year>; <volume>327</volume>: <fpage>685</fpage>–<lpage>691</lpage>.<pub-id pub-id-type=\"pmid\">1463530</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJM199209033271003</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "Yusuf [ehf214298-bib-0003]",
+            "family": "SYN-ae6c2da0c7b0",
+            "alias_ids": [
+              "2057034"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0003\"><label>3</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0004\">\n<string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pitt</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Davis</surname>\n<given-names>CE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Hood</surname>\n<given-names>WB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cohn</surname>\n<given-names>JN</given-names>\n</string-name>. <article-title>Effect of enalapril on survival in patients with reduced left ventricular ejection fractions and congestive heart failure</article-title>. <source>N Engl J Med</source>. <year>1991</year>; <volume>325</volume>: <fpage>293</fpage>–<lpage>302</lpage>.<pub-id pub-id-type=\"pmid\">2057034</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJM199108013250501</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "McMurray [ehf214298-bib-0004]",
+            "family": "NCT01035255",
+            "alias_ids": [
+              "25176015"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0004\"><label>4</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0005\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Packer</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gong</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Lefkowitz</surname>\n<given-names>MP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Rizkala</surname>\n<given-names>AR</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Rouleau</surname>\n<given-names>JL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Shi</surname>\n<given-names>VC</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Solomon</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zile</surname>\n<given-names>MR</given-names>\n</string-name>, \n<collab collab-type=\"authors\">PARADIGM‐HF Investigators and Committees</collab>\n. <article-title>Angiotensin‐neprilysin inhibition versus enalapril in heart failure</article-title>. <source>N Engl J Med</source>. <year>2014</year>; <volume>371</volume>: <fpage>993</fpage>–<lpage>1004</lpage>.<pub-id pub-id-type=\"pmid\">25176015</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1409077</pub-id></mixed-citation></ref>",
+            "bound_to": "NCT01035255"
+          },
+          {
+            "name": "Kato [ehf214298-bib-0005]",
+            "family": "NCT01730534",
+            "alias_ids": [
+              "30882238"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0005\"><label>5</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0006\">\n<string-name name-style=\"western\">\n<surname>Kato</surname>\n<given-names>ET</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Silverman</surname>\n<given-names>MG</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Mosenzon</surname>\n<given-names>O</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zelniker</surname>\n<given-names>TA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cahn</surname>\n<given-names>A</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Furtado</surname>\n<given-names>RHM</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kuder</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Murphy</surname>\n<given-names>SA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bhatt</surname>\n<given-names>DL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Leiter</surname>\n<given-names>LA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McGuire</surname>\n<given-names>DK</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wilding</surname>\n<given-names>JPH</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bonaca</surname>\n<given-names>MP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ruff</surname>\n<given-names>CT</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Goto</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Johansson</surname>\n<given-names>PA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gause‐Nilsson</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Johanson</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Langkilde</surname>\n<given-names>AM</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Raz</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sabatine</surname>\n<given-names>MS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wiviott</surname>\n<given-names>SD</given-names>\n</string-name>. <article-title>Effect of dapagliflozin on heart failure and mortality in type 2 diabetes mellitus</article-title>. <source>Circulation</source>. <year>2019</year>; <volume>139</volume>: <fpage>2528</fpage>–<lpage>2536</lpage>.<pub-id pub-id-type=\"pmid\">30882238</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1161/CIRCULATIONAHA.119.040130</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "McMurray [ehf214298-bib-0006]",
+            "family": "NCT03036124",
+            "alias_ids": [
+              "31535829"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0006\"><label>6</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0007\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJV</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Solomon</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Inzucchi</surname>\n<given-names>SE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Køber</surname>\n<given-names>L</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kosiborod</surname>\n<given-names>MN</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Martinez</surname>\n<given-names>FA</given-names>\n</string-name> et al. <article-title>Dapagliflozin in patients with heart failure and reduced ejection fraction</article-title>. <source>N Engl J Med</source>. <year>2019</year>; <volume>381</volume>: <fpage>1995</fpage>–<lpage>2008</lpage>.<pub-id pub-id-type=\"pmid\">31535829</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1911303</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "PARALLEL‐HF [ehf214298-bib-0015]",
+            "family": "NCT02468232",
+            "alias_ids": [
+              "33731544"
+            ],
+            "identity": "bound by the acronym printed in its cited article title (PARALLEL-HF); the cited paper is held as unlinked report-only family SYN-90e48eb24ffa",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0015\"><label>15</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0016\">\n<string-name name-style=\"western\">\n<surname>Tsutsui</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Momomura</surname>\n<given-names>SI</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Saito</surname>\n<given-names>Y</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ito</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yamamoto</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sakata</surname>\n<given-names>Y</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ohishi</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Iimori</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kitamura</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Guo</surname>\n<given-names>W</given-names>\n</string-name>, on behalf of \n<collab collab-type=\"authors\">the PARALLEL‐HF Investigators</collab>\n. <article-title>Efficacy and safety of Sacubitril/valsartan in Japanese patients with chronic heart failure and reduced ejection fraction ‐ results from the PARALLEL‐HF study</article-title>. <source>Circ J</source>. <year>2021</year>; <volume>85</volume>: <fpage>584</fpage>–<lpage>594</lpage>.<pub-id pub-id-type=\"pmid\">33731544</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1253/circj.CJ-20-0854</pub-id></mixed-citation></ref>",
+            "bound_to": "NCT02468232"
+          },
+          {
+            "name": "Packer [ehf214298-bib-0016]",
+            "family": "NCT03057977",
+            "alias_ids": [
+              "32865377"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0016\"><label>16</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0017\">\n<string-name name-style=\"western\">\n<surname>Packer</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Anker</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Butler</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Filippatos</surname>\n<given-names>G</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pocock</surname>\n<given-names>SJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Carson</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Januzzi</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Verma</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Tsutsui</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Brueckmann</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Jamal</surname>\n<given-names>W</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kimura</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Schnee</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zeller</surname>\n<given-names>C</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cotton</surname>\n<given-names>D</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bocchi</surname>\n<given-names>E</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Böhm</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Choi</surname>\n<given-names>DJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Chopra</surname>\n<given-names>V</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Chuquiure</surname>\n<given-names>E</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Giannetti</surname>\n<given-names>N</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Janssens</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zhang</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gonzalez Juanatey</surname>\n<given-names>JR</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kaul</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Brunner‐la Rocca</surname>\n<given-names>HP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Merkely</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Nicholls</surname>\n<given-names>SJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Perrone</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pina</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ponikowski</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sattar</surname>\n<given-names>N</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Senni</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Seronde</surname>\n<given-names>MF</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Spinar</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Squire</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Taddei</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wanner</surname>\n<given-names>C</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zannad</surname>\n<given-names>F</given-names>\n</string-name>. <article-title>Cardiovascular and renal outcomes with empagliflozin in heart failure</article-title>. <source>N Engl J Med</source>. <year>2020</year>; <volume>383</volume>: <fpage>1413</fpage>–<lpage>1424</lpage>.<pub-id pub-id-type=\"pmid\">32865377</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa2022190</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "CHARM [ehf214298-bib-0017]",
+            "family": "SYN-ca2d40593506",
+            "alias_ids": [
+              "13678869"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0017\"><label>17</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0018\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ostergren</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Granger</surname>\n<given-names>CB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Held</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Michelson</surname>\n<given-names>EL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Olofsson</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pfeffer</surname>\n<given-names>MA</given-names>\n</string-name>, \n<collab collab-type=\"authors\">CHARM Investigators and Committees</collab>\n. <article-title>Effects of candesartan in patients with chronic heart failure and reduced left‐ventricular systolic function taking angiotensin‐converting‐enzyme inhibitors: the CHARM‐Added trial</article-title>. <source>Lancet</source>. <year>2003</year>; <volume>362</volume>: <fpage>767</fpage>–<lpage>771</lpage>.<pub-id pub-id-type=\"pmid\">13678869</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(03)14283-3</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "CHARM [ehf214298-bib-0018]",
+            "family": "SYN-c59edee8e817",
+            "alias_ids": [
+              "13678870"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0018\"><label>18</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0019\">\n<string-name name-style=\"western\">\n<surname>Granger</surname>\n<given-names>CB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Held</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Michelson</surname>\n<given-names>EL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Olofsson</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ostergren</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pfeffer</surname>\n<given-names>MA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, \n<collab collab-type=\"authors\">CHARM Investigators and Committees</collab>\n. <article-title>Effects of candesartan in patients with chronic heart failure and reduced left‐ventricular systolic function intolerant to angiotensin‐converting‐enzyme inhibitors: the CHARM‐alternative trial</article-title>. <source>Lancet</source>. <year>2003</year>; <volume>362</volume>: <fpage>772</fpage>–<lpage>776</lpage>.<pub-id pub-id-type=\"pmid\">13678870</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(03)14284-5</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          },
+          {
+            "name": "VERTIS [ehf214298-bib-0021]",
+            "family": "NCT01986881",
+            "alias_ids": [
+              "33026243"
+            ],
+            "identity": "bound by panel alias",
+            "endpoint": "CV death or HHF in HFrEF (network composite)",
+            "span": "<ref id=\"ehf214298-bib-0021\"><label>21</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0022\">\n<string-name name-style=\"western\">\n<surname>Cosentino</surname>\n<given-names>F</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cannon</surname>\n<given-names>CP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cherney</surname>\n<given-names>DZI</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Masiukiewicz</surname>\n<given-names>U</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pratley</surname>\n<given-names>R</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Dagogo‐Jack</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Frederich</surname>\n<given-names>R</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Charbonnel</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Mancuso</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Shih</surname>\n<given-names>WJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Terra</surname>\n<given-names>SG</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cater</surname>\n<given-names>NB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gantz</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McGuire</surname>\n<given-names>DK</given-names>\n</string-name>, On behalf of \n<collab collab-type=\"authors\">the VERTIS CV Investigators</collab>\n. <article-title>Efficacy of Ertugliflozin on heart failure‐related events in patients with type 2 diabetes mellitus and established atherosclerotic cardiovascular disease: results of the VERTIS CV trial</article-title>. <source>Circulation</source>. <year>2020</year>; <volume>142</volume>: <fpage>2205</fpage>–<lpage>2215</lpage>.<pub-id pub-id-type=\"pmid\">33026243</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1161/CIRCULATIONAHA.120.050255</pub-id><pub-id pub-id-type=\"pmcid\">PMC7717477</pub-id></mixed-citation></ref>",
+            "bound_to": null
+          }
+        ],
+        "out_of_scope": []
       },
-      "theirs_k": null,
-      "shared": null,
-      "shared_k": null,
-      "only_ours": null,
-      "only_theirs": null,
-      "relation": "NOT_ENUMERABLE",
-      "label": "not enumerable -- the comparator trial set is not known well enough to compare",
-      "basis": "comparator trial set not enumerated",
+      "theirs_k": 10,
+      "inventory_comparison": {
+        "rows": [
+          {
+            "comparator_trial": "Yusuf [ehf214298-bib-0002]",
+            "status": "SCREENED_OUT",
+            "family": "SYN-8dabf7143f08",
+            "record": "1463530",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "Yusuf [ehf214298-bib-0003]",
+            "status": "SCREENED_OUT",
+            "family": "SYN-ae6c2da0c7b0",
+            "record": "2057034",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "McMurray [ehf214298-bib-0004]",
+            "status": "POOLED",
+            "family": "NCT01035255"
+          },
+          {
+            "comparator_trial": "Kato [ehf214298-bib-0005]",
+            "status": "SCREENED_OUT",
+            "family": "NCT01730534",
+            "record": "30882238",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "McMurray [ehf214298-bib-0006]",
+            "status": "SCREENED_OUT",
+            "family": "NCT03036124",
+            "record": "31535829",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "PARALLEL‐HF [ehf214298-bib-0015]",
+            "status": "POOLED",
+            "family": "NCT02468232"
+          },
+          {
+            "comparator_trial": "Packer [ehf214298-bib-0016]",
+            "status": "SCREENED_OUT",
+            "family": "NCT03057977",
+            "record": "32865377",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "CHARM [ehf214298-bib-0017]",
+            "status": "SCREENED_OUT",
+            "family": "SYN-ca2d40593506",
+            "record": "13678869",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "CHARM [ehf214298-bib-0018]",
+            "status": "SCREENED_OUT",
+            "family": "SYN-c59edee8e817",
+            "record": "13678870",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          },
+          {
+            "comparator_trial": "VERTIS [ehf214298-bib-0021]",
+            "status": "SCREENED_OUT",
+            "family": "NCT01986881",
+            "record": "33026243",
+            "rule": "X3",
+            "reason": "the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin inhibition', 'angiotensin receptor-neprilysin inhibitor', 'angiotensin receptor neprilysin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+          }
+        ],
+        "counts": {
+          "SCREENED_OUT": 8,
+          "POOLED": 2
+        },
+        "note": "comparison with our eligible inventory; separate from the pooled-set relation"
+      },
+      "shared": [
+        "NCT01035255",
+        "NCT02468232"
+      ],
+      "shared_k": 2,
+      "only_ours": [],
+      "only_theirs": [
+        "Yusuf [ehf214298-bib-0002]",
+        "Yusuf [ehf214298-bib-0003]",
+        "Kato [ehf214298-bib-0005]",
+        "McMurray [ehf214298-bib-0006]",
+        "Packer [ehf214298-bib-0016]",
+        "CHARM [ehf214298-bib-0017]",
+        "CHARM [ehf214298-bib-0018]",
+        "VERTIS [ehf214298-bib-0021]"
+      ],
+      "relation": "SUBSET",
+      "label": "subset -- every pooled family is in the comparator set",
+      "basis": "set operation on the enumerated comparator trial set",
       "theirs_k_stated": {
         "value": "not computed: network meta-analysis -- direct comparison membership not enumerated; network-wide counts are not the k of the direct comparison",
         "source": null
@@ -2521,6 +2787,121 @@
   },
   "estimand_exclusions": [],
   "comparator_scope_note": "k=1 CONTRIBUTING, not a complete-evidence claim: PARADIGM-HF supplies the only EXTRACTABLE primary-outcome estimate here; 7 records screened in and 6 are declared absent for this pooled number. This is NOT the complete eligible evidence base -- external audit identified PARALLEL-HF (225 HFrEF patients, sacubitril/valsartan vs enalapril, the same primary composite) as a further eligible RCT the trial-level search missed; the concept-query search rebuild is the fix. Separately, the only open-access comparator (PMID 36722326) is a multi-class network meta-analysis, not a sacubitril-specific pairwise meta (a scope mismatch, stated). Component/harm secondaries were dropped rather than shipped ambiguous (see refusals).",
+  "comparator_named": {
+    "rows": [
+      {
+        "comparator": "36722326",
+        "row": "Yusuf [ehf214298-bib-0002]",
+        "identifiers": [
+          "1463530"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "1463530"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "Yusuf [ehf214298-bib-0003]",
+        "identifiers": [
+          "2057034"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "2057034"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "McMurray [ehf214298-bib-0004]",
+        "identifiers": [
+          "25176015"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "25176015"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "Kato [ehf214298-bib-0005]",
+        "identifiers": [
+          "30882238"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "30882238"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "McMurray [ehf214298-bib-0006]",
+        "identifiers": [
+          "31535829"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "31535829"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "PARALLEL‐HF [ehf214298-bib-0015]",
+        "identifiers": [
+          "33731544"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "33731544"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "Packer [ehf214298-bib-0016]",
+        "identifiers": [
+          "32865377"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "32865377"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "CHARM [ehf214298-bib-0017]",
+        "identifiers": [
+          "13678869"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "13678869"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "CHARM [ehf214298-bib-0018]",
+        "identifiers": [
+          "13678870"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "13678870"
+        ]
+      },
+      {
+        "comparator": "36722326",
+        "row": "VERTIS [ehf214298-bib-0021]",
+        "identifiers": [
+          "33026243"
+        ],
+        "state": "ALREADY_HELD",
+        "held_by": [
+          "33026243"
+        ]
+      }
+    ],
+    "entered": []
+  },
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
     "output_family": "registry-machine-signal-restricted",
@@ -111157,20 +111538,407 @@
       "held": true,
       "document_ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
       "document_sha256": "443774bc1d6a4b95b6a98122dc3605e86f9630a239b4e7184ccbaff94413f202",
-      "trial_set": [],
+      "trial_set": [
+        {
+          "family_id": "Yusuf [ehf214298-bib-0002]",
+          "name_in_source": "Yusuf",
+          "span": {
+            "start": 91248,
+            "end": 92346,
+            "quote": "<ref id=\"ehf214298-bib-0002\"><label>2</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0003\">\n<string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pitt</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Davis</surname>\n<given-names>CE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Hood</surname>\n<given-names>WB</given-names>\n<suffix>Jr</suffix>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cohn</surname>\n<given-names>JN</given-names>\n</string-name>. <article-title>Effect of enalapril on mortality and the development of heart failure in asymptomatic patients with reduced left ventricular ejection fractions</article-title>. <source>N Engl J Med</source>. <year>1992</year>; <volume>327</volume>: <fpage>685</fpage>–<lpage>691</lpage>.<pub-id pub-id-type=\"pmid\">1463530</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJM199209033271003</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "1463530",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 91248,
+                "end": 92346,
+                "quote": "<ref id=\"ehf214298-bib-0002\"><label>2</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0003\">\n<string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pitt</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Davis</surname>\n<given-names>CE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Hood</surname>\n<given-names>WB</given-names>\n<suffix>Jr</suffix>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cohn</surname>\n<given-names>JN</given-names>\n</string-name>. <article-title>Effect of enalapril on mortality and the development of heart failure in asymptomatic patients with reduced left ventricular ejection fractions</article-title>. <source>N Engl J Med</source>. <year>1992</year>; <volume>327</volume>: <fpage>685</fpage>–<lpage>691</lpage>.<pub-id pub-id-type=\"pmid\">1463530</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJM199209033271003</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0002",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0002, which carries PMID 1463530"
+            }
+          ]
+        },
+        {
+          "family_id": "Yusuf [ehf214298-bib-0003]",
+          "name_in_source": "Yusuf",
+          "span": {
+            "start": 92346,
+            "end": 93402,
+            "quote": "<ref id=\"ehf214298-bib-0003\"><label>3</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0004\">\n<string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pitt</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Davis</surname>\n<given-names>CE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Hood</surname>\n<given-names>WB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cohn</surname>\n<given-names>JN</given-names>\n</string-name>. <article-title>Effect of enalapril on survival in patients with reduced left ventricular ejection fractions and congestive heart failure</article-title>. <source>N Engl J Med</source>. <year>1991</year>; <volume>325</volume>: <fpage>293</fpage>–<lpage>302</lpage>.<pub-id pub-id-type=\"pmid\">2057034</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJM199108013250501</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "2057034",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 92346,
+                "end": 93402,
+                "quote": "<ref id=\"ehf214298-bib-0003\"><label>3</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0004\">\n<string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pitt</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Davis</surname>\n<given-names>CE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Hood</surname>\n<given-names>WB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cohn</surname>\n<given-names>JN</given-names>\n</string-name>. <article-title>Effect of enalapril on survival in patients with reduced left ventricular ejection fractions and congestive heart failure</article-title>. <source>N Engl J Med</source>. <year>1991</year>; <volume>325</volume>: <fpage>293</fpage>–<lpage>302</lpage>.<pub-id pub-id-type=\"pmid\">2057034</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJM199108013250501</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0003",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0003, which carries PMID 2057034"
+            }
+          ]
+        },
+        {
+          "family_id": "McMurray [ehf214298-bib-0004]",
+          "name_in_source": "McMurray",
+          "span": {
+            "start": 93402,
+            "end": 95134,
+            "quote": "<ref id=\"ehf214298-bib-0004\"><label>4</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0005\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Packer</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gong</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Lefkowitz</surname>\n<given-names>MP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Rizkala</surname>\n<given-names>AR</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Rouleau</surname>\n<given-names>JL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Shi</surname>\n<given-names>VC</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Solomon</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zile</surname>\n<given-names>MR</given-names>\n</string-name>, \n<collab collab-type=\"authors\">PARADIGM‐HF Investigators and Committees</collab>\n. <article-title>Angiotensin‐neprilysin inhibition versus enalapril in heart failure</article-title>. <source>N Engl J Med</source>. <year>2014</year>; <volume>371</volume>: <fpage>993</fpage>–<lpage>1004</lpage>.<pub-id pub-id-type=\"pmid\">25176015</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1409077</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "25176015",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 93402,
+                "end": 95134,
+                "quote": "<ref id=\"ehf214298-bib-0004\"><label>4</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0005\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Packer</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gong</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Lefkowitz</surname>\n<given-names>MP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Rizkala</surname>\n<given-names>AR</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Rouleau</surname>\n<given-names>JL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Shi</surname>\n<given-names>VC</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Solomon</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zile</surname>\n<given-names>MR</given-names>\n</string-name>, \n<collab collab-type=\"authors\">PARADIGM‐HF Investigators and Committees</collab>\n. <article-title>Angiotensin‐neprilysin inhibition versus enalapril in heart failure</article-title>. <source>N Engl J Med</source>. <year>2014</year>; <volume>371</volume>: <fpage>993</fpage>–<lpage>1004</lpage>.<pub-id pub-id-type=\"pmid\">25176015</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1409077</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0004",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0004, which carries PMID 25176015"
+            }
+          ]
+        },
+        {
+          "family_id": "Kato [ehf214298-bib-0005]",
+          "name_in_source": "Kato",
+          "span": {
+            "start": 95134,
+            "end": 98104,
+            "quote": "<ref id=\"ehf214298-bib-0005\"><label>5</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0006\">\n<string-name name-style=\"western\">\n<surname>Kato</surname>\n<given-names>ET</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Silverman</surname>\n<given-names>MG</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Mosenzon</surname>\n<given-names>O</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zelniker</surname>\n<given-names>TA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cahn</surname>\n<given-names>A</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Furtado</surname>\n<given-names>RHM</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kuder</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Murphy</surname>\n<given-names>SA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bhatt</surname>\n<given-names>DL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Leiter</surname>\n<given-names>LA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McGuire</surname>\n<given-names>DK</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wilding</surname>\n<given-names>JPH</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bonaca</surname>\n<given-names>MP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ruff</surname>\n<given-names>CT</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Goto</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Johansson</surname>\n<given-names>PA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gause‐Nilsson</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Johanson</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Langkilde</surname>\n<given-names>AM</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Raz</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sabatine</surname>\n<given-names>MS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wiviott</surname>\n<given-names>SD</given-names>\n</string-name>. <article-title>Effect of dapagliflozin on heart failure and mortality in type 2 diabetes mellitus</article-title>. <source>Circulation</source>. <year>2019</year>; <volume>139</volume>: <fpage>2528</fpage>–<lpage>2536</lpage>.<pub-id pub-id-type=\"pmid\">30882238</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1161/CIRCULATIONAHA.119.040130</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "30882238",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 95134,
+                "end": 98104,
+                "quote": "<ref id=\"ehf214298-bib-0005\"><label>5</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0006\">\n<string-name name-style=\"western\">\n<surname>Kato</surname>\n<given-names>ET</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Silverman</surname>\n<given-names>MG</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Mosenzon</surname>\n<given-names>O</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zelniker</surname>\n<given-names>TA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cahn</surname>\n<given-names>A</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Furtado</surname>\n<given-names>RHM</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kuder</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Murphy</surname>\n<given-names>SA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bhatt</surname>\n<given-names>DL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Leiter</surname>\n<given-names>LA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McGuire</surname>\n<given-names>DK</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wilding</surname>\n<given-names>JPH</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bonaca</surname>\n<given-names>MP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ruff</surname>\n<given-names>CT</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Goto</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Johansson</surname>\n<given-names>PA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gause‐Nilsson</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Johanson</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Langkilde</surname>\n<given-names>AM</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Raz</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sabatine</surname>\n<given-names>MS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wiviott</surname>\n<given-names>SD</given-names>\n</string-name>. <article-title>Effect of dapagliflozin on heart failure and mortality in type 2 diabetes mellitus</article-title>. <source>Circulation</source>. <year>2019</year>; <volume>139</volume>: <fpage>2528</fpage>–<lpage>2536</lpage>.<pub-id pub-id-type=\"pmid\">30882238</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1161/CIRCULATIONAHA.119.040130</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0005",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0005, which carries PMID 30882238"
+            }
+          ]
+        },
+        {
+          "family_id": "McMurray [ehf214298-bib-0006]",
+          "name_in_source": "McMurray",
+          "span": {
+            "start": 98104,
+            "end": 99242,
+            "quote": "<ref id=\"ehf214298-bib-0006\"><label>6</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0007\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJV</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Solomon</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Inzucchi</surname>\n<given-names>SE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Køber</surname>\n<given-names>L</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kosiborod</surname>\n<given-names>MN</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Martinez</surname>\n<given-names>FA</given-names>\n</string-name> et al. <article-title>Dapagliflozin in patients with heart failure and reduced ejection fraction</article-title>. <source>N Engl J Med</source>. <year>2019</year>; <volume>381</volume>: <fpage>1995</fpage>–<lpage>2008</lpage>.<pub-id pub-id-type=\"pmid\">31535829</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1911303</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "31535829",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 98104,
+                "end": 99242,
+                "quote": "<ref id=\"ehf214298-bib-0006\"><label>6</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0007\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJV</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Solomon</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Inzucchi</surname>\n<given-names>SE</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Køber</surname>\n<given-names>L</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kosiborod</surname>\n<given-names>MN</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Martinez</surname>\n<given-names>FA</given-names>\n</string-name> et al. <article-title>Dapagliflozin in patients with heart failure and reduced ejection fraction</article-title>. <source>N Engl J Med</source>. <year>2019</year>; <volume>381</volume>: <fpage>1995</fpage>–<lpage>2008</lpage>.<pub-id pub-id-type=\"pmid\">31535829</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa1911303</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0006",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0006, which carries PMID 31535829"
+            }
+          ]
+        },
+        {
+          "family_id": "PARALLEL‐HF [ehf214298-bib-0015]",
+          "name_in_source": "PARALLEL‐HF",
+          "span": {
+            "start": 115632,
+            "end": 117444,
+            "quote": "<ref id=\"ehf214298-bib-0015\"><label>15</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0016\">\n<string-name name-style=\"western\">\n<surname>Tsutsui</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Momomura</surname>\n<given-names>SI</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Saito</surname>\n<given-names>Y</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ito</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yamamoto</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sakata</surname>\n<given-names>Y</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ohishi</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Iimori</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kitamura</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Guo</surname>\n<given-names>W</given-names>\n</string-name>, on behalf of \n<collab collab-type=\"authors\">the PARALLEL‐HF Investigators</collab>\n. <article-title>Efficacy and safety of Sacubitril/valsartan in Japanese patients with chronic heart failure and reduced ejection fraction ‐ results from the PARALLEL‐HF study</article-title>. <source>Circ J</source>. <year>2021</year>; <volume>85</volume>: <fpage>584</fpage>–<lpage>594</lpage>.<pub-id pub-id-type=\"pmid\">33731544</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1253/circj.CJ-20-0854</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "33731544",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 115632,
+                "end": 117444,
+                "quote": "<ref id=\"ehf214298-bib-0015\"><label>15</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0016\">\n<string-name name-style=\"western\">\n<surname>Tsutsui</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Momomura</surname>\n<given-names>SI</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Saito</surname>\n<given-names>Y</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ito</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yamamoto</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sakata</surname>\n<given-names>Y</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Desai</surname>\n<given-names>AS</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ohishi</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Iimori</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kitamura</surname>\n<given-names>T</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Guo</surname>\n<given-names>W</given-names>\n</string-name>, on behalf of \n<collab collab-type=\"authors\">the PARALLEL‐HF Investigators</collab>\n. <article-title>Efficacy and safety of Sacubitril/valsartan in Japanese patients with chronic heart failure and reduced ejection fraction ‐ results from the PARALLEL‐HF study</article-title>. <source>Circ J</source>. <year>2021</year>; <volume>85</volume>: <fpage>584</fpage>–<lpage>594</lpage>.<pub-id pub-id-type=\"pmid\">33731544</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1253/circj.CJ-20-0854</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0015",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0015, which carries PMID 33731544"
+            }
+          ]
+        },
+        {
+          "family_id": "Packer [ehf214298-bib-0016]",
+          "name_in_source": "Packer",
+          "span": {
+            "start": 117444,
+            "end": 122097,
+            "quote": "<ref id=\"ehf214298-bib-0016\"><label>16</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0017\">\n<string-name name-style=\"western\">\n<surname>Packer</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Anker</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Butler</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Filippatos</surname>\n<given-names>G</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pocock</surname>\n<given-names>SJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Carson</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Januzzi</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Verma</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Tsutsui</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Brueckmann</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Jamal</surname>\n<given-names>W</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kimura</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Schnee</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zeller</surname>\n<given-names>C</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cotton</surname>\n<given-names>D</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bocchi</surname>\n<given-names>E</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Böhm</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Choi</surname>\n<given-names>DJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Chopra</surname>\n<given-names>V</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Chuquiure</surname>\n<given-names>E</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Giannetti</surname>\n<given-names>N</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Janssens</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zhang</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gonzalez Juanatey</surname>\n<given-names>JR</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kaul</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Brunner‐la Rocca</surname>\n<given-names>HP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Merkely</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Nicholls</surname>\n<given-names>SJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Perrone</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pina</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ponikowski</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sattar</surname>\n<given-names>N</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Senni</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Seronde</surname>\n<given-names>MF</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Spinar</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Squire</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Taddei</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wanner</surname>\n<given-names>C</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zannad</surname>\n<given-names>F</given-names>\n</string-name>. <article-title>Cardiovascular and renal outcomes with empagliflozin in heart failure</article-title>. <source>N Engl J Med</source>. <year>2020</year>; <volume>383</volume>: <fpage>1413</fpage>–<lpage>1424</lpage>.<pub-id pub-id-type=\"pmid\">32865377</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa2022190</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "32865377",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 117444,
+                "end": 122097,
+                "quote": "<ref id=\"ehf214298-bib-0016\"><label>16</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0017\">\n<string-name name-style=\"western\">\n<surname>Packer</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Anker</surname>\n<given-names>SD</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Butler</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Filippatos</surname>\n<given-names>G</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pocock</surname>\n<given-names>SJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Carson</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Januzzi</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Verma</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Tsutsui</surname>\n<given-names>H</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Brueckmann</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Jamal</surname>\n<given-names>W</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kimura</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Schnee</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zeller</surname>\n<given-names>C</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cotton</surname>\n<given-names>D</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Bocchi</surname>\n<given-names>E</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Böhm</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Choi</surname>\n<given-names>DJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Chopra</surname>\n<given-names>V</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Chuquiure</surname>\n<given-names>E</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Giannetti</surname>\n<given-names>N</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Janssens</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zhang</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gonzalez Juanatey</surname>\n<given-names>JR</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Kaul</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Brunner‐la Rocca</surname>\n<given-names>HP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Merkely</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Nicholls</surname>\n<given-names>SJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Perrone</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pina</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ponikowski</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Sattar</surname>\n<given-names>N</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Senni</surname>\n<given-names>M</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Seronde</surname>\n<given-names>MF</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Spinar</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Squire</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Taddei</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Wanner</surname>\n<given-names>C</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Zannad</surname>\n<given-names>F</given-names>\n</string-name>. <article-title>Cardiovascular and renal outcomes with empagliflozin in heart failure</article-title>. <source>N Engl J Med</source>. <year>2020</year>; <volume>383</volume>: <fpage>1413</fpage>–<lpage>1424</lpage>.<pub-id pub-id-type=\"pmid\">32865377</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1056/NEJMoa2022190</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0016",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0016, which carries PMID 32865377"
+            }
+          ]
+        },
+        {
+          "family_id": "CHARM [ehf214298-bib-0017]",
+          "name_in_source": "CHARM",
+          "span": {
+            "start": 122097,
+            "end": 123730,
+            "quote": "<ref id=\"ehf214298-bib-0017\"><label>17</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0018\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ostergren</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Granger</surname>\n<given-names>CB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Held</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Michelson</surname>\n<given-names>EL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Olofsson</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pfeffer</surname>\n<given-names>MA</given-names>\n</string-name>, \n<collab collab-type=\"authors\">CHARM Investigators and Committees</collab>\n. <article-title>Effects of candesartan in patients with chronic heart failure and reduced left‐ventricular systolic function taking angiotensin‐converting‐enzyme inhibitors: the CHARM‐Added trial</article-title>. <source>Lancet</source>. <year>2003</year>; <volume>362</volume>: <fpage>767</fpage>–<lpage>771</lpage>.<pub-id pub-id-type=\"pmid\">13678869</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(03)14283-3</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "13678869",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 122097,
+                "end": 123730,
+                "quote": "<ref id=\"ehf214298-bib-0017\"><label>17</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0018\">\n<string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ostergren</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Granger</surname>\n<given-names>CB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Held</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Michelson</surname>\n<given-names>EL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Olofsson</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pfeffer</surname>\n<given-names>MA</given-names>\n</string-name>, \n<collab collab-type=\"authors\">CHARM Investigators and Committees</collab>\n. <article-title>Effects of candesartan in patients with chronic heart failure and reduced left‐ventricular systolic function taking angiotensin‐converting‐enzyme inhibitors: the CHARM‐Added trial</article-title>. <source>Lancet</source>. <year>2003</year>; <volume>362</volume>: <fpage>767</fpage>–<lpage>771</lpage>.<pub-id pub-id-type=\"pmid\">13678869</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(03)14283-3</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0017",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0017, which carries PMID 13678869"
+            }
+          ]
+        },
+        {
+          "family_id": "CHARM [ehf214298-bib-0018]",
+          "name_in_source": "CHARM",
+          "span": {
+            "start": 123730,
+            "end": 125376,
+            "quote": "<ref id=\"ehf214298-bib-0018\"><label>18</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0019\">\n<string-name name-style=\"western\">\n<surname>Granger</surname>\n<given-names>CB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Held</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Michelson</surname>\n<given-names>EL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Olofsson</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ostergren</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pfeffer</surname>\n<given-names>MA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, \n<collab collab-type=\"authors\">CHARM Investigators and Committees</collab>\n. <article-title>Effects of candesartan in patients with chronic heart failure and reduced left‐ventricular systolic function intolerant to angiotensin‐converting‐enzyme inhibitors: the CHARM‐alternative trial</article-title>. <source>Lancet</source>. <year>2003</year>; <volume>362</volume>: <fpage>772</fpage>–<lpage>776</lpage>.<pub-id pub-id-type=\"pmid\">13678870</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(03)14284-5</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "13678870",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 123730,
+                "end": 125376,
+                "quote": "<ref id=\"ehf214298-bib-0018\"><label>18</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0019\">\n<string-name name-style=\"western\">\n<surname>Granger</surname>\n<given-names>CB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McMurray</surname>\n<given-names>JJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Yusuf</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Held</surname>\n<given-names>P</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Michelson</surname>\n<given-names>EL</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Olofsson</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Ostergren</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pfeffer</surname>\n<given-names>MA</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Swedberg</surname>\n<given-names>K</given-names>\n</string-name>, \n<collab collab-type=\"authors\">CHARM Investigators and Committees</collab>\n. <article-title>Effects of candesartan in patients with chronic heart failure and reduced left‐ventricular systolic function intolerant to angiotensin‐converting‐enzyme inhibitors: the CHARM‐alternative trial</article-title>. <source>Lancet</source>. <year>2003</year>; <volume>362</volume>: <fpage>772</fpage>–<lpage>776</lpage>.<pub-id pub-id-type=\"pmid\">13678870</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1016/S0140-6736(03)14284-5</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0018",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0018, which carries PMID 13678870"
+            }
+          ]
+        },
+        {
+          "family_id": "VERTIS [ehf214298-bib-0021]",
+          "name_in_source": "VERTIS",
+          "span": {
+            "start": 127229,
+            "end": 129475,
+            "quote": "<ref id=\"ehf214298-bib-0021\"><label>21</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0022\">\n<string-name name-style=\"western\">\n<surname>Cosentino</surname>\n<given-names>F</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cannon</surname>\n<given-names>CP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cherney</surname>\n<given-names>DZI</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Masiukiewicz</surname>\n<given-names>U</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pratley</surname>\n<given-names>R</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Dagogo‐Jack</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Frederich</surname>\n<given-names>R</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Charbonnel</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Mancuso</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Shih</surname>\n<given-names>WJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Terra</surname>\n<given-names>SG</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cater</surname>\n<given-names>NB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gantz</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McGuire</surname>\n<given-names>DK</given-names>\n</string-name>, On behalf of \n<collab collab-type=\"authors\">the VERTIS CV Investigators</collab>\n. <article-title>Efficacy of Ertugliflozin on heart failure‐related events in patients with type 2 diabetes mellitus and established atherosclerotic cardiovascular disease: results of the VERTIS CV trial</article-title>. <source>Circulation</source>. <year>2020</year>; <volume>142</volume>: <fpage>2205</fpage>–<lpage>2215</lpage>.<pub-id pub-id-type=\"pmid\">33026243</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1161/CIRCULATIONAHA.120.050255</pub-id><pub-id pub-id-type=\"pmcid\">PMC7717477</pub-id></mixed-citation></ref>"
+          },
+          "endpoint": "CV death or HHF in HFrEF (network composite)",
+          "endpoint_span": {
+            "start": 64799,
+            "end": 65577,
+            "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+          },
+          "aliases": [
+            {
+              "id": "33026243",
+              "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+              "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+              "span": {
+                "start": 127229,
+                "end": 129475,
+                "quote": "<ref id=\"ehf214298-bib-0021\"><label>21</label><mixed-citation publication-type=\"journal\" id=\"ehf214298-cit-0022\">\n<string-name name-style=\"western\">\n<surname>Cosentino</surname>\n<given-names>F</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cannon</surname>\n<given-names>CP</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cherney</surname>\n<given-names>DZI</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Masiukiewicz</surname>\n<given-names>U</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Pratley</surname>\n<given-names>R</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Dagogo‐Jack</surname>\n<given-names>S</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Frederich</surname>\n<given-names>R</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Charbonnel</surname>\n<given-names>B</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Mancuso</surname>\n<given-names>J</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Shih</surname>\n<given-names>WJ</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Terra</surname>\n<given-names>SG</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Cater</surname>\n<given-names>NB</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>Gantz</surname>\n<given-names>I</given-names>\n</string-name>, <string-name name-style=\"western\">\n<surname>McGuire</surname>\n<given-names>DK</given-names>\n</string-name>, On behalf of \n<collab collab-type=\"authors\">the VERTIS CV Investigators</collab>\n. <article-title>Efficacy of Ertugliflozin on heart failure‐related events in patients with type 2 diabetes mellitus and established atherosclerotic cardiovascular disease: results of the VERTIS CV trial</article-title>. <source>Circulation</source>. <year>2020</year>; <volume>142</volume>: <fpage>2205</fpage>–<lpage>2215</lpage>.<pub-id pub-id-type=\"pmid\">33026243</pub-id><pub-id pub-id-type=\"doi\" assigning-authority=\"pmc\">10.1161/CIRCULATIONAHA.120.050255</pub-id><pub-id pub-id-type=\"pmcid\">PMC7717477</pub-id></mixed-citation></ref>"
+              },
+              "linked_rid": "ehf214298-bib-0021",
+              "outcome_list_span": {
+                "start": 64799,
+                "end": 65577,
+                "quote": "The composite CV outcome in patients with HFrEF was available in 10 trials.<xref rid=\"ehf214298-bib-0002\" ref-type=\"bibr\">\n<sup>2</sup>\n</xref>, <xref rid=\"ehf214298-bib-0003\" ref-type=\"bibr\">\n<sup>3</sup>\n</xref>, <xref rid=\"ehf214298-bib-0004\" ref-type=\"bibr\">\n<sup>4</sup>\n</xref>, <xref rid=\"ehf214298-bib-0005\" ref-type=\"bibr\">\n<sup>5</sup>\n</xref>, <xref rid=\"ehf214298-bib-0006\" ref-type=\"bibr\">\n<sup>6</sup>\n</xref>, <xref rid=\"ehf214298-bib-0015\" ref-type=\"bibr\">\n<sup>15</sup>\n</xref>, <xref rid=\"ehf214298-bib-0016\" ref-type=\"bibr\">\n<sup>16</sup>\n</xref>, <xref rid=\"ehf214298-bib-0017\" ref-type=\"bibr\">\n<sup>17</sup>\n</xref>, <xref rid=\"ehf214298-bib-0018\" ref-type=\"bibr\">\n<sup>18</sup>\n</xref>, <xref rid=\"ehf214298-bib-0021\" ref-type=\"bibr\">\n<sup>21</sup>\n</xref>"
+              },
+              "stated_k": 10,
+              "bound_by": "the comparator's CV death or HHF in HFrEF (network composite) list ('The composite CV outcome in patients with HFrEF was available in 10 trials.') cites ehf214298-bib-0021, which carries PMID 33026243"
+            }
+          ]
+        }
+      ],
       "k": null,
       "effect": null,
       "ci": null,
       "i2": null,
       "pi": null,
       "method": null,
-      "overlaps": []
+      "trial_set_document": {
+        "document_ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+        "document_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16",
+        "source": "PMC JATS (efetch db=pmc)",
+        "pmcid": "PMC10053170",
+        "license": "creativecommons.org/licenses/by-nc-nd/4.0",
+        "row_identity": "OUTCOME_CITATION_LIST",
+        "table_caption": "The composite CV outcome in patients with HFrEF was available in 10 trials."
+      },
+      "outcome_endpoints": {
+        "Composite cardiovascular death or heart-failure hospitalization": "CV death or HHF in HFrEF (network composite)"
+      },
+      "overlaps": [
+        {
+          "pool": "Composite cardiovascular death or heart-failure hospitalization",
+          "shared": [],
+          "harness_only": [],
+          "comparator_only": [
+            "CHARM [ehf214298-bib-0017]",
+            "CHARM [ehf214298-bib-0018]",
+            "Kato [ehf214298-bib-0005]",
+            "McMurray [ehf214298-bib-0004]",
+            "McMurray [ehf214298-bib-0006]",
+            "PARALLEL‐HF [ehf214298-bib-0015]",
+            "Packer [ehf214298-bib-0016]",
+            "VERTIS [ehf214298-bib-0021]",
+            "Yusuf [ehf214298-bib-0002]",
+            "Yusuf [ehf214298-bib-0003]"
+          ],
+          "jaccard": 0.0,
+          "contains_pool": false,
+          "endpoint_compatible_overlap": [],
+          "endpoint_unknown": [],
+          "harness_k": 0,
+          "comparator_k": 10
+        }
+      ]
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "a6a43f3b558e5a19d4453f49c18fe89c27d482d38fefcbeeb6461b98a2ba94c4",
+    "review_sha256": "644bcdab38fb1c49f6fffd2398624ecb211d600f8678839d9bffe34dd4df98f6",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -111288,12 +112056,24 @@
           "sha256": "3f6a5523f1226e15fffee60196e6d0d18aae5efc52aa0e82efc3c1f7984205c6"
         },
         {
+          "ref": "cache/sacubitril-valsartan-hfref/comparator_analysis.json",
+          "sha256": "014b7e91ea3cbf000e6f635b6ed75e00aa05497556920262fc611f2bb8698eda"
+        },
+        {
           "ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
           "sha256": "443774bc1d6a4b95b6a98122dc3605e86f9630a239b4e7184ccbaff94413f202"
         },
         {
           "ref": "cache/sacubitril-valsartan-hfref/comparator_identity.json",
           "sha256": "569c1174f8473f639a2145b9a50be7f249eb38f95fd2b0daac32e390294b5b99"
+        },
+        {
+          "ref": "cache/sacubitril-valsartan-hfref/comparator_named.json",
+          "sha256": "cae54a670a0632da2795625dc409e6760c38479c7da065a629baa6203e0e14df"
+        },
+        {
+          "ref": "cache/sacubitril-valsartan-hfref/comparator_pmc_jats.xml",
+          "sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16"
         },
         {
           "ref": "cache/sacubitril-valsartan-hfref/comparator_reported_mismatches.json",
@@ -111305,7 +112085,7 @@
         }
       ],
       "config_sha256": "8d60f4c9562d433b56ac455ba3a174ea57250169898cc79ac824a6ae0bfd6130",
-      "analysis_code_sha256": "dbe643d57f118562ac9ab5712791ad1d702ed06246b2cfe3562abb31143dc596",
+      "analysis_code_sha256": "81e70ec78c6a67586c8dfc116fe0bb755b4c9e72a2004a22c302d63789722b4e",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -111329,7 +112109,7 @@
         "harness/comparator_models.py": "b5bb61bddb2f286acb097991b2e78c5e12f79285",
         "harness/comparator_named.py": "0dc851983d3941f69bc6c054ffc8c6e047da004e",
         "harness/comparator_network.py": "16e4487b10401c3ee474ffb46fcb4ed2977c73a0",
-        "harness/comparator_panel.py": "0102e27adf67c5435dc7c14157cc64e0b675949f",
+        "harness/comparator_panel.py": "49757dc0caf03d92cefd7c7cf88062adee32c6b5",
         "harness/comparator_rows.py": "370e7c623fb700490be5a878b0bdebe7e0cd8483",
         "harness/comparator_second_pass.py": "eda68f5da39e99a7268aff6cbc013dac5314efa6",
         "harness/comparator_truth.py": "bc0eb4583803a11d1f6675bae83a83a2680b3688",
@@ -111349,7 +112129,7 @@
         "harness/extract.py": "f745a85628e43aa8ecb95d89f9e1c1e178826891",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
-        "harness/family_pub_links.py": "8e57a4ae6137f7563aa48648b82df50aa76f7890",
+        "harness/family_pub_links.py": "3d76add24be5ba61a866949379f2a1da86160c92",
         "harness/fetch.py": "75367a9becdd5d68adb92cf262815b7cfd5ad2c9",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "e1a6bef312871dc14d10fa1683ce4cd221acb07c",
@@ -111376,7 +112156,7 @@
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/outcome_match.py": "18e59d7a4216d577167d78886146af307e6275c1",
-        "harness/overlap_relation.py": "3f5b4558c47af0e4e50ea49531497cf0ef3a9ec8",
+        "harness/overlap_relation.py": "2f882ddb91983da62ec64070de92c5245a137a73",
         "harness/page.py": "d7bdb3448cd612e620843ab2cb87680c0f9437fa",
         "harness/parity_relation.py": "d2864e27ee1169d763eb248166c746e5982006d5",
         "harness/pipeline.py": "8dd7a7dd603cd3b33eac30ef59938ee45c30228e",
@@ -111452,8 +112232,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "b4e4ffcad3070986100f1d4b070bcc32fe85c60d494c296234f2f9100793cca6",
-      "review_sha256": "a6a43f3b558e5a19d4453f49c18fe89c27d482d38fefcbeeb6461b98a2ba94c4",
+      "manuscript_sha256": "8d967c73f15a323387163f1374d3a1dd23ddfdc4aaec6bec32e33cfa2cfd9214",
+      "review_sha256": "644bcdab38fb1c49f6fffd2398624ecb211d600f8678839d9bffe34dd4df98f6",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sacubitril-valsartan-hfref.md UTF-8 text, universal newlines",
@@ -111473,7 +112253,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "0f6fff1e40fb8263e53a3eceba765a6a09d363fc07c2418fc12b054052f7a605"
+      "release_sha256": "8984917bcfe142cf3cf0d0a90ae7cda7888f473bfda1e9c3e442cd4a311cbb7a"
     }
   }
 }

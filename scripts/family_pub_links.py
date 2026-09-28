@@ -35,7 +35,8 @@ def main(slug, nct, pmid, token, reported_by):
     recs = json.load(open(os.path.join(ROOT, "cache", slug, "records.json"), encoding="utf-8"))
     reg = next((r for v in recs.values() if isinstance(v, list) for r in v if isinstance(r, dict) and str(r.get("id")) == nct), None)
     if reg is not None:
-        rq = {"document_ref": f"cache/{slug}/records.json", "record_id": nct, "field": "title", "quote": reg["title"]}
+        field = "title" if token in str(reg.get("title") or "") else "acronym"
+        rq = {"document_ref": f"cache/{slug}/records.json", "record_id": nct, "field": field, "quote": reg.get(field)}
     else:
         # a registry-only family held in the family registry (AACT studies row), e.g. PIONEER 8 (V1.0.1, GLP-1 review)
         sys.path.insert(0, ROOT)

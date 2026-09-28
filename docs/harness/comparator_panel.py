@@ -50,6 +50,30 @@ def stated_k_range(fragment: str):
     return out if len(out) == len(set(out)) else None
 
 
+_XREF_BIBR = re.compile(r"<xref\b[^>]*>.*?</xref>", re.S)
+
+
+def outcome_list_rids(fragment: str):
+    """The reference ids of the citation run that ENDS a sentence fragment -- '<xref ..>2</xref>, <xref ..>3</xref>, ...'
+    (each xref may wrap <sup>; ids may contain digits, e.g. 'ehf214298-bib-0002'). None unless the fragment ends in
+    a run of bibr xrefs separated only by commas/whitespace, with no repeated id."""
+    xs = list(_XREF_BIBR.finditer(fragment or ""))
+    if not xs or fragment[xs[-1].end():].strip():
+        return None
+    run = [xs[-1]]
+    for x in reversed(xs[:-1]):
+        if fragment[x.end():run[0].start()].strip(" ,\n\t\r"):
+            break
+        run.insert(0, x)
+    rids = []
+    for x in run:
+        tag = x.group(0)[:x.group(0).index(">") + 1]
+        if 'ref-type="bibr"' not in tag or 'rid="' not in tag:
+            return None
+        rids += tag.split('rid="', 1)[1].split('"', 1)[0].split()
+    return rids if len(rids) == len(set(rids)) else None
+
+
 def validate_span(text, source):
     return (isinstance(source, dict) and isinstance(source.get("start"), int)
             and isinstance(source.get("end"), int) and source["start"] >= 0
@@ -138,6 +162,20 @@ def validate(comparator, root=ROOT):
                         or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"])
                         or (year and year not in alias["span"]["quote"])):
                     raise ValueError("COMPARATOR_PANEL: alias table row / reference / year not located")
+                continue
+            if alias.get("outcome_list_span"):
+                # V1.0.1 (sacubitril review; scripts/comparator_outcome_list_members.py): a member of the comparator's
+                # OUTCOME-LEVEL trial list -- the located span prints "<k> trials" and then cites exactly k references
+                # (a comma list of <xref>s), rid among them; the alias span IS <ref id=rid>
+                ol = alias["outcome_list_span"]
+                k_pr = alias.get("stated_k")
+                cited = outcome_list_rids(ol.get("quote") or "")
+                if (not rid or not validate_span(alias_raw.decode("utf-8"), ol) or not isinstance(k_pr, int)
+                        or f"{k_pr} trials" not in visible_text(ol.get("quote") or "") or cited is None
+                        or len(cited) != k_pr or rid not in cited
+                        or not re.match(r'<ref id="%s"' % re.escape(rid), alias["span"]["quote"])
+                        or name not in re.sub(r"<[^>]+>", " ", alias["span"]["quote"]).lower()):
+                    raise ValueError("COMPARATOR_PANEL: outcome-list member not in the comparator's cited list")
                 continue
             if alias.get("stated_k_span"):
                 # V1.0.1 (DPP-4 review; scripts/comparator_stated_k_members.py): a member of the comparator's OWN stated

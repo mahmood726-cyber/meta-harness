@@ -172,6 +172,7 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
             return {"source": f"comparator panel trial_set ({panel.get('document_ref')})",
                     "endpoint_for_outcome": None, "ambiguous": collisions}, [], []
         fam_idx = _family_index(review)
+        fam_reg = {f["family_id"]: list((f.get("aliases") or {}).get("registry_ids") or []) for f in _families(review)}
         # screening's X-DEDUP decision is a typed link: a record it excluded as the companion/secondary publication of
         # a trial names that trial's registration. A comparator row bound to such a record IS the parent trial (the
         # family ledger kept the publication as a separate node, e.g. a trial pooled from its registry record only).
@@ -190,21 +191,32 @@ def _members(review, panel, prim_name, acr_idx, ours_keys):
             hits = {fam_idx[_key(i)] for i in ids if _key(i) in fam_idx}
             via = [parent_of[h] for h in hits if h in parent_of]
             hits = {parent_of[h][0] if h in parent_of else h for h in hits}
-            title_acr = None
-            if not hits and m.get("aliases"):
+            title_acr, unlinked = None, None
+            # V1.0.1 (sacubitril review): a row whose reference binds ONLY to a report-only family (a paper we hold with
+            # no registration, e.g. PARALLEL-HF's Circ J report, SYN-...) is re-read by its printed title acronym: if
+            # that names exactly one REGISTERED family, the row is that trial and the paper is disclosed as unlinked
+            unregistered_only = bool(hits) and all(not fam_reg.get(h) for h in hits)
+            if (not hits or unregistered_only) and m.get("aliases"):
                 # the row's reference carries a PMID/DOI no family of ours holds (e.g. a trial we hold only by its
                 # registry record): bind by the acronym PRINTED IN THAT REFERENCE'S OWN ARTICLE TITLE, as a whole
                 # hyphenated token (TRANSFORM-3 never TRANSFORM-2), only when it names exactly one family of ours
                 titles = " ".join(t for a in m["aliases"] for t in re.findall(
                     r"<article-title>(.*?)</article-title>", (a.get("span") or {}).get("quote") or "", re.S))
+                # V1.0.1 (sacubitril review): JATS prints 'PARALLEL‐HF' with a Unicode hyphen; read as '-' so the
+                # whole token is compared, never its 'PARALLEL' prefix
+                titles = titles.translate(_UNICODE_HYPHENS)
                 toks = set(re.findall(r"(?<![A-Za-z0-9])(?<![A-Z0-9]-)[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*(?![A-Za-z0-9-])", titles))
                 acr_hits = sorted((t, f) for t in toks for f in acr_idx.get(norm_name(t)) or ())
-                if len({f for _, f in acr_hits}) == 1:
+                if len({f for _, f in acr_hits}) == 1 and (not unregistered_only or fam_reg.get(acr_hits[0][1])):
+                    if unregistered_only:
+                        unlinked = sorted(hits)
                     title_acr, fam = acr_hits[0]
                     hits = {fam}
             rec = {"name": m["family_id"], "family": (next(iter(hits)) if len(hits) == 1 else None),
                    "alias_ids": [a["id"] for a in m.get("aliases", [])],
-                   "identity": ("bound by the acronym printed in its cited article title (" + title_acr + ")" if title_acr else
+                   "identity": ("bound by the acronym printed in its cited article title (" + title_acr + ")"
+                                + (f"; the cited paper is held as unlinked report-only family {', '.join(unlinked)}"
+                                   if unlinked else "") if title_acr else
                                 "bound by panel alias to record " + via[0][1] + ", which screening excluded (X-DEDUP) as a "
                                 "secondary publication of " + via[0][0] if via and len(hits) == 1 else
                                 "bound by panel alias" if m.get("aliases") else
@@ -533,3 +545,6 @@ def numerals(obj: Optional[dict]) -> set:
     """The integers the object carries, for the manuscript/index number gates."""
     return {str(v) for v in ((obj or {}).get("ours_k"), (obj or {}).get("theirs_k"), (obj or {}).get("shared_k"))
             if isinstance(v, int) and not isinstance(v, bool)}
+
+
+_UNICODE_HYPHENS = {c: "-" for c in (0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212)}

@@ -196,3 +196,31 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
   attributes).
 - **Round-3 leak fixed:** population-excluded GLP-1 family rows no longer print the topic's ascertainment evidence
   map.
+
+## Sacubitril/valsartan HFrEF (Ji 2023, network meta-analysis)
+
+- **Enumerated from its own outcome-level list:** "The composite CV outcome in patients with HFrEF was available in 10
+  trials." is followed by exactly ten cited references, each with a PMID.
+  - New route: `scripts/comparator_outcome_list_members.py`. `comparator_panel.validate` re-proves that the span
+    prints "10 trials" and cites exactly ten references including each member.
+  - Result: SUBSET, 10 comparator trials, shared 2 (PARADIGM-HF, PARALLEL-HF), ours-only 0. Before this it was
+    NOT_ENUMERABLE.
+- **PARALLEL-HF:** we pool it from its registry record (NCT02468232) and hold its Circ J paper (33731544) as an
+  unlinked report-only family. Ji's row binds to the registered trial by the acronym printed in the cited title.
+  - JATS prints the acronym with a Unicode hyphen, which is now read as '-'.
+  - The unlinked paper is disclosed.
+  - Linking the paper to the registration (a `family_pub_links` entry) was measured: it moves the pool (k 2 -> 1,
+    HR 0.80), because screening excludes the paper X-DESIGN (its abstract never says "double-blind") and dedup then
+    lets the paper replace the registry record. Not landed; a decision for the captain.
+- **Scope, in its own words:**
+  - 17 studies network-wide, over HFrEF and HFpEF and three classes.
+  - 10 in the HFrEF composite.
+  - "three trials comparing ARNI with RASi" — PARADIGM-HF, PARALLEL-HF, and PARAGON-HF, an HFpEF trial.
+  - So the direct HFrEF evidence is exactly our two trials. Our control stays a RAS inhibitor.
+- **Not validation:** its 0.83 is a frequentist network RR of event proportions, combining direct and indirect evidence.
+  We pool hazard ratios of the same two direct trials (PARADIGM-HF alone: HR 0.80). They are different
+  representations of largely the same evidence.
+- The abstract's "compared with placebo" for the same RR stays COMPARATOR_INTERNAL_MISMATCH (recorded earlier).
+- **Comparator-named:** all 10 rows are already held, so nothing new entered screening. No pooled result moved.
+- **LIFE** (NCT02816736, 34730769) is a V1.1 recall case (`evid2/v11-discovery-glp1`, a3475bd7). Its primary endpoint
+  is NT-proBNP, yet its report states a clinical-event composite and hyperkalaemia by arm.
