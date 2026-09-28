@@ -152,3 +152,9 @@ def test_ridker_rct_checkpoint_is_pending_never_run_from_memory():
 def test_huang_2022_is_observational_and_shares_no_rct_input():
     ov = _review(ST)["comparator"]["overlap"]
     assert (ov["relation"], ov["shared_k"]) == ("DISJOINT", 0)
+
+
+def test_two_registrations_sharing_an_acronym_stay_two_families():
+    units = identity.build_publication_units([{"id": "NCT04906720", "id_type": "nct", "acronym": "PAPERS"},
+                                              {"id": "NCT06731595", "id_type": "nct", "acronym": "PAPERS"}])
+    assert {units[k]["trial_family_id"] for k in units} == {"NCT04906720", "NCT06731595"}

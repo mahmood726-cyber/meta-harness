@@ -91,10 +91,49 @@ def test_primary_trial_values_and_membership_are_unchanged():
                 # at the comparison level (harness/comparison_contrast.py) -- the one allowed include -> exclude
                 x['id'] == y['id'] and x['decision'] == 'include' and y['decision'] == 'exclude'
                 and y['rule_id'] == 'X3-CONTRAST')
+        # V1.0.1 (statins-older-adults review): design_key.registry_designs had overwritten registry records' ids with
+        # AACT design-row ids. With the record intact, three things may differ from the pinned control, and only these:
+        #  - an included registry record's completeness now comes from its own AACT status (the pinned value was the
+        #    "publication record" fallback, which called RECRUITING / NOT_YET_RECRUITING trials 'completed');
+        #  - a registry record's family label is its own registration ('REC:NCTx' -> 'NCTx', the same id);
+        #  - a report's family is the parent registration recorded with evidence (cache/<slug>/parent_registrations.json)
+        # and one include: an X2 on a registered condition the trial's own exclusion criteria refuse is withdrawn
+        # (harness/condition_role.py, CONDITION_AS_OUTCOME)
+        from harness import parent_registration, identity
+        _rj = json.loads((ROOT/'cache'/slug/'records.json').read_text(encoding='utf-8'))
+        held = {str(r.get('id')): r for v in _rj.values() if isinstance(v, list) for r in v if isinstance(r, dict)}
+        parents ={k: v['nct'] for k, v in parent_registration.by_pmid(ROOT, slug).items()}
+        completeness = ('completeness_basis', 'completeness_state', 'completion_date', 'registry_status',
+                        'results_first_posted_date')
+
+        def _condition_withdrawn(x, y):
+            cr = y.get('condition_role') or {}
+            return (x['id'] == y['id'] and x['decision'] == 'exclude' and x['rule_id'] == 'X2'
+                    and y['decision'] == 'include' and cr.get('rule') == 'CONDITION_AS_OUTCOME'
+                    and (cr.get('withdrawn') or {}).get('rule_id') == 'X2' and cr.get('prevention_targets'))
+
+        def _normalised(x, y):
+            y = dict(y)
+            if (y.get('completeness_basis') == 'CT.gov status/results dates from local AACT snapshot'
+                    and y.get('registry_status') and 'NCT' in str(y['id'])):
+                y.update({k: x.get(k) for k in completeness})
+                y = {k: v for k, v in y.items() if k in x or v is not None}
+            rec = held.get(str(y['id']).split('·')[-1].strip())
+            if (rec is not None and 'NCT' in str(y['id']) and x.get('publication_role') != y.get('publication_role')
+                    and identity._role_from_record(rec) == y.get('publication_role')):
+                # the registry record's role read from its OWN title ('... Heart Sub-study' is secondary)
+                y['publication_role'] = x.get('publication_role')
+            fx, fy = str(x.get('trial_family_id')), str(y.get('trial_family_id'))
+            if fx == 'REC:' + fy or (fx.startswith('PMID:') and parents.get(fx[5:]) == fy):
+                y['trial_family_id'] = x.get('trial_family_id')
+            return y
         assert len(b_recs) == len(a_recs), slug
         assert all((x['id'], x['decision']) == (y['id'], y['decision']) or _untraced_adjudication(x, y)
-                   for x, y in zip(b_recs, a_recs)), slug
+                   or _condition_withdrawn(x, y) for x, y in zip(b_recs, a_recs)), slug
         for x, y in zip(b_recs, a_recs):
+            if x != y and _condition_withdrawn(x, y):
+                continue
+            y = _normalised(x, y)
             if x != y and _untraced_adjudication(x, y):
                 continue
             if x != y:

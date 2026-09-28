@@ -191,6 +191,11 @@ def build_publication_units(records, companion_reports=None):
     by_id = {_norm(r.get("id")): r for r in records}
     for rid, rec in by_id.items():
         ann = dict(units.get(rid, {"trial_family_id": rid or "unknown"}))
+        if str(rec.get("id_type") or "").lower() == "nct" and rid.upper().startswith("NCT"):
+            # a registry record's family is its own registration, never an acronym: two registrations sharing an
+            # acronym (PAPERS NCT04906720 / NCT06731595) are two trials (V1.0.1, statins-older-adults review -- this
+            # was masked while design_key.registry_designs overwrote registry records' ids)
+            ann["trial_family_id"] = rid.upper()
         ann["publication_role"] = _role_from_record(rec)
         put(rid, ann)
 

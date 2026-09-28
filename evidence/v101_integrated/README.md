@@ -349,8 +349,14 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
 - **Root cause found on the way:** `design_key.registry_designs` stored each ctgov record object and then `update()`d
   it with the cached AACT design row, overwriting the record's own `id` with the design-row id. Any included
   registry-only record then lost its NCT, and PREVENTABLE was labelled "completed".
-  - Fixed with a copy. `identity` now counts a registry record's own NCT as its registration.
-  - The old `NCT…` family labels on registry rows were a fallback that only worked because of the mutation.
+  - Fixed with a copy.
+  - With registry records intact, `identity` unioned registrations on acronyms alone (PAPERS NCT04906720 +
+    NCT06731595) and relabelled 271 registry rows. A registry record's family is now its own registration, which
+    restores every served label.
+  - STAREE-HEART's role is now read from its own title ("Heart Sub-study": secondary). The HM3 pinned control
+    admits exactly these declared differences.
+  - On the pinned pages, 20 included registry records now show their real AACT status (for example NOT_YET_RECRUITING) instead of the
+    "completed" fallback.
 - **Parent registration** (`harness/parent_registration.py`, `cache/<slug>/parent_registrations.json`).
   - JUPITER's older-adults report (20404379) is NCT00239681, located in the report's own text and in the held
     registration.
