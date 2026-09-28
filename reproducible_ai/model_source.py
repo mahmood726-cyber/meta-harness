@@ -658,11 +658,18 @@ def gate_problems(entry: dict, record: dict, held_text: str) -> list[str]:
     if replayed_claim is not None and canonical(replayed_claim) != canonical(entry.get("claim")):
         problems.append("CLAIM_NOT_THE_RECORDED_ONE: the queued claim differs from the stored response")
     # (a) the same deterministic verifier, re-run now on the held text (never trusted from the queue)
-    v = reverify(entry, held_text)
-    if v.get("state") != "VERIFIER_PASS":
-        problems.append(f"VERIFIER_REFUSED: {v.get('problems')}")
-    if canonical(v) != canonical(entry.get("verification")):
-        problems.append("VERIFICATION_STALE: the stored verdict is not what the verifier returns today")
+    if held_text is None:
+        # V1.0.1 (SGLT2-HFrEF review): the item's record LEFT THE SERVED TREE (NCT04385589's registry twin was replaced
+        # by its linked publication); with no held text it cannot be re-verified, so it can never pass -- it stays
+        # PROPOSED, and the countersignature check below still applies
+        v = {}
+        problems.append("HELD_TEXT_UNAVAILABLE: the item's record left the served tree; it cannot be re-verified")
+    else:
+        v = reverify(entry, held_text)
+        if v.get("state") != "VERIFIER_PASS":
+            problems.append(f"VERIFIER_REFUSED: {v.get('problems')}")
+        if canonical(v) != canonical(entry.get("verification")):
+            problems.append("VERIFICATION_STALE: the stored verdict is not what the verifier returns today")
     # (c) a human countersignature over the rendered block, with result_changes' discipline unchanged
     block = render_proposal_block(entry, record)
     notice = {"reviewer_countersignature": entry.get("reviewer_countersignature"),

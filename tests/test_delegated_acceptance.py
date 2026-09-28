@@ -54,8 +54,13 @@ def test_an_accepted_item_is_still_unsigned_to_every_countersignature_predicate(
         if e["item_id"] not in accepted:
             continue
         rec = records[e["record_id"]]
-        assert ms.status_of(e, rec, held[e["item_id"]]) == "PROPOSED"
-        assert any(p.startswith("COUNTERSIGNATURE:") for p in ms.gate_problems(e, rec, held[e["item_id"]]))
+        # an item whose record has since left the served tree has no held text (V1.0.1, SGLT2-HFrEF review: NCT04385589's
+        # registry twin was replaced by its linked publication) -- it is still unsigned, and says why it cannot re-verify
+        h = held.get(e["item_id"])
+        assert ms.status_of(e, rec, h) == "PROPOSED"
+        problems = ms.gate_problems(e, rec, h)
+        assert any(p.startswith("COUNTERSIGNATURE:") for p in problems)
+        assert h is not None or any(p.startswith("HELD_TEXT_UNAVAILABLE") for p in problems)
         assert e.get("reviewer_countersignature", {}).get("state") == "OPEN"
         notice = {"reviewer_countersignature": e.get("reviewer_countersignature"), "conclusion_changed": "X"}
         assert result_changes.signature_problem(notice, ms.render_proposal_block(e, rec))
