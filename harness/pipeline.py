@@ -610,7 +610,7 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
         return None
     trial_components = ex.get("components") or ex.get("target_endpoint_components")
     cg = extract_ctgov(oms, spec["keywords"], interv, comp, declared_components=trial_components,
-                       estimand=spec.get("estimand"))
+                       estimand=spec.get("estimand"), unit_class=spec.get("unit_class"))
     if not cg:
         return None
     c_rr = cg.get("registry_implied_effect")
@@ -1163,7 +1163,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # A DECLARED combine rule reproduces the hand-combined arm FROM THE HELD REGISTRY ARMS: the row is the
             # registry's, not the hand override's (whose computed tuple is in no held document and so never binds).
             _cg = extract_ctgov(ctgov_results.get(_cnct), spec["keywords"], interv, comp, combine_rule=_crule,
-                                estimand=spec.get("estimand"))
+                                estimand=spec.get("estimand"), unit_class=spec.get("unit_class"))
             if _cg and _cg.get("multi_arm_combined") and all(
                     abs(float(_cg[k]) - float(va_over.get(k) or 0)) <= 0.01 for k in ("mean1", "sd1", "mean2", "sd2"))                     and (_cg["nc1"], _cg["nc2"]) == (va_over.get("nc1"), va_over.get("nc2")):
                 _cg["provenance"] = "ctgov_results"
@@ -1260,7 +1260,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             continue
         cg = (extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp,
                             min_total=_enrollment_floor(rec.get("abstract", "")),
-                            judgments=outcome_judgments, estimand=spec.get("estimand"))
+                            judgments=outcome_judgments, estimand=spec.get("estimand"), unit_class=spec.get("unit_class"))
               if nct and nct in ctgov_results else None)
         if cg:
             cg["provenance"] = "ctgov_results"
@@ -1613,6 +1613,65 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                          if _rc else None))
                     break
     _apply_trial_annotations(spec, trials)
+
+    def _same_number(a, b):
+        try:
+            return a not in (None, "") and b is not None and abs(float(a) - float(b)) < 1e-9
+        except (TypeError, ValueError):
+            return False
+
+    def _registry_measure(t):
+        _pid = str(t.get("id") or "").replace("PMID ", "")
+        _rec = rec_by_id.get(_pid) or rec_by_id.get(t.get("id")) or {}
+        _nct = (_rec.get("nct") or (_pid if _pid.upper().startswith("NCT") else None) or "").upper()
+        return _nct, next((o for o in (ctgov_results.get(_nct) or []) if o.get("title") == t.get("registry_title")), None)
+
+    # OBSERVED CONTRIBUTION + DERIVED ESTIMAND LABEL (semaglutide-weight review e209c1d5, 2026-09-28; RETROSPECTIVE, decided by
+    # Dispatch under Mahmood's delegation). A raw per-arm mean/SD is labelled by the analysis it IS -- observed data -- never by the
+    # topic's declared population string ("treatment-policy"). A registry summary that states imputation is held: its imputation
+    # method and variance are not established, so it is not raw mean/SD.
+    for t in list(trials):
+        if t.get("mean1") is None:
+            continue
+        _nct, _om = _registry_measure(t) if t.get("provenance") == "ctgov_results" else (None, None)
+        _oc = continuous_identity_mod.observed_contribution(_om) if _om else {"state": "NOT_ESTABLISHED", "evidence": None}
+        t["observed_contribution"] = _oc
+        # POOLED vs MATCHED PLACEBO (semaglutide-weight review e209c1d5; retrospective): the eligible contrast is the experimental
+        # arm vs ITS matched placebo. A comparator group that pools placebos matched to different regimens (STEP 8: "placebo
+        # matched to either once weekly semaglutide or once daily liraglutide") is not that contrast -- it is shown as a labelled
+        # supportive figure and never pooled, so no trial contributes both and no placebo is counted twice.
+        _pooled = [g for g in ((_om or {}).get("groups") or [])
+                   if re.search(r"(?i)\bpooled\b", str(g.get("title") or "")) and re.search(r"(?i)placebo", str(g.get("title") or ""))]
+        _pooled_vals = set()
+        for _g in _pooled:
+            for _c in ((_om or {}).get("classes") or [{}])[0].get("categories") or []:
+                for _m in _c.get("measurements") or []:
+                    if _m.get("groupId") == _g.get("id"):
+                        _pooled_vals.add(_m.get("value"))
+        if _pooled and any(_same_number(v, t.get("mean2")) for v in _pooled_vals):
+            trials.remove(t)
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                           "state": "POOLED_PLACEBO_NOT_THE_ELIGIBLE_CONTRAST",
+                           "reason_code": "POOLED_PLACEBO_NOT_THE_ELIGIBLE_CONTRAST",
+                           "endpoint_admissibility": "POOLED_PLACEBO_NOT_THE_ELIGIBLE_CONTRAST",
+                           "reason": ("the registry reports this outcome only against a POOLED placebo ("
+                                      + "; ".join(str(g.get("title")) + ": " + str(g.get("description") or "")[:120] for g in _pooled)
+                                      + "); the eligible contrast is the matched placebo, which the held sources do not report "
+                                      "separately. The pooled figure is shown as a labelled supportive result only, never pooled."),
+                           "supportive_pooled_placebo": {k: t.get(k) for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2", "source")},
+                           "matched_placebo": "NOT_REPORTED_IN_HELD_SOURCES"})
+            continue
+        if _oc["state"] == "IMPUTED":
+            trials.remove(t)
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                           "state": "IMPUTED_SUMMARY_METHOD_NOT_ESTABLISHED", "reason_code": "IMPUTED_SUMMARY_METHOD_NOT_ESTABLISHED",
+                           "endpoint_admissibility": "IMPUTED_SUMMARY_METHOD_NOT_ESTABLISHED",
+                           "reason": ("the registry summary states imputation (" + str(_oc.get("evidence") or "")[:160] + "); its "
+                                      "imputation method and variance are not established, so it is not used as raw mean/SD"),
+                           "refused_effect": {k: t.get(k) for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")}})
+            continue
+        t["estimand_label"] = continuous_identity_mod.estimand_label(
+            "RAW_OBSERVED" if _oc["state"] == "OBSERVED" else "RAW_NOT_ESTABLISHED")
     for t in trials:
         if t.get("cross_source"):
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
@@ -1655,6 +1714,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             "note": ("published hazard ratios on a risk-ratio outcome: never converted by dividing events by randomised. They are "
                      "reported here as HRs; they join the risk pool only through source-supported risks with ascertained denominators")}
     _cplan = continuous_identity_mod.analysis_plan(spec)
+    # PRIMARY = PUBLISHED MODEL-BASED DIFFERENCE (semaglutide-weight review e209c1d5; retrospective, Dispatch under Mahmood's
+    # delegation): when the plan declares it, each trial enters the primary through its reported model-based difference for the
+    # DECLARED estimand, by generic inverse variance (SE from the reported standard two-sided CI -- never an arm SD). The raw
+    # observed per-arm summaries become a labelled SENSITIVITY analysis. A trial without that difference is named, never
+    # replaced by its raw row.
+    _mb_primary = str((_cplan.get("primary") or {}).get("analysis") or "").upper() == "MODEL_BASED_DIFFERENCE"
+    _mb_estimand = (_cplan.get("primary") or {}).get("estimand") if _mb_primary else None
     if _cplan.get("state") != "PRIMARY_ANALYSIS_NOT_DECLARED" and any(t.get("mean1") is not None for t in trials):
         # CONTINUOUS identity (esketamine review f5b8f4cb): the declared PRIMARY analysis (and its missing-data assumption,
         # reported as NOT DECLARED when the protocol is silent) and the MODEL-BASED sensitivity analysis of reported adjusted
@@ -1671,10 +1737,55 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 _mb.append({"id": t.get("id"), "label": t.get("label"), "state": "NO_REGISTRY_MEASURE"})
                 continue
             _held = [(r.get("abstract") or "") for r in rec_by_id.values() if str(r.get("nct") or "").upper() == _nct]
-            _row = continuous_identity_mod.model_based_row(_om, _held, _declared_proc.get(_nct))
+            _row = continuous_identity_mod.model_based_row(_om, _held, _declared_proc.get(_nct), estimand=_mb_estimand)
             _mb.append({"id": t.get("id"), "label": t.get("label"), "nct": _nct, **_row})
         _adm = [r for r in _mb if r.get("state") == "ADMITTED"]
-        out["continuous_analysis"] = {
+        if _mb_primary:
+            _raw = [t for t in trials if t.get("mean1") is not None]
+            _raw_label = continuous_identity_mod.estimand_label("RAW_OBSERVED")
+            out["continuous_analysis"] = {
+                "plan": _cplan,
+                "primary_label": ("published model-based " + continuous_identity_mod.estimand_label("MODEL_BASED", _mb_estimand, "as reported per trial").split(":")[0]
+                                  + " differences, pooled by generic inverse variance (SE from the reported standard two-sided 95% CI)"),
+                "primary_rows": _mb,
+                "raw_observed_sensitivity": {
+                    "label": _raw_label,
+                    "rows": [{k: t.get(k) for k in ("id", "label", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2", "n_analysis_set",
+                                                    "observed_contribution", "source")} for t in _raw],
+                    "pool": (k2_mod.refuse_k2_ci(_pool_result([Study(label=t["label"], mean1=t["mean1"], sd1=t["sd1"], nc1=t["nc1"],
+                                                                     mean2=t["mean2"], sd2=t["sd2"], nc2=t["nc2"], measure="MD")
+                                                               for t in _raw], scale="MD"))
+                             if len(_raw) >= 2 else None),
+                    "note": "SENSITIVITY: raw observed summaries with the n that contributed them; not the treatment-policy estimand"}}
+            _primary = []
+            for t, r in zip(trials, _mb):
+                if r.get("state") != "ADMITTED":
+                    absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",
+                                   "state": "MODEL_BASED_DIFFERENCE_NOT_REPORTED", "reason_code": "MODEL_BASED_DIFFERENCE_NOT_REPORTED",
+                                   "endpoint_admissibility": "MODEL_BASED_DIFFERENCE_NOT_REPORTED",
+                                   "reason": (f"no reported model-based difference for the declared {_mb_estimand} estimand "
+                                              f"({r.get('state')}); the raw observed row is NOT substituted -- it is in the "
+                                              "sensitivity analysis only")})
+                    continue
+                _ci = r.get("ci") or {}
+                _std95 = _ci.get("level") == 95 and _ci.get("low") is not None and _ci.get("high") is not None
+                _t2 = {k: v for k, v in t.items() if k not in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")}
+                _t2.update({
+                    "effect": r["value"],
+                    "ci_low": _ci["low"] if _std95 else round(r["value"] - 1.959964 * r["se"], 4),
+                    "ci_high": _ci["high"] if _std95 else round(r["value"] + 1.959964 * r["se"], 4),
+                    "scale": "MD", "derivation": "reported", "selected_estimator": "reported",
+                    "selection_rule": "ANALYSIS_PLAN_PRIMARY_MODEL_BASED_DIFFERENCE", "model_based": r,
+                    "estimand_label": continuous_identity_mod.estimand_label("MODEL_BASED", r.get("estimand"), r.get("method")),
+                    "raw_observed": {k: t.get(k) for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2", "n_analysis_set")},
+                    "source": (f"ClinicalTrials.gov results analysis ({r.get('method')}; {r.get('estimand')}) for outcome "
+                               f"'{str(r.get('measure_title') or '')[:70]}': treatment difference {r['value']} "
+                               f"({_ci.get('level')}% CI {_ci.get('low')} to {_ci.get('high')}, {_ci.get('sidedness')}); "
+                               f"SE {r['se']} ({r.get('se_basis')})")})
+                _primary.append(_t2)
+            trials[:] = _primary
+        else:
+            out["continuous_analysis"] = {
             "plan": _cplan,
             "primary_label": "raw per-arm mean/SD, observed at the timepoint (protocol-declared primary)",
             "model_based_sensitivity": {
@@ -1706,11 +1817,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         meas = (selector_estimand or spec.get("estimand") or "RR").upper()
         meas = meas if meas in ("RR", "OR") else "RR"  # 2x2 pools as RR/OR; HR only via effect+CI
         def _meas(t):
-            if t.get("e1i") is not None:
-                return "IRR"
-            if t.get("mean1") is not None:
-                return "MD"
-            return meas
+            return estmeasure.row_measure(t, meas)
         _mlabels = [estmeasure.input_label(t, meas) for t in trials]
         _madj = [estmeasure.adjustment_of(t) for t in trials]
         _mpolicy = estmeasure.mixture_policy(spec)
@@ -1743,7 +1850,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 yi=yi,
                 vi=vi,
                 estimand=selector_estimand,
-                analysis_population=spec.get("population"),
+                # DERIVED from the analysis actually used (semaglutide-weight review): never the topic's declared string
+                analysis_population=trial.get("estimand_label") or spec.get("population"),
                 scale=pooled_scale,
             )
             study.study_effect = trial["study_effect"]

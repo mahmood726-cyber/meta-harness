@@ -12,6 +12,7 @@ from __future__ import annotations
 from .claimgraph import _stamp, input_set_version, trial_key
 from .membership import canonical_trial_key, lookup_by_trial_key, outcome_membership  # noqa: F401
 from .synth import Study, pool
+from . import estmeasure
 
 LOW_ONLY_IDENTICAL_TO_FULL = "identical_to_full"
 LOW_ONLY_FEWER_TRIALS = "fewer_trials"
@@ -75,11 +76,7 @@ def _studies_and_scale(trials, declared_estimand):
     meas = declared_estimand if declared_estimand in ("RR", "OR") else "RR"
 
     def _meas(t):
-        if t.get("e1i") is not None:
-            return "IRR"
-        if t.get("mean1") is not None:
-            return "MD"
-        return meas
+        return estmeasure.row_measure(t, meas)
 
     studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                      n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),

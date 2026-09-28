@@ -28,6 +28,24 @@ from typing import Any
 
 # --------------------------------------------------------------------------- typed registry measure
 _ADJUSTED = re.compile(r"(?i)least\s+squares?|\bLS\s+mean|adjusted\s+mean|model[- ]based|marginal\s+mean")
+# A registry "Treatment difference" estimated by a MODEL is a model-based difference (semaglutide-weight review, e209c1d5): STEP 1
+# posts paramType "Treatment difference" with statisticalMethod "ANCOVA". Typing it by paramType alone left it DIFFERENCE_NOT_TYPED.
+_MODEL_METHOD = re.compile(r"(?i)\bANCOVA\b|analysis\s+of\s+covariance|\bMMRM\b|mixed[- ]effects?\s+model|mixed\s+model|"
+                           r"repeated\s+measures?|regression|\bcLDA\b|constrained\s+longitudinal")
+# The ESTIMAND an analysis belongs to, read from the analysis's own description fields only -- never from the topic.
+_ESTIMANDS = (("TREATMENT_POLICY", re.compile(r"(?i)treatment[- ]policy")),
+              ("HYPOTHETICAL", re.compile(r"(?i)\bhypothetical\b|trial[- ]product\s+estimand")),
+              ("WHILE_ON_TREATMENT", re.compile(r"(?i)while[- ]on[- ]treatment|on[- ]treatment\s+estimand")))
+
+
+def estimand_of(analysis: dict[str, Any]) -> str:
+    """The estimand a registry analysis names in its own fields (groupDescription / estimationComment / comments); NOT_STATED
+    otherwise. Two analyses of one measure on the same arms are two ESTIMANDS (STEP 1: treatment policy and hypothetical), not
+    two doses."""
+    txt = " ".join(str(analysis.get(k) or "") for k in ("groupDescription", "estimationComment", "nonInferiorityComment",
+                                                         "statisticalComment", "otherAnalysisDescription"))
+    hits = [name for name, rx in _ESTIMANDS if rx.search(txt)]
+    return hits[0] if len(hits) == 1 else ("AMBIGUOUS" if hits else "NOT_STATED")
 
 
 def _load(v):
@@ -95,7 +113,11 @@ def typed_measure(om: dict[str, Any]) -> dict[str, Any]:
         dk = dispersion_kind(a.get("dispersionType"))
         analyses.append({
             "groups": list(a.get("groupIds") or []),
-            "estimate_kind": "ADJUSTED_DIFFERENCE" if _ADJUSTED.search(str(a.get("paramType") or "")) else "DIFFERENCE_NOT_TYPED",
+            "estimate_kind": ("ADJUSTED_DIFFERENCE" if (_ADJUSTED.search(str(a.get("paramType") or ""))
+                                                         or (_MODEL_METHOD.search(str(a.get("statisticalMethod") or ""))
+                                                             and "difference" in str(a.get("paramType") or "").lower()))
+                              else "DIFFERENCE_NOT_TYPED"),
+            "estimand": estimand_of(a),
             "method": a.get("statisticalMethod"), "value": _num(a.get("paramValue")),
             # an SE here is the SE OF THE DIFFERENCE -- never an arm SD
             "se_of_difference": _num(a.get("dispersionValue")) if dk == "SE" else None,
@@ -236,7 +258,7 @@ def analysis_plan(spec: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def model_based_row(om: dict[str, Any], held_texts, declared_procedure: dict[str, Any] | None,
-                    exper_title_terms=None) -> dict[str, Any]:
+                    exper_title_terms=None, estimand: str | None = None) -> dict[str, Any]:
     """The trial's reported ADJUSTED difference with an established SE, for the model-based sensitivity analysis -- or a
     typed refusal. A multi-dose trial whose adjusted differences are per dose is refused (no combined adjusted difference
     exists; one is never constructed from per-dose model estimates)."""
@@ -244,6 +266,19 @@ def model_based_row(om: dict[str, Any], held_texts, declared_procedure: dict[str
     adj = [a for a in tm["analyses"] if a["estimate_kind"] == "ADJUSTED_DIFFERENCE"]
     if not adj:
         return {"state": "NO_ADJUSTED_DIFFERENCE", "measure_title": tm["title"]}
+    if estimand:
+        # the analysis is selected by the ESTIMAND the plan declares, from the analysis's own label; one that does not name it
+        # is not assumed to be it
+        named = [a for a in adj if a.get("estimand") == estimand]
+        if not named:
+            return {"state": "DECLARED_ESTIMAND_NOT_REPORTED", "measure_title": tm["title"], "declared_estimand": estimand,
+                    "reported_estimands": sorted({a.get("estimand") for a in adj})}
+        adj = named
+    elif len({a.get("estimand") for a in adj}) > 1 and len({tuple(a["groups"]) for a in adj}) == 1:
+        return {"state": "ESTIMAND_NOT_SELECTED", "measure_title": tm["title"],
+                "reported_estimands": sorted({a.get("estimand") for a in adj}),
+                "reason": "the registry reports one model-based difference per ESTIMAND on the same arms; the analysis plan must "
+                          "declare which estimand is used -- none is picked"}
     if len(adj) > 1 or len(tm["arms"]) > 2:
         return {"state": "PER_DOSE_ADJUSTED_ONLY", "measure_title": tm["title"],
                 "reason": "the registry reports one adjusted difference per dose arm; no combined adjusted difference is reported "
@@ -255,4 +290,44 @@ def model_based_row(om: dict[str, Any], held_texts, declared_procedure: dict[str
         return {"state": "SE_NOT_ESTABLISHED", "measure_title": tm["title"], "value": a["value"], "ci": a["ci"],
                 "procedure": proc, "reason": se["refused"]}
     return {"state": "ADMITTED", "measure_title": tm["title"], "value": a["value"], "se": round(se["se"], 4),
-            "se_basis": se["basis"], "ci": a["ci"], "procedure": proc, "method": a["method"]}
+            "se_basis": se["basis"], "ci": a["ci"], "procedure": proc, "method": a["method"], "estimand": a.get("estimand")}
+
+
+# --------------------------------------------------------------------------- observed contribution (semaglutide-weight review)
+_AVAILABLE = re.compile(r"(?i)(?:participants|subjects|patients)\s+with\s+(?:available|observed|non[- ]missing)\s+data|"
+                        r"number\s+analy[sz]ed\s*=\s*[^.;]{0,40}?available\s+data|observed\s+(?:cases|data)\b")
+_IMPUTED = re.compile(r"(?i)imputed|imputation|last\s+observation\s+carried|\bLOCF\b|\bBOCF\b|jump[- ]to[- ]reference|"
+                      r"retrieved\s+drop[- ]?outs?|multiple\s+imputation")
+
+
+def observed_contribution(om: dict[str, Any]) -> dict[str, Any]:
+    """Whether a registry arm summary's n is the n that CONTRIBUTED observations. OBSERVED when the measure says the analysed
+    number is participants with available data; IMPUTED when it names imputation (then the imputation method AND its variance
+    must be established before the summary is used as raw mean/SD -- the caller holds the row); NOT_ESTABLISHED otherwise. A
+    full-analysis-set heading never establishes observed contribution."""
+    txt = " ".join(str(om.get(k) or "") for k in ("populationDescription", "description"))
+    if _IMPUTED.search(txt):
+        m = _IMPUTED.search(txt)
+        return {"state": "IMPUTED", "evidence": txt[max(0, m.start() - 80):m.end() + 80].strip()}
+    if _AVAILABLE.search(txt):
+        m = _AVAILABLE.search(txt)
+        return {"state": "OBSERVED", "evidence": txt[max(0, m.start() - 60):m.end() + 20].strip()}
+    return {"state": "NOT_ESTABLISHED", "evidence": None,
+            "note": "the measure does not say whether the analysed number is observed or imputed; a full-analysis-set heading "
+                    "does not establish it"}
+
+
+def estimand_label(kind: str, estimand: str | None = None, method: str | None = None) -> str:
+    """The estimand LABEL of a served continuous input, derived from the analysis actually used -- never from the topic's
+    declared population string. Raw observed per-arm summaries are not a treatment-policy estimate."""
+    if kind == "RAW_OBSERVED":
+        return ("observed data: raw per-arm mean/SD of participants with a measurement at the timepoint "
+                "(no imputation; not a treatment-policy estimate)")
+    if kind == "RAW_NOT_ESTABLISHED":
+        return ("raw per-arm mean/SD as reported; whether the n is observed or imputed is not established "
+                "(not a treatment-policy estimate)")
+    if kind == "MODEL_BASED":
+        name = {"TREATMENT_POLICY": "treatment-policy estimand", "HYPOTHETICAL": "hypothetical estimand",
+                "WHILE_ON_TREATMENT": "while-on-treatment estimand"}.get(estimand or "", "estimand not stated by the source")
+        return f"{name}: the trial's model-based difference ({method or 'model not stated'}), as reported"
+    return "estimand not established"

@@ -60,6 +60,12 @@ def _ratio_or_none(a, b):
     return a / b
 
 
+_PERCENT_UNIT = re.compile(r"(?i)percent|percentage|%")
+_CONTROL_ARM = re.compile(r"(?i)\b(?:placebo|sham|inactive|vehicle|dummy|control|standard\s+(?:of\s+)?care|usual\s+care|"
+                          r"no\s+(?:treatment|intervention|drug)|observation|best\s+supportive\s+care|supportive\s+care|"
+                          r"wait[- ]?list)\b")
+
+
 def _classify_arms(groups, interv_l, comp_l):
     """Assign the two arms to (intervention_gid, comparator_gid) by group title, with the standard
     2-arm fallback (the placebo/control arm is the comparator, the other is the intervention)."""
@@ -75,7 +81,13 @@ def _classify_arms(groups, interv_l, comp_l):
         if comp_gid and interv_gid is None:
             interv_gid = [i for i in ids if i != comp_gid][0]
         elif interv_gid and comp_gid is None:
-            comp_gid = [i for i in ids if i != interv_gid][0]
+            # The fallback fills the COMPARATOR only with an arm that reads as a CONTROL (semaglutide-weight review e209c1d5,
+            # 2026-09-28; retrospective, Dispatch under Mahmood's delegation). It used to take "the other arm" whatever it
+            # was: STEP 8's sema-vs-liraglutide measure served "Liraglutide 3.0 mg" as the placebo comparator. Across held
+            # registry measures the old fallback named an active agent as comparator in most of its 161 of 1,208 uses.
+            other = [g for g in groups if g.get("id") != interv_gid][0]
+            if _CONTROL_ARM.search(other.get("title") or ""):
+                comp_gid = other.get("id")
     return interv_gid, comp_gid
 
 
@@ -195,7 +207,7 @@ def _is_supplementary_estimand(title: str) -> bool:
 
 
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
-                  judgments=None, declared_components=None, combine_rule=None, estimand=None):
+                  judgments=None, declared_components=None, combine_rule=None, estimand=None, unit_class=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
 
     Chooses the outcome measure whose TITLE contains one of our outcome keywords (so we do not
@@ -274,6 +286,11 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
         # directly; SE/CI/median-range dispersions are REFUSED here (refuse-on-ambiguity — an SE needs
         # n and a range needs a Wan conversion that belongs in the prose extractor, not silently here).
         if ptype == "MEAN":
+            # DECLARED UNIT (semaglutide-weight review e209c1d5): a percent-change outcome is not read from a measure in
+            # kilograms. STEP 8's kg measure ("Body Weight (Kilograms (kg))") matched the keyword "body weight" before its
+            # percent measure did. Only a topic that DECLARES unit_class is gated; nothing is inferred from the outcome name.
+            if str(unit_class or "").upper() == "PERCENT" and not _PERCENT_UNIT.search(str(om.get("unitOfMeasure") or "")):
+                continue
             cont = _extract_ctgov_continuous(om, interv_l, comp_l, combine_rule)
             if cont:
                 return cont

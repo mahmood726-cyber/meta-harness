@@ -1980,6 +1980,13 @@ def _time_to_event_block(o: dict) -> str:
             + " " + _e(tte.get("note")) + "</div>")
 
 
+def _level(v):
+    try:
+        return int(v) if float(v).is_integer() else v
+    except (TypeError, ValueError):
+        return v
+
+
 def _continuous_analysis_block(o: dict) -> str:
     """The declared PRIMARY analysis (and its missing-data assumption, or that none is declared), the combined-dose rows, and
     the MODEL-BASED sensitivity analysis with every refusal named (continuous-identity review f5b8f4cb)."""
@@ -1989,6 +1996,30 @@ def _continuous_analysis_block(o: dict) -> str:
     plan = ca.get("plan") or {}
     prim = plan.get("primary") or {}
     mda = prim.get("missing_data_assumption")
+    if ca.get("raw_observed_sensitivity") is not None:
+        # PRIMARY = published model-based differences (semaglutide-weight review e209c1d5); raw observed = labelled sensitivity
+        prow = "; ".join(
+            f"{_e(x.get('label') or x.get('id'))}: " + (
+                f"{_num(x.get('value'))} ({_e(_level((x.get('ci') or {}).get('level')))}% CI {_num((x.get('ci') or {}).get('low'))} to "
+                f"{_num((x.get('ci') or {}).get('high'))}; {_e(x.get('method'))}; SE {_num(x.get('se'))})"
+                if x.get("state") == "ADMITTED" else f"NOT IN THE PRIMARY -- {_e(x.get('state'))}")
+            for x in ca.get("primary_rows") or [])
+        rs = ca["raw_observed_sensitivity"]
+        rrows = "; ".join(
+            f"{_e(x.get('label') or x.get('id'))}: {_num(x.get('mean1'))} (SD {_num(x.get('sd1'))}, n={_e(x.get('nc1'))}) vs "
+            f"{_num(x.get('mean2'))} (SD {_num(x.get('sd2'))}, n={_e(x.get('nc2'))})"
+            + (f" [analysis set {_e((x.get('n_analysis_set') or {}).get('nc1'))}/{_e((x.get('n_analysis_set') or {}).get('nc2'))}; "
+               "the n used is the n that contributed observations]" if x.get("n_analysis_set") else "")
+            for x in rs.get("rows") or [])
+        rp = rs.get("pool") or {}
+        rpool = (f" Pooled: MD {_num(rp.get('estimate'))}, k={_e(rp.get('k'))}"
+                 + (f" ({_num(rp.get('ci_low'))} to {_num(rp.get('ci_high'))})." if rp.get("ci_low") is not None else
+                    f"; interval withheld ({_e((rp.get('pooled_ci_refused') or {}).get('code'))}).")) if rp.get("estimate") is not None else ""
+        return ("<div class='absent'><strong>Primary analysis:</strong> " + _e(ca.get("primary_label")) + ". " + prow + ". "
+                + (f"Missing-data handling: {_e(mda)}." if mda else
+                   "Missing-data handling: each trial's own method for its treatment-policy estimand; the method is NOT held in "
+                   "the source text (the reported interval carries the trial's own variance).")
+                + f" <strong>Sensitivity analysis ({_e(rs.get('label'))}):</strong> " + rrows + "." + rpool + "</div>")
     head = (f"<strong>Primary analysis (protocol):</strong> {_e(ca.get('primary_label'))}; population {_e(prim.get('population'))}. "
             + (f"Missing-data assumption: {_e(mda)}." if mda else
                "<strong>Missing-data assumption: NOT DECLARED in the protocol</strong> (an observed-case analysis is valid only "

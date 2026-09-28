@@ -120,6 +120,21 @@ def input_label(t: dict, count_measure: str) -> str | None:
     return (t.get("scale") or "").upper() or None
 
 
+def row_measure(t: dict, count_measure: str) -> str:
+    """The Study measure for one trial row -- ONE implementation (it was duplicated in pipeline and rob_sensitivity, and both
+    copies sent an effect+CI mean difference down the log-ratio path; semaglutide-weight review e209c1d5). Events over
+    person-time -> IRR; means -> MD; an effect+CI on an ADDITIVE scale (MD/SMD) with no counts -> that scale; otherwise the
+    count measure, exactly as before."""
+    if t.get("e1i") is not None:
+        return "IRR"
+    if t.get("mean1") is not None:
+        return "MD"
+    sc = str(t.get("scale") or "").upper()
+    if t.get("effect") is not None and t.get("ai") is None and sc in ("MD", "SMD"):
+        return sc
+    return count_measure
+
+
 def adjustment_of(t: dict) -> str:
     """ADJUSTED / UNADJUSTED / UNSTATED. Reconstructed from counts -> UNADJUSTED. A stated effect is ADJUSTED or UNADJUSTED only
     when its OWN source quotation says so; otherwise UNSTATED (never guessed)."""

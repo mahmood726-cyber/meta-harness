@@ -135,6 +135,11 @@ def _derive_analysis_set(
         m = _search(pattern, text)
         if m:
             return _derived(value, "committed source text", _short_span(text, m))
+    if trial.get("estimand_label"):
+        # DERIVED from the analysis actually used (semaglutide-weight review e209c1d5): a raw observed row is "observed data",
+        # a model-based row names its own estimand -- never the topic's declared population string copied onto the input
+        return _derived(str(trial["estimand_label"]), "trial.estimand_label (derived from the analysis used)",
+                        str(trial["estimand_label"]))
     existing = ((trial.get("study_effect") or {}).get("analysis_population")
                 or (trial.get("compat_dimensions") or {}).get("analysis_set"))
     if existing and existing != "UNKNOWN":

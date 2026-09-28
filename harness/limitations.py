@@ -1207,6 +1207,22 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str, rev
             ["/outcomes/*/result/design_refusal", "/outcomes/*/design_refusals"],
             _design_refusal_block(result),
         )
+    if outcome.get("continuous_analysis"):
+        # The continuous-analysis block (declared primary, missing-data statement, model-based / raw-observed sensitivity) is a
+        # ratchet block on the page; its object is rendered by the SAME function so the two cannot drift. It had no object, so
+        # any rebuilt continuous page (esketamine on the stack; semaglutide here) failed the legacy comparison.
+        _cblk = _page._continuous_analysis_block(outcome)
+        if _cblk:
+            _mda = (((outcome.get("continuous_analysis") or {}).get("plan") or {}).get("primary") or {}).get("missing_data_assumption")
+            add(
+                f"{prefix}:continuous-analysis",
+                LimitationKind.PROTOCOL_COMPLIANCE,
+                Severity.QUALIFIES_CLAIM,
+                f"continuous analysis and its missing-data assumption: {outcome.get('name')}",
+                EvidenceState.RECORDED if _mda else EvidenceState.NOT_ASSESSED,
+                ["/outcomes/*/continuous_analysis"],
+                _cblk,
+            )
     if (not rr and not result.get("unrenderable") and not result.get("suppressed_incompatible")
             and not result.get("pool_refused") and result.get("harms_incomplete")):
         add(

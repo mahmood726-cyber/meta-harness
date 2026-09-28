@@ -558,6 +558,13 @@ def annotate_reconstruction_with_published_effect(review: dict[str, Any]) -> Non
             )
 
 
+# Absence codes that record a DECLARED exclusion of a visible value: never re-labelled as extraction debt. (Same structure as
+# the melatonin branch's set; the semaglutide-weight review e209c1d5 adds its three codes.)
+_DECIDED_EXCLUSIONS = {"FULL_POPULATION_INPUT_NOT_HELD", "CROSSOVER_PAIRED_VARIANCE_REQUIRED",
+                       "POOLED_PLACEBO_NOT_THE_ELIGIBLE_CONTRAST", "IMPUTED_SUMMARY_METHOD_NOT_ESTABLISHED",
+                       "MODEL_BASED_DIFFERENCE_NOT_REPORTED"}
+
+
 def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
                     records_blob: dict[str, Any]) -> dict[str, Any]:
     stamp_identity_fields(review)
@@ -573,6 +580,11 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
             if not cand.get("source_has_value"):
                 continue
             current_code = _row_code(row)
+            if row.get("endpoint_admissibility") in _DECIDED_EXCLUSIONS:
+                # the value IS visible and was excluded by a declared rule: that is a decision, not extraction debt -- it keeps
+                # its own code and reason
+                row["source_value_visible"] = {"value_kind": cand.get("value_kind"), "source_span": cand.get("source_span")}
+                continue
             replacement_code = cand.get("reason_code") or KNOWN_REPORTED_NOT_YET_EXTRACTED
             if current_code not in FALSE_ABSENCE_CODES and current_code == replacement_code:
                 continue

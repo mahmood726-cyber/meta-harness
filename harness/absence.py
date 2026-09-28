@@ -274,7 +274,10 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     if row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND", "HELD_SOURCE_EFFECT_CONFLICT",
                                               "EVENT_POLARITY_MISMATCH", "MULTI_ARM_SHARED_CONTROL_UNDECLARED",
                                               "CLINICAL_EVENT_COUNTS_RECOVERED_HR_NOT_ESTABLISHED", "DOUBLE_ZERO",
-                                              "UNCERTAINTY_REPRESENTATION_UNRESOLVED") and row.get("reason_code"):
+                                              "UNCERTAINTY_REPRESENTATION_UNRESOLVED",
+                                              # semaglutide-weight review e209c1d5: these reach the reader with their own reason
+                                              "POOLED_PLACEBO_NOT_THE_ELIGIBLE_CONTRAST", "IMPUTED_SUMMARY_METHOD_NOT_ESTABLISHED",
+                                              "MODEL_BASED_DIFFERENCE_NOT_REPORTED") and row.get("reason_code"):
         span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""
         return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
                 "state_basis": _basis(row["reason_code"], span, reason),

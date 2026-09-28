@@ -30,3 +30,27 @@ The estimand is the mean difference (percentage points) in the Week-68 percent b
 
 ## Comparator
 - Published open-access meta-analysis of semaglutide 2.4 mg for weight reduction in non-diabetic overweight/obesity, for trial-set overlap and reporting comparison only. An identical estimate on an identical trial set is arithmetic, not corroboration; the overlap is stated on the page.
+
+## Amendment 2026-09-28 (semaglutide-weight review e209c1d5; primary analysis, estimand label, comparison-level screening)
+**Status: RETROSPECTIVE, decided by Dispatch under Mahmood's delegation, after the trials reported.** It does not
+rewrite the text above; it records where that text was wrong and what replaces it.
+
+- **Correction to the paragraph above.** The ClinicalTrials.gov "in-trial observation period" row is **observed data**:
+  its n is the participants with a measurement at Week 68 (STEP 1 1,212/577; STEP 3 373/189), not the all-randomized
+  full analysis set (1,306/655; 407/204), and a raw observed summary is **not** a treatment-policy estimate. A full-analysis-
+  set heading does not establish observed contribution; a registry summary that states imputation is held unless its method
+  and variance are established.
+- **Primary analysis.** Each trial's published model-based **treatment-policy** difference, by generic inverse variance
+  with the SE from its reported standard two-sided 95% CI (never used as an arm SD): STEP 1 -12.44 (-13.37 to -11.51),
+  STEP 3 -10.27 (-11.97 to -8.57), both ANCOVA as posted in the registry results. A trial without a reported difference for
+  this estimand is named, never replaced by its raw row. The missing-data method behind each treatment-policy estimate is
+  not held in the source text; the reported interval carries the trial's own variance.
+- **Sensitivity analysis.** Raw observed per-arm mean/SD with the n that contributed the observations, labelled as observed
+  data.
+- **Estimand label.** Derived per input from the analysis actually used, never from the declared population string.
+- **Comparison-level screening; pooled vs matched placebo.** A term naming a randomised arm (STEP 8's liraglutide) is not a
+  population exclusion. The eligible contrast is semaglutide vs its MATCHED placebo; a pooled placebo that includes the
+  placebo matched to once-daily liraglutide is at most a labelled supportive figure. One trial never contributes both, and
+  no placebo arm is counted twice. STEP 8's held registry reports weight only against the pooled placebo, so STEP 8 is
+  named (POOLED_PLACEBO_NOT_THE_ELIGIBLE_CONTRAST) with the pooled figure shown as supportive; it is not pooled.
+- **Declared unit.** The primary outcome declares unit_class PERCENT; a measure in kilograms is not this outcome.
