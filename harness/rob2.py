@@ -36,7 +36,10 @@ MACHINE_DOMAINS = (
     "D5_selective_reporting",
 )
 
-NOT_ASSESSED_LEVELS = {"not assessed", "not_assessable"}
+WITHDRAWN = "withdrawn"
+# a WITHDRAWN signal is not assessed: it is never shown as a provisional level and never counts toward an overall
+NOT_ASSESSED_LEVELS = {"not assessed", "not_assessable", WITHDRAWN}
+IDENTITY_RULE = "identity_check_v1"
 STANDARD_3P_MACE = frozenset({"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE"})
 SECONDARY_COMPONENT_SUBSET_ALLOWED = {frozenset({"HF_HOSPITALISATION"})}
 
@@ -93,27 +96,50 @@ def _outcome_label(row: dict[str, Any]) -> str:
     return _norm_text(row.get("measure") or row.get("title") or row.get("description") or "<unknown>")
 
 
+# Component typing of a registered / pooled outcome. Named so each site keeps its plants when fixed (lane NR V1.0.1: the
+# located defects RX-OL1..8 of regex_layer/defects.py, fixed here because the D5 identity check rests on this typing).
+# RX-OL1: the scale's own spelling 'Montgomery–Åsberg' (en dash, Å)
+_MADRS = re.compile(r"\bmadrs\b|\bmontgomery\s*[-–—]?\s*(?:a|å)?sberg\b")
+# RX-OL2: 'VTE recurrence' / 'recurrence of VTE' mark a recurrence as well as 'recurrent'
+_RECURRENCE = re.compile(r"\brecurren(?:t|ce)\b")
+# RX-OL3: 'deep venous thrombosis' as well as 'deep vein thrombosis'
+_VTE_EVENT = re.compile(r"\bvtes?\b|\bvenous thromboembolism\b|\bdvt\b|\bdeep (?:vein|venous) thrombosis\b|\bpe\b|"
+                        r"\bpulmonary embolism\b")
+# RX-OL4: all-cause DEATH and 'death from any cause', plural 'all causes'
+_ALL_CAUSE_DEATH = re.compile(r"\ball[- ]causes?\s+(?:mortality|death)\b|\bdeath (?:from|of) (?:any|all) causes?\b|"
+                              r"\bdied (?:from|of) any cause\b|\bany[- ]cause (?:mortality|death)\b")
+# RX-OL5: 'CV-related death', 'death due to cardiovascular / CV cause(s)'; RX-OL6: never after 'non-' ('non-cardiovascular death')
+_CV_DEATH = re.compile(r"(?<!non-)(?<!non)\b(?:cv|cardiovascular)(?:\s*\([^)]*\))?(?:[- ]related)?\s+death\b|"
+                       r"\bdeath (?:from|due to) (?:cardiovascular|cv) causes?\b")
+# RX-OL7: plural 'hospitalisations for heart failure' / 'heart failure hospitalizations'
+_HHF = re.compile(r"\bhhf\b|\bhospitali[sz](?:ations?|ed)\b.{0,35}\b(?:heart[- ]failure|hf)\b|"
+                  r"\b(?:heart[- ]failure|hf)\b.{0,35}\bhospitali[sz](?:ations?|ed)\b")
+# RX-OL8: 'major adverse cardiac events' is a MACE term
+_MACE_TERM = re.compile(r"\bmace\b|\bmajor adverse cardi(?:ovascul)?ac events?\b|\bmajor adverse cardiovascular events?\b|"
+                        r"\bmajor cardiovascular events?\b")
+
+
 def _component_set(text: str) -> frozenset[str]:
     s = _norm_text(text).lower()
     if not s:
         return frozenset()
     comps: set[str] = set()
-    if re.search(r"\bmadrs\b|\bmontgomery[- ]?a?sberg\b|\bmontgomery[- ]?asberg\b", s):
+    if _MADRS.search(s):
         is_response = re.search(r"\bresponse\b|\bremission\b|50\s*%|\b50 percent\b|\breduction\b", s)
         is_change = re.search(r"\bchange\b|\bfrom baseline\b|\btotal score\b", s)
         if is_change and not is_response:
             comps.add("MADRS_CHANGE")
-    if re.search(r"\brecurrent\b", s) and re.search(r"\bvtes?\b|\bvenous thromboembolism\b|\bdvt\b|\bdeep vein thrombosis\b|\bpe\b|\bpulmonary embolism\b", s):
+    if _RECURRENCE.search(s) and _VTE_EVENT.search(s):
         if not re.search(r"\bnet clinical benefit\b", s):
             comps.add("RECURRENT_VTE")
-    if re.search(r"\ball[- ]cause mortality\b|\ball cause mortality\b", s):
+    if _ALL_CAUSE_DEATH.search(s):
         comps.add("ALL_CAUSE_MORTALITY")
     if re.search(r"\b(?:kidney|renal|egfr|gfr|esrd|end[- ]stage|dialysis)\b", s) and re.search(
         r"\b(?:composite|progression|sustained|decline|decrease|failure|replacement therapy|dialysis|death)\b",
         s,
     ):
         comps.add("KIDNEY_PROGRESSION_COMPOSITE")
-    if re.search(r"\bcv\s+death\b|\bcardiovascular(?:\s*\([^)]*\))?\s+death\b|\bdeath from cardiovascular causes\b", s):
+    if _CV_DEATH.search(s):
         comps.add("CV_DEATH")
     if re.search(r"\bnon[- ]?fatal\s+(myocardial infarction|mi)\b", s):
         comps.add("NONFATAL_MI")
@@ -125,18 +151,14 @@ def _component_set(text: str) -> frozenset[str]:
         comps.add("NONFATAL_STROKE")
 
     # Extra components keep a broader composite from falsely matching 3-point MACE.
-    if re.search(
-        r"\bhhf\b|\bhospitali[sz](?:ation|ed)\b.{0,35}\b(?:heart failure|hf)\b|"
-        r"\b(?:heart failure|hf)\b.{0,35}\bhospitali[sz](?:ation|ed)\b",
-        s,
-    ):
+    if _HHF.search(s):
         comps.add("HF_HOSPITALISATION")
     if re.search(r"\bunstable angina\b", s):
         comps.add("UNSTABLE_ANGINA")
     if re.search(r"\brevasculari[sz]ation\b", s):
         comps.add("REVASCULARISATION")
 
-    mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor cardiovascular events?\b", s)
+    mace_term = _MACE_TERM.search(s)
     three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
     if mace_term and (three_point or not comps):
         comps.update(STANDARD_3P_MACE)
@@ -145,10 +167,49 @@ def _component_set(text: str) -> frozenset[str]:
     return frozenset(comps)
 
 
+# British -> American spellings, whole words only (an explicit map: an '[ae]' class would miss 'haemoglobin')
+_SPELLING = {"diarrhoea": "diarrhea", "haemorrhage": "hemorrhage", "haemorrhagic": "hemorrhagic", "oedema": "edema",
+             "anaemia": "anemia", "ischaemic": "ischemic", "ischaemia": "ischemia", "hospitalisation": "hospitalization",
+             "hospitalisations": "hospitalizations", "randomised": "randomized", "haematoma": "hematoma"}
+_TOKEN_STOP = {"of", "the", "in", "a", "an", "and", "or", "with", "from", "for", "to", "at", "by", "on"}
+
+
+def _tokens(text: str) -> list[str]:
+    s = (text or "").lower().replace("%", " percent ")
+    out = []
+    for w in re.sub(r"[^a-z0-9]+", " ", s).split():
+        w = _SPELLING.get(w, w)
+        out.append(w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w)
+    return out
+
+
 def _simple_matches(a: str, b: str) -> bool:
-    aa = re.sub(r"[^a-z0-9]+", " ", (a or "").lower()).strip()
-    bb = re.sub(r"[^a-z0-9]+", " ", (b or "").lower()).strip()
-    return bool(aa and bb and (aa == bb or aa in bb or bb in aa))
+    """TEXT IDENTITY: every content word of the pooled outcome is in the registered outcome's text (order-free, after
+    folding British spellings, '%' and plurals; a hyphen-split word also matches its joined form: 'post-operative' carries
+    'postoperative'). A registered FRAGMENT of the pooled name ('All cause' for 'All-cause mortality') is not identity
+    (lane NR V1.0.1, codex NR-C19)."""
+    pooled = [w for w in _tokens(a) if w not in _TOKEN_STOP]
+    reg = _tokens(b)
+    if not pooled or not reg:
+        return False
+    have = set(reg)
+    # joins of 2-3 ADJACENT registered words only ('post' + 'operative'); a substring of one word is not a match
+    # ('vascular' is not in 'cardiovascular')
+    have |= {"".join(reg[i:i + n]) for n in (2, 3) for i in range(len(reg) - n + 1)}
+    return all(w in have for w in pooled)
+
+
+# a CV-like death the component vocabulary does not type ('death from vascular causes', 'coronary heart disease death'):
+# whether it IS cardiovascular death is an identity the harness does not decide; a non-CV death ('death from cancer') is
+# a decidable difference
+_UNTYPED_CV_DEATH = re.compile(
+    r"\b(?:vascular|coronary(?:\s+heart\s+disease)?|chd|cardiac|heart)[\s-]+(?:related\s+)?(?:death|mortality)\b|"
+    r"\bdeath\s+(?:from|due\s+to)\s+(?:vascular|coronary|cardiac|heart)\b", re.I)
+_TYPED_DEATH = {"CV_DEATH", "ALL_CAUSE_MORTALITY"}
+
+
+def _untyped_cv_death(text: str, comps: frozenset[str]) -> bool:
+    return bool(_UNTYPED_CV_DEATH.search(text or "")) and not comps & _TYPED_DEATH
 
 
 def _outcome_match_detail(
@@ -158,39 +219,44 @@ def _outcome_match_detail(
     *,
     allow_secondary_component_subset: bool = False,
 ) -> dict[str, Any]:
+    """One comparison, classified for the IDENTITY CHECK:
+      identity    -- typed component sets equal with complete typing, or text identity (_simple_matches);
+      similarity  -- 'matched' only by the similarity matcher: similarity is not identity (ticagrelor review: PLATO's
+                     3-point MACE 'matched' 'Non-CABG Related Major Bleeding'; corpus: 'Recurrent pericarditis' matched
+                     'Symptom persistence at 72 hours');
+      undecidable -- the typed sets agree or overlap but the registered outcome carries a CV-like death the vocabulary
+                     does not type, and no decisive extra component;
+      mismatch    -- a decidable difference."""
     reg_text = _registered_text(registered)
     pooled_component_set = _component_set(pooled_outcome)
     registered_component_set = _component_set(reg_text)
-    pooled_components = sorted(pooled_component_set)
-    registered_components = sorted(registered_component_set)
+    base = {"pooled_components": sorted(pooled_component_set), "registered_components": sorted(registered_component_set),
+            "registered_text": reg_text}
+    untyped_death = _untyped_cv_death(reg_text, registered_component_set)
+    decisive_extra = bool(registered_component_set - pooled_component_set)
     if pooled_component_set and registered_component_set:
         subset_match = (
             allow_secondary_component_subset
             and pooled_component_set in SECONDARY_COMPONENT_SUBSET_ALLOWED
             and pooled_component_set < registered_component_set
         )
-        return {
-            "matched": pooled_component_set == registered_component_set or subset_match,
-            "method": "registered_secondary_component" if subset_match else "component_set",
-            "pooled_components": pooled_components,
-            "registered_components": registered_components,
-            "registered_text": reg_text,
-        }
-    if _simple_matches(pooled_outcome, reg_text) or (matches and matches(pooled_outcome, reg_text)):
-        return {
-            "matched": True,
-            "method": "text_identity",
-            "pooled_components": pooled_components,
-            "registered_components": registered_components,
-            "registered_text": reg_text,
-        }
-    return {
-        "matched": False,
-        "method": "no_match",
-        "pooled_components": pooled_components,
-        "registered_components": registered_components,
-        "registered_text": reg_text,
-    }
+        if pooled_component_set == registered_component_set or subset_match:
+            if untyped_death and "CV_DEATH" not in pooled_component_set:
+                # equal only because the registered death component was not typed
+                return {"matched": False, "method": "component_set_incomplete", "identity_check": "UNDECIDABLE", **base}
+            return {"matched": True, "method": "registered_secondary_component" if subset_match else "component_set",
+                    "identity_check": "PASSED", **base}
+        if untyped_death and not decisive_extra and (pooled_component_set & registered_component_set):
+            return {"matched": False, "method": "component_set", "identity_check": "UNDECIDABLE", **base}
+        return {"matched": False, "method": "component_set", **base}
+    if _simple_matches(pooled_outcome, reg_text):
+        return {"matched": True, "method": "text_identity", "identity_check": "PASSED", **base}
+    if untyped_death and "CV_DEATH" in pooled_component_set and not decisive_extra:
+        return {"matched": False, "method": "no_match", "identity_check": "UNDECIDABLE", **base}
+    if matches and matches(pooled_outcome, reg_text):
+        return {"matched": False, "method": "similarity_only", "identity_check": "FAILED", **base}
+    return {"matched": False, "method": "no_match", **base}
+
 
 
 def _d1(inputs: dict[str, Any]) -> dict[str, Any]:
@@ -287,6 +353,31 @@ def derive_d5(
     return apply_subgroup_provenance(d, subgroup_provenance)
 
 
+def identity_check_failed(d: dict[str, Any]) -> bool:
+    """Detector for a STORED D5 domain (pre-fix pages included): re-derive it from its own inputs, crediting the stored
+    registry match exactly as recorded, and report whether the identity check withdraws a signal the page showed."""
+    inputs = d.get("inputs") or {}
+    if d.get("level") == WITHDRAWN or not (inputs.get("registered_primary_outcomes") or inputs.get("registered_secondary_outcomes")):
+        return False
+    cmp = inputs.get("comparison") or {}
+    reg = cmp.get("registered_text")
+    stored = (lambda a, b: b == reg) if (cmp.get("matched") and cmp.get("method") == "text_identity") else None
+    again = _derive_d5_registered(inputs.get("registered_primary_outcomes"), inputs.get("pooled_outcome") or "", stored,
+                                  inputs.get("registered_secondary_outcomes"))
+    return again.get("level") == WITHDRAWN
+
+
+def canonical_matcher() -> Callable[[str, str], bool]:
+    """The similarity matcher the gate re-derives with (harness/embed.py); the build overlay uses the same one, so a
+    stored domain is exactly what re-derivation computes."""
+    from . import embed
+
+    def _match(a, b):
+        ranked = embed.rank(a, [b])
+        return bool(ranked) and ranked[0][1] >= 0.45
+    return _match
+
+
 def apply_subgroup_provenance(d: dict[str, Any], subgroup_provenance: dict[str, Any] | None) -> dict[str, Any]:
     """The D5 subgroup-provenance step on a registered-outcome D5 domain (used by derive_d5 and at build time on the
     stored domain, so the stored result is exactly what re-derivation computes)."""
@@ -294,8 +385,8 @@ def apply_subgroup_provenance(d: dict[str, Any], subgroup_provenance: dict[str, 
         return d
     inputs = dict(d.get("inputs") or {}, subgroup_provenance=subgroup_provenance)
     # A post-hoc subgroup is positive evidence that the reported result was selected, so it raises D5 from LOW and also
-    # from NOT-ASSESSABLE (no registry to compare against does not cancel a source's own post-hoc statement). It never
-    # lowers a worse level, and a pre-specified or unresolved provenance changes nothing.
+    # from NOT-ASSESSABLE / WITHDRAWN (no usable registry signal does not cancel a source's own post-hoc statement). It
+    # never lowers a worse level, and a pre-specified or unresolved provenance changes nothing.
     if subgroup_provenance.get("value") == "post_hoc_subgroup" and (d.get("level") == "low"
                                                                      or d.get("level") in NOT_ASSESSED_LEVELS):
         basis = (d.get("basis", "") + "; but the pooled result is a POST-HOC subgroup ('"
@@ -312,6 +403,9 @@ def _derive_d5_registered(
     matches: Callable[[str, str], bool] | None = None,
     registered_secondaries: list[Any] | None = None,
 ) -> dict[str, Any]:
+    """ORDER-INDEPENDENT (lane NR V1.0.1, codex NR-C19): every registered outcome is compared; an identity match anywhere
+    (primaries first) gives 'low'; failing that, a signal that would rest on a similarity-only or identity-undecidable
+    comparison is WITHDRAWN; only a fully decidable no-match gives 'some concerns'."""
     primaries = _outcome_dicts(registered_primaries)
     secondaries = _outcome_dicts(registered_secondaries)
     inputs: dict[str, Any] = {
@@ -332,41 +426,47 @@ def _derive_d5_registered(
             f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2",
             inputs,
         )
+    compared = [("primary", r, _outcome_match_detail(pooled_outcome, r, matches)) for r in primaries] + [
+        ("secondary", r, _outcome_match_detail(pooled_outcome, r, matches, allow_secondary_component_subset=True))
+        for r in secondaries]
+    for kind, row, detail in compared:
+        if not detail["matched"]:
+            continue
+        inputs["comparison"] = {"registered_type": kind, "registered_label": _outcome_label(row), **detail}
+        if kind == "primary":
+            basis = (("the pooled outcome matches the trial's pre-registered primary outcome by component set "
+                      f"({', '.join(detail['pooled_components'])}); registered {_outcome_label(row)!r}")
+                     if detail["method"] == "component_set" else
+                     f"the pooled outcome IS the trial's pre-registered primary outcome; registered {_outcome_label(row)!r}")
+        elif detail["method"] == "registered_secondary_component":
+            basis = ("the pooled outcome is a prespecified component of a registered secondary outcome; "
+                     f"registered {_outcome_label(row)!r}")
+        else:
+            basis = f"prespecified secondary outcome, registered {_outcome_label(row)!r}"
+        return _domain("low", basis, f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2", inputs)
 
-    for rp in primaries:
-        detail = _outcome_match_detail(pooled_outcome, rp, matches)
-        if detail["matched"]:
-            inputs["comparison"] = {"registered_type": "primary", "registered_label": _outcome_label(rp), **detail}
-            if detail["method"] == "component_set":
-                basis = ("the pooled outcome matches the trial's pre-registered primary outcome by component set "
-                         f"({', '.join(detail['pooled_components'])}); registered {_outcome_label(rp)!r}")
-            else:
-                basis = f"the pooled outcome IS the trial's pre-registered primary outcome; registered {_outcome_label(rp)!r}"
-            return _domain("low", basis, f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2", inputs)
-
-    for rs in secondaries:
-        detail = _outcome_match_detail(
-            pooled_outcome,
-            rs,
-            matches,
-            allow_secondary_component_subset=True,
-        )
-        if detail["matched"]:
-            inputs["comparison"] = {"registered_type": "secondary", "registered_label": _outcome_label(rs), **detail}
-            if detail["method"] == "registered_secondary_component":
-                basis = ("the pooled outcome is a prespecified component of a registered secondary outcome; "
-                         f"registered {_outcome_label(rs)!r}")
-            else:
-                basis = f"prespecified secondary outcome, registered {_outcome_label(rs)!r}"
-            return _domain(
-                "low",
-                basis,
-                f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2",
-                inputs,
-            )
+    failing = [(k, r, d) for k, r, d in compared if d.get("identity_check") in ("FAILED", "UNDECIDABLE")]
+    if failing:
+        kind, row, detail = failing[0]
+        inputs["comparison"] = {"registered_type": kind, "registered_label": _outcome_label(row), **detail,
+                                "identity_failures": [{"registered_type": k, "registered_label": _outcome_label(r),
+                                                       "identity_check": d["identity_check"], "method": d["method"]}
+                                                      for k, r, d in failing]}
+        parts = []
+        sim = [_outcome_label(r) for k, r, d in failing if d["identity_check"] == "FAILED"]
+        und = [_outcome_label(r) for k, r, d in failing if d["identity_check"] == "UNDECIDABLE"]
+        if sim:
+            parts.append("matched only by text similarity to " + "; ".join(repr(x[:90]) for x in sim)
+                         + " (similarity is not identity)")
+        if und:
+            parts.append("identity undecidable against " + "; ".join(repr(x[:90]) for x in und)
+                         + " (a CV-like death component the vocabulary does not type)")
+        return _domain(WITHDRAWN, "WITHDRAWN: no registered outcome passes the identity check, and the provisional signal "
+                       "would rest on a comparison that fails it -- " + "; ".join(parts),
+                       f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2+{IDENTITY_RULE}", inputs)
 
     first = primaries[0] if primaries else {}
-    detail = _outcome_match_detail(pooled_outcome, first, matches) if first else {}
+    detail = compared[0][2] if primaries else {}
     inputs["comparison"] = {"registered_type": None, "registered_label": _outcome_label(first) if first else None, **detail}
     return _domain(
         "some concerns",

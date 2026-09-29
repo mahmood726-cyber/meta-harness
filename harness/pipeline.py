@@ -819,12 +819,23 @@ def _rob2_with_subgroup_provenance(rb, outcomes):
     provs = {str(t.get("id", "")).replace("PMID ", "").strip(): t.get("subgroup_provenance")
              for t in prim.get("trials") or [] if t.get("subgroup_provenance")}
     out = copy.deepcopy(rb)
-    for pid, prov in provs.items():
-        entry = out["trials"].get(pid)
+    matcher = None
+    for pid, entry in out["trials"].items():
         d5 = ((entry or {}).get("domains") or {}).get("D5_selective_reporting")
-        if not d5 or not d5.get("inputs") or ":D5:" not in str(d5.get("rule_id") or "") or prov.get("value") == "whole_trial":
+        if not d5 or not d5.get("inputs") or ":D5:" not in str(d5.get("rule_id") or ""):
             continue
-        entry["domains"]["D5_selective_reporting"] = rob2_mod.apply_subgroup_provenance(d5, prov)
+        # RE-DERIVED from the stored inputs with the gate's own matcher, so the IDENTITY CHECK applies to every trial
+        # (a signal resting on a similarity-only or identity-undecidable comparison is WITHDRAWN -- ticagrelor review:
+        # PLATO's MACE 'matched' a major-bleeding outcome) and the stored domain is exactly what re-derivation computes
+        matcher = matcher or rob2_mod.canonical_matcher()
+        inp = d5["inputs"]
+        prov = provs.get(pid)
+        new = rob2_mod.derive_d5(inp.get("registered_primary_outcomes") or [], inp.get("pooled_outcome") or "", matcher,
+                                 inp.get("registered_secondary_outcomes") or [],
+                                 prov if prov and prov.get("value") != "whole_trial" else None)
+        if json.dumps(new, sort_keys=True, default=str) == json.dumps(d5, sort_keys=True, default=str):
+            continue
+        entry["domains"]["D5_selective_reporting"] = new
         entry["overall"] = rob2_mod.overall(entry["domains"])
         if "rob_basis" in entry:
             entry["rob_basis"] = rob2_mod.rob_basis(entry["domains"])
@@ -1710,6 +1721,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         _ch = extract.composite_heterogeneity(spec.get("name", ""), _ch_srcs)
         if _ch:
             out["result"]["composite_heterogeneity"] = _ch
+        # COMPOSITE LABEL: derived from the typed component sets of the pooled inputs (harness/composite_label.py); a name
+        # claiming '3-point MACE' is served qualified unless every input's typed set is the canonical 3-point set.
+        from . import composite_label as _composite_label_mod
+        _cl = _composite_label_mod.derive(spec.get("name", ""), trials, rec_by_id)
+        if _cl:
+            out["composite_label"] = _cl
+        # SINGLE TRIAL (k=1): the trial's own result, never a synthesis, in the trial's own population -- the qualifier is
+        # derived from its eligibility and co-treatment sentences (harness/population_qualifier.py; tocilizumab review:
+        # RECOVERY randomised only patients with hypoxia AND systemic inflammation, 82% on systemic corticosteroids)
+        if out["result"].get("k") == 1 and len(trials) == 1 and out["result"].get("present") is not False:
+            from . import population_qualifier as _pq_mod
+            _t = trials[0]
+            _pid = str(_t.get("id", "")).replace("PMID ", "").strip()
+            _q = _pq_mod.derive(rec_by_id.get(_pid) or rec_by_id.get(str(_t.get("label") or "")), interv or ())
+            out["result"]["single_trial"] = {
+                "trial": _t.get("id"), "presentation": "the trial's own result, not a synthesis",
+                **({"population_qualifier": _q, "served_population": _pq_mod.served_text(_q)} if _q else {})}
         # LEAVE-ONE-OUT / influence, always rendered: at k>=3 drop each trial and re-pool to show how
         # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
         # hidden). Uses the same pooler and scale; no new number is invented.
@@ -2143,6 +2171,10 @@ def build_review_core(slug, config, records, protocol_sha):
         # Corpus-level RoB span-check agreement (rendered on the RoB tab).
         **({"rob_spancheck": _rsc} if (_rsc := _load_rob_spancheck()) else {}),
     }
+    # SERVED PROSE: an asserted 'pre-specified ... subgroup' in the question / population is served only when a pooled
+    # subgroup row's held source states it (harness/subgroup_provenance.py); every correction is recorded.
+    from . import subgroup_provenance as _sp_mod
+    review = _sp_mod.correct_review_prose(review)
     identity_mod.annotate_review(review, merged, config.get("companion_reports") or [])
     _annotate_completeness(review, rec_by_id)
     # CANONICAL CLAIM: one derivation of significance / null-crossing / direction per result,

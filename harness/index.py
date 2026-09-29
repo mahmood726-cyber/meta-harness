@@ -1122,7 +1122,7 @@ def _continuous_section(docs_dir: str) -> str:
     elif refused:
         sema = (f"it went from <strong>k=4, a tight and statistically significant pool</strong>, to "
                 f"<strong>k={k}, MD &minus;{abs(round(md,2))}%</strong>; the registered PM/HKSJ CI is "
-                "refused at k=2, so the index makes no pooled significance or null-crossing claim, after "
+                "computed but withheld by presentation policy at k=2, so the index makes no pooled significance or null-crossing claim, after "
                 "a timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered "
                 "Week-68 outcome")
     else:

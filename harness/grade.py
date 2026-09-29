@@ -102,7 +102,15 @@ def _rob_domain(review):
     # Join by the trial identity (PMID/NCT), never the display label: acronym labels (SOUL, PHILO,
     # CLEAR SYNERGY) are rated in rob2 under their PMID and were invisible here (integration 2026-09-16).
     from .claimgraph import trial_key as _tk
-    levels = [_norm_overall((rob.get(_tk(t)) or rob.get(str(t.get("label"))) or {}).get("overall")) for t in trials]
+    entries = [(rob.get(_tk(t)) or rob.get(str(t.get("label"))) or {}) for t in trials]
+    levels = [_norm_overall(e.get("overall")) for e in entries]
+    # a WITHDRAWN machine signal (D5 identity check failed) cannot make a trial look better for GRADE: missing is not
+    # favourable, so for the downgrade count such a trial is treated as 'some concerns' (lane NR V1.0.1)
+    n_withdrawn = 0
+    for i, e in enumerate(entries):
+        if ((e.get("domains") or {}).get("D5_selective_reporting") or {}).get("level") == "withdrawn" and levels[i] == "low":
+            levels[i] = "some_concerns"
+            n_withdrawn += 1
     n = len(levels)
     rated = [x for x in levels if x]
     n_rated = len(rated)
@@ -134,8 +142,11 @@ def _rob_domain(review):
     if machine_rob(review):
         assessed = False
         basis = "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below"
-    return {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
-            "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
+    out = {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
+           "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
+    if n_withdrawn:
+        out["n_withdrawn_counted_as_some_concerns"] = n_withdrawn
+    return out
 
 
 def _inconsistency_domain(res, review=None):
@@ -227,12 +238,22 @@ def _imprecision_domain(res, scale):
     null = 0.0 if continuous else 1.0
     valid = finite(low) and finite(high) and low < high and (continuous or low > 0)
     missing = []
-    if not valid:
+    # a k=2 registered interval withheld by presentation policy is not a missing or failed computation (harness/k2.py)
+    k2_withheld = bool(res.get("pooled_ci_refused")) and not res.get("pool_refused")
+    # a k=2 direction-conflict pooled row computed and withheld by DISPLAY policy is not a failure either
+    from . import k2 as _k2
+    pool_withheld = (res.get("pool_refused") or {}).get("state") == _k2.WITHHELD_BY_POLICY
+    if not valid and not k2_withheld and not pool_withheld:
         missing.append("valid confidence interval")
     if scale not in {"MD", "SMD", "HR", "RR", "OR", "IRR"}:
         missing.append("supported effect scale")
     refused = bool(res.get("pool_refused") or res.get("pooled_ci_refused"))
-    if refused:
+    if k2_withheld:
+        from . import k2 as _k2
+        missing.append(f"served pooled CI ({_k2.withheld_phrase(res)} at k=2)")
+    elif pool_withheld:
+        missing.append("served pooled CI (computed, withheld by display policy: k=2 direction conflict)")
+    elif refused:
         missing.append("served pooled CI (refused)")
     threshold = res.get("clinical_threshold")
     threshold = threshold if isinstance(threshold, dict) else {}
@@ -248,7 +269,13 @@ def _imprecision_domain(res, scale):
         missing.append("information-size assessment with adequacy and basis")
     touches = valid and (abs(low-null) <= 1e-9 or abs(high-null) <= 1e-9)
     crosses = bool(valid and low < null - 1e-9 and high > null + 1e-9)
-    basis = f"95% CI [{low}, {high}]"
+    if k2_withheld:
+        from . import k2 as _k2
+        basis = f"95% CI {_k2.withheld_phrase(res)} at k=2"
+    elif pool_withheld:
+        basis = "95% CI computed, withheld by display policy (k=2 direction conflict)"
+    else:
+        basis = f"95% CI [{low}, {high}]"
     domain = {"downgrade": 0, "assessed": False, "state": "REQUIRES_JUDGEMENT",
               "crosses_null": None if touches or not valid else crosses,
               "missing_inputs": missing, "basis": basis}

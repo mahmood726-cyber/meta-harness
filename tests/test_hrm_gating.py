@@ -48,7 +48,8 @@ def test_complete_ledger_retained_and_missing_span_blocks():
     annotate(out)
     html = page._outcome_block(out, show_inputs=False)
     assert "Harms extraction ledger" in html
-    assert "Single-trial effect" in html
+    # lane NR V1.0.1: a k=1 result is labelled the trial's own result, never a synthesis (was 'Single-trial effect')
+    assert "The trial&#x27;s own result (one trial; not a synthesis)" in html and "Pooled effect" not in html
     out["trials"][0].pop("source")
     assert harms.synthesis_incomplete(out)
     assert "Single-trial effect" not in page._outcome_block(out, show_inputs=False)

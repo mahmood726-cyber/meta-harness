@@ -233,7 +233,13 @@ def omission_reason(review) -> dict | None:
     if code == "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE" and res.get("scale"):
         out["reason"] += f" (declared scales: {res.get('scale')})"
     if code == "PRIMARY_POOL_REFUSED":
-        out["refusal_code"] = (res.get("pool_refused") or {}).get("code")
+        ref = res.get("pool_refused") or {}
+        out["refusal_code"] = ref.get("code")
+        from . import k2 as _k2
+        if ref.get("state") == _k2.WITHHELD_BY_POLICY:
+            # a DISPLAY policy on a computed row, not a failure (lane NR V1.0.1, ticagrelor review)
+            out["reason"] = ("the primary pooled row is computed but withheld by display policy (k=2 direction "
+                             "conflict), so there is no served pooled estimate to re-pool")
     return out
 
 

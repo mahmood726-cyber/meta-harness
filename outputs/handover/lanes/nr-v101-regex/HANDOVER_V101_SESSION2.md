@@ -244,6 +244,76 @@ The calls are logged in `C:/mh-lanes/nr/codex/CALL_LOG.jsonl` (NR-C03 … NR-C17
     regeneration decides both sets.
   - Run the suite with `--continue-on-collection-errors`, or `test_site_detects`' collection error aborts it.
 
+### Label fixes as harness code: statins addendum, ticagrelor, tocilizumab (Mahmood: "fix all in harness")
+- **No hand-edits.** The statins and melatonin topic edits from the subgroup commit are REVERTED (topics equal
+  6d3b41ad). The harness now serves the derived value and corrects asserted 'pre-specified … subgroup' prose itself
+  (`subgroup_provenance.correct_review_prose`), recording each correction in `served_prose_corrections`.
+- **What is harness code now (each with plants and regex-layer specs):**
+  - `harness/composite_label.py`: a pooled composite's label is derived from its inputs' typed component sets
+    (IDENTICAL_3P / IDENTICAL / DIFFER / UNTYPED); a MACE or 3-point name is served qualified unless the inputs earn it;
+    ischaemic vs all stroke stays visible. Gate: `check_composite_label`.
+  - `harness/k2.py`: the k=2 registered interval and the direction-conflict pooled row are "computed, withheld by
+    presentation/display policy", derived from whether they were computed (`state`), on every surface (page,
+    limitations, manuscript, GRADE imprecision, RoB-sensitivity reason, index). PLATO is shown "alone … not the
+    review-wide conclusion". Guards: `check_common_effect_not_promoted`, `check_direction_conflict_claims` (no
+    region/ethnicity explanation, no equivalence / no-benefit reading; negation- and scope-aware).
+  - `harness/rob2.py`: the D5 IDENTITY CHECK. Order-independent: identity anywhere (typed component equality with
+    complete typing, or token-containment text identity) gives low; else a signal resting on a similarity-only or
+    identity-undecidable comparison (an untyped 'death from vascular causes') is WITHDRAWN (treated as not assessed);
+    only a decidable no-match gives some concerns. The build overlay re-derives D5 with the gate's matcher
+    (`rob2.canonical_matcher`), so stored = re-derived. RX-OL1..8 (located defects in regex_layer/defects.py) fixed as
+    named compiles; 10 strict xfails now pass.
+  - `harness/population_qualifier.py`: a k=1 result is "the trial's own result (one trial; not a synthesis)", with the
+    trial's own population derived from its eligibility and co-treatment sentences (RECOVERY-tocilizumab: hypoxia AND
+    systemic inflammation, 82% on systemic corticosteroids); the review's intervention is never a 'co-treatment'.
+    Gate: `check_single_trial_presentation`. The tocilizumab SAE pool stays K2_SINGLE_DF-withheld.
+- **Corpus n of N** (`scripts/nr_v101_label_audit.py`; detectors derive from rows and held records, not from the
+  fields the fixes add). Live pages (HEAD) → rebuild build_K:
+
+  | | pre-fix (live) | post-fix |
+  |---|---|---|
+  | A post-hoc subgroup served as pre-specified | 1 of 32 pages (+1 unresolved: melatonin) | 0 |
+  | B pooled composite with an unqualified MACE/3-point label | 3 of 24 (pcsk9, statins, ticagrelor) | 0 of 25 |
+  | C k=2 computed interval worded as a refusal | 11 of 12 | 0 of 12 |
+  | D common-effect CI served as primary | 0 of 12 | 0 of 12 |
+  | E direction conflict: refusal wording / anchor as conclusion / explanatory-equivalence | 2 / 1 / 0 of 2 | 0 / 0 / 0 |
+  | F D5 signal failing the identity check, shown | 9 of 99 | 0 of 100 |
+  | G primary k=1 served as synthesis or without its population | 6 of 6 pages (7) | 0 of 8 |
+
+  Denominators differ where this lane's build already carries the pending batch-2 changes (DELIVER, EMPEROR k=1).
+- **Radius vs build_H:** 0 of 797 served rows, 0 of 652 metadata fields, 0 of 937 registry labels. RoB: 10 D5 signals
+  (9 withdrawn, PARADIGM-HF corrected to low by the 'heart-failure' typing fix) on 8 topics; two overalls move from
+  some concerns to low on the assessed domains (omega-3 30146932, PHILO) because the withdrawn D5 was their only
+  concern. GRADE stays conservative: a trial whose D5 was WITHDRAWN counts as 'some concerns' for the RoB downgrade
+  (`n_withdrawn_counted_as_some_concerns`; missing is not favourable), so ticagrelor keeps its downgrade; only
+  sacubitril's RoB downgrade goes, on POSITIVE evidence (PARADIGM-HF's registered primary now correctly identified),
+  acknowledged in `test_grade_missing_is_not_favourable` with its notice. Certainty stays provisional. Notices:
+  `items/NOTICES_TO_APPEND_V101_G.json` (8 RoB) and `…_H_LABELS.json` (17 pages, labels only).
+- **Pre-fix firing:** `items/LABELS_PLANTS_PRE_FIX.txt` — 22 of 27 plants fail on the pre-fix pipeline + pages; the 5
+  that pass are unit plants of the two new modules (no pre-fix counterpart; without the modules they fail to import).
+- **Codex:** NR-C18 (subgroup provenance, 14 cases) and NR-C19 (conflict guard + D5 identity, 21 cases): every claimed
+  case reproduced by execution before a fix; all planted. Taken beyond the ticagrelor case: similarity-only matches
+  between two UNTYPED outcomes are withdrawn too (measured on the corpus: several were false, e.g. 'Recurrent
+  pericarditis' ~ 'Symptom persistence at 72 hours'). Not taken: a narrow 'defined before unblinding'
+  pre-specification branch (UNRESOLVED is the honest answer there).
+- **Open, for the owners:** the melatonin PROTOCOL states Wade et al.'s age 65-80 population is "pre-defined … a
+  co-primary analysis"; the held abstract does not, so the harness serves it UNRESOLVED and does not edit the
+  protocol. A source span (the full paper) would settle it.
+- **Bulk-signing packet:** `bulk_signing/` (see its README lines in the packet): every pending notice across lanes,
+  nothing signed.
+- **Gate scorecard:** the 4 new gate checks are registered in `registry/gate_scorecard.json` (PLANT events citing the
+  plant files, adjudicated internal; production UNRESOLVED), not validated in production.
+- **Tests:** plants and regex suites pass (regex: 2402 passed, 50 xfailed -- 10 former strict xfails fixed). The full
+  suite (temp moved to F:, C: was 99% full and the first run failed on temp-dir creation) was classified test by
+  test: every failure outside the batch-2 list fails identically with this lane's harness changes stashed, or is
+  docs-state (pre-fix committed pages read by the current renderer: `test_limitations_legacy_compare`, bundle,
+  certificate, page-verifier) that clears when the captain regenerates the pages. The 4 that failed only with these
+  changes were fixed at their cause: scorecard entries; GRADE counting a withdrawn signal as a concern; the
+  `test_hrm_gating` assertion pinned the old 'Single-trial effect' wording; one acknowledged downgrade change.
+- **Incident:** stopping my build loop I killed every PID matching the script name, which also killed lane evid2's
+  rebuild (`/c/mh-lanes/evid2-v101`, stopped after 6/32) and restarted lane screen's from its first topic. Not
+  relaunched by me (their worktrees). Kill only PIDs whose cwd/argument is your own worktree.
+
 ## Tests (full suite, sequential, temp on C:)
 - **Result:** 4237 passed, 71 xfailed, 19 failed, 12 errors, all accounted for.
 - **Environment:**

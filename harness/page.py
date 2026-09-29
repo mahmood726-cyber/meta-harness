@@ -340,19 +340,29 @@ def _effect_label(res) -> str:
     # read as a random-effects pooled interval.
     if res.get("effect_label"):
         return res.get("effect_label")
-    return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
+    # k=1 is the trial's own result, never a synthesis (lane NR V1.0.1, tocilizumab review)
+    return "The trial's own result (one trial; not a synthesis)" if res.get("k") == 1 else "Pooled effect"
+
+
+def _single_trial_rows(res: dict) -> list:
+    st = res.get("single_trial") or {}
+    if not st.get("served_population"):
+        return []
+    return [("Population of this result",
+             f"the trial's own population: {st['served_population']} -- not every patient the question covers")]
 
 
 def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:
     ref = res.get("pool_refused") or {}
     cf = res.get("counterfactual") or {}
+    from . import k2 as _k2m
     line = (
-        "<div class='absent'><strong>Pooled result REFUSED (k=2 direction conflict).</strong> "
+        f"<div class='absent'><strong>{_e(_k2m.pool_withheld_heading(res))}.</strong> "
         f"{_e(ref.get('detail'))} {_e(ref.get('rule'))}"
     )
     if cf.get("would_be_estimate") is not None:
         line += (
-            f" <em>The invalid pooled row is quarantined for audit only: "
+            f" <em>The computed pooled row, withheld by display policy and kept for audit (not a result): "
             f"{_num(cf.get('would_be_estimate'))} ({_num(cf.get('would_be_ci_low'))}-"
             f"{_num(cf.get('would_be_ci_high'))}), tau^2={_e(cf.get('would_be_tau2'))}, "
             f"I^2={_e(cf.get('would_be_i2'))}%. {_e(stale_reason)}</em>"
@@ -360,7 +370,7 @@ def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:
     anchor = ref.get("honest_k1_anchor") or {}
     if anchor:
         line += (
-            f"<p><strong>Honest k=1 anchor:</strong> {_e(anchor.get('name') or anchor.get('label'))} "
+            f"<p><strong>{_e(_k2m.anchor_heading(anchor))}:</strong> "
             f"{_e(anchor.get('scale') or res.get('scale'))} {_num(anchor.get('effect'))} "
             f"(95% CI {_num(anchor.get('ci_low'))}-{_num(anchor.get('ci_high'))}). "
             f"{_e(anchor.get('basis') or '')}</p>"
@@ -371,19 +381,19 @@ def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:
                 f"<li>{_e(x.get('label'))}: {_e(x.get('scale') or res.get('scale'))} {_num(x.get('effect'))} "
                 f"(95% CI {_num(x.get('ci_low'))}-{_num(x.get('ci_high'))})</li>" for x in rem
             )
-            line += f"<p><strong>Named remainder(s), not pooled:</strong></p><ul>{items}</ul>"
+            line += f"<p><strong>The other eligible trial(s), shown alone, not pooled:</strong></p><ul>{items}</ul>"
     return line + "</div>"
 
 
 def _registered_ci_refusal_text(res: dict) -> str:
     ref = res.get("pooled_ci_refused") or {}
-    return f"REFUSED ({_e(ref.get('code'))}): {_e(ref.get('detail'))}"
+    return f"{_e(_k2.withheld_phrase(res))} ({_e(ref.get('code'))}): {_e(ref.get('detail'))}"
 
 
 def _k2_ci_refusal_block(res: dict) -> str:
     ref = res.get("pooled_ci_refused") or {}
     return (
-        "<div class='absent'><strong>Registered pooled CI REFUSED at k=2.</strong> "
+        f"<div class='absent'><strong>Registered pooled CI at k=2: {_e(_k2.withheld_phrase(res))}.</strong> "
         f"{_e(ref.get('detail'))} The point estimate may be displayed, but no pooled "
         "significance/null-crossing claim is emitted.</div>"
     )
@@ -392,7 +402,7 @@ def _k2_ci_refusal_block(res: dict) -> str:
 def _effect_rows(res: dict) -> list[tuple[str, str]]:
     if res.get("pooled_ci_refused"):
         return [
-            ("Pooled point estimate (registered CI refused)",
+            (f"Pooled point estimate (registered CI {_k2.withheld_phrase(res)})",
              f"{_num(res.get('estimate'))} ({_e(res.get('scale'))}); no pooled significance/null-crossing claim"),
             ("Registered PM/HKSJ CI", _registered_ci_refusal_text(res)),
         ]
@@ -409,7 +419,7 @@ def _common_effect_row(res: dict) -> tuple[str, str] | None:
     return ("Common-effect sensitivity (z-based; not the registered interval)", txt)
 
 
-_ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed: the primary pooled row is REFUSED ({code}), so there is no pooled estimate to re-pool by risk-of-bias stratum. The per-trial rows and their risk-of-bias ratings are shown above; a stratified re-pool of a refused pool would be a number about nothing.</div>"
+_ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed: the primary pooled row is withheld by display policy ({code}), so there is no served pooled estimate to re-pool by risk-of-bias stratum. The per-trial rows and their risk-of-bias ratings are shown above; a stratified re-pool of a withheld pool would be a number about nothing.</div>"
 
 
 
@@ -796,16 +806,19 @@ def _overview(r, neutral):
                                  f"pooled (screening count = k).")
             dc = prim.get("design_consumption") or res.get("design_consumption") or {}
             rows = [
-                ("Outcome", prim.get("name")),
+                ("Outcome", _served_name(prim)),
+                *([("Composite (derived from its inputs' typed component sets)", (prim.get("composite_label") or {}).get("label"))]
+                  if prim.get("composite_label") else []),
                 ("Estimand", res.get("scale") or prim.get("estimand")),
                 ("Estimand decision", _estimand_decision_text(prim)),
             ]
             if dc.get("design_refused"):
                 rows.append(("Design-consumption state", dc.get("headline")))
-            rows.append(("Trials pooled (k)", kdisp))
+            rows.append(("Trials (k): one trial, not a synthesis" if res.get("k") == 1 else "Trials pooled (k)", kdisp))
             if recon:
                 rows.append(("Screened-in → pooled", recon))
             rows.extend(_effect_rows(res))
+            rows.extend(_single_trial_rows(res))
             if res.get("ci_low_fixed") is not None:
                 rows.append(_common_effect_row(res))
             if res.get("pi_low") is not None:
@@ -1221,6 +1234,14 @@ def _screening(r, neutral):
             body += f"<li><strong>Negative:</strong> {_e(nc)}</li>"
         body += "</ul>"
     return body
+
+
+from . import k2 as _k2
+
+
+def _served_name(o):
+    from . import composite_label
+    return composite_label.served_name(o)
 
 
 def _unit_label(unit):
@@ -1692,12 +1713,12 @@ def _outcome_block(o, show_inputs=True, review=None):
     r = (review or {"outcomes": [o]}) if o.get("primary") else {}
     from . import harms
     if harms.synthesis_incomplete(o):
-        return (f"<h4>{_e(o.get('name'))}</h4>" + _harms_ledger_block(o)
+        return (f"<h4>{_e(_served_name(o))}</h4>" + _harms_ledger_block(o)
                 + (_trial_inputs(o) if show_inputs else ""))
     reason = _absent(o)
     if reason:
-        return f"<h4>{_e(o.get('name'))}</h4>" + _absent_block(reason)
-    body = f"<h4>{_e(o.get('name'))}{' (primary)' if o.get('primary') else ''}</h4>"
+        return f"<h4>{_e(_served_name(o))}</h4>" + _absent_block(reason)
+    body = f"<h4>{_e(_served_name(o))}{' (primary)' if o.get('primary') else ''}</h4>"
     res = o.get("result")
     rr = _absent(res)
     if rr and isinstance(res, dict) and res.get("state") == "HARMS_INCOMPLETE":
@@ -1777,6 +1798,7 @@ def _outcome_block(o, show_inputs=True, review=None):
             ("k", _k_display(o)),
         ]
         rows.extend(_effect_rows(res))
+        rows.extend(_single_trial_rows(res))
         cerow = _common_effect_row(res)
         if cerow:
             _eu = _evidence_unit_summary(o)

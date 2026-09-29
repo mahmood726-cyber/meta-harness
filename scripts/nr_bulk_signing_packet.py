@@ -61,7 +61,8 @@ EG_WITHDRAW = {"N09", "N17", "N18", "N19", "N29"}
 EG_REISSUE = {"N30", "N35"}
 EG_STATUS_SOURCE = "docs/evidence/enforcement-gate-2026-09-21/39-p5-rederivation-for-nr.md (CORRECTED header, 2026-09-25)"
 NR_FILES = ["outputs/handover/lanes/nr-v101-regex/NOTICE_TO_APPEND.json"] + [
-    f"outputs/handover/lanes/nr-v101-regex/items/NOTICES_TO_APPEND_V101_{x}.json" for x in "BCDEF"]
+    f"outputs/handover/lanes/nr-v101-regex/items/NOTICES_TO_APPEND_V101_{x}.json" for x in ("B", "C", "D", "E", "F", "G",
+                                                                                              "H_LABELS")]
 OC_MOVES = ("oc (V1.0.1 candidate stack)", "C:/mh-lanes/oc-sema/evidence/v101_candidate/moves_83495751.json",
             "C:/mh-lanes/oc-sema/evidence/v101_candidate/NOTICES.md", "C:/mh-lanes/oc-sema")
 

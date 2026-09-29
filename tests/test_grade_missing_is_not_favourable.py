@@ -103,6 +103,11 @@ ACKNOWLEDGED_DOWNGRADE_CHANGES = {
     # (0.7032-0.9344) -- the interval now excludes no-effect and is precise; the live k=2 page served no interval, so
     # its imprecision downgrade (1) is no longer earned. The domain is still assessed (REQUIRES_JUDGEMENT), not missing.
     ("pcsk9-mace", "imprecision"),
+    # V1.0.1 (lane NR, D5 identity check; notice NOTICES_TO_APPEND_V101_G): PARADIGM-HF (PMID 25176015)'s D5 was 'some
+    # concerns -- possibly unregistered' only because 'heart-failure hospitalization' (hyphen) was not typed; typed, the
+    # pooled outcome IS its registered primary (CV death or HF hospitalisation), so D5 is low on POSITIVE evidence and
+    # the RoB downgrade is no longer earned. Not a missing input: a withdrawn signal is still counted as a concern.
+    ("sacubitril-valsartan-hfref", "risk_of_bias"),
 }
 
 

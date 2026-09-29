@@ -89,3 +89,90 @@ def derive(trial: dict[str, Any], record: dict[str, Any] | None, declared_unit: 
 def evidence_unit(prov: dict[str, Any]) -> str:
     """The rendered evidence unit, from the DERIVED provenance."""
     return prov.get("value") or "subgroup_unresolved"
+
+
+# ---- served prose: an ASSERTED 'pre-specified ... subgroup' is not served unless a source says so ------------------------
+
+# 'pre-specified JUPITER >=70-years subgroup', 'pre-specified age 65-80 ITT subgroup' -- the qualifier in front of a subgroup
+_PRESPEC_PROSE = re.compile(r"\bpre-?specified\s+(?=[^.;()]{0,60}?\bsubgroups?\b)", re.I)
+PROSE_RULE_ID = "subgroup_provenance:served_prose_v1"
+# the page's GENERATED unit label ('k = 2 (1 trial + 1 pre-specified subgroup of JUPITER)'); a committed protocol quoted on
+# the page is the review's registered record, not a served label, and is not scanned
+_PRESPEC_UNIT_LABEL = re.compile(r"\b\d+\s+pre-specified\s+subgroups?\s+of\b", re.I)
+
+
+def _subgroup_rows(review: dict[str, Any]) -> list[dict[str, Any]]:
+    return [t for o in review.get("outcomes") or [] for t in o.get("trials") or []
+            if (t.get("subgroup_provenance") or {}).get("value") != WHOLE_TRIAL and t.get("subgroup_provenance")]
+
+
+def correct_review_prose(review: dict[str, Any]) -> dict[str, Any]:
+    """Serve the question / outcome-population prose without an asserted 'pre-specified' when no pooled subgroup row
+    DERIVES prespecified_subgroup from its source. Every copy of the asserted string in the review is replaced (keys named
+    'asserted' keep the record of what the topic said), and each correction is recorded with its basis."""
+    rows = _subgroup_rows(review)
+    if not rows or any(t["subgroup_provenance"].get("value") == PRESPECIFIED for t in rows):
+        return review
+    targets = [review.get("question")] + [o.get("population") for o in review.get("outcomes") or []]
+    fixes = {}
+    for s in targets:
+        if isinstance(s, str) and _PRESPEC_PROSE.search(s):
+            fixes[s] = _PRESPEC_PROSE.sub("", s)
+    if not fixes:
+        return review
+
+    def fix(s):
+        for old, new in fixes.items():
+            if old in s:
+                s = s.replace(old, new)
+        return s
+
+    def walk(x):
+        # IN PLACE: the build keeps references into the review (its outcomes list), so no container is replaced
+        items = x.items() if isinstance(x, dict) else enumerate(x) if isinstance(x, list) else ()
+        for k, v in list(items):
+            if k == "asserted":
+                continue
+            if isinstance(v, str):
+                x[k] = fix(v)
+            elif isinstance(v, (dict, list)):
+                walk(v)
+
+    walk(review)
+    out = review
+    out["served_prose_corrections"] = [{
+        "asserted": old, "served": new, "rule_id": PROSE_RULE_ID,
+        "basis": "the topic asserted a pre-specified subgroup; no pooled subgroup row's held source states a "
+                 "pre-specification (" + "; ".join(f"{t.get('id')}: {t['subgroup_provenance'].get('value') or 'unresolved'}"
+                                                    for t in rows) + ")"} for old, new in fixes.items()]
+    return out
+
+
+def prespecified_claim_violations(review: dict[str, Any], records: dict[str, Any] | None,
+                                  html: str | None = None) -> list[dict[str, Any]]:
+    """Detector (runs on pre-fix and post-fix outputs alike): pooled subgroup rows served as pre-specified -- by their
+    evidence unit, the page's unit label, or the question/population prose -- while the held source does not state a
+    pre-specification. Derives the provenance itself from `records`, so it does not trust the review's own field."""
+    bad = []
+    prose = " ".join(str(x) for x in [review.get("question")] + [o.get("population") for o in review.get("outcomes") or []])
+    page = html or ""
+    for o in review.get("outcomes") or []:
+        for t in o.get("trials") or []:
+            unit = str(t.get("evidence_unit") or "")
+            if "subgroup" not in unit:
+                continue
+            pid = str(t.get("id", "")).replace("PMID ", "").strip()
+            prov = derive(t, (records or {}).get(pid), unit)
+            if prov["value"] == PRESPECIFIED:
+                continue
+            where = []
+            if unit == PRESPECIFIED:
+                where.append("evidence_unit")
+            if _PRESPEC_PROSE.search(prose):
+                where.append("question/population prose")
+            if _PRESPEC_UNIT_LABEL.search(page):
+                where.append("page unit label")
+            if where:
+                bad.append({"outcome": o.get("name"), "trial": t.get("id"), "derived": prov["value"] or "unresolved",
+                            "span": prov.get("span"), "served_as_prespecified_in": where})
+    return bad

@@ -238,7 +238,7 @@ def _fmt(why: str, src: str, low: bool = False) -> dict:
 DETECTS.update({
     # ---- harness/rob2.py ---------------------------------------------------------------------------------------------
     "rob2.py:sub:7b4eac99d8": _fmt("whitespace normalisation in _norm_text; matches formatting, not meaning", _ROB2_SRC),
-    "rob2.py:search:b4e124d7bc": {
+    "rob2.py:_MADRS": {
         "detects": "the outcome is measured on the MADRS (Montgomery-Asberg Depression Rating Scale), by name or abbreviation",
         "trigger": r"madrs|montgomery|sberg|depression rating", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:search:6a51f42d5e": {
@@ -247,16 +247,16 @@ DETECTS.update({
     "rob2.py:search:c958964040": {
         "detects": "the (MADRS) outcome is a change-from-baseline or total-score outcome",
         "trigger": r"change|baseline|score", "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:74ee9684cf": {
+    "rob2.py:_RECURRENCE": {
         "detects": "the thromboembolic outcome counts a RECURRENCE (recurrent VTE), not a first event",
         "trigger": r"recurr", "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:2ee9bddbd6": {
+    "rob2.py:_VTE_EVENT": {
         "detects": "the outcome names a venous thromboembolic event (VTE, deep vein thrombosis, pulmonary embolism)",
         "trigger": r"vte|venous|thrombo|embol|dvt|\bpe\b", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:search:217d388541": {
         "detects": "the outcome is a net-clinical-benefit composite",
         "trigger": r"net|benefit", "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:2302517c9d": {
+    "rob2.py:_ALL_CAUSE_DEATH": {
         "detects": "the outcome is all-cause mortality (death from any cause), not a cause-specific death",
         "trigger": r"all[- ]?cause|any cause|mortality|death", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:search:95e6c448a9": {
@@ -266,7 +266,7 @@ DETECTS.update({
         "detects": "the (kidney) outcome is a progression, sustained decline, failure, replacement therapy or composite",
         "trigger": r"composite|progress|sustain|declin|decreas|failure|replacement|dialysis|death",
         "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:052d9d5ea5": {
+    "rob2.py:_CV_DEATH": {
         "detects": "the outcome names cardiovascular death (not non-cardiovascular death, not all-cause death)",
         "trigger": r"cardiovascular|\bcv\b|cardiac", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:search:6cd81436fb": {
@@ -281,7 +281,7 @@ DETECTS.update({
     "rob2.py:search:75347cb965": {
         "detects": "the outcome names stroke",
         "trigger": r"stroke|cerebrovascular", "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:4494298990": {
+    "rob2.py:_HHF": {
         "detects": "the outcome names hospitalisation for heart failure (HHF)",
         "trigger": r"hhf|hospi|admi", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:search:145e8c3798": {
@@ -290,7 +290,7 @@ DETECTS.update({
     "rob2.py:search:07c0729508": {
         "detects": "the outcome names (coronary) revascularisation",
         "trigger": r"revascul|pci|cabg", "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:a26bd545ce": {
+    "rob2.py:_MACE_TERM": {
         "detects": "the outcome is a MACE-type composite (MACE, major adverse cardiovascular/cardiac events), not 'major "
                    "adverse events' in general",
         "trigger": r"mace|major", "text_source": _ROB2_SRC, "lowercased": True},
@@ -299,8 +299,6 @@ DETECTS.update({
         "trigger": r"3|three", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:sub:e3839b281a": _fmt("punctuation-to-space normalisation in _simple_matches; matches formatting, not meaning",
                                    "the pooled outcome name (lowercased)", True),
-    "rob2.py:sub:e3839b281a#2": _fmt("punctuation-to-space normalisation in _simple_matches; matches formatting, not meaning",
-                                     "a registered outcome text (lowercased)", True),
     # ---- harness/funding.py ------------------------------------------------------------------------------------------
     "funding.py:_STRONG_ANCHOR": {
         "detects": "the text makes an explicit funding statement (funded by, funding:, grants from, sponsored by, role of "

@@ -16,7 +16,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_norm_text: collapse whitespace runs in a registered outcome field",
         "plants": {"accept": [("cardiovascular  death\nor stroke", None), ("mace\t(3-point)", None)],
                    "refuse": ["cardiovascular-death", "mace"]}},
-    "rob2.py:search:b4e124d7bc": {
+    "rob2.py:_MADRS": {
         "kind": "search", "what": "_component_set: the outcome is measured on the MADRS (by abbreviation or full name)",
         "plants": {"accept": [("change from baseline in madrs total score", None),
                               ("montgomery-asberg depression rating scale", None),
@@ -32,12 +32,12 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_component_set: the MADRS outcome is a change / total-score outcome",
         "plants": {"accept": [("change from baseline in madrs total score", None), ("madrs total score at day 28", None)],
                    "refuse": ["madrs response rate", "percentage of participants in remission"]}},
-    "rob2.py:search:74ee9684cf": {
+    "rob2.py:_RECURRENCE": {
         "kind": "search", "what": "_component_set: the thromboembolic outcome is a RECURRENCE (with the VTE site)",
         "plants": {"accept": [("recurrent venous thromboembolism", None), ("symptomatic recurrent vte", None),
                               ("symptomatic vte recurrence", None)],
                    "refuse": ["first venous thromboembolism", "incident vte after surgery"]}},
-    "rob2.py:search:2ee9bddbd6": {
+    "rob2.py:_VTE_EVENT": {
         "kind": "search", "what": "_component_set: the outcome names a venous thromboembolic event (VTE, DVT, PE)",
         "plants": {"accept": [("recurrent vte", None), ("recurrent pulmonary embolism", None),
                               ("deep vein thrombosis", None), ("recurrent deep venous thrombosis", None)],
@@ -46,11 +46,12 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_component_set: the outcome is a net-clinical-benefit composite (excluded from recurrent VTE)",
         "plants": {"accept": [("net clinical benefit (recurrent vte or major bleeding)", None)],
                    "refuse": ["clinical benefit", "net reclassification improvement"]}},
-    "rob2.py:search:2302517c9d": {
+    "rob2.py:_ALL_CAUSE_DEATH": {
         "kind": "search", "what": "_component_set: the outcome is all-cause mortality (death from any cause)",
         "plants": {"accept": [("all-cause mortality", None), ("all cause mortality", None),
                               ("number of participants with an event of all-cause death", None),
-                              ("death from any cause", None)],
+                              ("death from any cause", None),
+                              ("number of participants who died from any cause", None), ("death from all causes", None)],
                    "refuse": ["cardiovascular mortality", "cause-specific mortality"]}},
     "rob2.py:search:95e6c448a9": {
         "kind": "search", "what": "_component_set: the outcome concerns the kidney (with the progression-word site)",
@@ -62,7 +63,7 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("composite kidney outcome", None), ("progression of ckd", None),
                               ("renal replacement therapy", None)],
                    "refuse": ["urine albumin-to-creatinine ratio at week 12", "kidney function at baseline"]}},
-    "rob2.py:search:052d9d5ea5": {
+    "rob2.py:_CV_DEATH": {
         "kind": "search", "what": "_component_set: the outcome names cardiovascular death",
         "plants": {"accept": [("cv death", None), ("cardiovascular death", None), ("cardiovascular (cv) death", None),
                               ("death from cardiovascular causes", None),
@@ -85,11 +86,12 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_component_set: the outcome names stroke",
         "plants": {"accept": [("stroke", None), ("ischemic stroke", None)],
                    "refuse": ["transient ischemic attack", "myocardial infarction"]}},
-    "rob2.py:search:4494298990": {
+    "rob2.py:_HHF": {
         "kind": "search", "what": "_component_set: the outcome names hospitalisation for heart failure",
         "plants": {"accept": [("hhf", None), ("hospitalization for heart failure", None),
                               ("heart failure hospitalisation", None), ("hospitalized for hf", None),
-                              ("rate of total (first and recurrent) events of hospitalisations for heart failure (hf)", None)],
+                              ("rate of total (first and recurrent) events of hospitalisations for heart failure (hf)", None),
+                              ("heart-failure hospitalization", None)],
                    "refuse": ["all-cause hospitalization", "heart failure death"]}},
     "rob2.py:search:145e8c3798": {
         "kind": "search", "what": "_component_set: the outcome names unstable angina",
@@ -99,7 +101,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_component_set: the outcome names (coronary) revascularisation",
         "plants": {"accept": [("coronary revascularization", None), ("urgent revascularisation", None)],
                    "refuse": ["target lesion failure", "vascular access complications"]}},
-    "rob2.py:search:a26bd545ce": {
+    "rob2.py:_MACE_TERM": {
         "kind": "search", "what": "_component_set: the outcome is a MACE-type composite (MACE / major adverse cardiovascular events)",
         "plants": {"accept": [("mace", None), ("major adverse cardiovascular events", None),
                               ("major cardiovascular events", None), ("major adverse cardiac events", None)],
@@ -111,10 +113,6 @@ SITE_SPECS: dict = {
     "rob2.py:sub:e3839b281a": {
         "kind": "search", "what": "_simple_matches: non-alphanumeric runs become spaces (pooled outcome side)",
         "plants": {"accept": [("cv death", None), ("3-point mace", None)], "refuse": ["cvdeath", "mace3"]}},
-    "rob2.py:sub:e3839b281a#2": {
-        "kind": "search", "what": "_simple_matches: non-alphanumeric runs become spaces (registered outcome side)",
-        "plants": {"accept": [("heart-failure hospitalization", None), ("(mace)", None)],
-                   "refuse": ["hhf", "stroke"]}},
     # ---- harness/funding.py (compiled patterns are re.I) -------------------------------------------------------------
     "funding.py:_STRONG_ANCHOR": {
         "kind": "search", "what": "detect: the text carries an explicit funding statement (funded by / funding: / grants from / sponsor)",

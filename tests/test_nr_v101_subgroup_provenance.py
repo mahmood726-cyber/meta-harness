@@ -77,10 +77,15 @@ def test_adversarial_sentences():
 
 
 def test_melatonin_subgroup_is_unresolved_not_asserted():
-    # the topic used to assert 'pre-specified age 65-80 subgroup'; the held abstract does not state it
+    # the topic asserts 'pre-specified age 65-80 subgroup' (left as written: no hand edit); the held abstract does not
+    # state it, so the harness serves it UNRESOLVED and drops the asserted qualifier from the served prose
     topic = json.load(open(ROOT / "topics" / "melatonin-primary-insomnia-sol.json", encoding="utf-8"))
-    assert "pre-specified" not in json.dumps(topic).lower()
-    assert topic["primary_outcome"]["trial_annotations"]["20712869"]["evidence_unit"] == "subgroup"
+    assert topic["primary_outcome"]["trial_annotations"]["20712869"]["evidence_unit"] == "prespecified_subgroup"
+    rev = json.load(open(ROOT / "docs" / "reviews" / "melatonin-primary-insomnia-sol" / "review.json", encoding="utf-8"))
+    prim = next(o for o in rev["outcomes"] if o.get("primary"))
+    assert prim["trials"][0]["subgroup_provenance"]["value"] is None
+    assert prim["trials"][0]["evidence_unit"] == "subgroup_unresolved"
+    assert "pre-specified" not in prim["population"]
 
 
 def test_prespecified_control():
@@ -164,5 +169,5 @@ def test_served_page_no_longer_calls_jupiter_prespecified():
                 encoding="utf-8").read()
     assert "pre-specified subgroup" not in page
     assert "post-hoc subgroup of JUPITER" in page
-    topic = json.load(open(ROOT / "topics" / "statins-primary-prevention-elderly.json", encoding="utf-8"))
-    assert "pre-specified" not in json.dumps(topic).lower()
+    rev = _live()
+    assert "pre-specified" not in rev["question"] and rev["served_prose_corrections"]

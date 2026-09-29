@@ -51,7 +51,11 @@ def test_plant_prefixed_ticagrelor_direction_conflict_and_live_refuses_pool_row(
     assert live["pool_refused"]["honest_k1_anchor"]["name"] == "PLATO"
     assert [x["label"] for x in live["pool_refused"]["named_remainders"]] == ["PHILO"]
     html = page.render_outcome_block(live_o)
-    assert "Pooled result REFUSED" in html and "Honest k=1 anchor" in html
+    # lane NR V1.0.1 (ticagrelor review): the withholding is a DISPLAY policy on a computed row, and PLATO alone is never
+    # the review-wide conclusion. This assertion used to pin 'Pooled result REFUSED' / 'Honest k=1 anchor'.
+    assert "Pooled result computed, withheld by display policy (k=2 direction conflict)" in html
+    assert "PLATO alone (" in html and "not the review-wide conclusion" in html
+    assert "Pooled result REFUSED" not in html and "Honest k=1 anchor" not in html
     assert "PLATO" in html and "PHILO" in html
 
 

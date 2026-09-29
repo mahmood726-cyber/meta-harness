@@ -3,26 +3,6 @@ tests/test_regex_plants.py, so a fix flips it to a pass (and must remove the ent
 
 # plant id -> why the current pattern fails it (a located defect, not a wish)
 KNOWN_DEFECTS: dict[str, str] = {
-    'rob2.py:search:b4e124d7bc-accept-3':
-        "RX-OL1 (found 2026-09-24 by this plant): 'montgomery[- ]?a?sberg' needs an ASCII 'a' and a hyphen/space, so the scale's own spelling 'Montgomery–Åsberg' (en dash, Å) is not read as MADRS unless the text also says 'MADRS'. Latent: all 11 held D5 texts naming the scale spell it 'Asberg' and carry '(MADRS)'. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:74ee9684cf-accept-2':
-        "RX-OL2 (found 2026-09-24 by this plant): only the word 'recurrent' marks a recurrence, so 'VTE recurrence' / 'recurrence of VTE' never yields RECURRENT_VTE. Latent: 0 held D5 texts use that phrasing. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:2ee9bddbd6-accept-3':
-        "RX-OL3 (found 2026-09-24 by this plant): 'deep vein thrombosis' is listed but 'deep venous thrombosis' is not, so that spelling (with no VTE/DVT abbreviation) is not read as a VTE event. Latent: 0 held D5 texts. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:2302517c9d-accept-2':
-        "RX-OL4 (found 2026-09-24 by this plant): only 'all-cause mortality' is read, so 'all-cause death' / 'death from any cause' yield no ALL_CAUSE_MORTALITY component. Reachable: held D5 inputs of dpp4-mace-t2d 28893244 ('Number of Participants With an Event of All-Cause Death'; 'All-cause death was death from any cause') and doac-vte-recurrence 23808982; the recorded D5 levels are 'low', effect on a verdict not measured. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:2302517c9d-accept-3':
-        "RX-OL4 (found 2026-09-24 by this plant): 'death from any cause' is not read as all-cause mortality (see accept-2). Reachable in held dpp4-mace-t2d 28893244 D5 description. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:052d9d5ea5-accept-4':
-        "RX-OL5 (found 2026-09-24 by this plant): CV death is read only as 'cv death' / 'cardiovascular [(..)] death' / 'death from cardiovascular causes', so 'CV-related death' is missed. Reachable and consequential in held text: dpp4-mace-t2d 28893244's registered MACE measure '(Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke)' reads as {NONFATAL_MI, NONFATAL_STROKE} -- no CV death, so not 3-point MACE; the recorded D5 basis cites a secondary-outcome match instead, and whether this defect is why is not measured. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:052d9d5ea5-accept-5':
-        "RX-OL5 (found 2026-09-24 by this plant): 'death due to cardiovascular causes' (and held 'Death Due to CV Cause', noac-vs-warfarin-af-stroke 24251359) is not read as CV death (see accept-4). The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:052d9d5ea5-refuse-2':
-        "RX-OL6 (found 2026-09-24 by this plant): '\\bcardiovascular' fires after the hyphen in 'non-cardiovascular death', so non-CV death adds a CV_DEATH component (the defect target_endpoint masks and RX-TE2 names for 'vascular'). Reachable: held D5 description of omega3-cardiovascular-events 33190147 reads as ['CV_DEATH'] through this phrase; recorded D5 level 'low', effect on a verdict not measured. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:4494298990-accept-4':
-        "RX-OL7 (found 2026-09-24 by this plant): 'hospitali[sz](?:ation|ed)\\b' has no plural, so 'hospitalisations for heart failure' / 'heart failure hospitalizations' yield no HF_HOSPITALISATION component. Reachable: the held registered measure of iv-iron-hfref-hosp 40159390 ('Rate of total (first and recurrent) events of hospitalisations for heart failure (HF)') reads as an empty component set; recorded D5 level 'low' (matched on another registered outcome), effect not measured. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
-    'rob2.py:search:a26bd545ce-accept-3':
-        "RX-OL8 (found 2026-09-24 by this plant): 'major adverse cardiac events' (a common expansion of MACE) is not a MACE term. Latent: all 5 held D5 texts using it also carry '(MACE)'. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
     'funding.py:_INDUSTRY-accept-3':
         "RX-OL9 (found 2026-09-24 by this plant): the group ends in '\\b', and after 'Inc.' a boundary needs a following word character, so 'Inc.' before a space / end never marks industry. Reachable and consequential: with 'Inc.' matched, funding.detect() changes from no class to industry on 2 held documents (sglt2-primary-prevention-hf records.json#27025436 'FUNDING: Corvia Medical Inc.'; probiotics-aad-prevention ft_22371721 'BIO K+ International Inc.'), measured 2026-09-24 with a scratch-patched pattern; whether those reach a served funding row is not measured. The fix belongs to the owning lane (not the regex layer), filed 2026-09-24.",
     'funding.py:_PUBLIC-accept-3':

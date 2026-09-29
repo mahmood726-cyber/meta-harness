@@ -266,3 +266,8 @@ INLINE_SPECS.update(_OTHER_LANES_5)
 from regex_layer.specs_whole_numbers import SITE_SPECS as _WHOLE_NUMBERS  # noqa: E402
 
 INLINE_SPECS.update(_WHOLE_NUMBERS)
+
+# Lane NR V1.0.1 label fixes (subgroup_provenance, composite_label, the k2 conflict-claim guard, rob2's D5 identity check)
+from regex_layer.specs_nr_v101_labels import SITE_SPECS as _NR_V101_LABELS  # noqa: E402
+
+INLINE_SPECS.update(_NR_V101_LABELS)

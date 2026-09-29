@@ -28,6 +28,12 @@ def _fmt(x, nd=2):
         return str(x)
 
 
+def _k2_phrase(res):
+    from . import k2
+    p = k2.withheld_phrase(res)
+    return "computed and withheld by presentation policy" if p.startswith("computed") else p
+
+
 def _unit_label(unit):
     if unit == "prespecified_subgroup":
         return "pre-specified subgroup"
@@ -323,17 +329,22 @@ def render(review, neutral: bool = False) -> str:
         anchor = ref.get("honest_k1_anchor") or {}
         if anchor:
             rem = ", ".join(str(x.get("label")) for x in (ref.get("named_remainders") or []))
+            rem_txt = "; ".join(
+                f"{_e(x.get('label'))}: {_e(x.get('scale') or scale)} {_fmt(x.get('effect'))} "
+                f"(95% CI {_fmt(x.get('ci_low'))} to {_fmt(x.get('ci_high'))})"
+                for x in (ref.get("named_remainders") or []))
             result_sentence = (
-                f"The two eligible trials conflict in direction, so no pooled effect is reported. "
-                f"The pre-named k=1 anchor is {_e(anchor.get('name') or anchor.get('label'))}: "
+                f"The two eligible trials conflict in direction, so the computed pooled effect is withheld by display "
+                f"policy and the review draws no pooled conclusion. {_e(anchor.get('name') or anchor.get('label'))} "
+                f"is shown alone as the pre-named anchor trial, not as the review's conclusion: "
                 f"{_e(anchor.get('scale') or scale)} {_fmt(anchor.get('effect'))} "
-                f"(95% CI {_fmt(anchor.get('ci_low'))} to {_fmt(anchor.get('ci_high'))}); "
-                f"the named remainder is {_e(rem)}."
+                f"(95% CI {_fmt(anchor.get('ci_low'))} to {_fmt(anchor.get('ci_high'))}); the other eligible trial, "
+                f"shown alone: {rem_txt or _e(rem)}."
             )
         else:
             result_sentence = (
-                "The two eligible trials conflict in direction or interval support, so no pooled effect is "
-                "reported; both trial estimates are reported individually."
+                "The two eligible trials conflict in direction or interval support, so the computed pooled effect is "
+                "withheld by display policy; both trial estimates are reported individually."
             )
     elif res.get("suppressed_incompatible"):
         # FAIL CLOSED (audit 23): no pooled result sentence when the estimand pool is incompatible.
@@ -346,14 +357,17 @@ def render(review, neutral: bool = False) -> str:
         result_sentence = ("No eligible trial reported the primary outcome with an extractable, "
                            "source-verified estimate, so it is declared absent rather than pooled.")
     elif k == 1:
-        result_sentence = (f"A single eligible trial contributed an extractable estimate: {scale} "
-                           f"{est} (95% CI {lo} to {hi}); with k=1 no between-trial heterogeneity or "
-                           f"prediction interval is estimable.")
+        _st = res.get("single_trial") or {}
+        _pop = (f" It holds in that trial's own population ({_e(_st['served_population'])}), not in every patient the "
+                "question covers.") if _st.get("served_population") else ""
+        result_sentence = (f"One eligible trial has an extractable estimate, so this is that trial's own result, not a "
+                           f"synthesis: {scale} {est} (95% CI {lo} to {hi}); with k=1 no between-trial heterogeneity or "
+                           f"prediction interval is estimable.{_pop}")
     elif res.get("pooled_ci_refused"):
         result_sentence = (
-            f"Pooling {k} trials retained the point estimate ({scale} {est}), but the registered PM/HKSJ "
-            "confidence interval is not served at k=2 because it uses t(1)=12.71; no pooled "
-            "significance or null-crossing claim is made."
+            f"Pooling {k} trials retained the point estimate ({scale} {est}); the registered PM/HKSJ "
+            f"confidence interval was {_k2_phrase(res)} at k=2 because it uses t(1)=12.71 on one degree "
+            "of freedom, and no pooled significance or null-crossing claim is made."
         )
     else:
         pi = ""

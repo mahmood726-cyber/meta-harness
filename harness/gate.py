@@ -351,6 +351,107 @@ def check_pooled_verified(review_dir):
     return []
 
 
+def check_composite_label(review_dir, html):
+    """A served pooled composite never carries an unqualified '3-point MACE' label its inputs' typed component sets do not
+    earn (harness/composite_label.py; lane NR V1.0.1, statins-older-adults review)."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for the composite-label check: {exc}"]
+    from . import composite_label
+    return [f"L1: COMPOSITE_LABEL {b}" for b in composite_label.violations(rev, html)]
+
+
+def direction_conflict_generated_text(rev):
+    """The GENERATED surfaces that speak about a k=2 direction-conflict primary: the manuscript, the primary outcome
+    block and the primary's refusal limitation. Quoted source spans elsewhere on the page are data, not claims."""
+    import html as _h
+    import re as _re
+    from . import manuscript, page
+    prim = next((o for o in rev.get("outcomes") or [] if o.get("primary")), None) or {}
+    parts = [manuscript.render(rev), page.render_outcome_block(prim)]
+    parts += [lim.get("rendered_text") or "" for lim in rev.get("limitations") or []
+              if "k2-direction-conflict" in str(lim.get("id") or "")]
+    return _re.sub(r"\s+", " ", _h.unescape(_re.sub(r"<[^>]+>", " ", " ".join(parts))))
+
+
+def direction_conflict_claim_violations(rev):
+    """(1) the anchor trial is never presented as the review-wide conclusion; (2) no explanatory (region / ethnicity) or
+    equivalence / no-benefit claim is generated for two trials with opposite directions (harness/k2.py)."""
+    from . import k2
+    prim = next((o for o in rev.get("outcomes") or [] if o.get("primary")), None) or {}
+    ref = (prim.get("result") or {}).get("pool_refused") or {}
+    if ref.get("code") != k2.DIRECTION_CONFLICT_K2:
+        return []
+    text = direction_conflict_generated_text(rev)
+    bad = [f"{v['kind']}: {v['sentence'][:200]}" for v in k2.conflict_claim_violations(text)]
+    anchor = ref.get("honest_k1_anchor") or {}
+    name, eff = anchor.get("name") or anchor.get("label"), anchor.get("effect")
+    if name and eff is not None:
+        effs = {f"{float(eff):g}", f"{float(eff):.2f}"}
+        for s in text.split(". "):
+            if name in s and any(e in s for e in effs) and " alone" not in s:
+                bad.append(f"ANCHOR_AS_CONCLUSION: {s[:200]}")
+    return bad
+
+
+def check_direction_conflict_claims(review_dir):
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for the direction-conflict claim check: {exc}"]
+    return [f"L1: DIRECTION_CONFLICT_CLAIM {b}" for b in direction_conflict_claim_violations(rev)]
+
+
+def check_single_trial_presentation(review_dir, html):
+    """A primary k=1 result is the trial's own result, never a synthesis, served with the population qualifier its own
+    held text derives (harness/population_qualifier.py; lane NR V1.0.1, tocilizumab review)."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for the single-trial check: {exc}"]
+    import html as _h
+    import re as _re
+    from . import population_qualifier
+    recs = {}
+    for o in rev.get("outcomes") or []:
+        st = (o.get("result") or {}).get("single_trial") or {}
+        if st.get("population_qualifier"):
+            pid = str(st.get("trial") or "").replace("PMID ", "").strip()
+            recs[pid] = {"abstract": " ".join(filter(None, [st["population_qualifier"].get("eligibility_span"),
+                                                             (st["population_qualifier"].get("co_treatment") or {}).get("span")]))}
+    text = _re.sub(r"\s+", " ", _h.unescape(_re.sub(r"<[^>]+>", " ", html or "")))
+    return [f"L1: SINGLE_TRIAL {v['kind']}: {v['outcome']} ({v['trial']}): {v['detail']}"
+            for v in population_qualifier.single_trial_violations(rev, recs, text)]
+
+
+def check_common_effect_not_promoted(review_dir):
+    """The common-effect interval is never the served primary interval because it is narrower (harness/k2.py)."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for the common-effect check: {exc}"]
+    from . import k2
+    return [f"L1: COMMON_EFFECT_PROMOTED {o.get('name')}: {b}" for o in rev.get("outcomes") or []
+            for b in k2.common_effect_promotion_violations(o.get("result") or {})]
+
+
 def check_rob_rederivable(review_dir):
     """Stored registry-machine risk-of-bias levels must re-run from their own rule inputs."""
     p = os.path.join(review_dir, "review.json")
@@ -362,13 +463,10 @@ def check_rob_rederivable(review_dir):
     except (OSError, ValueError) as exc:
         return [f"L1: cannot read review.json for risk-of-bias re-derivation: {exc}"]
     try:
-        from . import embed, rob2
+        from . import rob2
 
-        def _match(a, b):
-            ranked = embed.rank(a, [b])
-            return bool(ranked) and ranked[0][1] >= 0.45
-
-        bad = rob2.rederivation_violations(rev, _match)
+        # the same matcher the build overlay re-derives D5 with (rob2.canonical_matcher)
+        bad = rob2.rederivation_violations(rev, rob2.canonical_matcher())
     except Exception as exc:  # noqa: BLE001
         return [f"L1: risk-of-bias re-derivation could not run ({exc})"]
     if bad:
@@ -1308,6 +1406,10 @@ def gate_page(review_dir):
                + check_limitation_decision_links(review_dir)
                + check_pooled_verified(review_dir)
                + check_rob_rederivable(review_dir)
+               + check_composite_label(review_dir, html)
+               + check_common_effect_not_promoted(review_dir)
+               + check_direction_conflict_claims(review_dir)
+               + check_single_trial_presentation(review_dir, html)
                + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
