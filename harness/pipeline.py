@@ -336,7 +336,15 @@ def _fulltext_extract(ft, spec, interv, comp, dc):
                                            "prose could not be located and removed; refused rather than risk reading "
                                            "baseline values as outcomes")}
     kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
-    fx = extract.extract_trial(seg["prose"], spec["keywords"], interv, comp, **kw)
+    own = _ft_mod.own_result_prose(seg["prose"])
+    fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
+    if seg.get("unstructured"):
+        # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
+        # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
+        if not fx.get("absent") and fx.get("effect") is not None and fx.get("ci_low") is not None:
+            return fx
+        return {"absent": True, "reason": ("unstructured OA copy (no table delimiters): only a reported effect+CI in a "
+                                           "prose sentence is admissible from it, and none was found")}
     if not fx.get("absent"):
         return fx
     hits = []

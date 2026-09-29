@@ -103,7 +103,7 @@ def source_effect_candidates(
         # the same units the full-text rung reads: prose, then each verbatim non-baseline table row on its own
         from . import fulltext as _ft_mod
         seg = _ft_mod.extraction_segments(fulltext)
-        for unit in [seg["prose"]] + [r["row"] for r in seg["rows"]]:
+        for unit in [_ft_mod.own_result_prose(seg["prose"])["prose"]] + [r["row"] for r in seg["rows"]]:
             for eff in _effect_candidates_in_outcome(unit, spec.get("keywords") or []):
                 _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
     if ctgov_outcomes:
