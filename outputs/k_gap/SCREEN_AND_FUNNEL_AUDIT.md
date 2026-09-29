@@ -71,7 +71,22 @@ hand check, and I also wrote the classifier. No independent reader has checked t
 
 - **Reading:** the drop is mostly not Unpaywall. **111 of 148 (75%) never reach extraction in our pipeline**: the
   identification and screening gaps of section 1.
-- Of the 34 that do, 22 parse, and 16 of those are OUTCOME_NOT_IN_SOURCE. Those 16 are next: is the outcome truly
-  absent, or in a flattened PDF table that the UNSTRUCTURED rule refuses by design?
+- Of the 34 that reach extraction, 22 parse. For the 21 not located, the drop is **not** the UNSTRUCTURED rule.
+  Lifting it in memory (arm counts from prose allowed) admits **0** more.
+- **The reason code overclaims absence.** `absence.py:400` assigns OUTCOME_NOT_IN_SOURCE when the outcome sentence
+  *is* found but holds no poolable effect+CI or corroborated counts. Examples of outcomes that are in the text:
+  - hydrocortisone: "11 deaths … and 20 deaths", with denominators elsewhere;
+  - tocilizumab: day-28 mortality given as bare percentages;
+  - EMPEROR-Preserved: "415 of 2997 … 511 of 2991".
+
+  The code should say "in source, not in a poolable form", not "not in source". This is flagged; not changed here.
+- **Both HFpEF topics serve no pool** while the primary results are held. DELIVER's HR 0.82 (0.73–0.92) sits under
+  a `result_withdrawn` hold, and the harness's own reason audit already flags REASON_FALSE_VALUE_HELD. That is a
+  captain decision, not an acquisition gap.
 - **Recording defect fixed:** `unpaywall_text` had dropped each URL attempt's status. It now keeps them, and the
   12 no-text rows carry a recorded reason.
+
+## 3. Forest-plot rows (recorded image read, admitted only by recomputation) and 4. regulatory documents
+
+These results are in `G1_STATUS.md`: comparable shared trials went from 2 to 22 of 46, and the regulatory probe
+closes 0 of 77.

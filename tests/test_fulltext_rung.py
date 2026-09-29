@@ -176,7 +176,10 @@ def test_a_covariate_odds_ratio_is_not_the_treatment_effect():
     # (OR 5.04 ...) and being in the control group (OR 8.46 ...) as the unique risk factors' -> OR 5.04 was admitted as
     # the AAD effect of the probiotic.
     old, new = _upw_case("probiotics-aad-prevention", "upw_24044687_covariate_or_excerpt.txt")
-    assert old.get("effect") == 5.04
+    # The requirement: the full-text rung does not admit the covariate OR. Since the abstract rung shares the
+    # COVARIATE_ANALYSIS guard (McFarland 1995), the bare extractor refuses it too -- this line used to assert
+    # old == 5.04, i.e. it pinned the defect on the unguarded layer and went red when that layer was fixed.
+    assert old.get("effect") != 5.04
     assert new.get("absent") is True
 
 
@@ -205,3 +208,38 @@ def test_reported_mean_difference_pools_on_the_raw_scale():
     import pytest
     with pytest.raises(ValueError):                 # a negative 'ratio' refuses loudly instead of a math-domain error
         synth.Study(label="x", effect=-10.3, ci_low=-12.0, ci_high=-8.6).yi_vi()
+
+
+def test_abstract_rung_refuses_a_covariate_adjusted_model_effect():
+    # McFarland 1995 (PMID 7872284): the abstract's only effect is a multivariable-ADJUSTED RR from a risk-factor
+    # model; the randomised comparison is the crude one (the comparator pooled 0.49). The full-text rung already
+    # drops COVARIATE_ANALYSIS sentences; the abstract rung admitted RR 0.29.
+    from harness import extract
+    ab = ("Antibiotic-associated diarrhea developed in 7.2% of patients given S. boulardii and 14.6% given placebo. "
+          "Using a multivariate model to adjust for two independent risk factors for AAD (age and days of "
+          "cephalosporin use), the adjusted relative risk was significantly protective for S. boulardii "
+          "(RR = 0.29, 95% CI = 0.08, 0.98).")
+    r = extract.extract_trial(ab, ["antibiotic-associated diarrhea", "AAD"], ["S. boulardii", "boulardii"], ["placebo"])
+    assert r.get("effect") != 0.29
+
+
+def test_abstract_rung_keeps_a_trials_own_adjusted_hazard_ratio():
+    # 'adjusted hazard ratio' without a risk-factor/multivariable model is often the trial's own stratified result
+    from harness import extract
+    ab = ("Death from cardiovascular causes occurred in 8.1% with drug X and 9.9% with placebo (adjusted hazard "
+          "ratio, 0.80; 95% CI, 0.70 to 0.91).")
+    r = extract.extract_trial(ab, ["cardiovascular causes", "death from cardiovascular"], ["drug X"], ["placebo"],
+                              estimand="HR")
+    assert r.get("effect") == 0.80
+
+
+def test_source_hierarchy_does_not_offer_a_covariate_model_effect_as_a_candidate():
+    # The SERVED McFarland value came from source_hierarchy's abstract candidates (ranked above the counts), not from
+    # extract_trial: guarding only extract_trial passed its plant and moved nothing in the corpus.
+    from harness import source_hierarchy
+    ab = ("RESULTS: Of the 193 eligible patients, significantly fewer, 7/97 (7.2%), patients receiving S. boulardii "
+          "developed AAD compared with 14/96 (14.6%) receiving placebo. Using a multivariate model to adjust for two "
+          "independent risk factors for AAD (age and days of cephalosporin use), the adjusted relative risk was "
+          "significantly protective for S. boulardii (RR = 0.29, 95% CI = 0.08, 0.98).")
+    c = source_hierarchy._effect_candidates_in_outcome(ab, ["aad", "antibiotic-associated diarr"])
+    assert all(x["effect"] != 0.29 for x in c)

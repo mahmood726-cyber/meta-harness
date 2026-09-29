@@ -812,6 +812,16 @@ def extract_rate(sentence, interv_terms, comp_terms):
     return RateArms(e1, t1, e2, t2) if i_pos <= c_pos else RateArms(e2, t2, e1, t1)
 
 
+def _covariate_model_sentence(s):
+    """An effect from a risk-factor / multivariable MODEL is not the randomised contrast: McFarland 1995's only abstract
+    effect was 'Using a multivariate model to adjust for two independent risk factors ... adjusted relative risk
+    (RR = 0.29...)' where the randomised comparison is the crude one. One definition, shared with the full-text rung
+    (fulltext.COVARIATE_ANALYSIS), which already dropped such sentences; a plain 'adjusted hazard ratio' is NOT
+    matched there, so a trial's own stratified result still stands."""
+    from .fulltext import COVARIATE_ANALYSIS
+    return bool(COVARIATE_ANALYSIS.search(s or ""))
+
+
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason.
 
@@ -862,7 +872,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                     or (_skip_composite and _names_composite(s))
                     or _kw_only_in_null_result(s, outcome_kws)):
                 continue
-            eff = extract_effect(s)
+            eff = None if _covariate_model_sentence(s) else extract_effect(s)
             if eff and eff[0] == "HR":
                 return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
                         "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
@@ -905,7 +915,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                 or (_skip_composite and _names_composite(s))
                 or _kw_only_in_null_result(s, outcome_kws)):
             continue
-        eff = extract_effect(s)
+        eff = None if _covariate_model_sentence(s) else extract_effect(s)
         if eff:
             return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": eff[0],
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}

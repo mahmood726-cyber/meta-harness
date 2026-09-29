@@ -65,6 +65,10 @@ def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 26
         # result (PMID 34541475: the PPI-subgroup RR 0.53 was selected over the refused ITT extraction)
         if extract._is_subgroup_sentence(sentence):
             continue
+        # ... nor is an effect from a risk-factor / multivariable model (McFarland 1995, PMID 7872284: the adjusted RR
+        # 0.29 was ranked above the randomised counts 7/97 vs 14/96, RR 0.49 -- the comparator's value)
+        if extract._covariate_model_sentence(sentence):
+            continue
         low = sentence.lower()
         prev_end = 0
         for m in _EFFECT_CANDIDATE.finditer(sentence):
