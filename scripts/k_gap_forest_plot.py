@@ -303,9 +303,15 @@ def gate(resp, pp, text=None):
     if not isinstance(resp, dict) or not resp.get("legible"):
         return {"state": "REFUSED", "problems": ["NOT_LEGIBLE_OR_UNTYPED"]}
     ratio = is_ratio(resp.get("measure"))
-    rows = []
+    rows, excluded = [], []
     for r in resp.get("rows") or []:
         e, lo, hi = _num(r.get("effect")), _num(r.get("lower")), _num(r.get("upper"))
+        if ratio and None not in (e, lo, hi) and lo == 0 and e > 0 and hi > e:
+            # a ratio's lower limit PRINTED as 0.00 is a tiny value rounded away (Selinger 2013, weight 0.3%): it cannot
+            # be put on the log scale, so the row is neither admitted nor pooled -- it is listed, and the recomputation
+            # over the remaining rows must still reproduce the printed pool
+            excluded.append({"label": r.get("label"), "why": "RATIO_LOWER_PRINTED_AS_ZERO", "weight_pct": r.get("weight_pct")})
+            continue
         if None in (e, lo, hi) or (ratio and min(e, lo, hi) <= 0):
             probs.append(f"ROW_NOT_NUMERIC:{r.get('label')}")
             continue
@@ -336,7 +342,7 @@ def gate(resp, pp, text=None):
             v = _num(p.get(key))
             if v is None or not _close(v, pp[key]):
                 probs.append(f"PLOT_POOLED_{key.upper()}_NE_TEXT")
-    if pp and pp.get("k") and len(rows) != int(pp["k"]):
+    if pp and pp.get("k") and len(rows) + len(excluded) != int(pp["k"]):
         probs.append(f"ROW_COUNT_{len(rows)}_NE_PRINTED_K_{pp['k']}")
     recomputed, matched = {}, []
     if len(rows) >= 2 and pp:
@@ -349,7 +355,7 @@ def gate(resp, pp, text=None):
             probs.append("RECOMPUTATION_DOES_NOT_REPRODUCE_PRINTED_POOL")
     elif len(rows) < 2:
         probs.append("FEWER_THAN_2_ROWS")
-    return {"state": "PASS" if not probs else "REFUSED", "problems": probs, "ratio": ratio,
+    return {"state": "PASS" if not probs else "REFUSED", "problems": probs, "ratio": ratio, "excluded_rows": excluded,
             "rows": [{**{k: v for k, v in r.items() if k != "raw"},
                       "printed": {k: str(r["raw"].get(k)) for k in ("effect", "lower", "upper")}} for r in rows],
             "recomputed": {k: [round(x, 4) for x in v] for k, v in recomputed.items()}, "methods_reproducing": matched,

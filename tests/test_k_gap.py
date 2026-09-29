@@ -437,3 +437,28 @@ def test_forest_figure_refuses_multipanel_and_secondary_but_not_an_abbreviation(
     assert fp.MULTIPANEL.search("Forest plot: A) renal composite B) HHF")          # missed when \b was a backspace byte
     assert not fp.MULTIPANEL.search("Forest plot for cardiovascular death (CVD) and MACE")
     assert fp.SECONDARY.search("Forest plot of secondary outcome: HFH")
+
+
+def test_forest_gate_sets_aside_a_ratio_row_whose_lower_limit_prints_as_zero():
+    fp, resp, text = _plot()
+    resp["rows"].append({"label": "Tiny 2013", "effect": "0.07", "lower": "0.00", "upper": "1.14", "weight_pct": "0.3"})
+    g = fp.gate(resp, None, text)
+    assert [x["label"] for x in g["excluded_rows"]] == ["Tiny 2013"]
+    assert "Tiny 2013" not in [r["label"] for r in g["rows"]]
+    assert not any("Tiny" in p for p in g["problems"])
+
+
+def test_forest_join_by_first_word_ignores_punctuation_and_joins_numbered_labels_by_author_and_year(monkeypatch):
+    import importlib
+    import sys
+    if "scripts" not in sys.path:
+        sys.path.append("scripts")
+    ra = importlib.import_module("k_gap_result_agreement")
+    rows = [{"label": "SELECT, 2023", "effect": 0.8, "lower": 0.71, "upper": 0.9, "printed": {"effect": "0.80", "lower": "0.71", "upper": "0.90"}},
+            {"label": "Wallentin 2009", "effect": 0.83, "lower": 0.76, "upper": 0.92, "printed": {"effect": "0.83", "lower": "0.76", "upper": "0.92"}},
+            {"label": "Wallentin 2014", "effect": 0.9, "lower": 0.8, "upper": 1.0, "printed": {"effect": "0.90", "lower": "0.80", "upper": "1.00"}}]
+    monkeypatch.setattr(ra, "_FOREST", {"t": {"state": "PASS", "measure": "OR", "gate": {"rows": rows}}})
+    monkeypatch.setattr(ra, "first_author_year", lambda p: {"111": ("wallentin", "2009")}.get(p))
+    assert ra.forest_row("t", "SELECT 18") == ("OR", "0.80", "0.71", "0.90")          # comma no longer blocks it
+    assert ra.forest_row("t", "9 [28]", ["111"]) == ("OR", "0.83", "0.76", "0.92")    # author AND year: 2009, not 2014
+    assert ra.forest_row("t", "9 [28]", ["999"]) is None                               # no identity -> no join
