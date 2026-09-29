@@ -1,0 +1,172 @@
+"""INDEPENDENT second reader on the k-gap identity resolver (comparator table unit -> PMID/NCT).
+
+The step-1 audit (outputs/k_gap/IDENTITY_AUDIT.md, 24/25) was labelled by the resolver's own author. This draws a
+fresh sample at a seed fixed BEFORE the draw (20260930) from the resolved, drug-specific, confirmed-set rows and
+asks a recorded model call whether the comparator's row and the resolved report are the SAME trial.
+
+Gate (deterministic): MATCH / NO_MATCH must quote the comparator row AND the resolved report text verbatim
+(whitespace-normalised) -- the same bytes shown. CANNOT_TELL quotes nothing. A NO_MATCH is a candidate resolver
+error for adjudication; nothing is changed by this script.
+
+    python scripts/k_gap_identity_reader2.py --run
+    python scripts/k_gap_identity_reader2.py --verify
+"""
+from __future__ import annotations
+
+import concurrent.futures as cf
+import hashlib
+import io
+import json
+import os
+import random
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from reproducible_ai import model_source as ms  # noqa: E402
+
+OUT = os.path.join(ROOT, "outputs", "k_gap")
+PROP = os.path.join(ROOT, "registry", "model_proposals", "k_gap_identity_reader2.json")
+REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
+MODEL, EFFORT, SEED, N, BATCH = "gpt-6-astra", "medium", 20260930, 40, 8
+
+SCHEMA = {"type": "object", "additionalProperties": False, "required": ["items"], "properties": {"items": {
+    "type": "array", "items": {"type": "object", "additionalProperties": False,
+                               "required": ["item", "verdict", "row_quote", "report_quote"],
+                               "properties": {"item": {"type": "string"},
+                                              "verdict": {"type": "string", "enum": ["MATCH", "NO_MATCH", "CANNOT_TELL"]},
+                                              "row_quote": {"type": ["string", "null"]},
+                                              "report_quote": {"type": ["string", "null"]}}}}}}
+
+INSTR = """Each item below pairs (A) one row from a meta-analysis's table of included studies with (B) the publication and
+registry record that a program resolved that row to. Decide whether A and B describe the SAME clinical trial.
+Do not run commands or read files. Use only the text given.
+  MATCH       A and B are the same trial (same trial name / first author + year / design details agree).
+  NO_MATCH    A and B are different trials (e.g. different acronym, different drug or population, different year).
+  CANNOT_TELL the text does not let you decide.
+For MATCH or NO_MATCH give row_quote: a short passage copied exactly from A, and report_quote: a short passage copied
+exactly from B, that show why. For CANNOT_TELL set both to null. Answer every item.
+"""
+
+
+def _j(p):
+    with open(p, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _norm(s):
+    return re.sub(r"\s+", " ", (s or "").replace(" ", " ")).strip()
+
+
+def sample():
+    t = _j(os.path.join(OUT, "k_gap_table.json"))
+    pop = [r for r in t["trials"] if r["unit_source"] != "REFERENCE_SEED" and r["drug"] != "OTHER_AGENT"
+           and r["status"] != "UNRESOLVED" and r["pmids"]]
+    rng = random.Random(SEED)
+    return pop, rng.sample(pop, min(N, len(pop)))
+
+
+def report_text(r, titles):
+    pm = (r.get("cited_pmids") or r["pmids"])[0]
+    study = next((v for v in (r.get("study") or {}).values() if v), {}) or {}
+    return (f"PMID {pm}: {titles.get(pm, '(title not held)')}\n"
+            f"Registry: {', '.join(r['ncts']) or '(none)'} {study.get('acronym') or ''} {study.get('brief_title') or ''}").strip()
+
+
+def items():
+    from harness import http
+    pop, s = sample()
+    cp = os.path.join(OUT, "pubmed_titles.json")
+    titles = _j(cp) if os.path.exists(cp) else {}
+    need = sorted({(r.get("cited_pmids") or r["pmids"])[0] for r in s} - set(titles))
+    if need:
+        d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                          {"db": "pubmed", "id": ",".join(need), "retmode": "json"})
+        for p in need:
+            titles[p] = (d.get("result", {}).get(p) or {}).get("title", "")
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(titles, fh, indent=1, sort_keys=True)
+    out = []
+    for r in s:
+        a = f"{r['label']} | {r['context']}"
+        b = report_text(r, titles)
+        out.append({"item_id": f"{r['slug']}::{r['label'][:40]}", "slug": r["slug"], "row": a, "report": b,
+                    "identity_basis": r["identity_basis"], "pmids": r["pmids"][:3], "ncts": r["ncts"]})
+    return len(pop), out
+
+
+def batches(its):
+    out = []
+    for k in range(0, len(its), BATCH):
+        keyed = [(f"R{n + 1}", i) for n, i in enumerate(its[k:k + BATCH])]
+        body = INSTR
+        for key, i in keyed:
+            body += f"\n=== ITEM {key} ===\n(A) {i['row']}\n(B) {i['report']}\n"
+        out.append({"batch": f"b{k // BATCH + 1}", "prompt": body.encode("utf-8"), "keyed": keyed})
+    return out
+
+
+def verify_item(claim, it):
+    if not isinstance(claim, dict) or claim.get("verdict") not in ("MATCH", "NO_MATCH", "CANNOT_TELL"):
+        return {"state": "VERIFIER_REFUSED", "problems": ["NOT_TYPED"]}
+    probs = []
+    if claim["verdict"] != "CANNOT_TELL":
+        if not claim.get("row_quote") or _norm(claim["row_quote"]) not in _norm(it["row"]):
+            probs.append("ROW_QUOTE_NOT_IN_A")
+        if not claim.get("report_quote") or _norm(claim["report_quote"]) not in _norm(it["report"]):
+            probs.append("REPORT_QUOTE_NOT_IN_B")
+    return {"state": "VERIFIER_REFUSED" if probs else "VERIFIER_PASS", "problems": probs, "verdict": claim["verdict"]}
+
+
+def run_one(b):
+    from reproducible_ai import model_call_live
+    rec = model_call_live.call(b["prompt"], schema=SCHEMA, model=MODEL, effort=EFFORT,
+                               caller={"file": "scripts/k_gap_identity_reader2.py", "line": "run_one",
+                                       "purpose": f"k-gap identity reader-2 {b['batch']} (acq/k-gap lane)"},
+                               input_digests=[{"ref": "outputs/k_gap/k_gap_table.json + pubmed_titles.json",
+                                               "sha256": hashlib.sha256(b["prompt"]).hexdigest(),
+                                               "what": "rows and resolved reports shown (inline in the prompt)"}],
+                               timeout_s=900)
+    ms.write_record(rec, REC_DIR)
+    return {"batch": b["batch"], "record_id": rec["record_id"], "state": rec["state"],
+            "prompt_sha256": hashlib.sha256(b["prompt"]).hexdigest()}
+
+
+def main(argv):
+    npop, its = items()
+    bs = batches(its)
+    data = _j(PROP) if os.path.exists(PROP) else {}
+    runs = data.get("runs", {})
+    if "--run" in argv:
+        done = {r["prompt_sha256"] for r in runs.values() if r["state"] == "RAN_OK"}
+        todo = [b for b in bs if hashlib.sha256(b["prompt"]).hexdigest() not in done]
+        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+            for r in ex.map(run_one, todo):
+                runs[r["batch"]] = r
+                print(r["batch"], r["state"], r["record_id"], flush=True)
+    by_sha = {r["prompt_sha256"]: r for r in runs.values()}
+    rows = []
+    for b in bs:
+        run = by_sha.get(hashlib.sha256(b["prompt"]).hexdigest())
+        resp = {}
+        if run and run["state"] == "RAN_OK":
+            resp = {x["item"]: x for x in json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))).decode("utf-8")).get("items", [])}
+        for key, i in b["keyed"]:
+            c = resp.get(key)
+            rows.append({**i, "record_id": (run or {}).get("record_id"), "claim": c,
+                         "verification": verify_item(c, i) if c else {"state": "NO_ANSWER"}})
+    from collections import Counter
+    tally = Counter(r["verification"].get("verdict", r["verification"]["state"]) for r in rows
+                    if r["verification"]["state"] in ("VERIFIER_PASS",))
+    refused = sum(r["verification"]["state"] != "VERIFIER_PASS" for r in rows)
+    out = {"seed": SEED, "population": npop, "n": len(its), "passed_gate": dict(tally), "refused_or_missing": refused,
+           "runs": runs, "rows": rows}
+    with open(PROP, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, indent=1, ensure_ascii=False, sort_keys=True)
+    print(json.dumps({k: out[k] for k in ("seed", "population", "n", "passed_gate", "refused_or_missing")}, indent=1))
+
+
+if __name__ == "__main__":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    main(sys.argv[1:])

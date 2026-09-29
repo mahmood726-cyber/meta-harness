@@ -1,5 +1,19 @@
 # acq/k-gap — STEP 1 report: the k-gap table (2026-09-29)
 
+> **CORRECTION (later on 2026-09-29) — current figures.** An independent second reader found 4 of 40 identities
+> wrong, all in omega-3. That comparator's own table is numbered one off from its reference list, and the resolver
+> followed the links faithfully. Citation links are now followed only when the row's label does not contradict
+> them, and a systematically shifted table is distrusted as a whole (see `IDENTITY_AUDIT.md`). Rebuilt table:
+> confirmed-set trials **233** (was 239); pooled **54** (was 53); missing **179** (was 186).
+>
+> - Missing by class: identification 70, screen/eligibility 48, acquisition 16, extraction 13, measure 6, scope 11,
+>   unavailable 15.
+> - Of the 162 non-refused: AACT 7, PMC OA 32, Unpaywall 49, abstract 8, none 66.
+> - Open-source ceiling **150 of 233**.
+>
+> The body below keeps the original figures as first reported. Every conclusion stands; the step-2 counterfactuals
+> were rerun on the corrected table with the same results.
+
 Branch `acq/k-gap`. Artefacts: `outputs/k_gap/k_gap_table.{json,csv}`, `SUMMARY.md`, `IDENTITY_AUDIT.md`.
 Rebuild: `python scripts/k_gap_table.py && python scripts/k_gap_summary.py` (`--offline` replays the caches).
 

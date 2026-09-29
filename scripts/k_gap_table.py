@@ -120,9 +120,22 @@ def resolve_unit(u, parsed, idx, agents_re):
     """Identity: cited ref PMID > NCT written in the unit > Author-Year against the comparator's own
     ref-list > acronym against AACT studies.acronym restricted to NCTs whose interventions name a topic
     agent. Each step records its basis; an acronym hitting >1 agent NCT is AMBIGUOUS, not guessed."""
-    pmids = {c["pmid"] for c in u["cited"] if c.get("pmid")}
-    ncts = set(u["ncts"])
     basis = []
+    # A citation link is trusted only when the row's own label does not contradict the reference it points to:
+    # the omega-3 comparator's table is numbered one off from its reference list (28/28 links), so following the
+    # link faithfully resolved every row to the trial in the row above.
+    kept = []
+    for c in u["cited"]:
+        if c.get("basis") is None and u.get("distrust_links"):
+            basis.append("xref_table_distrusted:" + u["distrust_links"])
+            continue
+        why = k_gap.label_ref_conflict(u, c, registry_acronyms_of(c.get("pmid"), idx)) if c.get("basis") is None else None
+        if why:
+            basis.append(f"xref_label_conflict:{why}")
+        else:
+            kept.append(c)
+    pmids = {c["pmid"] for c in kept if c.get("pmid")}
+    ncts = set(u["ncts"])
     if pmids:
         basis.append("comparator_ref_pmid")
     if ncts:
@@ -159,6 +172,34 @@ def resolve_unit(u, parsed, idx, agents_re):
     for n in list(ncts):
         pmids |= set(idx.get("nct_pmids", {}).get(n, []))
     return {"pmids": sorted(pmids), "ncts": sorted(ncts), "basis": basis}
+
+
+def registry_acronyms_of(pmid, idx):
+    """Acronyms the REGISTRY gives the trial(s) a PMID reports: AACT acronym field + parenthesised title acronyms."""
+    out = []
+    for n, _t in (idx.get("pmid_nct") or {}).get(pmid or "", []):
+        st = (idx.get("study") or {}).get(n) or {}
+        if st.get("acronym"):
+            out.append(st["acronym"])
+        out += [m.group(1) for m in k_gap._PAREN_ACRO.finditer(st.get("brief_title") or "")]
+    return out
+
+
+def distrust_shifted_tables(units, idx):
+    """A publisher numbering shift is SYSTEMATIC: when >=3 and >=50% of a table's citation links contradict their
+    rows' labels, no link in that table is trusted (every row then resolves from its own label). The omega-3
+    comparator's Table 1 is one off from its reference list on 28 of 28 links."""
+    by_table = {}
+    for u in units:
+        for c in u["cited"]:
+            if c.get("basis") is None:
+                by_table.setdefault(u["table"], []).append(
+                    bool(k_gap.label_ref_conflict(u, c, registry_acronyms_of(c.get("pmid"), idx))))
+    for u in units:
+        v = by_table.get(u["table"], [])
+        if len(v) and sum(v) >= 3 and sum(v) / len(v) >= 0.5:
+            u["distrust_links"] = f"{sum(v)}/{len(v)} links in {u['table']} contradict their rows"
+    return {t: (sum(v), len(v)) for t, v in by_table.items()}
 
 
 def registry_agent(ncts, idx):
@@ -561,6 +602,7 @@ def main(argv=None):
 
     def resolve_rows(slug, P, units, source):
         tidx = store.index(P["agents"])
+        P.setdefault("link_audit", {})[source] = distrust_shifted_tables(units, tidx)
         agents_re = re.compile("|".join(re.escape(a) for a in P["agents"]), re.I)
         out = []
         for u in units:
@@ -691,7 +733,7 @@ def main(argv=None):
         topics_out.append({
             "slug": slug, "comparator_pmid": cpmid, "comparator": cit[:160], "unit_source": P["unit_source"],
             "comparator_set_state": state, "held_text": P["held"], "tables_used": P["inc"]["tables_used"],
-            "sources_tried": P["tried"],
+            "sources_tried": P["tried"], "link_audit": P.get("link_audit", {}),
             "our_k": P["ours"]["k"], "comparator_units": len(tr), "drug_specific_resolved": len(elig),
             "other_agent": sum(r["drug"] == "OTHER_AGENT" for r in tr),
             "unresolved_labels": sum(r["status"] == "UNRESOLVED" for r in tr),

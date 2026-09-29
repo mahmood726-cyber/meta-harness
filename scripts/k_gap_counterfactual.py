@@ -182,7 +182,37 @@ def main(argv):
         t0 = time.time()
         s = served_primary(slug)
         try:
-            if mode == "--all":
+            if mode == "--unpaywall":
+                from kgap import k_gap
+                base_core = build(slug)
+                base = core_primary(base_core)
+                prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
+                rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+                held = set(rj.get("fulltext_by_pmid") or {})
+                doi_of = {r.get("id"): (r.get("doi") or "").strip() for r in rj.get("records", [])}
+                targets = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
+                                  if str(d.get("id", "")).startswith("PMID ")} - held)
+                got, tried = {}, 0
+                for p in targets:
+                    if pmc_fulltext_cached(p, offline=True):
+                        continue                   # PMC OA is adapter 2's; this adapter is for the rest
+                    doi = doi_of.get(p)
+                    if not doi:
+                        continue
+                    tried += 1
+                    u = k_gap.unpaywall_text(doi, os.path.join(OUT, "_upw"), os.path.join(OUT, "unpaywall_text_index.json"))
+                    if u.get("text"):
+                        got[p] = u["text"]
+                cfc = build(slug, extra_fulltext=got)
+                cf = core_primary(cfc)
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "declared_absent_pmids": len(targets),
+                             "unpaywall_tried": tried, "unpaywall_text_found": len(got), "counterfactual_k": cf["k"],
+                             "baseline_k_valid": base["k_valid"], "counterfactual_k_valid": cf["k_valid"],
+                             "counterfactual_scale": cf["scale"],
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "secs": round(time.time() - t0, 1)}
+            elif mode == "--all":
                 # every adapter at once, from the caches the single-adapter runs filled (no new network): the
                 # combined number is MEASURED, not summed -- two routes can admit the same trial.
                 from harness import fetch
@@ -302,6 +332,6 @@ if __name__ == "__main__":
     r = main(sys.argv[1:])
     name = {"--baseline": "counterfactual_baseline.json", "--members": "counterfactual_members.json",
             "--fulltext": "counterfactual_fulltext.json", "--ctgov": "counterfactual_ctgov.json",
-            "--all": "counterfactual_all.json"}[sys.argv[1]]
+            "--all": "counterfactual_all.json", "--unpaywall": "counterfactual_unpaywall.json"}[sys.argv[1]]
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
         json.dump(r, fh, indent=1, sort_keys=True)
