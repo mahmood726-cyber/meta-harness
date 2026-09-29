@@ -788,8 +788,12 @@ def unpaywall_text(doi: str, cache_dir: str, index_path: str, offline: bool = Fa
     with open(fp, "w", encoding="utf-8") as fh:
         fh.write(text)
     tb = text.encode("utf-8")
+    # keep WHY each location gave no text (status, kind, text bytes, error): dropping 'tried' left 65 "OA copy
+    # found" DOIs with no recorded reason for yielding nothing
     idx[doi.lower()] = {k: v for k, v in out.items() if k != "tried"} | {"sha256": sha256(tb), "bytes": len(tb),
-                                                                          "n_tried": len(out["tried"])}
+                                                                          "n_tried": len(out["tried"]),
+                                                                          "tried": out["tried"],
+                                                                          "n_oa_locations": len(locs)}
     with open(index_path, "w", encoding="utf-8") as fh:
         json.dump(idx, fh, indent=1, sort_keys=True)
     return {"text": text, **idx[doi.lower()]}
