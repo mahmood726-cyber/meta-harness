@@ -1,4 +1,4 @@
-"""Specifications for the 23 compiled patterns in harness/extract.py.
+"""Specifications for the 24 compiled patterns in harness/extract.py.
 
 Each spec says, in plain words, what the pattern is FOR -- the thing a human labeller (or a recorded model call, as a
 PROPOSAL) marks in a sentence without ever seeing the regex. `kind`:
@@ -49,6 +49,17 @@ SPECS = {
                 "trigger": r"\bCI\b|confidence interval", "plants": {
                     "accept": [("hazard ratio, 0.80; 95% CI, 0.70 to 0.91", ("hazard ratio", "0.80", "0.70", "0.91"))],
                     "refuse": ["death or HF hospitalisation (95% CI 0.70-0.90)", "hazard ratio was similar"]}},
+    "_MD_EFFECT": {"kind": "extractor", "fields": ["point", "lower", "upper"],
+                   "spec": "a REPORTED between-group mean difference with its confidence interval: the word difference "
+                           "(optionally mean / estimated / adjusted / treatment / between-group), the signed POINT "
+                           "estimate, and the LOWER and UPPER bounds of its CI",
+                   "trigger": r"difference", "plants": {
+                       "accept": [("(difference, -10.3 percentage points [95% CI, -12.0 to -8.6]; P < .001)",
+                                   ("-10.3", "-12.0", "-8.6")),
+                                  ("an estimated treatment difference of -12.4 percentage points (95% confidence "
+                                   "interval [CI], -13.4 to -11.5; P<0.001)", ("-12.4", "-13.4", "-11.5"))],
+                       "refuse": ["There was no difference between groups (P=0.4).",
+                                  "the difference was 3.1 points in favour of treatment"]}},
     "_K": {"kind": "extractor", "fields": ["k"],
            "spec": "the NUMBER of randomised (controlled) trials a review or analysis included, in digits or words",
            "trigger": r"trials?\b|RCTs?\b", "plants": {"accept": [("12 randomized controlled trials", ("12",))],

@@ -77,7 +77,7 @@ def _studies_and_scale(trials, declared_estimand):
     def _meas(t):
         if t.get("e1i") is not None:
             return "IRR"
-        if t.get("mean1") is not None:
+        if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
             return "MD"
         return meas
 
@@ -92,7 +92,7 @@ def _studies_and_scale(trials, declared_estimand):
                      study_effect=t.get("study_effect")) for t in trials]
     if trials and all(t.get("e1i") is not None for t in trials):
         scale = "IRR"
-    elif trials and all(t.get("mean1") is not None for t in trials):
+    elif trials and all(t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None) for t in trials):
         scale = "MD"
     elif trials and all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
         scale = trials[0]["scale"]

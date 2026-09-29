@@ -1435,7 +1435,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if (spec.get("estimand") or "").upper() == "MD":
         kept = []
         for t in trials:
-            if t.get("mean1") is not None:
+            # a REPORTED between-group mean difference + CI is the continuous estimand itself (generic inverse
+            # variance); only counts / proportions / ratios are the mismatch this guard exists to refuse
+            if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
                 kept.append(t)
             else:
                 absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
@@ -1551,14 +1553,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         def _meas(t):
             if t.get("e1i") is not None:
                 return "IRR"
-            if t.get("mean1") is not None:
+            if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
                 return "MD"
             return meas
         # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
         # continuous, else the topic's ratio estimand.
         if all(t.get("e1i") is not None for t in trials):
             pooled_scale = "IRR"
-        elif all(t.get("mean1") is not None for t in trials):
+        elif all(t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None) for t in trials):
             pooled_scale = "MD"
         elif all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
             # Every pooled trial reported an explicit effect on the SAME scale -> display that scale,

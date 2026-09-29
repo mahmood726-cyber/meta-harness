@@ -37,7 +37,8 @@ def _row_is(trial: dict, num: str) -> bool:
 def _pool(rows: list[dict], scale: str) -> dict:
     if not rows:
         return {"k": 0, "estimate": None, "note": "no pooled estimate (k = 0)"}
-    studies = [synth.Study(label=str(t.get("id")), effect=t.get("effect"), ci_low=t.get("ci_low"), ci_high=t.get("ci_high"))
+    studies = [synth.Study(label=str(t.get("id")), effect=t.get("effect"), ci_low=t.get("ci_low"), ci_high=t.get("ci_high"),
+                           measure=("MD" if str(scale or "").upper() in ("MD", "SMD") else "RR"))
                for t in rows]
     try:
         r = synth.pool(studies, scale=scale)

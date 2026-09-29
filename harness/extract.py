@@ -281,6 +281,40 @@ def _effect_from_match(m, context=""):
     return Effect(scale, pt, lo, hi)
 
 
+# A REPORTED between-group MEAN DIFFERENCE with its CI ("difference, -10.3 percentage points [95% CI, -12.0 to -8.6]";
+# "estimated treatment difference of -12.4 percentage points (95% CI, -13.4 to -11.5)"). extract_effect reads ratios only,
+# so for an MD outcome the ladder fell through to reconstructing a difference from arm means -- for STEP 1 / STEP 3 that
+# was CT.gov's OBSERVED means, a different quantity from the trial's primary estimated treatment difference, which is
+# exactly what the comparator meta pools (found by the acq/k-gap G1 result-agreement check, 2026-09-29).
+_MD_EFFECT = re.compile(
+    r"\b(?:(?:mean|estimated|adjusted|treatment|between[- ]group|placebo[- ]adjusted)\s+)*difference"
+    r"[^0-9+\-]{0,45}?([-+]?\d+(?:\.\d+)?)"
+    r"[^0-9+\-]{0,45}?(?:95\s*%\s*)?(?:confidence intervals?|\bCI\b)[^0-9+\-]{0,15}?"
+    r"([-+]?\d+(?:\.\d+)?)\s*(?:to|,|;|\s-\s)\s*([-+]?\d+(?:\.\d+)?)", re.I)
+
+
+def extract_md_effect(sentence, require_unit=None):
+    """(\"MD\", point, lo, hi) from a reported between-group difference with its CI, else None. Signed; U+2212 folded."""
+    t = (sentence or "").replace("\u2212", "-").replace("\u2013", "-").replace("\u2014", "-")
+    m = _MD_EFFECT.search(t)
+    if not m:
+        return None
+    if require_unit:
+        # the UNIT is what follows the point estimate, up to the CI marker -- not the whole match, whose "95% CI"
+        # contains a "%" (STEP 1's '-12.7 kg; 95% CI' passed a percent test on the whole match)
+        after = t[m.end(1):m.start(2)]
+        cut = re.search(r"95|\bCI\b|confidence", after, re.I)
+        unit_text = after[:cut.start()] if cut else after
+        if not re.search(require_unit, unit_text, re.I):
+            return None                  # e.g. '-12.7 kg' when the outcome is PERCENT change (STEP 1 states both)
+    pt, lo, hi = float(m.group(1)), float(m.group(2)), float(m.group(3))
+    if lo > hi:
+        lo, hi = hi, lo
+    if not (lo <= pt <= hi) or lo == hi:
+        return None
+    return Effect("MD", pt, lo, hi)
+
+
 def extract_effect(sentence):
     """Return (scale, point, lo, hi) from the FIRST effect+CI phrase, else None."""
     m = _EFFECT.search(sentence)
@@ -894,6 +928,26 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
                 "measure": "IRR",
                 "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
+    # Reported between-group MEAN DIFFERENCE + CI, for an MD outcome: a REPORTED effect outranks one reconstructed from
+    # arm means (the same precedence the ratio path keeps). Same sentence guards as every other path.
+    if estimand and str(estimand).upper() in ("MD", "MEAN DIFFERENCE"):
+        _mds = []
+        for s in sents:
+            if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                    or (_skip_composite and _names_composite(s))
+                    or _kw_only_in_null_result(s, outcome_kws)):
+                continue
+            _pct = any(("percent" in k.lower() or "%" in k) for k in (outcome_kws or []))
+            e = extract_md_effect(s, require_unit=(r"percentage points?|%|percent" if _pct else None))
+            if e:
+                _mds.append((e, s))
+        if len({(e.point, e.lo, e.hi) for e, _ in _mds}) > 1:
+            return {"absent": True, "reason": ("ambiguous: admissible sentences state different reported mean "
+                    "differences for this outcome; refused rather than take the first (R4)")}
+        if _mds:
+            e, s = _mds[0]
+            return {"effect": e.point, "ci_low": e.lo, "ci_high": e.hi, "scale": "MD",
+                    "source": "abstract reported mean difference + CI: " + s.strip()[:200]}
     # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
     ns = _arm_ns(abstract, interv_terms, comp_terms)
     _conts = []

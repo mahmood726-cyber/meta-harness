@@ -178,3 +178,30 @@ def test_a_covariate_odds_ratio_is_not_the_treatment_effect():
     old, new = _upw_case("probiotics-aad-prevention", "upw_24044687_covariate_or_excerpt.txt")
     assert old.get("effect") == 5.04
     assert new.get("absent") is True
+
+
+# ---------------------------------------------------------------- reported mean difference (MD topics)
+def test_reported_mean_difference_is_read_and_unit_checked():
+    # PLANT (semaglutide-obesity-weight, STEP 3 PMID 33625476 / STEP 1 PMID 33567185 abstracts): the ratio-only
+    # extractor returned nothing for 'difference, -10.3 percentage points [95% CI, -12.0 to -8.6]', so the ladder
+    # pooled CT.gov's OBSERVED means (a different quantity) and G1 result agreement with the comparator failed.
+    from harness import extract
+    P = r"percentage points?|%|percent"
+    e = extract.extract_md_effect("(difference, -10.3 percentage points [95% CI, -12.0 to -8.6]; P < .001).", P)
+    assert (e.scale, e.point, e.lo, e.hi) == ("MD", -10.3, -12.0, -8.6)
+    e = extract.extract_md_effect("for an estimated treatment difference of -12.4 percentage points (95% confidence "
+                                  "interval [CI], -13.4 to -11.5; P<0.001).", P)
+    assert (e.point, e.lo, e.hi) == (-12.4, -13.4, -11.5)
+    # the same comparison in KG must not be taken for a PERCENT outcome ('95% CI' contains a '%')
+    assert extract.extract_md_effect("(estimated treatment difference, -12.7 kg; 95% CI, -13.7 to -11.7).", P) is None
+    assert extract.extract_md_effect("There was no difference between groups (P=0.4).") is None
+
+
+def test_reported_mean_difference_pools_on_the_raw_scale():
+    from harness import synth
+    s = synth.Study(label="STEP 3", effect=-10.3, ci_low=-12.0, ci_high=-8.6, measure="MD")
+    y, v = s.yi_vi()
+    assert y == -10.3 and abs(v ** 0.5 - (3.4 / (2 * 1.959964))) < 1e-4
+    import pytest
+    with pytest.raises(ValueError):                 # a negative 'ratio' refuses loudly instead of a math-domain error
+        synth.Study(label="x", effect=-10.3, ci_low=-12.0, ci_high=-8.6).yi_vi()
