@@ -21,12 +21,13 @@ Each is an in-memory rebuild by the real harness (dedup → screen → extract �
     had rejected. Eritsland 1996 was seeded as DART.
   - Fixed in `member_pmids`, with a plant test that fails on the old code.
   - The same fault was in the identity reader-2 display (commit 75e060a).
-- **Where the seeded identification gaps go** (trial level, before the 7-row fix; rerun pending):
-  - screened out X2 21, X1 15, X3 13, X-DESIGN 1;
+- **Where the 71 identification gaps go once seeded** (trial level, after the 7-row fix):
+  - seeded 69 of 71 (2 rows have no PMID to seed); all 69 reach screening;
+  - **screened out 57**: X2 24, X1 15, X3 15, X-DESIGN 2. One more is carried by an X2-excluded report;
   - declared absent 7 (OUTCOME_NOT_IN_SOURCE);
-  - pooled or via an included report 5;
-  - not seeded 27. These are REFERENCE_SEED candidate rows, other-agent rows, and the 7 rows seeded with the
-    wrong PMID.
+  - included via another report 4;
+  - pooled 1 (sglt2-primary-prevention-hf PMID 28284707; valid k 81 → 82).
+  - The 15 X1 ("not an RCT by the record") for trials a comparator counted as RCTs are the next audit target.
 - **So identification is not the binding step once seeded: screening is.**
 
 ## 1b. The 55 confirmed-member screening exclusions, by reason
