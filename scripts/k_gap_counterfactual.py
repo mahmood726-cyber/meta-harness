@@ -28,15 +28,33 @@ def _j(p):
         return json.load(fh)
 
 
+_VALS = ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i", "mean1", "sd1", "mean2", "sd2")
+
+
+def _values(prim):
+    """Every number the served primary shows: the pooled estimate/CI and each trial's effect or arm counts.
+    Identity equality alone cannot see a changed VALUE (a guard that swaps which candidate a trial uses)."""
+    res = prim.get("result") or {}
+    return {"pool": [res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")],
+            "trials": {t.get("id"): [t.get(k) for k in _VALS] for t in prim.get("trials", [])}}
+
+
 def served_primary(slug):
     rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     prim = next((o for o in rev["outcomes"] if o.get("primary")), {})
-    return {"k": (prim.get("result") or {}).get("k"), "trials": sorted(t.get("id") for t in prim.get("trials", []))}
+    return {"k": (prim.get("result") or {}).get("k"), "trials": sorted(t.get("id") for t in prim.get("trials", [])),
+            "values": _values(prim)}
 
 
 def core_primary(core):
     prim = next((o for o in core["outcomes"] if o.get("primary")), {})
-    return {"k": (prim.get("result") or {}).get("k"), "trials": sorted(t.get("id") for t in prim.get("trials", [])),
+    res = prim.get("result") or {}
+    # A k is only a gain when the pool it sits in is VALID. Admitting one OR into an RR pool (colchicine-postop-af,
+    # COCS from its full text) raised k 3->4 and SUPPRESSED the pooled effect entirely (INCOMPATIBLE estimands).
+    valid = bool(res.get("k")) and not res.get("suppressed_incompatible") and res.get("estimate") is not None
+    return {"k": res.get("k"), "valid_pool": valid, "k_valid": res.get("k") if valid else 0, "values": _values(prim),
+            "scale": res.get("scale"), "estimate": res.get("estimate"),
+            "trials": sorted(t.get("id") for t in prim.get("trials", [])),
             "declared_absent": sorted(d.get("id") for d in prim.get("declared_absent_trials", []))}
 
 
@@ -62,7 +80,33 @@ def funnel(core, pmids):
     return out
 
 
-def build(slug, extra_records=None):
+FT_DIR = os.path.join(OUT, "_ft")          # bodies (gitignored); FT_INDEX (committed) holds sha256 + bytes
+
+
+def pmc_fulltext_cached(pmid, offline=False):
+    """PMC OA JATS body + structured tables + supplements for one PMID, via the harness's own fetch._pmc_fulltext
+    (so the text is exactly what the pipeline would hold). Cached by PMID; '' when PMC holds no OA text."""
+    import hashlib
+    os.makedirs(FT_DIR, exist_ok=True)
+    fp = os.path.join(FT_DIR, pmid + ".txt")
+    if os.path.exists(fp):
+        return open(fp, encoding="utf-8").read()
+    if offline:
+        return ""
+    from harness import fetch
+    txt = fetch._pmc_fulltext(pmid, with_supplements=True)
+    with open(fp, "w", encoding="utf-8") as fh:
+        fh.write(txt)
+    idx_p = os.path.join(OUT, "fulltext_index.json")
+    idx = _j(idx_p) if os.path.exists(idx_p) else {}
+    idx[pmid] = {"bytes": len(txt.encode("utf-8")), "sha256": hashlib.sha256(txt.encode("utf-8")).hexdigest(),
+                 "source": "harness.fetch._pmc_fulltext(with_supplements=True)"}
+    with open(idx_p, "w", encoding="utf-8") as fh:
+        json.dump(idx, fh, indent=1, sort_keys=True)
+    return txt
+
+
+def build(slug, extra_records=None, extra_fulltext=None):
     from harness.pipeline import build_review_core
     from harness.registration import protocol_sha
     config = _j(os.path.join(ROOT, "topics", slug + ".json"))
@@ -71,6 +115,11 @@ def build(slug, extra_records=None):
     if extra_records:
         have = {r.get("id") for r in records["records"]}
         records["records"] += [r for r in extra_records if r.get("id") not in have]
+    if extra_fulltext:
+        ft = dict(records.get("fulltext_by_pmid") or {})
+        for k, v in extra_fulltext.items():
+            ft.setdefault(k, v)          # never replace full text the pinned cache already holds
+        records["fulltext_by_pmid"] = ft
     return build_review_core(slug, config, records, protocol_sha(slug))
 
 
@@ -101,9 +150,39 @@ def main(argv):
         t0 = time.time()
         s = served_primary(slug)
         try:
-            if mode == "--baseline":
+            if mode == "--fulltext":
+                base_core = build(slug)
+                base = core_primary(base_core)
+                prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
+                held = set((_j(os.path.join(ROOT, "cache", slug, "records.json")).get("fulltext_by_pmid") or {}))
+                targets = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
+                                  if str(d.get("id", "")).startswith("PMID ")} - held)
+                fts = {p: pmc_fulltext_cached(p) for p in targets}
+                got = {p: t for p, t in fts.items() if t}
+                cfc = build(slug, extra_fulltext=got)
+                cf = core_primary(cfc)
+                prim_cf = next((o for o in cfc["outcomes"] if o.get("primary")), {})
+                why_b = {d.get("id"): d.get("reason_code") for d in prim.get("declared_absent_trials", [])}
+                why_c = {d.get("id"): d.get("reason_code") for d in prim_cf.get("declared_absent_trials", [])}
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "declared_absent_pmids": len(targets),
+                             "pmc_fulltext_found": len(got), "counterfactual_k": cf["k"],
+                             "baseline_k_valid": base["k_valid"], "counterfactual_k_valid": cf["k_valid"],
+                             "counterfactual_scale": cf["scale"],
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "reason_changed": {k: [why_b.get(k), why_c.get(k)] for k in why_b
+                                                if k in why_c and why_b.get(k) != why_c.get(k)},
+                             "secs": round(time.time() - t0, 1)}
+            elif mode == "--baseline":
                 c = core_primary(build(slug))
+                vdiff = {k: [s["values"]["trials"].get(k), c["values"]["trials"].get(k)]
+                         for k in set(s["values"]["trials"]) | set(c["values"]["trials"])
+                         if s["values"]["trials"].get(k) != c["values"]["trials"].get(k)}
                 res[slug] = {"served_k": s["k"], "rebuilt_k": c["k"], "same_trials": s["trials"] == c["trials"],
+                             "same_values": s["values"]["pool"] == c["values"]["pool"] and not vdiff,
+                             "value_diff": vdiff or None,
+                             "pool_diff": None if s["values"]["pool"] == c["values"]["pool"]
+                             else [s["values"]["pool"], c["values"]["pool"]],
                              "secs": round(time.time() - t0, 1)}
             else:
                 from harness import fetch
@@ -114,6 +193,7 @@ def main(argv):
                 cf = core_primary(cfc)
                 fn = funnel(cfc, [r["id"] for r in recs])
                 res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "members_added": len(pm),
+                             "baseline_k_valid": base["k_valid"], "counterfactual_k_valid": cf["k_valid"],
                              "nct_only_pmids": len(nct_only),
                              "records_fetched": len(recs), "counterfactual_k": cf["k"],
                              "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
@@ -129,6 +209,7 @@ def main(argv):
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     r = main(sys.argv[1:])
-    name = "counterfactual_baseline.json" if sys.argv[1] == "--baseline" else "counterfactual_members.json"
+    name = {"--baseline": "counterfactual_baseline.json", "--members": "counterfactual_members.json",
+            "--fulltext": "counterfactual_fulltext.json"}[sys.argv[1]]
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
         json.dump(r, fh, indent=1, sort_keys=True)
