@@ -2587,6 +2587,16 @@ def build_review_core(slug, config, records, protocol_sha):
     _sx = search_execution_mod.build(ROOT, slug, review)
     if _sx:
         review["search_execution"] = _sx
+    # V1.0.1 (statins-older-adults review): a non-randomised registered comparator is typed from its own held abstract,
+    # and a randomised-evidence RCT checkpoint for the topic (registry/positive_controls.json, role RCT_CHECKPOINT) is
+    # run through our engine or, when its rows are not held, shown with its RECORDED acquisition result
+    from . import positive_control as positive_control_mod
+    _cpm = str(config.get("comparator_pmid") or "")
+    _cab = next((str(x.get("abstract") or "") for x in (records.get("records") or []) if str(x.get("id")) == _cpm), "")
+    _cdes = positive_control_mod.comparator_design(_cab) if _cpm else None
+    _rct = positive_control_mod.checkpoints(ROOT, slug)
+    if _rct or (_cdes and _cdes["state"] == "NON_RANDOMISED"):
+        review["comparator"] = dict(review["comparator"], design_check=_cdes, rct_checkpoints=_rct)
     # V1.0.1 (finerenone review): an external checkpoint pooling the same trials -- never a target, never an input
     from . import external_checkpoints as external_checkpoints_mod
     _cps = external_checkpoints_mod.load(ROOT, slug)

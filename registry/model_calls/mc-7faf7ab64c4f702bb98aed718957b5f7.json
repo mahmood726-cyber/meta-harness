@@ -1,0 +1,180 @@
+{
+ "caller": {
+  "file": "scripts/overnight_proposals.py",
+  "lane": "evid2",
+  "line": "cmd_run",
+  "purpose": "d5_identity_reader2 proposals, batch 10 (6 items)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-5.5",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-5.5",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0ea7b-e352-7241-9ea8-1f86a007372d",
+   "tokens used": "13,579"
+  },
+  "lane_log": "registry/model_calls/lane_log/evid2.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 2584,
+  "stderr_sha256": "0ef0717f7b95517d40a1bdbc89c26c47748b894e664dee459d53b845bd29790b",
+  "stdout_bytes": 836,
+  "stdout_sha256": "aeac198310328498a3cfb06e4bd8ed6bd613d6a04e06efb20dc72259448927fd",
+  "tokens_used": 13579,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "b96697e5ad9bc1a756d703a1b979a5d912b80f0d57cd0bc2f7e4d0a59aff1b96"
+ },
+ "input_digests": [
+  {
+   "ref": "docs/reviews/corticosteroids-cap-mortality/review.json@6e26839a#rob2/36942789/D5",
+   "sha256": "2f4a0167fe77613aa880d27c73ea022f41bdade2fb0950fac27d7133dc6946fe",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/corticosteroids-cap-mortality/review.json@6e26839a#rob2/36942789/D5",
+   "sha256": "a955ac718bfbef11bca2a55a6a0ab404ef9857f8226a0320030c224a095e594f",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/corticosteroids-cap-mortality/review.json@6e26839a#rob2/36942789/D5",
+   "sha256": "2db9effede869566f02dba461576b7e06016fe7a4d95f7fd1f3d4d34e0d1e3e8",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/corticosteroids-cap-mortality/review.json@6e26839a#rob2/36942789/D5",
+   "sha256": "941c21dea5040941f1927cd2ab6c882829b5c5bd104379c8dbd9113823a7e743",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/corticosteroids-cap-mortality/review.json@6e26839a#rob2/36942789/D5",
+   "sha256": "998d36bca1d8cf2e54d16c6ba850aeacbe3bdfa2d136ba93b667312564453a30",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/corticosteroids-cap-mortality/review.json@6e26839a#rob2/36942789/D5",
+   "sha256": "6b1672eb27f6b8d740617c44d76d933bf8d1074777dbaf8efa6a1b351a53d6a2",
+   "what": "held text"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "8a28860d31136ef11d48a62ee5e5b4d80cd43be06b21cc10243ca4f2191b3826",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-5.5",
+  "id_requested": "gpt-5.5",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "items": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string"
+       },
+       "quote": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "verdict": {
+        "enum": [
+         "SAME_OUTCOME",
+         "DIFFERENT_OUTCOME",
+         "NOT_STATED"
+        ],
+        "type": "string"
+       }
+      },
+      "required": [
+       "item",
+       "verdict",
+       "quote"
+      ],
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "items"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "RWFjaCBpdGVtIGdpdmVzIGEgUE9PTEVEIE9VVENPTUUgYW5kIE9ORSBvdXRjb21lIGEgdHJpYWwgcmVnaXN0ZXJlZC4gRGVjaWRlIHdoZXRoZXIgdGhlIHJlZ2lzdGVyZWQKb3V0Y29tZSBpcyB0aGUgU0FNRSBvdXRjb21lIGFzIHRoZSBwb29sZWQgb25lIC0tIHRoZSBzYW1lIGNvbXBvbmVudHMsIG5vdCBtZXJlbHkgYSByZWxhdGVkIG9uZSAoYSBibGVlZGluZyBvdXRjb21lIGlzCm5ldmVyIHRoZSBzYW1lIGFzIGEgZGVhdGgvTUkvc3Ryb2tlIGNvbXBvc2l0ZTsgJ2RlYXRoIGZyb20gdmFzY3VsYXIgY2F1c2VzJyBjb3VudHMgYXMgY2FyZGlvdmFzY3VsYXIgZGVhdGgpLgp2ZXJkaWN0OiBTQU1FX09VVENPTUUgfCBESUZGRVJFTlRfT1VUQ09NRSB8IE5PVF9TVEFURUQuIHF1b3RlOiB3b3JkcyBjb3BpZWQgZXhhY3RseSBmcm9tIHRoZSBSRUdJU1RFUkVEIG91dGNvbWUgdGhhdApzaG93IGl0IChudWxsIGZvciBOT1RfU1RBVEVEKS4KPT09IElURU0gaXRlbT1SMSAgPT09ClBPT0xFRCBPVVRDT01FOiBBbGwtY2F1c2UgbW9ydGFsaXR5ClJFR0lTVEVSRUQgKHNlY29uZGFyeSk6IFNGLTM2IEhlYWx0aCBTdXJ2ZXkgYXQgZGF5IDkwCgo9PT0gSVRFTSBpdGVtPVIyICA9PT0KUE9PTEVEIE9VVENPTUU6IEFsbC1jYXVzZSBtb3J0YWxpdHkKUkVHSVNURVJFRCAoc2Vjb25kYXJ5KTogQmlvbWFya2VyczogcHJvY2FsY2l0b25pbiBhdCBiYXNlbGluZSwgZGF5IDMgYW5kIGRheSA3Cgo9PT0gSVRFTSBpdGVtPVIzICA9PT0KUE9PTEVEIE9VVENPTUU6IEFsbC1jYXVzZSBtb3J0YWxpdHkKUkVHSVNURVJFRCAoc2Vjb25kYXJ5KTogQmlvbWFya2VyczogQy1yZWFjdGl2ZSBwcm90ZWluIGF0IGJhc2VsaW5lLCBkYXkgMyBhbmQgZGF5IDcKCj09PSBJVEVNIGl0ZW09UjQgID09PQpQT09MRUQgT1VUQ09NRTogQWxsLWNhdXNlIG1vcnRhbGl0eQpSRUdJU1RFUkVEIChzZWNvbmRhcnkpOiBCaW9tYXJrZXJzOiBwbGFzbWF0aWMgY29uY2VudHJhdGlvbiBvZiBwcm8taW5mbGFtbWF0b3J5IGN5dG9raW5lcyAoSUwtNiwgSUwtMjAsIElMLTIyLCBJTC0yMkJQLCBIQkQyLCBUTkYpIGF0IGJhc2VsaW5lLCBkYXkgMyBhbmQgZGF5IDcKCj09PSBJVEVNIGl0ZW09UjUgID09PQpQT09MRUQgT1VUQ09NRTogQWxsLWNhdXNlIG1vcnRhbGl0eQpSRUdJU1RFUkVEIChzZWNvbmRhcnkpOiBQL0YgcmF0aW8gbWVhc3VyZWQgZGFpbHkgZnJvbSBiYXNlbGluZSB0byBkYXkgNywgYXQgdGhlIGVuZCBvZiB0cmVhdG1lbnQsIGF0IHRoZSBlbmQgb2YgSUNVLXN0YXkgYW5kL29yIGRheSAyOAoKPT09IElURU0gaXRlbT1SNiAgPT09ClBPT0xFRCBPVVRDT01FOiBBbGwtY2F1c2UgbW9ydGFsaXR5ClJFR0lTVEVSRUQgKHNlY29uZGFyeSk6IFNPRkEgY2FsY3VsYXRlZCBkYWlseSBmcm9tIGJhc2VsaW5lIHRvIGRheSA3LCBhdCB0aGUgZW5kIG9mIHRyZWF0bWVudCwgYXQgdGhlIGVuZCBvZiBJQ1Utc3RheSBhbmQvb3IgZGF5IDI4Cg==",
+  "bytes": 1471,
+  "sha256": "67232f4788ee30793f0f0851393372df05c72ffe4a44327db4cc48665b6304c8"
+ },
+ "record_id": "mc-7faf7ab64c4f702bb98aed718957b5f7",
+ "request_utc": "2026-09-29T00:06:20Z",
+ "response": {
+  "b64": "eyJpdGVtcyI6W3siaXRlbSI6IlIxIiwicXVvdGUiOiJTRi0zNiBIZWFsdGggU3VydmV5IGF0IGRheSA5MCIsInZlcmRpY3QiOiJESUZGRVJFTlRfT1VUQ09NRSJ9LHsiaXRlbSI6IlIyIiwicXVvdGUiOiJCaW9tYXJrZXJzOiBwcm9jYWxjaXRvbmluIGF0IGJhc2VsaW5lLCBkYXkgMyBhbmQgZGF5IDciLCJ2ZXJkaWN0IjoiRElGRkVSRU5UX09VVENPTUUifSx7Iml0ZW0iOiJSMyIsInF1b3RlIjoiQmlvbWFya2VyczogQy1yZWFjdGl2ZSBwcm90ZWluIGF0IGJhc2VsaW5lLCBkYXkgMyBhbmQgZGF5IDciLCJ2ZXJkaWN0IjoiRElGRkVSRU5UX09VVENPTUUifSx7Iml0ZW0iOiJSNCIsInF1b3RlIjoiQmlvbWFya2VyczogcGxhc21hdGljIGNvbmNlbnRyYXRpb24gb2YgcHJvLWluZmxhbW1hdG9yeSBjeXRva2luZXMgKElMLTYsIElMLTIwLCBJTC0yMiwgSUwtMjJCUCwgSEJEMiwgVE5GKSBhdCBiYXNlbGluZSwgZGF5IDMgYW5kIGRheSA3IiwidmVyZGljdCI6IkRJRkZFUkVOVF9PVVRDT01FIn0seyJpdGVtIjoiUjUiLCJxdW90ZSI6IlAvRiByYXRpbyBtZWFzdXJlZCBkYWlseSBmcm9tIGJhc2VsaW5lIHRvIGRheSA3LCBhdCB0aGUgZW5kIG9mIHRyZWF0bWVudCwgYXQgdGhlIGVuZCBvZiBJQ1Utc3RheSBhbmQvb3IgZGF5IDI4IiwidmVyZGljdCI6IkRJRkZFUkVOVF9PVVRDT01FIn0seyJpdGVtIjoiUjYiLCJxdW90ZSI6IlNPRkEgY2FsY3VsYXRlZCBkYWlseSBmcm9tIGJhc2VsaW5lIHRvIGRheSA3LCBhdCB0aGUgZW5kIG9mIHRyZWF0bWVudCwgYXQgdGhlIGVuZCBvZiBJQ1Utc3RheSBhbmQvb3IgZGF5IDI4IiwidmVyZGljdCI6IkRJRkZFUkVOVF9PVVRDT01FIn1dfQ==",
+  "bytes": 835,
+  "sha256": "ea1ad4ff8004bcfe7d133f1c10b8d7c8cf6e54ab6e844881b856016532a34eb5"
+ },
+ "response_utc": "2026-09-29T00:06:32Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

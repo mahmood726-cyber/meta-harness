@@ -83,6 +83,91 @@ def merge(root, slug, records: dict) -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------------------------------ the proposer
+# A report that describes ITSELF as an analysis of a named trial: "Secondary analysis of JUPITER (Justification ...)",
+# "post hoc analysis of the SELECT trial", "Secondary analysis of the Antihypertensive ... Trial (ALLHAT-LLT)". The
+# phrase is case-insensitive; the trial NAME must be an upper-case token (an acronym), optionally after its spelled-out
+# name and optionally in brackets. A generic abbreviation ("RCT", "ACE") never links: the name must resolve to exactly
+# ONE held registration that carries it as its own acronym.
+SELF_ANALYSIS = re.compile(
+    r"\b(?i:secondary|post[- ]?hoc|pre-?specified|exploratory|ancillary|subgroup|sub-?study)\s+"
+    r"(?i:analys[ie]s|stud(?:y|ies)|report)\s+(?i:of|from|in)\s+(?i:data\s+from\s+)?(?i:the\s+)?"
+    # the name either follows directly ('analysis of JUPITER') or is BRACKETED after a capitalised expansion ('... Heart
+    # Attack Trial-Lipid-Lowering Trial (ALLHAT-LLT)'); 'analysis of subjects with AAD' names no trial
+    r"(?:(?P<acr>[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*)(?![A-Za-z0-9])"
+    r"|[A-Z][A-Za-z']*(?:[-\s][A-Za-z][A-Za-z']*){0,24}?\s*\((?P<acr2>[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*)\))")
+_BRIEF_ACRONYM = re.compile(r"^(?P<acr>[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*)\s+-\s+")
+_HELD_REGISTRY = "evidence/held/registry"
+
+
+def held_registrations(root, slug) -> dict:
+    """{ACRONYM: {nct: (document_ref, quote)}} from every held registration this build can read: the topic's registry
+    records (their acronym field), its family registry (AACT studies.acronym) and the held CT.gov records
+    (identificationModule.acronym, or a brief title that STARTS with the acronym: 'JUPITER - Crestor 20mg ...')."""
+    root = Path(root)
+    out: dict = {}
+
+    def add(acr, nct, ref, quote):
+        if acr and nct and quote:
+            out.setdefault(str(acr).strip().upper(), {}).setdefault(str(nct).upper(), (ref, str(quote)))
+
+    rp = root / "cache" / slug / "records.json"
+    if rp.exists():
+        for r in json.loads(rp.read_text(encoding="utf-8")).get("ctgov") or []:
+            add(r.get("acronym"), r.get("id"), f"cache/{slug}/records.json", r.get("acronym"))
+    for p in sorted((root / _HELD_REGISTRY).glob("NCT*.json")):
+        idm = (json.loads(p.read_text(encoding="utf-8")).get("protocolSection") or {}).get("identificationModule") or {}
+        ref = f"{_HELD_REGISTRY}/{p.name}"
+        add(idm.get("acronym"), idm.get("nctId"), ref, idm.get("acronym"))
+        m = _BRIEF_ACRONYM.match(idm.get("briefTitle") or "")
+        if m:
+            add(m.group("acr"), idm.get("nctId"), ref, idm.get("briefTitle"))
+    return out
+
+
+def propose(root, slug, records: dict) -> list:
+    """One typed row per held report that names itself an analysis of a named trial and carries no registration:
+    LINKED (a link row that validate() accepts), WITHHELD_SAME_REGISTRATION (another held report already carries that
+    NCT: the build's same-registration de-duplication would fold this report into it with no screening row -- the
+    ALLHAT-LLT case -- so no link until that collapse is disclosed), AMBIGUOUS (several registrations carry the name)
+    or UNRESOLVED (no held registration carries it)."""
+    regs = None
+    held_ncts = {}
+    for r in records.get("records") or []:
+        n = str(r.get("nct") or "").upper()
+        if n.startswith("NCT"):
+            held_ncts.setdefault(n, []).append(str(r.get("id")))
+    rows = []
+    for r in records.get("records") or []:
+        if str(r.get("nct") or "").upper().startswith("NCT"):
+            continue
+        text = _norm(" ".join(str(r.get(k) or "") for k in ("title", "abstract")))
+        m = SELF_ANALYSIS.search(text)
+        if not m:
+            continue
+        if regs is None:
+            regs = held_registrations(root, slug)
+        acr = m.group("acr") or m.group("acr2")
+        cands = regs.get(acr.upper()) or regs.get(acr.split("-")[0].upper()) or {}
+        row = {"pmid": str(r.get("id")), "acronym": acr, "phrase": m.group(0)}
+        # the sentence that carries the phrase, as the paper quote
+        s0 = text.rfind(". ", 0, m.start()) + 2 if text.rfind(". ", 0, m.start()) >= 0 else 0
+        s1 = text.find(". ", m.end())
+        row["paper_quote"] = text[s0:(s1 + 1) if s1 >= 0 else len(text)].strip()
+        if not cands:
+            rows.append(dict(row, state="UNRESOLVED"))
+        elif len(cands) > 1:
+            rows.append(dict(row, state="AMBIGUOUS", candidates=sorted(cands)))
+        else:
+            nct, (ref, quote) = next(iter(cands.items()))
+            row.update(nct=nct, acronym=acr if _token(acr, quote) else acr.split("-")[0],
+                       registry_quote={"document_ref": ref, "field": "acronym / brief title", "quote": quote})
+            others = [x for x in held_ncts.get(nct, []) if x != row["pmid"]]
+            rows.append(dict(row, state="WITHHELD_SAME_REGISTRATION", held_reports_of_registration=others) if others
+                        else dict(row, state="LINKED"))
+    return rows
+
+
 def by_pmid(root, slug) -> dict:
     """{pmid: {nct, acronym}} for the recovery panel (a missed report whose parent is registered is not unregistered)."""
     return {str(x["pmid"]): {"nct": x["nct"], "acronym": x["acronym"]} for x in links(root, slug)}

@@ -158,3 +158,27 @@ def test_two_registrations_sharing_an_acronym_stay_two_families():
     units = identity.build_publication_units([{"id": "NCT04906720", "id_type": "nct", "acronym": "PAPERS"},
                                               {"id": "NCT06731595", "id_type": "nct", "acronym": "PAPERS"}])
     assert {units[k]["trial_family_id"] for k in units} == {"NCT04906720", "NCT06731595"}
+
+
+def test_round7_plants_fire_on_the_pre_fix_harness_and_not_on_this_one():
+    """scripts/plants_round7.py builds each defect's input. The recorded pre-fix run (a sparse worktree of 1801d205)
+    fired all of them; this harness must fire none (run in a subprocess: the script swaps the harness package)."""
+    import subprocess
+    import sys
+    rec = json.loads((ROOT / "evidence" / "v101_integrated" / "round7_plants.json").read_text(encoding="utf-8"))
+    assert rec["pre_fix"]["fired"] == rec["pre_fix"]["of"] == 8
+    out = subprocess.run([sys.executable, str(ROOT / "scripts" / "plants_round7.py"), "--harness-root", str(ROOT)],
+                         capture_output=True, text=True, encoding="utf-8", timeout=600)
+    assert out.returncode == 0, out.stderr[-2000:]
+    lines = [l for l in out.stdout.splitlines() if l.strip()]
+    assert len(lines) == 8 and all(l.startswith("NOT FIRED") for l in lines), out.stdout
+
+
+def test_corpus_sweeps_are_recorded():
+    cr = json.loads((ROOT / "evidence" / "v101_integrated" / "condition_role_sweep.json").read_text(encoding="utf-8"))
+    assert (cr["n_prevention_target"], cr["N"]) == (1, 28) and cr["population_commit"] == "1801d205"
+    q = json.loads((ROOT / "registry" / "model_proposals" / "condition_role.json").read_text(encoding="utf-8"))
+    assert q["admits_into_build"] is False and len(q["items"]) == cr["by_class"]["CRITERIA_SILENT"]
+    assert all(e.get("status") == "PROPOSED" for e in q["items"])
+    pr_ = json.loads((ROOT / "evidence" / "v101_integrated" / "parent_registration_sweep.json").read_text(encoding="utf-8"))
+    assert pr_["by_state"].get("LINKED") == 1 and pr_["recall_no_registry_link"]["n_registered_through_parent"] == 1

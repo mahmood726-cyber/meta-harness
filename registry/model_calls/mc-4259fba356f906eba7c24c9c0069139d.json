@@ -1,0 +1,180 @@
+{
+ "caller": {
+  "file": "scripts/overnight_proposals.py",
+  "lane": "evid2",
+  "line": "cmd_run",
+  "purpose": "d5_identity proposals, batch 1 (6 items)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0ea41-44db-7ea2-8d98-0550600b8a21",
+   "tokens used": "16,444"
+  },
+  "lane_log": "registry/model_calls/lane_log/evid2.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 1970,
+  "stderr_sha256": "ec078b9934d64ad20e2182d3102f889082645f383db904e16adb4dc57d6a81e8",
+  "stdout_bytes": 553,
+  "stdout_sha256": "09cd2f0c09ee13c2e5d8b3d36eb87907d24d962bc44e2f91fe340c149067ebb4",
+  "tokens_used": 16444,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "ae8c190e1a673407762e5d62820d8765a9a40d4aa344c3d425c8f594641e499e"
+ },
+ "input_digests": [
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@6e26839a#rob2/35041780/D5",
+   "sha256": "d16abab7665a9703f7093e291f01cf35cf07094dd49dfeb1cac76a91b7163e99",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@6e26839a#rob2/35041780/D5",
+   "sha256": "67f22aadd7d47000f672c7cfb2e1d49b0527c5c993a42dfa0203a9f1d76e69bf",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@6e26839a#rob2/35041780/D5",
+   "sha256": "64dc19098578873561969ad44e21c2110d41bd13c4ebc3964af3be7c0d39771e",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@6e26839a#rob2/35041780/D5",
+   "sha256": "842e6c777142443a22a8e84a3c18ed62d2004b5a816c2dc28d5b5ec1f2985ca4",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@6e26839a#rob2/35041780/D5",
+   "sha256": "be9d70bb5dc530474ae966db35ab148127eb67baf70a96c4fabed5de395c9b6c",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@6e26839a#rob2/35041780/D5",
+   "sha256": "f4895612d7e534c77160fa695abe7b4033fab20609388aa38211c9eaa966b121",
+   "what": "held text"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "8a28860d31136ef11d48a62ee5e5b4d80cd43be06b21cc10243ca4f2191b3826",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "items": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string"
+       },
+       "quote": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "verdict": {
+        "enum": [
+         "SAME_OUTCOME",
+         "DIFFERENT_OUTCOME",
+         "NOT_STATED"
+        ],
+        "type": "string"
+       }
+      },
+      "required": [
+       "item",
+       "verdict",
+       "quote"
+      ],
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "items"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "RWFjaCBpdGVtIGdpdmVzIGEgUE9PTEVEIE9VVENPTUUgYW5kIE9ORSBvdXRjb21lIGEgdHJpYWwgcmVnaXN0ZXJlZC4gRGVjaWRlIHdoZXRoZXIgdGhlIHJlZ2lzdGVyZWQKb3V0Y29tZSBpcyB0aGUgU0FNRSBvdXRjb21lIGFzIHRoZSBwb29sZWQgb25lIC0tIHRoZSBzYW1lIGNvbXBvbmVudHMsIG5vdCBtZXJlbHkgYSByZWxhdGVkIG9uZSAoYSBibGVlZGluZyBvdXRjb21lIGlzCm5ldmVyIHRoZSBzYW1lIGFzIGEgZGVhdGgvTUkvc3Ryb2tlIGNvbXBvc2l0ZTsgJ2RlYXRoIGZyb20gdmFzY3VsYXIgY2F1c2VzJyBjb3VudHMgYXMgY2FyZGlvdmFzY3VsYXIgZGVhdGgpLgp2ZXJkaWN0OiBTQU1FX09VVENPTUUgfCBESUZGRVJFTlRfT1VUQ09NRSB8IE5PVF9TVEFURUQuIHF1b3RlOiB3b3JkcyBjb3BpZWQgZXhhY3RseSBmcm9tIHRoZSBSRUdJU1RFUkVEIG91dGNvbWUgdGhhdApzaG93IGl0IChudWxsIGZvciBOT1RfU1RBVEVEKS4KPT09IElURU0gaXRlbT1SMSAgPT09ClBPT0xFRCBPVVRDT01FOiBNb3J0YWxpdHkKUkVHSVNURVJFRCAocHJpbWFyeSk6IERlYXRoIGZyb20gYWxsIGNhdXNlcwoKPT09IElURU0gaXRlbT1SMiAgPT09ClBPT0xFRCBPVVRDT01FOiBNb3J0YWxpdHkKUkVHSVNURVJFRCAoc2Vjb25kYXJ5KTogTWVhbiBhbmQgcGVhayBzZXJ1bSBjcmVhdGluaW5lIGNvbmNlbnRyYXRpb24KCj09PSBJVEVNIGl0ZW09UjMgID09PQpQT09MRUQgT1VUQ09NRTogTW9ydGFsaXR5ClJFR0lTVEVSRUQgKHNlY29uZGFyeSk6IElDVSwgaG9zcGl0YWwgYW5kIDI4IGRheSBhbGwtY2F1c2UgbW9ydGFsaXR5Cgo9PT0gSVRFTSBpdGVtPVI0ICA9PT0KUE9PTEVEIE9VVENPTUU6IE1vcnRhbGl0eQpSRUdJU1RFUkVEIChzZWNvbmRhcnkpOiBEdXJhdGlvbiBvZiBJQ1Ugc3RheQoKPT09IElURU0gaXRlbT1SNSAgPT09ClBPT0xFRCBPVVRDT01FOiBNb3J0YWxpdHkKUkVHSVNURVJFRCAoc2Vjb25kYXJ5KTogRHVyYXRpb24gb2YgSG9zcGl0YWwgc3RheQoKPT09IElURU0gaXRlbT1SNiAgPT09ClBPT0xFRCBPVVRDT01FOiBNb3J0YWxpdHkKUkVHSVNURVJFRCAoc2Vjb25kYXJ5KTogUHJvcG9ydGlvbiBvZiBwYXRpZW50cyBuZXdseSB0cmVhdGVkIHdpdGggcmVuYWwgcmVwbGFjZW1lbnQgdGhlcmFweQo=",
+  "bytes": 1136,
+  "sha256": "45bfb7e19952980ceb02fafbde3a45eef09cb4c5c256062f782995f34333743d"
+ },
+ "record_id": "mc-4259fba356f906eba7c24c9c0069139d",
+ "request_utc": "2026-09-28T23:02:14Z",
+ "response": {
+  "b64": "eyJpdGVtcyI6W3siaXRlbSI6IlIxIiwicXVvdGUiOiJEZWF0aCBmcm9tIGFsbCBjYXVzZXMiLCJ2ZXJkaWN0IjoiU0FNRV9PVVRDT01FIn0seyJpdGVtIjoiUjIiLCJxdW90ZSI6Ik1lYW4gYW5kIHBlYWsgc2VydW0gY3JlYXRpbmluZSBjb25jZW50cmF0aW9uIiwidmVyZGljdCI6IkRJRkZFUkVOVF9PVVRDT01FIn0seyJpdGVtIjoiUjMiLCJxdW90ZSI6IklDVSwgaG9zcGl0YWwgYW5kIDI4IGRheSBhbGwtY2F1c2UgbW9ydGFsaXR5IiwidmVyZGljdCI6IlNBTUVfT1VUQ09NRSJ9LHsiaXRlbSI6IlI0IiwicXVvdGUiOiJEdXJhdGlvbiBvZiBJQ1Ugc3RheSIsInZlcmRpY3QiOiJESUZGRVJFTlRfT1VUQ09NRSJ9LHsiaXRlbSI6IlI1IiwicXVvdGUiOiJEdXJhdGlvbiBvZiBIb3NwaXRhbCBzdGF5IiwidmVyZGljdCI6IkRJRkZFUkVOVF9PVVRDT01FIn0seyJpdGVtIjoiUjYiLCJxdW90ZSI6IlByb3BvcnRpb24gb2YgcGF0aWVudHMgbmV3bHkgdHJlYXRlZCB3aXRoIHJlbmFsIHJlcGxhY2VtZW50IHRoZXJhcHkiLCJ2ZXJkaWN0IjoiRElGRkVSRU5UX09VVENPTUUifV19",
+  "bytes": 552,
+  "sha256": "1609fb1c36c15d1e1094b10f6aaac1602fc7bd5dceab9656beefefc62d61c230"
+ },
+ "response_utc": "2026-09-28T23:02:33Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

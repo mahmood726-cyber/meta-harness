@@ -487,7 +487,86 @@ def reverify(entry: dict, held_text: str) -> dict:
         return verify_site_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
     if task in ("comparator_k", "comparator_k_reader2"):
         return verify_comparator_k(entry.get("claim"), held_text, prior)
+    if task in ("condition_role", "condition_role_reader2"):
+        return verify_condition_role(entry.get("claim"), held_text, (entry.get("context") or {}).get("term"))
+    if task in CATEGORICAL_TASKS:
+        return verify_categorical(task, entry.get("claim"), held_text, entry.get("rule_decision"))
     return {"state": "VERIFIER_REFUSED", "problems": [f"TASK_UNKNOWN: {task!r}"]}
+
+
+CONDITION_ROLES = ("ENTRY_POPULATION", "PREVENTED_OUTCOME", "NOT_STATED")
+
+# V1.0.1 (ticagrelor / tocilizumab reviews; scripts/overnight_proposals.py): one blind categorical reading per item,
+# backed by a quote located in the held text. The verdict vocabulary is the task's; the rule's own decision for the
+# item is stored with the entry, and agreement is DERIVED here, never taken from the model.
+CATEGORICAL_TASKS = {
+    "d5_identity": ("SAME_OUTCOME", "DIFFERENT_OUTCOME", "NOT_STATED"),
+    "comparator_arm": ("COMPARATOR_PRESENT", "NO_COMPARATOR", "NOT_STATED"),
+    "trial_identity": ("SAME_TRIAL_SUBGROUP", "SAME_TRIAL_SAME_POPULATION", "DIFFERENT_TRIALS", "NOT_STATED"),
+}
+# a second reader (a different model id, same vendor -- stated, not hidden) reads the same population
+CATEGORICAL_TASKS.update({f"{t}_reader2": v for t, v in list(CATEGORICAL_TASKS.items())})
+
+
+def verify_categorical(task: str, claim: Any, held_text: str, rule_decision: Any) -> dict:
+    problems = []
+    allowed = CATEGORICAL_TASKS[task]
+    out: dict[str, Any] = {"task": task, "rule_decision": rule_decision}
+    v = claim.get("verdict") if isinstance(claim, dict) else None
+    q = claim.get("quote") if isinstance(claim, dict) else None
+    if v not in allowed:
+        problems.append(f"VERDICT_NOT_TYPED: {v!r} not in {allowed}")
+    elif v == "NOT_STATED":
+        if q not in (None, ""):
+            problems.append("NOT_STATED_WITH_SPAN")
+    elif not isinstance(q, str) or not q.strip():
+        problems.append(f"NO_SPAN: {v} without a quote")
+    else:
+        loc = _locate(q, held_text)
+        out["located"] = loc
+        if loc.get("match") not in ("VERBATIM", "NORMALISED"):
+            problems.append("SPAN_NOT_IN_SOURCE")
+    if v in allowed:
+        out["model_decision"] = v
+        out["agreement"] = ("RULE_MODEL_AGREE" if v == rule_decision else
+                            f"RULE_MODEL_DISAGREE(rule={rule_decision}, model={v}, adjudication=OWED)")
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    return out
+
+
+def verify_condition_role(claim: Any, held_text: str, term: str | None) -> dict:
+    """V1.0.1 (statins-older-adults review; harness/condition_role.py). A registry record was excluded on X2 because a
+    REGISTERED CONDITION names a population the protocol excludes, and its eligibility criteria never mention it, so
+    the regex cannot tell whether the condition is whom the trial enrols or what it prevents. claim = {role, quote}.
+    ENTRY_POPULATION / PREVENTED_OUTCOME must quote the held registry text (bundle locate ladder) and the quote must
+    name the condition term; NOT_STATED quotes nothing. The rule read the condition as the ENTRY_POPULATION, so only
+    that role agrees with it; anything else is an individual-signature proposal, never applied by this module."""
+    problems = []
+    out: dict[str, Any] = {"task": "condition_role", "rule_decision": "X2 (registered condition read as the entry population)"}
+    role = claim.get("role") if isinstance(claim, dict) else None
+    q = claim.get("quote") if isinstance(claim, dict) else None
+    if role not in CONDITION_ROLES:
+        problems.append(f"ROLE_NOT_TYPED: {role!r} not in {CONDITION_ROLES}")
+    elif role == "NOT_STATED":
+        if q not in (None, ""):
+            problems.append("NOT_STATED_WITH_SPAN")
+    elif not isinstance(q, str) or not q.strip():
+        problems.append(f"NO_SPAN: {role} without a quote")
+    else:
+        loc = _locate(q, held_text)
+        out["located"] = loc
+        if loc.get("match") not in ("VERBATIM", "NORMALISED"):
+            problems.append("SPAN_NOT_IN_SOURCE")
+        if term and term.lower() not in q.lower():
+            problems.append(f"SPAN_DOES_NOT_NAME_THE_CONDITION: {term!r}")
+    if role in CONDITION_ROLES:
+        out["model_decision"] = role
+        out["agreement"] = ("RULE_MODEL_AGREE" if role == "ENTRY_POPULATION" else
+                            f"RULE_MODEL_DISAGREE(rule=ENTRY_POPULATION, model={role}, adjudication=OWED)")
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    return out
 
 
 _COUNT_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,

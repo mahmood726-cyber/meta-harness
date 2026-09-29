@@ -17,7 +17,9 @@ rows it is CONDITIONAL on; it is never reported as an unconditional pass.
 """
 from __future__ import annotations
 
+import html
 import json
+import re
 from pathlib import Path
 
 from .synth import Study, pool
@@ -30,6 +32,97 @@ class PendingSource(RuntimeError):
 def load(root) -> list:
     p = Path(root) / "registry" / "positive_controls.json"
     return json.loads(p.read_text(encoding="utf-8")).get("controls", []) if p.exists() else []
+
+
+# ------------------------------------------------------------------------------------------------------------------
+# V1.0.1 (statins-older-adults review). A PENDING_SOURCE control's "not held" must be a RECORDED result: every route
+# (PMC ID converter, Europe PMC, the publisher's DOI) was requested and none returned an open full text
+# (scripts/positive_control_acquire.py -> registry/positive_control_acquisition.json). A control whose source a route
+# reports as open is not pending -- it is un-acquired, and refused as such. A typed why_pending with no recorded
+# request is refused too.
+ACQUISITION = "registry/positive_control_acquisition.json"
+ROUTES = ("PMC_IDCONV", "EUROPE_PMC", "PUBLISHER_DOI")
+NOT_HELD_STATES = {"NOT_IN_PMC", "IN_PMC_NOT_OPEN", "NOT_OPEN_ACCESS", "BOT_CHECK_NOT_BYPASSED", "LANDING_PAGE_READ",
+                   "IN_PMC"}
+
+
+def acquisition(root) -> dict:
+    p = Path(root) / ACQUISITION
+    return json.loads(p.read_text(encoding="utf-8")).get("controls", {}) if p.exists() else {}
+
+
+def pending_problems(control: dict, acq: dict) -> list:
+    if control.get("state") != "PENDING_SOURCE" or not control.get("pmid"):
+        return []
+    rec = acq.get(control["id"]) or {}
+    got = {a.get("route"): a for a in rec.get("attempts") or []}
+    need = [r for r in ROUTES if r != "PUBLISHER_DOI" or control.get("doi")]
+    out = [f"{control['id']}: PENDING_SOURCE with no recorded {r} request" for r in need if r not in got]
+    out += [f"{control['id']}: {r} records {got[r].get('state')} -- an open source is un-acquired, not pending"
+            for r in need if r in got and got[r].get("state") == "OPEN_FULL_TEXT"]
+    out += [f"{control['id']}: {r} request failed ({got[r].get('state')}) -- a failed request is not evidence of 'not held'"
+            for r in need if r in got and got[r].get("state") not in NOT_HELD_STATES | {"OPEN_FULL_TEXT"}]
+    return out
+
+
+def checkpoints(root, slug: str) -> list:
+    """RCT checkpoints registered for THIS topic (role RCT_CHECKPOINT, topic == slug): a randomised-evidence analysis
+    of the topic's question, shown beside a registered comparator that is not one. Held rows run through our engine
+    and are compared; a pending one states the recorded acquisition result. Never an input, never a target."""
+    acq, out = acquisition(root), []
+    for c in load(root):
+        if c.get("role") != "RCT_CHECKPOINT" or c.get("topic") != slug:
+            continue
+        probs = pending_problems(c, acq)
+        if probs:
+            raise PendingSource("; ".join(probs))
+        row = {"id": c["id"], "source": c["source"], "measure": c["measure"], "expected": c["expected"],
+               "expected_reported_by": c.get("expected_reported_by"), "note": c.get("note"), "state": c["state"]}
+        if c["state"] == "PENDING_SOURCE":
+            row["acquisition"] = [{k: a.get(k) for k in ("route", "state", "utc", "status")}
+                                  for a in (acq.get(c["id"]) or {}).get("attempts") or []]
+        else:
+            got = reproduce(c, root)
+            row["result"] = {"CE": got["CE"], "problems": [list(map(str, p)) for p in compare(c, got)]}
+        out.append(row)
+    return out
+
+
+_OBS = re.compile(r"(?i)\b(?:observational|cohort|case[- ]control|registry-based|real[- ]world)\s+"
+                                r"(?:stud(?:y|ies)|data|analys[ie]s|evidence)")
+_RCT = re.compile(r"(?i)\b(?:randomi[sz]ed(?:[- ]controlled)?\s+(?:clinical\s+)?trials?|RCTs)\b")
+
+
+def comparator_design(abstract: str) -> dict:
+    """NON_RANDOMISED when the comparator's own held abstract says it pooled observational (cohort, case-control,
+    registry, real-world) evidence and nowhere says it included randomised trials; else RANDOMISED_OR_NOT_STATED."""
+    o, r = _OBS.search(abstract or ""), _RCT.search(abstract or "")
+    return ({"state": "NON_RANDOMISED", "quote": o.group(0)} if o and not r else
+            {"state": "RANDOMISED_OR_NOT_STATED", "quote": r.group(0) if r else None})
+
+
+def render_checkpoints(rows, design: dict | None = None) -> str:
+    if design and design.get("state") == "NON_RANDOMISED" and not rows:
+        return ("<div class='rct-checkpoints'><p><strong>Comparator is non-randomised</strong> (its abstract: "
+                f"&ldquo;{html.escape(str(design.get('quote')))}&rdquo;) and no RCT checkpoint is registered for "
+                "this topic.</p></div>")
+    if not rows:
+        return ""
+    e = lambda s: html.escape(str(s), quote=True)  # noqa: E731
+    parts = []
+    for r in rows:
+        exp = r["expected"].get("CE") or r["expected"].get("PM_HK") or r["expected"].get("DL")
+        head = (f"<p><strong>RCT checkpoint</strong> ({e(r['state'])}): {e(r['source'])}. Expected {e(r['measure'])} "
+                f"{e(exp[0])} ({e(exp[1])}&ndash;{e(exp[2])}), reported by {e(r.get('expected_reported_by'))}. ")
+        if r["state"] == "PENDING_SOURCE":
+            head += ("Not run: its rows are not held. Recorded acquisition: "
+                     + "; ".join(f"{e(a['route'])} {e(a['state'])} ({e(a['utc'])})" for a in r["acquisition"])
+                     + ". A pending checkpoint is never reported as a pass.")
+        else:
+            head += ("Our engine on its rows: " + e(tuple(round(x, 6) for x in r["result"]["CE"]))
+                     + (" &mdash; agrees." if not r["result"]["problems"] else f" &mdash; DISAGREES: {e(r['result']['problems'])}."))
+        parts.append(head + (f" {e(r['note'])}" if r.get("note") else "") + "</p>")
+    return "<div class='rct-checkpoints'><h5>RCT checkpoint for a non-randomised comparator</h5>" + "".join(parts) + "</div>"
 
 
 def rows_of(control: dict, root=None) -> list:

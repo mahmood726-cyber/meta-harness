@@ -372,3 +372,37 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
   - The letter is not held: it is not in PMC, and the publisher answers with a bot check, which was not bypassed.
   - So the control is PENDING_SOURCE and is never run from memory.
   - Its HOPE-3 ≥ 70 stratum is a discovery case, recorded in the labelled protocol erratum (7eb31d5e).
+
+## Round 7b: the three statins fixes as harness code (regex first; a model only as a gated proposal)
+
+- **Plants:** `scripts/plants_round7.py` builds each defect's input and runs it against a chosen harness. On the
+  pre-fix harness (a sparse worktree of `1801d205`) all 8 fire; on this harness none fire
+  (`round7_plants.json`, and a test re-runs the HEAD side).
+- **CONDITION_AS_OUTCOME** (`harness/condition_role.py`, regex on the eligibility criteria).
+  - Corpus: 1 of 28 X2 exclusions of registry records that rest only on a registered condition was a prevention
+    target (PREVENTABLE). The population is the served screening at the pre-fix commit (`condition_role_sweep.json`).
+  - Of the other 27: 9 have an inclusion criterion naming the condition (it is the entry population), and 2 have an
+    exclusion that names it only qualified. 16 have criteria that never mention it, so the regex cannot decide.
+  - Those 16 went to `gpt-6-astra` as recorded calls (`scripts/condition_role_proposals.py`; verifier
+    `model_source.verify_condition_role`). All 16 pass the verifier and all are PROPOSED; the queue never enters a
+    build.
+  - The model agrees with the rule on 9, says NOT_STATED on 5, and disagrees on 2, each needing an individual
+    countersignature: probiotics NCT02817165 ("acute diarrhea") and colchicine NCT05726019 ("postpericardiotomy").
+- **Parent registration** (`harness/parent_registration.propose`, regex SELF_ANALYSIS plus exactly one held
+  registration). The links file is generated (`scripts/parent_registrations.py`), never hand-written.
+  - Corpus: 13 reports name themselves an analysis of a named trial and carry no registration.
+    - 1 LINKED: JUPITER, NCT00239681.
+    - 3 WITHHELD_SAME_REGISTRATION: two SELECT reports and one PARADIGM-HF report. Another report already holds that
+      NCT, and the same-registration de-duplication would fold them in silently.
+    - 9 UNRESOLVED: no held registration carries the name.
+  - A generic abbreviation never links. A first version linked "subgroup analysis of subjects with AAD" to a
+    registration whose acronym is AAD; it was tightened before landing.
+  - Recovery panel: 1 of 20 missed "no registry link" reports is registered through a parent.
+- **RCT checkpoint** (`harness/positive_control.py`).
+  - A non-randomised comparator is typed from its own abstract: 1 of 32 topics (statins). That topic has an
+    RCT_CHECKPOINT, which renders on its page.
+  - A PENDING_SOURCE control must carry recorded requests on every route (`scripts/positive_control_acquire.py` →
+    `registry/positive_control_acquisition.json`). A route reporting open full text makes it un-acquired and refused;
+    a failed request is not evidence.
+  - Ridker 2017: not in PMC; not open access in Europe PMC; the publisher returned a Cloudflare bot check (not
+    bypassed).

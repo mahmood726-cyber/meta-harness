@@ -436,6 +436,9 @@ def render(review):
     parts.append(_rows_block((review.get("comparator") or {}).get("row_checks")))
     from .comparator_analysis import render as _analysis_block
     parts.append(_analysis_block((review.get("comparator") or {}).get("analysis")))
+    from .positive_control import render_checkpoints as _rct_block
+    parts.append(_rct_block((review.get("comparator") or {}).get("rct_checkpoints"),
+                            (review.get("comparator") or {}).get("design_check")))
     from .comparator_display import render as _display_block
     parts.append(_display_block((review.get("comparator") or {}).get("display_check")))
     from .outcome_match import render as _outcome_match_block
