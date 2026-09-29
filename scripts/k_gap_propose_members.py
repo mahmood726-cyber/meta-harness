@@ -19,7 +19,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from harness import k_gap  # noqa: E402
+from kgap import k_gap  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
 
 PROP = os.path.join(ROOT, "registry", "model_proposals", "comparator_members.json")

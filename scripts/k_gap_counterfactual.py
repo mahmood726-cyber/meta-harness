@@ -106,7 +106,34 @@ def pmc_fulltext_cached(pmid, offline=False):
     return txt
 
 
-def build(slug, extra_records=None, extra_fulltext=None):
+CG_DIR = os.path.join(OUT, "_ctgov")       # bodies (gitignored); CG_INDEX (committed) holds sha256 + bytes
+
+
+def ctgov_results_cached(nct, offline=False):
+    """CT.gov API v2 posted outcome measures for one NCT via the harness's own fetch._ctgov_results (so the object
+    is exactly what the pipeline's structured-results rung would hold). Cached; None when nothing is posted."""
+    import hashlib
+    os.makedirs(CG_DIR, exist_ok=True)
+    fp = os.path.join(CG_DIR, nct + ".json")
+    if os.path.exists(fp):
+        return _j(fp)
+    if offline:
+        return None
+    from harness import fetch
+    oms = fetch._ctgov_results(nct)
+    body = json.dumps(oms, sort_keys=True).encode("utf-8")
+    with open(fp, "wb") as fh:
+        fh.write(body)
+    idx_p = os.path.join(OUT, "ctgov_index.json")
+    idx = _j(idx_p) if os.path.exists(idx_p) else {}
+    idx[nct] = {"bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(), "posted": oms is not None,
+                "source": "harness.fetch._ctgov_results (CT.gov API v2 resultsSection.outcomeMeasuresModule)"}
+    with open(idx_p, "w", encoding="utf-8") as fh:
+        json.dump(idx, fh, indent=1, sort_keys=True)
+    return oms
+
+
+def build(slug, extra_records=None, extra_fulltext=None, extra_ctgov=None):
     from harness.pipeline import build_review_core
     from harness.registration import protocol_sha
     config = _j(os.path.join(ROOT, "topics", slug + ".json"))
@@ -115,6 +142,11 @@ def build(slug, extra_records=None, extra_fulltext=None):
     if extra_records:
         have = {r.get("id") for r in records["records"]}
         records["records"] += [r for r in extra_records if r.get("id") not in have]
+    if extra_ctgov:
+        cg = dict(records.get("ctgov_results") or {})
+        for k, v in extra_ctgov.items():
+            cg.setdefault(k, v)          # never replace results the pinned cache already holds
+        records["ctgov_results"] = cg
     if extra_fulltext:
         ft = dict(records.get("fulltext_by_pmid") or {})
         for k, v in extra_fulltext.items():
@@ -150,7 +182,66 @@ def main(argv):
         t0 = time.time()
         s = served_primary(slug)
         try:
-            if mode == "--fulltext":
+            if mode == "--all":
+                # every adapter at once, from the caches the single-adapter runs filled (no new network): the
+                # combined number is MEASURED, not summed -- two routes can admit the same trial.
+                from harness import fetch
+                base_core = build(slug)
+                base = core_primary(base_core)
+                prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
+                rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+                pm, _nct_only = member_pmids(slug)
+                mrec_p = os.path.join(OUT, "member_records.json")
+                mrec = _j(mrec_p) if os.path.exists(mrec_p) else {}
+                recs = [mrec[p] for p in pm if p in mrec]
+                missing = [p for p in pm if p not in mrec]
+                if missing:
+                    recs += fetch._efetch(missing)
+                held_ft = set(rj.get("fulltext_by_pmid") or {})
+                ft_t = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
+                               if str(d.get("id", "")).startswith("PMID ")} - held_ft)
+                fts = {p: t for p in ft_t for t in [pmc_fulltext_cached(p, offline=True)] if t}
+                recnct = {r.get("id"): r.get("nct") for r in rj.get("records", [])}
+                cg_t = set()
+                for d in prim.get("declared_absent_trials", []):
+                    for n in (d.get("trial_family_id"), recnct.get(str(d.get("id", "")).replace("PMID ", "")), d.get("id")):
+                        if n and str(n).startswith("NCT"):
+                            cg_t.add(str(n))
+                cgs = {n: o for n in sorted(cg_t - set(rj.get("ctgov_results") or {}))
+                       for o in [ctgov_results_cached(n, offline=True)] if o}
+                cfc = build(slug, extra_records=recs, extra_fulltext=fts, extra_ctgov=cgs)
+                cf = core_primary(cfc)
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "baseline_k_valid": base["k_valid"],
+                             "counterfactual_k": cf["k"], "counterfactual_k_valid": cf["k_valid"],
+                             "counterfactual_scale": cf["scale"], "members_added": len(recs),
+                             "fulltext_added": len(fts), "ctgov_added": len(cgs),
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "secs": round(time.time() - t0, 1)}
+            elif mode == "--ctgov":
+                base_core = build(slug)
+                base = core_primary(base_core)
+                prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
+                rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+                held = set(rj.get("ctgov_results") or {})
+                recnct = {r.get("id"): r.get("nct") for r in rj.get("records", [])}
+                targets = set()
+                for d in prim.get("declared_absent_trials", []):
+                    for n in (d.get("trial_family_id"), recnct.get(str(d.get("id", "")).replace("PMID ", "")), d.get("id")):
+                        if n and str(n).startswith("NCT"):
+                            targets.add(str(n))
+                targets = sorted(targets - held)
+                got = {n: o for n in targets for o in [ctgov_results_cached(n)] if o}
+                cfc = build(slug, extra_ctgov=got)
+                cf = core_primary(cfc)
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "declared_absent_ncts": len(targets),
+                             "ctgov_results_found": len(got), "counterfactual_k": cf["k"],
+                             "baseline_k_valid": base["k_valid"], "counterfactual_k_valid": cf["k_valid"],
+                             "counterfactual_scale": cf["scale"],
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "secs": round(time.time() - t0, 1)}
+            elif mode == "--fulltext":
                 base_core = build(slug)
                 base = core_primary(base_core)
                 prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
@@ -210,6 +301,7 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     r = main(sys.argv[1:])
     name = {"--baseline": "counterfactual_baseline.json", "--members": "counterfactual_members.json",
-            "--fulltext": "counterfactual_fulltext.json"}[sys.argv[1]]
+            "--fulltext": "counterfactual_fulltext.json", "--ctgov": "counterfactual_ctgov.json",
+            "--all": "counterfactual_all.json"}[sys.argv[1]]
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
         json.dump(r, fh, indent=1, sort_keys=True)

@@ -1,7 +1,7 @@
 """K-GAP measurement: comparator included-set extraction and the members-proposal gate.
 
 Each test PLANTS the shape that a naive implementation gets wrong and asserts the property, not a snapshot."""
-from harness import k_gap
+from kgap import k_gap
 
 JATS = b"""<article><front><article-meta><title-group><article-title>MA</article-title></title-group></article-meta></front>
 <body><p>x</p>
