@@ -484,3 +484,15 @@ def test_upw_locator_gate_prose_table_and_number_not_in_quote():
     g = m.gate({**base, "state": "REPORTED", "quote": "not in the text", "events_t": "1", "n_t": "2",
                 "events_c": None, "n_c": None}, "something else entirely")
     assert "QUOTE_NOT_IN_TEXT" in g["problems"]
+
+
+def test_forest_panel_and_population_are_chosen_from_the_caption():
+    fp = _fp()
+    got = {}
+    for s in ("spironolactone-hfref-mortality", "finerenone-ckd-t2d-renal", "colchicine-postop-af"):
+        _, pmid, _ = fp.comparator(s)
+        fig, why = fp.select_figure(s, pmid)
+        got[s] = (why, (fig or {}).get("fig_id"), (fig or {}).get("panel"), (fig or {}).get("panel_title"))
+    assert got["spironolactone-hfref-mortality"] == ("SELECTED", "F4", "D", "All-cause mortality")   # HFrEF, not F2 HFpEF
+    assert got["finerenone-ckd-t2d-renal"][:3] == ("SELECTED", "f2", "A")
+    assert got["colchicine-postop-af"][:2] == ("SELECTED", "Fig2")          # Fig3/Fig4 are duration/approach subgroups

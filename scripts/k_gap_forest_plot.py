@@ -48,7 +48,8 @@ PROP = os.path.join(ROOT, "registry", "model_proposals", "k_gap_forest_plot.json
 REC_DIR = os.path.join(ROOT, "registry", "model_calls")
 MODEL, EFFORT = "gpt-6-astra", "medium"
 XL = "{http://www.w3.org/1999/xlink}href"
-SUBGROUP = re.compile(r"subgroup|sensitivity|in patients with|without such|stratified|by (?:baseline|dose|duration)", re.I)
+SUBGROUP = re.compile(r"subgroup|sensitivity|in patients with|without such|stratified|by (?:baseline|dose|duration)"
+                      r"|with different|with respect to|according to", re.I)
 FOREST = re.compile(r"forest", re.I)
 MULTIPANEL = re.compile(r"\(\s*[A-D]\s*\)|\b[A-D]\)\s", re.S)
 SECONDARY = re.compile(r"secondary (?:outcome|end ?point)", re.I)
@@ -124,6 +125,12 @@ def select_figure(slug, pmid, jats_date="2026-09-28"):
     strong = {a for e in eps for a in re.findall(r"\b[A-Z]{3,}\b", e)} | {e.lower() for e in eps if len(e) > 6}
     words = {w.lower() for k in (cfg.get("primary_outcome") or {}).get("keywords") or [] for w in re.findall(r"[A-Za-z][A-Za-z-]{3,}", k)}
     words -= {"point", "major", "adverse", "events", "event", "outcome", "outcomes", "with", "from", "rate", "risk"}
+    inc = cfg.get("include") or {}
+
+    def outcome_score(t):
+        sc = 10 * sum(1 for s in strong if (re.search(r"\b" + re.escape(s) + r"\b", t) if s.isupper() else s in t.lower()))
+        return sc + sum(1 for w in words if re.search(r"\b" + re.escape(w) + r"\b", t, re.I))
+
     cands, refused = [], []
     for f in ET.parse(jp).getroot().iter("fig"):
         cap = " ".join("".join(x.itertext()) for x in f.iter("caption"))
@@ -133,20 +140,36 @@ def select_figure(slug, pmid, jats_date="2026-09-28"):
         # The gate anchors the plot's pool to the comparator's TEXT, but a wrong-outcome figure's pool is printed there
         # too, so a figure whose outcome is not unambiguous is refused here, before any model call: a multi-panel
         # figure ('(A) ... (B) ...', one panel per outcome) or a figure the caption calls a SECONDARY outcome.
-        if MULTIPANEL.search(cap) or SECONDARY.search(cap):
-            refused.append((f.get("id"), "MULTIPANEL" if MULTIPANEL.search(cap) else "SECONDARY_OUTCOME"))
+        if SECONDARY.search(cap):
+            refused.append((f.get("id"), "SECONDARY_OUTCOME"))
             continue
-        score = 10 * sum(1 for s in strong if (re.search(r"\b" + re.escape(s) + r"\b", cap) if s.isupper()
-                                                else s in cap.lower()))
-        score += sum(1 for w in words if re.search(r"\b" + re.escape(w) + r"\b", cap, re.I))
-        cands.append((score, f.get("id"), g.get(XL), cap.strip()[:300]))
+        # figure-level text (before any '(A)'): the POPULATION the figure is about. The topic's own population terms
+        # score +5 and its excluded populations -5 (spironolactone: F4 'in hFrEF patients' over F2 'in hFpEF ...').
+        head = MULTIPANEL.split(cap, maxsplit=1)[0]
+        pop = 5 * sum(1 for t in inc.get("population_any") or [] if len(t) > 3 and re.search(r"\b" + re.escape(t.rstrip("*")) + r"\b", head, re.I))
+        pop -= 5 * sum(1 for t in inc.get("population_none") or [] if len(t) > 3 and re.search(r"\b" + re.escape(t.rstrip("*")) + r"\b", head, re.I))
+        if MULTIPANEL.search(cap):
+            # A multi-panel figure is usable only when its CAPTION names exactly one panel as our outcome: the panel
+            # comes from the article's own text, and the reader is then told to transcribe that panel alone.
+            # a panel title ends at ';', '(' or a sentence stop -- the caption's trailing abbreviation list ('... All-cause
+            # mortality. CI, confidence interval; ...') is not part of panel (D)'s title
+            panels = [(m.group(1), re.split(r"\.\s", m.group(2).strip())[0])
+                      for m in re.finditer(r"\(([A-E])\)\s*([^();]+)", cap)]
+            scored = sorted(((outcome_score(t), L, t) for L, t in panels), reverse=True)
+            if not scored or scored[0][0] == 0 or (len(scored) > 1 and scored[1][0] == scored[0][0]):
+                refused.append((f.get("id"), "MULTIPANEL_NO_UNIQUE_PANEL"))
+                continue
+            sc, letter, title = scored[0]
+            cands.append((sc + pop, f.get("id"), g.get(XL), cap.strip()[:300], letter, title))
+            continue
+        cands.append((outcome_score(cap) + pop, f.get("id"), g.get(XL), cap.strip()[:300], None, None))
     cands.sort(key=lambda x: -x[0])
-    if not cands or cands[0][0] == 0:
+    if not cands or cands[0][0] <= 0:
         return None, "NO_OUTCOME_FOREST_FIGURE" + (":refused " + ",".join(f"{a}={b}" for a, b in refused) if refused else "")
     if len(cands) > 1 and cands[1][0] == cands[0][0]:
         return None, "AMBIGUOUS_FIGURE:" + ",".join(x[1] for x in cands[:3])
-    s, fid, href, cap = cands[0]
-    return {"fig_id": fid, "href": href, "caption": cap}, "SELECTED"
+    s, fid, href, cap, letter, title = cands[0]
+    return {"fig_id": fid, "href": href, "caption": cap, "panel": letter, "panel_title": title}, "SELECTED"
 
 
 def fetch_image(pmid, pmcid, href, date="2026-09-29"):
@@ -200,7 +223,12 @@ def image_runner(image_path):
 
 
 def prompt_bytes(item):
-    return (INSTR + f"\nFIGURE CAPTION (from the article): {item['figure']['caption']}\n").encode("utf-8")
+    fig = item["figure"]
+    extra = ""
+    if fig.get("panel"):
+        extra = (f"\nThis figure has several panels. Transcribe ONLY panel ({fig['panel']}), which the caption titles "
+                 f"'{fig['panel_title']}'. Ignore every other panel; its rows and pooled row are not wanted.\n")
+    return (INSTR + f"\nFIGURE CAPTION (from the article): {fig['caption']}\n" + extra).encode("utf-8")
 
 
 def run_one(item):
