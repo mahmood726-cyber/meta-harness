@@ -86,12 +86,13 @@ def ours(slug: str) -> dict:
                          "reports": {_num(r["report_id"]) for r in f.get("reports", [])},
                          "acronyms": {k_gap.norm_acronym(a) for a in (f.get("aliases") or {}).get("acronym", [])},
                          "eligibility": (f.get("eligibility") or {}).get("state")})
-    rec_ids, rec_acr = set(), set()
+    rec_ids, rec_acr, rec_text = set(), set(), []
     rp = os.path.join(ROOT, "cache", slug, "records.json")
     if os.path.exists(rp):
         rj = _j(rp)
         for r in rj.get("records", []):
             rec_ids.add(_num(r.get("id")))
+            rec_text.append((_num(r.get("id")), r.get("title") or "", r.get("abstract") or ""))
             if r.get("nct"):
                 rec_ids.add(_num(r["nct"]))
         for r in rj.get("ctgov", []) or []:
@@ -99,7 +100,7 @@ def ours(slug: str) -> dict:
             if r.get("acronym"):
                 rec_acr.add(k_gap.norm_acronym(r["acronym"]))
     return {"k": (prim.get("result") or {}).get("k"), "pooled": pooled, "pooled_fam": pooled_fam,
-            "absent": absent, "families": fams, "rec_ids": rec_ids, "rec_acr": rec_acr,
+            "absent": absent, "families": fams, "rec_ids": rec_ids, "rec_acr": rec_acr, "records_text": rec_text,
             "estimand": (prim.get("estimand") or ""), "outcome": prim.get("name")}
 
 
@@ -444,6 +445,43 @@ def proposal_units(slug: str, agents: list[str], others: list[str] | None = None
     return out
 
 
+def self_names(acr, title, abstract) -> bool:
+    """Does a record NAME ITSELF by this acronym -- in its title, or defined in parentheses in its abstract?"""
+    core = k_gap.fold_dashes(re.sub(r"\s+(?:(?:19|20)\d\d|\d{1,3})$", "", (acr or "").strip()))
+    core = re.sub(r"(?<=[A-Za-z])(?:19|20)\d\d$", "", core)
+    if len(k_gap.norm_acronym(core)) < 4:
+        return False
+    pat = re.escape(core).replace("\\-", "[-\\s]?").replace("\\ ", "[-\\s]?")
+    if re.search(rf"(?<![A-Za-z0-9]){pat}(?![A-Za-z0-9])", k_gap.fold_dashes(title or ""), re.I):
+        return True
+    # exactly "(ACRONYM)": a parenthesised LIST "(CORE, CORP)" is a citation of several trials, not a definition
+    return bool(re.search(rf"\(\s*{pat}\s*\)", k_gap.fold_dashes(abstract or ""), re.I))
+
+
+def acronym_in_our_records(acronyms, recs, families):
+    """An acronym-only label (ROCKET AF, HARMONY, CORE) resolved against OUR OWN held records: a record names ITSELF
+    by an acronym in its TITLE, or DEFINES it in parentheses in its abstract ('... Stroke and Embolism Trial in Atrial
+    Fibrillation (ROCKET AF)'). A bare mention does not count -- other trials' abstracts cite landmark trials in
+    passing. Resolves only when every self-naming record falls in ONE of our trial families."""
+    rep_to_fam = {}
+    for f in families:
+        for r in f["reports"]:
+            rep_to_fam[r] = f
+    for a in acronyms:
+        core = k_gap.fold_dashes(re.sub(r"\s+(?:(?:19|20)\d\d|\d{1,3})$", "", a.strip()))
+        if len(k_gap.norm_acronym(core)) < 4:
+            continue
+        pat = re.escape(core).replace("\\-", "[-\\s]?").replace("\\ ", "[-\\s]?")
+        tre = re.compile(rf"(?<![A-Za-z0-9]){pat}(?![A-Za-z0-9])")
+        dre = re.compile(rf"\(\s*{pat}\s*[),;]")
+        hits = {rid for rid, title, abstract in recs
+                if tre.search(k_gap.fold_dashes(title or "")) or dre.search(k_gap.fold_dashes(abstract or ""))}
+        fams = {rep_to_fam[h]["family_id"] for h in hits if h in rep_to_fam}
+        if hits and len(fams) == 1 and all(h in rep_to_fam for h in hits):
+            return rep_to_fam[next(iter(hits))], a, sorted(hits)
+    return None, None, []
+
+
 def family_by_acronym(acronyms, families):
     """Our own trial family whose registered acronym equals, or is a >=5-char prefix-extension of, the unit's
     acronym (RALES == RALES; HARMONY -> 'HARMONY Outcomes'). Our families are a small, topic-scoped set, so a
@@ -493,7 +531,7 @@ def pubmed_acronym(acr, agents, offline):
     HARMONY-3 report (earliest of 14) -- a choice among n reports of a programme is not an identity."""
     cp = os.path.join(OUT, "pubmed_acronym.json")
     cache = _j(cp) if os.path.exists(cp) else {}
-    ag = " OR ".join(f'"{a}"[tiab]' for a in agents[:6])
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
     acr = re.sub(r"(?<=[A-Za-z])(?:19|20)\d\d$", "", acr)       # 'RALES1999' -> 'RALES'
     q = f'"{acr}"[tiab] AND ({ag}) AND randomized controlled trial[pt]'
     if q not in cache and not offline:
@@ -514,12 +552,23 @@ def pubmed_acronym(acr, agents, offline):
     return None, q, len(ids) if isinstance(ids, list) else 0
 
 
+def pubmed_acronym_ids(acr, agents, offline):
+    """All PMIDs for the acronym query pubmed_acronym runs (same cached query, same bytes)."""
+    pubmed_acronym(acr, agents, offline)
+    cp = os.path.join(OUT, "pubmed_acronym.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    acr2 = re.sub(r"(?<=[A-Za-z])(?:19|20)\d\d$", "", acr)
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
+    ids = cache.get(f'"{acr2}"[tiab] AND ({ag}) AND randomized controlled trial[pt]')
+    return ids if isinstance(ids, list) else []
+
+
 def pubmed_author_year(author, year, agents, offline):
     """PMID for 'Author Year' + topic agent via NCBI ESearch -- admitted only when EXACTLY one hit.
     Queries and answers are cached (outputs/k_gap/pubmed_author_year.json) so a rerun replays them."""
     cp = os.path.join(OUT, "pubmed_author_year.json")
     cache = _j(cp) if os.path.exists(cp) else {}
-    ag = " OR ".join(f'"{a}"[tiab]' for a in agents[:6])
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
     q = f"{author}[1au] AND {year}[dp] AND ({ag}) AND (randomized controlled trial[pt] OR randomi*[tiab])"
     if q not in cache and not offline:
         import time
@@ -608,6 +657,28 @@ def main(argv=None):
         for u in units:
             ident = resolve_unit(u, P["parsed"], tidx, agents_re)
             ident["basis"] += [c["basis"] for c in u["cited"] if c.get("basis")]
+            if not ident["pmids"] and not ident["ncts"] and u["acronyms"]:
+                fam_rec, acr_used, hits = acronym_in_our_records(u["acronyms"], P["ours"]["records_text"],
+                                                                 P["ours"]["families"])
+                if fam_rec:
+                    ident["ncts"] = [fam_rec["family_id"]] if fam_rec["family_id"].startswith("NCT") else []
+                    ident["pmids"] = sorted(x for x in fam_rec["reports"] if x.isdigit())
+                    ident["basis"].append(f"acronym_self_named_in_our_records:{acr_used}:{','.join(hits[:3])}")
+            if not ident["pmids"] and not ident["ncts"] and u["acronyms"]:
+                # PubMed's reports of the acronym (RCT-typed, topic drug) INTERSECTED with the families we hold: PubMed
+                # supplies the trial's reports, our corpus disambiguates. ROCKET AF: many PubMed reports, one family ours.
+                ids = pubmed_acronym_ids(u["acronyms"][0], P["agents"], offline)
+                r2f = {r: f for f in P["ours"]["families"] for r in f["reports"]}
+                # the held record must NAME ITSELF by the acronym (title, or defined in parentheses): a held paper
+                # that merely CITES the trial matched the tiab query too -- CORE resolved to a 2024 paper citing it
+                named = {rid for rid, title, ab in P["ours"]["records_text"]
+                         if self_names(u["acronyms"][0], title, ab)}
+                fams = {r2f[i]["family_id"]: r2f[i] for i in ids if i in r2f and i in named}
+                if len(fams) == 1:
+                    f = next(iter(fams.values()))
+                    ident["ncts"] = [f["family_id"]] if f["family_id"].startswith("NCT") else []
+                    ident["pmids"] = sorted(x for x in f["reports"] if x.isdigit())
+                    ident["basis"].append(f"pubmed_acronym_x_our_family:{u['acronyms'][0]}:{len(ids)}_hits")
             if not ident["pmids"] and not ident["ncts"]:
                 fam_hit = family_by_acronym(u["acronyms"], P["ours"]["families"])
                 if fam_hit:

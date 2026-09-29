@@ -208,7 +208,9 @@ def parse_jats(body: bytes) -> dict:
 # "Year" continuation row) are not trials; they carry neither a citation, an NCT, nor a name token.
 _FURNITURE = re.compile(r"^(?:study|trial|author|year|\d{4}|n|total|overall|reference|characteristics?|"
                         r"participants?|treatment|control|intervention|placebo|mean|median|[-–— ]*)$", re.I)
-_ACRO = re.compile(r"\b([A-Z][A-Z0-9]{2,}(?:[- ][A-Z0-9]{1,}){0,3})\b")
+# after a HYPHEN a segment may be mixed case ('EMPEROR-Reduced', 'EMPEROR-Preserved'); after a SPACE only caps/digits
+# ('PIONEER 6', 'ENGAGE AF-TIMI 48'), so an ordinary word ('RALES Study') is not absorbed into the acronym
+_ACRO = re.compile(r"\b([A-Z][A-Z0-9]{2,}(?:-[A-Z0-9][A-Za-z0-9]*| [A-Z0-9]{1,}\b){0,3})")
 _AUTHOR_YEAR = re.compile(r"^([A-Z][A-Za-z'À-ſ-]+)(?:\s+et\s+al\.?)?,?\s*\(?((?:19|20)\d\d)\)?")
 _PAREN_ACRO = re.compile(r"\(([A-Z][A-Za-z0-9]*[A-Z0-9][A-Za-z0-9]*(?:[- ][A-Za-z0-9]+){0,3})\)")
 _NOT_ACRO = {"RCT", "RCTS", "USA", "UK", "NA", "NR", "HR", "RR", "OR", "CI", "BMI", "LDL", "HDL", "CKD", "HF",
@@ -219,8 +221,17 @@ _NOT_ACRO = {"RCT", "RCTS", "USA", "UK", "NA", "NR", "HR", "RR", "OR", "CI", "BM
              "IPD", "HFPEF", "LCZ696", "ARNI", "ACEI", "ARB", "MRA", "MRAS", "NR", "NS", "YES", "NO", "ALL"}
 
 
+_DASHES = re.compile("[‐-―−﹣－]")
+
+
+def fold_dashes(s: str) -> str:
+    """Typographic dashes -> '-'. 'DAPA‐HF' (U+2010) was tokenised as 'DAPA' and resolved to an unrelated
+    DAPA-named registration: a WRONG identity, not an unresolved one."""
+    return _DASHES.sub("-", s or "")
+
+
 def _label_tokens(label: str) -> dict:
-    lab = _flat(label)
+    lab = fold_dashes(_flat(label))
     acr = [a for a in _ACRO.findall(lab) if a.replace("-", "").replace(" ", "").upper() not in _NOT_ACRO
            and not NCT_RE.match(a)]
     m = _AUTHOR_YEAR.match(lab)
