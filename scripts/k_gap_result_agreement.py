@@ -205,7 +205,8 @@ def items():
             if ours is None or r["label"] in seen:
                 continue
             seen.add(r["label"])
-            keyed.append({"label": r["label"], "ours": ours, "pmids": r["pmids"][:3], "ncts": r["ncts"][:2]})
+            acr = sorted({(v or {}).get("acronym") for v in (r.get("study") or {}).values() if (v or {}).get("acronym")})
+            keyed.append({"label": r["label"], "ours": ours, "pmids": r["pmids"][:3], "ncts": r["ncts"][:2], "acronyms": acr})
         if keyed:
             its.append({"slug": slug, "outcome": prim.get("name"), "estimand": prim.get("estimand"),
                         "text": text, "ref": ref, "keyed": [(f"T{n + 1}", k) for n, k in enumerate(keyed)]})
@@ -259,7 +260,7 @@ def first_author_year(pmid):
     return tuple(c[pmid]) if c.get(pmid) else None
 
 
-def forest_row(slug, label, pmids=()):
+def forest_row(slug, label, pmids=(), acronyms=()):
     """(scale, point, lo, hi) of the gated forest-plot row whose printed label IS this trial's comparator label
     (dash-folded, case-insensitive: equal, or one label's first token equal to the other's). None when the figure did
     not pass its gate or no row carries the label -- never a nearest match."""
@@ -277,11 +278,16 @@ def forest_row(slug, label, pmids=()):
     if not hits and toks(want) and len(toks(want)[0]) >= 4 and not toks(want)[0].isdigit():
         # first WORD token equal ('SELECT 18' ~ 'SELECT, 2023'; tokenised, so a trailing comma does not block it)
         hits = [x for x in rows if toks(x["label"])[:1] == toks(want)[:1]]
-    if not hits and pmids:
-        # a numbered comparator label ('9 [28]') carries no name: join through the resolved report's first author AND
-        # publication year from PubMed (both must match one forest row: 'Wallentin 2009' = PLATO)
+    if len(hits) != 1 and pmids:
+        # no name match ('9 [28]'), or the surname matches several rows ('Imazio' = Imazio 2011 AND Imazio 2014): join
+        # through the resolved report's PubMed first author AND year -- both must match one row ('Wallentin 2009')
         ay = [a for a in (first_author_year(p) for p in pmids) if a]
         hits = [x for x in rows for (au, yr) in ay if au in toks(x["label"]) and yr in toks(x["label"])]
+    if len(hits) != 1 and acronyms:
+        # the comparator labels rows by trial ACRONYM (FIDELIO-DKD) where our label is an author: join through the
+        # acronym AACT registers for the row's NCT, as a whole label or as the label's leading tokens
+        want_a = [toks(a) for a in acronyms if a]
+        hits = [x for x in rows for a in want_a if a and toks(x["label"])[:len(a)] == a]
     if len(hits) != 1:
         return None
     x = hits[0]
@@ -359,7 +365,7 @@ def main(argv):
                        else agree(ours, theirs, how) if g.get("state") == "VERIFIER_PASS" else "GATE_REFUSED_OR_NO_ANSWER")
             src = "comparator_text"
             if WITH_FOREST and verdict == "NOT_REPORTED_BY_COMPARATOR":
-                fr = forest_row(it["slug"], k["label"], k.get("pmids") or ())
+                fr = forest_row(it["slug"], k["label"], k.get("pmids") or (), k.get("acronyms") or ())
                 if fr:
                     theirs = fr
                     ours, how = our_effect(k["ours"], theirs[0])
