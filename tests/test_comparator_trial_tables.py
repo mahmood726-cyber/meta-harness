@@ -75,7 +75,10 @@ def test_PLANT_pericarditis_overlap_from_the_committed_transcription_table():
                    "COPPS (row 4)": "not in Secondary prevention of pericarditis"}
     assert rev["comparator"]["overlap"]["only_ours"] == ["NCT00235079"]                               # not ICAP
     inv = {r["comparator_trial"]: r for r in o["inventory_comparison"]["rows"]}
-    assert inv["COPPS (row 4)"]["status"] == "SCREENED_OUT"                                         # postoperative
+    # COPPS (postoperative) is outside the secondary-prevention pool: it leaves the inventory comparison and is listed
+    # out of scope, still bound to its own family
+    assert "COPPS (row 4)" not in inv
+    assert {m["name"]: m["family"] for m in o["theirs"]["out_of_scope"]}["COPPS (row 4)"] == "NCT00128427"
     # V1.0.1 (PCSK9 review): a trial a held comparator names enters screening (harness/comparator_named.py); COPE is now
     # screened and excluded (no placebo arm), never "missing eligible"
     assert inv["COPE (row 2)"]["status"] == "SCREENED_OUT"
