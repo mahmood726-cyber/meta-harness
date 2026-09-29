@@ -81,6 +81,31 @@ def items() -> list[dict]:
     return out
 
 
+def table_items() -> list[dict]:
+    """--table: the k-gap table's confirmed-member SCREEN_OR_ELIGIBILITY rows (screen_audit.json), i.e. comparator
+    trials our screener excluded from a corpus we ALREADY held -- the record is the topic's own pinned one."""
+    pilot = _pilot()
+    audit = _j(os.path.join(OUT, "screen_audit.json"))
+    recs = {}
+    out = []
+    for r in audit["rows"]:
+        if not r.get("confirmed_member") or not r.get("rule_id"):
+            continue
+        s = r["slug"]
+        if s not in recs:
+            rj = _j(os.path.join(ROOT, "cache", s, "records.json"))
+            recs[s] = {x.get("id"): x for x in rj.get("records", []) + rj.get("ctgov", [])}
+        pmid = next((p for p in r["pmids"] if p in recs[s]), None)
+        it = {"slug": s, "item_id": f"{s}::table:{r['label'][:40]}", "pmid": pmid, "rule_decision": "exclude",
+              "rule_id": r["rule_id"], "rule_reason": r.get("reason"), "audit_class": r.get("class"),
+              "held_ref": f"cache/{s}/records.json#{pmid}"}
+        if pmid:
+            t = pilot.held_text_screening(recs[s][pmid])
+            it.update(held_text=t, held_sha256=_sha(t.encode("utf-8")))
+        out.append(it)
+    return out
+
+
 def batches(its: list[dict]) -> list[dict]:
     pilot = _pilot()
     by = {}
@@ -135,6 +160,7 @@ def verify(its, bs, runs) -> dict:
             claim = got.get(key)
             v = ms.verify_screening(claim or {}, i["held_text"], i["rule_decision"])
             rows.append({"item_id": i["item_id"], "slug": i["slug"], "pmid": i["pmid"], "rule_id": i["rule_id"],
+                         "audit_class": i.get("audit_class"),
                          "rule_reason": i["rule_reason"], "record_id": run["record_id"], "response_item": key,
                          "verification": v, "claim": claim})
     from collections import Counter
@@ -145,7 +171,10 @@ def verify(its, bs, runs) -> dict:
 
 
 def main(argv):
-    its = items()
+    global PROP
+    if "--table" in argv:
+        PROP = PROP.replace(".json", ".table.json")
+    its = table_items() if "--table" in argv else items()
     bs = batches(its)
     data = _j(PROP) if os.path.exists(PROP) else {}
     runs = data.get("runs", {})
