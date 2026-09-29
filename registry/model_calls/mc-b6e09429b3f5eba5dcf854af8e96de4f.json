@@ -1,0 +1,180 @@
+{
+ "caller": {
+  "file": "scripts/overnight_proposals.py",
+  "lane": "evid2",
+  "line": "cmd_run",
+  "purpose": "d5_adjudicate proposals, batch 1 (6 items)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=high",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "high",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0ee7f-7a34-7b91-86a2-5622584e18a8",
+   "tokens used": "16,779"
+  },
+  "lane_log": "registry/model_calls/lane_log/evid2.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 2288,
+  "stderr_sha256": "2f3b640c7e09e086e266b3fbad8ed863cfcf5f4b3cd85afebdbfaa0daebab266",
+  "stdout_bytes": 609,
+  "stdout_sha256": "945dfa253e236e556a3fe5871c7cfa0c26bc65a638f19bccc71082d99aaeb15e",
+  "tokens_used": 16779,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "deb5ebdde3e307104e5c7903a0e634ab19c16c1abc6fb512583bdda9c550d67a"
+ },
+ "input_digests": [
+  {
+   "ref": "docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json@834c6d83#rob2/35041780/D5",
+   "sha256": "d16abab7665a9703f7093e291f01cf35cf07094dd49dfeb1cac76a91b7163e99",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/colchicine-recurrent-pericarditis/review.json@834c6d83#rob2/24694983/D5",
+   "sha256": "cb11f35dd0437ac878c460520d38d3f7e0d390130b86a1c5eee62889a92349af",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/colchicine-recurrent-pericarditis/review.json@834c6d83#rob2/21873705/D5",
+   "sha256": "cb11f35dd0437ac878c460520d38d3f7e0d390130b86a1c5eee62889a92349af",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/colchicine-recurrent-pericarditis/review.json@834c6d83#rob2/21873705/D5",
+   "sha256": "ad8ae66db404dade0475d46f8dd7189569e54cbc69f2018580320c4f7a25f87b",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/colchicine-recurrent-pericarditis/review.json@834c6d83#rob2/21873705/D5",
+   "sha256": "734e8c11d2ea654da16aef66657108dcdb8288e54001b63378a4c788ffa6966d",
+   "what": "held text"
+  },
+  {
+   "ref": "docs/reviews/colchicine-secondary-cv-prevention/review.json@834c6d83#rob2/31733140/D5",
+   "sha256": "91fa182a66b29f4f92565ca5ff164fafffd2bc0b19955ffa5d0c70c2496a94d4",
+   "what": "held text"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "8a28860d31136ef11d48a62ee5e5b4d80cd43be06b21cc10243ca4f2191b3826",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "items": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string"
+       },
+       "quote": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "verdict": {
+        "enum": [
+         "SAME_OUTCOME",
+         "DIFFERENT_OUTCOME",
+         "NOT_STATED"
+        ],
+        "type": "string"
+       }
+      },
+      "required": [
+       "item",
+       "verdict",
+       "quote"
+      ],
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "items"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "high",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "RWFjaCBpdGVtIGdpdmVzIGEgUE9PTEVEIE9VVENPTUUgYW5kIE9ORSBvdXRjb21lIGEgdHJpYWwgcmVnaXN0ZXJlZC4gRGVjaWRlIHdoZXRoZXIgdGhlIHJlZ2lzdGVyZWQKb3V0Y29tZSBpcyB0aGUgU0FNRSBvdXRjb21lIGFzIHRoZSBwb29sZWQgb25lIC0tIHRoZSBzYW1lIGNvbXBvbmVudHMsIG5vdCBtZXJlbHkgYSByZWxhdGVkIG9uZSAoYSBibGVlZGluZyBvdXRjb21lIGlzCm5ldmVyIHRoZSBzYW1lIGFzIGEgZGVhdGgvTUkvc3Ryb2tlIGNvbXBvc2l0ZTsgJ2RlYXRoIGZyb20gdmFzY3VsYXIgY2F1c2VzJyBjb3VudHMgYXMgY2FyZGlvdmFzY3VsYXIgZGVhdGgpLgp2ZXJkaWN0OiBTQU1FX09VVENPTUUgfCBESUZGRVJFTlRfT1VUQ09NRSB8IE5PVF9TVEFURUQuIHF1b3RlOiB3b3JkcyBjb3BpZWQgZXhhY3RseSBmcm9tIHRoZSBSRUdJU1RFUkVEIG91dGNvbWUgdGhhdApzaG93IGl0IChudWxsIGZvciBOT1RfU1RBVEVEKS4KPT09IElURU0gaXRlbT1SMSAgPT09ClBPT0xFRCBPVVRDT01FOiBNb3J0YWxpdHkKUkVHSVNURVJFRCAocHJpbWFyeSk6IERlYXRoIGZyb20gYWxsIGNhdXNlcwoKPT09IElURU0gaXRlbT1SMiAgPT09ClBPT0xFRCBPVVRDT01FOiBSZWN1cnJlbnQgcGVyaWNhcmRpdGlzClJFR0lTVEVSRUQgKHByaW1hcnkpOiBSZWN1cnJlbmNlIHJhdGUgYXQgMTggbW9udGhzCgo9PT0gSVRFTSBpdGVtPVIzICA9PT0KUE9PTEVEIE9VVENPTUU6IFJlY3VycmVudCBwZXJpY2FyZGl0aXMKUkVHSVNURVJFRCAocHJpbWFyeSk6IFJlY3VycmVuY2UgcmF0ZSBhdCAxOCBtb250aHMKCj09PSBJVEVNIGl0ZW09UjQgID09PQpQT09MRUQgT1VUQ09NRTogUmVjdXJyZW50IHBlcmljYXJkaXRpcwpSRUdJU1RFUkVEIChzZWNvbmRhcnkpOiBOdW1iZXIgb2YgcmVjdXJyZW5jZXMKCj09PSBJVEVNIGl0ZW09UjUgID09PQpQT09MRUQgT1VUQ09NRTogUmVjdXJyZW50IHBlcmljYXJkaXRpcwpSRUdJU1RFUkVEIChzZWNvbmRhcnkpOiBUaW1lIHRvIHJlY3VycmVuY2UKCj09PSBJVEVNIGl0ZW09UjYgID09PQpQT09MRUQgT1VUQ09NRTogTWFqb3IgYWR2ZXJzZSBjYXJkaW92YXNjdWxhciBldmVudHMKUkVHSVNURVJFRCAocHJpbWFyeSk6IEZpcnN0IEV2ZW50IG9mIENhcmRpb3Zhc2N1bGFyIERlYXRoLCBSZXN1c2NpdGF0ZWQgQ2FyZGlhYyBBcnJlc3QsIEFjdXRlIE15b2NhcmRpYWwgSW5mYXJjdGlvbiwgU3Ryb2tlLCBvciBVcmdlbnQgSG9zcGl0YWxpemF0aW9uIGZvciBBbmdpbmEgUmVxdWlyaW5nIENvcm9uYXJ5IFJldmFzY3VsYXJpemF0aW9uIFRoZSBkZXNjcmlwdGl2ZSBzdGF0aXN0aWNzIGFyZSB0aGUgbnVtYmVyIG9mIHBhcnRpY2lwYW50cyBoYXZpbmcgYXQgbGVhc3Qgb25lIG9mIHRoZSBjb21wb3NpdGVzIG9mIHRoZSBwcmltYXJ5IGVuZHBvaW50Lgo=",
+  "bytes": 1400,
+  "sha256": "93dfeb6f30236723004ed06e46f6ff9651a99fe53991fd31d3bbe8f752cf0d3a"
+ },
+ "record_id": "mc-b6e09429b3f5eba5dcf854af8e96de4f",
+ "request_utc": "2026-09-29T18:48:45Z",
+ "response": {
+  "b64": "eyJpdGVtcyI6W3siaXRlbSI6IlIxIiwicXVvdGUiOiJEZWF0aCBmcm9tIGFsbCBjYXVzZXMiLCJ2ZXJkaWN0IjoiU0FNRV9PVVRDT01FIn0seyJpdGVtIjoiUjIiLCJxdW90ZSI6IlJlY3VycmVuY2UgcmF0ZSBhdCAxOCBtb250aHMiLCJ2ZXJkaWN0IjoiU0FNRV9PVVRDT01FIn0seyJpdGVtIjoiUjMiLCJxdW90ZSI6IlJlY3VycmVuY2UgcmF0ZSBhdCAxOCBtb250aHMiLCJ2ZXJkaWN0IjoiU0FNRV9PVVRDT01FIn0seyJpdGVtIjoiUjQiLCJxdW90ZSI6Ik51bWJlciBvZiByZWN1cnJlbmNlcyIsInZlcmRpY3QiOiJTQU1FX09VVENPTUUifSx7Iml0ZW0iOiJSNSIsInF1b3RlIjoiVGltZSB0byByZWN1cnJlbmNlIiwidmVyZGljdCI6IlNBTUVfT1VUQ09NRSJ9LHsiaXRlbSI6IlI2IiwicXVvdGUiOiJGaXJzdCBFdmVudCBvZiBDYXJkaW92YXNjdWxhciBEZWF0aCwgUmVzdXNjaXRhdGVkIENhcmRpYWMgQXJyZXN0LCBBY3V0ZSBNeW9jYXJkaWFsIEluZmFyY3Rpb24sIFN0cm9rZSwgb3IgVXJnZW50IEhvc3BpdGFsaXphdGlvbiBmb3IgQW5naW5hIFJlcXVpcmluZyBDb3JvbmFyeSBSZXZhc2N1bGFyaXphdGlvbiIsInZlcmRpY3QiOiJESUZGRVJFTlRfT1VUQ09NRSJ9XX0=",
+  "bytes": 608,
+  "sha256": "71ec6cdf7a77168aab81cafd9cc6bbf5a4c9a9a3ed310dada0483af1e64c1c7f"
+ },
+ "response_utc": "2026-09-29T18:49:05Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

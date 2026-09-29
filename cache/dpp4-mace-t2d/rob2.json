@@ -407,7 +407,7 @@
         },
         "D5_selective_reporting": {
           "level": "not assessed",
-          "basis": "IDENTITY: a registered secondary outcome, registered 'Number of Participants With an Event of CV-Related Death'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE); registered 'Number of Participants With an Event of MACE (Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke)'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "3-point major adverse cardiovascular events",
@@ -531,20 +531,24 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Number of Participants With an Event of CV-Related Death",
+              "registered_type": "primary",
+              "registered_label": "Number of Participants With an Event of MACE (Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke)",
               "matched": true,
-              "method": "text_identity",
+              "method": "component_set",
               "pooled_components": [
                 "CV_DEATH",
                 "NONFATAL_MI",
                 "NONFATAL_STROKE"
               ],
-              "registered_components": [],
-              "registered_text": "Number of Participants With an Event of CV-Related Death Participants with adjudicated and confirmed AEs of cardiovascular-related death."
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Number of Participants With an Event of MACE (Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke) Participants with an Event of MACE (confirmed cardiovascular, CV-related death, fatal and nonfatal myocardial infarction \\[MI\\], and fatal and nonfatal stroke)."
             },
             "chain": {
-              "identity": "MATCHED_SECONDARY",
+              "identity": "MATCHED_PRIMARY",
               "timing": "NOT_ASSESSED",
               "judgment": "NOT_MADE"
             }

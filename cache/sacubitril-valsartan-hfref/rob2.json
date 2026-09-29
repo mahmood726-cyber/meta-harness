@@ -18,7 +18,7 @@
       "nct": "NCT01035255",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "some concerns",
+      "overall": "low (on assessed domains; some domains require human judgement)",
       "domains": {
         "D1_randomisation": {
           "level": "low",
@@ -76,8 +76,8 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "some concerns",
-          "basis": "IDENTITY: the pooled outcome (CV_DEATH) matches none of the 1 registered primary and 5 secondary outcomes by component set -- possibly post-hoc/unregistered. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "level": "not assessed",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, HF_HOSPITALISATION); registered 'Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Composite cardiovascular death or heart-failure hospitalization",
@@ -116,25 +116,22 @@
               }
             ],
             "comparison": {
-              "registered_type": null,
+              "registered_type": "primary",
               "registered_label": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization",
-              "matched": false,
+              "matched": true,
               "method": "component_set",
               "pooled_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "HF_HOSPITALISATION"
               ],
               "registered_components": [
                 "CV_DEATH",
                 "HF_HOSPITALISATION"
               ],
-              "registered_text": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization Number of participants that had first occurrence of the composite endpoint, which is defined as either CV death or HF hospitalization due to HF.",
-              "scanned": {
-                "primary": 1,
-                "secondary": 5
-              }
+              "registered_text": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization Number of participants that had first occurrence of the composite endpoint, which is defined as either CV death or HF hospitalization due to HF."
             },
             "chain": {
-              "identity": "NOT_MATCHED",
+              "identity": "MATCHED_PRIMARY",
               "timing": "NOT_ASSESSED",
               "judgment": "NOT_MADE"
             }
@@ -159,17 +156,17 @@
             "domain": "D4_outcome_measurement",
             "label": "masking of outcome assessment",
             "level": "low"
-          },
-          {
-            "domain": "D5_selective_reporting",
-            "label": "registered outcome versus pooled outcome",
-            "level": "some concerns"
           }
         ],
         "unassessed_domains": [
           {
             "domain": "D3_missing_outcome_data",
             "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
             "level": "not assessed"
           }
         ]
@@ -189,17 +186,17 @@
           "domain": "D4_outcome_measurement",
           "label": "masking of outcome assessment",
           "level": "low"
-        },
-        {
-          "domain": "D5_selective_reporting",
-          "label": "registered outcome versus pooled outcome",
-          "level": "some concerns"
         }
       ],
       "unassessed_domains": [
         {
           "domain": "D3_missing_outcome_data",
           "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
           "level": "not assessed"
         }
       ]
@@ -254,7 +251,7 @@
         },
         "D5_selective_reporting": {
           "level": "not assessed",
-          "basis": "IDENTITY: a registered secondary outcome, registered 'Total Number of CEC Confirmed Composite of CV Death and Total (First and Recurrent) HF Hospitalizations for Heart Failure'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, HF_HOSPITALISATION); registered 'Number of Participants Who Had CEC (Clinical Endpoint Committee) Confirmed Composite Endpoints'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Composite cardiovascular death or heart-failure hospitalization",
@@ -398,20 +395,22 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Total Number of CEC Confirmed Composite of CV Death and Total (First and Recurrent) HF Hospitalizations for Heart Failure",
+              "registered_type": "primary",
+              "registered_label": "Number of Participants Who Had CEC (Clinical Endpoint Committee) Confirmed Composite Endpoints",
               "matched": true,
               "method": "component_set",
               "pooled_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "HF_HOSPITALISATION"
               ],
               "registered_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "HF_HOSPITALISATION"
               ],
-              "registered_text": "Total Number of CEC Confirmed Composite of CV Death and Total (First and Recurrent) HF Hospitalizations for Heart Failure Total number of CEC-confirmed CV death and total (first and recurrent) HF hospitalizations per patient was analyzed using the negative binomial regression model. CV deaths and HF hospitalizations occurred on and after EOS declaration were reported by investigators but those events were not required to be adjudicated by CEC and not included in the efficacy analysis."
+              "registered_text": "Number of Participants Who Had CEC (Clinical Endpoint Committee) Confirmed Composite Endpoints Composite endpoint is defined as either cardiovascular (CV) death or heart failure (HF) hospitalization in Japanese patients with chronic heart failure (CHF) and reduced ejection fraction. The composite endpoint events occurred on and after End-of-study (EOS) declaration were reported by investigators but those events were not required to be adjudicated by Clinical Endpoint Committee (CEC) and not included in the efficacy analysis."
             },
             "chain": {
-              "identity": "MATCHED_SECONDARY",
+              "identity": "MATCHED_PRIMARY",
               "timing": "NOT_ASSESSED",
               "judgment": "NOT_MADE"
             }

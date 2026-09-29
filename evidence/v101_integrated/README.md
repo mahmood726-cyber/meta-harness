@@ -588,3 +588,99 @@ needs Mahmood's countersignature and its own correction record.
     passes after it.
 - **n of N**: held records mentioning systemic embolism are in 2 topics (noac, doac-vte). Served pooled rows whose class
   changes: 0. No pooled result moved.
+
+## Round 13 (Mahmood, 2026-09-29: "use codex. hard"): the registry-match paired plant, screening normalisation, overlap identity
+
+Every codex call is a recorded `reproducible_ai` record, and every reading is a PROPOSED queue entry
+(`registry/model_proposals/`). Two blind readers are used throughout (gpt-6-astra, then gpt-5.5 on the same frozen
+population). Nothing a model says enters a build.
+
+### 1. The registry-match paired plant (D5), as harness code
+
+- **Readers**: `d5_identity_v2` + reader 2, 942 (pooled outcome, registered outcome) pairs from the round-12 served
+  pages (834c6d83). The two readers agree with each other on 929 pairs. Against the rule in force they disagree on 83:
+  43 false reassurance (rule SAME, both readers DIFFERENT) and 40 false concern (rule DIFFERENT, both SAME).
+- **Root causes, each a plant** (`scripts/plants_round13.py`, texts copied from served registry rows). All 12 fire on
+  834c6d83 and none on the fix; 7 controls hold on both.
+  - All-cause death in other words: "all causes mortality", "death from any cause", and "all deaths" only as a
+    composite member, never the adjudication sentence "All deaths … were adjudicated". All-cause hospitalisation is a
+    component.
+  - Worsening HF: a named component, as in round 11. HF hospitalisation and urgent visits fold into it only when the
+    pooled outcome names it; otherwise "worsening of HF in outpatients" stays an EXTRA component (PARALLEL-HF's triple
+    composite). An urgent HF visit is a component.
+  - Systemic embolism, including RE-LY's "SEE" beside stroke; major bleeding as a member of a composite.
+  - CV death as "CV-related death" (TECOS) and "fatal cardiovascular diseases"; cardiac interventions (PCI, CABG) as
+    revascularisation.
+  - "Heart-failure hospitalization": the hyphen hid it, as did the plural "HF hospitalizations".
+  - Recurrent DVT alone and recurrent PE alone are their own components, never the recurrent-VTE composite. The measure
+    TITLE decides the VTE components, not the description's adjudication boilerplate ("All suspected recurrent VTEs
+    … were evaluated", which made an ACS measure "recurrent VTE").
+  - Atrial fibrillation as the outcome, read only when nothing else is named (in stroke-prevention texts AF is the
+    population).
+  - British spellings folded before a text comparison (diarrhoea, haem-, oedem-, hospitalis-), each named pair, never a
+    character class.
+  - A registered measure of another kind (severity, duration of the condition, an average, "without" / "excluding" a
+    cause) is not the pooled outcome by words. "Duration of the study / treatment / follow-up" is not such a measure.
+- **n of N** (942 pairs, both readers): disagreements with the rule go from 83 to 25 (false reassurance 43 → 9, false
+  concern 40 → 16), with **0 created**; the rule's decision changes on 60 pairs.
+  - Two cuts were corrected on the way, each caught by this n-of-N before anything was built.
+  - An "episodes / time to" guard reversed readers' SAME on first-event outcomes.
+  - Typing cardiac arrest would have moved COLCOT's served D5, which no reader asked for. It is deliberately left untyped.
+- **Served D5** (`scripts/rob2_rederive_d5.py --write`; D1–D4 untouched): 20 trials' D5 objects change, and only 2
+  change level. Each was read by hand.
+  - colchicine-secondary 39555823: "not assessed" → "some concerns". It had matched a registered co-primary "CV death,
+    new or worsening HF, recurrent MI, or stroke" as plain MACE. False reassurance, corrected.
+  - sacubitril PARADIGM-HF 25176015: "some concerns" → "not assessed". The hyphen hid HF hospitalisation, so the
+    registered primary looked unregistered. False concern, corrected.
+- **Left, and why**: the 25 remaining disagreements are listed in `round13_codex/d5_remaining.json`.
+  - Pericarditis "Recurrence rate at 18 months" and semaglutide %-change vs kg-change: a text rule cannot settle these
+    without the topic.
+  - The trial-defined kidney composites: no canonical set exists.
+  - HF hospitalisation inside a registered secondary composite: a deliberate design rule (`SECONDARY_COMPONENT_SUBSET_ALLOWED`).
+  - The embedding matcher's own matches (CORP's "tamponade / constrictive pericarditis") are not changed here.
+- **GRADE**: the sacubitril risk-of-bias downgrade would go from 1 to 0 (PARADIGM-HF was its only "some concerns"). A
+  served downgrade is never removed unsigned: it is HELD at 1 in `registry/grade_holds.json` (OPEN), with the computed
+  0 disclosed beside it. colchicine-secondary's downgrades are unchanged. No pooled result moved; families 32/32.
+
+### 2. Screening normalisation: two blind readers on the k-gap lane's 55 exclusions (+ its 28 X1s)
+
+- **`screen_eligibility`**: the population is `origin/acq/k-gap@a9b2b12b:outputs/k_gap/screen_audit.json`, every row
+  with a screening rule (55). Each item carries the question, the protocol terms and the rule's own reason; the held
+  text is the record alone.
+  - Both readers: FAILS 30, MEETS 16, NOT_STATED 4, split 5.
+  - They independently confirm the lane's 5 probiotics condition-as-outcome flips.
+  - They confirm 3 of its 4 hand-found vocabulary gaps (Nidorf "stable coronary disease", Burr 1989 "men who had
+    recovered from MI", Burr 2003 "men with angina").
+  - New: an X1 miss (Wu 2020, "prospective, randomized, controlled study"), a comparator miss (PCOSMIC, "placebo
+    ('standard care')"), 4 H. pylori-eradication probiotic trials whose abstracts DO name antibiotic-associated
+    diarrhoea, and the COPPS POAF substudy.
+  - Neither reader contradicts a single protocol scope or design exclusion.
+- **`screen_x1`**: 28 of the 30 seeded reports X1 excluded (`origin/acq/k-gap@e1e7d3e4`, records from its
+  `member_records.json`).
+  - Both readers: not randomised 12, not stated 8, randomised 4, split 4.
+  - Of the 4 "randomised", 2 are X1 misses (metformin 16764619 "randomly divided", 19892338 "randomly allocated").
+  - The other 2 are pooled analyses of RCTs: X1 is right and the readers over-call them.
+- **Handoff** (read from origin, never pushed to acq/k-gap): `evidence/v101_integrated/round13_codex/
+  screen_eligibility_for_kgap.json` and `screen_x1_for_kgap.json`, each row carrying both readings, quotes and record
+  ids. A flip changes screening and so k, which is a served change that needs a signature. Nothing is applied here.
+
+### 3. Comparator trial-identity overlap
+
+- **`overlap_identity`**: 93 pairs. Every SHARED member against the family it binds to (rule SAME_TRIAL, 47), and every
+  only-theirs member against every only-ours family (rule DIFFERENT_TRIALS, 46: a missed match would hide there). Each
+  item shows the cited reference's article title and our reports' titles.
+  - The readers agree with each other on 90, and with the served relation on all 90: no false shared trial and no
+    missed match.
+  - 9 readings were refused by the verifier (a quote not located) and are not counted.
+
+### 4. A third reader on what is still contested (D5)
+
+- **`d5_adjudicate`**: gpt-6-astra at HIGH effort, blind. It reads the 38 pairs still contested after the fix: the 25
+  where both readers disagree with the rule, and the 13 where the two readers split.
+  - It sides with the first two readers on all 25.
+  - On the splits, the three-reader majority is with the rule on 10 and against it on 3.
+  - So 28 pairs are left with a three-reader majority against the rule, listed with every reading in
+    `registry/model_proposals/d5_adjudicate.json`. They are captain items: most are the classes named above (a topic
+    needed; a trial-defined composite; the deliberate HHF-subset rule).
+- **Codex calls this round**: 69 recorded model calls (`registry/model_calls`). Every one is logged in
+  `evid2-scratch/codex/codex_calls.jsonl`; no transcript is committed.

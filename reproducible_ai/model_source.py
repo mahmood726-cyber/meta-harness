@@ -507,6 +507,13 @@ CATEGORICAL_TASKS = {
     "d5_identity": ("SAME_OUTCOME", "DIFFERENT_OUTCOME", "NOT_STATED"),
     "comparator_arm": ("COMPARATOR_PRESENT", "NO_COMPARATOR", "NOT_STATED"),
     "trial_identity": ("SAME_TRIAL_SUBGROUP", "SAME_TRIAL_SAME_POPULATION", "DIFFERENT_TRIALS", "NOT_STATED"),
+    # V1.0.1 round 13: screening normalisation (the k-gap lane's 55 exclusions), D5 on the round-12 served state,
+    # comparator-row vs our-trial identity (every pair the served overlap relation decided)
+    "screen_eligibility": ("MEETS_CRITERION", "FAILS_CRITERION", "NOT_STATED"),
+    "d5_identity_v2": ("SAME_OUTCOME", "DIFFERENT_OUTCOME", "NOT_STATED"),
+    "overlap_identity": ("SAME_TRIAL", "DIFFERENT_TRIALS", "NOT_STATED"),
+    "screen_x1": ("RANDOMISED_TRIAL", "NOT_RANDOMISED", "NOT_STATED"),
+    "d5_adjudicate": ("SAME_OUTCOME", "DIFFERENT_OUTCOME", "NOT_STATED"),
 }
 # a second reader (a different model id, same vendor -- stated, not hidden) reads the same population
 CATEGORICAL_TASKS.update({f"{t}_reader2": v for t, v in list(CATEGORICAL_TASKS.items())})

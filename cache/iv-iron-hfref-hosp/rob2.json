@@ -64,7 +64,7 @@
         },
         "D5_selective_reporting": {
           "level": "not assessed",
-          "basis": "IDENTITY: the pooled outcome IS the trial's registered primary outcome; registered 'Time-to-first event of CV death or HF hospitalisation'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (HF_HOSPITALISATION); registered 'Rate of total (first and recurrent) events of hospitalisations for heart failure (HF)'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Heart-failure hospitalization",
@@ -139,15 +139,16 @@
             ],
             "comparison": {
               "registered_type": "primary",
-              "registered_label": "Time-to-first event of CV death or HF hospitalisation",
+              "registered_label": "Rate of total (first and recurrent) events of hospitalisations for heart failure (HF)",
               "matched": true,
-              "method": "text_identity",
-              "pooled_components": [],
-              "registered_components": [
-                "CV_DEATH",
+              "method": "component_set",
+              "pooled_components": [
                 "HF_HOSPITALISATION"
               ],
-              "registered_text": "Time-to-first event of CV death or HF hospitalisation \"Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) can extend the time-to-first-event of heart failure hospitalisations and cardiovascular (CV) death.~Type I error rate control across the three primary endpoints will be ensured by using the Hochberg procedure.\""
+              "registered_components": [
+                "HF_HOSPITALISATION"
+              ],
+              "registered_text": "Rate of total (first and recurrent) events of hospitalisations for heart failure (HF) Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) reduces the rate of recurrent events of heart failure hospitalisations."
             },
             "chain": {
               "identity": "MATCHED_PRIMARY",
@@ -270,7 +271,7 @@
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "IDENTITY: the pooled outcome (untyped) matches none of the 1 registered primary and 0 secondary outcomes by component set -- possibly post-hoc/unregistered. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "basis": "IDENTITY: the pooled outcome (HF_HOSPITALISATION) matches none of the 1 registered primary and 0 secondary outcomes by component set -- possibly post-hoc/unregistered. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Heart-failure hospitalization",
@@ -287,7 +288,9 @@
               "registered_label": "Change in six minute walk test from baseline to week 24",
               "matched": false,
               "method": "no_match",
-              "pooled_components": [],
+              "pooled_components": [
+                "HF_HOSPITALISATION"
+              ],
               "registered_components": [],
               "registered_text": "Change in six minute walk test from baseline to week 24",
               "scanned": {

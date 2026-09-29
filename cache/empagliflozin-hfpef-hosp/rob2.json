@@ -77,7 +77,7 @@
         },
         "D5_selective_reporting": {
           "level": "not assessed",
-          "basis": "IDENTITY: a registered secondary outcome, registered 'Time to Adjudicated Cardiovascular (CV) Death'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, WORSENING_HF); registered 'Time to First Event of Adjudicated Cardiovascular (CV) Death or Adjudicated Hospitalisation for Heart Failure (HHF)'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Composite cardiovascular death or worsening heart failure",
@@ -136,20 +136,22 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Time to Adjudicated Cardiovascular (CV) Death",
+              "registered_type": "primary",
+              "registered_label": "Time to First Event of Adjudicated Cardiovascular (CV) Death or Adjudicated Hospitalisation for Heart Failure (HHF)",
               "matched": true,
               "method": "component_set",
               "pooled_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "WORSENING_HF"
               ],
               "registered_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "WORSENING_HF"
               ],
-              "registered_text": "Time to Adjudicated Cardiovascular (CV) Death \"Time to adjudicated CV death. The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+              "registered_text": "Time to First Event of Adjudicated Cardiovascular (CV) Death or Adjudicated Hospitalisation for Heart Failure (HHF) \"Failure with preserved Ejection Fraction (HFpEF). The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
             },
             "chain": {
-              "identity": "MATCHED_SECONDARY",
+              "identity": "MATCHED_PRIMARY",
               "timing": "NOT_ASSESSED",
               "judgment": "NOT_MADE"
             }

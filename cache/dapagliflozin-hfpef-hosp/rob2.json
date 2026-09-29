@@ -77,7 +77,7 @@
         },
         "D5_selective_reporting": {
           "level": "not assessed",
-          "basis": "IDENTITY: a registered secondary outcome, registered 'Subjects Included in the Endpoint of Cardiovascular Death'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, WORSENING_HF); registered 'Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure.'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Composite cardiovascular death or worsening heart failure",
@@ -121,20 +121,22 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Subjects Included in the Endpoint of Cardiovascular Death",
+              "registered_type": "primary",
+              "registered_label": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure.",
               "matched": true,
               "method": "component_set",
               "pooled_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "WORSENING_HF"
               ],
               "registered_components": [
-                "CV_DEATH"
+                "CV_DEATH",
+                "WORSENING_HF"
               ],
-              "registered_text": "Subjects Included in the Endpoint of Cardiovascular Death \"Secondary efficacy~The analysis was assessed on Full Analysis Set, including deaths occurring on or prior to Primary Analysis Censoring Date.\""
+              "registered_text": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure. \"Dual primary efficacy~Primary endpoint analysed in all patients randomised (Full analysis set).~The analysis was assessed on Full Analysis Set, including events occurring on or prior to Primary Analysis Censoring Date.\""
             },
             "chain": {
-              "identity": "MATCHED_SECONDARY",
+              "identity": "MATCHED_PRIMARY",
               "timing": "NOT_ASSESSED",
               "judgment": "NOT_MADE"
             }

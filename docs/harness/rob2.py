@@ -39,6 +39,9 @@ MACHINE_DOMAINS = (
 NOT_ASSESSED_LEVELS = {"not assessed", "not_assessable"}
 STANDARD_3P_MACE = frozenset({"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE"})
 SECONDARY_COMPONENT_SUBSET_ALLOWED = {frozenset({"HF_HOSPITALISATION"})}
+WORSENING_HF = "WORSENING_HF"
+_WHF_MEMBERS = {"HF_HOSPITALISATION", "URGENT_HF_VISIT"}
+_VTE_FAMILY = frozenset({"RECURRENT_VTE", "RECURRENT_DVT_ONLY", "RECURRENT_PE_ONLY"})
 
 
 def _b(v):
@@ -106,8 +109,25 @@ def _component_set(text: str) -> frozenset[str]:
     if re.search(r"\brecurrent\b", s) and re.search(r"\bvtes?\b|\bvenous thromboembolism\b|\bdvt\b|\bdeep vein thrombosis\b|\bpe\b|\bpulmonary embolism\b", s):
         if not re.search(r"\bnet clinical benefit\b", s):
             comps.add("RECURRENT_VTE")
+    # round 13: a recurrent-event text naming ONE of DVT / PE and no VTE term is that component alone, never the
+    # recurrent-VTE composite ('Recurrent Symptomatic DVT', 'Recurrent PE') (Q11)
+    if "RECURRENT_VTE" in comps and not re.search(r"\bvtes?\b|\bvenous thromboembolism\b|\bthromboembolic\b", s):
+        dvt = re.search(r"\bdvt\b|\bdeep vein thrombosis\b", s)
+        pe = re.search(r"\bpe\b|\bpulmonary embolism\b", s)
+        if bool(dvt) != bool(pe):
+            comps.discard("RECURRENT_VTE")
+            comps.add("RECURRENT_DVT_ONLY" if dvt else "RECURRENT_PE_ONLY")
     if re.search(r"\ball[- ]cause mortality\b|\ball cause mortality\b", s):
         comps.add("ALL_CAUSE_MORTALITY")
+    # V1.0.1 round 13 (the registry-match paired plant, scripts/plants_round13.py): all-cause death in other words --
+    # 'Day 28 all causes mortality', 'death from any cause', and 'all deaths' only as a composite MEMBER ('recurrent VTE
+    # and all deaths'), never the adjudication sentence 'All deaths ... were adjudicated' (Q1, Q6)
+    if re.search(r"\ball[- ]causes? (?:mortality|death)\b|\bdeath from (?:any|all) causes?\b|\bany[- ]cause (?:mortality|death)\b"
+                 r"|\b(?:and|or|,)\s+all deaths\b(?![^.]{0,80}\b(?:were|are|was|is)\s+(?:centrally\s+)?"
+                 r"(?:evaluated|adjudicated|reviewed|confirmed|assessed)\b)", s):
+        comps.add("ALL_CAUSE_MORTALITY")
+    if re.search(r"\ball[- ]cause hospitali[sz]ation", s):
+        comps.add("ALL_CAUSE_HOSPITALISATION")
     if re.search(r"\b(?:kidney|renal|egfr|gfr|esrd|end[- ]stage|dialysis)\b", s) and re.search(
         r"\b(?:composite|progression|sustained|decline|decrease|failure|replacement therapy|dialysis|death)\b",
         s,
@@ -117,6 +137,9 @@ def _component_set(text: str) -> frozenset[str]:
     # composites say so) -- a separate site, so the regex layer's planted site for the original pattern is unchanged
     if re.search(r"\bcv\s+death\b|\bcardiovascular(?:\s*\([^)]*\))?\s+death\b|\bdeath from cardiovascular causes\b", s) \
             or re.search(r"\bdeath from vascular causes\b|\bvascular death\b|\bcardiovascular mortality\b", s):
+        comps.add("CV_DEATH")
+    # round 13: 'Confirmed CV-Related Death' (TECOS) and 'fatal cardiovascular diseases' are cardiovascular death (Q9)
+    if re.search(r"\b(?:cv|cardiovascular)[- ]related death\b|\bfatal cardiovascular (?:diseases?|events?)\b", s):
         comps.add("CV_DEATH")
     if re.search(r"\bnon[- ]?fatal\s+(myocardial infarction|mi)\b", s):
         comps.add("NONFATAL_MI")
@@ -140,6 +163,29 @@ def _component_set(text: str) -> frozenset[str]:
         comps.add("UNSTABLE_ANGINA")
     if re.search(r"\brevasculari[sz]ation\b", s):
         comps.add("REVASCULARISATION")
+    # round 13: worsening heart failure (a named component; its members fold into it in _outcome_match_detail), an
+    # urgent heart-failure visit, systemic embolism (RE-LY abbreviates it SEE beside stroke), and major bleeding as a
+    # MEMBER of a composite (Q2-Q4, Q10)
+    if re.search(r"\bworsening (?:of )?(?:heart failure|hf)\b", s):
+        comps.add(WORSENING_HF)
+    if re.search(r"\burgent (?:heart failure |hf )?visits?\b.{0,40}\b(?:heart failure|hf)\b", s):
+        comps.add("URGENT_HF_VISIT")
+    if re.search(r"\bsystemic embol|\bstroke\s*(?:/|or|and|,)\s*see\b|\(see\)", s):
+        comps.add("SYSTEMIC_EMBOLISM")
+    if comps and re.search(r"\bmajor bleed", s):
+        comps.add("BLEEDING")
+    # round 13: a composite's cardiac interventions are revascularisation -- read once 'fatal CVD' was, omega-3's 'fatal
+    # CVD, non-fatal MI, non-fatal cardiac arrest, non-fatal stroke and cardiac interventions (PCI and CABG)' otherwise
+    # matched plain MACE (control C6). Cardiac arrest is deliberately NOT typed here: it would move COLCOT's served D5,
+    # which no reader or plant asked for
+    if comps and re.search(r"\bpci\b|\bcabg\b|\bcardiac interventions?\b|\bcoronary interventions?\b", s):
+        comps.add("REVASCULARISATION")
+    # round 13: 'Heart-failure hospitalization' (iv-iron's pooled outcome) -- the hyphen hid it from the pattern above
+    if re.search(r"\bheart-failure\b.{0,35}\bhospitali[sz]|\bhospitali[sz]\w*\b.{0,35}\bheart-failure\b", s):
+        comps.add("HF_HOSPITALISATION")
+    # round 13: the plural ('HF Hospitalizations for Heart Failure') -- the pattern above ends at 'hospitalization\b'
+    if re.search(r"\bhospitali[sz]ations\b.{0,35}\b(?:heart failure|hf)\b|\b(?:heart failure|hf)\b.{0,35}\bhospitali[sz]ations\b", s):
+        comps.add("HF_HOSPITALISATION")
 
     mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor cardiovascular events?\b", s)
     three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
@@ -151,12 +197,48 @@ def _component_set(text: str) -> frozenset[str]:
     # composite by words (PLATO: the CV composite 'matched' Non-CABG major bleeding -- false reassurance)
     if not comps and re.search(r"\bbleed(?:ing|s)?\b|\bha?emorrhag", s):
         comps.add("BLEEDING")
+    # round 13: atrial fibrillation as the OUTCOME (colchicine-POAF) -- read only when nothing else is named, because in a
+    # stroke-prevention text AF is the population ('stroke in patients with atrial fibrillation') (Q7)
+    if not comps and re.search(r"\batrial fibrillation\b|\bpoaf\b", s):
+        comps.add("ATRIAL_FIBRILLATION")
     return frozenset(comps)
 
 
+def _fold_worsening_hf(pooled: frozenset[str], registered: frozenset[str]) -> frozenset[str]:
+    """A pooled 'worsening heart failure' is met by a HF hospitalisation and/or an urgent HF visit (they fold into it).
+    For a pooled outcome that does not name it, a registered 'worsening of HF' stays an EXTRA component: PARALLEL-HF's
+    triple composite adds 'Worsening of HF in Outpatients' to CV death and HF hospitalisation (round 13)."""
+    reg = set(registered)
+    if WORSENING_HF in pooled and reg & _WHF_MEMBERS:
+        reg = (reg - _WHF_MEMBERS) | {WORSENING_HF}
+    return frozenset(reg)
+
+
+_SPELLING = ((r"diarrhoea", "diarrhea"), (r"haem", "hem"), (r"anaem", "anem"), (r"oedem", "edem"),
+             (r"oesophag", "esophag"), (r"randomis", "randomiz"), (r"hospitalis", "hospitaliz"))
+
+
+def _spelling_fold(t: str) -> str:
+    """British spellings read as American before a text comparison (round 13, Q8: 'Antibiotic-associated diarrhoea' vs
+    the registered 'antibiotic associated diarrhea'); each pair names the extra letter, never a character class."""
+    for a, b in _SPELLING:
+        t = t.replace(a, b)
+    return t
+
+
+_OTHER_MEASURE_RX = re.compile(r"\b(?:severity|duration(?! of (?:the )?(?:study|trial|treatment|therapy|follow[- ]?up))"
+                               r"|average|mean number|without|excluding)\b", re.I)
+
+
+def _other_measure(pooled: str, registered: str) -> bool:
+    """The registered MEASURE TITLE (its first sentence) names another kind of measure the pooled outcome does not."""
+    title = re.split(r'["~]|(?<=[a-z0-9)])\.\s', registered or "", maxsplit=1)[0]
+    return bool(_OTHER_MEASURE_RX.search(title)) and not _OTHER_MEASURE_RX.search(pooled or "")
+
+
 def _simple_matches(a: str, b: str) -> bool:
-    aa = re.sub(r"[^a-z0-9]+", " ", (a or "").lower()).strip()
-    bb = re.sub(r"[^a-z0-9]+", " ", (b or "").lower()).strip()
+    aa = _spelling_fold(re.sub(r"[^a-z0-9]+", " ", (a or "").lower()).strip())
+    bb = _spelling_fold(re.sub(r"[^a-z0-9]+", " ", (b or "").lower()).strip())
     return bool(aa and bb and (aa == bb or aa in bb or bb in aa))
 
 
@@ -169,7 +251,12 @@ def _outcome_match_detail(
 ) -> dict[str, Any]:
     reg_text = _registered_text(registered)
     pooled_component_set = _component_set(pooled_outcome)
-    registered_component_set = _component_set(reg_text)
+    registered_component_set = _fold_worsening_hf(pooled_component_set, _component_set(reg_text))
+    title_text = _norm_text(str(registered.get("measure") or registered.get("title") or ""))
+    if registered_component_set & _VTE_FAMILY and title_text:
+        # round 13: the MEASURE TITLE decides which VTE components the measure is; a description's adjudication
+        # boilerplate ('All suspected recurrent VTEs ... were evaluated') is not the measure (Q12, Q11)
+        registered_component_set = (registered_component_set - _VTE_FAMILY) | (_component_set(title_text) & _VTE_FAMILY)
     pooled_components = sorted(pooled_component_set)
     registered_components = sorted(registered_component_set)
     if pooled_component_set and registered_component_set:
@@ -181,6 +268,17 @@ def _outcome_match_detail(
         return {
             "matched": pooled_component_set == registered_component_set or subset_match,
             "method": "registered_secondary_component" if subset_match else "component_set",
+            "pooled_components": pooled_components,
+            "registered_components": registered_components,
+            "registered_text": reg_text,
+        }
+    if _other_measure(pooled_outcome, reg_text):
+        # round 13: a registered measure of ANOTHER KIND of the same condition (its severity, duration, number of
+        # episodes, time to it, an average, or the condition excluding a cause) is not the pooled outcome by words
+        # ('Average Duration of Antibiotic-associated Diarrhoea' was matched to 'Antibiotic-associated diarrhoea')
+        return {
+            "matched": False,
+            "method": "other_measure_of_the_condition",
             "pooled_components": pooled_components,
             "registered_components": registered_components,
             "registered_text": reg_text,
