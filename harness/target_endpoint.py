@@ -146,6 +146,9 @@ SOURCE_RANK = {
     RECONSTRUCTION: 100,
 }
 
+WORSENING_HF = "worsening heart failure"
+_WHF_MEMBERS = {"heart failure hospitalization", "urgent heart failure visit"}
+
 
 def protocol_rule_object() -> dict[str, Any]:
     return {
@@ -214,6 +217,12 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
         comps.add("heart failure death")
     if "urgent visit" in s and ("heart failure" in s or re.search(r"\bhf\b", s)):
         comps.add("urgent heart failure visit")
+    # V1.0.1 round 11 (dapagliflozin / empagliflozin HFpEF withdrawals, 2026-09-19): 'worsening heart failure' is a
+    # named component -- a heart-failure hospitalisation and/or an urgent heart-failure visit (DELIVER's own
+    # definition). Unread, 'Composite cardiovascular death or worsening heart failure' was the target
+    # {cardiovascular death}, and a CV-death-only registry measure matched it EXACT (plants_round11 Q1)
+    if re.search(r"\bworsening (?:of )?(?:heart failure|hf)\b", s):
+        comps.add(WORSENING_HF)
     if (
         "recurrent" in s
         and ("hospitalization" in s or "event" in s)
@@ -639,9 +648,23 @@ def _keyword_family_match(spec: dict[str, Any], text: str | None) -> bool:
     return bool(canon and (canon & _components_from_text(text)))
 
 
+def _fold_worsening_hf(canon: set[str], cand: set[str]) -> set[str]:
+    """A 'worsening heart failure' target is met by a HF hospitalisation and/or an urgent HF visit (its members fold
+    into it). For a target that does not name it, the words are not a component at all -- never read as HF
+    hospitalisation ('increase in diuretic dose due to worsening heart failure' is not a hospitalisation), so such a
+    target classifies exactly as before round 11."""
+    cand = set(cand)
+    if WORSENING_HF in canon:
+        if cand & _WHF_MEMBERS:
+            cand = (cand - _WHF_MEMBERS) | {WORSENING_HF}
+    else:
+        cand.discard(WORSENING_HF)
+    return cand
+
+
 def _classify(spec: dict[str, Any], text: str | None, components: set[str] | None = None) -> dict[str, Any]:
     canon = set(canonical_components(spec))
-    cand = set(components or _components_from_text(text))
+    cand = _fold_worsening_hf(canon, set(components or _components_from_text(text)))
     if not canon:
         cls = EXACT_TARGET if _keyword_family_match(spec, text) else DIFFERENT_OUTCOME
         return {
@@ -674,42 +697,74 @@ def _classify(spec: dict[str, Any], text: str | None, components: set[str] | Non
     }
 
 
-def _effect_analysis(om: dict[str, Any]) -> dict[str, Any] | None:
-    for a in om.get("analyses") or []:
-        ptype = _fold(a.get("paramType"))
-        scale = None
-        if "hazard ratio" in ptype or re.search(r"\bhr\b", ptype):
-            scale = "HR"
-        elif "risk ratio" in ptype or re.search(r"\brr\b", ptype):
-            scale = "RR"
-        elif "odds ratio" in ptype or re.search(r"\bor\b", ptype):
-            scale = "OR"
-        if not scale:
-            continue
-        effect = _num(a.get("paramValue"))
-        lo = _num(a.get("ciLowerLimit"))
-        hi = _num(a.get("ciUpperLimit"))
-        if effect is not None and lo is not None and hi is not None:
-            # the registry's OWN rendering of this analysis, verbatim strings: this is the result span the
-            # displayed number must be found in (a registry row's result span was the measure TITLE, which
-            # carries no number -- REDUCE-IT on the served omega3 page at 237e9094, independent read)
-            group = str(a.get("groupDescription") or "").strip()
-            pct = str(a.get("ciPctValue") or "95").strip()
-            analysis_span = (
-                (f"{group}: " if group else "")
-                + f"{a.get('paramType')} {a.get('paramValue')} ({pct}% CI {a.get('ciLowerLimit')} to "
-                + f"{a.get('ciUpperLimit')}; {a.get('statisticalMethod') or 'method not stated'})"
-            )
-            return {
-                "effect": effect,
-                "ci_low": lo,
-                "ci_high": hi,
-                "scale": scale,
-                "analysis_method": a.get("statisticalMethod"),
-                "analysis_param_type": a.get("paramType"),
-                "analysis_span": analysis_span,
-            }
-    return None
+def _ci_level(a: dict[str, Any]) -> float | None:
+    try:
+        return float(str(a.get("ciPctValue")).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _one_analysis(a: dict[str, Any]) -> dict[str, Any] | None:
+    ptype = _fold(a.get("paramType"))
+    scale = None
+    if "hazard ratio" in ptype or re.search(r"\bhr\b", ptype):
+        scale = "HR"
+    elif "risk ratio" in ptype or re.search(r"\brr\b", ptype):
+        scale = "RR"
+    elif "odds ratio" in ptype or re.search(r"\bor\b", ptype):
+        scale = "OR"
+    if not scale:
+        return None
+    effect = _num(a.get("paramValue"))
+    lo = _num(a.get("ciLowerLimit"))
+    hi = _num(a.get("ciUpperLimit"))
+    if effect is None or lo is None or hi is None:
+        return None
+    # V1.0.1 round 11 (empagliflozin HFpEF withdrawal): an interval whose stated level is not a two-sided 95% (an
+    # alpha-adjusted 95.03%, a 98.7%) is never read as a 95% CI -- the pooling SE assumes 95%, and the row would be
+    # rendered '95% CI' (plants_round11 Q3). A level that is not stated is not assumed.
+    level = _ci_level(a)
+    if level != 95.0 or str(a.get("ciNumSides") or "TWO_SIDED").upper() != "TWO_SIDED":
+        return None
+    # the registry's OWN rendering of this analysis, verbatim strings: this is the result span the
+    # displayed number must be found in (a registry row's result span was the measure TITLE, which
+    # carries no number -- REDUCE-IT on the served omega3 page at 237e9094, independent read)
+    group = str(a.get("groupDescription") or "").strip()
+    analysis_span = (
+        (f"{group}: " if group else "")
+        + f"{a.get('paramType')} {a.get('paramValue')} ({a.get('ciPctValue')}% CI {a.get('ciLowerLimit')} to "
+        + f"{a.get('ciUpperLimit')}; {a.get('statisticalMethod') or 'method not stated'})"
+    )
+    return {
+        "effect": effect,
+        "ci_low": lo,
+        "ci_high": hi,
+        "scale": scale,
+        "ci_level": level,
+        "analysis_method": a.get("statisticalMethod"),
+        "analysis_param_type": a.get("paramType"),
+        "analysis_span": analysis_span,
+    }
+
+
+def _effect_analysis(om: dict[str, Any], spec: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """The measure's ratio analysis, chosen by IDENTITY, never by array order (V1.0.1 round 11). With several analyses
+    of different values, one whose own label names a strict component subset of the target (PARALLEL-HF's 'For CV
+    Death' beside 'For Primary Composite') is a component analysis, never the composite's result; exactly one value
+    must remain, or no registry effect is taken (plants_round11 Q4)."""
+    found = [(a, g) for a in om.get("analyses") or [] for g in [_one_analysis(a)] if g]
+    if len({(g["effect"], g["ci_low"], g["ci_high"]) for _, g in found}) > 1 and spec is not None:
+        canon = set(canonical_components(spec))
+        keep = []
+        for a, g in found:
+            label = " ".join(str(a.get(k) or "") for k in ("statisticalComment", "groupDescription", "estimateComment"))
+            comps = _fold_worsening_hf(canon, _components_from_text(label, expand_named_composites=False))
+            if not (comps and canon and comps < canon):
+                keep.append((a, g))
+        found = keep
+    if len({(g["effect"], g["ci_low"], g["ci_high"]) for _, g in found}) != 1:
+        return None
+    return found[0][1]
 
 
 _EFFECT_RE = re.compile(
@@ -821,6 +876,41 @@ def _candidate_from_abstract(
     return c
 
 
+_SUBPOP_TITLE_RX = re.compile(r"\bsub-?populations?\b|\bsub-?groups?\b|\bsubsets?\b", re.I)
+
+
+def _denominators(om: dict[str, Any]) -> dict[str, float]:
+    out = {}
+    for d in om.get("denoms") or []:
+        for c in d.get("counts") or []:
+            v = _num(c.get("value"))
+            if c.get("groupId") and v is not None:
+                out[c["groupId"]] = v
+    return out
+
+
+def _registry_subpopulation(om: dict[str, Any], siblings: list[dict[str, Any]] | None) -> str | None:
+    """Why a registry outcome measure is a SUBPOPULATION of its trial (None when it is not). A stated subpopulation is
+    never the review's randomised-population result (V1.0.1 round 11, dapagliflozin HFpEF withdrawal): DELIVER
+    registers its primary twice, the second 'for LVEF <60% Subpopulation' on 2200/2172 of 3131/3132 randomised, both
+    labelled 'Full analysis set', and a tie fell to registration order (plants_round11 Q2)."""
+    title = str(om.get("title") or "")
+    if _SUBPOP_TITLE_RX.search(title):
+        return "its title names a subpopulation: " + title[:160]
+    mine = _denominators(om)
+    stem = re.sub(r"[\s.]+$", "", title).lower()
+    for other in siblings or []:
+        if other is om:
+            continue
+        ostem = re.sub(r"[\s.]+$", "", str(other.get("title") or "")).lower()
+        theirs = _denominators(other)
+        if (ostem and stem != ostem and stem.startswith(ostem) and mine and set(mine) == set(theirs)
+                and all(mine[g] < theirs[g] for g in mine)):
+            return (f"it extends the title of measure '{str(other.get('title'))[:100]}' and every arm's denominator is "
+                    f"smaller ({', '.join(f'{mine[g]:g} < {theirs[g]:g}' for g in sorted(mine))})")
+    return None
+
+
 def _ctgov_candidates(
     outcome_measures: list[dict[str, Any]] | None,
     spec: dict[str, Any],
@@ -835,7 +925,7 @@ def _ctgov_candidates(
         if not _keyword_family_match(spec, text):
             continue
         counts = _counts_from_om(om, interv, comp)
-        analysis = _effect_analysis(om)
+        analysis = _effect_analysis(om, spec)
         if not counts and not analysis:
             continue
         denom_units = "; ".join(d.get("units", "") for d in om.get("denoms", []) if d.get("units"))
@@ -857,6 +947,9 @@ def _ctgov_candidates(
             "classification_text": text,
             "provenance": "ctgov_results",
         }
+        sub = _registry_subpopulation(om, outcome_measures)
+        if sub:
+            base["registry_subpopulation"] = sub
         base.update(_classify(spec, text))
         base.update({"endpoint_binding": BINDING_REGISTRY,
                      "endpoint_definition_span": text.strip(),
@@ -983,7 +1076,7 @@ def _public_candidate(c: dict[str, Any]) -> dict[str, Any]:
     keys = (
         "candidate_id", "source_type", "source_kind", "registry_title", "registry_type",
         "target_endpoint_class", "extra_components", "missing_components", "source_rank_kind",
-        "endpoint_binding", "endpoint_binding_reason",
+        "endpoint_binding", "endpoint_binding_reason", "registry_subpopulation",
     )
     return {k: c.get(k) for k in keys if c.get(k) not in (None, [], "")}
 
@@ -1030,8 +1123,11 @@ def select_target_endpoint(
     if not canonical_components(spec):
         return {"selected": None, "candidates": [], "exact_target_in_held_source": False}
     candidates = enumerate_candidates(spec, abstract, outcome_measures, interv, comp)
-    exact = [c for c in candidates if c.get("target_endpoint_class") == EXACT_TARGET]
-    near = [c for c in candidates if c.get("target_endpoint_class") == NEAR_MATCH]
+    # a registry subpopulation measure is disclosed among the candidates but is never the randomised-population
+    # result (V1.0.1 round 11, plants_round11 Q2)
+    whole = [c for c in candidates if not c.get("registry_subpopulation")]
+    exact = [c for c in whole if c.get("target_endpoint_class") == EXACT_TARGET]
+    near = [c for c in whole if c.get("target_endpoint_class") == NEAR_MATCH]
     # ADMISSIBILITY: exact targets only. A near match is eligible solely under the outcome's explicit
     # `allow_near_match` declaration and only when nothing is MISSING (a superset may be disclosed; a
     # component/subset is never the composite). `exact or near` admitted a 4-point MACE under a 3-point

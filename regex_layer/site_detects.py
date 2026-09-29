@@ -32,6 +32,26 @@ DETECTS: dict = {
         "trigger": r"primary|secondary",
         "text_source": "one abstract sentence (definition span or result span)",
         "lowercased": True},
+    "target_endpoint.py:search:1580d0fc90": {
+        "detects": "the text names worsening heart failure (worsening of heart failure / worsening HF) as an outcome "
+                   "component -- not worsening of another organ's function",
+        "trigger": r"worsen",
+        "text_source": _COMPONENTS_SRC, "lowercased": True},
+    "target_endpoint.py:_SUBPOP_TITLE_RX": {
+        "detects": "a registry outcome-measure title says the measure is reported for a subpopulation, subgroup or "
+                   "subset of the randomised participants",
+        "trigger": r"sub",
+        "text_source": "a ClinicalTrials.gov outcome-measure title (raw)", "lowercased": False},
+    "target_endpoint.py:sub:a9809ab6bd": {
+        "detects": None,
+        "why_not_labellable": "strips trailing whitespace and full stops from a measure title before a prefix comparison; "
+                              "matches formatting, not meaning",
+        "text_source": "a ClinicalTrials.gov outcome-measure title (this measure)", "lowercased": False},
+    "target_endpoint.py:sub:a9809ab6bd#2": {
+        "detects": None,
+        "why_not_labellable": "strips trailing whitespace and full stops from a sibling measure's title before a prefix "
+                              "comparison; matches formatting, not meaning",
+        "text_source": "a ClinicalTrials.gov outcome-measure title (a sibling measure of the same trial)", "lowercased": False},
     "target_endpoint.py:_MACE_RX": {
         "detects": "the sentence names a MACE-type composite (MACE, major adverse cardiovascular events, major "
                    "cardiovascular events, major/serious vascular events) -- not 'major adverse events' in general",

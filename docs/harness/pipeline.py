@@ -1526,15 +1526,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # published for this outcome. Every admitted row is moved out of the pool with the withdrawal as
         # its state -- displayed, never deleted, never silently replaced by a corrected number.
         w = spec["withdrawn"]
+        _eff = ("effect", "ci_low", "ci_high", "scale")
+        _src = ("source", "provenance", "endpoint_result_span", "target_endpoint_class", "target_endpoint_components")
         for t in trials:
-            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "result_withdrawn",
-                           "state": "RESULT_WITHDRAWN", "reason_code": "RESULT_WITHDRAWN",
-                           "withdrawn_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale") if t.get(k) is not None},
-                           "reason": w.get("summary", "result withdrawn"),
-                           "source": t.get("source", ""), "provenance": t.get("provenance"),
-                           "endpoint_result_span": t.get("endpoint_result_span"),
-                           "target_endpoint_class": t.get("target_endpoint_class"),
-                           "target_endpoint_components": t.get("target_endpoint_components")})
+            # V1.0.1 round 11: WHAT WAS PUBLISHED is the declaration's pinned row, never the current selection -- once
+            # the selector reads the composite correctly, recomputing it would restate the withdrawn history as the
+            # corrected number. A current selection that differs is disclosed beside it, not served.
+            pin = w.get("published_row") if (w.get("published_row") or {}).get("id") == t.get("id") else None
+            shown = pin or t
+            row = {"label": t.get("label"), "id": t.get("id"), "absent_kind": "result_withdrawn",
+                   "state": "RESULT_WITHDRAWN", "reason_code": "RESULT_WITHDRAWN",
+                   "withdrawn_effect": {k: shown.get(k) for k in _eff if shown.get(k) is not None},
+                   "reason": w.get("summary", "result withdrawn"),
+                   "source": shown.get("source", ""), **{k: shown.get(k) for k in _src[1:]}}
+            if pin and any(t.get(k) != pin.get(k) for k in _eff):
+                row["selection_now"] = {k: t.get(k) for k in _eff + _src if t.get(k) is not None}
+            absent.append(row)
         trials = []
     if eligibility_contract:
         kept = []

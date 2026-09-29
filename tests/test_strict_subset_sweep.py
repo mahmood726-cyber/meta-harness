@@ -22,9 +22,19 @@ def test_positive_controls_the_two_withdrawn_rows_fire():
 
 
 def test_the_lexicon_would_have_missed_them():
+    # the collapse is HISTORY, pinned where it was measured: on 41239b94 the lexicon read the name as {cardiovascular death}
+    # (scripts/plants_round11.py Q1, fired). V1.0.1 round 11 reads 'worsening heart failure', so the lexicon now sees
+    # what this sweep sees: the withdrawn titles lack a component and are never the composite
+    import json
     from harness import target_endpoint as te
-    assert set(te._components_from_text(NAME)) == {"cardiovascular death"}          # the collapse: 'worsening heart failure' -> nothing
-    assert set(te._components_from_text(DELIVER_TITLE)) == set(te._components_from_text(NAME))   # title == name under the lexicon: EXACT
+    pre = json.loads((ROOT / "evidence/v101_integrated/round11_plants/prefix_41239b94.json").read_text(encoding="utf-8"))
+    q1 = pre["Q1_worsening_HF_composite_read_as_CV_death_only"]
+    assert q1["fired"] and q1["got"]["components"] == ["cardiovascular death"]
+    assert set(te._components_from_text(NAME)) == {"cardiovascular death", "worsening heart failure"}
+    spec = {"name": NAME}
+    for title in (DELIVER_TITLE, EMPEROR_TITLE):
+        c = te._classify(spec, title)
+        assert c["target_endpoint_class"] != te.EXACT_TARGET and c["missing_components"] == ["worsening heart failure"]
 
 
 def test_titles_naming_every_clause_do_not_fire():

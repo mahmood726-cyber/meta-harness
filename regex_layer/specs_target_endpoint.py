@@ -163,4 +163,26 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("Death fell. Stroke rose.", ["Death fell.", "Stroke rose."]),
                               ("Was it lower? Yes!  No.", ["Was it lower?", "Yes!", "No."])],
                    "refuse": ["HR 0.80 (95% CI 0.70-0.90)", "rate 0.87 per 100"]}},
+    # ---- V1.0.1 round 11 (the HFpEF withdrawals' conditions, scripts/plants_round11.py) -------------------------------
+    "target_endpoint.py:search:1580d0fc90": {
+        "kind": "search", "what": "_components_from_text: 'worsening heart failure' named as a component (folded text)",
+        "plants": {"accept": [("composite of worsening heart failure or cardiovascular death", None),
+                              ("worsening of heart failure", None), ("cardiovascular death or worsening hf", None)],
+                   "refuse": ["hospitalization for heart failure", "worsening renal function",
+                              "heart failure hospitalization or urgent visit"]}},
+    "target_endpoint.py:_SUBPOP_TITLE_RX": {
+        "kind": "search", "what": "_registry_subpopulation: a registry measure TITLE names a subpopulation (raw title)",
+        "plants": {"accept": [("Composite Endpoint of CV Death for LVEF <60% Subpopulation", None),
+                              ("The Composite of MACE in the Subgroup of Participants With Established CVD", None),
+                              ("Hospitalisation in a subset of patients", None)],
+                   "refuse": ["Subjects Included in the Composite Endpoint of CV Death", "Full analysis set",
+                              "Time to subsequent hospitalization"]}},
+    "target_endpoint.py:sub:a9809ab6bd": {
+        "kind": "search", "what": "_registry_subpopulation: trailing whitespace/full stops stripped from this measure's title",
+        "plants": {"accept": [("Urgent Visit Due to Heart Failure.", None), ("Heart Failure . ", None)],
+                   "refuse": ["Urgent Visit Due to Heart Failure", "LVEF 0.5 subgroup"]}},
+    "target_endpoint.py:sub:a9809ab6bd#2": {
+        "kind": "search", "what": "_registry_subpopulation: trailing whitespace/full stops stripped from a sibling's title",
+        "plants": {"accept": [("Urgent Visit Due to Heart Failure.", None), ("Heart Failure . ", None)],
+                   "refuse": ["Urgent Visit Due to Heart Failure", "LVEF 0.5 subgroup"]}},
 }

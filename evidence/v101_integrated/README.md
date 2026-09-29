@@ -508,3 +508,54 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
   (NCT01147250). Only ours: SOUL (NCT03914326, 2025).
   - No pooled result moved. Families 32/32 byte-identical. No other relation changed.
   - Our exclusion of ELIXA is our own eligibility decision (4-point MACE). This round does not change it.
+
+## Round 11 (G1): the conditions the HFpEF withdrawals named, as harness code
+
+The dapagliflozin and empagliflozin HFpEF pages were withdrawn on 2026-09-19 (Mahmood's decision). Both served a
+cardiovascular-death-only registry measure as the composite primary. The notices name what must land before a
+corrected estimate may be served. This round builds those conditions. **It does not lift either withdrawal.** That
+needs Mahmood's countersignature and its own correction record.
+
+- **Found first by execution.** Dropping the withdrawal on the pre-fix harness (41239b94) re-serves the same wrong
+  number, HR 0.88 (0.74-1.05), CV death only, classed EXACT_TARGET. The topic's name still read as
+  {cardiovascular death}: the notices' two conditions were necessary but not sufficient.
+- **Four defects, four plants** (`scripts/plants_round11.py`, all built from held registry data). All fired on
+  41239b94 (`round11_plants/prefix_41239b94.json`); none fire on the fix.
+  - Controls hold on both: the served PARALLEL-HF row stays at 1.0881, and DELIVER's full-population measure stays at
+    0.82.
+  - Q1 (vocabulary): "worsening heart failure" was unread, so the composite's target was {CV death}. It is now a named
+    component, met by an HF hospitalisation and/or an urgent HF visit.
+  - Q2 (subpopulation): DELIVER registers its primary twice. The second is "for LVEF <60% Subpopulation" on 2200/2172
+    of 3131/3132, and both are labelled "Full analysis set". It was served (0.83) when listed first. A measure is now a
+    subpopulation when its title says so, or when it extends a sibling measure's title with every arm's denominator
+    smaller. It is disclosed among the candidates and never selected.
+  - Q3 (interval level): EMPEROR-Preserved's registered primary is HR 0.79 at a 95.03% alpha-adjusted level. It was
+    rendered and pooled as a 95% CI. A registry interval is now read only at a stated, two-sided 95%. A level that is
+    not stated is not assumed.
+  - Q4 (array order): with PARALLEL-HF's component analyses listed first, the CV-death HR 1.1701 was taken. Analyses
+    are now chosen by identity: one whose own label names a strict component subset of the target is a component
+    analysis, and exactly one value must remain.
+- **The withdrawal's own history is pinned.** Once the selector reads the composite, the withdrawn row's
+  `withdrawn_effect` ("what was published") would have been recomputed as 0.82 and 0.79, restating the history as the
+  corrected number. `tests/test_result_withdrawn.py` already asserted 0.88/0.91; it is the instrument that would have
+  caught this.
+  - The family cache is regenerated for these two topics only (`build_families.py --offline`). Their registry rows now
+    classify against the composite: DELIVER's outcome row moves from the CV-death measure to the composite, and DAPA-HF
+    gains an extractable worsening-HF measure. Nothing becomes poolable. The other 30 family caches stay byte-identical.
+  - A first cut folded a bare "worsening heart failure" into HF hospitalisation for every target. That read
+    "increase in diuretic dose due to worsening heart failure" as a hospitalisation, and 5 more family caches moved. It
+    was caught by the offline family check before commit. For a target that does not name worsening HF, the words are
+    now simply not a component, so those targets classify exactly as before.
+  - Each topic's declaration now carries `published_row`, the served row verbatim. A test ties the pin to the number
+    the signed notice quotes.
+  - The corrected selection is disclosed as `selection_now` and is not served.
+- **What a countersigned lift would serve**, from each trial's own abstract (EXACT_TARGET):
+  - DELIVER: HR 0.82 (95% CI 0.73 to 0.92), 512/3131 vs 610/3132.
+  - EMPEROR-Preserved: HR 0.79 (95% CI 0.69 to 0.90), 415/2997 vs 511/2991.
+- **n of N** (held registry data, all topics):
+  - Ratio analyses with a CI: 30 of 488 are not a two-sided 95% (95.02 to 98.7), and 0 are in a served pool.
+  - Measures with more than one distinct ratio analysis: 93. Exactly 1 is in a served pool (PARALLEL-HF), and identity
+    selection keeps it at 1.0881.
+  - Names read as a single component although they name two: 3. Two are fixed here. NOAC "Stroke or systemic embolism"
+    reads as {stroke}. It is left as found: adding "systemic embolism" to the vocabulary could move served NOAC rows,
+    so it needs its own plant and a signed notice.

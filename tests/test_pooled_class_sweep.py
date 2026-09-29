@@ -52,5 +52,13 @@ def test_sweep_over_the_served_state():
     assert out["reviews"] == 32 and out["pooled_rows"] == 147
     assert out["by_pooled_state"] == {"UNBOUND_POOLED": 121, "EXACT_TARGET_POOLED": 25, "NEAR_MATCH_POOLED": 1}
     assert [(h["slug"], h["trial"]) for h in out["C1_hits"]] == [("pcsk9-mace", "PMID 30403574")]
-    assert [(h["slug"], h["trial"]) for h in out["C2_hits"]] == [("pcsk9-mace", "PMID 30403574")]
+    # C2 at 316d2e48 (2026-09-19, the served state BEFORE the HFpEF withdrawals of 2026-09-20): with 'worsening heart
+    # failure' read (V1.0.1 round 11) the sweep sees what an independent panel found by hand -- DELIVER and
+    # EMPEROR-Preserved pooled as the composite on a cardiovascular-death-only measure. Pinned before as pcsk9 alone,
+    # which encoded the lexicon's blindness, not the requirement.
+    assert [(h["slug"], h["trial"]) for h in out["C2_hits"]] == [
+        ("dapagliflozin-hfpef-hosp", "PMID 36027570"), ("empagliflozin-hfpef-hosp", "PMID 34449189"),
+        ("pcsk9-mace", "PMID 30403574")]
+    assert all(h["row_lacks"]["lexicon_canonical"] == ["worsening heart failure"]
+               for h in out["C2_hits"] if h["slug"] != "pcsk9-mace")
     assert {(m["slug"]) for m in out["pools_mixing_states"] if "NEAR_MATCH_POOLED" in m["states"]} == {"pcsk9-mace"}
