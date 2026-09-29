@@ -63,6 +63,11 @@ def sample():
     t = _j(os.path.join(OUT, "k_gap_table.json"))
     pop = [r for r in t["trials"] if r["unit_source"] != "REFERENCE_SEED" and r["drug"] != "OTHER_AGENT"
            and r["status"] != "UNRESOLVED" and r["pmids"]]
+    if SEED != FIRST_SEED:
+        # a re-audit must not re-use the first sample: its NO_MATCHes shaped the current rules, so it is burned
+        first = _j(PROP.replace(f".s{SEED}.json", ".json")) if os.path.exists(PROP.replace(f".s{SEED}.json", ".json")) else {}
+        burned = {x["item_id"] for x in first.get("rows", [])}      # item_id = slug::label[:40], as built in items()
+        pop = [r for r in pop if f"{r['slug']}::{r['label'][:40]}" not in burned]
     rng = random.Random(SEED)
     return pop, rng.sample(pop, min(N, len(pop)))
 
@@ -133,7 +138,15 @@ def run_one(b):
             "prompt_sha256": hashlib.sha256(b["prompt"]).hexdigest()}
 
 
+FIRST_SEED = SEED
+
+
 def main(argv):
+    global SEED, PROP
+    if "--seed" in argv:
+        # the seed is fixed on the command line BEFORE the draw and written into the output
+        SEED = int(argv[argv.index("--seed") + 1])
+        PROP = PROP.replace(".json", f".s{SEED}.json")
     npop, its = items()
     bs = batches(its)
     data = _j(PROP) if os.path.exists(PROP) else {}
