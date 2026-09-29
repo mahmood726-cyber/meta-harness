@@ -21,7 +21,7 @@ from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from harness import k_gap  # noqa: E402
+from kgap import k_gap  # noqa: E402
 
 OUT = os.path.join(ROOT, "outputs", "k_gap")
 DATE = "2026-09-28"
