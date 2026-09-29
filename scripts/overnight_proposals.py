@@ -27,7 +27,8 @@ BASE = "6e26839a"      # the served pages the populations are drawn from (CI gre
 MODEL = {"d5_identity": "gpt-6-astra", "comparator_arm": "gpt-6-astra", "trial_identity": "gpt-6-astra",
          "condition_role_reader2": "gpt-5.5", "d5_identity_reader2": "gpt-5.5", "comparator_arm_reader2": "gpt-5.5",
          "trial_identity_reader2": "gpt-5.5", "comparator_membership": "gpt-6-astra",
-         "comparator_membership_reader2": "gpt-5.5"}
+         "comparator_membership_reader2": "gpt-5.5", "comparator_trial_names": "gpt-6-astra",
+         "comparator_trial_names_reader2": "gpt-5.5"}
 
 
 def base_task(task):
@@ -37,6 +38,12 @@ CODEX_LOG = Path("C:/mh-lanes/evid2-scratch/codex/codex_calls.jsonl")
 QDIR = ROOT / ms.PROPOSAL_DIR
 
 INSTR = {
+    "comparator_trial_names": """You read a published meta-analysis (its text, figure captions and alt text). Our question's
+primary outcome is named below. Find its analysis of THAT outcome (or the closest one it reports) and list the trials
+IN that analysis by the names the text prints (acronym or first author and year).
+Return: analysis {label, quote} -- words copied exactly from the text that report that analysis; trials -- one
+{name, quote} per trial, where quote is words copied exactly from the text that show the trial is in that analysis and
+contain the name. List only trials the text places in that analysis. Never guess.""",
     "comparator_membership": """You read a published meta-analysis (its text, figure captions and figure alt text) and the
 list of ROWS of its included-trial table. Our question's primary outcome is named below. Find the meta-analysis's
 analysis of THAT outcome (or the closest one it reports) and say which table rows are in it.
@@ -188,15 +195,35 @@ def items_comparator_membership():
     return out
 
 
+def items_comparator_trial_names():
+    """G1: topics whose comparator text is held but has NO included-trial table and no bound membership."""
+    import html as _h
+    out = []
+    for slug in _slugs():
+        cp, ft = ROOT / "cache" / slug / "comparators.json", ROOT / "cache" / slug / "comparator_fulltext.txt"
+        if not ft.exists() or (ROOT / "cache" / slug / "comparator_analysis.json").exists():
+            continue
+        panel = next(iter(json.loads(cp.read_text(encoding="utf-8"))), None) if cp.exists() else {}
+        if (panel or {}).get("trial_set"):
+            continue
+        text = ft.read_text(encoding="utf-8")
+        review = json.loads((ROOT / "docs" / "reviews" / slug / "review.json").read_text(encoding="utf-8"))
+        prim = next((o for o in review.get("outcomes") or [] if o.get("primary")), {})
+        out.append({"item_id": f"{slug}::trial_names", "held_text": text, "held_sha256": _sha(text.encode("utf-8")),
+                    "held_ref": f"cache/{slug}/comparator_fulltext.txt", "rule_decision": "NO_RULE",
+                    "outcome": prim.get("name"), "listing": "(no included-trial table)", "rows": []})
+    return out
+
+
 def items_condition_role_reader2():
     pop = json.loads((QDIR / "condition_role.population.json").read_text(encoding="utf-8"))["items"]
     return [dict(i, rule_decision="ENTRY_POPULATION") for i in pop]
 
 
-ITEMS = {"comparator_membership": items_comparator_membership, "d5_identity": items_d5_identity,
+ITEMS = {"comparator_trial_names": items_comparator_trial_names, "comparator_membership": items_comparator_membership, "d5_identity": items_d5_identity,
          "comparator_arm": items_comparator_arm,
          "trial_identity": items_trial_identity, "condition_role_reader2": items_condition_role_reader2}
-for _t in ("d5_identity", "comparator_arm", "trial_identity", "comparator_membership"):
+for _t in ("d5_identity", "comparator_arm", "trial_identity", "comparator_membership", "comparator_trial_names"):
     # the second reader reads the FIRST reader's frozen population, never a re-derived one
     ITEMS[f"{_t}_reader2"] = (lambda t: lambda: json.loads((QDIR / f"{t}.population.json").read_text(encoding="utf-8"))["items"])(_t)
 
@@ -239,8 +266,8 @@ def _batches(task):
     else:
         instr = INSTR[base_task(task)]
         head = lambda i: ""  # noqa: E731
-    size = 1 if base_task(task) == "comparator_membership" else BATCH
-    if base_task(task) == "comparator_membership":
+    size = 1 if base_task(task) in ("comparator_membership", "comparator_trial_names") else BATCH
+    if base_task(task) in ("comparator_membership", "comparator_trial_names"):
         head = lambda i: f"outcome={i['outcome']!r}\nTABLE ROWS:\n{i['listing']}\n=== TEXT ==="  # noqa: E731
     for k in range(0, len(items), size):
         chunk = items[k:k + size]
@@ -251,6 +278,16 @@ def _batches(task):
 
 
 def _schema(task):
+    if base_task(task) == "comparator_trial_names":
+        tq = {"type": "object", "additionalProperties": False, "required": ["name", "quote"],
+              "properties": {"name": {"type": "string"}, "quote": {"type": "string"}}}
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "analysis", "trials"],
+              "properties": {"item": {"type": "string"},
+                             "analysis": {"type": "object", "additionalProperties": False, "required": ["label", "quote"],
+                                          "properties": {"label": {"type": "string"}, "quote": {"type": "string"}}},
+                             "trials": {"type": "array", "items": tq}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
     if base_task(task) == "comparator_membership":
         rq = {"type": "object", "additionalProperties": False, "required": ["row", "quote"],
               "properties": {"row": {"type": "string"}, "quote": {"type": "string"}}}
@@ -316,7 +353,8 @@ def cmd_queue(task):
             except ValueError as exc:
                 entries.append({"item_id": i["item_id"], "task": task, "state": "RESPONSE_NOT_A_CLAIM", "why": str(exc)})
                 continue
-            ctx = {"term": i["term"]} if task == "condition_role_reader2" else None
+            ctx = ({"term": i["term"]} if task == "condition_role_reader2" else
+                   {"rows": i["rows"]} if base_task(task) == "comparator_membership" else None)
             e = ms.queue_entry(task=task, item_id=i["item_id"], record=rec, claim=claim,
                                verification={}, held_ref=i["held_ref"], held_sha256=i["held_sha256"],
                                rule_decision=rule_decision(task, i), context=ctx, response_item=key)

@@ -457,3 +457,24 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
   PHILO.
   - A reference year is never used to exclude it: that would decide membership by date.
   - Shared is at least PLATO; your "shared = 1" is consistent with it but not provable here.
+
+## Round 9 (G1: trial-for-trial match): comparator memberships from the comparator's own words
+
+- **Codex task `comparator_membership`**, blind, 2 readers, recorded and gated. For each of 12 comparators with an
+  included-trial table but no membership for OUR outcome, which table rows are in its analysis of that outcome, each
+  with a quote located in the held text (`model_source.verify_comparator_membership`).
+  - Both readers named the same rows on 10 of 12.
+  - They disagree on colchicine-secondary (reader 1 used subgroup sentences, not the main MACE analysis) and omega-3
+    (reader 2 names none). Neither names rows for melatonin.
+- **Bound after my check:** a new text-membership kind in `harness/comparator_analysis.py`. Each row names its panel row
+  and a quote located in the held full text or JATS, with no per-row numbers.
+  - Six topics are bound: colchicine-postop-af (9), colchicine-recurrent-pericarditis (3 of 5: COPE, CORE, CORP, the
+    secondary-prevention analysis), finerenone (2 of 4), IV iron (5), probiotics (42), statins (8 of 12).
+  - Esketamine, GLP-1 and balanced crystalloids already carried a per-outcome panel binding. A second membership emptied
+    their sets (the endpoint labels disagree), so it was removed, and a test now refuses the combination.
+  - Codex names 8 GLP-1 CVOTs in MACE; the served binding has 7. Worth a look.
+- **Relations:** recurrent pericarditis is now compared on 3 trials (OVERLAPPING, shared 1), statins on 8 (DISJOINT).
+  No pooled result moved.
+- **Codex task `comparator_trial_names`** (6 comparators with no trial table). Both readers name the same 6 trials for
+  dapagliflozin HFpEF, but our pool there is empty. Empagliflozin and tranexamic acid are single-reader only. All are
+  PROPOSED.

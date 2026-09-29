@@ -491,6 +491,10 @@ def reverify(entry: dict, held_text: str) -> dict:
         return verify_condition_role(entry.get("claim"), held_text, (entry.get("context") or {}).get("term"))
     if task in CATEGORICAL_TASKS:
         return verify_categorical(task, entry.get("claim"), held_text, entry.get("rule_decision"))
+    if task in ("comparator_trial_names", "comparator_trial_names_reader2"):
+        return verify_comparator_trial_names(entry.get("claim"), held_text)
+    if task in ("comparator_membership", "comparator_membership_reader2"):
+        return verify_comparator_membership(entry.get("claim"), held_text, (entry.get("context") or {}).get("rows"))
     return {"state": "VERIFIER_REFUSED", "problems": [f"TASK_UNKNOWN: {task!r}"]}
 
 
@@ -803,4 +807,73 @@ def pinned_closure(root: str | Path = ROOT) -> set[str]:
     for cert in sorted(Path(root, "docs", "reviews").glob("*/CERTIFICATE.json")):
         blobs = json.loads(cert.read_text(encoding="utf-8")).get("analysis_code_blobs") or {}
         out |= set(blobs) if isinstance(blobs, dict) else {b["path"] for b in blobs}
+    return out
+
+def verify_comparator_membership(claim: Any, held_text: str, rows: list | None) -> dict:
+    """G1 (trial-for-trial match): which rows of the comparator's included-trial table are in its analysis of OUR
+    primary outcome. claim = {analysis: {label, quote}, members: [{row, quote}], excluded: [{row, quote}]}. The analysis
+    quote and every member's quote must be located in the held comparator text; every row must be a row of the
+    comparator panel (context rows). There is no rule decision to agree with: every entry needs an individual
+    signature, and a verified proposal becomes a comparator_analysis membership only when a human binds it."""
+    problems = []
+    out: dict[str, Any] = {"task": "comparator_membership", "rule_decision": "NO_RULE (membership not enumerated)"}
+    known = set(rows or [])
+    a = claim.get("analysis") if isinstance(claim, dict) else None
+    if not isinstance(a, dict) or not isinstance(a.get("quote"), str) or not a["quote"].strip():
+        problems.append("ANALYSIS_WITHOUT_QUOTE")
+    else:
+        loc = _locate(a["quote"], held_text)
+        if loc.get("match") not in ("VERBATIM", "NORMALISED"):
+            problems.append("ANALYSIS_QUOTE_NOT_IN_SOURCE")
+    members = claim.get("members") if isinstance(claim, dict) else None
+    if not isinstance(members, list):
+        problems.append("MEMBERS_MISSING")
+        members = []
+    got = []
+    for m in members:
+        r, q = (m or {}).get("row"), (m or {}).get("quote")
+        if r not in known:
+            problems.append(f"ROW_UNKNOWN: {r!r}")
+            continue
+        if not isinstance(q, str) or not q.strip():
+            problems.append(f"MEMBER_WITHOUT_QUOTE: {r}")
+            continue
+        if _locate(q, held_text).get("match") not in ("VERBATIM", "NORMALISED"):
+            problems.append(f"MEMBER_QUOTE_NOT_IN_SOURCE: {r}")
+            continue
+        got.append(r)
+    if len(set(got)) != len(got):
+        problems.append("ROW_TWICE")
+    out["model_decision"] = sorted(set(got))
+    out["agreement"] = "MODEL_ONLY(no rule enumerates this membership; adjudication=OWED)"
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    return out
+
+
+def verify_comparator_trial_names(claim: Any, held_text: str) -> dict:
+    """G1: the trials a comparator with NO included-trial table pools for OUR outcome, by the names its text prints.
+    claim = {analysis: {label, quote}, trials: [{name, quote}]}; every quote located in the held comparator text and
+    every name printed inside its own quote. A name is not yet an identity: binding it to one of our trial families
+    is a separate, human-checked step."""
+    problems = []
+    out: dict[str, Any] = {"task": "comparator_trial_names", "rule_decision": "NO_RULE (no included-trial table)"}
+    a = claim.get("analysis") if isinstance(claim, dict) else None
+    if not isinstance(a, dict) or not isinstance(a.get("quote"), str) or \
+            _locate(a["quote"], held_text).get("match") not in ("VERBATIM", "NORMALISED"):
+        problems.append("ANALYSIS_QUOTE_NOT_IN_SOURCE")
+    names = []
+    for t in (claim.get("trials") if isinstance(claim, dict) else None) or []:
+        n, q = (t or {}).get("name"), (t or {}).get("quote")
+        if not n or not isinstance(q, str) or n.lower() not in q.lower():
+            problems.append(f"NAME_NOT_IN_ITS_QUOTE: {n!r}")
+            continue
+        if _locate(q, held_text).get("match") not in ("VERBATIM", "NORMALISED"):
+            problems.append(f"QUOTE_NOT_IN_SOURCE: {n!r}")
+            continue
+        names.append(n)
+    out["model_decision"] = sorted(set(names))
+    out["agreement"] = "MODEL_ONLY(no table enumerates this membership; adjudication=OWED)"
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
     return out

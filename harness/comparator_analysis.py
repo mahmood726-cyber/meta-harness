@@ -95,15 +95,25 @@ def load(root, slug) -> Optional[dict]:
         raise AnalysisRefused(f"{slug}: unknown comparator_type {doc.get('comparator_type')!r}")
     mem = doc.get("membership")
     if mem:
-        located_or_verified(mem["figure"]["caption"], "figure caption")
+        if mem.get("figure"):
+            located_or_verified(mem["figure"]["caption"], "figure caption")
         rows = mem["rows"]
         g = doc["governing"]
         if len(rows) != g["k"]:
             raise AnalysisRefused(f"{slug}: {len(rows)} figure rows, the governing analysis states {g['k']} studies")
-        kinds = {("log_se" if "log_se" in r else "counts") for r in rows}
+        kinds = {("log_se" if "log_se" in r else "text" if "counts" not in r else "counts") for r in rows}
         if len(kinds) != 1:
             raise AnalysisRefused(f"{slug}: figure rows mix counts and log-effect rows")
-        if kinds == {"log_se"}:
+        if kinds == {"text"}:
+            # V1.0.1 (G1, trial-for-trial match): the membership of the comparator's analysis of OUR outcome stated in
+            # its own words -- each row names its panel row and quotes the held text that puts that trial in the
+            # analysis (proposed blind by two models, scripts/overnight_proposals.py comparator_membership, and bound
+            # only after a human check). No per-row numbers, so no reproduction and no weight shares.
+            for r in rows:
+                if not r.get("panel_row") or not r.get("quote"):
+                    raise AnalysisRefused(f"{slug}: text row {r.get('label')}: needs its panel row and a located quote")
+                locate({"document_ref": r.get("document_ref") or g["document_ref"], "quote": r["quote"]})
+        elif kinds == {"log_se"}:
             # V1.0.1 (MRA-HFrEF review): a generic inverse-variance plot (Zhang 2025 Figure 4D) prints log[HR] and SE per
             # row, not counts; no participant total is stated, so the plot is checked against ITSELF instead: each row's
             # printed HR and interval, and its printed weight, from its log[HR] and SE; and the rows' common effect
@@ -114,6 +124,10 @@ def load(root, slug) -> Optional[dict]:
             if n != g["n"]:
                 raise AnalysisRefused(f"{slug}: figure rows total {n} participants, the governing analysis states {g['n']}")
         for r in rows:
+            if "counts" not in r:
+                if r.get("input_type"):
+                    locate(r["input_type"])
+                continue
             if "log_se" in r:
                 if r.get("source_check"):
                     raise AnalysisRefused(f"{slug}: row {r['label']}: a count source check needs count rows")
@@ -133,7 +147,7 @@ def load(root, slug) -> Optional[dict]:
                     raise AnalysisRefused(f"{slug}: row {r['label']}: source counts {sc.get('counts')} not all printed in its quote")
             if r.get("input_type"):
                 locate(r["input_type"])
-        fig = mem["figure"]
+        fig = mem.get("figure") or {}
         if fig.get("document_ref"):
             # V1.0.1 (semaglutide-obesity review): a HELD figure image is pinned by its bytes
             import hashlib
@@ -238,7 +252,7 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
         members = []
         for r in mem["rows"]:
             m = {"label": r["label"], **({"log_se": r["log_se"], "printed": r["printed"]} if "log_se" in r
-                                         else {"counts": r["counts"]})}
+                                         else {"counts": r["counts"]} if "counts" in r else {"quote": r["quote"]})}
             flag = next((f for f in doc.get("row_flags") or [] if f["row"] == r["label"]), None)
             if r.get("report_pmid") and flag and flag.get("state") == "COMPARATOR_ROW_UNRECONCILED":
                 # REV-R2: an unreconciled row is never copied into anything, so it never counts as shared inputs
@@ -268,10 +282,11 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
         for m, r in zip(members, mem["rows"]):
             if r.get("panel_row"):
                 m["panel_row"] = r["panel_row"]
-        out["membership"] = {"figure": mem["figure"], "members": members, "endpoint": doc["outcome"],
+        out["membership"] = {"figure": mem.get("figure"), "members": members, "endpoint": doc["outcome"],
                              "endpoint_label": mem.get("endpoint_label") or (doc.get("governing") or {}).get("analysis"),
                              "shared_same_counts": [m["label"] for m in members if m.get("inputs") == "SAME_COUNTS"],
-                             "weight_concentration": weight_concentration(mem["rows"], (doc.get("governing") or {}).get("scale"))}
+                             "weight_concentration": (weight_concentration(mem["rows"], (doc.get("governing") or {}).get("scale"))
+                                                      if all("counts" in r or "log_se" in r for r in mem["rows"]) else None)}
     out["row_flags"] = doc.get("row_flags") or []
     return out
 
@@ -333,7 +348,12 @@ def render(a: Optional[dict]) -> str:
                      f"{e(g['scale'])} {e(g['estimate'])} ({e(g['ci_low'])} to {e(g['ci_high'])}), {e(g['k'])} studies, "
                      + (f"{e(g['n'])} participants." if g.get("n") is not None else "participants not stated.") + "</p>")
     m = a.get("membership")
-    if m:
+    if m and not m.get("figure"):
+        parts.append(f"<p>Membership of {e((g or {}).get('analysis'))}: {e(len(m['members']))} rows, each placed in the "
+                     "analysis by the comparator's own words: "
+                     + "; ".join(f"{e(x['label'])} (&ldquo;{e(str(x.get('quote'))[:160])}&rdquo;)" for x in m["members"])
+                     + ". Identity with our trials is decided by the panel rows they name (the overlap relation below).</p>")
+    if m and m.get("figure"):
         f = m["figure"]
         held = (f"held as {e(f['document_ref'])} ({e(f.get('licence'))})" if f.get("document_ref")
                 else f"not held: {e(f['why_not_held'])}")

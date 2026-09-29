@@ -62,9 +62,17 @@ def test_PLANT_pericarditis_overlap_from_the_committed_transcription_table():
     rev = json.load(open(os.path.join(ROOT, "docs", "reviews", "colchicine-recurrent-pericarditis", "review.json"), encoding="utf-8"))
     o = rev["comparator"]["overlap_relation"]
     fam = {f["family_id"]: f["aliases"].get("acronym") for f in rev["trial_families"]}
-    assert o["relation"] == "OVERLAPPING" and o["theirs_k"] == 5 and o["shared_k"] == 1
+    # theirs_k 5 -> 3 (V1.0.1 round 9, G1): the comparator's recurrence analysis is its secondary-prevention pool, k=3 by
+    # its own words ("two studies were aimed at the primary prevention of post- operative pericarditis, 10 11 and the
+    # other three for the secondary prevention"); refs 10 and 11 are Finkelstein and COPPS, which stay listed as out of
+    # scope with their endpoint, never dropped. The membership k must equal the governing analysis' printed k.
+    assert o["relation"] == "OVERLAPPING" and o["theirs_k"] == 3 and o["shared_k"] == 1
+    assert o["theirs_k"] == rev["comparator"]["analysis"]["governing"]["k"]
     assert [fam[x] for x in o["shared"]] == [["CORP"]] and o["only_ours"] == ["NCT00235079"]        # CORP-2 ours only
-    assert o["only_theirs"] == ["Finkelstein (row 1)", "COPE (row 2)", "CORE (row 3)", "COPPS (row 4)"]
+    assert o["only_theirs"] == ["COPE (row 2)", "CORE (row 3)"]
+    oos = {m["name"]: m["endpoint"] for m in o["theirs"]["out_of_scope"]}
+    assert oos == {"Finkelstein (row 1)": "not in Secondary prevention of pericarditis",
+                   "COPPS (row 4)": "not in Secondary prevention of pericarditis"}
     assert rev["comparator"]["overlap"]["only_ours"] == ["NCT00235079"]                               # not ICAP
     inv = {r["comparator_trial"]: r for r in o["inventory_comparison"]["rows"]}
     assert inv["COPPS (row 4)"]["status"] == "SCREENED_OUT"                                         # postoperative
