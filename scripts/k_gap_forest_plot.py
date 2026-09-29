@@ -50,6 +50,8 @@ MODEL, EFFORT = "gpt-6-astra", "medium"
 XL = "{http://www.w3.org/1999/xlink}href"
 SUBGROUP = re.compile(r"subgroup|sensitivity|in patients with|without such|stratified|by (?:baseline|dose|duration)", re.I)
 FOREST = re.compile(r"forest", re.I)
+MULTIPANEL = re.compile(r"\(\s*[A-D]\s*\)|\b[A-D]\)\s", re.S)
+SECONDARY = re.compile(r"secondary (?:outcome|end ?point)", re.I)
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
@@ -122,11 +124,17 @@ def select_figure(slug, pmid, jats_date="2026-09-28"):
     strong = {a for e in eps for a in re.findall(r"\b[A-Z]{3,}\b", e)} | {e.lower() for e in eps if len(e) > 6}
     words = {w.lower() for k in (cfg.get("primary_outcome") or {}).get("keywords") or [] for w in re.findall(r"[A-Za-z][A-Za-z-]{3,}", k)}
     words -= {"point", "major", "adverse", "events", "event", "outcome", "outcomes", "with", "from", "rate", "risk"}
-    cands = []
+    cands, refused = [], []
     for f in ET.parse(jp).getroot().iter("fig"):
         cap = " ".join("".join(x.itertext()) for x in f.iter("caption"))
         g = f.find(".//graphic")
         if g is None or not FOREST.search(cap) or SUBGROUP.search(cap):
+            continue
+        # The gate anchors the plot's pool to the comparator's TEXT, but a wrong-outcome figure's pool is printed there
+        # too, so a figure whose outcome is not unambiguous is refused here, before any model call: a multi-panel
+        # figure ('(A) ... (B) ...', one panel per outcome) or a figure the caption calls a SECONDARY outcome.
+        if MULTIPANEL.search(cap) or SECONDARY.search(cap):
+            refused.append((f.get("id"), "MULTIPANEL" if MULTIPANEL.search(cap) else "SECONDARY_OUTCOME"))
             continue
         score = 10 * sum(1 for s in strong if (re.search(r"\b" + re.escape(s) + r"\b", cap) if s.isupper()
                                                 else s in cap.lower()))
@@ -134,7 +142,7 @@ def select_figure(slug, pmid, jats_date="2026-09-28"):
         cands.append((score, f.get("id"), g.get(XL), cap.strip()[:300]))
     cands.sort(key=lambda x: -x[0])
     if not cands or cands[0][0] == 0:
-        return None, "NO_OUTCOME_FOREST_FIGURE"
+        return None, "NO_OUTCOME_FOREST_FIGURE" + (":refused " + ",".join(f"{a}={b}" for a, b in refused) if refused else "")
     if len(cands) > 1 and cands[1][0] == cands[0][0]:
         return None, "AMBIGUOUS_FIGURE:" + ",".join(x[1] for x in cands[:3])
     s, fid, href, cap = cands[0]
@@ -342,7 +350,8 @@ def gate(resp, pp, text=None):
     elif len(rows) < 2:
         probs.append("FEWER_THAN_2_ROWS")
     return {"state": "PASS" if not probs else "REFUSED", "problems": probs, "ratio": ratio,
-            "rows": [{k: v for k, v in r.items() if k != "raw"} for r in rows],
+            "rows": [{**{k: v for k, v in r.items() if k != "raw"},
+                      "printed": {k: str(r["raw"].get(k)) for k in ("effect", "lower", "upper")}} for r in rows],
             "recomputed": {k: [round(x, 4) for x in v] for k, v in recomputed.items()}, "methods_reproducing": matched,
             "printed_pool": pp}
 
