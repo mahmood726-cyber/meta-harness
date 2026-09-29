@@ -58,15 +58,21 @@ def core_primary(core):
             "declared_absent": sorted(d.get("id") for d in prim.get("declared_absent_trials", []))}
 
 
-def funnel(core, pmids, recs=None):
+def funnel(core, pmids, recs=None, topic_records=None):
     """Where each added PMID ended: screen decision + rule id, then (if included) pooled / declared-absent reason.
 
     A seeded report that _dedup collapsed onto ANOTHER report of the same NCT did enter screening, as that trial:
     it is SCREENED_VIA_OTHER_REPORT (with the report that carried it), not NOT_IN_SCREEN. Counting PMIDs rather
     than trials reported 98 'never screened' of 180 when 94 were extra reports of trials that were screened."""
     scr = {r["id"]: r for r in core["screening"]["records"]}
-    nct_of = {r["id"]: r.get("nct") for r in (recs or [])}
-    screened_by_nct = {r.get("nct"): r["id"] for r in core["screening"]["records"] if r.get("nct")}
+    # screening records carry no nct: map each screened id to its NCT from the records themselves (the seeded ones
+    # plus the topic's pinned ones), falling back to an NCT-keyed trial family
+    nct_of = {r["id"]: r.get("nct") for r in (recs or []) + list(topic_records or []) if r.get("nct")}
+    screened_by_nct = {}
+    for r in core["screening"]["records"]:
+        n = nct_of.get(r["id"]) or (r.get("trial_family_id") if str(r.get("trial_family_id") or "").startswith("NCT") else None)
+        if n:
+            screened_by_nct.setdefault(n, r["id"])
     prim = next((o for o in core["outcomes"] if o.get("primary")), {})
     pooled = {str(t.get("id", "")).replace("PMID ", "") for t in prim.get("trials", [])}
     absent = {str(d.get("id", "")).replace("PMID ", ""): d.get("reason_code") for d in prim.get("declared_absent_trials", [])}
@@ -236,8 +242,13 @@ def member_pmids(slug):
     for r in t["trials"]:
         if (r["slug"] == slug and r["unit_source"] != "REFERENCE_SEED" and r["gap_class"] == "IDENTIFICATION"
                 and r["drug"] != "OTHER_AGENT"):
-            if r.get("cited_pmids"):
+            if r.get("cited_pmids") and set(r["cited_pmids"]) & set(r["pmids"]):
                 cited += r["cited_pmids"]
+            elif r.get("cited_pmids") and r["pmids"]:
+                # the cited PMID is NOT the resolved report: the table's xrefs were distrusted (omega-3 is numbered
+                # one off from its reference list) and the row was resolved by author+year. Seeding cited_pmids
+                # added the REJECTED link -- Eritsland 1996 was seeded as DART. Seed the resolved report.
+                cited += r["pmids"]
             else:
                 nct_only += r["pmids"]
     return sorted(set(cited) | set(nct_only)), sorted(set(nct_only))
@@ -438,7 +449,8 @@ def main(argv):
                 base = core_primary(build(slug))
                 cfc = build(slug, recs)
                 cf = core_primary(cfc)
-                fn = funnel(cfc, [r["id"] for r in recs], recs)
+                fn = funnel(cfc, [r["id"] for r in recs], recs,
+                            _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", []))
                 res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "members_added": len(pm),
                              "baseline_k_valid": base["k_valid"], "counterfactual_k_valid": cf["k_valid"],
                              "nct_only_pmids": len(nct_only),

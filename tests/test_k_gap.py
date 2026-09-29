@@ -319,3 +319,23 @@ def test_supplement_cache_hit_keeps_manifest_and_refuses_a_tampered_text(tmp_pat
     txt.write_text(txt.read_text(encoding="utf-8").replace("1.10", "0.10"), encoding="utf-8")
     bad = k_gap.comparator_supplements("1", "PMC1", ["S1.csv"], "2026-09-29", offline=True)
     assert bad["state"] == "CACHE_HASH_MISMATCH" and bad["text"] == ""
+
+
+def test_member_seeding_uses_resolved_report_when_cited_xref_was_rejected(tmp_path, monkeypatch):
+    # omega-3 shape: the table's xref points one row off (DART), the resolver settled Eritsland by author+year
+    import importlib
+    import json
+    import sys
+    sys.path.append("scripts")
+    cf = importlib.import_module("k_gap_counterfactual")
+    rows = [{"slug": "s", "unit_source": "JATS_TABLE", "gap_class": "IDENTIFICATION", "drug": "OURS",
+             "cited_pmids": ["2571009"], "pmids": ["8540453"]},                       # distrusted xref
+            {"slug": "s", "unit_source": "JATS_TABLE", "gap_class": "IDENTIFICATION", "drug": "OURS",
+             "cited_pmids": ["111"], "pmids": ["111", "222"]},                         # cited == resolved
+            {"slug": "s", "unit_source": "JATS_TABLE", "gap_class": "IDENTIFICATION", "drug": "OURS",
+             "cited_pmids": [], "pmids": ["333"]}]                                     # NCT-only
+    (tmp_path / "k_gap_table.json").write_text(json.dumps({"topics": [], "trials": rows}), encoding="utf-8")
+    monkeypatch.setattr(cf, "OUT", str(tmp_path))
+    seeded, nct_only = cf.member_pmids("s")
+    assert "8540453" in seeded and "2571009" not in seeded
+    assert "111" in seeded and "222" not in seeded and nct_only == ["333"]
