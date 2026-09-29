@@ -31,7 +31,7 @@ output.
     with supplement text, and every answer is still NOT_REPORTED
     (`registry/model_proposals/k_gap_result_agreement.supp.json`). A deterministic cross-check of the NOT_REPORTED
     answers, which the quote gate cannot verify on its own:
-    - 13 of the 22 shared-trial labels on these topics never occur in their supplement text;
+    - on the first 11 topics re-read, 13 of their 22 shared-trial labels never occur in the supplement text;
     - where a label does occur (esketamine, probiotics), it is only in reference lists, PRISMA counts, or
       characteristics tables giving N and arm split, never a per-trial effect or event count;
     - the probiotics supplement files are the draft manuscript and reviewer-comment PDFs.
@@ -94,6 +94,9 @@ deliberate (scope+measure) | non-deliberate missing | result agreement, served |
    (2/2); STEP 4 is then the only set difference.
 2. **Resolve ROCKET AF** (noac): our own record never self-names it and AACT's acronym field is empty, so it needs
    a curated identity or an adjudicated alias, not a looser rule.
-3. **Per-trial comparator numbers**: retry Europe PMC `supplementaryFiles` when it is back. Otherwise G1 result
-   agreement for 44/46 shared trials needs numbers that live only in figures, which this lane will not OCR
-   (a number never comes from a model).
+3. **Per-trial comparator numbers**: supplements are now exhausted (20 read, 0 of 44 moved). G1 result agreement
+   for 44/46 shared trials needs numbers that exist only in forest-plot figures, which this lane will not OCR
+   (a number never comes from a model). The remaining levers are captain decisions:
+   - prefer comparators that print per-trial effects in text or tables;
+   - or add a separately labelled check against each trial's OWN primary publication. That is not G1, because
+     it does not test the comparator's extraction.
