@@ -141,6 +141,37 @@ def _inline_trace(prose: str, head: str, body: list[str]) -> bool:
     return (len(cap) >= 20 and cap in prose) or any(len(r) >= 25 and r in prose for r in rows)
 
 
+UNSTRUCTURED_MARKER = "=== UNSTRUCTURED OA TEXT (HTML/PDF: no table delimiters) ==="
+# A full text's introduction and discussion report OTHER studies' results. An abstract rarely does, so the abstract
+# extractor never needed to ask; in full text it must. PMID 24044687 (Unpaywall PDF): "The meta-analysis found that
+# adjunctive probiotic administration was associated with a reduced risk of AAD (relative risk 0.64, 95 % CI 0.47,
+# 0.86)" -- a cited meta-analysis, admitted as the trial's own result.
+OTHER_WORK = re.compile(
+    r"\bmeta-?analys[ie]s\b|\bsystematic reviews?\b|\bprevious(?:ly)? (?:reported|published|stud|trial|work)"
+    r"|\bprior (?:stud|trial)|\bearlier (?:stud|trial)|\bother (?:stud|trial)|\b(?:has|have) (?:previously )?been "
+    r"(?:shown|reported|demonstrated)\b|\[\s*\d{1,3}(?:\s*[,\u2013-]\s*\d{1,3})*\s*\]|\([A-Z][A-Za-z-]+ et al\.?,? \d{4}\)", re.I)
+
+
+# A predictor / risk-factor analysis reports effects of COVARIATES, not of the randomised comparison. PMID 24044687
+# (Unpaywall PDF): "The binary multivariate logistic regression analysis identified reduced appetite (OR 5.04 ...)
+# and being in the control group (OR 8.46 ...) as the unique risk factors" -- OR 5.04 was admitted as the AAD
+# effect. 'Adjusted hazard ratio' is NOT matched: an adjusted treatment effect is often the trial's own result.
+COVARIATE_ANALYSIS = re.compile(
+    r"\brisk factors?\b|\bpredictors?\b|\bpredictive of\b|\bmultivariat\w*|\bmultivariable logistic\b"
+    r"|\blogistic regression\b|\bindependently associated\b", re.I)
+
+
+def own_result_prose(prose: str) -> dict:
+    """The prose with every sentence that attributes a result to OTHER work, or reports a COVARIATE / predictor
+    analysis, removed (whole sentences only, so any
+    span taken from what remains is still a verbatim span of the source). Returns the kept prose and the count of
+    sentences removed, so a refusal can say why."""
+    from . import extract
+    sents = extract._sentences(prose or "")
+    kept = [s for s in sents if not OTHER_WORK.search(s) and not COVARIATE_ANALYSIS.search(s)]
+    return {"prose": " ".join(kept), "removed": len(sents) - len(kept)}
+
+
 def extraction_segments(text: str) -> dict:
     """Split a combined full text (combined_text output) into what an extractor may read as SEPARATE units:
     the prose (unchanged), and each row of each non-baseline table (verbatim 'cell | cell' lines, with the
@@ -152,6 +183,10 @@ def extraction_segments(text: str) -> dict:
     periods, so a whole TABLES section was one 'sentence' in which a keyword in one row and numbers in another
     co-occurred."""
     text = text or ""
+    if text.startswith(UNSTRUCTURED_MARKER):
+        # an Unpaywall HTML/PDF copy: tables are flattened into the prose and cannot be told apart from it
+        return {"prose": text[len(UNSTRUCTURED_MARKER):].strip(), "rows": [], "dropped_tables": [],
+                "baseline_inline_not_located": [], "unstructured": True}
     if TABLES_MARKER not in text and SUPPLEMENT_MARKER not in text:
         return {"prose": text, "rows": [], "dropped_tables": [], "baseline_inline_not_located": []}
     prose, _, rest = text.partition(TABLES_MARKER) if TABLES_MARKER in text else (text, "", "")

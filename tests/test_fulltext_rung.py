@@ -130,3 +130,51 @@ def test_registry_title_composite_counts_components_not_words():
                    ("Time to First Occurrence of CV Death, MI, or Stroke", True),
                    ("Cardiovascular death or hospitalization for heart failure", True)):
         assert P._registry_title_is_composite(t) is exp, t
+
+
+# ---------------------------------------------------------------- full text: other studies' results, unstructured OA copies
+def _upw_case(slug, fixture, unstructured=True):
+    import json
+    import os
+    from harness import extract, fulltext, pipeline
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg = json.load(open(os.path.join(root, "topics", slug + ".json"), encoding="utf-8"))
+    spec = cfg["primary_outcome"]
+    dc = extract.declared_is_composite(spec.get("name", ""))
+    text = _fixture(fixture)
+    old = extract.extract_trial(text, spec["keywords"], cfg.get("intervention_terms"), cfg.get("comparator_terms"),
+                                declared_composite=dc, estimand=spec.get("estimand"))
+    typed = (fulltext.UNSTRUCTURED_MARKER + "\n" + text) if unstructured else text
+    new = pipeline._fulltext_extract(typed, spec, cfg.get("intervention_terms"), cfg.get("comparator_terms"), dc)
+    return old, new
+
+
+def test_a_cited_meta_analysis_is_not_the_trials_result():
+    # PLANT, real excerpt (PMID 24044687, Unpaywall PDF): an INTRODUCTION sentence citing a meta-analysis
+    # (RR 0.64, 0.47-0.86) was admitted as the trial's own AAD result.
+    old, new = _upw_case("probiotics-aad-prevention", "upw_24044687_intro_metaanalysis_excerpt.txt", unstructured=False)
+    assert old.get("effect") == 0.64
+    assert new.get("absent") is True
+
+
+def test_unstructured_copy_yields_no_counts_from_a_flattened_table():
+    # PLANT, real excerpt (PMID 34138478, PMC HTML via Unpaywall): an outcome table flattened into prose gave
+    # '1/16 vs 0/14'. From an HTML/PDF copy only a reported effect+CI in a prose sentence is typed evidence.
+    old, new = _upw_case("corticosteroids-covid19-mortality", "upw_34138478_flattened_table_excerpt.txt")
+    assert old.get("ai") is not None
+    assert new.get("absent") is True
+
+
+def test_unstructured_copy_still_yields_a_reported_effect():
+    # CONTROL (PMID 32876695, CoDEX): the trial's own 28-day mortality HR 0.97 (0.72-1.31) must still be admitted.
+    old, new = _upw_case("corticosteroids-covid19-mortality", "upw_32876695_codex_result_excerpt.txt")
+    assert (new.get("effect"), new.get("ci_low"), new.get("ci_high")) == (0.97, 0.72, 1.31)
+
+
+def test_a_covariate_odds_ratio_is_not_the_treatment_effect():
+    # PLANT, real excerpt (PMID 24044687, Unpaywall PDF): 'binary multivariate logistic regression ... reduced appetite
+    # (OR 5.04 ...) and being in the control group (OR 8.46 ...) as the unique risk factors' -> OR 5.04 was admitted as
+    # the AAD effect of the probiotic.
+    old, new = _upw_case("probiotics-aad-prevention", "upw_24044687_covariate_or_excerpt.txt")
+    assert old.get("effect") == 5.04
+    assert new.get("absent") is True
