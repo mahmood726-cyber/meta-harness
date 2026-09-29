@@ -242,6 +242,15 @@ def derive_search_scope(
         "source_kinds": source_kinds,
         "discovery_capable_source_count": len(discovery_sources),
         "description": description,
+        # COMPLETENESS is derived, never declared: a retrieval that can find only what its queries name (seeded) or
+        # whose reach is unmeasured (hand-written) has NOT DEMONSTRATED that it found every eligible trial. Only a
+        # registered concept search is left to its own recall measurement.
+        "completeness": ({"state": "NOT_DEMONSTRATED_COMPLETE",
+                          "basis": (f"{description}: {len(queries)} quer{'y' if len(queries) == 1 else 'ies'}; an eligible "
+                                    "trial the queries do not name is found only by other routes, so the absence of a "
+                                    "trial from this review is not evidence that it does not exist")}
+                         if scope_type in ("PRE_IDENTIFIED_SET", "UNREGISTERED_HAND_WRITTEN_KEYWORD", "UNKNOWN")
+                         else {"state": "SEE_RECALL_MEASUREMENT", "basis": description}),
     }
 
 
@@ -339,17 +348,21 @@ def rendered_block(scope_identity: dict[str, Any] | None) -> str:
         return ""
     verdict = scope_identity.get("verdict")
     rc = ((scope_identity.get("search_scope") or {}).get("retrieval_class")) or "UNKNOWN"
+    comp = (scope_identity.get("search_scope") or {}).get("completeness") or {}
+    import html as _html
+    ncomp = (f" <strong>Search completeness: NOT DEMONSTRATED.</strong> {_html.escape(comp.get('basis') or '')}."
+             if comp.get("state") == "NOT_DEMONSTRATED_COMPLETE" else "")
     if verdict == SCOPE_MISMATCH:
         return (
             "<div class='scope-identity'><strong>Scope identity mismatch.</strong> "
             "Eligibility is open P/I/C/design, but retrieval is a pre-identified set. "
-            f"{QUALIFIED_SCOPE_PHRASE} (search class {rc}).</div>"
+            f"{QUALIFIED_SCOPE_PHRASE} (search class {rc}).{ncomp}</div>"
         )
     if verdict == HAND_WRITTEN_SCOPE:
         return (
             "<div class='scope-identity'><strong>Search scope not registered.</strong> "
             "The retrieval is hand-written keyword search: not a pre-identified PMID/title set, "
-            f"but not a registered concept search; discovery reach is unmeasured (search class {rc}).</div>"
+            f"but not a registered concept search; discovery reach is unmeasured (search class {rc}).{ncomp}</div>"
         )
     if verdict == OK:
         return (

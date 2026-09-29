@@ -216,6 +216,11 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
         key = _clean_id(x.get("id")) or str(x.get("label") or "")
         if not key or key in seen:
             continue
+        # a trial still RUNNING (registry lifecycle) has no result to be missing: it is never a 'known eligible trial not
+        # in this pool, and what it would do' row (PREVENTABLE, reversed from X2, must add nothing to k and no missing-HR
+        # claim). It is listed apart, as not yet reportable.
+        if str(x.get("completeness_state") or "") in ("eligible+ongoing", "eligible+not_yet_recruiting"):
+            continue
         seen.add(key)
         scr = screen.get(key) or {}
         out.append({
@@ -293,6 +298,11 @@ def build(review: dict[str, Any], signals: dict[str, Any],
         "heading": "Known eligible trials not in this pool, and what they would do",
         "label": "SENSITIVITY",
         "rows": rows,
+        # eligible trials with no result yet (registry lifecycle): named, never a missing result, never in a sensitivity
+        "not_yet_reportable": [{"trial": _clean_id(x.get("id")) or x.get("label"),
+                                "registry_status": x.get("registry_status"), "completion_date": x.get("completion_date")}
+                               for x in primary.get("declared_absent_trials") or []
+                               if str(x.get("completeness_state") or "") in ("eligible+ongoing", "eligible+not_yet_recruiting")],
     }
     if review.get("slug") == "glp1-ra-mace-t2d":
         panel["components"] = "CV_DEATH | NONFATAL_MI | NONFATAL_STROKE"

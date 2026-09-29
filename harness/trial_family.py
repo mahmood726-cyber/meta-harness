@@ -548,15 +548,26 @@ def screen_family(family, config):
             return cell(code='ADULT_ENTRY_AGE_NOT_PROVEN')
         if float(age.group(1)) < 18:
             return cell('INELIGIBLE', bound.get('span'))
+    from . import registry_criteria
+    criteria = ((family.get('population') or {}).get('criteria') or {}).get('value')
     clarification = None
     witnessed = None
+    from_criteria = None
     if inc.get('population_any') and not population_matches(inc['population_any'], conditions):
         clarification = population_clarification(config, conditions)
         if not clarification:
             witnessed = population_witness(config, family)
             if not witnessed:
-                return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
-    if any(t.lower() in text for t in inc.get('population_none') or []):
+                # the registration's own INCLUSION criteria name the population (PREVENTABLE: 'Age >=75 years' names
+                # '75 years') -- derived from the held eligibility text, never declared
+                from_criteria = registry_criteria.inclusion_matches(inc['population_any'], criteria)
+                if not from_criteria:
+                    return cell(code='ENTRY_POPULATION_NOT_ESTABLISHED')
+    # a registry CONDITION label the trial's own criteria list ONLY under exclusion is not its entry condition and never
+    # vetoes (PREVENTABLE lists 'Dementia': it excludes dementia and measures new dementia); every other
+    # population_none term in the conditions still does
+    if any(t.lower() in text and not registry_criteria.label_only_excluded(t, criteria)
+           for t in inc.get('population_none') or []):
         return cell('INELIGIBLE', family['population']['conditions']['span'])
     contrast_witnessed = None
     if not family['randomised_contrasts']:
@@ -580,6 +591,13 @@ def screen_family(family, config):
     if witnessed:
         span['population_basis'] = 'SOURCE_WITNESS'
         span['population_witness'] = witnessed
+    if from_criteria:
+        span['population_basis'] = 'REGISTRY_INCLUSION_CRITERIA'
+        span['population_term'] = from_criteria
+    excluded_labels = [t for t in inc.get('population_none') or [] if t.lower() in text
+                       and registry_criteria.label_only_excluded(t, criteria)]
+    if excluded_labels:
+        span['condition_labels_excluded_by_criteria'] = excluded_labels
     if contrast_witnessed:
         span['contrast_basis'] = 'SOURCE_WITNESS'
         span['contrast_witness'] = contrast_witnessed
@@ -718,6 +736,10 @@ def prepare(root, slug, records, config, ledger=None):
     path = root/'docs/study_families.json'
     if path.exists():
         companions += json.loads(path.read_text(encoding='utf8')).get('topics',{}).get(slug,[])
+    # derived report linkage (harness/report_linkage.py), only where nothing is declared for that report
+    from . import report_linkage
+    _have = {str(c.get('pmid')) for c in companions}
+    companions += [d for d in report_linkage.derive([r for r in records], config) if d['pmid'] not in _have]
     return families(list(by_id.values()), companion_reports=companions, config=config,
                     registry=ingredients.get('records',{}), ledger=ledger)
 

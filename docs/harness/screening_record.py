@@ -27,7 +27,8 @@ BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REAS
             "ARM_LABEL_CONFLICT", "OUTCOME_RESTRICTION_MISMATCH", "POST_HOC_POOLED", "COMPONENT_SUM_AS_COMPOSITE",
             "DEFINITION_MIX_POOLED", "FAMILY_DESIGN_CONFLICT", "WRONG_WINDOW",
             "COLLECTION_SCOPE_POOLED", "COUNT_EXCEEDS_DENOMINATOR", "CROSSOVER_AS_PARALLEL",
-            "PROGRAMME_WITH_CONSTITUENT")
+            "PROGRAMME_WITH_CONSTITUENT", "ENDPOINT_POLICY_VIOLATION",
+            "SUBGROUP_PROVENANCE_CONFLICT", "MEASURE_CLASS_MISMATCH")
 ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
@@ -251,13 +252,15 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
     for p in multi_trial_report.problems(review):
         add(p["kind"], p["report_id"], p["detail"])
     # SOURCE VERSIONS (a superseded value never served; a chain always shown) and SCOPE DECISIONS (protocol text only)
-    from . import (arm_label_conflict, collection_scope, eligibility_field, family_invariant, outcome_restriction,
-                   registry_publications,
+    from . import (arm_label_conflict, collection_scope, eligibility_field, endpoint_policy, family_invariant,
+                   measure_guard, outcome_restriction, registry_publications, subgroup_provenance,
                    scope_decision, source_precedence, source_versions)
     for p in (source_versions.problems(review) + scope_decision.problems(review) + source_precedence.problems(review)
               + eligibility_field.problems(review) + family_invariant.problems(review)
               + arm_label_conflict.problems(review) + outcome_restriction.problems(review)
-              + registry_publications.problems(review) + collection_scope.problems(review)):
+              + registry_publications.problems(review) + collection_scope.problems(review)
+              + endpoint_policy.problems(review) + subgroup_provenance.problems(review)
+              + measure_guard.problems(review)):
         add(p["kind"], p["report_id"], p["detail"])
     # RESULT STATUS: the page's words about a trial's result agree with its derived state
     from . import result_status

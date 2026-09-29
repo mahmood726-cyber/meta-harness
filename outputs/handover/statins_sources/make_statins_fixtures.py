@@ -139,21 +139,8 @@ cs["topics"][SLUG] = [{
     "collection_rule_witnesses": [W(A_EXC, A_AE)]} for o in (MUS, DM)]
 dump(cp, cs)
 
-# ------------------------------------------------------------------ ALLHAT: one family (Orkaby 2018 = RMST report)
-O_RMST = held(REC, "We estimated the difference in RMST for total and coronary heart disease (CHD)-free survival between the "
-                   "pravastatin and usual care groups over the 6-year trial period", "Orkaby RMST")
-O_SAME = held(REC, "Secondary analysis of the Antihypertensive and Lipid-Lowering Treatment to Prevent Heart Attack "
-                   "Trial-Lipid-Lowering Trial (ALLHAT-LLT).", "Orkaby same trial")
-O_N = held(REC, "Pravastatin 40 mg/d (n=1,467) versus usual care (n=1,400).", "Orkaby arms")
-sp = "docs/study_families.json"
-sf = json.load(open(sp, encoding="utf-8"))
-sf["topics"][SLUG] = [e for e in sf["topics"].get(SLUG) or [] if e.get("pmid") != ORK] + [{
-    "pmid": ORK, "parent": f"ALLHAT-LLT older adults ({ALL}, NCT00000542)", "parent_pmid": ALL,
-    "trial_family_id": "NCT00000542", "publication_role": "secondary_analysis",
-    "kind": ("restricted-mean-survival-time analysis of the SAME ALLHAT-LLT older-adult cohort (2,867; 1,467 vs 1,400): never a "
-             "new trial; its RMST DIFFERENCES (days) are never hazard ratios and never pooled"),
-    "population_witness": W(REC, O_SAME), "witnesses": [W(REC, O_N), W(REC, O_RMST)]}]
-dump(sp, sf)
+# ALLHAT: one family -- Orkaby 2018 (RMST) is linked to Han 2017 by harness/report_linkage.py from its own text
+# ('Secondary analysis of ... (ALLHAT-LLT)' + shared arm sizes 1,467/1,400); nothing is declared here.
 
 # ------------------------------------------------------------------ (1) Ridker 2017: a multi-trial report, never an input
 R_REC = f"{H}/Ridker-2017-JUPITER-HOPE3-older/europepmc_record_28385949.json"

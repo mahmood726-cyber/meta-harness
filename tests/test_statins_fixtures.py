@@ -98,3 +98,51 @@ def test_an_author_manuscript_is_identified_by_its_declared_pmid_not_its_title()
     # PLANT: a one-word 'title' is contained in any title and must never establish identity
     xml = os.path.join(ROOT, "evidence", "acquisition_cascade", "held", "EMPA-KIDNEY-followup", "PMC7616743.xml")
     assert si.check_held_document(xml, {"title": "x"}) is not None
+
+
+# ------------------------------------------------------------------------------------------------ addendum
+def test_the_endpoint_policy_is_recorded_and_a_pending_3_point_input_is_blocked():
+    from harness import endpoint_policy as ep
+    rv = _rv()
+    o = _o(rv, MVE)
+    pol = o["result"]["endpoint_policy"]
+    assert pol["policy"]["id"] == "TRIAL_DEFINED_BROAD_COMPOSITE"
+    assert all(t.get("component_set") for t in o["trials"])                 # every served input typed
+    hope = next(p for p in pol["pending"] if p["input"] == "NCT00468923")
+    assert hope["state"] == "DECISION_REQUIRED_BEFORE_INTERVAL" and "3-POINT" in hope["mismatch"]
+    assert ep.problems(rv) == []
+    # PLANT: HOPE-3 pooled before a recorded decision is refused
+    rv2 = copy.deepcopy(rv)
+    _o(rv2, MVE)["trials"].append({"id": "NCT00468923", "effect": 0.83, "ci_low": 0.64, "ci_high": 1.07})
+    assert [p["kind"] for p in ep.problems(rv2)] == ["ENDPOINT_POLICY_VIOLATION"]
+
+
+def test_preventable_is_eligible_with_typed_status_axes_and_adds_nothing_to_k():
+    rv = _rv()
+    scr = next(r for r in rv["screening"]["records"] if "NCT04262206" in str(r["id"]))
+    assert scr["decision"] == "include"
+    fam = next(f for f in rv["trial_families"] if f["family_id"] == "NCT04262206")
+    assert fam["eligibility"]["state"] == "ELIGIBLE"
+    assert {o["name"]: o["result"].get("k") for o in rv["outcomes"]} == {MVE: 2, MUS: 1, DM: 1}   # k unchanged
+    for o in rv["outcomes"]:
+        row = _row(o, "NCT04262206", False)
+        ax = row["status_axes"]
+        assert ax["eligibility"].startswith("ELIGIBLE")
+        assert ax["recruitment_completion"]["registry_status"] == "RECRUITING"
+        assert ax["publication"] == "NO_PUBLICATION_IN_INVENTORY" and ax["target_outcome"] == "NO_RESULT_YET"
+        assert "abstract" not in row["reason"]                               # the generic extractor phrase is gone
+    km = _o(rv, MVE).get("known_missing_sensitivity") or {}
+    assert not any("NCT04262206" in str(r.get("trial_key")) for r in km.get("rows") or [])  # never a missing HR
+    assert [x["trial"] for x in km.get("not_yet_reportable") or []] == ["NCT04262206"]
+
+
+# (the declared condition-label exemption was withdrawn: the rule is DERIVED from each registration's own criteria --
+#  harness/registry_criteria.py; its plants live in tests/test_statins_extractors.py)
+
+
+def test_the_search_is_labelled_not_demonstrated_complete():
+    rv = _rv()
+    comp = rv["scope_identity"]["search_scope"]["completeness"]
+    assert comp["state"] == "NOT_DEMONSTRATED_COMPLETE"
+    from harness import scope_identity as si
+    assert "Search completeness: NOT DEMONSTRATED" in si.rendered_block(rv["scope_identity"])

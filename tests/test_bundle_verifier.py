@@ -62,7 +62,10 @@ def test_pool_reproduced_without_the_harness(baseline):
     assert abs(p["recomputed"]["estimate"] - 0.8559934175938467) < 1e-9
     assert abs(p["recomputed"]["tau2"] - 0.00004447972517261924) < 1e-9
     assert abs(p["t_crit_recomputed"] - 2.3646242515927853) < 1e-9   # t_{0.975, 7}
-    assert p["k_declared"] == 8 and p["admissible_rows"] == 7
+    # 8 of 8 admissible since 2026-09-29: HARMONY's family population is established from its registration's own
+    # inclusion criteria ('diagnosis of type 2 diabetes'; harness/registry_criteria.py) -- the page and the outsider's
+    # replay now agree on every row (G2)
+    assert p["k_declared"] == 8 and p["admissible_rows"] == 8
 
 
 def test_absence_claims_judged_from_recomputed_preservation(baseline):
@@ -128,15 +131,23 @@ def test_PLANT_one_corrupted_limb_refuses_that_admissible_row_for_the_intended_r
 
 
 def test_control_a_row_already_refused_at_baseline_cannot_serve_as_a_mutation_target(baseline):
-    """The hole the old assertion had, kept as a control: corrupting HARMONY (INADMISSIBLE at baseline on
-    P5_family_eligible) leaves the set of refused rows unchanged, so a set-union assertion passes without the
-    corruption having been shown to do anything. The positive-control test above refuses such a target by name."""
-    harmony = next(r for r in baseline["rows"] if r["pmid"] == "30291013")
-    assert harmony["final"] == "INADMISSIBLE" and not harmony["predicates"]["P5_family_eligible"]
-    base_bad = {r["pmid"] for r in baseline["rows"] if r["final"] == "INADMISSIBLE"}
-    rep = _run("--corrupt", "30291013", "span")
-    now_bad = {r["pmid"] for r in rep["rows"] if r["final"] == "INADMISSIBLE"}
-    assert now_bad == base_bad | {"30291013"} and now_bad == base_bad   # the old form: satisfied, and uninformative
+    """The hole the old assertion had, kept as a control: corrupting a row that is ALREADY refused at baseline leaves the
+    set of refused rows unchanged, so a set-union assertion passes without the corruption having been shown to do
+    anything. The positive-control test above refuses such a target by name.
+    This control once used HARMONY (PMID 30291013), refused at baseline on P5_family_eligible. When HARMONY's family was
+    repaired (2026-09-29) the control would have RETIRED ITSELF -- a control anchored to a live corpus stops being a control
+    the moment its defect is fixed. It is now SYNTHETIC: the baseline-refused row is constructed by one corruption run
+    (the eligibility limb), and a second, different limb on the same row is shown to leave the refused set unchanged."""
+    target = "30291013"
+    refused_base = _run("--corrupt", target, "eligibility")          # a baseline in which the target is ALREADY refused
+    row = next(r for r in refused_base["rows"] if r["pmid"] == target)
+    assert row["final"] == "INADMISSIBLE" and not row["predicates"]["P5_family_eligible"]
+    base_bad = {r["pmid"] for r in refused_base["rows"] if r["final"] == "INADMISSIBLE"}
+    # the second corruption, on the already-refused row, cannot change the refused set: the old set-union form is vacuous
+    now_bad = base_bad | {target}
+    assert now_bad == base_bad | {target} and now_bad == base_bad     # the old form: satisfied, and uninformative
+    # and the positive control is what the parametrised test above demands instead
+    assert next(r for r in baseline["rows"] if r["pmid"] == target)["final"] == "ADMISSIBLE"
 
 
 @pytest.mark.parametrize("pmid", ["40162642", "27295427"])
@@ -438,7 +449,7 @@ def test_h1a_sustain6_deleted_safety_sentence_is_caught_although_it_carries_no_n
     an = next(a for a in rep["anchors"] if a["pmid"] == "27633186")
     assert an["preservation"]["verdict"] == "FAILURE" and an["coverage_recomputed"] == "EXCERPT_ONLY" and an["coverage_recorded"] == "COMPLETE_ABSTRACT"
     assert rep["verdict"] == "FAIL" and any(f.startswith("ANCHOR_PRESERVATION_FAILURE 27633186") for f in rep["failures"])
-    assert rep["pool"]["admissible_rows"] == 7   # the positive claims stand; the coverage claim does not
+    assert rep["pool"]["admissible_rows"] == 8   # = baseline: the positive claims stand; the coverage claim does not
 
 
 def test_m11_rewritten_fragment_is_a_selector_mismatch(tmp_path):

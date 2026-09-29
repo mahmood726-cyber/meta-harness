@@ -1899,10 +1899,26 @@ def outcome_inputs(slug, config, records):
             config = dict(config, companion_reports=_existing)
     except (OSError, ValueError):
         pass
+    # DERIVED report linkage (harness/report_linkage.py): a report that calls itself an analysis of a named, registered
+    # trial and/or shares its arm sizes is linked to it deterministically -- added only where no declared row exists
+    from . import report_linkage as report_linkage_mod
+    _derived_links = report_linkage_mod.derive(list(records.get("records") or []), config)
+    if _derived_links:
+        _have = {str(c.get("pmid")) for c in config.get("companion_reports") or []}
+        config = dict(config, companion_reports=list(config.get("companion_reports") or [])
+                      + [d for d in _derived_links if d["pmid"] not in _have])
     # the screening record's parent family is the family object's own (same identity machinery), never a second guess
     _report_family = {str(rep.get("report_id")): f.get("family_id")
                       for f in (family_nodes or []) for rep in (f.get("reports") or []) if f.get("family_id")}
-    scr = screen.run(merged, dict(config, _report_family=_report_family))
+    # each registration's OWN eligibility text (held AACT row), so a condition label its criteria only EXCLUDE is not
+    # read as its population (harness/registry_criteria.py)
+    _reg_crit = {n: ((h.get("population") or {}).get("criteria") or {}).get("value")
+                 for n, h in (trial_family_mod.load_registry(ROOT, slug) or {}).items()}
+    # handed to the SCREENER only (the protocol config the review carries is never widened by it)
+    _screen_cfg = dict(config, _report_family=_report_family,
+                       include=dict(config.get("include") or {},
+                                    _registry_criteria={n: c for n, c in _reg_crit.items() if c}))
+    scr = screen.run(merged, _screen_cfg)
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
     interv = config.get("intervention_terms", ["colchicine"])
@@ -2186,6 +2202,12 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import collection_scope as collection_scope_mod, sparse_data as sparse_data_mod
     collection_scope_mod.attach(review, slug)
     sparse_data_mod.attach(review)
+    # ENDPOINT POLICY: the component sets an outcome's pool admits, recorded before an input is added
+    from . import endpoint_policy as endpoint_policy_mod
+    endpoint_policy_mod.attach(review, slug, rec_by_id)
+    # SUBGROUP PROVENANCE: pre-specified vs post hoc, typed from each pooled report's own text
+    from . import subgroup_provenance as subgroup_provenance_mod
+    subgroup_provenance_mod.attach(review, config, rec_by_id)
     # SOURCE VERSIONS: per-result version chains (original / corrections / regulatory) with a governing decision
     from . import source_versions as source_versions_mod
     source_versions_mod.attach(review)

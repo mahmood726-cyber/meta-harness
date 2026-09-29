@@ -346,14 +346,16 @@ def test_verification_rows_cover_the_pool_and_carry_all_six_objects(bundle):
         assert r["admission"]["final"] in ("ADMISSIBLE", "MIGRATION_STATE_UNBOUND_LEGACY", "INADMISSIBLE")
 
 
-def test_harmony_is_inadmissible_because_its_family_eligibility_is_unknown(bundle):
-    """A finding, not a bug: the page pools NCT02465515 while its family eligibility object says UNKNOWN
-    (ENTRY_POPULATION_NOT_ESTABLISHED). Under the declared invariant the row is inadmissible. Recorded so that the
-    eligibility lane sees it; if the family object is repaired, update this deliberately."""
+def test_harmony_is_admissible_once_its_family_population_is_established_from_its_own_criteria(bundle):
+    """Updated DELIBERATELY (2026-09-29), as this test asked: the page pooled NCT02465515 while its family eligibility
+    said UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED) because its registry CONDITION label reads 'Diabetes Mellitus'. The
+    family object is now repaired by a derived rule, not by hand: its registration's own INCLUSION criteria state
+    'diagnosis of type 2 diabetes' (harness/registry_criteria.inclusion_matches). The row is admissible on the same
+    invariant, and every pooled row is now admissible."""
     row = next(r for r in bundle["verification_rows"] if r["trial"]["id"] == "PMID 30291013")
-    assert row["admission"]["final"] == "INADMISSIBLE"
-    assert row["admission"]["predicates"]["P5_family_eligible"]["eligibility_state"] == "UNKNOWN"
-    assert bundle["counts"]["admissible_rows"] == 7
+    assert row["admission"]["final"] == "ADMISSIBLE"
+    assert row["admission"]["predicates"]["P5_family_eligible"]["eligibility_state"] == "ELIGIBLE"
+    assert bundle["counts"]["admissible_rows"] == 8
 
 
 def test_lancet_rows_are_normalised_not_verbatim_and_offsets_reproduce(bundle):

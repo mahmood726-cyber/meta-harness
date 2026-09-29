@@ -27,6 +27,8 @@ _FROM_STATUS = {"ADMITTED": "ACCEPTED", "ADMITTED_PENDING_SIGNATURE": "ACCEPTED"
                 "REPORTED_UNRESOLVED": "REPORTED_UNRESOLVED", "EXTRACTED_NOT_ADMITTED": "REPORTED_UNRESOLVED",
                 "REPORTED_ZERO_EVENTS": "REPORTED_UNRESOLVED", "WITHDRAWN": "REPORTED_UNRESOLVED",
                 "NOT_YET_RETRIEVED": "NOT_YET_RETRIEVED",
+                # NO_RESULT_YET is deliberately NOT mapped: ONGOING comes from the registry LIFECYCLE itself (checked
+                # first in _family_state), one source of truth -- a copied row status never answers for the lifecycle
                 # the trial's own collection rules did not ascertain the outcome (SELECT): not a gap, never zero
                 "NOT_SYSTEMATICALLY_COLLECTED": "NOT_SYSTEMATICALLY_COLLECTED"}
 # a trial that REPORTS at another timepoint than the protocol's (STEP 11 at week 44, STEP 10 at week 52, for a week-68

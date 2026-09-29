@@ -19,6 +19,8 @@ States, first match wins (the order IS the exclusivity):
   RETRIEVED_NOT_REPORTED      a source is held and the outcome was not found in it -- a SCOPED statement ("not found in
                               the inspected abstract"), never promoted to "absent by design"
   NOT_YET_RETRIEVED           no source is held (not retrieved / not discovered)
+  NO_RESULT_YET               the registry lifecycle says the trial is still running or not yet recruiting: no result
+                              exists yet -- nothing to retrieve and nothing missing
 A withdrawal is also kept as HISTORY on any row (withdrawn: {value, reason}), whatever its current state.
 (Vocabulary refined 2026-09-27 from the denosumab review: SOURCE_ABSENT is now NOT_YET_RETRIEVED, and the former
 SOURCE_HELD_RESULT_NOT_EXTRACTED is split into REPORTED_UNRESOLVED / REPORTED_ZERO_EVENTS / RETRIEVED_NOT_REPORTED.)
@@ -40,9 +42,11 @@ NOT_MEASURED = "NOT_MEASURED"
 NOT_SYSTEMATICALLY_COLLECTED = "NOT_SYSTEMATICALLY_COLLECTED"
 RETRIEVED_NOT_REPORTED = "RETRIEVED_NOT_REPORTED"
 NOT_YET_RETRIEVED = "NOT_YET_RETRIEVED"
+NO_RESULT_YET = "NO_RESULT_YET"      # the registry lifecycle: still running / not yet recruiting -- nothing to retrieve
 SOURCE_ABSENT = NOT_YET_RETRIEVED          # the earlier name of the same state (one state, one string)
 STATES = (ADMITTED_PENDING_SIGNATURE, ADMITTED, REPORTED_ZERO_EVENTS, EXTRACTED_NOT_ADMITTED, WITHDRAWN,
-          REPORTED_UNRESOLVED, NOT_MEASURED, RETRIEVED_NOT_REPORTED, NOT_YET_RETRIEVED, NOT_SYSTEMATICALLY_COLLECTED)
+          REPORTED_UNRESOLVED, NOT_MEASURED, RETRIEVED_NOT_REPORTED, NOT_YET_RETRIEVED, NOT_SYSTEMATICALLY_COLLECTED,
+          NO_RESULT_YET)
 _NOT_HELD = {"SOURCE_NOT_RETRIEVED", "DISCOVERED_NOT_RETRIEVED", "NOT_DISCOVERED", "NOT_HELD"}
 # codes that say the outcome IS reported but no admissible value was resolved from it
 _REPORTED_CODES = {"TIMEPOINT_MISMATCH", "MULTI_ARM_UNRESOLVED", "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
@@ -118,6 +122,14 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
                 **({"withdrawn": wd} if wd else {})}
     if wd:
         return {"state": WITHDRAWN, "withdrawn": wd}
+    # NO RESULT YET: the registry lifecycle says the trial is still running or not yet recruiting (PREVENTABLE:
+    # RECRUITING, completion 2026-12-31 ESTIMATED). There is nothing to retrieve and nothing is missing -- never
+    # 'not yet retrieved', never a missing analysis-ready result.
+    if str(row.get("completeness_state") or "") in ("eligible+ongoing", "eligible+not_yet_recruiting") and not mentioned:
+        return {"state": NO_RESULT_YET, "registry_status": row.get("registry_status"),
+                "completion_date": row.get("completion_date"),
+                "statement": (f"no result exists yet: the trial is {str(row.get('registry_status') or 'ongoing').lower()} "
+                              f"(planned completion {row.get('completion_date') or 'not stated'}); nothing is missing")}
     code = str(row.get("reason_code") or row.get("state") or row.get("provenance") or "")
     if code in _NOT_HELD or row.get("absent_kind") == "not_retrieved":
         return {"state": NOT_YET_RETRIEVED, "basis": code}
@@ -202,6 +214,21 @@ def derive(review: dict[str, Any], keywords: dict[str, list[str]] | None = None)
                                       "supersedes": a["result_status"],
                                       "statement": (f"{a.get('id')}: {o.get('name')} -- {decl['state']}: {decl.get('basis')} "
                                                     f"(coverage: {decl.get('coverage')})")}
+        # TYPED STATUS AXES for a registry-lifecycle row: four separate facts, never one blended label (PREVENTABLE:
+        # eligible / recruiting to 2026-12-31 / no publication / no result yet)
+        for a in o.get("declared_absent_trials") or []:
+            if (a.get("result_status") or {}).get("state") == NO_RESULT_YET and not a.get("machine_reason"):
+                # the extractor's generic 'not found in the abstract' is false of a registry record of a running trial
+                a["machine_reason"], a["reason"] = a.get("reason"), a["result_status"]["statement"]
+            if a.get("completeness_state"):
+                a["status_axes"] = {
+                    "eligibility": "ELIGIBLE (screened in)",
+                    "recruitment_completion": {"registry_status": a.get("registry_status"),
+                                               "completion_date": a.get("completion_date"),
+                                               "lifecycle": a.get("completeness_state")},
+                    "publication": ("PUBLISHED (a report is the row)" if re.fullmatch(r"\d{7,8}", _pid(a.get("id")))
+                                    else "NO_PUBLICATION_IN_INVENTORY"),
+                    "target_outcome": (a.get("result_status") or {}).get("state")}
         res = o.get("result")
         # rebuild ONLY the generic sentence the false-absence guard wrote; a reason another mechanism set (e.g. a
         # HARMS_INCOMPLETE reason naming the unresolved report) is never replaced

@@ -476,6 +476,21 @@ def screen_record(rec, inc, neg_pmids):
     # excluded the COPPS AF substudy (22090167) for its BACKGROUND sentence "Inflammation and pericarditis may be
     # contributing factors ...", and the reason then claimed "title/conditions" beside an abstract span.
     bad = screen_entry.population_exclusion(poptext, inc, _has, _all_occurrences_qualified)
+    _label_note = ""
+    _title = lexicon.fold(rec.get("title") or "")
+    # never when the TITLE names the label or any substantive word of it (6-character stem): a trial ABOUT the label is
+    # never exempted because its criteria also exclude a variant (LAmbre, NCT04684212: 'Left Atrial Appendage' is the
+    # device's target -- the title says 'Appendages' -- and appendage thrombus is merely excluded)
+    _title_names = any(w[:6] in _title for w in _re.split(r"[^a-z]+", (bad or "").lower()) if len(w) >= 5)
+    if bad and rec.get("id_type") == "nct" and bad.lower() not in _title and not _title_names:
+        # a registry CONDITION label the trial's own criteria list ONLY under exclusion is not its entry condition
+        # (PREVENTABLE: 'Dementia' is excluded and measured as an outcome) -- held AACT eligibilities text
+        from . import registry_criteria
+        _crit = (inc.get("_registry_criteria") or {}).get(_nct_id(rec) or "")
+        if _crit and registry_criteria.label_only_excluded(bad, _crit):
+            _label_note = (f" The registry condition label '{bad}' is an EXCLUSION criterion of this trial (held "
+                           "registry eligibility), not its population.")
+            bad = None
     if bad:
         return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(raw_pop, bad))
@@ -547,7 +562,7 @@ def screen_record(rec, inc, neg_pmids):
     return ScreenDecision("include", "INCLUDE",
             f"eligible {design_clause}: intervention {matched_int or '(as configured)'}, "
             f"comparator {comp_term or '(as configured)'}, population {popok or 'the target population'} "
-            f"— P/I/C/design met.",
+            f"— P/I/C/design met.{_label_note}",
             ev or _quote(raw_pop))
 
 

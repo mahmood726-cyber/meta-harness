@@ -1016,3 +1016,111 @@ NEJM, Europe PMC not open, unpaywall no location. The STAREE harm rows remain RE
   - Separately, the containment test accepted any title shorter than its prefix, so a one-character title matched
     everything. Containment now needs >= 30 characters.
   - Both are covered by plants. Ledger: 49 verified, 1 quarantined, 0 mismatches.
+
+## Round 2026-09-28j: statins-older-adults addendum (fuller review)
+
+### (1) Endpoint policy, recorded BEFORE any input is added (`harness/endpoint_policy.py`; `docs/endpoint_policies.json`)
+- Policy for "major vascular events": TRIAL_DEFINED_BROAD_COMPOSITE. Each trial's own composite is the input, and the
+  component sets are typed per input with held witnesses:
+  - JUPITER: MI, stroke, arterial revascularisation, unstable-angina hospitalisation, CV death;
+  - STAREE: CV death, nonfatal MI or stroke, coronary revascularisation.
+- HOPE-3 >= 70 is PENDING, state DECISION_REQUIRED_BEFORE_INTERVAL.
+  - Its component set is a 3-POINT outcome (CV death, nonfatal MI, nonfatal stroke), relayed.
+  - The mismatch and the three decision options are recorded.
+  - The rule: the decision is recorded before the interval of any pool containing HOPE-3 is computed for use or
+    inspected, and never chosen by whether that interval excludes 1.
+- The relayed 3-input diagnostic (0.7101, 0.5148-0.9795; tau2 0.004755; I2 20.4%; PI 0.4585-1.0999) is recorded as ALREADY
+  SEEN before any decision, so the timing stays auditable. It is not a served result.
+- New blocking check ENDPOINT_POLICY_VIOLATION: a pooled row outside the policy is refused (plant: HOPE-3 pooled before a
+  decision).
+
+### (2) PREVENTABLE (NCT04262206)
+- Its X2 rested on the registry condition label "Dementia". The held registration shows dementia is an EXCLUSION and a
+  primary OUTCOME; the population is community-dwelling adults >= 75 without clinically evident CVD.
+- Screened in by a source-backed `screen_overrides` include, with witnesses.
+- Family population ESTABLISHED by witnesses. The new `condition_labels_not_entry` key exempts "dementia" from the veto
+  for this family only. It fails closed without an exclusion or outcome witness naming the label (plant).
+- New result state NO_RESULT_YET, derived from the registry lifecycle (ongoing or not yet recruiting). It is never
+  NOT_YET_RETRIEVED, and the generic "not found in the abstract" reason is replaced; the original is kept as
+  `machine_reason`.
+- Completeness maps it to ONGOING, not a gap.
+- Typed `status_axes` on the row:
+  - eligibility: ELIGIBLE;
+  - recruitment/completion: RECRUITING, 2026-12-31, eligible+ongoing;
+  - publication: NO_PUBLICATION_IN_INVENTORY;
+  - target outcome: NO_RESULT_YET.
+- `known_missing` never makes a running trial a "what it would do" row. It is listed under `not_yet_reportable`.
+- k is unchanged on every outcome; there is no missing-HR claim.
+
+### (3) Search completeness
+- `scope_identity.derive_search_scope` now DERIVES `completeness`. It is NOT_DEMONSTRATED_COMPLETE for pre-identified
+  (seeded), hand-written or unknown retrieval, and rendered in the scope block.
+- Here the three title-anchored queries name JUPITER (>= 70), ALLHAT-LLT and STAREE: a trial they do not name is found
+  only by other routes.
+
+## Round 2026-09-29: statins-older-adults, "fix all in harness" (Mahmood) -- six derived extractors, plants, n of N
+
+Every hand declaration the earlier statins rounds made is WITHDRAWN where a deterministic rule now derives it. What remains
+declared has no held text to derive it from, or is a decision rather than a fact.
+- **Withdrawn**
+  - the Orkaby `study_families` row;
+  - the PREVENTABLE `screen_overrides` row, its population witness, and the `condition_labels_not_entry` mechanism;
+  - the hand-typed component sets.
+- **Remaining declared**
+  - the endpoint POLICY (a decision);
+  - the HOPE-3 >= 70 pending input (relayed; the letter is not held);
+  - the Ridker multi-trial report, the JUPITER relayed 3-point value and the HOPE-3 inventory entry (relayed: no held text);
+  - ALLHAT's collection rule (a witnessed declaration: deriving it needs a trial-to-held-full-text index that does not
+    exist yet).
+
+### PRE-FIX plants (a detached checkout of 94a5103a, the same inputs)
+1. PREVENTABLE screen: `exclude X2 wrong population: title/conditions mention 'dementia'`. Its family: UNKNOWN
+   ENTRY_POPULATION_NOT_ESTABLISHED.
+2. Orkaby without the hand row: `include INCLUDE`, a separate included trial.
+3. An RMST difference on an HR scale: no blocking kind existed, so it would pool silently.
+4. JUPITER annotated `prespecified_subgroup`: there was no SUBGROUP_PROVENANCE_CONFLICT check.
+5. Component sets: there was no typing and no ENDPOINT_POLICY_VIOLATION check.
+
+### Rules, where they live, and their plants (tests/test_statins_extractors.py; 8 tests)
+1. **`harness/registry_criteria.py` + `screen.py` + `trial_family.screen_family`.** A registry CONDITION label that the
+   trial's own held eligibility text lists ONLY under Exclusion never vetoes. The trial's population can be read from its
+   INCLUSION criteria.
+   - Negative plants: the same label under Inclusion still vetoes. A trial ABOUT the label never gets the exemption
+     (LAmbre NCT04684212: "Large Appendages" names what "left atrial appendage" labels, so X2 stands).
+2. **`harness/report_linkage.py`** (rule A, parent acronym, and rule B, shared arm sizes >= 2 numbers >= 50 plus a shared
+   intervention; any conflict or ambiguity abstains). Derived links enter screening and the family ledger only where
+   nothing is declared.
+   - Negative plants: two registered parents abstain; rules that disagree abstain; an abbreviation is not an acronym
+     ("(LD)", loading dose, once linked 26440227 to 23500251).
+3. **`harness/measure_guard.py`**: MEASURE_CLASS_MISMATCH (blocking) for an RMST difference on a ratio scale.
+4. **`harness/subgroup_provenance.py`**: POST_HOC / PRESPECIFIED / CONFLICTING / UNSTATED from the report's own text.
+   SUBGROUP_PROVENANCE_CONFLICT (blocking) when the topic says prespecified and the source says post hoc.
+5. **`harness/component_typing.py`**: each pooled input's component set is derived from its own definition sentence. An
+   item the vocabulary cannot type is listed as `untyped`, never dropped. `endpoint_policy` now derives inputs and keeps
+   only the policy and the pending entry declared.
+
+### Corpus n of N (`scripts/statins_extractor_census.py`)
+- **Screen, condition label excluded by criteria: 3 of 750 registry records.**
+  - statins NCT04262206 X2 -> INCLUDE;
+  - corticosteroids-cap NCT02735707 and finerenone NCT04881994: X2 -> X3, still EXCLUDED, now for the rule that actually
+    applies.
+- **Family population from inclusion criteria / excluded labels: 30 of 2,854 families.** Named in the census output.
+- **Report linkage: 2 of 2,742 publications without their own registration.** Orkaby -> ALLHAT-LLT (rules A + B);
+  prone-positioning 24366167 -> PROSEVA (rule B; not a served topic).
+- **RMST difference on a ratio scale: 0 of 157 pooled rows.**
+- **Subgroup provenance: 4 of 157 pooled rows typed.** Conflicts: 3 of 6 annotated rows, all JUPITER (3 outcomes).
+- **Component sets: typed for 76 of 157 pooled rows.** 24 of those 76 carry untyped items, named.
+- **Served numbers moved: 0 (every k unchanged).** Served changes: 3 STATE_CHANGE notices on statins, OPEN.
+
+### Integration consequences found by the suite (2026-09-29)
+- **HARMONY (GLP-1, NCT02465515) is ADMISSIBLE.** Its family population is established from its own inclusion criteria
+  ("diagnosis of type 2 diabetes"). The GLP-1 bundle's outsider verifier now admits 8 of 8 pooled rows (was 7), and the
+  pool reproduces to 1e-9 without the harness: G2.
+  - Pinned tests updated DELIBERATELY, as they asked.
+  - The HARMONY-based CONTROL (a row refused at baseline) would have retired itself when the defect was fixed. It is now
+    SYNTHETIC: the refusal is constructed by the eligibility corruption limb.
+- **completeness:** NO_RESULT_YET is NOT mapped to ONGOING. The registry lifecycle, checked first, is the one source; a
+  copied row status never answers for it. The finerenone plant found this.
+- **Certified family caches** (`cache/*/families.json`) were regenerated by `build_families.py all --offline` BEFORE the
+  final page rebuild. Pages certify their hash, so the ORDER is families first, then pages. Result: 32 of 32
+  byte-identical.
