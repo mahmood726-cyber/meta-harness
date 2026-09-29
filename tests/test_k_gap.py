@@ -496,3 +496,22 @@ def test_forest_panel_and_population_are_chosen_from_the_caption():
     assert got["spironolactone-hfref-mortality"] == ("SELECTED", "F4", "D", "All-cause mortality")   # HFrEF, not F2 HFpEF
     assert got["finerenone-ckd-t2d-renal"][:3] == ("SELECTED", "f2", "A")
     assert got["colchicine-postop-af"][:2] == ("SELECTED", "Fig2")          # Fig3/Fig4 are duration/approach subgroups
+
+
+def test_forest_join_narrows_a_repeated_surname_by_year_and_joins_by_registered_acronym(monkeypatch):
+    import importlib
+    import sys
+    if "scripts" not in sys.path:
+        sys.path.append("scripts")
+    ra = importlib.import_module("k_gap_result_agreement")
+    pr = lambda e: {"effect": e, "lower": "0.1", "upper": "2.0"}   # noqa: E731
+    rows = [{"label": "Imazio 2011", "printed": pr("0.54")}, {"label": "Imazio 2014", "printed": pr("0.66")},
+            {"label": "FIDELIO-DKD", "printed": pr("0.82")}, {"label": "FIGARO-DKD", "printed": pr("0.87")}]
+    for r in rows:
+        r.update(effect=float(r["printed"]["effect"]), lower=0.1, upper=2.0)
+    monkeypatch.setattr(ra, "_FOREST", {"t": {"state": "PASS", "measure": "HR", "gate": {"rows": rows}}})
+    monkeypatch.setattr(ra, "first_author_year", lambda p: {"25172965": ("imazio", "2014")}.get(p))
+    assert ra.forest_row("t", "Imazio [18]") is None                                  # two Imazio rows: never the first
+    assert ra.forest_row("t", "Imazio [18]", ["25172965"])[1] == "0.66"               # the 2014 report
+    assert ra.forest_row("t", "Bakris et al. (16)", [], ["FIDELIO-DKD"])[1] == "0.82"
+    assert ra.forest_row("t", "Bakris et al. (16)", [], ["FIDELIO"])[1] == "0.82"     # leading-token acronym
