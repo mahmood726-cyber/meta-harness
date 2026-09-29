@@ -416,3 +416,24 @@ def test_forest_gate_anchor_requires_the_upper_bound_too():
     assert wrong_hi != text
     g = fp.gate(resp, None, wrong_hi)
     assert g["state"] == "REFUSED" and "PLOT_POOLED_NOT_PRINTED_IN_TEXT" in g["problems"]
+
+
+def test_agreement_keeps_the_printed_trailing_zero():
+    # a forest plot prints '1.10'; our trial row says 1.11. As a float, '1.10' became 1.1 (one decimal) and the
+    # comparison passed at 0.05 tolerance. At the PRINTED two decimals the upper limits differ by one unit.
+    import importlib
+    import sys
+    if "scripts" not in sys.path:
+        sys.path.append("scripts")
+    ra = importlib.import_module("k_gap_result_agreement")
+    assert ra._decimals("1.10") == 2 and ra._decimals("0.9") == 1
+    assert ra.agree(("HR", 0.79, 0.57, 1.11), ("HR", "0.79", "0.57", "1.10"), "reported") != "AGREE"
+    assert ra.agree(("HR", 0.87, 0.78, 0.97), ("HR", "0.87", "0.78", "0.97"), "reported") == "AGREE"
+
+
+def test_forest_figure_refuses_multipanel_and_secondary_but_not_an_abbreviation():
+    fp = _fp()
+    assert fp.MULTIPANEL.search("Forest plots of MI, CVD and stoke.(A) Incidence of MI")
+    assert fp.MULTIPANEL.search("Forest plot: A) renal composite B) HHF")          # missed when \b was a backspace byte
+    assert not fp.MULTIPANEL.search("Forest plot for cardiovascular death (CVD) and MACE")
+    assert fp.SECONDARY.search("Forest plot of secondary outcome: HFH")

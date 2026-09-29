@@ -122,6 +122,11 @@ def our_effect(t, scale):
 
 
 def _decimals(x) -> int:
+    """Printed precision. A STRING keeps its trailing zeros ('1.10' -> 2); a float cannot ('1.10' becomes 1.1 -> 1),
+    which let a forest plot's printed 1.10 'agree' with our 1.11."""
+    if isinstance(x, str):
+        m = re.search(r"\.(\d+)", x)
+        return len(m.group(1)) if m else 0
     r = repr(float(x))
     return len(r.split(".")[1].rstrip("0")) if "." in r else 0
 
@@ -138,7 +143,7 @@ def agree(ours, theirs, how):
     for i in (1, 2, 3):
         d = _decimals(theirs[i]) if how == "from_counts" else min(_decimals(ours[i]), _decimals(theirs[i]))
         d = max(d, 1)
-        ok.append(abs(ours[i] - theirs[i]) <= 0.5 * 10 ** -d + 1e-9)
+        ok.append(abs(float(ours[i]) - float(theirs[i])) <= 0.5 * 10 ** -d + 1e-9)
     if all(ok):
         return "AGREE"
     if ok[0]:
@@ -227,6 +232,36 @@ def run_one(it):
             "prompt_sha256": hashlib.sha256(p).hexdigest()}
 
 
+WITH_FOREST = False             # --with-forest: a shared trial the comparator's TEXT does not report is looked up among
+                                # the rows of a forest-plot figure that PASSED k_gap_forest_plot's recomputation gate
+FOREST = os.path.join(ROOT, "registry", "model_proposals", "k_gap_forest_plot.json")
+_FOREST = None
+
+
+def forest_row(slug, label):
+    """(scale, point, lo, hi) of the gated forest-plot row whose printed label IS this trial's comparator label
+    (dash-folded, case-insensitive: equal, or one label's first token equal to the other's). None when the figure did
+    not pass its gate or no row carries the label -- never a nearest match."""
+    global _FOREST
+    if _FOREST is None:
+        _FOREST = _j(FOREST).get("results", {}) if os.path.exists(FOREST) else {}
+    r = _FOREST.get(slug) or {}
+    if r.get("state") != "PASS":
+        return None
+    norm = lambda x: re.sub(r"\s+", " ", k_gap.fold_dashes(str(x or "")).strip().lower())   # noqa: E731
+    want = norm(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", label))      # drop a trailing citation number '[16]' / '(8)'
+    hits = [x for x in r["gate"]["rows"] if norm(x["label"]) == want]
+    if not hits:
+        hits = [x for x in r["gate"]["rows"] if norm(x["label"]).split(" ")[0] == want.split(" ")[0] and len(want) >= 4]
+    if len(hits) != 1:
+        return None
+    x = hits[0]
+    pr = x.get("printed") or {}
+    # the PRINTED strings, so the comparison keeps the plot's precision (trailing zeros included)
+    return ((r.get("measure") or "").upper().strip(), pr.get("effect") or x["effect"], pr.get("lower") or x["lower"],
+            pr.get("upper") or x["upper"])
+
+
 def gate(claim, label, held):
     if not isinstance(claim, dict) or claim.get("state") not in ("REPORTED", "NOT_REPORTED"):
         return {"state": "VERIFIER_REFUSED", "problems": ["NOT_TYPED"]}
@@ -255,6 +290,8 @@ def main(argv):
     if "--ours-rebuilt" in argv:
         OURS_SOURCE = "rebuilt"
     WITH_SUPP = "--with-supplements" in argv
+    global WITH_FOREST
+    WITH_FOREST = "--with-forest" in argv
     base = PROP.replace(".json", ".supp.json") if WITH_SUPP else PROP
     its = items()
     data = _j(base) if os.path.exists(base) else {}
@@ -291,14 +328,24 @@ def main(argv):
             ours, how = our_effect(k["ours"], theirs[0] if theirs else None)
             verdict = ("NOT_REPORTED_BY_COMPARATOR" if g.get("state") == "VERIFIER_PASS" and not g.get("reported")
                        else agree(ours, theirs, how) if g.get("state") == "VERIFIER_PASS" else "GATE_REFUSED_OR_NO_ANSWER")
+            src = "comparator_text"
+            if WITH_FOREST and verdict == "NOT_REPORTED_BY_COMPARATOR":
+                fr = forest_row(it["slug"], k["label"])
+                if fr:
+                    theirs = fr
+                    ours, how = our_effect(k["ours"], theirs[0])
+                    verdict, src = "FOREST_" + agree(ours, theirs, how), "FOREST_PLOT_MODEL_READ_RECOMPUTED"
             rows.append({"slug": it["slug"], "label": k["label"], "our_id": k["ours"].get("id"), "ours": ours,
-                         "ours_basis": how, "theirs": theirs, "verdict": verdict, "gate": g, "claim": claim,
-                         "record_id": (run or {}).get("record_id")})
+                         "ours_basis": how, "theirs": theirs, "theirs_source": src, "verdict": verdict, "gate": g,
+                         "claim": claim, "record_id": (run or {}).get("record_id")})
     tally = Counter(r["verdict"].split("(")[0] for r in rows)
     out = {"n_topics": len(its), "n_shared_trials": len(rows), "tally": dict(tally), "runs": runs, "rows": rows,
            "ours_source": OURS_SOURCE}
     out["with_supplements"] = WITH_SUPP
+    out["with_forest"] = WITH_FOREST
     target = base if OURS_SOURCE == "served" else base.replace(".json", ".rebuilt.json")
+    if WITH_FOREST:
+        target = target.replace(".json", ".forest.json")
     with open(target, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False, sort_keys=True)
     print(json.dumps({k: out[k] for k in ("n_topics", "n_shared_trials", "tally")}, indent=1))
