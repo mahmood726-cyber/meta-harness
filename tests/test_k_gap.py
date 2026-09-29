@@ -462,3 +462,25 @@ def test_forest_join_by_first_word_ignores_punctuation_and_joins_numbered_labels
     assert ra.forest_row("t", "SELECT 18") == ("OR", "0.80", "0.71", "0.90")          # comma no longer blocks it
     assert ra.forest_row("t", "9 [28]", ["111"]) == ("OR", "0.83", "0.76", "0.92")    # author AND year: 2009, not 2014
     assert ra.forest_row("t", "9 [28]", ["999"]) is None                               # no identity -> no join
+
+
+def test_upw_locator_gate_prose_table_and_number_not_in_quote():
+    import importlib
+    import sys
+    if "scripts" not in sys.path:
+        sys.path.append("scripts")
+    m = importlib.import_module("k_gap_upw_locate")
+    base = {"measure": None, "point": None, "lower": None, "upper": None, "notes": ""}
+    q = "a primary outcome event occurred in 415 of 2997 patients (13.8%) and in 511 of 2991 patients (17.1%)"
+    g = m.gate({**base, "state": "REPORTED", "quote": q, "events_t": "415", "n_t": "2997", "events_c": "511", "n_c": "2991"},
+               "x " + q + " y")
+    assert g["verdict"] == "LOCATED_IN_PROSE"
+    g = m.gate({**base, "state": "REPORTED", "quote": "AAD 4 103 8 111 0.54", "events_t": "4", "n_t": "103",
+                "events_c": "8", "n_c": "111"}, "AAD 4 103 8 111 0.54")
+    assert g["verdict"] == "LOCATED_TABLE_LIKE"
+    g = m.gate({**base, "state": "REPORTED", "quote": "occurred in 415 of 2997", "events_t": "416", "n_t": "2997",
+                "events_c": None, "n_c": None}, "occurred in 415 of 2997")
+    assert g["verdict"] == "REFUSED" and "EVENTS_T_NOT_IN_QUOTE" in g["problems"]
+    g = m.gate({**base, "state": "REPORTED", "quote": "not in the text", "events_t": "1", "n_t": "2",
+                "events_c": None, "n_c": None}, "something else entirely")
+    assert "QUOTE_NOT_IN_TEXT" in g["problems"]
