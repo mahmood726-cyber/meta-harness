@@ -183,3 +183,24 @@ def test_label_citation_number_resolves_against_ref_list_with_surname_guard():
     assert [r["pmid"] for r in k_gap.refs_by_number("Smith [4]", parsed["refs"])] == ["22222222"]
     assert k_gap.refs_by_number("Jones [4]", parsed["refs"]) == []     # surname disagrees with ref 4 -> nothing
     assert k_gap.refs_by_number("Smith [99]", parsed["refs"]) == []    # no such ref -> nothing, never nearest
+
+
+def _cf_mod():
+    import importlib.util
+    import os
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "k_gap_counterfactual.py")
+    spec = importlib.util.spec_from_file_location("k_gap_counterfactual", p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_a_larger_k_in_a_suppressed_pool_is_not_a_gain():
+    # PLANT (colchicine-postop-af + COCS full text): one OR admitted into an RR pool -> k 3->4 AND the pooled effect
+    # SUPPRESSED (INCOMPATIBLE estimands). Counting k alone scores the loss of the result as a gain.
+    m = _cf_mod()
+    base = {"outcomes": [{"primary": True, "result": {"k": 3, "estimate": 0.65, "scale": "RR"}, "trials": []}]}
+    cf = {"outcomes": [{"primary": True, "result": {"k": 4, "scale": "INCOMPATIBLE (ODDS_RATIO + RISK_RATIO)",
+                                                    "suppressed_incompatible": True}, "trials": []}]}
+    assert m.core_primary(base)["k_valid"] == 3
+    assert m.core_primary(cf)["k"] == 4 and m.core_primary(cf)["k_valid"] == 0
