@@ -684,3 +684,135 @@ def refs_by_number(label: str, refs: dict) -> list[dict]:
                 continue            # the surname on the label and the cited ref disagree: resolve nothing
             out.append(r)
     return out
+
+
+# ---------------------------------------------------------------------------- Unpaywall OA copy -> text
+
+UPW_CONTACT = "meta-harness@example.org"      # the harness's own contact; never a person's address
+
+
+def _pdf_text(data: bytes) -> str:
+    try:
+        import io as _io
+        from pypdf import PdfReader
+        return "\n".join((p.extract_text() or "") for p in PdfReader(_io.BytesIO(data)).pages)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _html_text(markup: str) -> str:
+    t = re.sub(r"(?is)<(script|style|noscript|svg).*?</\1>", " ", markup or "")
+    return _flat(re.sub(r"(?s)<[^>]+>", " ", t))
+
+
+def unpaywall_text(doi: str, cache_dir: str, index_path: str, offline: bool = False) -> dict:
+    """Legitimate OA copy of a DOI via Unpaywall (best + other OA locations), as TEXT (PDF via pypdf, else HTML).
+    Only the text is kept (cache_dir, gitignored); index_path records DOI -> source url, kind, sha256, bytes.
+    A publisher PDF has no table delimiters, so baseline tables cannot be told from outcome tables in it: callers
+    must treat Unpaywall text as prose-only evidence and audit every admission from it."""
+    from harness import http
+    import urllib.parse
+    os.makedirs(cache_dir, exist_ok=True)
+    key = hashlib.sha1(doi.lower().encode("utf-8")).hexdigest()[:16]
+    fp = os.path.join(cache_dir, key + ".txt")
+    idx = {}
+    if os.path.exists(index_path):
+        with open(index_path, encoding="utf-8") as fh:
+            idx = json.load(fh)
+    if os.path.exists(fp):
+        with open(fp, encoding="utf-8") as fh:
+            return {"text": fh.read(), **idx.get(doi.lower(), {})}
+    if offline:
+        return {"text": "", "state": "NOT_CACHED_OFFLINE"}
+    out = {"state": "NO_OA_TEXT", "tried": []}
+    try:
+        d = http.get_json("https://api.unpaywall.org/v2/" + urllib.parse.quote(doi, safe=""),
+                          {"email": UPW_CONTACT}, tries=2)
+    except Exception as exc:  # noqa: BLE001
+        out["state"] = "UNPAYWALL_ERROR"
+        out["error"] = str(exc)[:160]
+        d = {}
+    locs = ([d.get("best_oa_location")] if d.get("best_oa_location") else []) + list(d.get("oa_locations") or [])
+    seen, text = set(), ""
+    for loc in locs:
+        for k in ("url_for_pdf", "url"):
+            u = (loc or {}).get(k)
+            if not u or u in seen:
+                continue
+            seen.add(u)
+            try:
+                st, b = http.get_raw(u, tries=2, timeout=45)
+            except Exception as exc:  # noqa: BLE001
+                out["tried"].append({"url": u, "error": str(exc)[:100]})
+                continue
+            kind = "PDF" if b[:4] == b"%PDF" else "HTML"
+            t = _pdf_text(b) if kind == "PDF" else _html_text(b.decode("utf-8", "replace"))
+            out["tried"].append({"url": u, "kind": kind, "http_status": st, "text_bytes": len(t)})
+            if len(t) >= 3000:
+                text = t
+                out.update({"state": "OA_TEXT", "url": u, "kind": kind, "host_type": (loc or {}).get("host_type"),
+                            "license": (loc or {}).get("license")})
+                break
+        if text:
+            break
+    with open(fp, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    tb = text.encode("utf-8")
+    idx[doi.lower()] = {k: v for k, v in out.items() if k != "tried"} | {"sha256": sha256(tb), "bytes": len(tb),
+                                                                          "n_tried": len(out["tried"])}
+    with open(index_path, "w", encoding="utf-8") as fh:
+        json.dump(idx, fh, indent=1, sort_keys=True)
+    return {"text": text, **idx[doi.lower()]}
+
+
+_GENERIC_LABEL_WORDS = {"trial", "trials", "study", "studies", "cohort", "group", "arm", "patients", "participants",
+                        "author", "authors", "reference", "ref", "the", "and", "phase", "part", "sub", "substudy"}
+
+
+def label_ref_conflict(unit: dict, cited: dict, registry_acronyms=()) -> str | None:
+    """Does a table row's own label contradict the reference its citation link points to? The omega-3 comparator
+    (PMID 35905212, PMC JATS) cites 'GISSI-HF 2008 [33]' where ref 33 is JELIS (Yokoyama 2007), and 'Kromhout 2010
+    [36]' where ref 36 is a DHA-in-Alzheimer trial (Quinn 2010): the publisher's numbering is off, so following the
+    link faithfully resolves the WRONG trial. Returns the conflict (author / acronym / year) or None when consistent
+    or when the label carries nothing to compare.
+
+    Only CONTRADICTION counts, never absence: an article title routinely omits the trial acronym (HEART-FID, STEP 1),
+    so an acronym is judged only against the cited paper's REGISTRY acronyms (registry_acronyms, from AACT), and only
+    when there are some. The cited ref's own number is stripped from the label first ('STEP 1 29' cites ref 29; the
+    acronym is 'STEP 1'), accents are folded (Garzon == Garzon-with-acute), and a caps-heavy first token
+    ('SCALEObesity', 'SURMOUNT-') is an acronym, not a surname."""
+    import unicodedata
+
+    def fold(s):
+        return unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode("ascii").lower()
+
+    label = unit.get("label") or ""
+    num = (cited.get("label") or "").strip()
+    if num.isdigit():
+        label = re.sub(rf"(?:[\[(\s]|(?<=[A-Za-z]))\s*{num}\s*[\])]?\s*$", "", label).strip()
+    au, yr = unit.get("author") or "", unit.get("year") or ""
+    if not au:
+        m = re.match(r"^\s*([A-Z][A-Za-z'À-ſ-]{2,})\b", label)
+        au = m.group(1) if m else ""
+    if au and (_ACRO.fullmatch(au) or len(re.findall(r"[A-Z]", au)) >= 2 or au.endswith("-")):
+        au = ""                                    # an acronym-shaped token is not a surname
+    if au.lower() in _GENERIC_LABEL_WORDS:
+        au = ""                                    # 'Trial A (2019)' (esketamine comparator) names no author
+    if not yr:
+        m = re.search(r"\b((?:19|20)\d\d)\b", label)
+        yr = m.group(1) if m else ""
+    fa = fold(cited.get("first_author"))
+    if au and fa and fa not in ("group", "investigators", "writing", "collaborators", "committee") and not (
+            fa.startswith(fold(au)[:5]) or fold(au).startswith(fa[:5])):
+        return f"author: row '{au}' vs cited first author '{cited.get('first_author')}'"
+    # the cited paper naming itself counts too: '(JELIS)' in its title contradicts a 'GISSI-HF' row
+    named = [m.group(1) for m in _PAREN_ACRO.finditer(cited.get("title") or "")]
+    reg = [norm_acronym(a) for a in list(registry_acronyms or ()) + named if len(norm_acronym(a)) >= 4]
+    acr = [norm_acronym(re.sub(r"\s+\d{1,3}$", "", a)) for a in (unit.get("acronyms") or [])]
+    acr = [a for a in acr if len(a) >= 4]
+    if acr and reg and not any(a in r or r in a for a in acr for r in reg):
+        return f"acronym: row '{acr[0]}' vs cited registry {reg[:3]}"
+    ry = cited.get("year") or ""
+    if yr and ry and ry.isdigit() and abs(int(yr) - int(ry)) > 1:
+        return f"year: row {yr} vs cited {ry}"
+    return None

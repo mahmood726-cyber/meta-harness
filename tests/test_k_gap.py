@@ -204,3 +204,29 @@ def test_a_larger_k_in_a_suppressed_pool_is_not_a_gain():
                                                     "suppressed_incompatible": True}, "trials": []}]}
     assert m.core_primary(base)["k_valid"] == 3
     assert m.core_primary(cf)["k"] == 4 and m.core_primary(cf)["k_valid"] == 0
+
+
+def test_citation_link_contradicting_its_row_is_not_followed():
+    # PLANT (omega-3 comparator PMID 35905212): the table cites 'Kromhout 2010 [36]' but ref 36 is Quinn 2010 (a DHA
+    # Alzheimer trial) and 'GISSI-HF 2008 [33]' but ref 33 is JELIS -- the whole table is one off from its ref list.
+    unit = {"label": "Kromhout 2010 [36]", "author": "Kromhout", "year": "2010", "acronyms": []}
+    assert k_gap.label_ref_conflict(unit, {"label": "36", "first_author": "Quinn", "year": "2010", "title": "DHA"})
+    gissi = {"label": "GISSI-HF 2008 [33]", "author": "", "year": "2008", "acronyms": ["GISSI-HF 2008"]}
+    jelis = {"label": "33", "first_author": "Yokoyama", "year": "2007",
+             "title": "Effects of eicosapentaenoic acid on major coronary events in hypercholesterolaemic patients (JELIS)"}
+    assert k_gap.label_ref_conflict(gissi, jelis)
+
+
+def test_absence_is_not_contradiction():
+    # A title that omits the acronym, a generic 'Trial A' label, an accent, or the ref number glued to the label
+    # must NOT count as a conflict (each of these made the first version drop correct links -- esketamine lost 6/6).
+    assert k_gap.label_ref_conflict({"label": "HEART-FID [11]", "acronyms": ["HEART-FID"]},
+                                    {"label": "11", "first_author": "Mentz", "year": "2023",
+                                     "title": "Ferric Carboxymaltose in Heart Failure with Iron Deficiency"}) is None
+    assert k_gap.label_ref_conflict({"label": "Trial A (2019) (19)", "acronyms": []},
+                                    {"label": "19", "first_author": "Popova", "year": "2019", "title": "x"}) is None
+    assert k_gap.label_ref_conflict({"label": "Garz\u00f3n C [26]", "acronyms": []},
+                                    {"label": "26", "first_author": "Garzon", "year": "2009", "title": "x"}) is None
+    assert k_gap.label_ref_conflict({"label": "STEP 1 29", "acronyms": ["STEP 1 29"]},
+                                    {"label": "29", "first_author": "Wilding", "year": "2021", "title": "Once-Weekly Semaglutide"},
+                                    registry_acronyms=["STEP 1"]) is None
