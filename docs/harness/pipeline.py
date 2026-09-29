@@ -2577,6 +2577,18 @@ def build_review_core(slug, config, records, protocol_sha):
         review["comparator"] = dict(review["comparator"], analysis=_can)
     review["comparator"] = overlap_relation_mod.attach(
         review, rec_by_id, {str(x.get("id")): x for v in records.values() if isinstance(v, list) for x in v if isinstance(x, dict)})
+    # V1.0.1 (ticagrelor-ACS review): two rows of the comparator's analysis that report ONE trial (PLATO twice in Tan
+    # 2017), their population relation proved from the nested report's own words (harness/comparator_nesting.py)
+    from . import comparator_nesting as comparator_nesting_mod
+    _prim = next((o for o in review.get("outcomes") or [] if o.get("primary")), {})
+    _pooled_ids = {str(t.get("id") or "").replace("PMID ", "") for t in _prim.get("trials") or []}
+    _pooled_ncts = {str(f.get("family_id")) for f in review.get("trial_families") or []
+                    if str(f.get("family_id", "")).upper().startswith("NCT")
+                    and any(str(r.get("report_id")) in _pooled_ids for r in f.get("reports") or [])}
+    _nest = comparator_nesting_mod.assess(ROOT, slug, (review.get("comparator") or {}).get("analysis"),
+                                          overlap_relation_mod._panel_entry(review), _pooled_ncts)
+    if _nest:
+        review["comparator"] = dict(review["comparator"], nesting=_nest)
     # V1.0.1: the comparator's model-specific tuples and its internal mismatches (a mixed prose pair is flagged,
     # never adopted and never used to move our result) -- harness/comparator_models.py
     from . import comparator_models as comparator_models_mod

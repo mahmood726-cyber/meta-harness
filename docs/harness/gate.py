@@ -1454,6 +1454,9 @@ def check_no_independent_corroboration_claim(review_dir, html):
         with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
             review = json.load(f)
         reasons = comparator_panel.gate_reasons(review, html)
+        # V1.0.1 (tocilizumab-COVID review): a page may never decide comparator membership from a publication date
+        from .date_membership import gate_reasons as _date_reasons
+        reasons += _date_reasons(html)
         slug = os.path.basename(os.path.normpath(review_dir))
         source = os.path.join(ROOT, "cache", slug, "comparators.json")
         if os.path.exists(source):

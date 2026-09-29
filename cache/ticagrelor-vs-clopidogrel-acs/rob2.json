@@ -76,9 +76,9 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "low",
-          "basis": "prespecified secondary outcome, registered 'Participants With Non-CABG (Coronary Artery Bypass Graft) Related Major Bleeding'",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "level": "not assessed",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE); registered 'Participants With Any Event From the Composite of Death From Vascular Causes, Myocardial Infarction (MI), and Stroke'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
             "registered_primary_outcomes": [
@@ -166,17 +166,26 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Participants With Non-CABG (Coronary Artery Bypass Graft) Related Major Bleeding",
+              "registered_type": "primary",
+              "registered_label": "Participants With Any Event From the Composite of Death From Vascular Causes, Myocardial Infarction (MI), and Stroke",
               "matched": true,
-              "method": "text_identity",
+              "method": "component_set",
               "pooled_components": [
                 "CV_DEATH",
                 "NONFATAL_MI",
                 "NONFATAL_STROKE"
               ],
-              "registered_components": [],
-              "registered_text": "Participants With Non-CABG (Coronary Artery Bypass Graft) Related Major Bleeding Participants with non CABG related major (fatal/life-threatening or other) bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. Events were adjudicated by an endpoint committee."
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Participants With Any Event From the Composite of Death From Vascular Causes, Myocardial Infarction (MI), and Stroke Participants with death from vascular causes, MI, or stroke. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. Intention To Treat (ITT) analysis of whole population. Events were adjudicated by an endpoint committee."
+            },
+            "chain": {
+              "identity": "MATCHED_PRIMARY",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true
@@ -199,17 +208,17 @@
             "domain": "D4_outcome_measurement",
             "label": "masking of outcome assessment",
             "level": "low"
-          },
-          {
-            "domain": "D5_selective_reporting",
-            "label": "registered outcome versus pooled outcome",
-            "level": "low"
           }
         ],
         "unassessed_domains": [
           {
             "domain": "D3_missing_outcome_data",
             "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
             "level": "not assessed"
           }
         ]
@@ -229,17 +238,17 @@
           "domain": "D4_outcome_measurement",
           "label": "masking of outcome assessment",
           "level": "low"
-        },
-        {
-          "domain": "D5_selective_reporting",
-          "label": "registered outcome versus pooled outcome",
-          "level": "low"
         }
       ],
       "unassessed_domains": [
         {
           "domain": "D3_missing_outcome_data",
           "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
           "level": "not assessed"
         }
       ]
@@ -248,7 +257,7 @@
       "nct": "NCT01294462",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "some concerns",
+      "overall": "low (on assessed domains; some domains require human judgement)",
       "domains": {
         "D1_randomisation": {
           "level": "low",
@@ -306,9 +315,9 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Major Bleeding') -- possibly post-hoc/unregistered",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "level": "not assessed",
+          "basis": "IDENTITY: the pooled outcome is the trial's registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE); registered 'Major Adverse Cardiac Events (MACE)'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
             "registered_primary_outcomes": [
@@ -336,17 +345,26 @@
               }
             ],
             "comparison": {
-              "registered_type": null,
-              "registered_label": "Major Bleeding",
-              "matched": false,
-              "method": "no_match",
+              "registered_type": "primary",
+              "registered_label": "Major Adverse Cardiac Events (MACE)",
+              "matched": true,
+              "method": "component_set",
               "pooled_components": [
                 "CV_DEATH",
                 "NONFATAL_MI",
                 "NONFATAL_STROKE"
               ],
-              "registered_components": [],
-              "registered_text": "Major Bleeding Time to first occurrence of any major bleeding event (adjudicated by an independent Clinical Endpoint Committee (ICEC)). 1-year event rate (%) estimated via Kaplan-Meier method."
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Major Adverse Cardiac Events (MACE) Time to first occurrence of any event from the composite of death from vascular causes, Myocardial Infarction (MI) and stroke (adjudicated by an ICEC). 1-year event rate (%) estimated via Kaplan-Meier method."
+            },
+            "chain": {
+              "identity": "MATCHED_PRIMARY",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true
@@ -369,17 +387,17 @@
             "domain": "D4_outcome_measurement",
             "label": "masking of outcome assessment",
             "level": "low"
-          },
-          {
-            "domain": "D5_selective_reporting",
-            "label": "registered outcome versus pooled outcome",
-            "level": "some concerns"
           }
         ],
         "unassessed_domains": [
           {
             "domain": "D3_missing_outcome_data",
             "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
             "level": "not assessed"
           }
         ]
@@ -399,17 +417,17 @@
           "domain": "D4_outcome_measurement",
           "label": "masking of outcome assessment",
           "level": "low"
-        },
-        {
-          "domain": "D5_selective_reporting",
-          "label": "registered outcome versus pooled outcome",
-          "level": "some concerns"
         }
       ],
       "unassessed_domains": [
         {
           "domain": "D3_missing_outcome_data",
           "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
           "level": "not assessed"
         }
       ]

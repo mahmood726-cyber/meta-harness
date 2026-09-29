@@ -77,8 +77,8 @@
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Number of Participants That Had First Occurrence of the Composite Endpoint, Whic') -- possibly post-hoc/unregistered",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "basis": "IDENTITY: the pooled outcome (CV_DEATH) matches none of the 1 registered primary and 5 secondary outcomes by component set -- possibly post-hoc/unregistered. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Composite cardiovascular death or heart-failure hospitalization",
             "registered_primary_outcomes": [
@@ -127,7 +127,16 @@
                 "CV_DEATH",
                 "HF_HOSPITALISATION"
               ],
-              "registered_text": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization Number of participants that had first occurrence of the composite endpoint, which is defined as either CV death or HF hospitalization due to HF."
+              "registered_text": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization Number of participants that had first occurrence of the composite endpoint, which is defined as either CV death or HF hospitalization due to HF.",
+              "scanned": {
+                "primary": 1,
+                "secondary": 5
+              }
+            },
+            "chain": {
+              "identity": "NOT_MATCHED",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true
@@ -244,9 +253,9 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "low",
-          "basis": "prespecified secondary outcome, registered 'Total Number of CEC Confirmed Composite of CV Death and Total (First and Recurrent) HF Hospitalizations for Heart Failure'",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "level": "not assessed",
+          "basis": "IDENTITY: a registered secondary outcome, registered 'Total Number of CEC Confirmed Composite of CV Death and Total (First and Recurrent) HF Hospitalizations for Heart Failure'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Composite cardiovascular death or heart-failure hospitalization",
             "registered_primary_outcomes": [
@@ -400,6 +409,11 @@
                 "CV_DEATH"
               ],
               "registered_text": "Total Number of CEC Confirmed Composite of CV Death and Total (First and Recurrent) HF Hospitalizations for Heart Failure Total number of CEC-confirmed CV death and total (first and recurrent) HF hospitalizations per patient was analyzed using the negative binomial regression model. CV deaths and HF hospitalizations occurred on and after EOS declaration were reported by investigators but those events were not required to be adjudicated by CEC and not included in the efficacy analysis."
+            },
+            "chain": {
+              "identity": "MATCHED_SECONDARY",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true
@@ -422,17 +436,17 @@
             "domain": "D4_outcome_measurement",
             "label": "masking of outcome assessment",
             "level": "low"
-          },
-          {
-            "domain": "D5_selective_reporting",
-            "label": "registered outcome versus pooled outcome",
-            "level": "low"
           }
         ],
         "unassessed_domains": [
           {
             "domain": "D3_missing_outcome_data",
             "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
             "level": "not assessed"
           }
         ]
@@ -452,17 +466,17 @@
           "domain": "D4_outcome_measurement",
           "label": "masking of outcome assessment",
           "level": "low"
-        },
-        {
-          "domain": "D5_selective_reporting",
-          "label": "registered outcome versus pooled outcome",
-          "level": "low"
         }
       ],
       "unassessed_domains": [
         {
           "domain": "D3_missing_outcome_data",
           "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
           "level": "not assessed"
         }
       ]

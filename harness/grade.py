@@ -134,8 +134,31 @@ def _rob_domain(review):
     if machine_rob(review):
         assessed = False
         basis = "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below"
-    return {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
-            "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
+    out = {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
+           "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
+    return _held(review, "risk_of_bias", out)
+
+
+def _held(review, domain, out):
+    """V1.0.1 (ticagrelor-ACS review): a served downgrade that a signal correction would REMOVE is held at its prior
+    value until a reviewer countersigns its removal (registry/grade_holds.json). PHILO's D5 'some concerns' was a false
+    concern (its registered MACE was missed); the correction is landed, the downgrade it drove is not removed unsigned.
+    A hold never lowers a downgrade and never applies to another topic or domain."""
+    import json as _json
+    import os as _os
+    p = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "registry", "grade_holds.json")
+    try:
+        holds = _json.load(open(p, encoding="utf-8")).get("holds") or []
+    except (OSError, ValueError):
+        return out
+    for h in holds:
+        if (h.get("slug") == review.get("slug") and h.get("domain") == domain
+                and (h.get("reviewer_countersignature") or {}).get("state") != "SEEN_AND_SIGNED"
+                and int(h.get("held_downgrade", 0)) > int(out.get("downgrade", 0))):
+            out = dict(out, downgrade=int(h["held_downgrade"]), computed_downgrade=out["downgrade"], hold=h,
+                       basis=out["basis"] + f" — downgrade HELD at {h['held_downgrade']} (computed {out['downgrade']}): "
+                                            f"{h['reason']} Removal owed a reviewer countersignature.")
+    return out
 
 
 def _inconsistency_domain(res, review=None):

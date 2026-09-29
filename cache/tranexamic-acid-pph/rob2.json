@@ -64,8 +64,8 @@
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'The primary outcome is the proportion of women who die or undergo hysterectomy. ') -- possibly post-hoc/unregistered",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "basis": "IDENTITY: the pooled outcome (BLEEDING) matches none of the 1 registered primary and 8 secondary outcomes by component set -- possibly post-hoc/unregistered. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Death due to bleeding",
             "registered_primary_outcomes": [
@@ -122,9 +122,20 @@
               "registered_label": "The primary outcome is the proportion of women who die or undergo hysterectomy. The primary cause of death will be described.",
               "matched": false,
               "method": "no_match",
-              "pooled_components": [],
+              "pooled_components": [
+                "BLEEDING"
+              ],
               "registered_components": [],
-              "registered_text": "The primary outcome is the proportion of women who die or undergo hysterectomy. The primary cause of death will be described."
+              "registered_text": "The primary outcome is the proportion of women who die or undergo hysterectomy. The primary cause of death will be described.",
+              "scanned": {
+                "primary": 1,
+                "secondary": 8
+              }
+            },
+            "chain": {
+              "identity": "NOT_MATCHED",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true

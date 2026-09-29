@@ -26,7 +26,8 @@ from reproducible_ai import model_source as ms  # noqa: E402
 BASE = "6e26839a"      # the served pages the populations are drawn from (CI green, run 36469190915)
 MODEL = {"d5_identity": "gpt-6-astra", "comparator_arm": "gpt-6-astra", "trial_identity": "gpt-6-astra",
          "condition_role_reader2": "gpt-5.5", "d5_identity_reader2": "gpt-5.5", "comparator_arm_reader2": "gpt-5.5",
-         "trial_identity_reader2": "gpt-5.5"}
+         "trial_identity_reader2": "gpt-5.5", "comparator_membership": "gpt-6-astra",
+         "comparator_membership_reader2": "gpt-5.5"}
 
 
 def base_task(task):
@@ -36,6 +37,13 @@ CODEX_LOG = Path("C:/mh-lanes/evid2-scratch/codex/codex_calls.jsonl")
 QDIR = ROOT / ms.PROPOSAL_DIR
 
 INSTR = {
+    "comparator_membership": """You read a published meta-analysis (its text, figure captions and figure alt text) and the
+list of ROWS of its included-trial table. Our question's primary outcome is named below. Find the meta-analysis's
+analysis of THAT outcome (or the closest one it reports) and say which table rows are in it.
+Return: analysis {label, quote} -- the words, copied exactly from the text, that report that analysis; members -- one
+{row, quote} per table row IN that analysis, where row is the ROW id exactly as listed and quote is words copied exactly
+from the text or figure text that show this trial is in that analysis; excluded -- rows you can show are NOT in it, same
+form. Leave a row out of both lists when the text does not say. Never guess.""",
     "d5_identity": """Each item gives a POOLED OUTCOME and ONE outcome a trial registered. Decide whether the registered
 outcome is the SAME outcome as the pooled one -- the same components, not merely a related one (a bleeding outcome is
 never the same as a death/MI/stroke composite; 'death from vascular causes' counts as cardiovascular death).
@@ -124,7 +132,7 @@ def items_trial_identity():
         held = comparator_nesting._held_pubmed(ROOT, slug)
         alias = {t["family_id"]: [a["id"] for a in t.get("aliases") or [] if str(a.get("id")).isdigit()]
                  for t in (panel or {}).get("trial_set") or []}
-        a = comparator_analysis.assess(doc, {"outcomes": []})
+        a = comparator_analysis.assess(doc, json.loads((ROOT / "docs" / "reviews" / slug / "review.json").read_text(encoding="utf-8")))
         nest = comparator_nesting.assess(ROOT, slug, a, panel, []) or {"nested": []}
         pairs = {(x["parent"]["label"], x["row"]["label"]) for x in nest["nested"] if x["relation"] == "SUBGROUP_OF"}
         rows = doc["membership"]["rows"]
@@ -135,7 +143,8 @@ def items_trial_identity():
                 def txt(r):
                     ps = alias.get(r.get("panel_row") or "") or []
                     body = " ".join((held.get(p) or {}).get("text", "")[:1500] for p in ps)
-                    return f"ROW {r['label']} (n = {r['counts'][1] + r['counts'][3]}): {body or '(no held report)'}"
+                    n = f"n = {r['counts'][1] + r['counts'][3]}" if r.get("counts") else "n not plotted"
+                    return f"ROW {r['label']} ({n}): {body or '(no held report)'}"
                 text = txt(ra) + "\n" + txt(rb)
                 rule = ("SAME_TRIAL_SUBGROUP" if (ra["label"], rb["label"]) in pairs or (rb["label"], ra["label"]) in pairs
                         else "DIFFERENT_TRIALS")
@@ -145,14 +154,49 @@ def items_trial_identity():
     return out
 
 
+def items_comparator_membership():
+    """G1: every topic whose comparator panel has an included-trial table but no membership for OUR primary outcome.
+    Held text = the comparator's held full text + its figure captions and alt text (from the held JATS), so a quote
+    from a forest plot's description is locatable; the rows are listed in the prompt by their panel ids."""
+    import html as _h
+    out = []
+    for slug in _slugs():
+        cp, ft = ROOT / "cache" / slug / "comparators.json", ROOT / "cache" / slug / "comparator_fulltext.txt"
+        if not cp.exists() or not ft.exists() or (ROOT / "cache" / slug / "comparator_analysis.json").exists():
+            continue
+        panel = next(iter(json.loads(cp.read_text(encoding="utf-8"))), None) or {}
+        rows = panel.get("trial_set") or []
+        if len(rows) < 2:
+            continue
+        text = ft.read_text(encoding="utf-8")
+        jx = ROOT / "cache" / slug / "comparator_pmc_jats.xml"
+        if jx.exists():
+            x = jx.read_text(encoding="utf-8")
+            figs = []
+            for m in re.finditer(r"<fig\b.*?</fig>", x, re.S):
+                parts = re.findall(r"<caption>(.*?)</caption>|<alt-text[^>]*>(.*?)</alt-text>", m.group(0), re.S)
+                figs += [_h.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", a or b))).strip() for a, b in parts]
+            text += "\n\nFIGURE CAPTIONS AND ALT TEXT:\n" + "\n".join(f for f in figs if f)
+        review = json.loads((ROOT / "docs" / "reviews" / slug / "review.json").read_text(encoding="utf-8"))
+        prim = next((o for o in review.get("outcomes") or [] if o.get("primary")), {})
+        listing = "\n".join(f"ROW {t['family_id']}: " + _h.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ",
+                             t["span"]["quote"])))[:220] for t in rows)
+        out.append({"item_id": f"{slug}::membership", "held_text": text, "held_sha256": _sha(text.encode("utf-8")),
+                    "held_ref": f"cache/{slug}/comparator_fulltext.txt (+ figure captions/alt text of the held JATS)",
+                    "rule_decision": "NO_RULE", "rows": [t["family_id"] for t in rows],
+                    "outcome": prim.get("name"), "listing": listing})
+    return out
+
+
 def items_condition_role_reader2():
     pop = json.loads((QDIR / "condition_role.population.json").read_text(encoding="utf-8"))["items"]
     return [dict(i, rule_decision="ENTRY_POPULATION") for i in pop]
 
 
-ITEMS = {"d5_identity": items_d5_identity, "comparator_arm": items_comparator_arm,
+ITEMS = {"comparator_membership": items_comparator_membership, "d5_identity": items_d5_identity,
+         "comparator_arm": items_comparator_arm,
          "trial_identity": items_trial_identity, "condition_role_reader2": items_condition_role_reader2}
-for _t in ("d5_identity", "comparator_arm", "trial_identity"):
+for _t in ("d5_identity", "comparator_arm", "trial_identity", "comparator_membership"):
     # the second reader reads the FIRST reader's frozen population, never a re-derived one
     ITEMS[f"{_t}_reader2"] = (lambda t: lambda: json.loads((QDIR / f"{t}.population.json").read_text(encoding="utf-8"))["items"])(_t)
 
@@ -168,7 +212,7 @@ def rule_decision(task, i):
         return "SAME_OUTCOME" if d["matched"] else "DIFFERENT_OUTCOME"
     if task == "comparator_arm":
         from harness import screen, term_normal
-        return "COMPARATOR_PRESENT" if screen._has(term_normal.comparator_text(i["held_text"]), i["rule_input"]["terms"])             else "NO_COMPARATOR"
+        return "COMPARATOR_PRESENT" if screen._has(term_normal.comparator_text(i["held_text"], i["rule_input"]["terms"]), i["rule_input"]["terms"])             else "NO_COMPARATOR"
     return i.get("rule_decision")
 
 
@@ -195,15 +239,28 @@ def _batches(task):
     else:
         instr = INSTR[base_task(task)]
         head = lambda i: ""  # noqa: E731
-    for k in range(0, len(items), BATCH):
-        chunk = items[k:k + BATCH]
+    size = 1 if base_task(task) == "comparator_membership" else BATCH
+    if base_task(task) == "comparator_membership":
+        head = lambda i: f"outcome={i['outcome']!r}\nTABLE ROWS:\n{i['listing']}\n=== TEXT ==="  # noqa: E731
+    for k in range(0, len(items), size):
+        chunk = items[k:k + size]
         keyed = [(f"R{j + 1}", i) for j, i in enumerate(chunk)]
         prompt = instr + "".join(f"\n=== ITEM item={key} {head(i)} ===\n{i['held_text']}\n" for key, i in keyed)
-        yield {"batch": k // BATCH + 1, "keyed": keyed, "prompt": prompt.encode("utf-8"),
+        yield {"batch": k // size + 1, "keyed": keyed, "prompt": prompt.encode("utf-8"),
                "digests": [{"ref": i["held_ref"], "sha256": i["held_sha256"], "what": "held text"} for _, i in keyed]}
 
 
 def _schema(task):
+    if base_task(task) == "comparator_membership":
+        rq = {"type": "object", "additionalProperties": False, "required": ["row", "quote"],
+              "properties": {"row": {"type": "string"}, "quote": {"type": "string"}}}
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "analysis", "members", "excluded"],
+              "properties": {"item": {"type": "string"},
+                             "analysis": {"type": "object", "additionalProperties": False, "required": ["label", "quote"],
+                                          "properties": {"label": {"type": "string"}, "quote": {"type": "string"}}},
+                             "members": {"type": "array", "items": rq}, "excluded": {"type": "array", "items": rq}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
     if task == "condition_role_reader2":
         verdict = {"role": {"type": "string", "enum": list(ms.CONDITION_ROLES)}}
         req = ["item", "role", "quote"]

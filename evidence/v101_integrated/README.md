@@ -406,3 +406,54 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
     a failed request is not evidence.
   - Ridker 2017: not in PMC; not open access in Europe PMC; the publisher returned a Cloudflare bot check (not
     bypassed).
+
+## Round 8: ticagrelor-ACS and tocilizumab-COVID, as harness code
+
+- **Plants:** `scripts/plants_round8.py`. All 7 fire on the pre-fix harness `a838d818` and none on this one
+  (`round8_plants.json`).
+- **D5 registered-outcome identity** (`harness/rob2.py`). Death from vascular causes is typed as CV death; an outcome
+  ABOUT bleeding is typed BLEEDING; TIA is a component (ASCEND's serious vascular event is not 3-point MACE).
+  - A match now yields identity → timing → judgment, never an automatic "low". Timing needs the historical registry,
+    the protocol or the SAP.
+  - Corpus (`d5_identity_sweep.json`, 99 served D5 signals at `a838d818`):
+    - false reassurance 1 of 74 served matches: PLATO, whose CV composite had "matched" Non-CABG major bleeding;
+    - false concern 1 of 25 served non-matches: PHILO, whose registered MACE was missed.
+  - The caches were re-derived for D5 ONLY (`scripts/rob2_rederive_d5.py`, 78 trials). `rob2_build.py` would also have
+    refreshed D1–D4 on 10 trials from drift since their last build, a different change, not made here.
+- **Comparator wording** (`harness/term_normal.py`). Hyphens are read as spaces, and an abbreviation is expanded only
+  where the record defines it AND the expansion is a comparator term.
+  - Corpus: 1 of 145 served X3 "no eligible comparator" exclusions flips (Talaschian 2024). It adds no mortality input:
+    its HR is for clinical improvement.
+  - A first version also expanded "AAD", which pushed "without" out of the negation window and passed a non-randomised
+    "patients without AAD" control. It was tightened before landing.
+- **Nested reports of one trial** (`harness/comparator_nesting.py`). Tan 2017 Figure 4 pools Wallentin 2009 (PLATO,
+  18,624) and Cannon 2010 (PLATO planned-invasive, "13 408 (72.0%) of 18 624"): DUPLICATED_POPULATION. Report
+  overlap 2, trial overlap 1 (PLATO); OR vs HR is not like-for-like.
+  - Corpus: 1 of 18 comparators whose rows resolve to registrations has two rows of one registration.
+- **REACT (tocilizumab):** the class count is 27 (held abstract); the drug count, 19, is VERIFIED_NOT_HELD (free PMC
+  page, no open licence, body sha256 recorded). Figure 1 was read from the image.
+  - PreToVid's row is day-30 (TIMEPOINT_EXCEPTION).
+  - ImmCoVA's 2023 paper was already analysed in 2021 (ALREADY_ANALYSED).
+- **Positive control:** FE log OR over 16 estimable trials → 0.825251 (0.742354–0.917405), I² 3.34%, exact.
+- **No membership by date** (`harness/date_membership.py`, gated). Corpus: 0 of 32 served pages carry such a claim.
+- **Codex (recorded, gated, never admitted):**
+  - D5 identity: 942 pairs × 2 readers; 853 and 852 agree with the rule.
+  - Comparator arm: 145 × 2. The substantive disagreement is 25 items where both readers see a comparator the rule
+    excluded; several are protocol questions the model cannot see (e.g. metformin's placebo requirement vs
+    "clomiphene alone").
+  - Condition role: 16 × 2; 15 of 16 agree between readers. Both readers read a prevented outcome for probiotics
+    NCT02817165 and colchicine NCT05726019.
+  - Trial identity: 443 row pairs × 2. Both readers name exactly one same-trial subgroup pair, Cannon 2010 inside
+    Wallentin 2009, the pair the rule proves, and no other; the rest are DIFFERENT_TRIALS or NOT_STATED (no held
+    report for the row).
+  - Every disagreement is an individual-countersignature item.
+- **GRADE hold (needs your countersignature):** ticagrelor's risk-of-bias downgrade (1) rested on PHILO's false D5
+  concern. With PHILO's registered MACE found, the computed downgrade is 0.
+  - A served downgrade is not removed unsigned, so it is HELD at 1 (`registry/grade_holds.json`, rendered with its
+    reason; `harness/grade.py::_held`). It lifts only when the hold is countersigned.
+  - `tests/test_grade_missing_is_not_favourable.py` still guards every other page.
+- **Ticagrelor overlap stays NOT_ENUMERABLE.** Figure 4's rows bind PLATO (twice) and DISPERSE-2 / Hansson. Liu 2014
+  (Chinese Journal of Gerontology 2014;(10):2638-41) has no PMID or DOI, so by typed identity it cannot be ruled out as
+  PHILO.
+  - A reference year is never used to exclude it: that would decide membership by date.
+  - Shared is at least PLATO; your "shared = 1" is consistent with it but not provable here.

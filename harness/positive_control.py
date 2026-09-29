@@ -148,8 +148,13 @@ def rows_of(control: dict, root=None) -> list:
             # as the z interval they define (synth recovers exactly that SE)
             return [dict(zip(("effect", "ci_low", "ci_high"), comparator_analysis.log_row_effect(r)), label=r["label"],
                          state="HELD") for r in rows]
-        return [{"label": r["label"], "events_int": r["counts"][0], "n_int": r["counts"][1], "events_ctl": r["counts"][2],
-                 "n_ctl": r["counts"][3], "state": "HELD"} for r in rows]
+        out = [{"label": r["label"], "events_int": r["counts"][0], "n_int": r["counts"][1], "events_ctl": r["counts"][2],
+                "n_ctl": r["counts"][3], "state": "HELD"} for r in rows]
+        if control.get("drop_double_zero"):
+            # V1.0.1 (tocilizumab review): the published analysis leaves out rows with no events in either arm (REACT
+            # prints them 'NA'); a single-zero row keeps its 0.5 correction
+            out = [r for r in out if r["events_int"] or r["events_ctl"]]
+        return out
     if control.get("state") == "ROWS_FROM_MEMBER_INPUTS":
         from . import outcome_match
         rf = control["rows_from"]

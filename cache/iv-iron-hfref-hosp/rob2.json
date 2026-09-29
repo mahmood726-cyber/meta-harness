@@ -63,9 +63,9 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Time-to-first event of CV death or HF hospitalisation'",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "level": "not assessed",
+          "basis": "IDENTITY: the pooled outcome IS the trial's registered primary outcome; registered 'Time-to-first event of CV death or HF hospitalisation'. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Heart-failure hospitalization",
             "registered_primary_outcomes": [
@@ -148,6 +148,11 @@
                 "HF_HOSPITALISATION"
               ],
               "registered_text": "Time-to-first event of CV death or HF hospitalisation \"Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) can extend the time-to-first-event of heart failure hospitalisations and cardiovascular (CV) death.~Type I error rate control across the three primary endpoints will be ensured by using the Hochberg procedure.\""
+            },
+            "chain": {
+              "identity": "MATCHED_PRIMARY",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true
@@ -170,17 +175,17 @@
             "domain": "D4_outcome_measurement",
             "label": "masking of outcome assessment",
             "level": "low"
-          },
-          {
-            "domain": "D5_selective_reporting",
-            "label": "registered outcome versus pooled outcome",
-            "level": "low"
           }
         ],
         "unassessed_domains": [
           {
             "domain": "D3_missing_outcome_data",
             "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
             "level": "not assessed"
           }
         ]
@@ -200,17 +205,17 @@
           "domain": "D4_outcome_measurement",
           "label": "masking of outcome assessment",
           "level": "low"
-        },
-        {
-          "domain": "D5_selective_reporting",
-          "label": "registered outcome versus pooled outcome",
-          "level": "low"
         }
       ],
       "unassessed_domains": [
         {
           "domain": "D3_missing_outcome_data",
           "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
           "level": "not assessed"
         }
       ]
@@ -265,8 +270,8 @@
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Change in six minute walk test from baseline to week 24') -- possibly post-hoc/unregistered",
-          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "basis": "IDENTITY: the pooled outcome (untyped) matches none of the 1 registered primary and 0 secondary outcomes by component set -- possibly post-hoc/unregistered. registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); no judgement is made from identity alone",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v3",
           "inputs": {
             "pooled_outcome": "Heart-failure hospitalization",
             "registered_primary_outcomes": [
@@ -284,7 +289,16 @@
               "method": "no_match",
               "pooled_components": [],
               "registered_components": [],
-              "registered_text": "Change in six minute walk test from baseline to week 24"
+              "registered_text": "Change in six minute walk test from baseline to week 24",
+              "scanned": {
+                "primary": 1,
+                "secondary": 0
+              }
+            },
+            "chain": {
+              "identity": "NOT_MATCHED",
+              "timing": "NOT_ASSESSED",
+              "judgment": "NOT_MADE"
             }
           },
           "derived_at_build": true

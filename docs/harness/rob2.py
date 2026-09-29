@@ -113,7 +113,10 @@ def _component_set(text: str) -> frozenset[str]:
         s,
     ):
         comps.add("KIDNEY_PROGRESSION_COMPOSITE")
-    if re.search(r"\bcv\s+death\b|\bcardiovascular(?:\s*\([^)]*\))?\s+death\b|\bdeath from cardiovascular causes\b", s):
+    # V1.0.1 (ticagrelor-ACS review): 'death from vascular causes' IS cardiovascular death (PLATO's and PHILO's registered
+    # composites say so) -- a separate site, so the regex layer's planted site for the original pattern is unchanged
+    if re.search(r"\bcv\s+death\b|\bcardiovascular(?:\s*\([^)]*\))?\s+death\b|\bdeath from cardiovascular causes\b", s) \
+            or re.search(r"\bdeath from vascular causes\b|\bvascular death\b|\bcardiovascular mortality\b", s):
         comps.add("CV_DEATH")
     if re.search(r"\bnon[- ]?fatal\s+(myocardial infarction|mi)\b", s):
         comps.add("NONFATAL_MI")
@@ -131,6 +134,8 @@ def _component_set(text: str) -> frozenset[str]:
         s,
     ):
         comps.add("HF_HOSPITALISATION")
+    if re.search(r"\btransient isch(?:a)?emic attacks?\b|\btias?\b", s):
+        comps.add("TIA")
     if re.search(r"\bunstable angina\b", s):
         comps.add("UNSTABLE_ANGINA")
     if re.search(r"\brevasculari[sz]ation\b", s):
@@ -142,6 +147,10 @@ def _component_set(text: str) -> frozenset[str]:
         comps.update(STANDARD_3P_MACE)
     if "KIDNEY_PROGRESSION_COMPOSITE" in comps:
         comps.discard("CV_DEATH")
+    # V1.0.1 (ticagrelor-ACS review): an outcome ABOUT bleeding is typed BLEEDING, so it can never match an efficacy
+    # composite by words (PLATO: the CV composite 'matched' Non-CABG major bleeding -- false reassurance)
+    if not comps and re.search(r"\bbleed(?:ing|s)?\b|\bha?emorrhag", s):
+        comps.add("BLEEDING")
     return frozenset(comps)
 
 
@@ -271,6 +280,16 @@ def _d4(inputs: dict[str, Any]) -> dict[str, Any]:
     return _domain(d4, d4b, f"{OUTPUT_FAMILY}:D4:outcome_assessor_masking_v1", inputs)
 
 
+IDENTITY_ONLY = ("registration TIMING not assessed (needs historical registry versions, the protocol or the SAP); "
+                 "no judgement is made from identity alone")
+
+
+def _chain(identity: str) -> dict:
+    """V1.0.1 (ticagrelor-ACS review): D5 is identity -> timing -> judgment. The registry match settles identity only."""
+    return {"identity": identity, "timing": "NOT_ASSESSED", "judgment": "NOT_MADE"}
+
+
+
 def derive_d5(
     registered_primaries: list[Any] | None,
     pooled_outcome: str,
@@ -302,12 +321,13 @@ def derive_d5(
         detail = _outcome_match_detail(pooled_outcome, rp, matches)
         if detail["matched"]:
             inputs["comparison"] = {"registered_type": "primary", "registered_label": _outcome_label(rp), **detail}
+            inputs["chain"] = _chain("MATCHED_PRIMARY")
             if detail["method"] == "component_set":
-                basis = ("the pooled outcome matches the trial's pre-registered primary outcome by component set "
-                         f"({', '.join(detail['pooled_components'])}); registered {_outcome_label(rp)!r}")
+                basis = ("IDENTITY: the pooled outcome is the trial's registered primary outcome by component set "
+                         f"({', '.join(detail['pooled_components'])}); registered {_outcome_label(rp)!r}. {IDENTITY_ONLY}")
             else:
-                basis = f"the pooled outcome IS the trial's pre-registered primary outcome; registered {_outcome_label(rp)!r}"
-            return _domain("low", basis, f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2", inputs)
+                basis = f"IDENTITY: the pooled outcome IS the trial's registered primary outcome; registered {_outcome_label(rp)!r}. {IDENTITY_ONLY}"
+            return _domain("not assessed", basis, f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v3", inputs)
 
     for rs in secondaries:
         detail = _outcome_match_detail(
@@ -318,26 +338,31 @@ def derive_d5(
         )
         if detail["matched"]:
             inputs["comparison"] = {"registered_type": "secondary", "registered_label": _outcome_label(rs), **detail}
+            inputs["chain"] = _chain("MATCHED_SECONDARY")
             if detail["method"] == "registered_secondary_component":
-                basis = ("the pooled outcome is a prespecified component of a registered secondary outcome; "
-                         f"registered {_outcome_label(rs)!r}")
+                basis = ("IDENTITY: the pooled outcome is a component of a registered secondary outcome; "
+                         f"registered {_outcome_label(rs)!r}. {IDENTITY_ONLY}")
             else:
-                basis = f"prespecified secondary outcome, registered {_outcome_label(rs)!r}"
+                basis = f"IDENTITY: a registered secondary outcome, registered {_outcome_label(rs)!r}. {IDENTITY_ONLY}"
             return _domain(
-                "low",
+                "not assessed",
                 basis,
-                f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2",
+                f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v3",
                 inputs,
             )
 
+    # every listed outcome was scanned; the basis names how many, never only the first
     first = primaries[0] if primaries else {}
     detail = _outcome_match_detail(pooled_outcome, first, matches) if first else {}
-    inputs["comparison"] = {"registered_type": None, "registered_label": _outcome_label(first) if first else None, **detail}
+    inputs["comparison"] = {"registered_type": None, "registered_label": _outcome_label(first) if first else None, **detail,
+                            "scanned": {"primary": len(primaries), "secondary": len(secondaries)}}
+    inputs["chain"] = _chain("NOT_MATCHED")
     return _domain(
         "some concerns",
-        ("the pooled outcome matches no registered primary or secondary outcome "
-         f"(registered primary: {_outcome_label(first)[:80]!r}) -- possibly post-hoc/unregistered"),
-        f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2",
+        (f"IDENTITY: the pooled outcome ({', '.join(sorted(_component_set(pooled_outcome))) or 'untyped'}) matches none of the "
+         f"{len(primaries)} registered primary and {len(secondaries)} secondary outcomes by component set -- possibly "
+         f"post-hoc/unregistered. {IDENTITY_ONLY}"),
+        f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v3",
         inputs,
     )
 

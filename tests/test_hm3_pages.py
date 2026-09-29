@@ -112,6 +112,20 @@ def test_primary_trial_values_and_membership_are_unchanged():
                     and y['decision'] == 'include' and cr.get('rule') == 'CONDITION_AS_OUTCOME'
                     and (cr.get('withdrawn') or {}).get('rule_id') == 'X2' and cr.get('prevention_targets'))
 
+        # V1.0.1 (tocilizumab-COVID review): an X3 'no eligible comparator' becomes an include ONLY when the harness's
+        # normalised comparator wording of the SAME held record matches a registered comparator term ('standard-of-care
+        # (SOC)' -> 'standard of care'); re-proved here, never taken from the page
+        from harness import screen as _screen, term_normal as _tn
+        _inc = (json.loads((ROOT/'topics'/f'{slug}.json').read_text(encoding='utf-8')).get('include') or {})
+        _terms = list(_inc.get('comparator_any') or []) + list(_inc.get('comparator_any_extra') or [])
+
+        def _comparator_normalised(x, y):
+            rec = held.get(str(y['id']).split('·')[-1].strip())
+            return (x['id'] == y['id'] and x['decision'] == 'exclude' and x['rule_id'] == 'X3'
+                    and str(x.get('reason') or '').startswith('no eligible comparator') and y['decision'] == 'include'
+                    and rec is not None and not _screen._has(_screen._text(rec), _terms)
+                    and bool(_screen._has(_tn.comparator_text(_screen._text_raw(rec), _terms), _terms)))
+
         def _normalised(x, y):
             y = dict(y)
             if (y.get('completeness_basis') == 'CT.gov status/results dates from local AACT snapshot'
@@ -129,9 +143,9 @@ def test_primary_trial_values_and_membership_are_unchanged():
             return y
         assert len(b_recs) == len(a_recs), slug
         assert all((x['id'], x['decision']) == (y['id'], y['decision']) or _untraced_adjudication(x, y)
-                   or _condition_withdrawn(x, y) for x, y in zip(b_recs, a_recs)), slug
+                   or _condition_withdrawn(x, y) or _comparator_normalised(x, y) for x, y in zip(b_recs, a_recs)), slug
         for x, y in zip(b_recs, a_recs):
-            if x != y and _condition_withdrawn(x, y):
+            if x != y and (_condition_withdrawn(x, y) or _comparator_normalised(x, y)):
                 continue
             y = _normalised(x, y)
             if x != y and _untraced_adjudication(x, y):

@@ -256,6 +256,11 @@ def _text_raw(rec) -> str:
     return " ".join(p for p in parts if p)
 
 
+def _comparator_text(raw: str, terms=None) -> str:
+    from .term_normal import comparator_text
+    return comparator_text(raw, terms)
+
+
 def _text(rec) -> str:
     return _text_raw(rec).lower()
 
@@ -480,7 +485,8 @@ def screen_record(rec, inc, neg_pmids):
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
                 _span(itext_raw, bad_int))
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    comp = _has(text, comparator_any)
+    # V1.0.1 (tocilizumab-COVID review): 'standard-of-care (SOC)' ... 'SOC' is standard of care (harness/term_normal.py)
+    comp = _has(text, comparator_any) or _has(_comparator_text(_text_raw(rec), comparator_any), comparator_any)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
@@ -561,6 +567,7 @@ def screen_record_2(rec, inc):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
     if (comparator_any and not _has(text, comparator_any)
+            and not _has(_comparator_text(_text_raw(rec), comparator_any), comparator_any)
             and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):

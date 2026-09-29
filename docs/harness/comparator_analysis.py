@@ -47,9 +47,29 @@ def load(root, slug) -> Optional[dict]:
         if len(_norm(q["quote"])) < 10 or _norm(q["quote"]) not in held[ref]:
             raise AnalysisRefused(f"{slug}: quote not located in {ref}: {q['quote'][:60]}")
 
+    def located_or_verified(q, what):
+        # V1.0.1 (tocilizumab review): a statement read from a free-to-read text with no open licence (REACT's PMC page)
+        # is VERIFIED_NOT_HELD -- its PMCID, the body sha256 and why it is not held, never a located quote
+        if (q or {}).get("state") == "VERIFIED_NOT_HELD":
+            if not (q.get("pmcid") or q.get("url")) or not q.get("quote") or not (
+                    len(str(q.get("body_sha256") or "")) == 64 or q.get("why_not_held")):
+                raise AnalysisRefused(f"{slug}: {what}: a VERIFIED_NOT_HELD statement needs its source, digest and quote")
+        else:
+            locate(q)
+
     for part in ("governing", "protocol_benchmark"):
         if doc.get(part):
-            locate(doc[part])
+            located_or_verified(doc[part], part)
+    sc = doc.get("stated_counts")
+    if sc:
+        # V1.0.1 (tocilizumab review): a comparator's CLASS trial count and its DRUG-specific count are different
+        # quantities (REACT: 27 IL-6-antagonist trials, 19 tocilizumab); each printed in its source
+        for key in ("class_k", "drug_k"):
+            q = sc.get(key)
+            if q:
+                located_or_verified(q, key)
+                if not re.search(r"(?<![\d.])" + str(q["value"]) + r"(?![\d.])", q["quote"]):
+                    raise AnalysisRefused(f"{slug}: {key} {q['value']} is not printed in its quote")
     # V1.0.1 (NOAC-AF review): a comparator on the SAME trials with another model (COMBINE AF: IPD, stratified Cox with
     # random effects, 32-month censoring) -- its narrower interval is the model's, never our error
     # V1.0.1 (PCSK9 review): the comparator's SCOPE in its own words, so a larger set is never read as our omissions
@@ -75,7 +95,7 @@ def load(root, slug) -> Optional[dict]:
         raise AnalysisRefused(f"{slug}: unknown comparator_type {doc.get('comparator_type')!r}")
     mem = doc.get("membership")
     if mem:
-        locate(mem["figure"]["caption"])
+        located_or_verified(mem["figure"]["caption"], "figure caption")
         rows = mem["rows"]
         g = doc["governing"]
         if len(rows) != g["k"]:
@@ -209,6 +229,8 @@ def assess(doc: Optional[dict], review: dict) -> Optional[dict]:
            **({"method_difference": doc["method_difference"]} if doc.get("method_difference") else {}),
            **({"scope": doc["scope"]} if doc.get("scope") else {}),
            **({"named_membership": doc["named_membership"]} if doc.get("named_membership") else {}),
+           **({"stated_counts": doc["stated_counts"]} if doc.get("stated_counts") else {}),
+           **({"row_notes": doc["row_notes"]} if doc.get("row_notes") else {}),
            **({"comparator_type": doc["comparator_type"], "comparator_type_reading": doc.get("comparator_type_reading")}
               if doc.get("comparator_type") else {})}
     mem = doc.get("membership")
@@ -281,6 +303,18 @@ def render(a: Optional[dict]) -> str:
                f"read from {e(st['pmcid'])} (body sha256 {e(st['body_sha256'][:16])}&hellip;), not held: {e(st['why_not_held'])}")
         parts.append(f"<p><strong>Membership, as the comparator states it:</strong> &ldquo;{e(st['quote'])}&rdquo; "
                      f"(<code>{e(st['state'])}</code>; {src}). {e(nm.get('reading') or '')}</p>")
+    cnt = a.get("stated_counts")
+    if cnt:
+        ck, dk = cnt.get("class_k") or {}, cnt.get("drug_k") or {}
+        parts.append(f"<p><strong>Trial counts the comparator states:</strong> class {e(ck.get('value'))} "
+                     f"(&ldquo;{e(ck.get('quote'))}&rdquo;); for our drug {e(dk.get('value'))} "
+                     f"(&ldquo;{e(dk.get('quote'))}&rdquo;, {e(dk.get('state') or 'held')}"
+                     + (f", {e(dk.get('pmcid'))} body sha256 {e(str(dk.get('body_sha256'))[:16])}&hellip;" if dk.get("pmcid") else "")
+                     + f"). {e(cnt.get('reading') or '')}</p>")
+    for rn in a.get("row_notes") or []:
+        parts.append(f"<p><code>{e(rn['state'])}</code> {e(rn['row'])}: "
+                     + (f"&ldquo;{e(rn['quote'])}&rdquo; ({e(rn.get('source_state'))}). " if rn.get("quote") else "")
+                     + f"{e(rn.get('reading') or '')}</p>")
     sc = a.get("scope")
     if sc:
         parts.append("<p><strong>Scope, in the comparator's words:</strong> "
@@ -304,7 +338,7 @@ def render(a: Optional[dict]) -> str:
         held = (f"held as {e(f['document_ref'])} ({e(f.get('licence'))})" if f.get("document_ref")
                 else f"not held: {e(f['why_not_held'])}")
         parts.append(f"<p>Membership of {e((g or {}).get('analysis'))}: {e(len(m['members']))} rows read from its forest plot "
-                     f"({e(f['caption']['quote'])}; {e(f['url'])}, sha256 {e(f['sha256'][:16])}&hellip;, {held}; read by "
+                     f"({e(f['caption'].get('quote'))}; {e(f['url'])}, sha256 {e(f['sha256'][:16])}&hellip;, {held}; read by "
                      f"{e(f['read_by'])}). "
                      + ("Rows as printed (log effect, SE, effect and interval, weight): "
                         + "; ".join(f"{e(x['label'])} {e(x['log_se'][0])}, {e(x['log_se'][1])}, {e(x['printed']['effect'][0])} "

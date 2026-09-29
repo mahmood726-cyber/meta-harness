@@ -86,7 +86,7 @@ def test_d5_named_false_positives_are_no_longer_some_concerns():
         comparison = post["inputs"]["comparison"]
         _print_case(slug, pid, stored, post)
         assert stored["level"] == "some concerns"
-        assert post["level"] == "low"
+        assert post["level"] == "not assessed" and post["inputs"]["chain"]["identity"].startswith("MATCHED")  # V1.0.1 (ticagrelor review): identity only, never an automatic low
         assert post["level"] != "some concerns"
         assert registered_fragment.lower() in comparison["registered_text"].lower()
 
@@ -102,7 +102,7 @@ def test_d5_positive_controls_stay_low():
         comparison = post["inputs"]["comparison"]
         _print_case(slug, pid, stored, post)
         assert stored["level"] == "low"
-        assert post["level"] == "low"
+        assert post["level"] == "not assessed" and post["inputs"]["chain"]["identity"].startswith("MATCHED")  # V1.0.1 (ticagrelor review): identity only, never an automatic low
         assert comparison["registered_type"] == "primary"
         assert registered_fragment.lower() in comparison["registered_text"].lower()
 

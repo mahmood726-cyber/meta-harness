@@ -39,7 +39,7 @@ def test_exscel_d5_prefixed_object_fails_rederivation_with_quoted_fields():
     rederived = rob2.derive_d5(EXSCEL_PRIMARY, "3-point major adverse cardiovascular events")
 
     assert stored["level"] == "some concerns"
-    assert rederived["level"] == "low"
+    assert rederived["level"] == "not assessed" and rederived["inputs"]["chain"]["identity"].startswith("MATCHED")  # V1.0.1 (ticagrelor review): identity only, never an automatic low
     comparison = rederived["inputs"]["comparison"]
     assert comparison["method"] == "component_set"
     assert comparison["pooled_components"] == ["CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE"]

@@ -30,7 +30,8 @@ def test_d5_registered_secondary_is_not_selective_reporting():
     m = lambda a, b: b == "Death due to bleeding"  # noqa: E731
     dom = rob2.assess({"allocation": "Randomized", "masking": "Double"}, ["Primary X"],
                       "Death due to bleeding", m, registered_secondaries=["Death due to bleeding"])
-    assert dom["D5_selective_reporting"]["level"] == "low"
+    assert dom["D5_selective_reporting"]["level"] == "not assessed"  # V1.0.1 (ticagrelor review): identity only
+    assert dom["D5_selective_reporting"]["inputs"]["chain"]["identity"] == "MATCHED_SECONDARY"
     # a genuinely unregistered (post-hoc) outcome still gets some concerns
     dom2 = rob2.assess({"allocation": "Randomized", "masking": "Double"}, ["Primary X"],
                        "Posthoc Y", lambda a, b: False, registered_secondaries=["Sec Z"])

@@ -55,7 +55,9 @@ def main(argv):
             # not the pooled one (PLATO: Non-CABG major bleeding for the CV composite) is false reassurance, whatever
             # the fixed matcher now binds
             old_reg = set(rob2._component_set(old.get("registered_text") or "")) if old.get("matched") else set()
-            if old.get("matched") and pooled and old_reg and old_reg != pooled:
+            # a designed subset match (registered_secondary_component: HHF inside a CV death/HHF composite) is not one
+            if old.get("matched") and pooled and old_reg and (not (old_reg & pooled) or
+                                                               (old.get("method") == "text_identity" and old_reg != pooled)):
                 cls = "FALSE_REASSURANCE"
             elif not old.get("matched") and new.get("matched"):
                 cls = "FALSE_CONCERN"

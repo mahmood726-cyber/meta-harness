@@ -83,6 +83,12 @@ def _held(cache, review, objects):
     _rt = cache.parent.parent / "registry" / "rule_trace" / f"{cache.name}.json"
     if _rt.is_file():
         paths.add(_rt)
+    # V1.0.1 (ticagrelor review): the GRADE holds and the RCT checkpoints / acquisition record decide served text
+    for _reg in ("grade_holds.json", "positive_controls.json", "positive_control_acquisition.json"):
+        _rp = cache.parent.parent / "registry" / _reg
+        if _rp.is_file():
+            paths.add(_rp)
+    paths |= set(cache.glob("parent_registrations.json"))   # generated parent-registration links (statins review)
     # Follow explicit local source refs and their source manifest, including PDF/text pairs.
     pending = [review, *objects]
     visited = set()
