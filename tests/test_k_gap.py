@@ -265,3 +265,57 @@ def test_title_key_matches_a_second_record_of_the_same_article():
     m = _table_mod()
     assert m._title_key("Empagliflozin, Cardiovascular Outcomes, and Mortality in Type 2 Diabetes.") == \
         m._title_key("Empagliflozin, cardiovascular outcomes, and mortality in type 2 diabetes")
+
+
+# ------------------------------------------------ comparator supplements (Europe PMC supplementaryFiles ZIP)
+
+def _zip(members):
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for name, data in members:
+            z.writestr(name, data)
+    return buf.getvalue()
+
+
+def _supp_env(tmp_path, monkeypatch, body):
+    from harness import http
+    monkeypatch.setattr(k_gap, "COMP_DIR", str(tmp_path))
+    calls = []
+
+    def fake(url, params=None, tries=4, timeout=30):
+        calls.append(url)
+        return 200, body
+    monkeypatch.setattr(http, "get_raw", fake)
+    return calls
+
+
+def test_supplement_error_body_is_not_a_package_and_is_not_cached(tmp_path, monkeypatch):
+    # EPMC answers an XML error body with HTTP 200 for a non-OA article: that must not become '' supplement text
+    _supp_env(tmp_path, monkeypatch, b"<?xml version='1.0'?><error>not found</error>")
+    r = k_gap.comparator_supplements("1", "PMC1", ["s1.csv"], "2026-09-29")
+    assert r["state"] == "NOT_A_ZIP" and r["text"] == ""
+    assert not list(tmp_path.rglob("*_kgap_supplements.txt"))
+
+
+def test_supplement_zip_nested_zip_csv_read_doc_and_image_skipped(tmp_path, monkeypatch):
+    inner = _zip([("S2.csv", "trial,rr\nALPHA,0.81\n")])
+    _supp_env(tmp_path, monkeypatch, _zip([("fig1.jpg", b"\xff\xd8"), ("old.doc", b"\xd0\xcf\x11\xe0"),
+                                           ("nested.zip", inner)]))
+    r = k_gap.comparator_supplements("1", "PMC1", ["fig1.jpg", "old.doc", "nested.zip"], "2026-09-29")
+    assert r["state"] == "OK" and "ALPHA" in r["text"] and "0.81" in r["text"]
+    skipped = {f["file"]: f.get("skipped", "") for f in r["files"]}
+    assert "OCR" in skipped["fig1.jpg"] and ".doc" in skipped["old.doc"]
+    assert r["zip_sha256"] and r["route"].endswith("/PMC1/supplementaryFiles")
+
+
+def test_supplement_cache_hit_keeps_manifest_and_refuses_a_tampered_text(tmp_path, monkeypatch):
+    calls = _supp_env(tmp_path, monkeypatch, _zip([("S1.csv", "trial,rr\nBETA,1.10\n")]))
+    first = k_gap.comparator_supplements("1", "PMC1", ["S1.csv"], "2026-09-29")
+    again = k_gap.comparator_supplements("1", "PMC1", ["S1.csv"], "2026-09-29", offline=True)
+    assert len(calls) == 1 and again["state"] == "CACHED" and again["zip_sha256"] == first["zip_sha256"]
+    txt = next(tmp_path.rglob("*_kgap_supplements.txt"))
+    txt.write_text(txt.read_text(encoding="utf-8").replace("1.10", "0.10"), encoding="utf-8")
+    bad = k_gap.comparator_supplements("1", "PMC1", ["S1.csv"], "2026-09-29", offline=True)
+    assert bad["state"] == "CACHE_HASH_MISMATCH" and bad["text"] == ""

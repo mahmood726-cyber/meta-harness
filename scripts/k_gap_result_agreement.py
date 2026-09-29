@@ -161,6 +161,9 @@ def topics():
 
 
 OURS_SOURCE = "served"          # or "rebuilt": the in-memory pool this branch's extractor would serve
+WITH_SUPP = False               # --with-supplements: the comparator's cached supplement text is appended to the held
+                                # text, and the gate searches the SAME concatenation the model was shown
+SUPP_DATE = "2026-09-29"
 
 
 def ours_rows(slug):
@@ -181,6 +184,15 @@ def items():
     for slug, rows in sorted(topics().items()):
         prim, by = ours_rows(slug)
         text, ref = k_gap.held_text(slug)
+        if WITH_SUPP:
+            pmid = re.search(r"comparators/(\d+)/", ref)
+            sp = k_gap.comparator_supplements(pmid.group(1), "", [], SUPP_DATE, offline=True) if pmid else {}
+            if sp.get("state") == "CACHED" and sp.get("text"):
+                text = text + "
+
+=== COMPARATOR SUPPLEMENTARY FILES ===
+" + sp["text"]
+                ref = ref + f" + supplements sha256:{sp['sha256']}"
         keyed, seen = [], set()
         for r in rows:
             ours = next((by[p] for p in r["pmids"] if p in by), None)
@@ -242,11 +254,18 @@ def gate(claim, label, held):
 
 def main(argv):
     global OURS_SOURCE
+    global WITH_SUPP
     if "--ours-rebuilt" in argv:
         OURS_SOURCE = "rebuilt"
+    WITH_SUPP = "--with-supplements" in argv
+    base = PROP.replace(".json", ".supp.json") if WITH_SUPP else PROP
     its = items()
-    data = _j(PROP) if os.path.exists(PROP) else {}
+    data = _j(base) if os.path.exists(base) else {}
     runs = data.get("runs", {})
+    if WITH_SUPP and os.path.exists(PROP):
+        # a topic with no supplement text has a byte-identical prompt: its recorded served run is the same call
+        for slug, r in _j(PROP).get("runs", {}).items():
+            runs.setdefault(slug, r)
     if "--run" in argv:
         done = {r["prompt_sha256"] for r in runs.values() if r["state"] == "RAN_OK"}
         todo = [it for it in its if hashlib.sha256(prompt(it)).hexdigest() not in done]
@@ -281,7 +300,8 @@ def main(argv):
     tally = Counter(r["verdict"].split("(")[0] for r in rows)
     out = {"n_topics": len(its), "n_shared_trials": len(rows), "tally": dict(tally), "runs": runs, "rows": rows,
            "ours_source": OURS_SOURCE}
-    target = PROP if OURS_SOURCE == "served" else PROP.replace(".json", ".rebuilt.json")
+    out["with_supplements"] = WITH_SUPP
+    target = base if OURS_SOURCE == "served" else base.replace(".json", ".rebuilt.json")
     with open(target, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False, sort_keys=True)
     print(json.dumps({k: out[k] for k in ("n_topics", "n_shared_trials", "tally")}, indent=1))

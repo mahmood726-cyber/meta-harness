@@ -877,44 +877,75 @@ def comparator_supplements(pmid: str, pmcid: str, hrefs: list, date: str, offlin
     from harness import fulltext as _ft
     from harness import http
     fp = os.path.join(COMP_DIR, pmid, f"{date}_kgap_supplements.txt")
+    mp = fp[:-4] + ".manifest.json"
     if os.path.exists(fp):
         with open(fp, encoding="utf-8") as fh:
             t = fh.read()
-        return {"state": "CACHED", "text": t, "sha256": sha256(t.encode("utf-8"))}
+        side = {}
+        if os.path.exists(mp):
+            with open(mp, encoding="utf-8") as fh:
+                side = json.load(fh)
+        if side.get("sha256") and side["sha256"] != sha256(t.encode("utf-8")):
+            return {"state": "CACHE_HASH_MISMATCH", "text": "", "route": side.get("route")}
+        return {**side, "state": "CACHED", "fetched_state": side.get("state"), "text": t,
+                "sha256": sha256(t.encode("utf-8"))}
     if offline:
         return {"state": "NOT_CACHED_OFFLINE", "text": ""}
     if not pmcid or not hrefs:
         return {"state": "NO_SUPPLEMENTS", "text": ""}
-    # NCBI's PMC OA web service (oa.fcgi) now answers 404, so the OA-package route is gone (harness.fetch's
-    # _pmc_oa_supplement_text swallows that and returns '' -- silently). Each supplement is served on its own at
-    # pmc.ncbi.nlm.nih.gov/articles/instance/<numeric PMCID>/bin/<file> (the article page links it there).
-    num = re.sub(r"(?i)^PMC", "", pmcid)
+    # Routes, in order. NCBI's oa.fcgi answers 404 (retired; harness.fetch._pmc_oa_supplement_text swallows that and
+    # returns ''), and PMC's articles/instance/<id>/bin/<file> serves a JavaScript interstitial (bot protection; not
+    # circumvented). Europe PMC's REST supplementaryFiles endpoint serves every supplement of an OA article as one ZIP.
+    url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/supplementaryFiles"
+    try:
+        st, zbytes = http.get_raw(url, tries=3, timeout=180)
+    except Exception as exc:  # noqa: BLE001
+        return {"state": "FETCH_FAILED", "text": "", "route": url, "error": str(exc)[-200:]}
+    if zbytes[:2] != b"PK":          # an XML/HTML error body is not a package: fail closed, cache nothing
+        return {"state": "NOT_A_ZIP", "text": "", "route": url, "http_status": st, "bytes": len(zbytes),
+                "head": zbytes[:120].decode("utf-8", "replace")}
+    wanted = {h.rsplit("/", 1)[-1].lower() for h in hrefs}
     blocks, files = [], []
-    for h in hrefs:
-        base = h.rsplit("/", 1)[-1]
+    for base, data in _zip_members(zbytes):
         low = base.lower()
-        if low.endswith((".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff", ".mp4", ".zip")):
-            files.append({"file": base, "skipped": "image/archive (no OCR)"})
-            continue
-        url = f"https://pmc.ncbi.nlm.nih.gov/articles/instance/{num}/bin/{base}"
-        try:
-            st, data = http.get_raw(url, tries=2, timeout=120)
-        except Exception as exc:  # noqa: BLE001
-            files.append({"file": base, "error": str(exc)[-160:]})
+        rec = {"file": base, "bytes": len(data), "sha256": sha256(data), "listed": low in wanted}
+        if low.endswith((".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff", ".mp4", ".bmp")):
+            files.append({**rec, "skipped": "image (no OCR)"})
             continue
         if low.endswith(".docx"):
             txt = _docx_text(data)
         elif low.endswith(".pdf") or data[:4] == b"%PDF":
             txt = _pdf_text(data)
+        elif low.endswith(".doc"):
+            files.append({**rec, "skipped": "legacy binary .doc (no typed parser)"})
+            continue
         else:
             txt = _ft.supplement_text_from_bytes(low, data)
-        files.append({"file": base, "url": url, "http_status": st, "bytes": len(data), "sha256": sha256(data),
-                      "text_chars": len(txt or "")})
+        files.append({**rec, "text_chars": len(txt or "")})
         if txt:
             blocks.append(f"=== SUPPLEMENT {base} ===\n{txt}")
     text = "\n\n".join(blocks)
     os.makedirs(os.path.dirname(fp), exist_ok=True)
     with open(fp, "w", encoding="utf-8") as fh:
         fh.write(text)
-    return {"state": "OK" if text else "NO_TEXT_IN_SUPPLEMENTS", "text": text, "files": files,
-            "sha256": sha256(text.encode("utf-8"))}
+    side = {"state": "OK" if text else "NO_TEXT_IN_SUPPLEMENTS", "files": files, "route": url, "http_status": st,
+            "zip_bytes": len(zbytes), "zip_sha256": sha256(zbytes), "sha256": sha256(text.encode("utf-8"))}
+    with open(mp, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(side, fh, indent=1)
+    return {**side, "text": text}
+
+
+def _zip_members(zbytes: bytes, depth: int = 0):
+    """(basename, bytes) for every file in a ZIP, descending into nested ZIPs (MDPI ships one) up to depth 2."""
+    import io as _io
+    import zipfile
+    with zipfile.ZipFile(_io.BytesIO(zbytes)) as z:
+        for info in z.infolist():
+            if info.is_dir():
+                continue
+            data = z.read(info)
+            base = info.filename.rsplit("/", 1)[-1]
+            if base.lower().endswith(".zip") and depth < 2 and data[:2] == b"PK":
+                yield from _zip_members(data, depth + 1)
+            else:
+                yield base, data
