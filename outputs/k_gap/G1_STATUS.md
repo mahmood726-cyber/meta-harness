@@ -21,13 +21,13 @@ output.
       vs the comparator's -12.44 (-13.37, -11.51).
 - **Supplements** (where per-trial data often live), measured 2026-09-29 over 32 comparators:
   - **Europe PMC `supplementaryFiles`** (one ZIP per OA article) works, with intermittent 503s.
-    - Outcome: 18 comparators with typed supplement text, 1 with only a legacy .doc (melatonin), 13 with no
-      supplements, and 4 still failing with 503 (noac, semaglutide-obesity-mace, sglt2-hfref-hosp-cvdeath,
-      balanced-crystalloids).
+    - Outcome: 20 comparators with typed supplement text, 1 with only a legacy .doc (melatonin), 1 with only
+      images (balanced-crystalloids), 13 with no supplements, and 1 refused (noac). For noac, EPMC returns an
+      errorBean with HTTP 200 for the NIHMS supplement; it is refused as NOT_A_ZIP and nothing is cached.
   - NCBI `oa.fcgi` returns 404: the service is retired, and `harness.fetch._pmc_oa_supplement_text` silently
     returns '' because of it.
   - PMC `articles/instance/<id>/bin/<file>` serves a JavaScript interstitial; it is not circumvented.
-  - **Result:** the supplements move G1 result agreement by **0 of 44**. Codex re-read the 11 shared-trial topics
+  - **Result:** the supplements move G1 result agreement by **0 of 44**. Codex re-read the 13 shared-trial topics
     with supplement text, and every answer is still NOT_REPORTED
     (`registry/model_proposals/k_gap_result_agreement.supp.json`). A deterministic cross-check of the NOT_REPORTED
     answers, which the quote gate cannot verify on its own:
