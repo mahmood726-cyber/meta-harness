@@ -10,7 +10,8 @@ from harness import comparator_analysis as ca
 
 ROOT = Path(__file__).resolve().parents[1]
 TEXT_TOPICS = ["colchicine-postop-af", "colchicine-recurrent-pericarditis", "finerenone-ckd-t2d-renal",
-               "iv-iron-hfref-hosp", "probiotics-aad-prevention", "statins-primary-prevention-elderly"]
+               "iv-iron-hfref-hosp", "probiotics-aad-prevention", "statins-primary-prevention-elderly",
+               "glp1-ra-mace-t2d"]
 
 
 def _review(slug):
@@ -23,8 +24,19 @@ def test_text_membership_rows_are_panel_rows_quoted_in_the_held_text(slug):
     rows = doc["membership"]["rows"]
     panel = json.loads((ROOT / "cache" / slug / "comparators.json").read_text(encoding="utf-8"))[0]
     assert {r["panel_row"] for r in rows} <= {t["family_id"] for t in panel["trial_set"]}
-    # never beside an existing per-outcome panel binding: the two would disagree on the endpoint label and empty the set
-    assert not panel.get("outcome_endpoints"), slug
+    # beside a per-outcome panel endpoint binding the membership governs (round 10, plants_round10 Q1): never an
+    # emptied set -- every bound row is in the comparator's pool for our outcome
+    theirs = _review(slug)["comparator"]["overlap_relation"]
+    assert theirs["theirs_k"] == len(rows), slug
+
+
+def test_glp1_is_compared_on_all_eight_cvots_elixa_included():
+    # Giugliano 2021 Fig. 3 pools the eight CVOTs on MACE, ELIXA's 4-point MACE included; our pool excludes ELIXA and
+    # adds SOUL (2025). Before round 10 the panel's "3-point MACE" binding dropped ELIXA from THEIR analysis: SUPERSET
+    o = _review("glp1-ra-mace-t2d")["comparator"]["overlap_relation"]
+    assert (o["relation"], o["theirs_k"], o["shared_k"]) == ("OVERLAPPING", 8, 7)
+    assert o["only_ours"] == ["NCT03914326"] and o["only_theirs"] == ["ELIXA"]
+    assert o["theirs_k"] == o["theirs_k_stated"]["value"]
 
 
 def test_a_text_row_whose_quote_is_not_in_the_held_text_is_refused(tmp_path):

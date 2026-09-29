@@ -178,7 +178,10 @@ def _members(review, panel, prim_name, acr_idx, ours_keys, title_idx=None, cited
     # "the comparator's pool FOR THE SAME OUTCOME": an outcome-specific enumeration (a panel whose endpoints are bound
     # to this outcome, or comparator-truth's named set for it) outranks a whole included-studies table
     if panel and panel.get("trial_set") and (panel_outcome_specific or not truth_outcome_specific):
-        expected = (panel.get("outcome_endpoints") or {}).get(prim_name) or (plot_label if plot_rows else None)
+        # V1.0.1 round 10 (G1, GLP-1 CVOT review): the governing analysis' own membership outranks a per-row endpoint
+        # binding. Giugliano 2021 pools all eight CVOTs on MACE, ELIXA's 4-point MACE included; binding the outcome to
+        # "3-point MACE" while members carry the analysis label emptied the set (plants_round10 Q1)
+        expected = plot_label if plot_rows else (panel.get("outcome_endpoints") or {}).get(prim_name)
         alias_of, collisions = {}, []
         for m in panel["trial_set"]:
             for key in [m["family_id"]] + [a["id"] for a in m.get("aliases", [])] + ([m["bib_key"]] if m.get("bib_key") else []):

@@ -478,3 +478,33 @@ systematically ascertained". `screen_family` had skipped that half, so "145 elig
 - **Codex task `comparator_trial_names`** (6 comparators with no trial table). Both readers name the same 6 trials for
   dapagliflozin HFpEF, but our pool there is empty. Empagliflozin and tranexamic acid are single-reader only. All are
   PROPOSED.
+
+## Round 10 (G1): the GLP-1 CVOT comparator is compared on its own MACE analysis, ELIXA included
+
+- **The defect.** Giugliano 2021 (PMID 34526024) pools all eight CVOTs on MACE. The Fig. 3 caption reads "Forest plots
+  of meta-analysis of the eight CVOTs with GLP-1RA on MACE", overall HR 0.86 (0.79-0.94).
+  - The panel binds our outcome to "3-point MACE". ELIXA's own endpoint is 4-point MACE, so the per-row binding dropped
+    ELIXA from THEIR analysis.
+  - The page said SUPERSET ("every comparator trial is in our pool"). That is false: ELIXA is in their pool and not in
+    ours.
+- **The fix is harness code** (`harness/overlap_relation.py::_members`). When the comparator's governing-analysis
+  membership is bound, its label is the expected endpoint. Before, the per-row binding took precedence, and beside a
+  membership it always emptied the set.
+  - This is the conflict round 9 worked around by removing the GLP-1 membership. It is now fixed at the source, and the
+    round-9 guard test is replaced by an assertion that the bound k equals theirs_k.
+- **Plant** `scripts/plants_round10.py` (`round10_plants/`):
+  - On the pre-fix harness (f7c4e5b2), Q1 FIRED: all 8 members out, 0 in.
+  - On the fixed harness, it does not fire.
+  - Control C1 (no membership, so the per-row binding still excludes ELIXA) passes on both harnesses.
+- **Membership**: `cache/glp1-ra-mace-t2d/comparator_analysis.json`, a text membership of 8 rows, each quoting the
+  located Fig. 3 caption.
+  - It is proposed blind by both codex readers (`comparator_membership`, both name the same 8) and bound after my read.
+- **n of N**: 3 topics carry a per-outcome endpoint binding.
+  - glp1: wrong, ELIXA dropped.
+  - balanced crystalloids: right. Both readers also exclude Ratanarat 2017, which reports no mortality.
+  - sacubitril: not applicable, a network meta-analysis.
+  - Wrong in 1 of the 2 where the binding applies.
+- **Result**: GLP-1 moves from SUPERSET (ours 8, theirs 7, shared 7) to OVERLAPPING (8, 8, 7). Only theirs: ELIXA
+  (NCT01147250). Only ours: SOUL (NCT03914326, 2025).
+  - No pooled result moved. Families 32/32 byte-identical. No other relation changed.
+  - Our exclusion of ELIXA is our own eligibility decision (4-point MACE). This round does not change it.
