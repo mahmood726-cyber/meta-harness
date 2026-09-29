@@ -442,7 +442,10 @@ def _is_factorial(abstract):
 # plural 'subgroups' / 'sensitivity analyses' / 'exploratory analyses' are subgroup language.
 _SUBGROUP = re.compile(
     r"\bper[-\s]?protocol\b|\bpost[-\s]?hoc\b|\bsubgroups?\b|\bsensitivity analys[ie]s\b|\bas[-\s]?treated\b|\blowest in\b|"
-    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b", re.I)
+    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b"
+    # 'in the group of patients who were on regular PPI' (PMID 34541475): a subgroup named by a baseline
+    # attribute. Narrow on purpose: 'who received X' describes an ARM and must not be refused.
+    r"|\bin the (?:group|subset|subpopulation) of (?:patients|participants|subjects) (?:who were|with|on)\b", re.I)
 
 
 def _is_subgroup_sentence(sentence):

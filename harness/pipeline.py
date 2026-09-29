@@ -14,6 +14,7 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
+from . import fulltext as _ft_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -323,6 +324,78 @@ def _primacy(r):
     if any(x in p for p in pts for x in _NONPRIMARY):
         return 0
     return 2  # an ordinary journal article
+
+
+def _fulltext_extract(ft, spec, interv, comp, dc):
+    """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
+    (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
+    refused as ambiguous (R4), never the first. Baseline/demographic tables are not read (dropped and listed)."""
+    seg = _ft_mod.extraction_segments(ft)
+    if _fulltext_prose_guard(seg):
+        return {"absent": True, "reason": ("full text holds a baseline-characteristics table whose inline copy in the "
+                                           "prose could not be located and removed; refused rather than risk reading "
+                                           "baseline values as outcomes")}
+    kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
+    fx = extract.extract_trial(seg["prose"], spec["keywords"], interv, comp, **kw)
+    if not fx.get("absent"):
+        return fx
+    hits = []
+    for r in seg["rows"]:
+        rx = extract.extract_trial(r["row"], spec["keywords"], interv, comp, **kw)
+        if not rx.get("absent"):
+            hits.append(rx)
+    vals = {tuple(sorted((k, v) for k, v in h.items() if k != "source")) for h in hits}
+    if len(vals) == 1:
+        return hits[0]
+    if len(vals) > 1:
+        return {"absent": True, "reason": ("ambiguous: full-text table rows state different values for this "
+                                           "outcome; refused rather than take the first (R4)")}
+    why = fx.get("reason") or "no extractable value in the full-text prose or table rows"
+    if seg["dropped_tables"]:
+        why += f" (baseline tables not read: {len(seg['dropped_tables'])})"
+    return {"absent": True, "reason": why}
+
+
+def _fulltext_prose_guard(seg):
+    """A baseline table whose inline copy could not be removed from the prose is still readable there; the
+    full-text rung then refuses rather than risk reading WHO was randomised as WHAT happened."""
+    return bool(seg.get("baseline_inline_not_located"))
+
+
+# ONE pattern per clinical component, however it is written: 'Myocardial Infarction (MI)' is one component and
+# 'Hospitalization for heart failure (HHF)' is one component -- counting WORDS called both composites.
+_COMPOSITE_COMPONENTS = tuple(re.compile(p, re.I) for p in (
+    r"\b(?:death|deaths|mortality|died)\b",
+    r"\bmyocardial infarctions?\b|\bMI\b",
+    r"\bstrokes?\b",
+    r"\b(?:heart failure|HF)\b[^,;.]{0,30}\bhospitali[sz]|\bhospitali[sz]\w*\s+(?:for|due to)\s+(?:heart failure|HF)\b|\bHHF\b",
+    r"\brevasculari[sz]ation\b",
+    r"\bunstable angina\b",
+))
+
+
+def _registry_title_is_composite(title: str) -> bool:
+    """A registry outcome title names a composite when the prose detector says so OR it names >=2 distinct
+    components ('Time to First Occurrence of CV Death, MI, or Stroke' is a composite that _names_composite
+    alone does not see)."""
+    t = title or ""
+    return bool(extract._names_composite(t)) or sum(1 for p in _COMPOSITE_COMPONENTS if p.search(t)) >= 2
+
+
+def _ctgov_rung_admissible(cg, spec):
+    """The CT.gov structured-results rung takes a 2x2 only when (1) the registry types the measure as a PARTICIPANT
+    COUNT -- EXAMINE (PMID 23992602) posts MACE as a PERCENTAGE, 11.3 vs 11.8, and the rung read 11.3 as 11 events of
+    2701 -- and (2) for a declared COMPOSITE outcome, the registry measure is itself a composite: COLCHICINE-PCI
+    (PMID 32295417) was admitted on 'Peri-procedural Myocardial Infarction' because 'myocardial infarction' is one
+    of the composite's keywords. A refused rung falls through to the lower rungs; nothing is reconstructed from it.
+    Continuous (MEAN/SD) results carry no measure type and are unaffected."""
+    if not cg or "ai" not in cg:
+        return cg
+    if cg.get("registry_measure_type") != "COUNT_OF_PARTICIPANTS":
+        return None
+    if extract.declared_is_composite(spec.get("name", "")) and not _registry_title_is_composite(cg.get("registry_title", "")):
+        return None
+    return cg
 
 
 def _dedup(records, pivotal=None):
@@ -1220,6 +1293,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                             min_total=_enrollment_floor(rec.get("abstract", "")),
                             judgments=outcome_judgments)
               if nct and nct in ctgov_results else None)
+        cg = _ctgov_rung_admissible(cg, spec)
         if cg:
             cg["provenance"] = "ctgov_results"
             t = {"label": label, "id": idstr, **cg}
@@ -1232,8 +1306,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # often live in the PMC OA full text (Albert's azithromycin IRR 0.73). Same extractors,
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
-        fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc,
-                                   estimand=spec.get("estimand")) if ft else None
+        fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
         if fx and not fx.get("absent"):
             fx["provenance"] = "pmc_fulltext"
             t = {"label": label, "id": idstr, **fx}

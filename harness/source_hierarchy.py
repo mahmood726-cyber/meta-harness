@@ -61,6 +61,10 @@ def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 26
     kl = [str(k).lower() for k in kws or []]
     candidates: list[dict[str, Any]] = []
     for sentence in extract._sentences(text):
+        # the extractor's own sentence guard: a subgroup / per-protocol / post-hoc effect is not the trial's
+        # result (PMID 34541475: the PPI-subgroup RR 0.53 was selected over the refused ITT extraction)
+        if extract._is_subgroup_sentence(sentence):
+            continue
         low = sentence.lower()
         prev_end = 0
         for m in _EFFECT_CANDIDATE.finditer(sentence):
@@ -96,8 +100,12 @@ def source_effect_candidates(
     for eff in _effect_candidates_in_outcome(abstract or "", spec.get("keywords") or []):
         _append_unique(candidates, reported_effect_candidate(eff, "abstract", "abstract"))
     if fulltext:
-        for eff in _effect_candidates_in_outcome(fulltext, spec.get("keywords") or []):
-            _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
+        # the same units the full-text rung reads: prose, then each verbatim non-baseline table row on its own
+        from . import fulltext as _ft_mod
+        seg = _ft_mod.extraction_segments(fulltext)
+        for unit in [seg["prose"]] + [r["row"] for r in seg["rows"]]:
+            for eff in _effect_candidates_in_outcome(unit, spec.get("keywords") or []):
+                _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
     if ctgov_outcomes:
         text = json.dumps(ctgov_outcomes, ensure_ascii=False)
         for eff in _effect_candidates_in_outcome(text, spec.get("keywords") or []):
