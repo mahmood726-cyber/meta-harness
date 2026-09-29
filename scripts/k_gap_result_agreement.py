@@ -188,10 +188,7 @@ def items():
             pmid = re.search(r"comparators/(\d+)/", ref)
             sp = k_gap.comparator_supplements(pmid.group(1), "", [], SUPP_DATE, offline=True) if pmid else {}
             if sp.get("state") == "CACHED" and sp.get("text"):
-                text = text + "
-
-=== COMPARATOR SUPPLEMENTARY FILES ===
-" + sp["text"]
+                text = text + "\n\n=== COMPARATOR SUPPLEMENTARY FILES ===\n" + sp["text"]
                 ref = ref + f" + supplements sha256:{sp['sha256']}"
         keyed, seen = [], set()
         for r in rows:
