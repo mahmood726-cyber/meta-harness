@@ -19,12 +19,22 @@ output.
       trial's published primary estimated treatment difference;
     - with this branch's extractor fix both **AGREE**: STEP 3 MD -10.3 (-12.0, -8.6); STEP 1 -12.4 (-13.4, -11.5)
       vs the comparator's -12.44 (-13.37, -11.51).
-- **Supplements** (where per-trial data often live): every open route was tried, and all are blocked.
+- **Supplements** (where per-trial data often live), measured 2026-09-29 over 32 comparators:
+  - **Europe PMC `supplementaryFiles`** (one ZIP per OA article) works, with intermittent 503s.
+    - Outcome: 18 comparators with typed supplement text, 1 with only a legacy .doc (melatonin), 13 with no
+      supplements, and 4 still failing with 503 (noac, semaglutide-obesity-mace, sglt2-hfref-hosp-cvdeath,
+      balanced-crystalloids).
   - NCBI `oa.fcgi` returns 404: the service is retired, and `harness.fetch._pmc_oa_supplement_text` silently
     returns '' because of it.
-  - PMC `articles/instance/<id>/bin/<file>` serves a JavaScript "Preparing to download" interstitial: bot
-    protection, not circumvented.
-  - Europe PMC `supplementaryFiles` answered 503: retry later.
+  - PMC `articles/instance/<id>/bin/<file>` serves a JavaScript interstitial; it is not circumvented.
+  - **Result:** the supplements move G1 result agreement by **0 of 44**. Codex re-read the 11 shared-trial topics
+    with supplement text, and every answer is still NOT_REPORTED
+    (`registry/model_proposals/k_gap_result_agreement.supp.json`). A deterministic cross-check of the NOT_REPORTED
+    answers, which the quote gate cannot verify on its own:
+    - 13 of the 22 shared-trial labels on these topics never occur in their supplement text;
+    - where a label does occur (esketamine, probiotics), it is only in reference lists, PRISMA counts, or
+      characteristics tables giving N and arm split, never a per-trial effect or event count;
+    - the probiotics supplement files are the draft manuscript and reviewer-comment PDFs.
 
 ## Methodological defects G1 found, fixed on this branch (all need re-certification before landing)
 
