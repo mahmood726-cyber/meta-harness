@@ -155,6 +155,65 @@ def build(slug, extra_records=None, extra_fulltext=None, extra_ctgov=None):
     return build_review_core(slug, config, records, protocol_sha(slug))
 
 
+def all_with_screen_hypothesis(slug):
+    """Every adapter PLUS the screening hypothesis (the comparator trials both recorded readers judge eligible are
+    flipped to include, in memory). Acquisition targets are taken from the HYPOTHESIS core's declared-absent list,
+    so a flipped record gets its full text / registry results too. Returns (base_core, cf_core, details)."""
+    from harness import fetch, fulltext as _ftm
+    from harness import pipeline as _pl
+    from kgap import k_gap as _kg
+    sj = _j(os.path.join(OUT, "screen_join.json"))
+    flip = {p for r in sj["rows"] if r["slug"] == slug and r["verdict"] == "READER_DISAGREES_WITH_EXCLUSION"
+            for p in r["pmids"]}
+    orig = _pl.screen.run
+
+    def _hyp(recs, cfg, _orig=orig, _flip=flip):
+        out = _orig(recs, cfg)
+        for d in out["decisions"]:
+            if str(d.get("id")) in _flip and d.get("decision") != "include":
+                d.update({"decision": "include", "rule_id": "HYPOTHESIS_ADJUDICATED_ELIGIBLE",
+                          "reason": "k-gap counterfactual: two recorded readers judged eligible (not a decision)"})
+        return out
+    base_core = build(slug)
+    rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+    pm, _ = member_pmids(slug)
+    mrec_p = os.path.join(OUT, "member_records.json")
+    mrec = _j(mrec_p) if os.path.exists(mrec_p) else {}
+    recs = [mrec[p] for p in pm if p in mrec] + (fetch._efetch([p for p in pm if p not in mrec]) if
+                                                 [p for p in pm if p not in mrec] else [])
+    _pl.screen.run = _hyp
+    try:
+        hyp_core = build(slug, extra_records=recs)
+        prim = next((o for o in hyp_core["outcomes"] if o.get("primary")), {})
+        held_ft = set(rj.get("fulltext_by_pmid") or {})
+        ft_t = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
+                       if str(d.get("id", "")).startswith("PMID ")} - held_ft)
+        doi_of = {r.get("id"): (r.get("doi") or "").strip() for r in list(rj.get("records", [])) + recs}
+        fts, n_upw = {}, 0
+        for p in ft_t:
+            t = pmc_fulltext_cached(p)
+            if t:
+                fts[p] = t
+            elif doi_of.get(p):
+                u = _kg.unpaywall_text(doi_of[p], os.path.join(OUT, "_upw"), os.path.join(OUT, "unpaywall_text_index.json"))
+                if u.get("text"):
+                    fts[p] = _ftm.UNSTRUCTURED_MARKER + "\n" + u["text"]
+                    n_upw += 1
+        recnct = {r.get("id"): r.get("nct") for r in list(rj.get("records", [])) + recs}
+        cg_t = set()
+        for d in prim.get("declared_absent_trials", []):
+            for n in (d.get("trial_family_id"), recnct.get(str(d.get("id", "")).replace("PMID ", "")), d.get("id")):
+                if n and str(n).startswith("NCT"):
+                    cg_t.add(str(n))
+        cgs = {n: o for n in sorted(cg_t - set(rj.get("ctgov_results") or {})) for o in [ctgov_results_cached(n)] if o}
+        cf_core = build(slug, extra_records=recs, extra_fulltext=fts, extra_ctgov=cgs)
+    finally:
+        _pl.screen.run = orig
+    return base_core, cf_core, {"flipped": len(flip), "members_added": len(recs), "fulltext_added": len(fts) - n_upw,
+                                "unpaywall_added": n_upw, "ctgov_added": len(cgs),
+                                "flip_funnel": funnel(cf_core, sorted(flip))}
+
+
 def member_pmids(slug):
     """Comparator members the k-gap table marks IDENTIFICATION (never in our corpus), confirmed-set only.
 
@@ -182,7 +241,50 @@ def main(argv):
         t0 = time.time()
         s = served_primary(slug)
         try:
-            if mode == "--unpaywall":
+            if mode == "--all-hyp":
+                b, c, det = all_with_screen_hypothesis(slug)
+                base, cf = core_primary(b), core_primary(c)
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "baseline_k_valid": base["k_valid"],
+                             "counterfactual_k": cf["k"], "counterfactual_k_valid": cf["k_valid"],
+                             "counterfactual_scale": cf["scale"], **det,
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "secs": round(time.time() - t0, 1)}
+            elif mode == "--screen-hypothesis":
+                # WHAT WOULD ADJUDICATION BE WORTH? For the comparator trials we exclude where the repo's two recorded
+                # readers both say ELIGIBLE (outputs/k_gap/screen_join.json), flip ONLY those decisions in memory and
+                # rebuild. Hypothetical by construction (rule id says so); the screener is not changed.
+                from harness import pipeline as _pl
+                sj = _j(os.path.join(OUT, "screen_join.json"))
+                flip = {p for r in sj["rows"] if r["slug"] == slug and r["verdict"] == "READER_DISAGREES_WITH_EXCLUSION"
+                        for p in r["pmids"]}
+                base = core_primary(build(slug))
+                if not flip:
+                    res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "flipped": 0}
+                    print(slug, res[slug], flush=True)
+                    continue
+                orig = _pl.screen.run
+
+                def _hyp(recs, cfg, _orig=orig, _flip=flip):
+                    out = _orig(recs, cfg)
+                    for d in out["decisions"]:
+                        if str(d.get("id")) in _flip and d.get("decision") != "include":
+                            d.update({"decision": "include", "rule_id": "HYPOTHESIS_ADJUDICATED_ELIGIBLE",
+                                      "reason": "k-gap counterfactual: two recorded readers judged eligible (not a decision)"})
+                    return out
+                _pl.screen.run = _hyp
+                try:
+                    cfc = build(slug)
+                finally:
+                    _pl.screen.run = orig
+                cf = core_primary(cfc)
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "baseline_k_valid": base["k_valid"],
+                             "flipped": len(flip), "counterfactual_k": cf["k"], "counterfactual_k_valid": cf["k_valid"],
+                             "counterfactual_scale": cf["scale"],
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "funnel": funnel(cfc, sorted(flip)), "secs": round(time.time() - t0, 1)}
+            elif mode == "--unpaywall":
                 from kgap import k_gap
                 base_core = build(slug)
                 base = core_primary(base_core)
@@ -346,6 +448,8 @@ if __name__ == "__main__":
     r = main(sys.argv[1:])
     name = {"--baseline": "counterfactual_baseline.json", "--members": "counterfactual_members.json",
             "--fulltext": "counterfactual_fulltext.json", "--ctgov": "counterfactual_ctgov.json",
-            "--all": "counterfactual_all.json", "--unpaywall": "counterfactual_unpaywall.json"}[sys.argv[1]]
+            "--all": "counterfactual_all.json", "--unpaywall": "counterfactual_unpaywall.json",
+            "--screen-hypothesis": "counterfactual_screen_hypothesis.json",
+            "--all-hyp": "counterfactual_all_screen_hypothesis.json"}[sys.argv[1]]
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
         json.dump(r, fh, indent=1, sort_keys=True)
