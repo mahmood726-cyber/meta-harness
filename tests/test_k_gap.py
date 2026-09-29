@@ -230,3 +230,20 @@ def test_absence_is_not_contradiction():
     assert k_gap.label_ref_conflict({"label": "STEP 1 29", "acronyms": ["STEP 1 29"]},
                                     {"label": "29", "first_author": "Wilding", "year": "2021", "title": "Once-Weekly Semaglutide"},
                                     registry_acronyms=["STEP 1"]) is None
+
+
+def test_typographic_hyphen_does_not_truncate_an_acronym():
+    # PLANT (sglt2-hfref comparator): 'DAPA‐HF' (U+2010) tokenised as 'DAPA' and resolved to an unrelated DAPA-named
+    # registration; 'EMPEROR‐Reduced' became 'EMPEROR'. Both are trials we POOL.
+    assert k_gap._label_tokens("DAPA‐HF (n = 4744)")["acronyms"] == ["DAPA-HF"]
+    assert k_gap._label_tokens("EMPEROR‐Reduced (n = 3730)")["acronyms"] == ["EMPEROR-Reduced"]
+    assert k_gap._label_tokens("RALES Study")["acronyms"] == ["RALES"]      # an ordinary word is not absorbed
+
+
+def test_self_naming_is_title_or_exact_parenthesised_definition():
+    # PLANT (colchicine-pericarditis): a held 2024 paper citing '(CORE, CORP)' resolved the CORE row to itself.
+    m = _table_mod()
+    assert m.self_names("ROCKET AF", "Rivaroxaban versus warfarin", "... in Atrial Fibrillation (ROCKET AF) ...")
+    assert not m.self_names("CORE", "A new trial", "Earlier trials (CORE, CORP) showed")
+    assert m.self_names("CORE", "Colchicine for recurrent pericarditis: results of the CORE trial", "")
+    assert not m.self_names("RALES1999", "The effect of spironolactone", "Randomized Aldactone Evaluation Study")
