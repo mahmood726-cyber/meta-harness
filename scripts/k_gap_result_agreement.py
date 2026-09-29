@@ -238,7 +238,28 @@ FOREST = os.path.join(ROOT, "registry", "model_proposals", "k_gap_forest_plot.js
 _FOREST = None
 
 
-def forest_row(slug, label):
+_FAY = os.path.join(OUT, "pubmed_first_author_year.json")
+
+
+def first_author_year(pmid):
+    """(surname lower-case, year) of a PMID from PubMed esummary, cached in outputs/k_gap/pubmed_first_author_year.json."""
+    c = _j(_FAY) if os.path.exists(_FAY) else {}
+    if pmid not in c:
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                              {"db": "pubmed", "id": pmid, "retmode": "json"}, tries=2).get("result", {}).get(pmid, {})
+            au = (d.get("sortfirstauthor") or "").split(" ")[0].lower()
+            yr = (re.search(r"\d{4}", d.get("pubdate") or "") or [None])[0] if d.get("pubdate") else None
+            c[pmid] = [au, yr] if au and yr else None
+        except Exception:  # noqa: BLE001 - an unreachable esummary means no join, never a guess
+            return None
+        with open(_FAY, "w", encoding="utf-8") as fh:
+            json.dump(c, fh, indent=1, sort_keys=True)
+    return tuple(c[pmid]) if c.get(pmid) else None
+
+
+def forest_row(slug, label, pmids=()):
     """(scale, point, lo, hi) of the gated forest-plot row whose printed label IS this trial's comparator label
     (dash-folded, case-insensitive: equal, or one label's first token equal to the other's). None when the figure did
     not pass its gate or no row carries the label -- never a nearest match."""
@@ -249,10 +270,18 @@ def forest_row(slug, label):
     if r.get("state") != "PASS":
         return None
     norm = lambda x: re.sub(r"\s+", " ", k_gap.fold_dashes(str(x or "")).strip().lower())   # noqa: E731
+    toks = lambda x: re.findall(r"[a-z0-9]+", norm(x))                                        # noqa: E731
     want = norm(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", label))      # drop a trailing citation number '[16]' / '(8)'
-    hits = [x for x in r["gate"]["rows"] if norm(x["label"]) == want]
-    if not hits:
-        hits = [x for x in r["gate"]["rows"] if norm(x["label"]).split(" ")[0] == want.split(" ")[0] and len(want) >= 4]
+    rows = r["gate"]["rows"]
+    hits = [x for x in rows if norm(x["label"]) == want]
+    if not hits and toks(want) and len(toks(want)[0]) >= 4 and not toks(want)[0].isdigit():
+        # first WORD token equal ('SELECT 18' ~ 'SELECT, 2023'; tokenised, so a trailing comma does not block it)
+        hits = [x for x in rows if toks(x["label"])[:1] == toks(want)[:1]]
+    if not hits and pmids:
+        # a numbered comparator label ('9 [28]') carries no name: join through the resolved report's first author AND
+        # publication year from PubMed (both must match one forest row: 'Wallentin 2009' = PLATO)
+        ay = [a for a in (first_author_year(p) for p in pmids) if a]
+        hits = [x for x in rows for (au, yr) in ay if au in toks(x["label"]) and yr in toks(x["label"])]
     if len(hits) != 1:
         return None
     x = hits[0]
@@ -330,7 +359,7 @@ def main(argv):
                        else agree(ours, theirs, how) if g.get("state") == "VERIFIER_PASS" else "GATE_REFUSED_OR_NO_ANSWER")
             src = "comparator_text"
             if WITH_FOREST and verdict == "NOT_REPORTED_BY_COMPARATOR":
-                fr = forest_row(it["slug"], k["label"])
+                fr = forest_row(it["slug"], k["label"], k.get("pmids") or ())
                 if fr:
                     theirs = fr
                     ours, how = our_effect(k["ours"], theirs[0])
