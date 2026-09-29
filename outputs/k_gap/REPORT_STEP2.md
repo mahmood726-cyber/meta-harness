@@ -11,11 +11,12 @@ registry results), and runs the unchanged screen -> extract -> admission gate. N
 - **Valid k only.** A gain counts only if the pool it lands in stays valid. `k_valid` is 0 when the pool is
   suppressed (e.g. INCOMPATIBLE estimands). Plant: `tests/test_k_gap.py::test_a_larger_k_in_a_suppressed_pool_is_not_a_gain`.
 
-## Adapter 1 — comparator-member seeding (identification): **+1 valid k of 71**
+## Adapter 1 — comparator-member seeding (identification): **+1 valid k of 70** (71 before the identity correction)
 
-The report each comparator cited, for its 71 never-identified members, was put through our screener. Per member
-trial: **61 screened out**, 7 declared absent (outcome not in abstract), **1 pooled** (sglt2-primary-prevention-hf
-PMID 28284707, k 4->5), 2 not fetched. Screen rules: X2 population 26, X1 design 18, X3 comparator 15, X-DESIGN 2.
+The report each comparator cited, for its 70 never-identified members (corrected identity table), was put through
+our screener. Per member trial: **54 screened out**, 7 declared absent (outcome not in abstract), **1 pooled**
+(sglt2-primary-prevention-hf PMID 28284707, k 4->5), 8 not fetched. Screen rules: X2 population 23, X1 design 17,
+X3 comparator 13, X-DESIGN 1. (First run, before the identity correction: 71 members, 61 / 7 / 1 / 2.)
 
 **Second reader on the 75 excluded records** (18 recorded Codex calls; pilot screening instrument +
 `verify_screening`; 75/75 gate-pass): agree with the exclusion **48**, cannot tell from the abstract **23**,
@@ -69,15 +70,39 @@ PICO (children, delayed sleep phase, active or add-on comparators, T2D populatio
 - After the fix: +1 valid — probiotics Ehrhardt 26973849, 21/246 vs 19/231. Its abstract says "21 and 19 AADs" with
   HR 1.02; the counts give RR 1.03, consistent.
 
+## Adapter 4 — Unpaywall OA copies (HTML/PDF) for declared-absent trials without PMC OA: **+1 valid k**
+
+- 86 DOIs tried, 28 OA texts found (via `kgap.k_gap.unpaywall_text`, harness contact address, text only kept).
+- **On the full-text rung as it stood, it admitted 3 and 2 were wrong:**
+  - PMID 34138478: "1/16 vs 0/14" read from an HTML outcome table flattened into prose;
+  - PMID 24044687: RR 0.64 from an INTRODUCTION sentence citing a meta-analysis. After that guard, the same paper
+    gave OR 5.04 for "reduced appetite", a covariate in a risk-factor logistic regression.
+- **Three guards (flagged extractor commit; real-excerpt plants):**
+  1. an Unpaywall copy is typed UNSTRUCTURED, and only a reported effect+CI in a prose sentence is admissible
+     from it;
+  2. full-text prose drops sentences attributing results to other work (meta-analysis, systematic review,
+     previous/prior studies, citation markers);
+  3. full-text prose drops predictor / risk-factor / logistic-regression sentences. "Adjusted hazard ratio" is
+     kept deliberately.
+- After the guards: +1 valid — CoDEX 32876695, 28-day mortality HR 0.97 (0.72-1.31), a control plant in the tests.
+  Wrong: 0. Served values: 32/32 unchanged.
+- An escaping hazard in this lane's own patch tooling wrote literal BACKSPACE bytes where the covariate regex needed
+  word boundaries, so the guard was a silent no-op. The plant caught it. The file was rewritten with backslashes
+  built by `chr(92)`, and every touched file was scanned for control bytes (0 remain).
+
 ## All adapters together (`counterfactual_all.json`, measured, not summed)
 
-**Summed valid k 81 -> 80.**
+**Summed valid k 81 -> 81** with all four adapters (members, PMC full text, CT.gov, Unpaywall) on the corrected
+identity table.
 
-- **+4 valid:** probiotics +2 (11->13), omega-3 +1, sglt2-primary-prevention-hf +1.
+- **+5 valid:** probiotics +2 (11->13: 39529939 full text, 26973849 CT.gov), corticosteroids-covid19 +1 (CoDEX,
+  Unpaywall), omega-3 +1 (DO-HEALTH, full text; factorial — review), sglt2-primary-prevention-hf +1 (member seeding).
 - **-5:** the two OR admissions suppress two RR pools (colchicine-postop-af 3->0 valid, CAP 2->0 valid).
 
-The adapters must NOT be landed naively. A measure-incompatible admission has to be held out, or converted from
-counts (an extraction-core decision), before a pin.
+**Landable with the two OR admissions held out: +5 valid trials across 5 topics.** The OR pair needs an
+extraction-core decision (derive RR from the reported counts, or keep refusing).
+
+(Before the identity correction the same run read 81 -> 80: +4 / -5. The Unpaywall adapter adds CoDEX.)
 
 ## Tests
 
