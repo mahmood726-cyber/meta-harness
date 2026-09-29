@@ -55,7 +55,9 @@ the OUTCOME named below (a sentence, or a row of a table). Do not run commands o
 Never compute, convert or round a number. Never use knowledge outside the text.
 """
 
-_BARE = re.compile(r"(\d+(?:\.\d+)?)\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:-|–|—|to|,)\s*(\d+(?:\.\d+)?)\s*[\)\]]")
+# signed numbers (after folding U+2212 etc. to "-"); a RevMan forest row lists arm means, SDs, n and weight BEFORE
+# the effect, so the effect is the LAST "x (lo, hi)" triple in the quoted row
+_BARE = re.compile(r"(-?\d+(?:\.\d+)?)\s*[\(\[]\s*(-?\d+(?:\.\d+)?)\s*(?:,|to|\s-\s|(?<=\d)-(?=-?\d))\s*(-?\d+(?:\.\d+)?)\s*[\)\]]")
 _SCALE = (("HR", re.compile(r"\bHR\b|hazard ratio", re.I)), ("RR", re.compile(r"\bRR\b|risk ratio|relative risk", re.I)),
           ("OR", re.compile(r"\bOR\b|odds ratio")), ("MD", re.compile(r"\bMD\b|mean difference", re.I)))
 
@@ -82,9 +84,11 @@ def parse_comparator_effect(quote, scale_quote):
     e = extract.extract_effect(quote or "")
     if e:
         return (e.scale if hasattr(e, "scale") else e[0], float(e[1]), float(e[2]), float(e[3]))
-    m = _BARE.search(quote or "")
+    q = k_gap.fold_dashes(quote or "").replace("\u2212", "-")
+    ms_ = list(_BARE.finditer(q))
     sc = _scale_of(scale_quote) or _scale_of(quote)
-    if m and sc:
+    if ms_ and sc:
+        m = ms_[-1]
         return (sc, float(m.group(1)), float(m.group(2)), float(m.group(3)))
     return None
 
@@ -110,21 +114,41 @@ def our_effect(t, scale):
         return ((t.get("scale") or "").upper(), float(t["effect"]), float(t["ci_low"]), float(t["ci_high"])), "reported"
     if scale in ("RR", "OR") and all(t.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
         return _ratio_ci(t["ai"], t["n1i"], t["ci"], t["n2i"], scale), "from_counts"
+    if scale == "MD" and all(t.get(k) is not None for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")):
+        md = float(t["mean1"]) - float(t["mean2"])
+        se = math.sqrt(float(t["sd1"]) ** 2 / float(t["nc1"]) + float(t["sd2"]) ** 2 / float(t["nc2"]))
+        return ("MD", md, md - 1.959964 * se, md + 1.959964 * se), "from_counts"
     return None, "not_comparable"
 
 
+def _decimals(x) -> int:
+    r = repr(float(x))
+    return len(r.split(".")[1].rstrip("0")) if "." in r else 0
+
+
 def agree(ours, theirs, how):
+    """Rounding-aware: two reported numbers agree when they are equal at the COARSER precision either side states
+    (a paper's -12.4 (-13.4, -11.5) and a forest plot's -12.44 (-13.37, -11.51) are the same result). A value we
+    derived from counts has no stated precision; it is compared at the comparator's precision + half a unit."""
     if not ours or not theirs:
         return "NOT_COMPARABLE"
     if ours[0] != theirs[0]:
         return f"SCALE_DIFFERS({ours[0]} vs {theirs[0]})"
-    tol = 0.02 if how == "from_counts" else 0.011
-    diffs = [abs(ours[i] - theirs[i]) for i in (1, 2, 3)]
-    if all(d <= tol for d in diffs):
+    ok = []
+    for i in (1, 2, 3):
+        d = _decimals(theirs[i]) if how == "from_counts" else min(_decimals(ours[i]), _decimals(theirs[i]))
+        d = max(d, 1)
+        ok.append(abs(ours[i] - theirs[i]) <= 0.5 * 10 ** -d + 1e-9)
+    if all(ok):
         return "AGREE"
-    if abs(ours[1] - theirs[1]) <= tol:
+    if ok[0]:
         return "POINT_AGREES_CI_DIFFERS"
     return "DISAGREE"
+
+
+def item_key(item) -> str:
+    m = re.match(r"\s*(T\d+)", str(item or ""))
+    return m.group(1) if m else str(item or "")
 
 
 def topics():
@@ -136,8 +160,18 @@ def topics():
     return out
 
 
+OURS_SOURCE = "served"          # or "rebuilt": the in-memory pool this branch's extractor would serve
+
+
 def ours_rows(slug):
-    rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
+    if OURS_SOURCE == "rebuilt":
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("cf", os.path.join(ROOT, "scripts", "k_gap_counterfactual.py"))
+        cfm = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cfm)
+        rev = cfm.build(slug)
+    else:
+        rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     prim = next((o for o in rev["outcomes"] if o.get("primary")), {})
     return prim, {str(t.get("id", "")).replace("PMID ", ""): t for t in prim.get("trials", [])}
 
@@ -207,6 +241,9 @@ def gate(claim, label, held):
 
 
 def main(argv):
+    global OURS_SOURCE
+    if "--ours-rebuilt" in argv:
+        OURS_SOURCE = "rebuilt"
     its = items()
     data = _j(PROP) if os.path.exists(PROP) else {}
     runs = data.get("runs", {})
@@ -225,7 +262,9 @@ def main(argv):
         resp = {}
         if run and run["state"] == "RAN_OK" and run["prompt_sha256"] == hashlib.sha256(prompt(it)).hexdigest():
             try:
-                resp = {x["item"]: x for x in json.loads(ms.replay(ms.load_record(
+                # the model may echo the item as 'T1: LEADER' (key + the label it was shown): key on the leading T<n>.
+                # Keying on the exact string dropped all 46 answers as NO_ANSWER in the first run.
+                resp = {item_key(x.get("item")): x for x in json.loads(ms.replay(ms.load_record(
                     os.path.join(REC_DIR, run["record_id"] + ".json"))).decode("utf-8")).get("items", [])}
             except Exception:  # noqa: BLE001
                 resp = {}
@@ -240,8 +279,10 @@ def main(argv):
                          "ours_basis": how, "theirs": theirs, "verdict": verdict, "gate": g, "claim": claim,
                          "record_id": (run or {}).get("record_id")})
     tally = Counter(r["verdict"].split("(")[0] for r in rows)
-    out = {"n_topics": len(its), "n_shared_trials": len(rows), "tally": dict(tally), "runs": runs, "rows": rows}
-    with open(PROP, "w", encoding="utf-8") as fh:
+    out = {"n_topics": len(its), "n_shared_trials": len(rows), "tally": dict(tally), "runs": runs, "rows": rows,
+           "ours_source": OURS_SOURCE}
+    target = PROP if OURS_SOURCE == "served" else PROP.replace(".json", ".rebuilt.json")
+    with open(target, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False, sort_keys=True)
     print(json.dumps({k: out[k] for k in ("n_topics", "n_shared_trials", "tally")}, indent=1))
 
