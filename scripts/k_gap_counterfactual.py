@@ -58,16 +58,26 @@ def core_primary(core):
             "declared_absent": sorted(d.get("id") for d in prim.get("declared_absent_trials", []))}
 
 
-def funnel(core, pmids):
-    """Where each added PMID ended: screen decision + rule id, then (if included) pooled / declared-absent reason."""
+def funnel(core, pmids, recs=None):
+    """Where each added PMID ended: screen decision + rule id, then (if included) pooled / declared-absent reason.
+
+    A seeded report that _dedup collapsed onto ANOTHER report of the same NCT did enter screening, as that trial:
+    it is SCREENED_VIA_OTHER_REPORT (with the report that carried it), not NOT_IN_SCREEN. Counting PMIDs rather
+    than trials reported 98 'never screened' of 180 when 94 were extra reports of trials that were screened."""
     scr = {r["id"]: r for r in core["screening"]["records"]}
+    nct_of = {r["id"]: r.get("nct") for r in (recs or [])}
+    screened_by_nct = {r.get("nct"): r["id"] for r in core["screening"]["records"] if r.get("nct")}
     prim = next((o for o in core["outcomes"] if o.get("primary")), {})
     pooled = {str(t.get("id", "")).replace("PMID ", "") for t in prim.get("trials", [])}
     absent = {str(d.get("id", "")).replace("PMID ", ""): d.get("reason_code") for d in prim.get("declared_absent_trials", [])}
     out = {}
     for p in pmids:
         r = scr.get(p)
-        if r is None:
+        if r is None and nct_of.get(p) and screened_by_nct.get(nct_of[p]):
+            via = scr[screened_by_nct[nct_of[p]]]
+            out[p] = {"stage": "SCREENED_VIA_OTHER_REPORT", "via": via["id"], "nct": nct_of[p],
+                      "via_decision": via["decision"], "via_rule_id": via.get("rule_id")}
+        elif r is None:
             out[p] = {"stage": "NOT_IN_SCREEN"}
         elif r["decision"] != "include":
             out[p] = {"stage": "SCREENED_OUT", "rule_id": r.get("rule_id"), "reason": (r.get("reason") or "")[:140]}
@@ -428,7 +438,7 @@ def main(argv):
                 base = core_primary(build(slug))
                 cfc = build(slug, recs)
                 cf = core_primary(cfc)
-                fn = funnel(cfc, [r["id"] for r in recs])
+                fn = funnel(cfc, [r["id"] for r in recs], recs)
                 res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "members_added": len(pm),
                              "baseline_k_valid": base["k_valid"], "counterfactual_k_valid": cf["k_valid"],
                              "nct_only_pmids": len(nct_only),

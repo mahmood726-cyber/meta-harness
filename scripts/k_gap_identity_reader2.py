@@ -72,8 +72,27 @@ def sample():
     return pop, rng.sample(pop, min(N, len(pop)))
 
 
+_STORE = None
+
+
+def shown_pmid(r):
+    """The report the resolver ACTUALLY resolved to -- the thing under audit. Never cited_pmids: when a table's
+    xrefs are distrusted, the cited PMID is exactly the link the resolver rejected (Eritsland 1996 was shown DART).
+    For an NCT-keyed family, prefer a PMID AACT types RESULT for that NCT over pmids[0], which is merely the oldest
+    linked PMID and may be a DERIVED paper that only mentions the NCT (ELIXA was shown a rat study)."""
+    global _STORE
+    if _STORE is None:
+        sp = os.path.join(OUT, "_aact_store.json")
+        _STORE = (_j(sp).get("pmid") or {}) if os.path.exists(sp) else {}
+    ncts = {n.upper() for n in r.get("ncts") or []}
+    for p in r["pmids"]:
+        if any(n in ncts and t == "RESULT" for n, t in _STORE.get(p, [])):
+            return p
+    return r["pmids"][0]
+
+
 def report_text(r, titles):
-    pm = (r.get("cited_pmids") or r["pmids"])[0]
+    pm = shown_pmid(r)
     study = next((v for v in (r.get("study") or {}).values() if v), {}) or {}
     return (f"PMID {pm}: {titles.get(pm, '(title not held)')}\n"
             f"Registry: {', '.join(r['ncts']) or '(none)'} {study.get('acronym') or ''} {study.get('brief_title') or ''}").strip()
@@ -84,7 +103,7 @@ def items():
     pop, s = sample()
     cp = os.path.join(OUT, "pubmed_titles.json")
     titles = _j(cp) if os.path.exists(cp) else {}
-    need = sorted({(r.get("cited_pmids") or r["pmids"])[0] for r in s} - set(titles))
+    need = sorted({shown_pmid(r) for r in s} - set(titles))
     if need:
         d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
                           {"db": "pubmed", "id": ",".join(need), "retmode": "json"})
