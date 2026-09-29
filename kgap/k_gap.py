@@ -846,3 +846,75 @@ def label_ref_conflict(unit: dict, cited: dict, registry_acronyms=()) -> str | N
     if yr and ry and ry.isdigit() and abs(int(yr) - int(ry)) > 1:
         return f"year: row {yr} vs cited {ry}"
     return None
+
+
+# ------------------------------------------------------------ comparator SUPPLEMENTS (PMC OA package) -> text
+
+def _docx_text(data: bytes) -> str:
+    """Paragraphs, then every table row as 'cell | cell' (verbatim cell text)."""
+    try:
+        import io as _io
+        import docx
+        d = docx.Document(_io.BytesIO(data))
+        out = [p.text for p in d.paragraphs if p.text.strip()]
+        for t in d.tables:
+            for r in t.rows:
+                cells = []
+                for c in r.cells:
+                    tx = _flat(c.text)
+                    if not cells or cells[-1] != tx:        # merged cells repeat; keep one
+                        cells.append(tx)
+                out.append(" | ".join(cells))
+        return "\n".join(out)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def comparator_supplements(pmid: str, pmcid: str, hrefs: list, date: str, offline: bool = False) -> dict:
+    """Text of a comparator's supplementary files from its PMC OA package (docx: paragraphs + table rows; pdf: pypdf
+    text; xlsx/csv: the harness's own readers). Figures/images are skipped (no OCR). Cached as text with sha256 under
+    cache/comparators/<pmid>/<date>_kgap_supplements.txt. Returns {state, text, files}."""
+    from harness import fulltext as _ft
+    from harness import http
+    fp = os.path.join(COMP_DIR, pmid, f"{date}_kgap_supplements.txt")
+    if os.path.exists(fp):
+        with open(fp, encoding="utf-8") as fh:
+            t = fh.read()
+        return {"state": "CACHED", "text": t, "sha256": sha256(t.encode("utf-8"))}
+    if offline:
+        return {"state": "NOT_CACHED_OFFLINE", "text": ""}
+    if not pmcid or not hrefs:
+        return {"state": "NO_SUPPLEMENTS", "text": ""}
+    # NCBI's PMC OA web service (oa.fcgi) now answers 404, so the OA-package route is gone (harness.fetch's
+    # _pmc_oa_supplement_text swallows that and returns '' -- silently). Each supplement is served on its own at
+    # pmc.ncbi.nlm.nih.gov/articles/instance/<numeric PMCID>/bin/<file> (the article page links it there).
+    num = re.sub(r"(?i)^PMC", "", pmcid)
+    blocks, files = [], []
+    for h in hrefs:
+        base = h.rsplit("/", 1)[-1]
+        low = base.lower()
+        if low.endswith((".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff", ".mp4", ".zip")):
+            files.append({"file": base, "skipped": "image/archive (no OCR)"})
+            continue
+        url = f"https://pmc.ncbi.nlm.nih.gov/articles/instance/{num}/bin/{base}"
+        try:
+            st, data = http.get_raw(url, tries=2, timeout=120)
+        except Exception as exc:  # noqa: BLE001
+            files.append({"file": base, "error": str(exc)[-160:]})
+            continue
+        if low.endswith(".docx"):
+            txt = _docx_text(data)
+        elif low.endswith(".pdf") or data[:4] == b"%PDF":
+            txt = _pdf_text(data)
+        else:
+            txt = _ft.supplement_text_from_bytes(low, data)
+        files.append({"file": base, "url": url, "http_status": st, "bytes": len(data), "sha256": sha256(data),
+                      "text_chars": len(txt or "")})
+        if txt:
+            blocks.append(f"=== SUPPLEMENT {base} ===\n{txt}")
+    text = "\n\n".join(blocks)
+    os.makedirs(os.path.dirname(fp), exist_ok=True)
+    with open(fp, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    return {"state": "OK" if text else "NO_TEXT_IN_SUPPLEMENTS", "text": text, "files": files,
+            "sha256": sha256(text.encode("utf-8"))}
