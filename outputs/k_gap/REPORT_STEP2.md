@@ -104,6 +104,35 @@ extraction-core decision (derive RR from the reported counts, or keep refusing).
 
 (Before the identity correction the same run read 81 -> 80: +4 / -5. The Unpaywall adapter adds CoDEX.)
 
+## What would adjudicating our screener's disputed exclusions be worth?
+
+`scripts/k_gap_screen_join.py` joins the **49** comparator trials our screener excludes from corpora we already hold
+(SCREEN_OR_ELIGIBILITY) to the model readings the repo already recorded for those exclusions
+(`registry/model_proposals/screening_excluded*.json`, two readers, `verify_screening`-gated). No new calls.
+
+- Reader agrees with the exclusion: **27**; cannot tell: 8.
+- **Both readers judge the record ELIGIBLE: 14** (11 in probiotics; adjudication marked OWED in the repo).
+
+Counterfactual, flipping only those 14 to include in memory (`--screen-hypothesis`, hypothetical rule id):
+
+- **alone: +1 valid** (probiotics Hickson 17604300, 7/57 vs 19/56 from its abstract — correct); the other 13 stop
+  at OUTCOME_NOT_IN_SOURCE;
+- **with all four adapters** (`--all-hyp`, acquisition targets taken from the hypothesis core): summed valid k
+  **81 -> 82** = +6 valid (probiotics +3, covid19-corticosteroids +1, omega-3 +1, sglt2-pp +1) and -5 from the two
+  OR suppressions. The 10 other flipped probiotics records stay declared absent even with their full text.
+
+**Reading: adjudicating the 14 disputed exclusions is worth +1 trial.** Worth doing for correctness; not a k lever.
+
+## Bottom line for "how long before we match comparator k?"
+
+Measured, not estimated: with every open source probed (PMC OA, CT.gov/AACT results, Unpaywall OA copies, the
+comparators' own member lists) and the extractor as fixed on this branch, the reachable gain is **+5 valid trials
+across 5 topics** (+6 with the 14 adjudications; +2 more if an OR-from-counts -> RR route is approved). Against 179
+missing confirmed-set trials, most of the gap is **scope** — the comparators pool populations, comparators and
+designs our registered protocols exclude — plus trials whose outcome is in no open source. It is not a matter of
+acquisition time. Matching comparator k would mean changing registered protocols, which is a scientific decision,
+not an engineering one.
+
 ## Tests
 
 - Repo tests over every file that imports the changed modules (42 files + the new ones): **2413 passed, 4 failed,
