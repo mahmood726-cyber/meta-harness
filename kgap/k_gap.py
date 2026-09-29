@@ -437,6 +437,10 @@ def jats_body_text(body: bytes) -> str:
     return "\n".join(parts)
 
 
+_STUDY_FIELDS = ("acronym", "brief_title", "overall_status", "phase", "enrollment", "results_first_posted_date",
+                 "completion_date", "study_type", "study_first_submitted_date", "start_date")
+
+
 class AactStore:
     """Persistent, incremental AACT index for repeated k-gap runs (the snapshot is read-only and slow to
     scan). Built maps: acronym -> NCTs (INTERVENTIONAL), pmid -> [(nct, RESULT|DERIVED)]; per-NCT facts
@@ -495,6 +499,23 @@ class AactStore:
                     lst.append([n, t])
         self.save()
 
+    def ensure_registration_dates(self, ncts, log=print):
+        """study_first_submitted_date for held NCTs that lack it (one studies pass). A paper cannot be the RESULT of
+        a trial registered after it was published -- the check that separates a trial's own report from later
+        registrations that cite it."""
+        want = {n.upper() for n in ncts if n and n.upper() in self.d["study"]
+                and "study_first_submitted_date" not in self.d["study"][n.upper()]}
+        if not want or not self.snap:
+            return
+        log(f"AACT: registration dates for {len(want)} NCTs")
+        for r in self.aact._iter_rows(self._t("studies")):
+            n = r["nct_id"].upper()
+            if n in want:
+                self.d["study"][n].update({k: r.get(k) or "" for k in _STUDY_FIELDS})
+        for n in want:
+            self.d["study"][n].setdefault("study_first_submitted_date", "")
+        self.save()
+
     def ensure_ncts(self, ncts, log=print):
         want = {n.upper() for n in ncts if n} - set(self.d["study"])
         if not want or not self.snap:
@@ -507,9 +528,7 @@ class AactStore:
         for r in self.aact._iter_rows(self._t("studies")):
             n = r["nct_id"].upper()
             if n in want:
-                self.d["study"][n] = {k: r.get(k) or "" for k in (
-                    "acronym", "brief_title", "overall_status", "phase", "enrollment", "results_first_posted_date",
-                    "completion_date", "study_type")}
+                self.d["study"][n] = {k: r.get(k) or "" for k in _STUDY_FIELDS}
         for r in self.aact._iter_rows(self._t("interventions")):
             n = r["nct_id"].upper()
             if n in want:

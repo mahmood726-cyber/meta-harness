@@ -117,7 +117,86 @@ def comparator_units(slug, pmid, agents, others=None):
     return inc, parsed
 
 
-def resolve_unit(u, parsed, idx, agents_re):
+def pub_years(pmids, offline=False) -> dict:
+    """PMID -> publication year (NCBI esummary pubdate; cached outputs/k_gap/pubmed_years.json)."""
+    cp = os.path.join(OUT, "pubmed_years.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({x for x in pmids if x and x.isdigit() and x not in cache})
+    if todo:
+        from harness import http
+        for i in range(0, len(todo), 150):
+            chunk = todo[i:i + 150]
+            try:
+                d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                                  {"db": "pubmed", "id": ",".join(chunk), "retmode": "json"})
+            except Exception as exc:  # noqa: BLE001
+                print("esummary failed", exc)
+                continue
+            for x in chunk:
+                m = re.match(r"(\d{4})", ((d.get("result") or {}).get(x) or {}).get("pubdate") or "")
+                cache[x] = int(m.group(1)) if m else None
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def pubmed_ncts(pmids, offline=False) -> dict:
+    """PMID -> the NCT PubMed itself attaches to the paper (DataBankList / 'ClinicalTrials.gov number' in the abstract),
+    via harness.fetch._efetch's own selection. A SECONDARY report of a trial carries its trial's NCT here even when
+    AACT's study_references never lists it (EMPA-REG secondary 26981940). Cached outputs/k_gap/pubmed_ncts.json."""
+    cp = os.path.join(OUT, "pubmed_ncts.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({x for x in pmids if x and x.isdigit() and x not in cache})
+    if todo:
+        from harness import fetch
+        for i in range(0, len(todo), 150):
+            chunk = todo[i:i + 150]
+            try:
+                recs = fetch._efetch(chunk)
+            except Exception as exc:  # noqa: BLE001
+                print("efetch failed", exc)
+                continue
+            got = {r.get("id"): (r.get("nct") or "").upper() for r in recs}
+            for x in chunk:
+                cache[x] = got.get(x, "")
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def pubmed_titles_of(pmids, offline=False) -> dict:
+    """PMID -> PubMed title (esummary; shares outputs/k_gap/pubmed_titles.json with the identity reader)."""
+    cp = os.path.join(OUT, "pubmed_titles.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({x for x in pmids if x and x.isdigit() and x not in cache})
+    if todo:
+        from harness import http
+        for i in range(0, len(todo), 150):
+            chunk = todo[i:i + 150]
+            try:
+                d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                                  {"db": "pubmed", "id": ",".join(chunk), "retmode": "json"})
+            except Exception as exc:  # noqa: BLE001
+                print("esummary failed", exc)
+                continue
+            for x in chunk:
+                cache[x] = ((d.get("result") or {}).get(x) or {}).get("title", "")
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def _title_key(t: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", k_gap.fold_dashes(t or "").lower()).strip()
+
+
+def registered_before(n, year, idx) -> bool:
+    """True unless we KNOW the registration was first submitted after the paper's publication year."""
+    d = ((idx.get("study") or {}).get(n) or {}).get("study_first_submitted_date") or ""
+    return not (year and d[:4].isdigit() and int(d[:4]) > int(year))
+
+
+def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     """Identity: cited ref PMID > NCT written in the unit > Author-Year against the comparator's own
     ref-list > acronym against AACT studies.acronym restricted to NCTs whose interventions name a topic
     agent. Each step records its basis; an acronym hitting >1 agent NCT is AMBIGUOUS, not guessed."""
@@ -149,9 +228,29 @@ def resolve_unit(u, parsed, idx, agents_re):
             basis.append("author_year_ref_list")
         elif len(hits) > 1:
             basis.append(f"author_year_ambiguous:{len(hits)}")
-    for p in list(pmids):
-        for n, _t in idx["pmid_nct"].get(p, []):
-            ncts.add(n)
+    # PMID -> NCT only when AACT links the PMID to exactly ONE registration: a paper is cited as background by later
+    # trials' registrations (Deftereos' PMIDs are listed by NCT04906720 and NCT06731595, colchicine trials of 2021+),
+    # and following those links made Deftereos 'POOLED' via another paper of that NCT (COPPS-2).
+    pmid_resolved = bool(pmids)
+    years = years or {}
+    mapped = sorted({n for p in pmids for n, _t in idx["pmid_nct"].get(p, []) if registered_before(n, years.get(p), idx)})
+    dropped = sorted({n for p in pmids for n, _t in idx["pmid_nct"].get(p, [])} - set(mapped))
+    if dropped:
+        basis.append(f"pmid_nct_registered_after_publication:{','.join(dropped[:4])}")
+    if len(mapped) > 1 and our_fams:
+        ours = [n for n in mapped if n in our_fams]
+        if len(ours) == 1:
+            basis.append(f"pmid_nct_tiebreak_our_family:{ours[0]}")
+            mapped = ours
+    if not mapped:
+        own = sorted({PUBNCT.get(p) for p in pmids if PUBNCT.get(p)})
+        if len(own) == 1:
+            mapped = own
+            basis.append(f"pmid_nct_from_pubmed_record:{own[0]}")
+    if len(mapped) == 1:
+        ncts.add(mapped[0])
+    elif len(mapped) > 1:
+        basis.append(f"pmid_nct_ambiguous:{','.join(mapped[:4])}")
     if not ncts:
         for a in u["acronyms"]:
             cands = [n for n in idx["acr_nct"].get(k_gap.norm_acronym(a), []) if idx["agent_nct"].get(n)]
@@ -170,8 +269,11 @@ def resolve_unit(u, parsed, idx, agents_re):
                 break
             if len(tc) > 1:
                 basis.append(f"acronym_title_ambiguous:{a}:{','.join(tc[:4])}")
-    for n in list(ncts):
-        pmids |= set(idx.get("nct_pmids", {}).get(n, []))
+    # NCT -> its PMIDs only when the NCT IS the identity (printed in the table, or an acronym match). When the identity is
+    # a cited PMID, adding every other paper registered to its NCT is association, not identity.
+    if not pmid_resolved:
+        for n in list(ncts):
+            pmids |= set(idx.get("nct_pmids", {}).get(n, []))
     return {"pmids": sorted(pmids), "ncts": sorted(ncts), "basis": basis}
 
 
@@ -401,6 +503,9 @@ def oa_probe(pmids: list[str], offline: bool) -> dict:
 
 
 PROP = os.path.join(ROOT, "registry", "model_proposals", "comparator_members.json")
+YEARS: dict = {}
+PUBNCT: dict = {}
+TITLES: dict = {}
 STORE = os.environ.get("K_GAP_AACT_STORE") or os.path.join(OUT, "_aact_store.json")
 _AUTH_YR = re.compile(r"^([A-Z][A-Za-z'À-ſ‐-]+)[^0-9]{0,14}((?:19|20)\d\d)[a-z]?$")
 
@@ -655,8 +760,22 @@ def main(argv=None):
         agents_re = re.compile("|".join(re.escape(a) for a in P["agents"]), re.I)
         out = []
         for u in units:
-            ident = resolve_unit(u, P["parsed"], tidx, agents_re)
+            ident = resolve_unit(u, P["parsed"], tidx, agents_re, years=YEARS,
+                                 our_fams={f["family_id"] for f in P["ours"]["families"]})
             ident["basis"] += [c["basis"] for c in u["cited"] if c.get("basis")]
+            if ident["pmids"] and not ident["ncts"]:
+                # the cited PMID is a second record of a paper we HOLD (same title): EMPA-REG's NEJM article has two
+                # PubMed records (26378978, 26981940); the comparator cites the other one. Exact normalised title only.
+                keys = {_title_key(TITLES.get(p, "")) for p in ident["pmids"] if len(_title_key(TITLES.get(p, ""))) >= 30}
+                same = {rid for rid, title, _ab in P["ours"]["records_text"] if _title_key(title) in keys}
+                r2f = {r: f for f in P["ours"]["families"] for r in f["reports"]}
+                fams = {r2f[x]["family_id"]: r2f[x] for x in same if x in r2f}
+                if len(fams) == 1:
+                    f = next(iter(fams.values()))
+                    if f["family_id"].startswith("NCT"):
+                        ident["ncts"] = [f["family_id"]]
+                    ident["pmids"] = sorted(set(ident["pmids"]) | {x for x in same if x in f["reports"]})
+                    ident["basis"].append(f"cited_title_equals_our_record:{','.join(sorted(same))[:40]}")
             if not ident["pmids"] and not ident["ncts"] and u["acronyms"]:
                 fam_rec, acr_used, hits = acronym_in_our_records(u["acronyms"], P["ours"]["records_text"],
                                                                  P["ours"]["families"])
@@ -736,6 +855,13 @@ def main(argv=None):
         need |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
     store.ensure_ncts(need, log=log)
     store.ensure_design_groups(log=log)
+    cited = {c.get("pmid") for P in per.values() for _src, inc in P["cands"] for u in inc["units"]
+             for c in u["cited"] if c.get("pmid")}
+    YEARS.update(pub_years(cited, offline))
+    PUBNCT.update(pubmed_ncts(cited, offline))
+    TITLES.update(pubmed_titles_of(cited, offline))
+    store.ensure_ncts({n for n in PUBNCT.values() if n}, log=log)
+    store.ensure_registration_dates({n for p in cited for n, _t in store.d["pmid"].get(p, [])}, log=log)
     for slug, P in per.items():
         P["chosen"] = None
         for src, inc in P["cands"]:
@@ -757,6 +883,13 @@ def main(argv=None):
         need |= prep(P, su)
     store.ensure_ncts(need, log=log)
     store.ensure_design_groups(log=log)
+    cited2 = {c.get("pmid") for P in per.values() if P.get("seed") for u in P["seed"]["units"] for c in u["cited"]
+              if c.get("pmid")}
+    YEARS.update(pub_years(cited2, offline))
+    PUBNCT.update(pubmed_ncts(cited2, offline))
+    TITLES.update(pubmed_titles_of(cited2, offline))
+    store.ensure_ncts({n for n in PUBNCT.values() if n}, log=log)
+    store.ensure_registration_dates({n for p in cited2 for n, _t in store.d["pmid"].get(p, [])}, log=log)
     rows = []
     for slug, P in per.items():
         if not P["chosen"] and P.get("seed"):
