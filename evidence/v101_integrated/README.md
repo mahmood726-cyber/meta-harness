@@ -559,3 +559,32 @@ needs Mahmood's countersignature and its own correction record.
   - Names read as a single component although they name two: 3. Two are fixed here. NOAC "Stroke or systemic embolism"
     reads as {stroke}. It is left as found: adding "systemic embolism" to the vocabulary could move served NOAC rows,
     so it needs its own plant and a signed notice.
+
+## Round 12 (G1): "Stroke or systemic embolism" is read as two components
+
+- **The defect** (the last collapse the round-11 sweep named). NOAC's outcome "Stroke or systemic embolism" read as
+  {stroke}, so a stroke-only measure matched the composite EXACT.
+- **Plant** `scripts/plants_round12.py` (`round12_plants/`):
+  - On bb6f9b27, Q1 FIRED: components ['stroke'], and a stroke-only measure was EXACT.
+  - On the fix, Q1 does not fire, and a stroke-only measure is NEAR_MATCH.
+  - Controls: a measure naming both stays EXACT (C1); RE-LY's registered "Stroke/SEE" stays EXACT (C2); the English
+    word "see" is never embolism (C3).
+- **A first cut broke C2.** It read only the words "systemic embol-", so RE-LY's registered composite (it abbreviates
+  systemic embolic event as SEE) lost its extractable status. The offline family check caught it before commit
+  (`round12_plants/first_cut.json`). SEE is now read only beside "stroke" or in parentheses.
+- **The family caches move the intended way** (noac and doac-vte only; 30 of 32 byte-identical):
+  - NCT01924065's "Hemorrhagic Stroke" row no longer counts as an extractable "Stroke or systemic embolism" result.
+  - A stroke-only registered outcome no longer counts as an exact registered match.
+  - RE-LY, ROCKET-AF, ARISTOTLE and ENGAGE AF keep their composite rows.
+- **The instrument had the same blindness in time.** `scripts/pooled_class_sweep.py` compared a historic ref's STORED
+  row components (read by that ref's lexicon) with today's target. At 316d2e48 that manufactured "ARISTOTLE lacks
+  systemic embolism" although its own definition span names it.
+  - Rows are now re-read from their stored definition span with the lexicon in force, and the difference is reported as
+    `lexicon_drift`, never as a missing component.
+  - A row with no stored components (a trial-defined composite, an unbound row) is not re-read: that would invent a
+    comparison the producer never made.
+  - At 316d2e48, C2 is exactly the three true rows (DELIVER, EMPEROR-Preserved, ODYSSEY). The served state must have
+    zero drift, which `test_the_served_state_has_no_lexicon_drift` asserts. That test failed before this rebuild and
+    passes after it.
+- **n of N**: held records mentioning systemic embolism are in 2 topics (noac, doac-vte). Served pooled rows whose class
+  changes: 0. No pooled result moved.

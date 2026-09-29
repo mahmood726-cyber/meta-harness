@@ -170,6 +170,12 @@ SITE_SPECS: dict = {
                               ("worsening of heart failure", None), ("cardiovascular death or worsening hf", None)],
                    "refuse": ["hospitalization for heart failure", "worsening renal function",
                               "heart failure hospitalization or urgent visit"]}},
+    "target_endpoint.py:search:cd9452f9c1": {
+        "kind": "search", "what": "_components_from_text: systemic embolism named as a component (round 12, folded text)",
+        "plants": {"accept": [("stroke or systemic embolism", None), ("systemic embolic events", None),
+                              ("composite endpoint of stroke/see", None), ("stroke or see", None), ("embolic events (see)", None)],
+                   "refuse": ["pulmonary embolism", "stroke", "embolization procedure", "stroke rates (see table 2) were lower",
+                              "see the supplementary appendix"]}},
     "target_endpoint.py:_SUBPOP_TITLE_RX": {
         "kind": "search", "what": "_registry_subpopulation: a registry measure TITLE names a subpopulation (raw title)",
         "plants": {"accept": [("Composite Endpoint of CV Death for LVEF <60% Subpopulation", None),

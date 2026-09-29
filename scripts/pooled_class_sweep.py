@@ -66,8 +66,22 @@ def pooled_state(t: dict) -> str:
     return f"OTHER:{cls}"
 
 
+def row_components(t: dict, target_lexicon: set) -> tuple[set, set]:
+    """(components read NOW, components as stored). The target is read with the lexicon in force, so the row must be too:
+    a historic ref stores the components its own lexicon read (V1.0.1 round 12: at 316d2e48 ARISTOTLE's stored set is
+    ['stroke'] although its definition span names systemic embolism -- comparing that to today's {stroke, systemic
+    embolism} manufactured a 'lacks' the row never had). The stored definition span is re-read when present."""
+    stored = set(_list(t.get("target_endpoint_components")))
+    span = t.get("endpoint_definition_span")
+    if not span or not stored:
+        # no stored set: the producer compared no components (a trial-defined composite, an unbound row) -- a re-read
+        # would invent a comparison it never made
+        return stored, stored
+    return te._fold_worsening_hf(target_lexicon, te._components_from_text(span)) or stored, stored
+
+
 def check_row(t: dict, target_lexicon: set, target_exact_union: set) -> dict:
-    comps = set(_list(t.get("target_endpoint_components")))
+    comps, stored = row_components(t, target_lexicon)
     extra = _list(t.get("target_endpoint_extra_components"))
     missing = _list(t.get("target_endpoint_missing_components"))
     def lacks(target):          # target components the row does not name (should appear in missing_components)
@@ -76,7 +90,8 @@ def check_row(t: dict, target_lexicon: set, target_exact_union: set) -> dict:
         return sorted(comps - target) if comps and target else []
     lacks_lex, lacks_exact = lacks(target_lexicon), lacks(target_exact_union)
     surplus_lex, surplus_exact = surplus(target_lexicon), surplus(target_exact_union)
-    return {"row_components": sorted(comps), "extra_components": extra, "missing_components": missing,
+    return {"row_components": sorted(comps), "row_components_stored": sorted(stored), "lexicon_drift": comps != stored,
+            "extra_components": extra, "missing_components": missing,
             "C1_extra_components_in_pooled_row": bool(extra),
             # direction matters: a row that LACKS a target component with missing [] is the withdrawn-review defect; a row with a
             # SURPLUS component and extra [] against the lexicon target alone is usually the lexicon collapsing the target name
@@ -102,7 +117,7 @@ def sweep(ref: str | None) -> dict:
             exact_union = set()
             for t in trials:
                 if t.get("target_endpoint_class") == "EXACT_TARGET":
-                    exact_union |= set(_list(t.get("target_endpoint_components")))
+                    exact_union |= row_components(t, target_lex)[0]
             for t in trials:
                 c = check_row(t, target_lex, exact_union)
                 rows.append({"slug": slug, "outcome": o.get("name"), "primary": bool(o.get("primary")), "k": len(trials), "trial": t.get("id"),

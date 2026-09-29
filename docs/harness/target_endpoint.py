@@ -241,6 +241,12 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
         comps.add("myocardial infarction")
     if "stroke" in s:
         comps.add("stroke")
+    # V1.0.1 round 12 (NOAC review): 'Stroke or systemic embolism' names two components; unread, the target was
+    # {stroke} and a stroke-only measure matched it EXACT (plants_round12 Q1)
+    # 'SEE' is RE-LY's registered abbreviation ('Composite Endpoint of Stroke/SEE'); read only beside stroke or in
+    # parentheses, never the English word ('see table 2')
+    if re.search(r"\bsystemic embol|\bstroke\s*(?:/|or|and|,)\s*see\b|\(see\)", s):
+        comps.add("systemic embolism")
     if "unstable angina" in s:
         comps.add("unstable angina")
     if "coronary revascularization" in s or "revascularisation" in s:

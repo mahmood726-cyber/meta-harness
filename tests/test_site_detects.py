@@ -21,14 +21,15 @@ def _files_with_detects():
 
 FILES = _files_with_detects()
 # regex-layer files 42 + other lane: batch 1 70, batch 2 69, batch 3 56, batch 4 59, batch 5 71
-N_SITES = 42 + 70 + 69 + 56 + 59 + 71 + 8 + 2 + 4  # + harness/whole_numbers.py (R4) + 2 funding sites (V1.0.1 audit)
+N_SITES = 42 + 70 + 69 + 56 + 59 + 71 + 8 + 2 + 4 + 1  # + harness/whole_numbers.py (R4) + 2 funding sites (V1.0.1 audit)
 #                                                    + 4 target_endpoint sites (V1.0.1 round 11: worsening HF, subpopulation)
+#                                                    + 1 (V1.0.1 round 12: systemic embolism)
 SITE_KEYS = sorted(k for k in INLINE_SPECS if k.split(":", 1)[0] in FILES)
 
 
 def test_keys_are_exactly_the_planted_sites():
     assert len(FILES) >= 50, "the inventory found too few files -- the key set would be vacuous"
-    assert len(SITE_KEYS) == N_SITES == 381, "every non-extract.py site planted in this landing carries a labelling spec"
+    assert len(SITE_KEYS) == N_SITES == 382, "every non-extract.py site planted in this landing carries a labelling spec"
     assert sorted(DETECTS) == SITE_KEYS
 
 

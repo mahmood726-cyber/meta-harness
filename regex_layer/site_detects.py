@@ -37,6 +37,11 @@ DETECTS: dict = {
                    "component -- not worsening of another organ's function",
         "trigger": r"worsen",
         "text_source": _COMPONENTS_SRC, "lowercased": True},
+    "target_endpoint.py:search:cd9452f9c1": {
+        "detects": "the text names systemic (arterial) embolism as an outcome component -- not pulmonary embolism or "
+                   "venous thromboembolism (including RE-LY's abbreviation SEE beside stroke)",
+        "trigger": r"embol|see",
+        "text_source": _COMPONENTS_SRC, "lowercased": True},
     "target_endpoint.py:_SUBPOP_TITLE_RX": {
         "detects": "a registry outcome-measure title says the measure is reported for a subpopulation, subgroup or "
                    "subset of the randomised participants",

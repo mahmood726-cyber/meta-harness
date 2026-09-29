@@ -61,4 +61,16 @@ def test_sweep_over_the_served_state():
         ("pcsk9-mace", "PMID 30403574")]
     assert all(h["row_lacks"]["lexicon_canonical"] == ["worsening heart failure"]
                for h in out["C2_hits"] if h["slug"] != "pcsk9-mace")
+    # a historic ref stores the components ITS lexicon read: rows are re-read from their own definition span with the lexicon
+    # in force (V1.0.1 round 12), and the difference is shown as drift, never as a missing component. ROCKET-AF and ARISTOTLE
+    # name systemic embolism; their stored set ['stroke'] was the old lexicon's blindness
+    assert [(r["slug"], r["trial"]) for r in out["rows"] if r["lexicon_drift"]] == [
+        ("noac-vs-warfarin-af-stroke", "PMID 21830957"), ("noac-vs-warfarin-af-stroke", "PMID 21870978")]
+
+
+def test_the_served_state_has_no_lexicon_drift():
+    # the served pages are built by the lexicon in force: a row whose stored components differ from a re-read of its own
+    # definition span means the pages were not rebuilt after a vocabulary change
+    out = pcs.sweep(None)
+    assert [(r["slug"], r["trial"]) for r in out["rows"] if r["lexicon_drift"]] == []
     assert {(m["slug"]) for m in out["pools_mixing_states"] if "NEAR_MATCH_POOLED" in m["states"]} == {"pcsk9-mace"}
