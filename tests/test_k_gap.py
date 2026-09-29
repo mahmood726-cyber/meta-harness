@@ -339,3 +339,80 @@ def test_member_seeding_uses_resolved_report_when_cited_xref_was_rejected(tmp_pa
     seeded, nct_only = cf.member_pmids("s")
     assert "8540453" in seeded and "2571009" not in seeded
     assert "111" in seeded and "222" not in seeded and nct_only == ["333"]
+
+
+# ------------------------------------------------ forest-plot proposal gate (recomputation against the printed pool)
+
+def _fp():
+    import importlib
+    import sys
+    if "scripts" not in sys.path:
+        sys.path.append("scripts")
+    return importlib.import_module("k_gap_forest_plot")
+
+
+def _plot(ratio=True):
+    """Rows and a pooled row as a forest plot would print them (2 dp), with the pool computed FE from those rows."""
+    import math
+    fp = _fp()
+    raw = [(0.87, 0.78, 0.97), (0.74, 0.58, 0.95), (0.91, 0.80, 1.04), (0.79, 0.62, 1.00)] if ratio else \
+          [(-10.3, -12.0, -8.6), (-12.4, -13.4, -11.4), (-9.6, -11.4, -7.8)]
+    rows = [{"effect": e, "lower": lo, "upper": hi} for e, lo, hi in raw]
+    m, lo, hi = fp.pool_methods(rows, ratio=ratio)["FE"]
+    fmt = (lambda x: f"{x:.2f}") if ratio else (lambda x: f"{x:.1f}")
+    resp = {"legible": True, "measure": "HR" if ratio else "MD", "notes": "",
+            "rows": [{"label": f"T{i}", "effect": fmt(e), "lower": fmt(a), "upper": fmt(b), "weight_pct": None}
+                     for i, (e, a, b) in enumerate(raw)],
+            "pooled": {"effect": fmt(m), "lower": fmt(lo), "upper": fmt(hi)}}
+    text = f"The pooled result was {fmt(m)} (95% CI {fmt(lo)}-{fmt(hi)}) across trials."
+    return fp, resp, text
+
+
+def test_forest_gate_passes_a_plot_whose_rows_reproduce_the_printed_pool():
+    fp, resp, text = _plot()
+    g = fp.gate(resp, None, text)
+    assert g["state"] == "PASS", g["problems"]
+    assert "FE" in g["methods_reproducing"]
+
+
+def test_forest_gate_refuses_a_misread_point_asymmetric_to_its_ci():
+    fp, resp, text = _plot()
+    resp["rows"][1]["effect"] = "0.54"                         # misread 0.74 -> 0.54; CI still 0.58-0.95
+    g = fp.gate(resp, None, text)
+    assert g["state"] == "REFUSED" and any(p.startswith("ROW_ORDER") or p.startswith("ROW_CI_ASYMMETRIC") for p in g["problems"])
+
+
+def test_forest_gate_refuses_a_consistent_row_shift_by_recomputation():
+    fp, resp, text = _plot()
+    resp["rows"][0].update({"effect": "0.67", "lower": "0.60", "upper": "0.75"})   # self-consistent, but not the paper's
+    g = fp.gate(resp, None, text)
+    assert g["state"] == "REFUSED" and "RECOMPUTATION_DOES_NOT_REPRODUCE_PRINTED_POOL" in g["problems"]
+    assert not any(p.startswith("ROW_CI_ASYMMETRIC") for p in g["problems"])      # the row checks alone pass it
+
+
+def test_forest_gate_refuses_a_pooled_row_not_printed_in_the_text():
+    fp, resp, text = _plot()
+    g = fp.gate(resp, None, "The pooled hazard ratio was 0.99 (0.90-1.09).")
+    assert g["state"] == "REFUSED" and "PLOT_POOLED_NOT_PRINTED_IN_TEXT" in g["problems"]
+
+
+def test_forest_gate_pools_a_mean_difference_plot_on_the_raw_scale():
+    fp, resp, text = _plot(ratio=False)
+    g = fp.gate(resp, None, text)
+    assert g["ratio"] is False and g["state"] == "PASS", g["problems"]
+
+
+def test_forest_figure_selection_prefers_the_comparators_endpoint_over_a_component():
+    # glp1: the MACE figure, not nonfatal MI (the topic's MACE keywords list 'myocardial infarction')
+    fp = _fp()
+    c, pmid, _ = fp.comparator("glp1-ra-mace-t2d")
+    fig, why = fp.select_figure("glp1-ra-mace-t2d", pmid)
+    assert why == "SELECTED" and "on MACE" in fig["caption"]
+
+
+def test_forest_gate_anchor_requires_the_upper_bound_too():
+    fp, resp, text = _plot()
+    wrong_hi = text.replace("-" + resp["pooled"]["upper"] + ")", "-9.99)")
+    assert wrong_hi != text
+    g = fp.gate(resp, None, wrong_hi)
+    assert g["state"] == "REFUSED" and "PLOT_POOLED_NOT_PRINTED_IN_TEXT" in g["problems"]
