@@ -12,13 +12,29 @@ output.
     glp1-ra-mace-t2d (7 of 8; ELIXA refused for a 4-point MACE estimand); noac-vs-warfarin (3 of 3 resolved, all
     pooled; ROCKET AF honestly unresolved).
   - No topic is yet an exact, fully resolved trial-for-trial match.
-- **Result agreement on shared trials:** 46 shared trials over 20 topics.
-  - **44** are not comparable from the comparator's text: its per-trial numbers are only in forest-plot figures.
-  - **2** are comparable, both semaglutide-weight:
-    - on the **served** page both **DISAGREE**. We pooled CT.gov observed arm means; the comparator pooled each
-      trial's published primary estimated treatment difference;
-    - with this branch's extractor fix both **AGREE**: STEP 3 MD -10.3 (-12.0, -8.6); STEP 1 -12.4 (-13.4, -11.5)
-      vs the comparator's -12.44 (-13.37, -11.51).
+- **Result agreement on shared trials** (46 over 20 topics; `k_gap_result_agreement.forest.json`):
+  - **Forest-plot rows.** Before this, 44 of 46 were not comparable because the comparators print per-trial
+    numbers only in figures. Each figure is now read by ONE recorded image call (`scripts/k_gap_forest_plot.py`)
+    and counts only if a deterministic gate RECOMPUTES the comparator's printed pooled result from the proposed
+    rows. The pooled value is the typed text value, or the plot's own pooled row found verbatim in the
+    comparator's text.
+  - **Figures:** 10 read, 6 pass, 4 refused (pooled row not printed in the text ×2, unreadable ×2).
+    - GLP-1: only PM+HK and DL+HK reproduce 0.86 (0.79–0.94); the comparator's text says Paule-Mandel/HKSJ.
+  - **Comparable: 22 of 46** (was 2):
+
+    | verdict | n |
+    |---|---|
+    | agree | 11 (GLP-1 6, probiotics 5) |
+    | point agrees, CI differs | 1 (PIONEER 6: our 1.11 vs printed 1.10) |
+    | scale differs | 6 (the comparator pooled OR/RR where we pooled the trial HR: omega-3 ×4, PLATO, SELECT) |
+    | disagree | 2 (probiotics) |
+    | semaglutide-weight | 2 (DISAGREE served; AGREE with fix 3) |
+    | not reported | 24 |
+
+  - **Both disagreements traced.**
+    - McFarland 1995: **our defect**. We admitted a multivariable-adjusted RR 0.29 from a risk-factor model; the
+      randomised comparison is the crude one, and the comparator pooled 0.49. Fixed as fix 4 below.
+    - Song 2010: a source difference. Our 4/103 vs 8/111 is the abstract's own count.
 - **Supplements** (where per-trial data often live), measured 2026-09-29 over 32 comparators:
   - **Europe PMC `supplementaryFiles`** (one ZIP per OA article) works, with intermittent 503s.
     - Outcome: 20 comparators with typed supplement text, 1 with only a legacy .doc (melatonin), 1 with only
@@ -45,7 +61,11 @@ output.
    a negative MD crashed and a positive one would be mis-scaled. A reported MD now pools on the raw scale with
    SE = (hi-lo)/(2z), in pipeline, rob_sensitivity and delegated_served_impact. A non-positive "ratio" now refuses
    loudly.
-3. Served values change for **one** topic only: semaglutide-obesity-weight, pooled MD -11.84 -> -11.47. 31/32
+3. **Abstract rung admitted a covariate-model effect** (fix 4, `extract._covariate_model_sentence`). The
+   full-text rung's COVARIATE_ANALYSIS guard now also applies to abstract effects. Corpus-wide this is 1 of 127
+   served trial rows (probiotics, McFarland). A plain 'adjusted hazard ratio' (a trial's own stratified result) is
+   unaffected (control plant).
+4. Served values change, for fix 3, on **one** topic only: semaglutide-obesity-weight, pooled MD -11.84 -> -11.47. 31/32
    topics are value-identical.
 
 ## Identity defects G1 found and fixed (measurement tooling, `kgap/`, `scripts/k_gap_table.py`)
