@@ -247,3 +247,21 @@ def test_self_naming_is_title_or_exact_parenthesised_definition():
     assert not m.self_names("CORE", "A new trial", "Earlier trials (CORE, CORP) showed")
     assert m.self_names("CORE", "Colchicine for recurrent pericarditis: results of the CORE trial", "")
     assert not m.self_names("RALES1999", "The effect of spironolactone", "Randomized Aldactone Evaluation Study")
+
+
+def test_a_paper_is_not_the_result_of_a_trial_registered_after_it():
+    # PLANT (colchicine-postop-af): Deftereos' 2012-14 PMIDs are listed by NCT04906720 / NCT06731595 (2021+ trials
+    # that cite them); following that link made Deftereos 'POOLED' through another paper of the later NCT.
+    m = _table_mod()
+    idx = {"study": {"NCT04906720": {"study_first_submitted_date": "2021-05-20"},
+                     "NCT00128414": {"study_first_submitted_date": "2005-08-08"}}}
+    assert m.registered_before("NCT04906720", 2014, idx) is False
+    assert m.registered_before("NCT00128414", 2011, idx) is True
+    assert m.registered_before("NCT09999999", 2014, idx) is True        # unknown date -> not excluded
+
+
+def test_title_key_matches_a_second_record_of_the_same_article():
+    # EMPA-REG's NEJM article has two PubMed records (26378978, 26981940); the comparator cites the second.
+    m = _table_mod()
+    assert m._title_key("Empagliflozin, Cardiovascular Outcomes, and Mortality in Type 2 Diabetes.") == \
+        m._title_key("Empagliflozin, cardiovascular outcomes, and mortality in type 2 diabetes")
