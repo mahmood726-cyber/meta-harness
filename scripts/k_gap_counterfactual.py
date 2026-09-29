@@ -202,7 +202,8 @@ def main(argv):
                     tried += 1
                     u = k_gap.unpaywall_text(doi, os.path.join(OUT, "_upw"), os.path.join(OUT, "unpaywall_text_index.json"))
                     if u.get("text"):
-                        got[p] = u["text"]
+                        from harness import fulltext as _ftm
+                        got[p] = _ftm.UNSTRUCTURED_MARKER + "\n" + u["text"]   # typed: no table delimiters
                 cfc = build(slug, extra_fulltext=got)
                 cf = core_primary(cfc)
                 res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "declared_absent_pmids": len(targets),
@@ -231,6 +232,19 @@ def main(argv):
                 ft_t = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
                                if str(d.get("id", "")).startswith("PMID ")} - held_ft)
                 fts = {p: t for p in ft_t for t in [pmc_fulltext_cached(p, offline=True)] if t}
+                # adapter 4 (Unpaywall OA copy, typed UNSTRUCTURED) for the declared-absent trials PMC does not hold
+                from kgap import k_gap as _kg
+                from harness import fulltext as _ftm
+                doi_of = {r.get("id"): (r.get("doi") or "").strip() for r in rj.get("records", [])}
+                n_upw = 0
+                for p in ft_t:
+                    if p in fts or not doi_of.get(p):
+                        continue
+                    u = _kg.unpaywall_text(doi_of[p], os.path.join(OUT, "_upw"),
+                                           os.path.join(OUT, "unpaywall_text_index.json"), offline=True)
+                    if u.get("text"):
+                        fts[p] = _ftm.UNSTRUCTURED_MARKER + "\n" + u["text"]
+                        n_upw += 1
                 recnct = {r.get("id"): r.get("nct") for r in rj.get("records", [])}
                 cg_t = set()
                 for d in prim.get("declared_absent_trials", []):
@@ -244,7 +258,7 @@ def main(argv):
                 res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "baseline_k_valid": base["k_valid"],
                              "counterfactual_k": cf["k"], "counterfactual_k_valid": cf["k_valid"],
                              "counterfactual_scale": cf["scale"], "members_added": len(recs),
-                             "fulltext_added": len(fts), "ctgov_added": len(cgs),
+                             "fulltext_added": len(fts) - n_upw, "unpaywall_added": n_upw, "ctgov_added": len(cgs),
                              "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
                              "lost": sorted(set(base["trials"]) - set(cf["trials"])),
                              "secs": round(time.time() - t0, 1)}
