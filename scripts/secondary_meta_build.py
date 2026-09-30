@@ -474,6 +474,16 @@ def build(slug, run, runs):
             continue
         resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, run_r["record_id"] + ".json"))).decode("utf-8"))
         g = fp.gate(resp, None, it["held"])                       # rows consistent + pool printed in THIS meta's text
+        control_basis = "POOL_PRINTED_IN_META_TEXT"
+        if g["state"] != "PASS" and g["problems"] == ["PLOT_POOLED_NOT_PRINTED_IN_TEXT"]:
+            # The meta does not repeat its pooled result in the text: the control target is the pooled row PRINTED in
+            # the figure. Recomputation from the rows is still required (a misread row still fails it); what this
+            # weaker basis cannot catch -- a wrong-analysis figure -- is left to primary verification, which every row
+            # must pass before it counts. The basis is recorded on the meta.
+            fig_pool = resp.get("pooled") or {}
+            g = fp.gate(resp, {"effect": fig_pool.get("effect"), "lower": fig_pool.get("lower"),
+                               "upper": fig_pool.get("upper"), "k": None, "quote": None, "method": None}, it["held"])
+            control_basis = "POOL_PRINTED_IN_FIGURE"
         measure = (resp.get("measure") or "").upper().strip()
         measure = "HR" if "HAZARD" in measure else "RR" if ("RISK R" in measure or measure == "RR") else \
                   "OR" if ("ODDS" in measure or measure == "OR") else "MD" if ("MEAN" in measure or measure in ("MD", "WMD")) else measure
@@ -493,6 +503,7 @@ def build(slug, run, runs):
         usable = g["state"] == "PASS" and pc["reproduced"]
         metas_out[it["pmid"]] = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
                                  "gate": g["state"], "gate_problems": g["problems"][:6], "positive_control": pc,
+                                 "control_basis": control_basis,
                                  "rows_read": len(mrows), "usable": usable, "record_id": run_r["record_id"],
                                  "is_comparator": it["pmid"] == comp}
         if not usable:
