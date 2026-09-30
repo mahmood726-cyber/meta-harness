@@ -2072,6 +2072,9 @@ def outcome_inputs(slug, config, records):
     from . import condition_role as _cr
     _cr.apply(scr, merged, trial_family_mod.load_registry(ROOT, slug), config,
               lambda rec, cfg: screen.run([rec], cfg)["decisions"][0])
+    # V1.0.1 round 14: the PubMed side -- records naming the question's outcome condition only as what they prevent are
+    # SURFACED as candidates, never screened in (that moves the pool: a protocol decision owed a signature)
+    scr["condition_as_outcome_candidates"] = _cr.outcome_condition_candidates(scr, merged, config)
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
     interv = config.get("intervention_terms", ["colchicine"])
@@ -2335,7 +2338,9 @@ def build_review_core(slug, config, records, protocol_sha):
         "screening": {"records": screening_records,
                       "positive_control": scr["positive_control"], "negative_control": scr["negative_control"],
                       "dual": _with_model_adjudication(slug, screen.run_dual(merged, config), scr["decisions"]),
-                      **({"adjudicator_pending": _adj["pending"]} if _adj.get("pending") else {})},
+                      **({"adjudicator_pending": _adj["pending"]} if _adj.get("pending") else {}),
+                      **({"condition_as_outcome_candidates": scr["condition_as_outcome_candidates"]}
+                         if scr.get("condition_as_outcome_candidates") else {})},
         "scope_identity": scope_identity,
         "outcomes": outcomes,
         "comparator": comparator,

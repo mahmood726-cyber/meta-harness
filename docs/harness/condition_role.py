@@ -105,3 +105,62 @@ def apply(scr: dict, records: list, registry: dict, config: dict, rescreen) -> l
         scr["decisions"][i] = new
         changed.append(str(rec["id"]))
     return changed
+
+
+# ---- V1.0.1 round 14: the same fact on the PubMed side of screening (scripts/plants_round14.py) ------------------------
+# A topic whose QUESTION enrols people without the condition and asks whether the intervention prevents it (probiotics:
+# "In patients receiving antibiotics, do probiotics reduce antibiotic-associated diarrhoea") screens population by that
+# condition's words. A trial naming it only as what it prevents, in its abstract, is then "population not on-topic".
+# Such records are surfaced as CANDIDATES -- never screened in here: screening them in moves the pool, a protocol
+# decision owed a signature. A topic that enrols people WITH the condition ("In adults with acute symptomatic VTE")
+# never proposes: there, 'prevention of VTE' is another population.
+OUTCOME_RULE = "CONDITION_AS_OUTCOME_IN_QUESTION"
+_Q_POPULATION = re.compile(r"^\s*in\s+(.*?),\s*(?:do|does|did|is|are|can|will)\b", re.I | re.S)
+_PREVENTION_FRAME = re.compile(r"\b(?:prevent\w*|prophyla\w*|reduc\w* (?:the )?(?:risk|incidence|occurrence) of|"
+                               r"incidence of|occurrence of|risk of developing)\b[^.;]{0,60}$", re.I)
+
+
+def _stem(term: str) -> str:
+    return term.rstrip("*").lower()
+
+
+def question_outcome_conditions(question: str, inc: dict) -> list:
+    """The topic's population terms that its QUESTION names only as the outcome: none of the population terms in the
+    question's population clause ('In <clause>, do ...'), and these named after it. Empty otherwise."""
+    terms = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    m = _Q_POPULATION.match(question or "")
+    if not m or not terms:
+        return []
+    clause, rest = m.group(1).lower(), (question or "")[m.end():].lower()
+    if any(_stem(t) in clause for t in terms):
+        return []
+    return [t for t in terms if _stem(t) in rest]
+
+
+def outcome_condition_candidates(scr: dict, records: list, config: dict) -> list:
+    """Every X2 'population not on-topic' record whose abstract names the question's outcome condition in a prevention
+    frame ('to prevent', 'for the prevention of', 'incidence of' ... within 60 characters before it). A candidate only:
+    the decision is never changed here."""
+    inc = config.get("include") or {}
+    if not question_outcome_conditions(config.get("question") or "", inc):
+        return []
+    terms = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    by_id = {str(r.get("id")): r for r in records}
+    out = []
+    for d in scr.get("decisions") or []:
+        if d.get("rule_id") != "X2" or not str(d.get("reason") or "").startswith("population not on-topic"):
+            continue
+        rec = by_id.get(str(d.get("id"))) or {}
+        abstract = rec.get("abstract") or ""
+        hit = None
+        for t in terms:
+            for mm in re.finditer(re.escape(_stem(t)), abstract, re.I):
+                if _PREVENTION_FRAME.search(abstract[max(0, mm.start() - 90):mm.start()]):
+                    hit = (t, abstract[max(0, mm.start() - 90):mm.end() + 40].strip())
+                    break
+            if hit:
+                break
+        if hit:
+            out.append({"id": str(d["id"]), "rule": OUTCOME_RULE, "term": hit[0], "span": hit[1],
+                        "status": "PROPOSED -- screening it in moves the pool: a protocol decision owed a signature"})
+    return out

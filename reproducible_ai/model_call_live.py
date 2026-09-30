@@ -107,6 +107,18 @@ _READ_CMD = re.compile(r"(?:Get-Content|cat|type|more|head|tail|sed -n|rg|grep|S
                        r"(?P<path>[\w.\\/:-]+\.(?:md|txt|json|py|csv|html|toml|yaml|yml))", re.I)
 
 
+_ABS_PATH = re.compile(r"^(?:[A-Za-z]:[\\/]|[\\/]{2}|/)")
+
+
+def _local_path_redacted(path: str) -> str:
+    """V1.0.1 round 14: an ABSOLUTE local path the client read is never written into a record (a committed record must
+    carry no local path). The fact that it read a file outside its empty working directory is kept, with the path's
+    digest -- one row_binding call read two of the user's own files, following the client-injected ~/.codex/AGENTS.md."""
+    if not _ABS_PATH.match(path or ""):
+        return path
+    return "<local path outside the workdir, sha256 " + hashlib.sha256(path.encode("utf-8")).hexdigest()[:12] + ">"
+
+
 def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
     """Tokens, tool calls (with outcome) and files read, parsed from the client's stderr; plus the redacted transcript."""
     t = stderr_text.replace("\r\n", "\n")
@@ -114,15 +126,30 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
     tokens = int(m.group(1).replace(",", "")) if m else None
     calls = [{"command": x.group("cmd").strip()[:400], "outcome": x.group("outcome").strip()[:200]} for x in _EXEC.finditer(t)]
     calls += [{"command": None, "outcome": "REJECTED: " + x.group("why")[:300]} for x in _REJECT.finditer(t)]
-    files = sorted({r.group("path") for c in calls if c["command"] for r in _READ_CMD.finditer(c["command"])})
+    files = sorted({_local_path_redacted(r.group("path")) for c in calls if c["command"]
+                    for r in _READ_CMD.finditer(c["command"])})
     red = t
     p = prompt.decode("utf-8", "replace").replace("\r\n", "\n").strip()
     if p and p in red:
         red = red.replace(p, f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>")
     red = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", red)
+    # V1.0.1 round 14: a client that read files OUTSIDE its empty workdir (following the injected ~/.codex/AGENTS.md) or
+    # searched the web left their CONTENT in its transcript -- one row_binding call printed the head of the user's own
+    # project index. Such a transcript is withheld (its digest kept) and paths in commands are redacted: the lane log is
+    # committed, and nothing it carries may be the user's private files.
+    outside = [f for f in files if f.startswith("<local path")]
+    web = bool(re.search(r"^web search:", t, re.M))
+    if outside or web:
+        red = (f"<transcript withheld: the client {'read files outside its workdir' if outside else ''}"
+               f"{' and ' if outside and web else ''}{'searched the web' if web else ''}; "
+               f"sha256 of the redacted transcript {hashlib.sha256(red.encode('utf-8')).hexdigest()}>")
+        calls = [dict(c, command=re.sub(r"(?<![\w<])(?:[A-Za-z]:[\\/]|[\\/]{2})[^\s'\";]+",
+                                        lambda mm: _local_path_redacted(mm.group(0)), c["command"]))
+                 if c["command"] else c for c in calls]
     return {"tokens_used": tokens, "tool_calls": calls, "tool_calls_n": len(calls),
             "tool_calls_rejected_n": sum(1 for c in calls if c["outcome"].startswith("REJECTED")),
-            "files_read": files, "transcript_redacted": red}
+            "files_read": files, "outside_workdir_reads": len(outside), "web_search_used": web,
+            "transcript_redacted": red}
 
 
 def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
@@ -136,7 +163,8 @@ def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
             "response_sha256": (record.get("response") or {}).get("sha256"),
             "workdir_files": (record.get("params") or {}).get("workdir_files"),
             **{k: facts[k] for k in ("tokens_used", "tool_calls_n", "tool_calls_rejected_n", "tool_calls", "files_read",
-                                     "transcript_redacted")}}
+                                     "transcript_redacted")},
+            **{k: facts[k] for k in ("outside_workdir_reads", "web_search_used") if k in facts}}
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(line, sort_keys=True, ensure_ascii=True) + "\n")
@@ -178,7 +206,10 @@ def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s
         argv = [_codex_exe(), "exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config",
                 "--sandbox", "read-only", "--cd", str(work), "--output-schema", str(work / "schema.json"),
                 "--output-last-message", str(out), "-m", model,
-                "-c", f"model_reasoning_effort={effort}", "-c", "project_doc_max_bytes=0", "-"]
+                "-c", f"model_reasoning_effort={effort}", "-c", "project_doc_max_bytes=0",
+                # V1.0.1 round 14: a reading is of the HELD text only -- six row_binding calls searched the web.
+                # web_search="disabled" verified by the client's own stderr on a probe that invited a search
+                "-c", 'web_search="disabled"', "-"]
         try:
             p = subprocess.run(argv, input=prompt, capture_output=True, timeout=timeout_s)
             rc, so, se = p.returncode, p.stdout, p.stderr
@@ -227,7 +258,7 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
         model={"id_requested": model, "id_reported": rep or "UNREPORTED", "provider": header.get("provider") or "UNREPORTED",
                "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"},
         params={"reasoning_effort": effort, "sandbox": "read-only", "ephemeral": True, "ignore_user_config": True,
-                "project_doc_max_bytes": 0, "output_schema": schema, "timeout_s": timeout_s,
+                "project_doc_max_bytes": 0, "web_search": "disabled", "output_schema": schema, "timeout_s": timeout_s,
                 "workdir_files": {"LANE_CONTEXT.md": LANE_CONTEXT_SHA256, "schema.json": "the output_schema above"}},
         not_controllable=list(NOT_CONTROLLABLE),
         client={"name": "codex exec", "version": client_version or _codex_version(), "argv": r.get("argv")},
@@ -236,6 +267,8 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
                          "stderr_sha256": hashlib.sha256(se).hexdigest(), "stderr_bytes": len(se),
                          "tokens_used": facts["tokens_used"], "tool_calls_n": facts["tool_calls_n"],
                          "tool_calls_rejected_n": facts["tool_calls_rejected_n"], "files_read": facts["files_read"],
+                         "outside_workdir_reads": facts["outside_workdir_reads"],
+                         "web_search_used": facts["web_search_used"],
                          "transcript_redacted_sha256": hashlib.sha256(facts["transcript_redacted"].encode("utf-8")).hexdigest(),
                          "lane_log": f"registry/model_calls/lane_log/{lane_log_name(lane_of(caller))}",
                          "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work "

@@ -487,7 +487,9 @@ def reverify(entry: dict, held_text: str) -> dict:
         return verify_site_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
     if task in ("comparator_k", "comparator_k_reader2"):
         return verify_comparator_k(entry.get("claim"), held_text, prior)
-    if task in ("condition_role", "condition_role_reader2"):
+    if task in ("row_binding", "row_binding_reader2"):
+        return verify_row_binding(entry.get("claim"), held_text, (entry.get("context") or {}).get("families"))
+    if task in ("condition_role", "condition_role_reader2", "condition_role_screen", "condition_role_screen_reader2"):
         return verify_condition_role(entry.get("claim"), held_text, (entry.get("context") or {}).get("term"))
     if task in CATEGORICAL_TASKS:
         return verify_categorical(task, entry.get("claim"), held_text, entry.get("rule_decision"))
@@ -514,6 +516,8 @@ CATEGORICAL_TASKS = {
     "overlap_identity": ("SAME_TRIAL", "DIFFERENT_TRIALS", "NOT_STATED"),
     "screen_x1": ("RANDOMISED_TRIAL", "NOT_RANDOMISED", "NOT_STATED"),
     "d5_adjudicate": ("SAME_OUTCOME", "DIFFERENT_OUTCOME", "NOT_STATED"),
+    "registry_measure_identity": ("SAME_OUTCOME", "DIFFERENT_OUTCOME", "NOT_STATED"),
+    "screen_population": ("MEETS_CRITERION", "FAILS_CRITERION", "NOT_STATED"),
 }
 # a second reader (a different model id, same vendor -- stated, not hidden) reads the same population
 CATEGORICAL_TASKS.update({f"{t}_reader2": v for t, v in list(CATEGORICAL_TASKS.items())})
@@ -541,6 +545,37 @@ def verify_categorical(task: str, claim: Any, held_text: str, rule_decision: Any
         out["model_decision"] = v
         out["agreement"] = ("RULE_MODEL_AGREE" if v == rule_decision else
                             f"RULE_MODEL_DISAGREE(rule={rule_decision}, model={v}, adjudication=OWED)")
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    return out
+
+
+def verify_row_binding(claim: Any, held_text: str, families: list | None) -> dict:
+    """V1.0.1 round 14 (comparator trial identity): a comparator row the overlap relation bound to no family of ours.
+    claim = {family, quote}: family is one of the item's listed family ids, or NONE (quote null). A named family must
+    quote the held item text. The rule left the row UNBOUND, so only NONE agrees; a named family is an individual-
+    signature proposal, never applied by this module."""
+    problems = []
+    out: dict[str, Any] = {"task": "row_binding", "rule_decision": "UNBOUND"}
+    fam = claim.get("family") if isinstance(claim, dict) else None
+    q = claim.get("quote") if isinstance(claim, dict) else None
+    allowed = set(families or [])
+    if fam != "NONE" and fam not in allowed:
+        problems.append(f"FAMILY_NOT_LISTED: {fam!r}")
+    elif fam == "NONE":
+        if q not in (None, ""):
+            problems.append("NONE_WITH_SPAN")
+    elif not isinstance(q, str) or not q.strip():
+        problems.append(f"NO_SPAN: {fam} without a quote")
+    else:
+        loc = _locate(q, held_text)
+        out["located"] = loc
+        if loc.get("match") not in ("VERBATIM", "NORMALISED"):
+            problems.append("SPAN_NOT_IN_SOURCE")
+    if fam == "NONE" or fam in allowed:
+        out["model_decision"] = fam
+        out["agreement"] = ("RULE_MODEL_AGREE" if fam == "NONE" else
+                            f"RULE_MODEL_DISAGREE(rule=UNBOUND, model={fam}, adjudication=OWED)")
     out["problems"] = problems
     out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
     return out

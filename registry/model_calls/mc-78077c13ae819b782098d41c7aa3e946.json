@@ -1,0 +1,155 @@
+{
+ "caller": {
+  "file": "scripts/overnight_proposals.py",
+  "lane": "evid2",
+  "line": "cmd_run",
+  "purpose": "condition_role_screen_reader2 proposals, batch 38 (1 items)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-5.5",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-5.5",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0f3e5-42f6-7b32-a34f-cfa226a6f03a",
+   "tokens used": "3,068"
+  },
+  "lane_log": "registry/model_calls/lane_log/evid2.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 1161,
+  "stderr_sha256": "d30904e73d386438ea338e3195b720893fdd1eb8ed5526e65c9fb8d83b487ac2",
+  "stdout_bytes": 107,
+  "stdout_sha256": "18e6cb2afc1e09ae68c244004b1ec1538f29508051fed029a40780388448c82d",
+  "tokens_used": 3068,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "e3f098f74a1562124678247a00d03b675d64d7680f661a4f9c70499b037bd585"
+ },
+ "input_digests": [
+  {
+   "ref": "cache/tranexamic-acid-pph/records.json#NCT03069859",
+   "sha256": "23e5b49b49482b49101965ea5ee5be464180a14c502546fdb870f497e2c6b6ee",
+   "what": "held text"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "3b19841f4ab23c30613ed721a8d319cd0df17337b520fa552c8fcd003108808d",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-5.5",
+  "id_requested": "gpt-5.5",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "items": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "item": {
+        "type": "string"
+       },
+       "quote": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "role": {
+        "enum": [
+         "ENTRY_POPULATION",
+         "PREVENTED_OUTCOME",
+         "NOT_STATED"
+        ],
+        "type": "string"
+       }
+      },
+      "required": [
+       "item",
+       "role",
+       "quote"
+      ],
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "items"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "RWFjaCBpdGVtIGlzIGEgdHJpYWwgUkVDT1JEIG91ciBzY3JlZW5pbmcgZXhjbHVkZWQgYmVjYXVzZSBpdHMgdGl0bGUgb3IgcmVnaXN0ZXJlZApjb25kaXRpb25zIG1lbnRpb24gdGhlIENPTkRJVElPTiBuYW1lZCBpbiB0aGUgaXRlbSBoZWFkZXIuIERlY2lkZSB0aGF0IGNvbmRpdGlvbidzIHJvbGUgaW4gVEhJUyB0cmlhbDoKRU5UUllfUE9QVUxBVElPTiAtLSBwYXJ0aWNpcGFudHMgaGF2ZSBpdCBhdCBlbnRyeSAodGhleSBhcmUgZW5yb2xsZWQgYmVjYXVzZSBvZiBpdCk7IFBSRVZFTlRFRF9PVVRDT01FIC0tIHRoZSB0cmlhbCB0cmllcwp0byBwcmV2ZW50IGl0LCBvciBtZWFzdXJlcyBpdCBhcyBhbiBvdXRjb21lLCBpbiBwZW9wbGUgd2hvIGRvIG5vdCBoYXZlIGl0IGF0IGVudHJ5OyBOT1RfU1RBVEVELiBxdW90ZTogd29yZHMgY29waWVkCmV4YWN0bHkgZnJvbSB0aGUgUkVDT1JEIHRoYXQgc2hvdyB0aGUgcm9sZSBBTkQgY29udGFpbiB0aGUgY29uZGl0aW9uJ3Mgd29yZHMgKG51bGwgZm9yIE5PVF9TVEFURUQpLgo9PT0gSVRFTSBpdGVtPVIxIENPTkRJVElPTj0ncHJldmVudCcgPT09ClRJVExFOiBVc2Ugb2YgVFhBIHRvIFByZXZlbnQgUG9zdHBhcnR1bSBIZW1vcnJoYWdlCkFCU1RSQUNUOiAKQ09ORElUSU9OUzogUG9zdCBQYXJ0dW0gSGVtb3JyaGFnZQpJTlRFUlZFTlRJT05TOiBUWEEgKDFnKTsgUGxhY2VibyAoMC45JSBzYWxpbmUpCkFMTE9DQVRJT046IFJBTkRPTUlaRUQKTUFTS0lORzogUVVBRFJVUExFClNUVURZX1RZUEU6IElOVEVSVkVOVElPTkFMCg==",
+  "bytes": 778,
+  "sha256": "70f55d636285b5b50f59d57128e7d1aa6198c460c8d2906ce157f3e738ec5bfc"
+ },
+ "record_id": "mc-78077c13ae819b782098d41c7aa3e946",
+ "request_utc": "2026-09-30T19:57:58Z",
+ "response": {
+  "b64": "eyJpdGVtcyI6W3siaXRlbSI6IlIxIiwicXVvdGUiOiJVc2Ugb2YgVFhBIHRvIFByZXZlbnQgUG9zdHBhcnR1bSBIZW1vcnJoYWdlIiwicm9sZSI6IlBSRVZFTlRFRF9PVVRDT01FIn1dfQ==",
+  "bytes": 106,
+  "sha256": "70b4f54d4697a24f8ad3a83a95b26f88aca7b5ff67684a52325ea92f9691ddb3"
+ },
+ "response_utc": "2026-09-30T19:58:11Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

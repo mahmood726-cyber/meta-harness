@@ -315,9 +315,18 @@ def _members(review, panel, prim_name, acr_idx, ours_keys, title_idx=None, cited
         ins = []
         for m in am["members"]:
             fam = fam_idx.get(_key(m["report_pmid"])) if m.get("report_pmid") else None
+            printed = None
+            if not fam and not generic_label(m["label"]):
+                # V1.0.1 round 14 (tocilizumab review): a plot row printed as a trial acronym held for exactly ONE family
+                # of ours is that trial -- the same rule as a transcribed table row (REACT's 'RECOVERY' = NCT04381936)
+                fams = acr_idx.get(norm_name(m["label"])) or set()
+                if len(fams) == 1:
+                    printed, fam = m["label"], next(iter(fams))
             ins.append({"name": m["label"], "family": fam, "alias_ids": [m["report_pmid"]] if m.get("report_pmid") else [],
                         "identity": ("bound to our report PMID " + m["report_pmid"] + " (same counts in the plot and our row)")
-                                    if fam else "unbound (name only)",
+                                    if fam and not printed else
+                                    f"bound by its printed name ({printed}), an acronym held for exactly one family"
+                                    if printed else "unbound (name only)",
                         "endpoint": am.get("endpoint"), "span": f"forest-plot row: {m['label']} {m['counts']}"})
         return {"source": f"governing analysis forest plot ({am['figure']['caption']['quote']}; read from source, image not held)",
                 "endpoint_for_outcome": am.get("endpoint")}, ins, []

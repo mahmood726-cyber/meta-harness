@@ -684,3 +684,92 @@ population). Nothing a model says enters a build.
     needed; a trial-defined composite; the deliberate HHF-subset rule).
 - **Codex calls this round**: 69 recorded model calls (`registry/model_calls`). Every one is logged in
   `evid2-scratch/codex/codex_calls.jsonl`; no transcript is committed.
+
+## Round 14 (Mahmood, 2026-09-30: "use codex hard"): four more two-reader workloads, and two harness fixes they point at
+
+Every call is a recorded `reproducible_ai` record. Two blind readers are used (gpt-6-astra, then gpt-5.5, on one frozen
+population drawn from the served pages at round 13, 7ade54d0). Every reading is PROPOSED and nothing a model says
+enters a build.
+
+### Comparator trial identity: `row_binding` (85 comparator members the overlap relation bound to NO family of ours)
+
+- The item is the row as the comparator PRINTS it, plus our trials' ids, acronyms, registrations and titles.
+  - A table's cross-referenced citation is deliberately not shown. Omega-3's cross-references are numbered one off (its
+    GISSI-HF row cites JELIS) and would steer the reading.
+  - The verifier (`model_source.verify_row_binding`) accepts only a listed family id, or NONE, with a located quote.
+- **Result**: the readers agree with each other on 70 of 85. Both bind **30** rows to one of our families: 19 omega-3,
+  8 tocilizumab, 2 metformin, 1 semaglutide-MACE.
+- **Harness fix** (`harness/overlap_relation.py`, plant `scripts/plants_round14.py` Q2): a forest-plot membership row
+  bound only through a report PMID whose counts matched ours. A row printed as a trial acronym held for exactly ONE
+  family (REACT's "RECOVERY", "COVACTA", "EMPACTA", "ARCHITECTS", "TOCIBRAS") stayed "unbound (name only)". It now binds
+  by the same typed rule a transcribed table row already used.
+  - Q2 FIRED on 7ade54d0, not on the fix. Control C3: a generic row label never binds by name.
+- **Not bound by the harness**: the omega-3 rows are printed as FIRST AUTHOR + YEAR ("Burr 1989", "Bhatt 2019"). We
+  hold no author metadata, so the readers' bindings rest on knowledge outside the held text: DART, REDUCE-IT, VITAL
+  and the rest.
+  - These stay proposals. Binding them by rule needs the PubMed first-author field acquired as held data. The k-gap
+    lane has `outputs/k_gap/pubmed_first_author_year.json` on origin.
+- **Served effect**: tocilizumab's relation moves from NOT_ENUMERABLE ("enumerated comparator set with unbound
+  members") to **SUBSET** (theirs 19, ours 1, shared 1): our one pooled trial, RECOVERY, is in REACT's plot. 14 REACT
+  rows stay unbound because none is a held acronym of ours (CORIMUNO-TOCI-1 vs our truncated "CORIMUNO-TOC", ImmCoVA
+  with no acronym, and so on). No pooled result moved; families 32/32.
+
+### Condition-as-outcome in screening (the PubMed side of `harness/condition_role.py`)
+
+- **The defect.** A topic whose question enrols people WITHOUT the condition and asks whether the intervention prevents
+  it screens population by the condition's words ("In patients receiving antibiotics, do probiotics reduce
+  antibiotic-associated diarrhoea"). A trial naming the condition only as what it prevents, in its abstract, is then
+  "population not on-topic".
+- **Tried first and refused**: blanket prevention semantics (an abstract haystack for population). It screens trials
+  in, but it also exposes their abstracts to population-EXCLUSION terms. Measured: it would have turned 7 included
+  colchicine-secondary trials and 16 other includes into exclusions.
+- **The rule** (`question_outcome_conditions`, `outcome_condition_candidates`; plant Q1, controls C1 and C2):
+  - A topic is condition-as-outcome when its question's population clause ("In …, do …") names none of its population
+    terms and the question names them after it.
+  - That is 1 of 32 topics (probiotics). doac-vte, recurrent pericarditis, colchicine-secondary and tranexamic acid
+    each enrol people WITH the condition.
+  - A "population not on-topic" record whose abstract names the condition in a prevention frame is a CANDIDATE. It is
+    stored in `screening.condition_as_outcome_candidates` and never screened in: that moves the pool, a protocol
+    decision owed a signature.
+- **n of N**: 8 candidates, all probiotics. Both codex readers (`screen_population`) say all 8 meet the population:
+  precision 8 of 8. Recall is lower: the readers mark 36 probiotics exclusions as meeting it. The rest name AAD outside
+  a prevention frame, or in other words ("diarrhoea associated with antibiotics").
+
+### Other readings (all PROPOSED; `round14_codex/readings_for_kgap_and_captain.json`)
+
+- **`screen_population`**, every served X2 "population not on-topic" (291): both readers MEETS 91, FAILS 130, not
+  stated 16, split 54. The MEETS are probiotics 36, SGLT2 primary prevention 15, omega-3 7, semaglutide 5 and others.
+  These are screening-normalisation proposals for the k-gap lane.
+- **`condition_role_screen`**, every served X2 "mentions T" (223): both readers ENTRY_POPULATION 140, PREVENTED_OUTCOME
+  19, not stated 32, split 32.
+  - PREVENTED_OUTCOME does not by itself make an exclusion wrong. AF-prevention trials are out of scope for a MACE
+    question, and a treatment topic (tranexamic acid) excludes prevention trials by design.
+- **`registry_measure_identity`** (the extraction-side twin of the PLATO/PHILO D5 plant: is a held registry measure
+  the pooled outcome), 176:
+  - The readers agree with each other on 171, and with `target_endpoint._classify` on 154.
+  - On the 17 against the rule, the rule is mostly the stricter reading: a recurrent-events rate analysis vs a
+    first-event composite, "worsening HF" met by HF hospitalisation per the topic's own keywords. It is left
+    unchanged and listed.
+- **Codex calls this round**: 264 recorded model calls, each logged in `evid2-scratch/codex/codex_calls.jsonl`.
+
+### What the codex client did outside its instructions, and the recorder fix
+
+- **Found by a test, not by me**: `test_model_source.py::test_every_committed_record_replays_or_is_a_recorded_error`
+  refused one new record because it carried local paths.
+- **What happened**: the client runs `--sandbox read-only` in an empty working directory, but read-only still permits
+  reads anywhere. One `row_binding` call ran PowerShell and printed the first lines of two of the user's own files
+  (the project index and the E156 workbook), apparently following the client-injected `~/.codex/AGENTS.md`. Six calls
+  also searched the web.
+  - The transcript of the first held that private content, and the lane log carrying it is committed.
+  - Nothing of it was ever pushed: the committed lane log was scanned and 0 lines were flagged.
+- **Fixed at source** (`reproducible_ai/model_call_live.py`):
+  - An absolute path the client read is recorded as a digest, never as a path.
+  - A transcript from a call that read outside its workdir, or searched the web, is WITHHELD (its sha256 kept). Paths
+    inside commands are redacted, and `outside_workdir_reads` / `web_search_used` are recorded.
+  - Every live call now passes `-c web_search="disabled"`. This was verified on a probe that invited a search: the
+    client's stderr shows no search, whereas `tools.web_search=false` is silently ignored.
+- **This round's artefacts**: the 6 affected lane-log lines (uncommitted) were rewritten by the same rule; no committed
+  line was touched. The 6 records were removed (never committed) and their batches re-run with web search disabled.
+  The re-runs made no tool calls and no outside reads. Both readers still bind the same 30 rows.
+- **Not fixable here**: the injected `~/.codex/AGENTS.md` is the user's shared file and is not ours to change; the
+  sandbox still allows reads. The recorder now keeps any such read out of what is committed.

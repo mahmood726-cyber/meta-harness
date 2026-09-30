@@ -34,7 +34,14 @@ MODEL = {"d5_identity": "gpt-6-astra", "comparator_arm": "gpt-6-astra", "trial_i
          "d5_identity_v2": "gpt-6-astra", "d5_identity_v2_reader2": "gpt-5.5",
          "overlap_identity": "gpt-6-astra", "overlap_identity_reader2": "gpt-5.5",
          "screen_x1": "gpt-6-astra", "screen_x1_reader2": "gpt-5.5",
-         "d5_adjudicate": "gpt-6-astra"}
+         "d5_adjudicate": "gpt-6-astra",
+         # round 14
+         "registry_measure_identity": "gpt-6-astra", "registry_measure_identity_reader2": "gpt-5.5",
+         "condition_role_screen": "gpt-6-astra", "condition_role_screen_reader2": "gpt-5.5",
+         "screen_population": "gpt-6-astra", "screen_population_reader2": "gpt-5.5",
+         "row_binding": "gpt-6-astra", "row_binding_reader2": "gpt-5.5"}
+BASE_V3 = "7ade54d0"   # round-14 populations: the served pages at round 13 (CI green, run 36626489776)
+CONDROLE = ("condition_role_reader2", "condition_role_screen", "condition_role_screen_reader2")
 EFFORT_BY_TASK = {"d5_adjudicate": "high"}
 BASE_V2 = "834c6d83"   # round-13 populations are drawn from the served pages at round 12 (CI green, run 36599704573)
 KGAP_REF = "a9b2b12b"
@@ -44,6 +51,8 @@ KGAP_SEED_REF = "e1e7d3e4"  # origin/acq/k-gap: seeding after the resolved-repor
 def base_task(task):
     if task == "d5_adjudicate":
         return "d5_identity"
+    if task in ("screen_population", "screen_population_reader2"):
+        return "screen_eligibility"
     t = task[:-len("_reader2")] if task.endswith("_reader2") and task != "condition_role_reader2" else task
     return t[:-len("_v2")] if t.endswith("_v2") else t
 EFFORT, BATCH = "medium", 6
@@ -80,6 +89,21 @@ record words it differently (a synonym, an abbreviation, a broader or narrower p
 under another name. verdict: MEETS_CRITERION | FAILS_CRITERION | NOT_STATED. quote: words copied exactly from the RECORD
 that show it -- for MEETS_CRITERION the record's own words that satisfy the criterion (null for NOT_STATED). Judge the
 criterion as the protocol states it; never widen the protocol.""",
+    "condition_role_screen": """Each item is a trial RECORD our screening excluded because its title or registered
+conditions mention the CONDITION named in the item header. Decide that condition's role in THIS trial:
+ENTRY_POPULATION -- participants have it at entry (they are enrolled because of it); PREVENTED_OUTCOME -- the trial tries
+to prevent it, or measures it as an outcome, in people who do not have it at entry; NOT_STATED. quote: words copied
+exactly from the RECORD that show the role AND contain the condition's words (null for NOT_STATED).""",
+    "registry_measure_identity": """Each item gives a review's POOLED OUTCOME and ONE outcome measure a trial reported on
+ClinicalTrials.gov. Decide whether the registry measure IS the pooled outcome -- the same components (a composite is
+the same composite, not one of its components and not a larger composite), not merely a related one.
+verdict: SAME_OUTCOME | DIFFERENT_OUTCOME | NOT_STATED. quote: words copied exactly from the REGISTRY MEASURE that show
+it (null for NOT_STATED).""",
+    "row_binding": """Each item gives ONE trial as a published meta-analysis lists it (its row and the reference it cites)
+and the list of OUR TRIALS (id, acronym, registrations, report titles). Say which of OUR TRIALS it is the SAME randomised
+trial as (a report of it, including a secondary report), or NONE when it is none of them. family: the id exactly as
+listed, or "NONE". quote: words copied exactly from the item's text that show the identity (an acronym, registration,
+first author and year, or title shared by both); null for NONE. Never guess.""",
     "screen_x1": """Each item is a trial RECORD (title, abstract, publication types) that our screening rule excluded as
 "not a randomized controlled trial". Decide from the RECORD alone whether it reports a trial in which participants were
 RANDOMLY ALLOCATED to the compared groups (a report or sub-study of such a trial counts; a trial that only randomised
@@ -332,6 +356,116 @@ def items_d5_adjudicate():
     return out
 
 
+def _topic_spec(slug):
+    t = json.loads((ROOT / "topics" / f"{slug}.json").read_text(encoding="utf-8"))
+    s = dict(t.get("primary_outcome") or t["outcomes"][0])
+    s.pop("withdrawn", None)
+    return t, s
+
+
+def items_registry_measure_identity():
+    """Round 14: every held registry outcome measure keyword-matched to a topic's componentised primary outcome -- the
+    population target_endpoint._classify decides at extraction (EXACT = the registry row may be served as the result)."""
+    from harness import target_endpoint as te
+    out = []
+    for slug in _slugs():
+        _, spec = _topic_spec(slug)
+        if not te.canonical_components(spec):
+            continue
+        ct = json.loads((ROOT / "cache" / slug / "records.json").read_text(encoding="utf-8")).get("ctgov_results") or {}
+        for nct, oms in sorted(ct.items()):
+            for j, om in enumerate(oms or []):
+                text = " ".join(str(om.get(k) or "") for k in ("title", "description")).strip()
+                if not te._keyword_family_match(spec, text):
+                    continue
+                held = f"POOLED OUTCOME: {spec.get('name')}\nREGISTRY MEASURE ({om.get('type')}): {text}"
+                out.append({"item_id": f"{slug}::{nct}::om{j}", "held_text": held, "held_sha256": _sha(held.encode("utf-8")),
+                            "held_ref": f"cache/{slug}/records.json#ctgov_results/{nct}/{j}",
+                            "rule_input": {"slug": slug, "text": text}})
+    return out
+
+
+def _x2_rows(kind):
+    for slug in _slugs():
+        r = _show(f"docs/reviews/{slug}/review.json", BASE_V3) or {}
+        recs = _records_by_id(slug)
+        for d in (r.get("screening") or {}).get("records") or []:
+            if d.get("rule_id") != "X2":
+                continue
+            reason = str(d.get("reason") or "")
+            if (kind == "mention") != reason.startswith("wrong population"):
+                continue
+            rid = str(d["id"]).split("·")[-1].strip()
+            if rid in recs:
+                yield slug, rid, recs[rid], reason
+
+
+def items_condition_role_screen():
+    """Round 14 (condition-as-outcome in screening): every served X2 'wrong population: title/conditions mention T'."""
+    out = []
+    for slug, rid, rec, reason in _x2_rows("mention"):
+        m = re.search(r"mention '([^']+)'", reason)
+        if not m:
+            continue
+        held = _record_text(rec)
+        out.append({"item_id": f"{slug}::{rid}", "held_text": held, "held_sha256": _sha(held.encode("utf-8")),
+                    "held_ref": f"cache/{slug}/records.json#{rid}", "term": m.group(1),
+                    "rule_decision": "ENTRY_POPULATION"})
+    return out
+
+
+def items_screen_population():
+    """Round 14: every served X2 'population not on-topic' exclusion, with the question and the population terms."""
+    out = []
+    for slug, rid, rec, reason in _x2_rows("absent"):
+        cfg, _ = _topic_spec(slug)
+        review = _show(f"docs/reviews/{slug}/review.json", BASE_V3) or {}
+        inc = cfg.get("include") or {}
+        terms = {k: inc.get(k) for k in ("population_any", "population_none") if inc.get(k)}
+        header = (f"QUESTION: {review.get('question') or cfg.get('question') or ''}\n"
+                  f"RULE X2 EXCLUDED IT: {reason[:300]}\nPROTOCOL TERMS: {json.dumps(terms, ensure_ascii=False)}")
+        held = _record_text(rec)
+        out.append({"item_id": f"{slug}::{rid}", "held_text": held, "held_sha256": _sha(held.encode("utf-8")),
+                    "held_ref": f"cache/{slug}/records.json#{rid}", "header": header, "rule_decision": "FAILS_CRITERION"})
+    return out
+
+
+def items_row_binding():
+    """Round 14 (comparator trial identity): every comparator member the served overlap relation bound to no family."""
+    import html as _h
+    out = []
+    for slug in _slugs():
+        r = _show(f"docs/reviews/{slug}/review.json", BASE_V3) or {}
+        o = (r.get("comparator") or {}).get("overlap_relation") or {}
+        th = o.get("theirs") or {}
+        members = [m for m in (th.get("members") or th.get("in_scope") or []) if not m.get("family")]
+        if not members:
+            continue
+        recs = _records_by_id(slug)
+        fams = []
+        for f in r.get("trial_families") or []:
+            al = f.get("aliases") or {}
+            ids = [str(x) for x in (al.get("report_ids") or []) + (al.get("registry_ids") or [])]
+            titles = sorted({str((recs.get(i) or {}).get("title") or "")[:160] for i in ids} - {""})
+            fams.append((f["family_id"], f"{f['family_id']}: acronym {al.get('acronym') or []}; registrations "
+                                         f"{al.get('registry_ids') or []}; titles {titles}"))
+        cited = {}
+        cp = ROOT / "cache" / slug / "comparators.json"
+        for t in (next(iter(json.loads(cp.read_text(encoding="utf-8"))), None) or {}).get("trial_set") or [] if cp.exists() else []:
+            cited[t["family_id"]] = [_h.unescape(re.sub(r"<[^>]+>", " ", x)).strip() for a in t.get("aliases") or []
+                                     for x in re.findall(r"<article-title>(.*?)</article-title>", (a.get("span") or {}).get("quote") or "", re.S)]
+        ours = "\n".join(line for _, line in fams)
+        for m in members:
+            span = _h.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", str(m.get("span") or ""))))[:500]
+            # the row as the comparator PRINTS it -- never its cross-referenced citation: a table's cross-references can be
+            # numbered off by one (omega-3: the GISSI-HF row's reference is JELIS), which would steer the reading
+            text = f"THEIR ROW {m.get('name')}: {span}\nOUR TRIALS:\n{ours}"
+            out.append({"item_id": f"{slug}::{m.get('name')}", "held_text": text, "held_sha256": _sha(text.encode("utf-8")),
+                        "held_ref": f"docs/reviews/{slug}/review.json@{BASE_V3}#comparator/overlap_relation",
+                        "families": [fid for fid, _ in fams], "rule_decision": "UNBOUND"})
+    return out
+
+
 def items_d5_identity_v2():
     return items_d5_identity(BASE_V2)
 
@@ -392,9 +526,13 @@ ITEMS = {"comparator_trial_names": items_comparator_trial_names, "comparator_mem
          "trial_identity": items_trial_identity, "condition_role_reader2": items_condition_role_reader2,
          "screen_eligibility": items_screen_eligibility, "d5_identity_v2": items_d5_identity_v2,
          "overlap_identity": items_overlap_identity, "screen_x1": items_screen_x1,
-         "d5_adjudicate": items_d5_adjudicate}
+         "d5_adjudicate": items_d5_adjudicate,
+         "registry_measure_identity": items_registry_measure_identity,
+         "condition_role_screen": items_condition_role_screen, "screen_population": items_screen_population,
+         "row_binding": items_row_binding}
 for _t in ("d5_identity", "comparator_arm", "trial_identity", "comparator_membership", "comparator_trial_names",
-           "screen_eligibility", "d5_identity_v2", "overlap_identity", "screen_x1"):
+           "screen_eligibility", "d5_identity_v2", "overlap_identity", "screen_x1", "registry_measure_identity",
+           "condition_role_screen", "screen_population", "row_binding"):
     # the second reader reads the FIRST reader's frozen population, never a re-derived one
     ITEMS[f"{_t}_reader2"] = (lambda t: lambda: json.loads((QDIR / f"{t}.population.json").read_text(encoding="utf-8"))["items"])(_t)
 
@@ -408,6 +546,11 @@ def rule_decision(task, i):
         d = rob2._outcome_match_detail(ri["pooled"], ri["registered"], None,
                                        allow_secondary_component_subset=(ri["kind"] == "secondary"))
         return "SAME_OUTCOME" if d["matched"] else "DIFFERENT_OUTCOME"
+    if task == "registry_measure_identity":
+        from harness import target_endpoint as te
+        _, spec = _topic_spec(i["rule_input"]["slug"])
+        return ("SAME_OUTCOME" if te._classify(spec, i["rule_input"]["text"])["target_endpoint_class"] == te.EXACT_TARGET
+                else "DIFFERENT_OUTCOME")
     if task == "comparator_arm":
         from harness import screen, term_normal
         return "COMPARATOR_PRESENT" if screen._has(term_normal.comparator_text(i["held_text"], i["rule_input"]["terms"]), i["rule_input"]["terms"])             else "NO_COMPARATOR"
@@ -434,6 +577,9 @@ def _batches(task):
         import condition_role_proposals as crp
         instr = crp.INSTR
         head = lambda i: f"condition_term={i['term']!r}"  # noqa: E731
+    elif task in CONDROLE:
+        instr = INSTR[base_task(task)]
+        head = lambda i: f"CONDITION={i['term']!r}"  # noqa: E731
     else:
         instr = INSTR[base_task(task)]
         head = lambda i: ""  # noqa: E731
@@ -471,7 +617,13 @@ def _schema(task):
                              "members": {"type": "array", "items": rq}, "excluded": {"type": "array", "items": rq}}}
         return {"type": "object", "additionalProperties": False, "required": ["items"],
                 "properties": {"items": {"type": "array", "items": it}}}
-    if task == "condition_role_reader2":
+    if base_task(task) == "row_binding":
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "family", "quote"],
+              "properties": {"item": {"type": "string"}, "family": {"type": "string"},
+                             "quote": {"type": ["string", "null"]}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
+    if task in CONDROLE:
         verdict = {"role": {"type": "string", "enum": list(ms.CONDITION_ROLES)}}
         req = ["item", "role", "quote"]
     else:
@@ -527,7 +679,8 @@ def cmd_queue(task):
             except ValueError as exc:
                 entries.append({"item_id": i["item_id"], "task": task, "state": "RESPONSE_NOT_A_CLAIM", "why": str(exc)})
                 continue
-            ctx = ({"term": i["term"]} if task == "condition_role_reader2" else
+            ctx = ({"term": i["term"]} if task in CONDROLE else
+                   {"families": i["families"]} if base_task(task) == "row_binding" else
                    {"rows": i["rows"]} if base_task(task) == "comparator_membership" else None)
             e = ms.queue_entry(task=task, item_id=i["item_id"], record=rec, claim=claim,
                                verification={}, held_ref=i["held_ref"], held_sha256=i["held_sha256"],
