@@ -34,6 +34,12 @@ UNRESOLVED_SUBPROCESS = {
     ("scripts/verify_all.py", "cmd"): "python -m pytest / python scripts/... (_run([sys.executable, ...]) callers)",
     ("tests/test_certificate_code_closure.py", "args"): "python scripts/audit_certificate_stdlib.py",
     ("tests/test_gate_scorecard.py", "cmd"): "git init / add / commit on a fixture repo",
+    # lane integration verifiers (2026-09-30): command = [sys.executable, '-m', 'pytest', *args] or
+    # [sys.executable, '-c', 'from integrate2_helper import enable_baseline; ... pytest.main(...)', *args]
+    ("scripts/integrate2_verify.py", "command"): "python -m pytest (per-file suite runner; optional pre-wiring baseline)",
+    ("scripts/integrate3_verify.py", "command"): "python -m pytest (per-file suite runner; optional pre-wiring baseline)",
+    ("scripts/integrate4_verify.py", "command"): "python -m pytest (per-file suite runner; optional pre-wiring baseline)",
+    ("tests/test_build_determinism_keyorder.py", "args"): "python -B <this test file> (a build under a fixed PYTHONHASHSEED)",
 }
 
 # committed model outputs -> what reads them and what they can change
