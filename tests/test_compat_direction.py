@@ -146,16 +146,17 @@ def test_synthetic_controls_for_all_key_direction_classes():
     assert _direction(nd, "endpoint_definition")["key_direction"] == CD.NOT_DERIVABLE
 
 
-def test_sweep_writes_separate_direction_counts():
-    subprocess.run(
-        ["python", "scripts/compat_direction_sweep.py"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    out = json.loads((ROOT / "docs" / "compat_direction_sweep.json").read_text(encoding="utf-8"))
+def test_sweep_writes_separate_direction_counts(tmp_path, monkeypatch):
+    # Exercise the real writer against copied held inputs, never rewrite a served artifact.
+    from scripts import compat_direction_sweep
+    for source in (ROOT / "docs" / "reviews").glob("*/review.json"):
+        target = tmp_path / "docs" / "reviews" / source.parent.name / source.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+    monkeypatch.setattr(compat_direction_sweep, "ROOT", tmp_path)
+    assert compat_direction_sweep.main() == 0
+    out = json.loads((tmp_path / "docs" / "compat_direction_sweep.json").read_text(encoding="utf-8"))
+    assert out["rows"]
     assert "over_claiming" in out["summary"]
     assert "under_claiming" in out["summary"]
     assert "not_derivable" in out["summary"]

@@ -122,8 +122,20 @@ def test_held_immcova_and_empacta():
     assert t.compare(target, caption) == 'MISMATCH'
     sae_spec = next(o for o in config['harm_outcomes'] if o['name'] == sae['name'])
     assert t.compare(sae_spec.get('timepoint'), caption) == 'TARGET_MISSING'
-    problems = p.consistency(review, config)
+    assert not sae['trials']
+    assert sae['result']['state'] == 'LANE_REFUSED'
+    held_rows = [r for r in sae['declared_absent_trials']
+                 if 'POPULATION_RULE_INCONSISTENT' in r.get('lane_refusals', [])]
+    assert {r['id'] for r in held_rows} == {'PMID 33332779', 'PMID 33631066'}
+    from copy import deepcopy
+    pre = deepcopy(sae)
+    pre['trials'] = deepcopy(held_rows)
+    pre['declared_absent_trials'] = [r for r in pre['declared_absent_trials']
+                                   if r['id'] not in {t['id'] for t in held_rows}]
+    problems = p.consistency({'outcomes': [pre]}, config)
     assert any('PMID 34609549' in x['refused'] and 'PMID 33332779' in x['accepted'] for x in problems)
+    pre['declared_absent_trials'] = []
+    assert p.consistency({'outcomes': [pre]}, config) == []
 
 
 def test_census_denominators_and_names():

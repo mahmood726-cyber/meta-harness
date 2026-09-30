@@ -22,6 +22,7 @@ import html
 import json
 import os
 import re
+import subprocess
 from typing import Any
 
 VERBATIM, EXCERPT, ALTERED, UNVERIFIED = "VERBATIM", "EXCERPT", "ALTERED", "UNVERIFIED"
@@ -114,8 +115,24 @@ def classify(inspected: str, verbatim: str | None) -> str:
 
 
 def verbatim_record(pmid: str, root: str = _ROOT) -> dict[str, Any] | None:
-    """The held VERBATIM Europe PMC record for a PMID (abstract text, path, sha256), or None."""
+    """The git-tracked VERBATIM Europe PMC record, never a local acquisition.
+
+    HELD.json is an acquisition ledger, not a redistribution allowlist: it also
+    names records absent from the repository. Git is already a build dependency
+    (registration.py). Read the index without refreshing or modifying it.
+    """
+    try:
+        tracked = set(subprocess.check_output(
+            ["git", "--no-optional-locks", "-C", os.fspath(root),
+             "ls-files", "--cached", "--full-name", "-z", "--", _HELD.replace(os.sep, "/") + "/"],
+            stderr=subprocess.PIPE,
+        ).decode("utf-8").split("\0"))
+    except (OSError, subprocess.CalledProcessError, UnicodeError) as exc:
+        raise ValueError(f"SOURCE_COVERAGE refused PMID {pmid}: cannot establish tracked held files") from exc
     for p in sorted(glob.glob(os.path.join(root, _HELD, "*", f"europepmc_record_{pmid}.json"))):
+        relative = os.path.relpath(p, root).replace(os.sep, "/")
+        if relative not in tracked:
+            continue  # Refuse untracked witnesses; coverage_of names the PMID's row UNVERIFIED if none remain.
         raw = open(p, "rb").read()
         try:
             res = ((json.loads(raw).get("resultList") or {}).get("result") or [{}])[0]

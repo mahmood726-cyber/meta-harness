@@ -2462,41 +2462,120 @@
       "population": "intention-to-treat",
       "timepoint": "28 days",
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
-      "served_estimand": "RR",
+      "served_estimand": "OR",
       "estimand_decision": {
         "declared_estimand": "OR",
-        "decision": "cumulative_risk_at_trial_end",
-        "target_scale": "RR",
-        "target_class": "FIRST_EVENT_RATIO",
+        "decision": "odds",
+        "target_scale": "OR",
+        "target_class": "ODDS_RATIO",
         "published_candidate_scales": [
           "RR"
         ],
-        "served_scale_changed": true,
-        "reason": "declared OR, but the target outcome's only published effect+CI is RR",
-        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+        "served_scale_changed": false,
+        "reason": "immutable declared target; preserve source hierarchy unless its selection crosses the odds boundary",
+        "rule": "prefer published OR; otherwise reconstruct OR from counts consistently"
       },
       "trials": [
         {
-          "label": "32678530",
-          "id": "PMID 32678530",
-          "effect": 0.83,
-          "ci_low": 0.75,
-          "ci_high": 0.93,
-          "scale": "RR",
-          "source": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
+          "ai": 482,
+          "ci": 1110,
+          "n1i": 2104,
+          "n2i": 4321,
+          "source": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization",
+          "source_span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization",
           "provenance": "abstract",
-          "derivation": "reported",
-          "selection_rule": "KEEP_REPORTED_EFFECT",
-          "selected_estimator": "published_effect_ci",
-          "alternatives": [],
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "derivation": "reconstructed",
+          "count_binding": "PRINTED_ALLOCATED_ARMS_AND_MORTALITY",
+          "count_witnesses": {
+            "ai": {
+              "value": 482,
+              "span": "482",
+              "start": 718,
+              "end": 721
+            },
+            "ci": {
+              "value": 1110,
+              "span": "1110",
+              "start": 770,
+              "end": 774
+            },
+            "n1i": {
+              "value": 2104,
+              "span": "2104",
+              "start": 624,
+              "end": 628
+            },
+            "n2i": {
+              "value": 4321,
+              "span": "4321",
+              "start": 681,
+              "end": 685
+            }
+          },
+          "document_ref": "cache/corticosteroids-covid19-mortality/records.json#PMID-32678530",
+          "selection_rule": "KEEP_RECONSTRUCTION_EFFECT_CLASS_MISMATCH",
+          "selected_estimator": "reconstructed",
+          "alternatives": [
+            {
+              "label": "32678530",
+              "id": "PMID 32678530",
+              "effect": 0.83,
+              "ci_low": 0.75,
+              "ci_high": 0.93,
+              "scale": "RR",
+              "source": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
+              "provenance": "abstract",
+              "derivation": "reported",
+              "source_span": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio,...",
+              "estimand_class": "FIRST_EVENT_RATIO",
+              "not_selected_reason": "NOT_TARGET_CLASS",
+              "not_selected_detail": "FIRST_EVENT_RATIO!=ODDS_RATIO"
+            },
+            {
+              "effect": 0.83,
+              "ci_low": 0.75,
+              "ci_high": 0.93,
+              "scale": "RR",
+              "provenance": "abstract",
+              "source": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interval [CI], 0.75 to 0.93; P<0.001).",
+              "derivation": "reported",
+              "source_span": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio,...",
+              "estimand_class": "FIRST_EVENT_RATIO",
+              "not_selected_reason": "NOT_TARGET_CLASS",
+              "not_selected_detail": "FIRST_EVENT_RATIO!=ODDS_RATIO"
+            }
+          ],
+          "reconstruction_measure": "OR",
+          "id": "PMID 32678530",
+          "label": "32678530",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interval [CI], 0.75 to 0.93; P<0.001).",
+          "endpoint_definition_span": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interval [CI], 0.75 to 0.93; P<0.001).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interval [CI], 0.75 to 0.93; P<0.001)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/corticosteroids-covid19-mortality/records.json#PMID-32678530",
+            "sha256": "4653eaca3791dc225f769924e30956b4eb834d354b9afb1629bd0c1807877470",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "verified": "verified",
-          "verify_basis": "effect present in committed source",
+          "verify_basis": "arm counts present in committed source",
           "design": {
             "unit_of_randomisation": "INDIVIDUAL",
             "design": "FACTORIAL",
-            "estimator_source": "PUBLISHED_RR",
+            "estimator_source": "RECONSTRUCTED",
             "adjustment_status": "UNRESOLVED",
             "adjustment_axis": {
               "status": "UNRESOLVED"
@@ -2505,7 +2584,7 @@
               "method": "none",
               "evidence": []
             },
-            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "se_provenance": "synth.Study.yi_vi:2x2:RR",
             "basis": [
               {
                 "source": "AACT designs.intervention_model",
@@ -2520,21 +2599,37 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": 28.0,
+            "unit": "day",
+            "origin": "UNSTATED",
+            "elapsed_days": 28.0,
+            "refusal": null
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32678530",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "ODDS_RATIO",
           "study_effect": {
-            "effect_estimate": 0.83,
-            "standard_error": 0.054876360309096664,
-            "estimand": "RR",
+            "effect_estimate": 0.8596338632096955,
+            "standard_error": 0.06247833200520361,
+            "estimand": "OR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "INDIVIDUAL",
             "study_design": "FACTORIAL",
-            "estimator_method": "PUBLISHED_RR",
+            "estimator_method": "RECONSTRUCTED",
             "correlation_handling": {
               "method": "none",
               "evidence": []
             },
             "source_provenance": {
               "source": "abstract",
-              "span": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv"
+              "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
             },
             "design_action": {
               "action": "ALLOW_WITH_LABEL",
@@ -2545,9 +2640,9 @@
             }
           },
           "effect_object": {
-            "reported_label": "RR",
-            "statistical_model": "rate / person-time",
-            "canonical_estimand": "RISK_RATIO"
+            "reported_label": "OR",
+            "statistical_model": null,
+            "canonical_estimand": "ODDS_RATIO"
           },
           "trial_family_id": "NCT04381936",
           "publication_role": "primary",
@@ -2611,6 +2706,30 @@
           "timepoint": "28 days",
           "timepoint_span": "28-Day results",
           "endpoint_role_in_trial": "SECONDARY",
+          "table_row": {
+            "measure": "UNKNOWN",
+            "measure_basis": "row label",
+            "count_unit": "UNKNOWN",
+            "arms": [],
+            "effect": null,
+            "candidates": [],
+            "window": [],
+            "analysis_population": [],
+            "variant_flags": [],
+            "refusals": [
+              "All-cause mortality No. (%): column count does not match header; refused arm alignment",
+              "All-cause mortality No. (%): multiple published effects; refused choosing adjustment",
+              "All-cause mortality No. (%): unresolved published measure",
+              "All-cause mortality No. (%): refused reconstructed risk ratio: need exactly two patient arms, explicit valid denominators, and nonzero comparator risk"
+            ],
+            "row_label": "All-cause mortality No. (%)",
+            "caption": "Table 2. Study Outcomes.",
+            "source_sha": "4edb952b8fd9df1bb8f86e5a74d5309cb1418130e7018bded27fc42fd00ea606"
+          },
+          "table_binding": {
+            "state": "REFUSED",
+            "reason": "All-cause mortality No. (%): column count does not match header; refused arm alignment; All-cause mortality No. (%): multiple published effects; refused choosing adjustment; All-cause mortality No. (%): unresolved published measure; All-cause mortality No. (%): refused reconstructed risk ratio: need exactly two patient arms, explicit valid denominators, and nonzero comparator risk"
+          },
           "handed_abstract": "IMPORTANCE: Acute respiratory distress syndrome (ARDS) due to coronavirus disease 2019 (COVID-19) is associated with substantial mortality and use of health care resources. Dexamethasone use might attenuate lung injury in these patients. OBJECTIVE: To determine whether intravenous dexamethasone increases the number of ventilator-free days among patients with COVID-19-associated ARDS. DESIGN, SETTING, AND PARTICIPANTS: Multicenter, randomized, open-label, clinical trial conducted in 41 intensive care units (ICUs) in Brazil. Patients with COVID-19 and moderate to severe ARDS, according to the Berlin definition, were enrolled from April 17 to June 23, 2020. Final follow-up was completed on July 21, 2020. The trial was stopped early following publication of a related study before reaching the planned sample size of 350 patients. INTERVENTIONS: Twenty mg of dexamethasone intravenously daily for 5 days, 10 mg of dexamethasone daily for 5 days or until ICU discharge, plus standard care (n =151) or standard care alone (n = 148). MAIN OUTCOMES AND MEASURES: The primary outcome was ventilator-free days during the first 28 days, defined as being alive and free from mechanical ventilation. Secondary outcomes were all-cause mortality at 28 days, clinical status of patients at day 15 using a 6-point ordinal scale (ranging from 1, not hospitalized to 6, death), ICU-free days during the first 28 days, mechanical ventilation duration at 28 days, and Sequential Organ Failure Assessment (SOFA) scores (range, 0-24, with higher scores indicating greater organ dysfunction) at 48 hours, 72 hours, and 7 days. RESULTS: A total of 299 patients (mean [SD] age, 61 [14] years; 37% women) were enrolled and all completed follow-up. Patients randomized to the dexamethasone group had a mean 6.6 ventilator-free days (95% CI, 5.0-8.2) during the first 28 days vs 4.0 ventilator-free days (95% CI, 2.9-5.4) in the standard care group (difference, 2.26; 95% CI, 0.2-4.38; P = .04). At 7 days, patients in the dexamethasone group had a mean SOFA score of 6.1 (95% CI, 5.5-6.7) vs 7.5 (95% CI, 6.9-8.1) in the standard care group (difference, -1.16; 95% CI, -1.94 to -0.38; P = .004). There was no significant difference in the prespecified secondary outcomes of all-cause mortality at 28 days, ICU-free days during the first 28 days, mechanical ventilation duration at 28 days, or the 6-point ordinal scale at 15 days. Thirty-three patients (21.9%) in the dexamethasone group vs 43 (29.1%) in the standard care group experienced secondary infections, 47 (31.1%) vs 42 (28.3%) needed insulin for glucose control, and 5 (3.3%) vs 9 (6.1%) experienced other serious adverse events. CONCLUSIONS AND RELEVANCE: Among patients with COVID-19 and moderate or severe ARDS, use of intravenous dexamethasone plus standard care compared with standard care alone resulted in a statistically significant increase in the number of ventilator-free days (days alive and free of mechanical ventilation) over 28 days. TRIAL REGISTRATION: ClinicalTrials.gov Identifier: NCT04327401.",
           "document_candidates": [
             "cache/corticosteroids-covid19-mortality/records.json#PMID-32876695"
@@ -2619,6 +2738,7 @@
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
           "alternatives": [],
+          "reconstruction_measure": "OR",
           "target_endpoint_class": "EXACT_TARGET",
           "target_components": [],
           "extra_components": [],
@@ -2682,10 +2802,26 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": 28.0,
+            "unit": "day",
+            "origin": "UNSTATED",
+            "elapsed_days": 28.0,
+            "refusal": null
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32876695",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "ODDS_RATIO",
           "study_effect": {
-            "effect_estimate": 0.9155083327268757,
-            "standard_error": 0.09682171016004511,
-            "estimand": "RR",
+            "effect_estimate": 0.8066933066933067,
+            "standard_error": 0.23547630809064823,
+            "estimand": "OR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "INDIVIDUAL",
             "study_design": "PARALLEL",
@@ -2707,9 +2843,9 @@
             }
           },
           "effect_object": {
-            "reported_label": "RR",
+            "reported_label": "OR",
             "statistical_model": null,
-            "canonical_estimand": "RISK_RATIO"
+            "canonical_estimand": "ODDS_RATIO"
           },
           "trial_family_id": "NCT04327401",
           "publication_role": "primary",
@@ -2763,6 +2899,20 @@
           "id": "PMID 34138478",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 34138478",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT04348305",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2810,10 +2960,10 @@
             "publication": "PUBLISHED (a report is the row)",
             "target_outcome": "RETRIEVED_NOT_REPORTED"
           },
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-          "claim_id": "a650bf41e058eace",
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+          "claim_id": "e2d489f00aa89790",
           "depends_on": {
-            "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+            "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
           },
           "claim_kind": "membership_state"
         },
@@ -2822,6 +2972,20 @@
           "id": "PMID 32876697",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32876697",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT02735707",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2869,10 +3033,10 @@
             "publication": "PUBLISHED (a report is the row)",
             "target_outcome": "RETRIEVED_NOT_REPORTED"
           },
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-          "claim_id": "a650bf41e058eace",
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+          "claim_id": "e2d489f00aa89790",
           "depends_on": {
-            "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+            "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
           },
           "claim_kind": "membership_state"
         },
@@ -2892,6 +3056,20 @@
           "document_ref": "cache/corticosteroids-covid19-mortality/records.json",
           "source_level": 1,
           "reason": "CAPE COVID reports deaths at DAY 21 (11 hydrocortisone vs 20 placebo, among the day-21 treatment-failure events; 76 vs 73 randomised). The protocol's primary timepoint is 28 days and it declares no timepoint-window policy, so the day-21 count is not substituted for a 28-day result. The analysed denominator the reviewer cites (11/75 vs 20/73) is in the full text, which the acquisition cascade could not hold (publisher 403; PMC proof-of-work check, not solved). A window policy is a protocol decision owed to Mahmood.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32876689",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT02517489",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2932,10 +3110,10 @@
             "publication": "PUBLISHED (a report is the row)",
             "target_outcome": "REPORTED_UNRESOLVED"
           },
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-          "claim_id": "a650bf41e058eace",
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+          "claim_id": "e2d489f00aa89790",
           "depends_on": {
-            "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+            "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
           },
           "claim_kind": "membership_state"
         },
@@ -2963,6 +3141,20 @@
               "supplements 200 (296 bytes, no archive)",
               "repository_pdf ERROR (localhost bitstream)"
             ]
+          },
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32785710",
+            "code": "POPULATION_UNKNOWN"
           },
           "trial_family_id": "NCT04343729",
           "publication_role": "primary",
@@ -3008,10 +3200,10 @@
             "publication": "PUBLISHED (a report is the row)",
             "target_outcome": "REPORTED_UNRESOLVED"
           },
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-          "claim_id": "a650bf41e058eace",
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+          "claim_id": "e2d489f00aa89790",
           "depends_on": {
-            "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+            "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
           },
           "claim_kind": "membership_state"
         },
@@ -3026,6 +3218,20 @@
           "completion": null,
           "enrollment": null,
           "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT04344730",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "COVIDICUS",
           "publication_role": "primary",
           "completeness_state": "eligible+lifecycle_unknown",
@@ -3075,14 +3281,22 @@
             "publication": "NO_PUBLICATION_IN_INVENTORY",
             "target_outcome": "NOT_YET_RETRIEVED"
           },
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-          "claim_id": "a650bf41e058eace",
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+          "claim_id": "e2d489f00aa89790",
           "depends_on": {
-            "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+            "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
           },
           "claim_kind": "membership_state"
         }
       ],
+      "lane_problems": [],
+      "population_rule": {
+        "efficacy": "INTENTION_TO_TREAT",
+        "safety": "SAFETY_POPULATION",
+        "selected": "INTENTION_TO_TREAT",
+        "basis": "intention-to-treat"
+      },
+      "timepoint_target": "28 days",
       "membership": {
         "analysis_input_family_ids": [
           "NCT04327401",
@@ -3111,29 +3325,29 @@
       },
       "result": {
         "k": 2,
-        "estimate": 0.85,
-        "scale": "RR",
+        "estimate": 0.856,
+        "scale": "OR",
         "ci_low": null,
         "ci_high": null,
         "tau2": 0.0,
-        "Q": 0.77625,
+        "Q": 0.06807,
         "i2": 0.0,
         "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
         "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
-        "ci_low_fixed": 0.7741,
-        "ci_high_fixed": 0.9334,
-        "estimate_fixed": 0.85,
+        "ci_low_fixed": 0.7605,
+        "ci_high_fixed": 0.9636,
+        "estimate_fixed": 0.856,
         "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval.",
         "estmeasure": {
           "status": "homogeneous",
           "classes": [
-            "FIRST_EVENT_RATIO"
+            "ODDS_RATIO"
           ],
           "canonicals": [
-            "RISK_RATIO"
+            "ODDS_RATIO"
           ],
           "labels": [
-            "RR"
+            "OR"
           ]
         },
         "k2_trial_diagnostics": {
@@ -3143,18 +3357,18 @@
             {
               "label": "32678530",
               "id": "PMID 32678530",
-              "effect": 0.83,
-              "ci_low": 0.75,
-              "ci_high": 0.93,
-              "scale": "RR"
+              "effect": 0.8596,
+              "ci_low": 0.7606,
+              "ci_high": 0.9716,
+              "scale": "OR"
             },
             {
               "label": "32876695",
               "id": "PMID 32876695",
-              "effect": 0.9155,
-              "ci_low": 0.7573,
-              "ci_high": 1.1068,
-              "scale": "RR"
+              "effect": 0.8067,
+              "ci_low": 0.5085,
+              "ci_high": 1.2798,
+              "scale": "OR"
             }
           ]
         },
@@ -3163,14 +3377,17 @@
           "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
         },
         "ci_hksj_unserved": {
-          "ci_low": 0.4634,
-          "ci_high": 1.5591,
+          "ci_low": 0.3974,
+          "ci_high": 1.8439,
           "method": "PM tau^2 + HKSJ on t(1)",
           "note": "computed for auditability only; not served as the registered interval at k=2"
         },
         "leave_one_out": {
           "note": "not assessable at k=2 (leave-one-out needs k>=3)"
         },
+        "target_measure": "ODDS_RATIO",
+        "served_measure": "ODDS_RATIO",
+        "timepoint_target": "28 days",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -3183,26 +3400,28 @@
           "direction": null,
           "basis": "no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI"
         },
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-        "claim_id": "c74d6768f8f52755",
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+        "claim_id": "f9da081414bdcc24",
         "depends_on": {
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
         },
         "claim_kind": "outcome_result"
       },
+      "target_measure": "ODDS_RATIO",
+      "served_measure": "ODDS_RATIO",
       "endpoint_canonical": {
         "label": "28_DAY_ALL_CAUSE_MORTALITY",
-        "event_time": "TIME_TO_FIRST_EVENT",
+        "event_time": "28 days",
         "components": [],
         "component_sets": [],
         "status": "NOT_DECLARED"
       },
       "compat_key": {
         "effect_measure": [
-          "RR"
+          "OR"
         ],
         "event_process": [
-          "FIRST_EVENT_RATIO"
+          "ODDS_RATIO"
         ],
         "endpoint": "trial-defined 28-day all-cause mortality (definitions listed per trial)",
         "follow_up_window": "28 days",
@@ -3216,7 +3435,7 @@
         "mismatches": [],
         "endpoint_canonical": {
           "label": "28_DAY_ALL_CAUSE_MORTALITY",
-          "event_time": "TIME_TO_FIRST_EVENT",
+          "event_time": "28 days",
           "components": [],
           "component_sets": [],
           "status": "NOT_DECLARED"
@@ -3232,10 +3451,11 @@
         "hard_incompatible": false,
         "mismatches": [],
         "effect_measure_labels": [
-          "RR"
+          "OR"
         ],
         "k": 2,
         "reconstructed_members": [
+          "32678530",
           "32876695"
         ],
         "label_mix_small_k": false
@@ -3281,7 +3501,7 @@
         "target_class": "ODDS_RATIO",
         "published_candidate_scales": [],
         "served_scale_changed": false,
-        "reason": "declared odds-ratio estimand",
+        "reason": "immutable declared target; preserve source hierarchy unless its selection crosses the odds boundary",
         "rule": "prefer published OR; otherwise reconstruct OR from counts consistently"
       },
       "trials": [
@@ -3329,6 +3549,7 @@
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
           "alternatives": [],
+          "reconstruction_measure": "OR",
           "verified": "verified",
           "verify_basis": "values located together in one span of the held document cache/corticosteroids-covid19-mortality/records.json",
           "design": {
@@ -3358,6 +3579,22 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_AMBIGUOUS"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 34138478",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "ODDS_RATIO",
           "study_effect": {
             "effect_estimate": 2.8064516129032255,
             "standard_error": 1.673364369448658,
@@ -3442,6 +3679,20 @@
           "id": "PMID 32678530",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32678530",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT04381936",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -3514,6 +3765,20 @@
           "document_ref": "cache/corticosteroids-covid19-mortality/records.json",
           "source_level": 1,
           "reason": "The source reports separate fixed-dose and shock-dependent hydrocortisone arms against one control without a prespecified harm arm-selection or combination rule.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32876697",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT02735707",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -3581,6 +3846,20 @@
           "document_ref": "cache/corticosteroids-covid19-mortality/records.json",
           "source_level": 1,
           "reason": "The source says no serious adverse events were related to treatment but does not provide per-arm all-SAE incidence or a serious-reaction result at the specified day 28.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32876689",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT02517489",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -3640,6 +3919,20 @@
           "id": "PMID 32785710",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32785710",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT04343729",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -3712,6 +4005,20 @@
           "document_ref": "cache/corticosteroids-covid19-mortality/records.json",
           "source_level": 1,
           "reason": "The source reports other serious adverse events separately from secondary infections and insulin use, without a deduplicated total matching serious adverse reactions.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 32876695",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT04327401",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -3781,6 +4088,20 @@
           "completion": null,
           "enrollment": null,
           "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT04344730",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "COVIDICUS",
           "publication_role": "primary",
           "completeness_state": "eligible+lifecycle_unknown",
@@ -3840,6 +4161,20 @@
           "claim_kind": "membership_state"
         }
       ],
+      "lane_problems": [
+        {
+          "code": "TARGET_TIMEPOINT_MISSING",
+          "item": "Serious adverse events",
+          "blocking": false
+        }
+      ],
+      "population_rule": {
+        "efficacy": "UNKNOWN",
+        "safety": "SAFETY_POPULATION",
+        "selected": "SAFETY_POPULATION",
+        "basis": "harm outcome kind"
+      },
+      "timepoint_target": "MISSING",
       "membership": {
         "analysis_input_family_ids": [
           "NCT04348305"
@@ -3888,6 +4223,9 @@
         "leave_one_out": {
           "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         },
+        "target_measure": "ODDS_RATIO",
+        "served_measure": "ODDS_RATIO",
+        "timepoint_target": "MISSING",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -4032,6 +4370,8 @@
         },
         "claim_kind": "outcome_result"
       },
+      "target_measure": "ODDS_RATIO",
+      "served_measure": "ODDS_RATIO",
       "endpoint_canonical": {
         "label": "SERIOUS_ADVERSE_EVENTS",
         "event_time": null,
@@ -5301,70 +5641,70 @@
   },
   "rob_sensitivity": {
     "outcome": "28-day all-cause mortality",
-    "estimand": "RR",
+    "estimand": "OR",
     "levels": {
       "32678530": "low",
       "32876695": "low"
     },
-    "input_set_version": "63995048b5e584208492ea0f857b19a35cae6623f5661fe1e37998bbbc7e8acd",
+    "input_set_version": "93aaa21d8b788381131c543d4013c9800bec1e2a0411628b2f69509a209a81b8",
     "n_trials": 2,
     "n_rob_rated": 2,
     "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 2,
-      "estimate": 0.85,
-      "scale": "RR",
+      "estimate": 0.856,
+      "scale": "OR",
       "ci_low": null,
       "ci_high": null,
       "tau2": 0.0,
       "ci_hksj_unserved": {
-        "ci_low": 0.4634,
-        "ci_high": 1.5591
+        "ci_low": 0.3974,
+        "ci_high": 1.8439
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-      "claim_id": "4bbba896561d401e",
+      "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+      "claim_id": "8aad073e97b89990",
       "depends_on": {
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
       },
       "claim_kind": "rob_sensitivity.full"
     },
     "drop_high": {
       "k": 2,
-      "estimate": 0.85,
-      "scale": "RR",
+      "estimate": 0.856,
+      "scale": "OR",
       "ci_low": null,
       "ci_high": null,
       "tau2": 0.0,
       "ci_hksj_unserved": {
-        "ci_low": 0.4634,
-        "ci_high": 1.5591
+        "ci_low": 0.3974,
+        "ci_high": 1.8439
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-      "claim_id": "404ccae0d2a74167",
+      "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+      "claim_id": "05da85cd6df03fcd",
       "depends_on": {
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
     "low_only": {
       "k": 2,
-      "estimate": 0.85,
-      "scale": "RR",
+      "estimate": 0.856,
+      "scale": "OR",
       "ci_low": null,
       "ci_high": null,
       "tau2": 0.0,
       "ci_hksj_unserved": {
-        "ci_low": 0.4634,
-        "ci_high": 1.5591
+        "ci_low": 0.3974,
+        "ci_high": 1.8439
       },
       "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-      "claim_id": "eef105cb0b891bab",
+      "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+      "claim_id": "1dfdbfc69e761376",
       "depends_on": {
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
@@ -5466,10 +5806,10 @@
     ],
     "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-    "claim_id": "65663d21de7d320b",
+    "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+    "claim_id": "5f9d61bc609bc252",
     "depends_on": {
-      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+      "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
     },
     "claim_kind": "grade"
   },
@@ -30410,27 +30750,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
-              "source": "held abstract",
-              "report_id": "32678530"
-            }
+            "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
-              "source": "held abstract",
-              "report_id": "32678530"
-            }
+            "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
-              "source": "held abstract",
-              "report_id": "32678530"
-            }
+            "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
           },
           "in_primary_pool": {
             "state": "YES",
@@ -32699,27 +33027,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
-                "source": "held abstract",
-                "report_id": "32678530"
-              }
+              "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
-                "source": "held abstract",
-                "report_id": "32678530"
-              }
+              "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv",
-                "source": "held abstract",
-                "report_id": "32678530"
-              }
+              "span": "2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization"
             }
           },
           "analysis_input": true,
@@ -83639,16 +83955,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "8b79114258864d5b",
+        "claim_id": "f003fd4b56354ca1",
         "depends_on": {
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "d2ce6e962be4354b",
+        "claim_id": "68019d2766d228a7",
         "depends_on": {
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
         }
       }
     ]
@@ -84328,7 +84644,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
-    "review_sha256": "e283263256aa75810015f3de4f61b3a21780ffbc15cb9ecc998404ffba19c5f9",
+    "review_sha256": "ab20e1d339ee8d54b27e24922b6129e1fdb9111354fe08603d29505b449ceb33",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -84363,10 +84679,10 @@
       "hand_our_k_stale": true,
       "hand_status": "OVERLAPPING",
       "hand_status_stale": false,
-      "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-      "claim_id": "12e91e11826df91a",
+      "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+      "claim_id": "aae954c866254c1c",
       "depends_on": {
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
       },
       "claim_kind": "parity"
     },
@@ -84375,10 +84691,10 @@
         "trial": "COVID STEROID (PMID 34138478)",
         "verified": "28-day mortality 6/16 vs 2/14, exact counts in the committed abstract",
         "not_pooled_because": "n=30, stopped early; pooling it with RECOVERY's rate ratio produces a scale-mismatched IRR+OR combination and an uninformative interval (RR 1.30, 95% CI 0.0002-6827). Honest k=1 (RECOVERY) is preferred over an inflated, garbage k=2.",
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-        "claim_id": "d34a71bf05d2427a",
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+        "claim_id": "c1c9c68e1f43cb4a",
         "depends_on": {
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
         },
         "claim_kind": "refusal"
       },
@@ -84391,10 +84707,10 @@
           "by": "evidence lane (Claude Opus 5.5), branch evid/v1.0.1-acquisition-cascade",
           "what": "CoDEX was named in this refusal until its lifting condition was met: its 28-day counts are now bound to a committed verbatim excerpt of Table 2 (evidence/acquisition_cascade/excerpts/CoDEX_table2.tables.txt) and pooled; a result-change notice (countersignature OPEN) records the change."
         },
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-        "claim_id": "d34a71bf05d2427a",
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+        "claim_id": "c1c9c68e1f43cb4a",
         "depends_on": {
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
         },
         "claim_kind": "refusal"
       },
@@ -84402,10 +84718,10 @@
         "trial": "REMAP-CAP (PMID 32876697), CAPE-COVID (PMID 32876689)",
         "verified": "REMAP-CAP reports in-hospital mortality; CAPE-COVID reports day-21 mortality",
         "not_pooled_because": "neither reports the declared 28-day all-cause mortality in its publication; the comparator (WHO REACT) used investigator-supplied 28-day data not present in the papers.",
-        "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7",
-        "claim_id": "d34a71bf05d2427a",
+        "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2",
+        "claim_id": "c1c9c68e1f43cb4a",
         "depends_on": {
-          "input_set_version": "1271ce48425b146e73cd83bf108123aa68611ee9b727b5a825879461fbb24cc7"
+          "input_set_version": "de39b9a4ed9596415c0f97a307814b8dab6116498094c6467ccd3818b94fbfa2"
         },
         "claim_kind": "refusal"
       }
@@ -84435,6 +84751,34 @@
         "when_utc": "2026-09-27T12:00:00Z",
         "reviewer_countersignature": {
           "state": "OPEN"
+        },
+        "conclusion_changed": null
+      },
+      {
+        "slug": "corticosteroids-covid19-mortality",
+        "outcome": "28-day all-cause mortality",
+        "before": {
+          "k": 2,
+          "estimate": 0.85,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "after": {
+          "k": 2,
+          "estimate": 0.856,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "left_pool": [],
+        "entered_pool": [],
+        "served_change": "NUMBER_CHANGE",
+        "reason": "The protocol target is OR. Target-first selection now serves both trials on the odds ratio reconstructed from their own held arm counts instead of a published rate/risk ratio; no published ratio is relabelled. The previously served result is superseded, not refuted: the numbers are not asserted wrong, and any trial set aside or not yet admitted stays eligible evidence awaiting adjudication.",
+        "reason_locked": true,
+        "by": "Claude Opus 5.5 (lane evid/v1.0.1-acquisition-cascade, 2026-09-30); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-30T06:00:00Z",
+        "reviewer_countersignature": {
+          "state": "OPEN",
+          "note": "sign with scripts/countersign_result_change.py after reading it"
         },
         "conclusion_changed": null
       }
@@ -84540,7 +84884,7 @@
         }
       ],
       "config_sha256": "a7c697b15c00b1c9cf40718d24398ee5bc133fb8d4e2aaacf7928265c0698531",
-      "analysis_code_sha256": "2a3c01015fec9db7907ad0a76af67d41c406616822df1f44127016b69f35c2fc",
+      "analysis_code_sha256": "12aee104384aeb782b2d520d352e4e148cd68871ab514c1dd67df37d4cdeb9d5",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -84568,12 +84912,13 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "ec768def3e6609b5a06bbed537256d292c51468d",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/completeness.py": "c20e6f6072c9917ef94da75a4abdb033d1798067",
+        "harness/completeness.py": "0bda397e8ea2fe3242eb8a8acb32a71b220470b9",
         "harness/component_typing.py": "802f98b17932779853404311bddf1a32a9ca0283",
-        "harness/consumer_consistency.py": "5a2e65fb3cd656ab5ce67247e48b1b5326ca4f3d",
+        "harness/consumer_consistency.py": "89d4ec55b1ca51f2e7b34c95f1232ba6fbfc9c35",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "827356b454bb9db76ecacd65bc1685b1e27c7b80",
+        "harness/design_key.py": "bff9cdbe95fd4db5172a5c1fa7509498730b223e",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
+        "harness/dose_arms.py": "32843d5a3445b4b0f928dabfa89035d217c17fb0",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
         "harness/eligibility_field.py": "ec53cc657bd8eaf436fec013c21a1a8382d743fe",
@@ -84602,25 +84947,31 @@
         "harness/invalidation.py": "0b1f410061948cf8c2f3be70726d89666b0cbe07",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "8465a0dea65d4ae8a4e905b99788ba618aee4a65",
+        "harness/lane_integration.py": "5b2ed4ce008eb20d8750ef4cde5d4013193c5e10",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
         "harness/lifecycle.py": "b450e7b5796ed03430f1796a4e296aa1bdc7051e",
         "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/measure_guard.py": "fedaaa041a1c672ef4873e415cecf9a89f42dd54",
+        "harness/measure_identity.py": "57b1321b410e3f7e4fb41612ee2b7581c9df3c25",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/multi_trial_report.py": "579ae83090d8439889b7208eea50dc9141035710",
         "harness/outcome_restriction.py": "76ea7ad867f6cd37b4c4fa2030e823d0d2ce3527",
-        "harness/page.py": "69093d799780959d8ef54ad4fe00a4b29335da64",
+        "harness/page.py": "52adde0791bae6ee87628a0e06e9c90f73058de5",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "96d54616ff1359271f5b7018d6daa7d6f3551c0d",
+        "harness/pipeline.py": "381708e9bf786e057e7035ba6e74b7f292229f8b",
+        "harness/population_rules.py": "9ebd67a0558b816771ea872f963cb73d32204959",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
         "harness/protocol_conflict.py": "0447340cee57cb8538c0b68a0a3b4e84be83c139",
         "harness/provenance_tiers.py": "1debfa78076de4ee40ee4ac06ca2e68ce0fc20eb",
         "harness/reason_audit.py": "dcfc5e38a5d8ceff635d3095486c6695188444aa",
+        "harness/recovery_binding.py": "8b7e82bbb58c2b227820ff18238bc6b8b34615eb",
+        "harness/recovery_excerpt.py": "4b7e15be39b3a9ec839abbbd650ce01bd313d311",
+        "harness/recovery_map.py": "d17ee64a5ad8437f3b0fa4d1689d974b7d4856d2",
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_criteria.py": "5897622f34a4d9b5bc520f6f73daa8726c1580d2",
@@ -84630,7 +84981,7 @@
         "harness/report_family.py": "593b5294dc94c05603c597c1906e2494451b7010",
         "harness/report_linkage.py": "86b746983bb16d15b16fb07d1bb622df9e05c710",
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
-        "harness/result_status.py": "0b04fc13c0e1c52f814936a1758938f584043215",
+        "harness/result_status.py": "d83871a1d25fac2837cf69d5e26c2e8ba3965a63",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "a68ef073493c7d32be944013416f4029a0609e0f",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
@@ -84638,24 +84989,28 @@
         "harness/scope_identity.py": "dbee5402eb707f476f7306f7e7f7993d2c116ce0",
         "harness/screen.py": "84508cd060e5e6cf9427fe0ef5b8b8a95ae73410",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/screening_record.py": "57170b37791ee2f63b9e8b7935f9de43b7408eb5",
+        "harness/screening_record.py": "5072e169477ceabb43b1278cca0a72d51ab36123",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
-        "harness/source_coverage.py": "9bb689a92399b39e581c5857d778fe330b99b0f5",
-        "harness/source_hierarchy.py": "1121a7e25944a221a7e76671c09a415cc9ad4f78",
+        "harness/source_coverage.py": "4734b6533ebb367b468d1223a649759b893f13c0",
+        "harness/source_hierarchy.py": "e40e26cb4f3c012e86bb13e25c23c45dc726360e",
         "harness/source_precedence.py": "b65234a79aeb122f3c8964370f00ffb8e7ef81bf",
         "harness/source_versions.py": "ea18bf024d686175dfc269cbf8e4f71b377ec569",
         "harness/sparse_data.py": "b626aebc0f1bbcc404cacb50eff056feb43e89e4",
         "harness/subgroup_provenance.py": "ceb1fdac82698a9e412c4e689c72113bd6356d43",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
+        "harness/table_rows.py": "ed01ccf2df9b7f141184d2834440311dd2ad99e5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "24c716c38d6b1267dced0f48f0d916fd1fa704bd",
+        "harness/target_endpoint.py": "ec4849179b8f00dc518d64050f1e6bf6424fd774",
+        "harness/target_reconstruction.py": "02ef0b38b63384a8c19d1d18fbae342246a914f4",
+        "harness/timepoint_identity.py": "d15b11e27b66bf942da4710660782be5345a246e",
         "harness/trial_family.py": "fe855402097e97a35499f4cb51a8199b8c5fb991",
         "harness/unextracted.py": "06e9faa6fb5e9806da307dd0cff2a5649d023dfa",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
-        "harness/verified_inputs.py": "a99f61b675e30f79de62303feb49cfd80184c1ad",
+        "harness/verified_inputs.py": "0af534344c1bd95dfe2a38b3ccd78d86428ad402",
         "harness/verify.py": "09c027848d692e146d4d97b19dd0c2680bafc5ad",
         "harness/whole_numbers.py": "9194bd58d2651a8ae524d53068f2f404b7781f49",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
+        "scripts/make_react_excerpt.py": "d312fa2c6b41cdd652c631f485aced4b65ee2694",
         "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
@@ -84669,7 +85024,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "114 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "125 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -84677,7 +85032,6 @@
           "in_tree_modules_not_imported_by_any_root": [
             "harness/cites.py",
             "harness/comparator_extract.py",
-            "harness/dose_arms.py",
             "harness/error_library.py",
             "harness/fda.py",
             "harness/fixstate.py",
@@ -84688,20 +85042,15 @@
             "harness/integrity.py",
             "harness/inventory_queue.py",
             "harness/leakscan.py",
-            "harness/measure_identity.py",
             "harness/meta_match.py",
-            "harness/population_rules.py",
             "harness/proposal_gate.py",
             "harness/prospective.py",
-            "harness/recovery_map.py",
             "harness/registry_multi.py",
             "harness/search_completeness.py",
             "harness/search_v2.py",
             "harness/source_identity.py",
             "harness/spec_curve.py",
-            "harness/table_binding.py",
-            "harness/table_rows.py",
-            "harness/timepoint_identity.py"
+            "harness/table_binding.py"
           ],
           "why": "not reached from any root, so not part of building, rendering, gating or replaying this page: repository-level standard limbs run by scripts/verify_all.py on the whole tree (fix-state ledger, honest ratchet, held-out leak detector, served-artefact leak scan, search completeness), the search_v2 acquisition engine -- whose blob the search-completeness limb pins to the sealed measurement, not this certificate -- and adapters or stages outside the default build path. They are identified by the anchoring commit, not here.",
           "interpreter_and_packages": "the Python interpreter, its standard library and third-party packages (scipy on the analysis path; openpyxl and sentence_transformers on optional paths) are not pinned by this certificate. Their effect is bounded by CI, which replays every page on a fresh install and refuses a byte difference; it is not bounded by a digest here.",
@@ -84712,8 +85061,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "8394351f9c554936fc269f131e5b65c1fb88976480591867cf206cb0b7d2a0ff",
-      "review_sha256": "e283263256aa75810015f3de4f61b3a21780ffbc15cb9ecc998404ffba19c5f9",
+      "manuscript_sha256": "3e1522a37010c2a624c2a985203c4c8f5c6f6f0c3f3c9345164f329d8d71648e",
+      "review_sha256": "ab20e1d339ee8d54b27e24922b6129e1fdb9111354fe08603d29505b449ceb33",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/corticosteroids-covid19-mortality.md UTF-8 text, universal newlines",
@@ -84733,7 +85082,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "29c852a75d99600758dc9f0b3a4f30082b30eb4042eb4b017def1ea292988e39"
+      "release_sha256": "ec842ba4dd970d68fa357fb958910c72d203d56bde532a4aadcc627b52cac607"
     }
   }
 }

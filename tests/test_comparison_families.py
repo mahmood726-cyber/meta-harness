@@ -140,6 +140,7 @@ def _covid_primary():
 
 def test_codex_28_day_row_is_bound_to_table_2_with_its_timepoint():
     row = next(t for t in _covid_primary()["trials"] if t["id"] == "PMID 32876695")
+    assert row['reconstruction_measure'] == 'OR'
     assert (row["ai"], row["n1i"], row["ci"], row["n2i"]) == (85, 151, 91, 148)
     assert row["hand_binding_state"] == "BOUND" and row["timepoint"] == "28 days"
     assert row["endpoint_role_in_trial"] == "SECONDARY"

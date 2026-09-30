@@ -36,6 +36,9 @@ def _status_html(t, o) -> str:
     if st == "ADMITTED" and m and m.group(1) in _PENDING_SIGNATURE.get(o.get("name"), set()):
         st = "ADMITTED_PENDING_SIGNATURE"
     bits = [f"<code data-result-status='{_e(st)}'>{_e(st)}</code>"]
+    for key in ("typed_timepoint", "population_class", "table_binding", "table_row", "dose_assessment", "lane_refusals", "recovery_map", "recovery_binding"):
+        if t.get(key):
+            bits.append(f"{_e(key)}: {_e(json.dumps(t[key], sort_keys=True))}")
     ex = rs.get("extraction")
     if ex:
         val = (f"{_e(ex.get('scale') or 'ratio')} {_e(ex.get('effect'))} ({_e(ex.get('ci_low'))}&ndash;{_e(ex.get('ci_high'))})"
@@ -363,8 +366,15 @@ def _search_provenance_html(rc: dict) -> str:
     )
 
 
+def _served_scale(res):
+    """Display the identity carried by the served result, including unresolved."""
+    from .lane_integration import SCALES
+    identity = res.get('served_measure')
+    return SCALES.get(identity, identity) if identity else res.get('scale')
+
+
 def _ci(res) -> str:
-    return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
+    return f"{_num(res.get('estimate'))} ({_served_scale(res)}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
 
 def _effect_label(res) -> str:
@@ -425,7 +435,7 @@ def _effect_rows(res: dict) -> list[tuple[str, str]]:
     if res.get("pooled_ci_refused"):
         return [
             ("Pooled point estimate (registered CI refused)",
-             f"{_num(res.get('estimate'))} ({_e(res.get('scale'))}); no pooled significance/null-crossing claim"),
+             f"{_num(res.get('estimate'))} ({_e(_served_scale(res))}); no pooled significance/null-crossing claim"),
             ("Registered PM/HKSJ CI", _registered_ci_refusal_text(res)),
         ]
     return [(_effect_label(res), _ci(res))]
@@ -434,7 +444,7 @@ def _effect_rows(res: dict) -> list[tuple[str, str]]:
 def _common_effect_row(res: dict) -> tuple[str, str] | None:
     if res.get("ci_low_fixed") is None:
         return None
-    txt = (f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
+    txt = (f"{_num(res.get('estimate_fixed'))} ({_served_scale(res)}), 95% CI "
            f"{_num(res.get('ci_low_fixed'))}-{_num(res.get('ci_high_fixed'))}")
     if res.get("fixed_heterogeneity_caveat"):
         txt += f" [{_e(res.get('fixed_heterogeneity_caveat'))}]"
@@ -1912,17 +1922,40 @@ def _harms_ledger_block(o):
             "<th>Source-ladder obligations</th></tr>" + "".join(rows) + "</table>")
 
 
+def _unknown_measure_disclosure(o):
+    res = o.get("result") or {}
+    if res.get("served_measure") != "UNKNOWN":
+        return ""
+    inputs = res.get("measure_inputs") or o.get("measure_inputs")
+    if not inputs:
+        return ""
+    return ("<p class='measure-unknown'>Served measure UNKNOWN because input measure classes "
+            + _e(", ".join(sorted(inputs)))
+            + " do not establish a single known measure. Inputs: "
+            + _e("; ".join(cls + ": " + ", ".join(inputs[cls]) for cls in sorted(inputs)))
+            + ". No measure conversion is implied.</p>")
+
+
 def _outcome_block(o, show_inputs=True, review=None):
     r = (review or {"outcomes": [o]}) if o.get("primary") else {}
     from . import harms
     if harms.synthesis_incomplete(o):
-        return (f"<h4>{_e(o.get('name'))}</h4>" + _harms_ledger_block(o)
+        return (f"<h4>{_e(o.get('name'))}</h4>" + _unknown_measure_disclosure(o) + _harms_ledger_block(o)
                 + (_trial_inputs(o) if show_inputs else ""))
     reason = _absent(o)
     if reason:
-        return f"<h4>{_e(o.get('name'))}</h4>" + _absent_block(reason)
+        return f"<h4>{_e(o.get('name'))}</h4>" + _unknown_measure_disclosure(o) + _absent_block(reason)
     body = f"<h4>{_e(o.get('name'))}{' (primary)' if o.get('primary') else ''}</h4>"
     res = o.get("result")
+    body += _unknown_measure_disclosure(o)
+    if o.get("measure_mix"):
+        mix = o["measure_mix"]
+        body += ("<p class='measure-mix'><strong>Mixed measures (advisory):</strong> "
+                 + _e(", ".join(mix["classes"])) + ". Inputs: "
+                 + _e("; ".join(cls + ": " + ", ".join(mix["inputs_by_class"][cls])
+                                for cls in sorted(mix["inputs_by_class"]))) + ".</p>")
+    if isinstance(res, dict) and res.get("target_measure"):
+        body += f"<p>Protocol measure: {_e(res.get('target_measure'))}; served measure: {_e(res.get('served_measure'))}; target timepoint: {_e(res.get('timepoint_target'))}.</p>"
     rr = _absent(res)
     if rr and isinstance(res, dict) and res.get("state") == "HARMS_INCOMPLETE":
         unresolved = res.get("known_eligible_outcome_reports_unresolved") or []

@@ -10,7 +10,10 @@ import pytest
 from regex_layer import lanes
 
 from regex_layer.site_detects import DETECTS
-from regex_layer.specs import INLINE_SPECS
+from regex_layer.specs import INLINE_SPECS, FIX4_DETECTS
+
+# The runtime registry must carry the FIX4 labels itself (not only this test's composition).
+assert all(DETECTS.get(k) == v for k, v in FIX4_DETECTS.items())
 
 def _files_with_detects():
     # every harness file with a regex site, except extract.py (its 32 sites are specified and measured separately:
@@ -27,7 +30,7 @@ SITE_KEYS = sorted(k for k in INLINE_SPECS if k.split(":", 1)[0] in FILES)
 
 def test_keys_are_exactly_the_planted_sites():
     assert len(FILES) >= 50, "the inventory found too few files -- the key set would be vacuous"
-    assert len(SITE_KEYS) == N_SITES == 376, "every non-extract.py site planted in this landing carries a labelling spec"
+    assert len(SITE_KEYS) == N_SITES + len(FIX4_DETECTS), "every non-extract.py site planted in this landing carries a labelling spec"
     assert sorted(DETECTS) == SITE_KEYS
 
 

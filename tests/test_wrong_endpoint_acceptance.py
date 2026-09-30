@@ -192,7 +192,7 @@ def test_strength_five_point_primary_is_not_bound_to_the_conclusions_sentence():
     pick = TE.select_target_endpoint(spec, rec["abstract"], (records.get("ctgov_results") or {}).get(rec.get("nct")), interv, comp)
     sel = pick["selected"]
     assert sel and sel["provenance"] == "ctgov_results" and sel["target_endpoint_class"] == TE.EXACT_TARGET, sel
-    assert sel["effect"] != 0.99
+    assert sel.get("effect") != 0.99  # target-first may select held patient counts
     abstract_alts = [a for a in pick["candidates"] if a.get("source_type") == "abstract"]
     assert abstract_alts and all(a.get("target_endpoint_class") == TE.NEAR_MATCH for a in abstract_alts), abstract_alts
 

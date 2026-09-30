@@ -49,7 +49,10 @@ def test_emphasis_is_screened_on_its_randomised_phase_never_the_extensions_desig
     ole = next(p for p in f["phases"] if p["kind"] == "EXTENSION")
     assert ole["comparisons"] == [] and ole["design"]["masking"] == "NONE"
     assert "NCT00232180" not in rv["family_count_chain"]["contributing_without_structural_eligibility"]
-    row = _row(_o(rv, "All-cause mortality"), "21073363", True)
+    mortality = _o(rv, "All-cause mortality")
+    assert mortality['measure_mix']['classes'] == ['HAZARD_RATIO', 'RISK_RATIO']
+    assert any(p['code'] == 'MEASURE_MIX_POOLED' and not p['blocking'] for p in mortality['lane_problems'])
+    row = _row(mortality, "21073363", True)
     assert row["analysis_phase"] == {"phase": "DOUBLE_BLIND", "comparison": "eplerenone-vs-placebo",
                                      "analysis_period": "DB_TO_CUTOFF_2010-05-25"}
 
@@ -96,6 +99,7 @@ def test_a_role_anchor_never_makes_another_outcomes_effect_a_mortality_candidate
 def test_j_emphasis_mortality_is_its_own_table3_hr_bound_by_its_row_label():
     rv = _rv()
     o = _o(rv, "All-cause mortality")
+    assert 'PMID 28824029' in o['measure_mix']['inputs_by_class']['HAZARD_RATIO']
     row = _row(o, "28824029", True)
     assert (row["effect"], row["ci_low"], row["ci_high"], row["scale"]) == (1.77, 0.81, 3.87, "HR")
     assert o["result"]["k"] == 3

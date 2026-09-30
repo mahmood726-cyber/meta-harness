@@ -4730,8 +4730,8 @@
           "RR"
         ],
         "served_scale_changed": true,
-        "reason": "published HR exists for the target outcome",
-        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+        "reason": "immutable declared target; preserve source hierarchy unless its selection crosses the odds boundary",
+        "rule": "prefer published HR; otherwise retain available risk/rate measure with disclosure (never reconstruct HR from counts; refuse odds inputs)"
       },
       "trials": [
         {
@@ -4773,28 +4773,6 @@
           "registry_measure_type": "COUNT_OF_PARTICIPANTS",
           "registry_timeframe": "From the date of randomization and up to completion of the end-of-treatment visit (Month 60) or at study closure",
           "target_endpoint_alternatives": [
-            {
-              "candidate_id": "ctgov:3",
-              "source_type": "ctgov_results",
-              "source_kind": "registry_published_effect",
-              "registry_title": "The Composite of CV Events in the Subgroup of Participants With Established CV Disease (CVD) at Baseline",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "EXACT_TARGET",
-              "source_rank_kind": "registry_published_effect",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
-            {
-              "candidate_id": "ctgov:3",
-              "source_type": "ctgov_results",
-              "source_kind": "reconstruction",
-              "registry_title": "The Composite of CV Events in the Subgroup of Participants With Established CV Disease (CVD) at Baseline",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "EXACT_TARGET",
-              "source_rank_kind": "reconstruction",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
             {
               "candidate_id": "abstract:published_target_effect:0",
               "source_type": "abstract",
@@ -4842,6 +4820,36 @@
               "source_kind": "reconstruction",
               "registry_title": "The Composite of Major Adverse Cardiovascular Events (MACE)",
               "registry_type": "PRIMARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "coronary revascularization",
+                "unstable angina"
+              ],
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:1",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "The Composite of MACE in the Subgroup of Participants With Established CV Disease(CVD) at Baseline",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "coronary revascularization",
+                "unstable angina"
+              ],
+              "source_rank_kind": "registry_published_effect",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:1",
+              "source_type": "ctgov_results",
+              "source_kind": "reconstruction",
+              "registry_title": "The Composite of MACE in the Subgroup of Participants With Established CV Disease(CVD) at Baseline",
+              "registry_type": "SECONDARY",
               "target_endpoint_class": "NEAR_MATCH",
               "extra_components": [
                 "coronary revascularization",
@@ -4930,6 +4938,22 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 33190147",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "HAZARD_RATIO",
           "study_effect": {
             "effect_estimate": 1.05,
             "standard_error": 0.06288993111680194,
@@ -5068,28 +5092,6 @@
               "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             },
             {
-              "candidate_id": "ctgov:12",
-              "source_type": "ctgov_results",
-              "source_kind": "registry_published_effect",
-              "registry_title": "Number of Participants With a Major Cardiovascular Event, Excluding First 2 Years of Follow-up",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "EXACT_TARGET",
-              "source_rank_kind": "registry_published_effect",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
-            {
-              "candidate_id": "ctgov:12",
-              "source_type": "ctgov_results",
-              "source_kind": "reconstruction",
-              "registry_title": "Number of Participants With a Major Cardiovascular Event, Excluding First 2 Years of Follow-up",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "EXACT_TARGET",
-              "source_rank_kind": "reconstruction",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
-            {
               "candidate_id": "ctgov:6",
               "source_type": "ctgov_results",
               "source_kind": "registry_published_effect",
@@ -5112,6 +5114,36 @@
               "target_endpoint_class": "NEAR_MATCH",
               "extra_components": [
                 "coronary revascularization"
+              ],
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:7",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Number of Participants With Myocardial Infarction",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "cardiovascular death",
+                "stroke"
+              ],
+              "source_rank_kind": "registry_published_effect",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:7",
+              "source_type": "ctgov_results",
+              "source_kind": "reconstruction",
+              "registry_title": "Number of Participants With Myocardial Infarction",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "cardiovascular death",
+                "stroke"
               ],
               "source_rank_kind": "reconstruction",
               "endpoint_binding": "registry_outcome_measure",
@@ -5217,6 +5249,22 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30415637",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "HAZARD_RATIO",
           "study_effect": {
             "effect_estimate": 0.92,
             "standard_error": 0.0717902118758128,
@@ -5475,6 +5523,22 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30415628",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "HAZARD_RATIO",
           "study_effect": {
             "effect_estimate": 0.74,
             "standard_error": 0.062361691293609856,
@@ -5632,6 +5696,22 @@
               "validity_critical": false
             }
           },
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20929341",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "HAZARD_RATIO",
           "study_effect": {
             "effect_estimate": 1.01,
             "standard_error": 0.07557940311150596,
@@ -5856,6 +5936,22 @@
             "stroke",
             "death from cardiovascular disease"
           ],
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "INTENTION_TO_TREAT",
+          "population_decision": {
+            "allowed": true,
+            "population": "INTENTION_TO_TREAT",
+            "id": "PMID 21115589",
+            "code": null,
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "HAZARD_RATIO",
           "study_effect": {
             "effect_estimate": 1.08,
             "standard_error": 0.15841738399530889,
@@ -5965,6 +6061,20 @@
           "source": "abstract effect+CI (RR): RESULTS: During a mean follow-up of 7.4 years (adherence rate, 76%), a serious vascular event occurred in 689 patients (8.9%) in the fatty acid group and in 712 (9.2%) in the placebo group (rate ratio",
           "provenance": "abstract",
           "reason": "the bound endpoint span adds component(s) to the declared composite (transient ischemic attack): a different composite is not 'Major vascular events / MACE' and this outcome declares no near-match permission (allow_near_match / component_compat_key); refused rather than pooled under the declared label",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30146932",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00135226",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6024,6 +6134,20 @@
           "id": "PMID 23839902",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23839902",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:23839902",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6092,6 +6216,20 @@
           "document_ref": null,
           "source_level": null,
           "reason": "declared absent (definition mismatch, cross-family definition audit): the stored 733/6239 vs 745/6266 is Rischio e Prevenzione's REVISED primary endpoint 'death from cardiovascular causes or admission to hospital for cardiovascular causes' (a broad CV-death-or-hospitalization composite), NOT the 3-point major-vascular-events (death/MI/stroke) our outcome names. The abstract states the INITIALLY specified 3-point primary was revised after a lower-than-expected event rate; the 3-point counts are not in the abstract. Refuse rather than pool a broader CV-hospitalization composite under a major-vascular-events label.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23656645",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00317707",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6147,6 +6285,20 @@
           "id": "PMID 23351824",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23351824",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:23351824",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6204,6 +6356,20 @@
           "id": "PMID 20952767",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20952767",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20952767",
           "publication_role": "secondary",
           "completeness_state": "eligible+completed+results_available",
@@ -6261,6 +6427,20 @@
           "id": "PMID 20146881",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20146881",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20146881",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6318,6 +6498,20 @@
           "id": "PMID 18757090",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 18757090",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00336336",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6377,6 +6571,20 @@
           "id": "PMID 11451717",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 11451717",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:11451717",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6434,6 +6642,20 @@
           "id": "PMID 20389249",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20389249",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20389249",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6491,6 +6713,20 @@
           "id": "PMID 21060071",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 21060071",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00251134",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6561,6 +6797,20 @@
           "document_ref": null,
           "source_level": null,
           "reason": "declared absent (definition mismatch, cross-family definition audit): OMEGA-REMODEL's MACE is an idiosyncratic composite (all-cause death, heart-failure hospitalization, recurrent acute coronary syndrome, late CABG) with NO stroke and NO cardiovascular-death component, in a 6-month post-AMI cardiac-remodeling pilot -- not the death/MI/stroke major-vascular-events endpoint our outcome names. Refuse rather than pool a different composite under a MACE label.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 38184150",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:38184150",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6632,6 +6882,20 @@
           "id": "PMID 38199870",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 38199870",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01745263",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6715,6 +6979,20 @@
           "completion": null,
           "enrollment": null,
           "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT06720662",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "REC:NCT06720662",
           "publication_role": "primary",
           "completeness_state": "eligible+not_yet_recruiting",
@@ -6784,6 +7062,20 @@
           "primary_completion": null,
           "completion": null,
           "enrollment": null,
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT01841944",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "OMEMI",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_unavailable",
@@ -6850,6 +7142,20 @@
           "primary_completion": null,
           "completion": null,
           "enrollment": null,
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT01048502",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "FFAME",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6940,6 +7246,20 @@
           "provenance": "fulltext_verified",
           "reason": "the hand-extracted number is not bound to an endpoint in the held document (named endpoint has no definition span in the held text); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
           "recovery": "a reviewer binds the tuple to one span of the held document (or records a typed refusal with the span) -- recorded, source-linked, under the same numeric and freshness checks",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 22686415",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00069784",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -6996,6 +7316,14 @@
           "claim_kind": "membership_state"
         }
       ],
+      "lane_problems": [],
+      "population_rule": {
+        "efficacy": "INTENTION_TO_TREAT",
+        "safety": "SAFETY_POPULATION",
+        "selected": "INTENTION_TO_TREAT",
+        "basis": "intention-to-treat"
+      },
+      "timepoint_target": "trial end / longest randomized follow-up",
       "membership": {
         "analysis_input_family_ids": [
           "ISRCTN41926726",
@@ -7097,6 +7425,13 @@
           ],
           "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
         },
+        "target_measure": "RISK_RATIO",
+        "served_measure": "HAZARD_RATIO",
+        "timepoint_target": "trial end / longest randomized follow-up",
+        "measure_disclosure": {
+          "target_measure": "RISK_RATIO",
+          "served_measure": "HAZARD_RATIO"
+        },
         "claim": {
           "present": true,
           "significant": false,
@@ -7113,6 +7448,8 @@
         },
         "claim_kind": "outcome_result"
       },
+      "target_measure": "RISK_RATIO",
+      "served_measure": "HAZARD_RATIO",
       "endpoint_canonical": {
         "label": "MAJOR_VASCULAR_EVENTS_MACE",
         "event_time": "TIME_TO_FIRST_EVENT",
@@ -7375,8 +7712,8 @@
         "target_class": "FIRST_EVENT_RATIO",
         "published_candidate_scales": [],
         "served_scale_changed": false,
-        "reason": "declared cumulative risk-ratio estimand",
-        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+        "reason": "immutable declared target; preserve source hierarchy unless its selection crosses the odds boundary",
+        "rule": "preserve source hierarchy and disclose the selected risk/rate measure; target-first selection only across the odds boundary"
       },
       "trials": [
         {
@@ -7434,6 +7771,23 @@
               "validity_critical": false
             }
           },
+          "reconstruction_measure": "RR",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30146932",
+            "code": "POPULATION_UNKNOWN",
+            "scope": "DISCLOSURE; existing source admission retained unless inconsistent"
+          },
+          "measure_identity": "RISK_RATIO",
           "study_effect": {
             "effect_estimate": 1.2296296296296296,
             "standard_error": 0.1147741515330566,
@@ -7529,6 +7883,20 @@
           "id": "PMID 33190147",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 33190147",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT02104817",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7591,6 +7959,20 @@
           "id": "PMID 30415637",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30415637",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01169259",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7664,6 +8046,20 @@
           "document_ref": "cache/omega3-cardiovascular-events/records.json",
           "source_level": 1,
           "reason": "The source reports hospitalization for atrial fibrillation or flutter as percentages only; AACT serious preferred-term rows are narrower treated-population events and do not reconstruct that hospitalized composite.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30415628",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01492361",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7723,6 +8119,20 @@
           "id": "PMID 23839902",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23839902",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:23839902",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7782,6 +8192,20 @@
           "id": "PMID 23656645",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23656645",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00317707",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7843,6 +8267,20 @@
           "id": "PMID 23351824",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23351824",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:23351824",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7902,6 +8340,20 @@
           "id": "PMID 22686415",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 22686415",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00069784",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -7964,6 +8416,20 @@
           "id": "PMID 20952767",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20952767",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20952767",
           "publication_role": "secondary",
           "completeness_state": "eligible+completed+results_available",
@@ -8023,6 +8489,20 @@
           "id": "PMID 20929341",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20929341",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00127452",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8084,6 +8564,20 @@
           "id": "PMID 20146881",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20146881",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20146881",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8143,6 +8637,20 @@
           "id": "PMID 18757090",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 18757090",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00336336",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8204,6 +8712,20 @@
           "id": "PMID 11451717",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 11451717",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:11451717",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8263,6 +8785,20 @@
           "id": "PMID 20389249",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20389249",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20389249",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8322,6 +8858,20 @@
           "id": "PMID 21060071",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 21060071",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00251134",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8383,6 +8933,20 @@
           "id": "PMID 21115589",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 21115589",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:21115589",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8442,6 +9006,20 @@
           "id": "PMID 38184150",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 38184150",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:38184150",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8501,6 +9079,20 @@
           "id": "PMID 38199870",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 38199870",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01745263",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8568,6 +9160,20 @@
           "completion": null,
           "enrollment": null,
           "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT06720662",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "REC:NCT06720662",
           "publication_role": "primary",
           "completeness_state": "eligible+not_yet_recruiting",
@@ -8639,6 +9245,20 @@
           "primary_completion": null,
           "completion": null,
           "enrollment": null,
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT01841944",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "OMEMI",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_unavailable",
@@ -8707,6 +9327,20 @@
           "primary_completion": null,
           "completion": null,
           "enrollment": null,
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT01048502",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "FFAME",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -8767,6 +9401,20 @@
           "claim_kind": "membership_state"
         }
       ],
+      "lane_problems": [
+        {
+          "code": "TARGET_TIMEPOINT_MISSING",
+          "item": "Atrial fibrillation",
+          "blocking": false
+        }
+      ],
+      "population_rule": {
+        "efficacy": "UNKNOWN",
+        "safety": "SAFETY_POPULATION",
+        "selected": "SAFETY_POPULATION",
+        "basis": "harm outcome kind"
+      },
+      "timepoint_target": "MISSING",
       "membership": {
         "analysis_input_family_ids": [
           "NCT00135226"
@@ -8892,11 +9540,16 @@
         "depends_on": {
           "input_set_version": "8db012faa07d68b8dcfba344e23a0f1005757f213ebc7657960e2d70594d7e63"
         },
-        "claim_kind": "outcome_result"
+        "claim_kind": "outcome_result",
+        "target_measure": "RISK_RATIO",
+        "served_measure": "RISK_RATIO",
+        "timepoint_target": "MISSING"
       },
       "mentioned_by_not_pooled": [
         "30415628"
       ],
+      "target_measure": "RISK_RATIO",
+      "served_measure": "RISK_RATIO",
       "endpoint_canonical": {
         "label": "ATRIAL_FIBRILLATION",
         "event_time": "TIME_TO_FIRST_EVENT",
@@ -8965,8 +9618,8 @@
         "target_class": "FIRST_EVENT_RATIO",
         "published_candidate_scales": [],
         "served_scale_changed": false,
-        "reason": "declared cumulative risk-ratio estimand",
-        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+        "reason": "immutable declared target; preserve source hierarchy unless its selection crosses the odds boundary",
+        "rule": "preserve source hierarchy and disclose the selected risk/rate measure; target-first selection only across the odds boundary"
       },
       "trials": [],
       "declared_absent_trials": [
@@ -8975,6 +9628,20 @@
           "id": "PMID 33190147",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 33190147",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT02104817",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9048,6 +9715,20 @@
           "document_ref": "cache/omega3-cardiovascular-events/records.json",
           "source_level": 1,
           "reason": "The held text gives only a narrative bleeding comparison; AACT reports gastrointestinal bleeding and nosebleeds separately, without a deduplicated overall bleeding count.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30415637",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01169259",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9116,6 +9797,20 @@
           "document_ref": "cache/omega3-cardiovascular-events/records.json",
           "source_level": 1,
           "reason": "The source reports serious bleeding percentages without event counts; AACT splits bleeding across potentially overlapping preferred terms, so their sum cannot establish patients with bleeding.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30415628",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01492361",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9186,6 +9881,20 @@
           "document_ref": "cache/omega3-cardiovascular-events/records.json",
           "source_level": 1,
           "reason": "The signal is an exclusion in the vascular efficacy endpoint definition, not a bleeding result; the AACT major-bleed endpoint is explicitly for the aspirin comparison only.",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 30146932",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00135226",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9245,6 +9954,20 @@
           "id": "PMID 23839902",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23839902",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:23839902",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9304,6 +10027,20 @@
           "id": "PMID 23656645",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23656645",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00317707",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9365,6 +10102,20 @@
           "id": "PMID 23351824",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 23351824",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:23351824",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9424,6 +10175,20 @@
           "id": "PMID 22686415",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 22686415",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00069784",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9486,6 +10251,20 @@
           "id": "PMID 20952767",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20952767",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20952767",
           "publication_role": "secondary",
           "completeness_state": "eligible+completed+results_available",
@@ -9545,6 +10324,20 @@
           "id": "PMID 20929341",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20929341",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00127452",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9606,6 +10399,20 @@
           "id": "PMID 20146881",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20146881",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20146881",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9665,6 +10472,20 @@
           "id": "PMID 18757090",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 18757090",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00336336",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9726,6 +10547,20 @@
           "id": "PMID 11451717",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 11451717",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:11451717",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9785,6 +10620,20 @@
           "id": "PMID 20389249",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 20389249",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:20389249",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9844,6 +10693,20 @@
           "id": "PMID 21060071",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 21060071",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT00251134",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9905,6 +10768,20 @@
           "id": "PMID 21115589",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 21115589",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:21115589",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -9964,6 +10841,20 @@
           "id": "PMID 38184150",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 38184150",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "PMID:38184150",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -10023,6 +10914,20 @@
           "id": "PMID 38199870",
           "absent_kind": "machine_absent",
           "reason": "factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "PMID 38199870",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "NCT01745263",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -10090,6 +10995,20 @@
           "completion": null,
           "enrollment": null,
           "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT06720662",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "REC:NCT06720662",
           "publication_role": "primary",
           "completeness_state": "eligible+not_yet_recruiting",
@@ -10161,6 +11080,20 @@
           "primary_completion": null,
           "completion": null,
           "enrollment": null,
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT01841944",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "OMEMI",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_unavailable",
@@ -10229,6 +11162,20 @@
           "primary_completion": null,
           "completion": null,
           "enrollment": null,
+          "typed_timepoint": {
+            "value": null,
+            "unit": null,
+            "origin": "UNSTATED",
+            "elapsed_days": null,
+            "refusal": "TIMEPOINT_UNSTATED"
+          },
+          "population_class": "UNKNOWN",
+          "population_decision": {
+            "allowed": false,
+            "population": "UNKNOWN",
+            "id": "NCT01048502",
+            "code": "POPULATION_UNKNOWN"
+          },
           "trial_family_id": "FFAME",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -10289,6 +11236,20 @@
           "claim_kind": "membership_state"
         }
       ],
+      "lane_problems": [
+        {
+          "code": "TARGET_TIMEPOINT_MISSING",
+          "item": "Bleeding",
+          "blocking": false
+        }
+      ],
+      "population_rule": {
+        "efficacy": "UNKNOWN",
+        "safety": "SAFETY_POPULATION",
+        "selected": "SAFETY_POPULATION",
+        "basis": "harm outcome kind"
+      },
+      "timepoint_target": "MISSING",
       "membership": {
         "analysis_input_family_ids": [],
         "pooled_family_ids": [],
@@ -10331,6 +11292,13 @@
           "30146932"
         ],
         "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
+        "target_measure": "RISK_RATIO",
+        "served_measure": "UNKNOWN",
+        "timepoint_target": "MISSING",
+        "measure_disclosure": {
+          "target_measure": "RISK_RATIO",
+          "served_measure": "UNKNOWN"
+        },
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -10412,7 +11380,9 @@
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "claim_kind": "outcome_result"
-      }
+      },
+      "target_measure": "RISK_RATIO",
+      "served_measure": "UNKNOWN"
     }
   ],
   "comparator": {
@@ -131695,7 +132665,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d",
-    "review_sha256": "f65938c3f312509244f6e04a601dd7c24aed10fd3f381b7a1d53dc5c6add1bf3",
+    "review_sha256": "9b8ae2ed32e1feb767227f06a3703e13499babcaefdf8f78f17f828720be4819",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -131898,7 +132868,7 @@
         }
       ],
       "config_sha256": "72706a43c52a047d76c02fce8fbf64a34638ed400171e4f37135da423a618299",
-      "analysis_code_sha256": "2a3c01015fec9db7907ad0a76af67d41c406616822df1f44127016b69f35c2fc",
+      "analysis_code_sha256": "12aee104384aeb782b2d520d352e4e148cd68871ab514c1dd67df37d4cdeb9d5",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -131926,12 +132896,13 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "ec768def3e6609b5a06bbed537256d292c51468d",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/completeness.py": "c20e6f6072c9917ef94da75a4abdb033d1798067",
+        "harness/completeness.py": "0bda397e8ea2fe3242eb8a8acb32a71b220470b9",
         "harness/component_typing.py": "802f98b17932779853404311bddf1a32a9ca0283",
-        "harness/consumer_consistency.py": "5a2e65fb3cd656ab5ce67247e48b1b5326ca4f3d",
+        "harness/consumer_consistency.py": "89d4ec55b1ca51f2e7b34c95f1232ba6fbfc9c35",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "827356b454bb9db76ecacd65bc1685b1e27c7b80",
+        "harness/design_key.py": "bff9cdbe95fd4db5172a5c1fa7509498730b223e",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
+        "harness/dose_arms.py": "32843d5a3445b4b0f928dabfa89035d217c17fb0",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
         "harness/eligibility_field.py": "ec53cc657bd8eaf436fec013c21a1a8382d743fe",
@@ -131960,25 +132931,31 @@
         "harness/invalidation.py": "0b1f410061948cf8c2f3be70726d89666b0cbe07",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "8465a0dea65d4ae8a4e905b99788ba618aee4a65",
+        "harness/lane_integration.py": "5b2ed4ce008eb20d8750ef4cde5d4013193c5e10",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
         "harness/lifecycle.py": "b450e7b5796ed03430f1796a4e296aa1bdc7051e",
         "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/measure_guard.py": "fedaaa041a1c672ef4873e415cecf9a89f42dd54",
+        "harness/measure_identity.py": "57b1321b410e3f7e4fb41612ee2b7581c9df3c25",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/multi_trial_report.py": "579ae83090d8439889b7208eea50dc9141035710",
         "harness/outcome_restriction.py": "76ea7ad867f6cd37b4c4fa2030e823d0d2ce3527",
-        "harness/page.py": "69093d799780959d8ef54ad4fe00a4b29335da64",
+        "harness/page.py": "52adde0791bae6ee87628a0e06e9c90f73058de5",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "96d54616ff1359271f5b7018d6daa7d6f3551c0d",
+        "harness/pipeline.py": "381708e9bf786e057e7035ba6e74b7f292229f8b",
+        "harness/population_rules.py": "9ebd67a0558b816771ea872f963cb73d32204959",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
         "harness/protocol_conflict.py": "0447340cee57cb8538c0b68a0a3b4e84be83c139",
         "harness/provenance_tiers.py": "1debfa78076de4ee40ee4ac06ca2e68ce0fc20eb",
         "harness/reason_audit.py": "dcfc5e38a5d8ceff635d3095486c6695188444aa",
+        "harness/recovery_binding.py": "8b7e82bbb58c2b227820ff18238bc6b8b34615eb",
+        "harness/recovery_excerpt.py": "4b7e15be39b3a9ec839abbbd650ce01bd313d311",
+        "harness/recovery_map.py": "d17ee64a5ad8437f3b0fa4d1689d974b7d4856d2",
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_criteria.py": "5897622f34a4d9b5bc520f6f73daa8726c1580d2",
@@ -131988,7 +132965,7 @@
         "harness/report_family.py": "593b5294dc94c05603c597c1906e2494451b7010",
         "harness/report_linkage.py": "86b746983bb16d15b16fb07d1bb622df9e05c710",
         "harness/result_changes.py": "7467978d6b866b366670da2e66476261ce06bd62",
-        "harness/result_status.py": "0b04fc13c0e1c52f814936a1758938f584043215",
+        "harness/result_status.py": "d83871a1d25fac2837cf69d5e26c2e8ba3965a63",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
         "harness/rob_sensitivity.py": "a68ef073493c7d32be944013416f4029a0609e0f",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
@@ -131996,24 +132973,28 @@
         "harness/scope_identity.py": "dbee5402eb707f476f7306f7e7f7993d2c116ce0",
         "harness/screen.py": "84508cd060e5e6cf9427fe0ef5b8b8a95ae73410",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
-        "harness/screening_record.py": "57170b37791ee2f63b9e8b7935f9de43b7408eb5",
+        "harness/screening_record.py": "5072e169477ceabb43b1278cca0a72d51ab36123",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
-        "harness/source_coverage.py": "9bb689a92399b39e581c5857d778fe330b99b0f5",
-        "harness/source_hierarchy.py": "1121a7e25944a221a7e76671c09a415cc9ad4f78",
+        "harness/source_coverage.py": "4734b6533ebb367b468d1223a649759b893f13c0",
+        "harness/source_hierarchy.py": "e40e26cb4f3c012e86bb13e25c23c45dc726360e",
         "harness/source_precedence.py": "b65234a79aeb122f3c8964370f00ffb8e7ef81bf",
         "harness/source_versions.py": "ea18bf024d686175dfc269cbf8e4f71b377ec569",
         "harness/sparse_data.py": "b626aebc0f1bbcc404cacb50eff056feb43e89e4",
         "harness/subgroup_provenance.py": "ceb1fdac82698a9e412c4e689c72113bd6356d43",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
+        "harness/table_rows.py": "ed01ccf2df9b7f141184d2834440311dd2ad99e5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "24c716c38d6b1267dced0f48f0d916fd1fa704bd",
+        "harness/target_endpoint.py": "ec4849179b8f00dc518d64050f1e6bf6424fd774",
+        "harness/target_reconstruction.py": "02ef0b38b63384a8c19d1d18fbae342246a914f4",
+        "harness/timepoint_identity.py": "d15b11e27b66bf942da4710660782be5345a246e",
         "harness/trial_family.py": "fe855402097e97a35499f4cb51a8199b8c5fb991",
         "harness/unextracted.py": "06e9faa6fb5e9806da307dd0cff2a5649d023dfa",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
-        "harness/verified_inputs.py": "a99f61b675e30f79de62303feb49cfd80184c1ad",
+        "harness/verified_inputs.py": "0af534344c1bd95dfe2a38b3ccd78d86428ad402",
         "harness/verify.py": "09c027848d692e146d4d97b19dd0c2680bafc5ad",
         "harness/whole_numbers.py": "9194bd58d2651a8ae524d53068f2f404b7781f49",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
+        "scripts/make_react_excerpt.py": "d312fa2c6b41cdd652c631f485aced4b65ee2694",
         "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
@@ -132027,7 +133008,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "114 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "125 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -132035,7 +133016,6 @@
           "in_tree_modules_not_imported_by_any_root": [
             "harness/cites.py",
             "harness/comparator_extract.py",
-            "harness/dose_arms.py",
             "harness/error_library.py",
             "harness/fda.py",
             "harness/fixstate.py",
@@ -132046,20 +133026,15 @@
             "harness/integrity.py",
             "harness/inventory_queue.py",
             "harness/leakscan.py",
-            "harness/measure_identity.py",
             "harness/meta_match.py",
-            "harness/population_rules.py",
             "harness/proposal_gate.py",
             "harness/prospective.py",
-            "harness/recovery_map.py",
             "harness/registry_multi.py",
             "harness/search_completeness.py",
             "harness/search_v2.py",
             "harness/source_identity.py",
             "harness/spec_curve.py",
-            "harness/table_binding.py",
-            "harness/table_rows.py",
-            "harness/timepoint_identity.py"
+            "harness/table_binding.py"
           ],
           "why": "not reached from any root, so not part of building, rendering, gating or replaying this page: repository-level standard limbs run by scripts/verify_all.py on the whole tree (fix-state ledger, honest ratchet, held-out leak detector, served-artefact leak scan, search completeness), the search_v2 acquisition engine -- whose blob the search-completeness limb pins to the sealed measurement, not this certificate -- and adapters or stages outside the default build path. They are identified by the anchoring commit, not here.",
           "interpreter_and_packages": "the Python interpreter, its standard library and third-party packages (scipy on the analysis path; openpyxl and sentence_transformers on optional paths) are not pinned by this certificate. Their effect is bounded by CI, which replays every page on a fresh install and refuses a byte difference; it is not bounded by a digest here.",
@@ -132071,7 +133046,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "832e238611d3726df3dfc5ab5dc294f0467c40be517689ae415ec9a98575dba5",
-      "review_sha256": "f65938c3f312509244f6e04a601dd7c24aed10fd3f381b7a1d53dc5c6add1bf3",
+      "review_sha256": "9b8ae2ed32e1feb767227f06a3703e13499babcaefdf8f78f17f828720be4819",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/omega3-cardiovascular-events.md UTF-8 text, universal newlines",
@@ -132091,7 +133066,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "662410cf8772900377ec17b0d4c12129020256740842f1da5531af5b77697385"
+      "release_sha256": "c58aa20e08be542bec2faa35db80966c0ad05567eaff8007b984838dd86b1cd7"
     }
   }
 }

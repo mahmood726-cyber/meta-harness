@@ -108,6 +108,25 @@ def test_primary_trial_values_and_membership_are_unchanged():
                 assert b_rows[rid] == a_rows[rid], (slug, rid, 'screening row changed without a declared supersession')
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
+        # FIX4 decided supersessions: same patient counts, now computed on OR;
+        # CAP removes only the positively mismatching day-28 row.
+        if slug in ('tocilizumab-covid19-mortality', 'corticosteroids-covid19-mortality'):
+            from fix4_helpers import mortality_counts
+            prior_values = ((snap.get('superseded') or {}).get(slug) or {}).get('primary_values_after', before['primary_values'])
+            assert {t['id'] for t in b['trials']} == {t['id'] for t in prior_values}
+            assert b['result']['scale'] == 'OR'
+            for row in b['trials']:
+                counts = mortality_counts(slug, row)
+                assert {k: row[k] for k in counts} == counts
+                assert row.get('effect') is None and row['reconstruction_measure'] == 'OR'
+                assert all(row.get(k) is None for k in ('ci_low', 'ci_high', 'mean1', 'mean2', 'sd1', 'sd2', 'nc1', 'nc2'))
+            continue
+        if slug == 'corticosteroids-cap-mortality':
+            refused = next(t for t in b['declared_absent_trials'] if t['id'] == 'PMID 36942789')
+            assert refused['lane_refusals'] == ['TIMEPOINT_MISMATCH']
+            assert values(b) == [t for t in before['primary_values'] if t['id'] != refused['id']]
+            assert b['result']['k'] == 1
+            continue
         sup = (snap.get('superseded') or {}).get(slug)
         if sup:
             # a LATER landing may change a primary only by a declared, named supersession that records the

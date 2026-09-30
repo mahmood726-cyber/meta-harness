@@ -272,6 +272,10 @@ def _candidate_summary(candidate: dict[str, Any], chosen: dict[str, Any], declar
             "nc2": candidate.get("nc2"),
             "scale": "MD",
         })
+    for key in ('table_row', 'table_binding', 'table_conflict', 'relay_refusal',
+                'document_ref', 'document_sha256', 'source_span', 'timepoint_span', 'time_origin_span'):
+        if key in candidate:
+            row[key] = candidate[key]
     return {k: v for k, v in row.items() if v is not None}
 
 
@@ -704,7 +708,10 @@ def maybe_use_published_adjusted(trial: dict[str, Any], declared_estimand: str |
     action = (d.get("design_action") or {}).get("action")
     if not (alt and alt.get("adjusted") and action in BLOCKING_ACTIONS):
         return False
-    if not _compatible_estimand(alt, declared_estimand):
+    from . import measure_identity as mi
+    available, target = mi.measure_of(alt), mi.normalize(declared_estimand)
+    risk_rate = (mi.Measure.RISK_RATIO, mi.Measure.HAZARD_RATIO, mi.Measure.RATE_RATIO)
+    if available != target and not (available in risk_rate and target in risk_rate):
         return False
     if d.get("design") == "FACTORIAL" and not d.get("factorial_interaction"):
         return False

@@ -80,7 +80,7 @@ def test_target_plant_mapping_and_immutable_inputs():
     outcome = {"name": "mortality", "trials": [row], "result": {"estimate": 0.5, "scale": "RR"}}
     review = {"outcomes": [outcome]}
     saved = deepcopy((review, config))
-    assert source_hierarchy.estimand_decision(config["primary_outcome"], [row])["target_scale"] == "RR"
+    assert source_hierarchy.estimand_decision(config["primary_outcome"], [row])["target_scale"] == "OR"
     assert "TARGET_MEASURE_REWRITTEN" in codes(check_target(review, config))
     assert (review, config) == saved
     assert outcome_identity(outcome, config["primary_outcome"]) == {
@@ -129,9 +129,15 @@ def test_held_recovery_and_philo():
     assert "rate ratio" in record["abstract"]
     # Confirm the numerical tuple independently via the held abstract parser.
     effect = extract.extract_effect(extract._norm(record["abstract"]))
-    assert effect[1:] == (row["effect"], row["ci_low"], row["ci_high"])
-    assert measure_of(row) == M.RATE_RATIO
-    assert "TARGET_MEASURE_REWRITTEN" in codes(check_target(review, config))
+    from fix4_helpers import mortality_counts, odds
+    cells = mortality_counts(slug, row)
+    assert {k: row[k] for k in cells} == cells
+    assert row.get('effect') is None and row['reconstruction_measure'] == 'OR'
+    assert measure_of(row) == M.ODDS_RATIO
+    assert not check_target(review, config)
+    expected = odds(cells)
+    assert tuple(outcome['result'][k] for k in ('estimate', 'ci_low', 'ci_high')) == pytest.approx(expected, abs=5e-5)
+    assert expected[0] != pytest.approx(effect[1], abs=1e-3)  # published rate is not relabelled
     slug = "ticagrelor-vs-clopidogrel-acs"
     review = load(slug, "docs/reviews/{slug}/review.json")
     bleeding = next(o for o in review["outcomes"] if o["name"] == "Major bleeding")
@@ -150,7 +156,7 @@ def test_census_all_topics_and_known_defects():
     rules = result["rules"]
     for rule in rules.values():
         assert rule["n"] == len(rule["items"]) <= rule["N"]
-    assert any(i["topic"] == "tocilizumab-covid19-mortality" for i in rules["span_scale_disagreement"]["items"])
+    assert not any(i["topic"] == "tocilizumab-covid19-mortality" for i in rules["span_scale_disagreement"]["items"])
     assert any(i["topic"] == "ticagrelor-vs-clopidogrel-acs" for i in rules["mixed_measure_pools"]["items"])
 
 

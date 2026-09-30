@@ -1036,6 +1036,13 @@ def select_target_endpoint(
     if not canonical_components(spec):
         return {"selected": None, "candidates": [], "exact_target_in_held_source": False}
     candidates = enumerate_candidates(spec, abstract, outcome_measures, interv, comp)
+    # A recurrent-event registry endpoint is not a patient first-event endpoint,
+    # even when its clinical component nouns match and a ratio is labelled RR.
+    if not re.search(r'\b(?:recurrent|total)\b', spec.get('name', ''), re.I):
+        for candidate in candidates:
+            if re.search(r'\brecurrent\b', candidate.get('registry_title') or '', re.I):
+                candidate['target_endpoint_class'] = DIFFERENT_OUTCOME
+                candidate['endpoint_binding_reason'] = 'RECURRENT_EVENTS_NOT_FIRST_EVENT_PATIENTS'
     exact = [c for c in candidates if c.get("target_endpoint_class") == EXACT_TARGET]
     near = [c for c in candidates if c.get("target_endpoint_class") == NEAR_MATCH]
     # ADMISSIBILITY: exact targets only. A near match is eligible solely under the outcome's explicit
@@ -1059,10 +1066,22 @@ def select_target_endpoint(
                        "reason_code": verdict["verdict"], "reason": verdict.get("reason", "")}
         return {"selected": None, "candidates": [_public_candidate(c) for c in candidates],
                 "exact_target_in_held_source": False, "refusal": refusal}
+    # Preserve the original endpoint/source ranking within risk/rate. Only an
+    # odds-boundary crossing permits target-first reranking of eligible rows.
+    from . import measure_identity as mi
+    target = mi.normalize(spec.get('estimand'))
     selected = sorted(eligible, key=_selection_key, reverse=True)[0]
+    prior_measure = mi.measure_of(selected)
+    risk_rate = (mi.Measure.RISK_RATIO, mi.Measure.HAZARD_RATIO, mi.Measure.RATE_RATIO)
+    if (target == mi.Measure.ODDS_RATIO and prior_measure in risk_rate) or (
+            prior_measure == mi.Measure.ODDS_RATIO and target in risk_rate):
+        published = [c for c in eligible if c.get('effect') is not None and mi.measure_of(c) == target]
+        reconstructed = [c for c in eligible if c.get('effect') is None and mi._valid_counts(c)
+                         and target in (mi.Measure.RISK_RATIO, mi.Measure.ODDS_RATIO)]
+        selected = sorted(published or reconstructed or eligible, key=_selection_key, reverse=True)[0]
     row = row_from_candidate(selected)
     alternatives = [
-        _public_candidate(c) for c in (exact + near)
+        _public_candidate(c) for c in candidates
         if c.get("candidate_id") != selected.get("candidate_id")
     ]
     if alternatives:

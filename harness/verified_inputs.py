@@ -108,6 +108,8 @@ def load(slug, cache_root=None):
             rows = [normalise(e) for e in originals]
             for old, row in zip(originals, rows):
                 _validate(row, directory, pid, canonical='kind' in old)
+            from .lane_integration import table_entry
+            rows = [table_entry(row, directory) for row in rows]
             result[name][pid] = rows if isinstance(value, list) else rows[0]
     return result
 

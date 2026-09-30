@@ -300,7 +300,11 @@ def test_pivotal_present_passes_on_live_topic():
 from harness.gate import check_prespecification_in_protocol, ROOT as GATE_ROOT  # noqa: E402
 
 
-def test_prespecification_limb_refuses_uncited_rule_and_passes_amendment():
+def test_prespecification_limb_refuses_uncited_rule_and_passes_amendment(tmp_path, monkeypatch):
+    from harness import gate
+    GATE_ROOT = str(tmp_path)
+    monkeypatch.setattr(gate, "ROOT", GATE_ROOT)
+    (tmp_path / "protocols").mkdir()
     # A dose-selection rule claimed "pre-specified" but absent from the protocol must be REFUSED;
     # the same rule framed as a dated post-hoc amendment (as noac does) must PASS.
     import shutil
@@ -322,6 +326,7 @@ def test_prespecification_limb_refuses_uncited_rule_and_passes_amendment():
                   io.open(os.path.join(cd, "dose_selection.json"), "w", encoding="utf-8"))
         assert check_prespecification_in_protocol(rd) == []
     finally:
+        assert all(os.path.commonpath([os.path.abspath(p), GATE_ROOT]) == GATE_ROOT for p in (rd, cd))
         shutil.rmtree(rd, ignore_errors=True); shutil.rmtree(cd, ignore_errors=True)
         if os.path.exists(pr):
             os.remove(pr)
@@ -330,7 +335,11 @@ def test_prespecification_limb_refuses_uncited_rule_and_passes_amendment():
 from harness.gate import check_population_identity  # noqa: E402
 
 
-def test_population_identity_limb_refuses_a_leaked_off_population_trial():
+def test_population_identity_limb_refuses_a_leaked_off_population_trial(tmp_path, monkeypatch):
+    from harness import gate
+    GATE_ROOT = str(tmp_path)
+    monkeypatch.setattr(gate, "ROOT", GATE_ROOT)
+    (tmp_path / "topics").mkdir()
     # A pooled trial whose own record matches the topic's population_none leaked past screening — refuse.
     import shutil
     slug = "__control_popident"
@@ -351,6 +360,7 @@ def test_population_identity_limb_refuses_a_leaked_off_population_trial():
                   io.open(os.path.join(rd, "review.json"), "w", encoding="utf-8"))
         assert check_population_identity(rd) == []
     finally:
+        assert all(os.path.commonpath([os.path.abspath(p), GATE_ROOT]) == GATE_ROOT for p in (rd, cd))
         shutil.rmtree(rd, ignore_errors=True); shutil.rmtree(cd, ignore_errors=True)
         if os.path.exists(tp):
             os.remove(tp)

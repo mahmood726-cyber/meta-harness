@@ -120,7 +120,14 @@ def test_no_served_page_loses_a_downgrade():
             continue
         for name, domain in before['grade']['domains'].items():
             if after['grade']['domains'][name]['downgrade'] < domain['downgrade']:
-                losses.append((slug, name))
+                primary = next(o for o in after['outcomes'] if o.get('primary'))
+                refused = (primary.get('result') or {}).get('state') == 'LANE_REFUSED'
+                boundary = any(p['code'] == 'TARGET_MEASURE_REWRITTEN' for p in primary.get('lane_problems', []))
+                if refused and boundary:
+                    assert after['grade']['domains'][name]['state'] == 'NOT_ASSESSABLE'
+                    assert after['grade']['certainty'] == 'provisional'
+                else:
+                    losses.append((slug, name))
     assert losses == [], losses
 
 @pytest.mark.parametrize('low,high', [(0.57, 1.78), (0.585, 1.235), (0.75, 1.1), (0.9, 1.25)])

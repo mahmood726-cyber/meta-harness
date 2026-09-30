@@ -208,3 +208,27 @@ INLINE_SPECS.update(_OTHER_LANES_5)
 from regex_layer.specs_whole_numbers import SITE_SPECS as _WHOLE_NUMBERS  # noqa: E402
 
 INLINE_SPECS.update(_WHOLE_NUMBERS)
+
+
+# FIX4: recurrent registry endpoints must not masquerade as patient first events.
+FIX4_SPECS = {
+    'target_endpoint.py:search:165fe5f576': {
+        'kind': 'search', 'what': 'the target explicitly requests recurrent or total events',
+        'plants': {'accept': [('Total hospitalizations', ()), ('recurrent events', ())],
+                   'refuse': ['first hospitalization', 'subtotal risk']}},
+    'target_endpoint.py:search:74ee9684cf': {
+        'kind': 'search', 'what': 'a registry title explicitly identifies recurrent events',
+        'plants': {'accept': [('Recurrent heart failure hospitalizations', ())],
+                   'refuse': ['first heart failure hospitalization', 'nonrecurrent events']}},
+}
+INLINE_SPECS.update(FIX4_SPECS)
+# Kept here with the plants because FIX4 may edit only specs.py in regex_layer.
+# The integrator imports this mapping into site_detects.DETECTS.
+FIX4_DETECTS = {
+    'target_endpoint.py:search:165fe5f576': {
+        'detects': 'target requests recurrent or total events', 'trigger': r'recurrent|total',
+        'text_source': 'protocol outcome name', 'lowercased': False},
+    'target_endpoint.py:search:74ee9684cf': {
+        'detects': 'registry title identifies recurrent events', 'trigger': r'recurrent',
+        'text_source': 'registry outcome title', 'lowercased': False},
+}

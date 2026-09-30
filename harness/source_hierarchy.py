@@ -149,29 +149,22 @@ def span_effect_candidates(spec: dict[str, Any], selected: dict[str, Any], base_
 def estimand_decision(spec: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
     declared = _norm_scale(spec.get("estimand") or "RR")
     scales = [_norm_scale(c.get("scale")) for c in candidates if c.get("effect") is not None]
-    has_hr = "HR" in scales
-    has_rr = "RR" in scales
-    has_or = "OR" in scales
 
+    # The odds boundary is immutable: an OR target is never re-targeted to HR/RR (and the per-row selector never serves
+    # an OR under a risk/rate target). WITHIN the risk/rate family the pre-existing typing stands exactly: a published HR
+    # types the outcome as time-to-first-event, else cumulative risk. A literal compound estimand such as 'RR/HR' must
+    # resolve to a real scale here -- used verbatim it reaches the pool as an unsupported scale and silently removes
+    # GRADE's imprecision assessment (spironolactone, REVIEW2 R2).
+    has_hr = "HR" in scales
     if declared in {"MD", "SMD"}:
         decision, target = "continuous", declared
-        reason = "declared continuous estimand"
-    elif declared == "OR" and (has_rr or has_hr) and not has_or:
-        if has_hr:
-            decision, target = "time_to_first_event", "HR"
-            reason = "declared OR, but the target outcome's only published effect+CI is HR"
-        else:
-            decision, target = "cumulative_risk_at_trial_end", "RR"
-            reason = "declared OR, but the target outcome's only published effect+CI is RR"
     elif declared == "OR":
         decision, target = "odds", "OR"
-        reason = "declared odds-ratio estimand"
     elif declared == "HR" or "HAZARD" in declared or has_hr:
         decision, target = "time_to_first_event", "HR"
-        reason = "published HR exists for the target outcome" if has_hr else "declared hazard-ratio estimand"
     else:
         decision, target = "cumulative_risk_at_trial_end", "RR"
-        reason = "declared cumulative risk-ratio estimand"
+    reason = 'immutable declared target; preserve source hierarchy unless its selection crosses the odds boundary'
 
     return {
         "declared_estimand": declared,
@@ -182,8 +175,8 @@ def estimand_decision(spec: dict[str, Any], candidates: list[dict[str, Any]]) ->
         "served_scale_changed": target != declared,
         "reason": reason,
         "rule": {
-            "time_to_first_event": "prefer published HR; keep reconstruction only when no HR exists",
-            "cumulative_risk_at_trial_end": "prefer published RR; otherwise reconstruct RR from counts consistently",
+            "time_to_first_event": "prefer published HR; otherwise retain available risk/rate measure with disclosure (never reconstruct HR from counts; refuse odds inputs)",
+            "cumulative_risk_at_trial_end": "preserve source hierarchy and disclose the selected risk/rate measure; target-first selection only across the odds boundary",
             "odds": "prefer published OR; otherwise reconstruct OR from counts consistently",
             "continuous": "pool the declared continuous scale from mean/SD inputs",
         }.get(decision, "use declared scale"),

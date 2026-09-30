@@ -1078,3 +1078,7 @@ for _site in ("whole_numbers.py:_GROUPED_BEFORE", "whole_numbers.py:_GROUPED_AFT
                       "lowercased": False,
                       "why_not_labellable": "reads a character window around a number, not text a labeller can judge; "
                                             "its effect is measured through the extractors it guards"}
+
+# Labels for the regex sites added by the target-first / timepoint-guard integration (FIX4); kept beside their plants.
+from regex_layer.specs import FIX4_DETECTS  # noqa: E402
+DETECTS.update(FIX4_DETECTS)

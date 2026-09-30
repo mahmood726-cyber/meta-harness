@@ -93,6 +93,9 @@ SEARCH_PROVENANCE_DISCOVERY_STATEMENTS = {
 }
 
 
+from . import lane_integration as lane_integration_mod
+
+
 def _read_text(*p):
     with open(os.path.join(ROOT, *p), encoding="utf-8") as f:
         return f.read().replace("\r\n", "\n").replace("\r", "\n")
@@ -404,13 +407,18 @@ def _reported_effect_candidate(eff, provenance, source_label):
 
 def _source_effect_candidates(spec, *, abstract=None, fulltext=None, ctgov_outcomes=None,
                               verified_effect=None):
-    return source_hierarchy_mod.source_effect_candidates(
+    candidates = source_hierarchy_mod.source_effect_candidates(
         spec,
         abstract=abstract,
         fulltext=fulltext,
         ctgov_outcomes=ctgov_outcomes,
-        verified_effect=verified_effect,
+        verified_effect=None,
     )
+    # Keep independent source witnesses independent, even when numbers coincide.
+    for candidate in source_hierarchy_mod.source_effect_candidates(spec, verified_effect=verified_effect):
+        candidate.update({k: verified_effect[k] for k in _HAND_FIELDS if k in verified_effect})
+        candidates.append(candidate)
+    return candidates
 
 
 def _selection_extras(row):
@@ -433,7 +441,7 @@ _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level"
                 # on-treatment, to 30 days after the last dose; amputation on-study), so it rides on the row
                 "safety_window",
                 # the COMPARISON a multi-comparison family's row belongs to (STEP 8: semaglutide vs pooled placebo)
-                "comparison_id")
+                "comparison_id", "table_row", "table_binding", "table_conflict", "time_origin_span", "relay_refusal")
 
 
 def _hand_fields(entry, slug, pid, rec=None):
@@ -472,7 +480,11 @@ def _hand_fields(entry, slug, pid, rec=None):
 
 
 def _span_effect_candidates(spec, selected, base_candidates):
-    return source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates)
+    candidates = source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates)
+    for candidate in candidates:
+        if candidate not in base_candidates and selected.get("table_row"):
+            candidate.update({k: selected[k] for k in _HAND_FIELDS if k in selected})
+    return candidates
 
 
 CROSS_SOURCE_LOG_TOL = 0.12
@@ -1029,7 +1041,8 @@ def _apply_trial_annotations(spec, trials):
     anns = spec.get("trial_annotations") or {}
     if not anns:
         return
-    allowed = {
+    # Insertion order survives into review.json; a set makes replay hash-seed dependent.
+    allowed = (
         "prior_disease_stage",
         "background_therapy",
         "components",
@@ -1047,7 +1060,7 @@ def _apply_trial_annotations(spec, trials):
         "run_in_enrichment",
         "evidence_unit",
         "evidence_unit_detail",
-    }
+    )
     for t in trials:
         pid = str(t.get("id", "")).replace("PMID ", "").strip()
         ann = anns.get(pid) or anns.get(str(t.get("label") or "")) or anns.get(str(t.get("id") or ""))
@@ -1063,7 +1076,7 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None):
+                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None, outcome_config=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1088,6 +1101,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         all_effect_candidates.extend(cands)
     estimand_decision = source_hierarchy_mod.estimand_decision(spec, all_effect_candidates)
     selector_estimand = estimand_decision.get("target_scale") or spec.get("estimand") or "RR"
+    def select_estimator(selected, candidates, declared):
+        from . import measure_identity
+        own = str(selected.get("id", "")).replace("PMID ", "")
+        peers = {measure_identity.measure_of(c) for pid, group in candidate_index.items()
+                 if str(pid) != own for c in group}
+        from . import target_reconstruction
+        count_candidate = target_reconstruction.allocated_mortality_counts(
+            rec_by_id.get(own, {}), spec, interv, comp)
+        if count_candidate and selected.get("effect") is not None:
+            count_candidate['document_ref'] = f'cache/{slug}/records.json#PMID-{own}'
+            candidates = list(candidates) + [count_candidate]
+        return lane_integration_mod.select_estimator(selected, candidates, declared,
+                                                      sorted(peers, key=lambda m: m.value))
     for d in included:
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
@@ -1236,13 +1262,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
             _mm = (extract.composite_component_mismatch(spec.get("name", ""), ex.get("source", ""))
                    or extract.population_mismatch(ex.get("source", ""))
-                   or extract.timepoint_mismatch(spec.get("timepoint", ""), ex.get("source", "")))
+                   )
             if _mm:
                 absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence", "reason": _mm})
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
-            t = design_key.select_estimator_by_source_hierarchy(
+            t = select_estimator(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
             if nct and nct in ctgov_results:
@@ -1258,7 +1284,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if cg:
             cg["provenance"] = "ctgov_results"
             t = {"label": label, "id": idstr, **cg}
-            t = design_key.select_estimator_by_source_hierarchy(
+            t = select_estimator(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
             trials.append(t)
@@ -1272,7 +1298,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if fx and not fx.get("absent"):
             fx["provenance"] = "pmc_fulltext"
             t = {"label": label, "id": idstr, **fx}
-            t = design_key.select_estimator_by_source_hierarchy(
+            t = select_estimator(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
             trials.append(t)
@@ -1290,7 +1316,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "provenance": va.get("provenance", "aact_verified"),
                  "source": va.get("source", "hand-verified structured arm-level counts"),
                  **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
-            t = design_key.select_estimator_by_source_hierarchy(
+            t = select_estimator(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
             trials.append(t)
@@ -1308,7 +1334,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "scale": "MD", "provenance": va.get("provenance", "fulltext_verified_arms"),
                  "source": va.get("source", "hand-verified continuous per-arm mean/SD/n"),
                  **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
-            t = design_key.select_estimator_by_source_hierarchy(
+            t = select_estimator(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
             trials.append(t)
@@ -1441,14 +1467,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # each pooled number's digits must be present in the committed abstract / structured source.
     for t in trials:
         if not t.get("selection_rule"):
-            selected = design_key.select_estimator_by_source_hierarchy(t, [], selector_estimand)
+            selected = select_estimator(t, [], selector_estimand)
             t.clear()
             t.update(selected)
-        source_limit = source_hierarchy_mod.mixed_by_source_limit(t, estimand_decision)
-        if source_limit:
-            limits = t.setdefault("source_hierarchy_limitations", [])
-            if not any(lim.get("code") == source_limit.get("code") for lim in limits):
-                limits.append(source_limit)
         pid = str(t.get("id", "")).replace("PMID ", "")
         ab = (rec_by_id.get(pid) or {}).get("abstract", "")
         t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
@@ -1494,6 +1515,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    for trial in trials:
+        if trial.get("ai") is not None and trial.get("effect") is None:
+            trial["reconstruction_measure"] = "OR" if selector_estimand.upper() == "OR" else "RR"
+    lane_integration_mod.prepare(out, spec, outcome_config or {}, rec_by_id)
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
@@ -1567,6 +1592,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "scale": alt.get("scale", t.get("scale") or pooled_scale),
                 "source": alt.get("source", t.get("source")),
             })
+            alternate = {"name": out["name"], "kind": kind, "trials": alt_trials, "declared_absent_trials": []}
+            lane_integration_mod.prepare(alternate, spec, outcome_config or {}, rec_by_id)
+            if len(alt_trials) != len(trials):
+                out.setdefault("alternative_refusals", []).extend(alternate["lane_problems"])
+                continue
             alt_studies = [
                 Study(label=x["label"], effect=x.get("effect"), ci_low=x.get("ci_low"),
                       ci_high=x.get("ci_high"),
@@ -1756,7 +1786,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):
             out["result"]["design_consumption"] = out["design_consumption"]
-    return out
+    return lane_integration_mod.finish(out, spec)
 
 
 def _outcome_specs(config):
@@ -1955,7 +1985,7 @@ def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
                           verified_effects=kw["veffs"], dose_selection=kw["dsel"],
                           registry_designs=kw["registry_designs"],
                           k2_anchor_config=kw["config"].get("k2_direction_conflict_anchor"),
-                          eligibility_contract=kw["eligibility_contract"], slug=slug)
+                          eligibility_contract=kw["eligibility_contract"], slug=slug, outcome_config=kw["config"])
 
 
 @aact_cache.cache_only_build
@@ -1973,7 +2003,7 @@ def build_review_core(slug, config, records, protocol_sha):
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
                                k2_anchor_config=config.get("k2_direction_conflict_anchor"),
-                               eligibility_contract=eligibility_contract, slug=slug)
+                               eligibility_contract=eligibility_contract, slug=slug, outcome_config=config)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
@@ -2298,6 +2328,8 @@ def build_review_core(slug, config, records, protocol_sha):
         _kws = _kw_by_name.get(_o.get("name")) or []
         _sp = _spec_by_name.get(_o.get("name")) or {}
         for _t in (_o.get("declared_absent_trials") or []):
+            if _t.get("lane_refusals"):
+                continue  # Preserve the specific source-backed refusal and witness.
             _pid = str(_t.get("id", "")).replace("PMID ", "")
             _ab = (rec_by_id.get(_pid) or {}).get("abstract", "")
             _ftp = os.path.join(ROOT, "cache", slug, f"ft_{_pid}.txt")
@@ -2398,6 +2430,7 @@ def build_review_core(slug, config, records, protocol_sha):
     from . import source_coverage as source_coverage_mod
     source_coverage_mod.attach(review, rec_by_id)
     result_status_mod.derive(review, {s.get("name"): list(s.get("keywords") or []) for s, _k in _outcome_specs(config)})
+    lane_integration_mod.attach_recovery(review, slug)
     # COMPLETENESS PER OUTCOME, from the derived row states and the typed lifecycles (never a topic-wide count)
     from . import completeness as completeness_mod
     completeness_mod.attach(review, slug)
@@ -2422,6 +2455,8 @@ def build_review_core(slug, config, records, protocol_sha):
         raise ValueError("PROPOSITION CONTRADICTION (build refused): " + json.dumps(_prop_bad))
     from . import comparator_panel
     review["comparator_panel"] = comparator_panel.attach(slug, review, ROOT)
+    for outcome in review.get("outcomes", []):
+        lane_integration_mod.finish(outcome, _spec_by_name.get(outcome["name"], {}))
     return review
 
 

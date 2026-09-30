@@ -55,16 +55,17 @@ def test_hr_rr_pool_stays_compatible_labels():
     assert set(fixed["canonicals"]) == {"HAZARD_RATIO_FIRST_EVENT", "RISK_RATIO"}
 
 
-def test_rebuilt_hyperglycaemia_is_suppressed_incompatible():
+def test_rebuilt_hyperglycaemia_refuses_or_row_and_keeps_rr_peers():
     cur = _outcome(json.loads(CAP_REVIEW.read_text(encoding="utf-8")), "Hyperglycaemia")
     res = cur["result"]
-    assert res["suppressed_incompatible"] is True
-    assert res["estmeasure_incompatible"] is True
-    assert res["estmeasure"]["status"] == "incompatible"
-    assert set(res["estmeasure"]["classes"]) == {"FIRST_EVENT_RATIO", "ODDS_RATIO"}
-    assert set(res["estmeasure"]["labels"]) == {"OR", "RR"}
-    assert "estimate" not in res
-    assert "ci_low" not in res and "ci_high" not in res
+    assert res['k'] == 3 and res['scale'] == 'RR'
+    assert res['served_measure'] == 'RISK_RATIO'
+    assert not res.get('suppressed_incompatible')
+    assert res['estimate'] is not None and res['ci_low'] is not None and res['ci_high'] is not None
+    assert {t['id'] for t in cur['trials']} == {'PMID 25688779', 'PMID 33446608', 'PMID 21636122'}
+    refused = next(t for t in cur['declared_absent_trials'] if t['id'] == 'PMID 25608756')
+    assert refused['lane_refusals'] == ['TARGET_MEASURE_UNAVAILABLE']
+    assert refused['scale'] == 'OR' and refused['effect'] is not None
 
 
 def test_or_label_mix_does_not_use_hr_rr_disclosure_text():

@@ -33,10 +33,13 @@ def test_plant_prefixed_corticosteroids_served_k2_ci_and_live_refuses_it():
     assert pre["k"] == 2 and pre["ci_low"] == 0.0361 and pre["ci_high"] == 8.2605
     assert k2.k2_check(pre) == k2.K2_SINGLE_DF_CI_SERVED
 
-    live = _primary(_live("corticosteroids-cap-mortality"))["result"]
-    assert live["k"] == 2 and live["ci_low"] is None and live["ci_high"] is None
-    assert live["pooled_ci_refused"]["code"] == k2.K2_SINGLE_DF
-    assert live["ci_hksj_unserved"]["ci_low"] == 0.0361
+    outcome = _primary(_live("corticosteroids-cap-mortality"))
+    live = outcome['result']
+    assert live['k'] == 1 and live['ci_low'] is not None and live['ci_high'] is not None
+    assert [t['id'] for t in outcome['trials']] == ['PMID 25688779']
+    refused = next(t for t in outcome['declared_absent_trials'] if t['id'] == 'PMID 36942789')
+    assert refused['lane_refusals'] == ['TIMEPOINT_MISMATCH']
+    assert 'pooled_ci_refused' not in live
     assert k2.k2_check(live) is None
 
 

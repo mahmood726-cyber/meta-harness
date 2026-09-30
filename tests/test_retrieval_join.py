@@ -1,7 +1,5 @@
 import json
 import shutil
-import uuid
-from pathlib import Path
 
 from harness import pipeline
 from harness.canonical import canonical_json
@@ -133,9 +131,9 @@ def _prepare_root(tmp_path, slug):
     )
 
 
-def test_build_review_core_joins_retrieval_ledger(monkeypatch):
+def test_build_review_core_joins_retrieval_ledger(monkeypatch, tmp_path):
     slug = "__plant_join__"
-    temp_root = Path.cwd() / ".tmp_retrieval_join" / uuid.uuid4().hex
+    temp_root = tmp_path / "retrieval_join"
     try:
         _prepare_root(temp_root, slug)
         monkeypatch.setattr(pipeline, "ROOT", str(temp_root))
@@ -166,4 +164,5 @@ def test_build_review_core_joins_retrieval_ledger(monkeypatch):
         assert "retrieval" not in rebuilt_absent["search"]
         assert all("found_by" not in r for r in rebuilt_absent["screening"]["records"])
     finally:
-        shutil.rmtree(temp_root.parent, ignore_errors=True)
+        assert temp_root.resolve().is_relative_to(tmp_path.resolve())
+        shutil.rmtree(temp_root, ignore_errors=True)

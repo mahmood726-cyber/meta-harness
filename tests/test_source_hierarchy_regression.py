@@ -86,13 +86,15 @@ def test_tocilizumab_estimand_decision_controls_served_scale_and_renders():
     outcome = _primary(review)
     decision = outcome["estimand_decision"]
     assert outcome["estimand"] == "OR"
-    assert outcome["served_estimand"] == "RR"
-    assert decision["decision"] == "cumulative_risk_at_trial_end"
-    assert decision["target_scale"] == outcome["result"]["scale"] == "RR"
+    assert outcome["served_estimand"] == "OR"
+    assert decision["target_scale"] == outcome["result"]["scale"] == "OR"
+    assert outcome['result']['served_measure'] == 'ODDS_RATIO'
+    assert all(t.get('effect') is None and t['reconstruction_measure'] == 'OR'
+               for t in outcome['trials'])
     html = render_page(review)
     assert "Estimand decision" in html
     assert "declared OR" in html
-    assert "Target scale RR" in html
+    assert "Target scale OR" in html
 
 
 def _one_trial(abstract, estimand="RR"):

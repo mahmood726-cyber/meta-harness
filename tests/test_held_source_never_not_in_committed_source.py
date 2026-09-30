@@ -67,7 +67,13 @@ def test_elixa_conflict_spans_primary_unchanged():
     assert outcome['result']['k'] == 8
     # the primary RESULT is unchanged: every scientific field equal; the dependency stamps (input_set_version,
     # claim_id, depends_on) are re-derived by later landings (ws/TF widened the input set) and are not the result
-    _stamps = {'input_set_version', 'claim_id', 'depends_on', 'claim_kind'}
+    _stamps = {'input_set_version', 'claim_id', 'depends_on', 'claim_kind',
+               'target_measure', 'served_measure', 'timepoint_target'}
+    # New typed disclosures must be correct; they are not numerical changes.
+    assert outcome['result']['target_measure'] == 'HAZARD_RATIO'
+    assert outcome['result']['served_measure'] == 'HAZARD_RATIO'
+    config = read(ROOT / 'topics' / (SLUG + '.json'))
+    assert outcome['result']['timepoint_target'] == config['primary_outcome']['timepoint']
     scientific = lambda res: {k: v for k, v in res.items() if k not in _stamps}
     assert scientific(outcome['result']) == scientific(primary(base)['result'])
     from harness.page import _stale_topic_overview

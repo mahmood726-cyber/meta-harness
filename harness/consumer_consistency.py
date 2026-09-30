@@ -568,6 +568,8 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
         if not spec:
             continue
         for row in outcome.get("declared_absent_trials") or []:
+            if row.get("lane_refusals"):
+                continue  # A named evidence refusal is not generic extraction debt.
             tid = _norm_id(row.get("id") or row.get("label"))
             cand = outcome_source_candidate(slug, records_blob, spec, tid)
             if not cand.get("source_has_value"):

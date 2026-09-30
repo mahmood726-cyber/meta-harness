@@ -34,6 +34,8 @@ _FROM_STATUS = {"ADMITTED": "ACCEPTED", "ADMITTED_PENDING_SIGNATURE": "ACCEPTED"
 # a trial that REPORTS at another timepoint than the protocol's (STEP 11 at week 44, STEP 10 at week 52, for a week-68
 # question): in the inventory, its result available at its own timepoint -- never 'missing week-68 inputs' (a gap it can
 # never close) and never silently pooled as week 68. Declared in docs/timepoint_availability.json with a witness.
+from .recovery_map import STATES as RECOVERY_STATES
+_FROM_STATUS.update({state: "REPORTED_UNRESOLVED" for state in RECOVERY_STATES})
 AVAILABLE_AT_OTHER_TIMEPOINT = "AVAILABLE_AT_OTHER_TIMEPOINT"
 
 

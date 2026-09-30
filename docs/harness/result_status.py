@@ -47,6 +47,8 @@ SOURCE_ABSENT = NOT_YET_RETRIEVED          # the earlier name of the same state 
 STATES = (ADMITTED_PENDING_SIGNATURE, ADMITTED, REPORTED_ZERO_EVENTS, EXTRACTED_NOT_ADMITTED, WITHDRAWN,
           REPORTED_UNRESOLVED, NOT_MEASURED, RETRIEVED_NOT_REPORTED, NOT_YET_RETRIEVED, NOT_SYSTEMATICALLY_COLLECTED,
           NO_RESULT_YET)
+from .recovery_map import STATES as RECOVERY_STATES
+STATES += tuple(sorted(RECOVERY_STATES))
 _NOT_HELD = {"SOURCE_NOT_RETRIEVED", "DISCOVERED_NOT_RETRIEVED", "NOT_DISCOVERED", "NOT_HELD"}
 # codes that say the outcome IS reported but no admissible value was resolved from it
 _REPORTED_CODES = {"TIMEPOINT_MISMATCH", "MULTI_ARM_UNRESOLVED", "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
@@ -95,6 +97,11 @@ def status_of(row: dict[str, Any], pooled: bool, pending_ids: set[str], mentione
     if pooled:
         st = ADMITTED_PENDING_SIGNATURE if _pid(row.get("id")) in pending_ids else ADMITTED
         return {"state": st, **({"withdrawn": wd} if wd else {})}
+    recovery = row.get("recovery_map") or {}
+    if recovery.get("state") in RECOVERY_STATES:
+        return {"state": recovery["state"], "basis": recovery.get("reason")}
+    if row.get("lane_refusals"):
+        return {"state": REPORTED_UNRESOLVED, "basis": row.get("reason")}
     cs = row.get("collection_scope") or {}
     if cs.get("state") == NOT_SYSTEMATICALLY_COLLECTED:
         return {"state": NOT_SYSTEMATICALLY_COLLECTED, "span": cs.get("rule_span"), "collected": cs.get("collected"),

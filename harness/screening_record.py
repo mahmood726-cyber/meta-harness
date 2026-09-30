@@ -29,7 +29,9 @@ BLOCKING = ("LEDGER_VS_RECORD", "FAMILY_VS_RECORD", "NARRATIVE_VS_LEDGER", "REAS
             "COLLECTION_SCOPE_POOLED", "COUNT_EXCEEDS_DENOMINATOR", "CROSSOVER_AS_PARALLEL",
             "PROGRAMME_WITH_CONSTITUENT", "ENDPOINT_POLICY_VIOLATION",
             "SUBGROUP_PROVENANCE_CONFLICT", "MEASURE_CLASS_MISMATCH")
-ADVISORY = ("ADJUDICATOR_VS_LEDGER",)
+from .lane_integration import BLOCKING as LANE_BLOCKING
+BLOCKING += LANE_BLOCKING
+ADVISORY = ("ADJUDICATOR_VS_LEDGER", "TARGET_TIMEPOINT_MISSING", "MEASURE_MIX_POOLED")
 _PMID = re.compile(r"(?<![\d.])(\d{7,8})(?![\d.])")
 _SCREENED_IN = re.compile(r"screened[\s-]+in\b", re.I)
 _SCREENED_OUT = re.compile(r"\bscreened[\s-]+out\b|\bexcluded at screening\b", re.I)
@@ -269,6 +271,9 @@ def consistency_problems(review: dict[str, Any]) -> list[dict[str, Any]]:
                 for t in (o.get("trials") or []) + (o.get("declared_absent_trials") or [])):
         for p in result_status.problems(review):
             add(p["kind"], p["report_id"], p["detail"])
+    for outcome in review.get("outcomes", []):
+        for problem in outcome.get("lane_problems", []):
+            add(problem["code"], problem.get("item", outcome.get("name")), str(problem))
     return probs
 
 

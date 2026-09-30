@@ -290,13 +290,13 @@ def wilson(k, n):
     return [max(0, c-h), min(1, c+h)]
 
 
-def census(root=ROOT):
+def census(root=ROOT, *, new_only=False):
     pop, topics = population(root)
     sample = read(root / 'docs/error_rate_sample.json')
     old = {r['row_id']: r for r in sample['rows']}
     audit = read(root / 'docs/error_rate.json')
     # Reproducible reruns re-extract this wave as well as newly missing rows.
-    targets = sorted(set(pop)-set(old) | {rid for rid in pop if old.get(rid, {}).get('provenance') == PROVENANCE})
+    targets = sorted(set(pop)-set(old) | (set() if new_only else {rid for rid in pop if old.get(rid, {}).get('provenance') == PROVENANCE}))
     results = []
     for rid in targets:
         outcome, trial, kind = pop[rid]
@@ -376,8 +376,11 @@ def write(summary, results, pop, root=ROOT):
 
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--write', action='store_true')
+    parser.add_argument('--new-only', action='store_true', help='Audit only row IDs absent from the append-only sample')
     args = parser.parse_args()
-    summary, results, pop = census()
+    if args.write and args.new_only:
+        parser.error('--new-only is read-only: do not replace the saved wave rate with a subset')
+    summary, results, pop = census(new_only=args.new_only)
     if args.write:
         write(summary, results, pop)
     print(json.dumps(dict(summary=summary, rows=results), ensure_ascii=False, indent=2))
