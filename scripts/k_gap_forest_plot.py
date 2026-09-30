@@ -30,12 +30,8 @@ import json
 import math
 import os
 import re
-import shutil
-import subprocess
 import sys
-import tempfile
 import xml.etree.ElementTree as ET
-from pathlib import Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -196,31 +192,9 @@ def fetch_image(pmid, pmcid, href, date="2026-09-29"):
 
 # ------------------------------------------------------------------ recorded model call with an image
 
-def image_runner(image_path):
-    """mcl.codex_runner with the figure attached (-i). Same flags otherwise, so the record's params stay true."""
-    def run(prompt, schema, model, effort, timeout_s):
-        work = Path(tempfile.mkdtemp(prefix="mcall-", dir=os.environ.get("MODEL_CALL_WORKDIR") or None))
-        try:
-            mcl.prepare_workdir(work, schema)
-            img = work / ("figure" + os.path.splitext(image_path)[1])
-            shutil.copyfile(image_path, img)
-            out = work / "last.txt"
-            argv = [mcl._codex_exe(), "exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config",
-                    "--sandbox", "read-only", "--cd", str(work), "--output-schema", str(work / "schema.json"),
-                    "--output-last-message", str(out), "-m", model, "-i", str(img),
-                    "-c", f"model_reasoning_effort={effort}", "-c", "project_doc_max_bytes=0", "-"]
-            try:
-                p = subprocess.run(argv, input=prompt, capture_output=True, timeout=timeout_s)
-                rc, so, se = p.returncode, p.stdout, p.stderr
-            except subprocess.TimeoutExpired as exc:
-                rc, so, se = -9, exc.stdout or b"", (exc.stderr or b"") + f"\nTIMEOUT after {timeout_s}s".encode()
-            last = out.read_bytes() if out.exists() else b""
-            return {"rc": rc, "stdout": so, "stderr": se, "last_message": last,
-                    "argv": ["codex"] + [a.replace(str(work), "<workdir>") for a in argv[1:]]}
-        finally:
-            shutil.rmtree(work, ignore_errors=True)
-    return run
-
+# The figure is shown to the model ONLY through reproducible_ai.model_call_live.call(images=...): that module is the
+# repository's one model caller (tests/test_model_inventory.py). An earlier private runner here built its own
+# codex argv; the inventory test refused it, rightly.
 
 def prompt_bytes(item):
     fig = item["figure"]
@@ -238,7 +212,7 @@ def run_one(item):
                            "purpose": f"G1 forest-plot row transcription {item['slug']} (acq/k-gap lane)"},
                    input_digests=[{"ref": item["image_ref"], "sha256": item["image_sha256"],
                                    "what": "comparator forest-plot figure attached with -i"}],
-                   timeout_s=900, runner=image_runner(item["image_path"]))
+                   timeout_s=900, images=(item["image_path"],))
     ms.write_record(rec, REC_DIR)
     return {"slug": item["slug"], "record_id": rec["record_id"], "state": rec["state"],
             "prompt_sha256": hashlib.sha256(p).hexdigest(), "image_sha256": item["image_sha256"]}
