@@ -475,7 +475,9 @@ def build(slug, run, runs):
         resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, run_r["record_id"] + ".json"))).decode("utf-8"))
         g = fp.gate(resp, None, it["held"])                       # rows consistent + pool printed in THIS meta's text
         control_basis = "POOL_PRINTED_IN_META_TEXT"
-        if g["state"] != "PASS" and g["problems"] == ["PLOT_POOLED_NOT_PRINTED_IN_TEXT"]:
+        _fp_ok = all(re.fullmatch(r"-?\d+(?:\.\d+)?", str((resp.get("pooled") or {}).get(k) or "").strip())
+                     for k in ("effect", "lower", "upper"))
+        if g["state"] != "PASS" and g["problems"] == ["PLOT_POOLED_NOT_PRINTED_IN_TEXT"] and _fp_ok:
             # The meta does not repeat its pooled result in the text: the control target is the pooled row PRINTED in
             # the figure. Recomputation from the rows is still required (a misread row still fails it); what this
             # weaker basis cannot catch -- a wrong-analysis figure -- is left to primary verification, which every row
