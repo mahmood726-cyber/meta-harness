@@ -107,3 +107,39 @@ def test_timepoint_unstated_is_refused_when_the_topic_registers_one_and_equal_le
     assert sm.timepoint_identity(r, "28 days") is None
     r.timepoint = "60-day"
     assert sm.timepoint_identity(r, "28 days").startswith("TIMEPOINT_60-day_NE")
+
+
+def test_a_registered_timepoint_that_is_not_a_length_is_not_compared():
+    r = _row(timepoint="12 days")
+    assert sm.timepoint_identity(r, "trial end") is None          # GLP-1 registers 'trial end': no length to match
+    assert sm.timepoint_identity(_row(), "trial end") is None
+
+
+_JATS = b"""<article><body><table-wrap id="T2"><caption><p>Major adverse cardiovascular events (MACE), hazard ratio
+(95% CI) by trial</p></caption><table><thead><tr><th>Trial</th><th>HR (95% CI)</th></tr></thead><tbody>
+<tr><td>LEADER</td><td>0.87 (0.78\xe2\x80\x930.97)</td></tr>
+<tr><td>SUSTAIN-6</td><td>0.74 (0.58\xe2\x80\x930.95)</td></tr>
+<tr><td>EXSCEL</td><td>0.91 (0.83\xe2\x80\x931.00)</td></tr>
+<tr><td>Overall</td><td>POOLED</td></tr></tbody></table></table-wrap></body></article>"""
+
+
+def _jats_with_pool():
+    import math
+    t = sm.typed_rows_from_jats(_JATS.replace(b"POOLED", b"x"), "555")[0]
+    yi = [sm.row_yi_vi(r)[0] for r in t["rows"]]
+    vi = [sm.row_yi_vi(r)[1] for r in t["rows"]]
+    mu, lo, hi = (math.exp(v) for v in sm.pool(yi, vi, "FE"))
+    return _JATS.replace(b"POOLED", f"{mu:.2f} ({lo:.2f}–{hi:.2f})".encode("utf-8"))
+
+
+def test_typed_table_rows_are_read_by_regex_with_the_tables_own_pool_as_control():
+    t = sm.typed_rows_from_jats(_jats_with_pool(), "555")[0]
+    assert [r.trial_label for r in t["rows"]] == ["LEADER", "SUSTAIN-6", "EXSCEL"]
+    assert t["measure"] == "HR" and t["rows"][2].upper == "1.00" and t["rows"][0].provenance == "TYPED_TABLE"
+    assert t["pooled"] and sm.positive_control(t["rows"], t["pooled"], "HR")["reproduced"]
+    assert len(t["digest"]) == 64
+
+
+def test_typed_table_without_a_pooled_row_has_no_control():
+    t = sm.typed_rows_from_jats(_JATS.replace(b"<tr><td>Overall</td><td>POOLED</td></tr>", b""), "555")[0]
+    assert t["pooled"] is None

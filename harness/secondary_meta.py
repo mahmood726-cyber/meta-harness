@@ -83,6 +83,74 @@ def validate(row: SecondaryRow) -> list:
     return probs
 
 
+# ------------------------------------------------------------------ TYPED extraction from a meta's JATS tables (regex)
+
+_TRIPLE = re.compile(r"(-?\d+(?:[.·]\d+)?)\s*[(\[]\s*(-?\d+(?:[.·]\d+)?)\s*(?:[-‐-―−,;]|to)\s*"
+                     r"(-?\d+(?:[.·]\d+)?)\s*[)\]]")
+# events/N, optionally followed by its percentage as tables print it: "24/120" or "24/120 (20.0%)"
+_COUNTS = re.compile(r"^\s*(\d+)\s*/\s*(\d+)(?:\s*\(\s*\d+(?:\.\d+)?\s*%?\s*\))?\s*$")
+_POOLED = re.compile(r"^\s*(?:overall|total|pooled|summary|random[- ]effects?|fixed[- ]effects?|combined)\b", re.I)
+_MEASURE = {"HR": re.compile(r"\bHR\b|hazard ratio", re.I), "RR": re.compile(r"\bRR\b|risk ratio|relative risk", re.I),
+            "OR": re.compile(r"\bOR\b|odds ratio"), "MD": re.compile(r"\bW?MD\b|mean difference", re.I)}
+
+
+def _cell_text(el):
+    return re.sub(r"\s+", " ", "".join(el.itertext())).strip()
+
+
+def _measure_of(text):
+    hits = [m for m, rx in _MEASURE.items() if rx.search(text or "")]
+    return hits[0] if len(hits) == 1 else None
+
+
+def typed_rows_from_jats(jats: bytes, meta_pmid: str, meta_doi: str = "") -> list:
+    """Every JATS <table-wrap> of a meta as candidate per-trial rows, read by regex, never by a model. Returns
+    [{"table_id", "caption", "digest", "measure", "rows": [SecondaryRow...], "pooled": {effect,lower,upper} | None}].
+    A row is a body row whose first cell names a trial and that carries ONE effect-with-CI cell, or events/N in two
+    cells (intervention, control) under a header naming them. The pooled row ('Overall', 'Total', ...) is the
+    positive-control target; its absence leaves the table unusable (no control, no rows)."""
+    import hashlib
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(jats)
+    out = []
+    for tw in root.iter("table-wrap"):
+        tid = tw.get("id") or ""
+        caption = _cell_text(tw.find("caption")) if tw.find("caption") is not None else ""
+        digest = hashlib.sha256(ET.tostring(tw)).hexdigest()
+        head = [_cell_text(c) for tr in tw.iter("thead") for r in tr.iter("tr") for c in r if c.tag in ("th", "td")]
+        body = [[_cell_text(c) for c in tr if c.tag in ("td", "th")] for tb in tw.iter("tbody") for tr in tb.iter("tr")]
+        measure = _measure_of(" ".join(head)) or _measure_of(caption)
+        rows, pooled = [], None
+        for cells in body:
+            if len(cells) < 2 or not cells[0]:
+                continue
+            triples = [(i, m) for i, c in enumerate(cells[1:], 1) for m in [_TRIPLE.search(c)] if m]
+            counts = [(i, m) for i, c in enumerate(cells[1:], 1) for m in [_COUNTS.match(c)] if m]
+            if _POOLED.match(cells[0]):
+                if len(triples) == 1:
+                    m = triples[0][1]
+                    pooled = {"effect": m.group(1).replace("·", "."), "lower": m.group(2).replace("·", "."),
+                              "upper": m.group(3).replace("·", "."), "row_label": cells[0]}
+                continue
+            loc = {"kind": "table", "id": tid, "row_label": cells[0]}
+            if len(triples) == 1 and measure:
+                m = triples[0][1]
+                rows.append(SecondaryRow(meta_pmid=meta_pmid, meta_doi=meta_doi, location=loc, source_digest=digest,
+                                         provenance="TYPED_TABLE", trial_label=cells[0], measure=measure,
+                                         outcome_definition=caption[:300], effect=m.group(1).replace("·", "."),
+                                         lower=m.group(2).replace("·", "."), upper=m.group(3).replace("·", ".")))
+            elif len(counts) == 2 and not triples and measure in ("RR", "OR"):
+                (_, a), (_, b) = counts
+                rows.append(SecondaryRow(meta_pmid=meta_pmid, meta_doi=meta_doi, location=loc, source_digest=digest,
+                                         provenance="TYPED_TABLE", trial_label=cells[0], measure=measure,
+                                         outcome_definition=caption[:300], events_t=int(a.group(1)), n_t=int(a.group(2)),
+                                         events_c=int(b.group(1)), n_c=int(b.group(2))))
+        if rows:
+            out.append({"table_id": tid, "caption": caption, "digest": digest, "measure": measure, "rows": rows,
+                        "pooled": pooled})
+    return out
+
+
 # ------------------------------------------------------------------ extraction positive control
 
 def _num(s):
@@ -220,8 +288,8 @@ def _days(t):
 def timepoint_identity(row: SecondaryRow, timepoint: Optional[str]) -> Optional[str]:
     """A topic that registers a timepoint (28-day mortality) cannot take a row whose meta does not state one: metas
     pool mortality across mixed follow-up. Stated timepoints must be the same length of time."""
-    if not timepoint:
-        return None
+    if not timepoint or _days(timepoint) is None:
+        return None                      # 'trial end' / 'end of follow-up' registers no LENGTH: nothing to compare
     if not row.timepoint:
         return "TIMEPOINT_NOT_STATED_BY_META"
     a, b = _days(row.timepoint), _days(timepoint)

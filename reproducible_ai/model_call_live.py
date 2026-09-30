@@ -169,15 +169,23 @@ def reported_model(stderr_text: str) -> str | None:
     return client_header(stderr_text).get("model") or None
 
 
-def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s: int) -> dict:
-    """Run one `codex exec`. Returns {rc, stdout, stderr, last_message, argv}; bytes throughout."""
+def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s: int, images: tuple = ()) -> dict:
+    """Run one `codex exec`. Returns {rc, stdout, stderr, last_message, argv}; bytes throughout.
+
+    images: files attached with `-i`. Each is COPIED into the empty work dir first, so the argv (and the record) name
+    only <workdir>/image_<n><ext>, never the caller's path; the image bytes are digested by call()."""
     work = Path(tempfile.mkdtemp(prefix="mcall-", dir=os.environ.get("MODEL_CALL_WORKDIR") or None))
     try:
         prepare_workdir(work, schema)
         out = work / "last.txt"
+        attach = []
+        for n, src in enumerate(images or ()):
+            dst = work / f"image_{n}{os.path.splitext(str(src))[1].lower()}"
+            shutil.copyfile(src, dst)
+            attach += ["-i", str(dst)]
         argv = [_codex_exe(), "exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config",
                 "--sandbox", "read-only", "--cd", str(work), "--output-schema", str(work / "schema.json"),
-                "--output-last-message", str(out), "-m", model,
+                "--output-last-message", str(out), "-m", model, *attach,
                 "-c", f"model_reasoning_effort={effort}", "-c", "project_doc_max_bytes=0", "-"]
         try:
             p = subprocess.run(argv, input=prompt, capture_output=True, timeout=timeout_s)
@@ -192,9 +200,13 @@ def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s
 
 
 def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, input_digests: list,
-         timeout_s: int = 900, runner: Callable[..., dict] | None = None, client_version: str | None = None) -> dict:
+         timeout_s: int = 900, runner: Callable[..., dict] | None = None, client_version: str | None = None,
+         images: tuple = ()) -> dict:
     """One model call -> one record (RAN_OK with the response bytes, or RAN_ERROR with the error). Never raises for a
-    failed call: a failure is data. Raises RecordIncomplete only when the record itself would be unsound."""
+    failed call: a failure is data. Raises RecordIncomplete only when the record itself would be unsound.
+
+    images: files the model is shown (e.g. a forest-plot figure). Their sha256 is recorded as an input digest and in
+    params, so the record says exactly which bytes were seen; this is the ONLY route by which a model sees an image."""
     runner = runner or codex_runner
     digests = list(input_digests)
     g = global_agents_digest() if runner is codex_runner else None
@@ -202,8 +214,15 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
         digests.append(g)
     digests.append({"ref": "output-schema (inline in params)", "sha256": hashlib.sha256(model_source.canonical(schema)).hexdigest(),
                     "what": "JSON schema the client constrains the final message to"})
+    image_digests = []
+    for n, src in enumerate(images or ()):
+        with open(src, "rb") as fh:
+            h = hashlib.sha256(fh.read()).hexdigest()
+        image_digests.append(h)
+        digests.append({"ref": f"attached image_{n}", "sha256": h, "what": "image attached with -i (copied into the work dir)"})
     t0 = _utc()
-    r = runner(prompt, schema, model, effort, timeout_s)
+    r = runner(prompt, schema, model, effort, timeout_s, images=tuple(images)) if images else \
+        runner(prompt, schema, model, effort, timeout_s)
     t1 = _utc()
     so, se = r.get("stdout") or b"", r.get("stderr") or b""
     header = client_header(se.decode("utf-8", "replace"))
@@ -228,7 +247,9 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
                "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"},
         params={"reasoning_effort": effort, "sandbox": "read-only", "ephemeral": True, "ignore_user_config": True,
                 "project_doc_max_bytes": 0, "output_schema": schema, "timeout_s": timeout_s,
-                "workdir_files": {"LANE_CONTEXT.md": LANE_CONTEXT_SHA256, "schema.json": "the output_schema above"}},
+                "workdir_files": {"LANE_CONTEXT.md": LANE_CONTEXT_SHA256, "schema.json": "the output_schema above",
+                                  **{f"image_{n}": h for n, h in enumerate(image_digests)}},
+                **({"attached_images_sha256": image_digests} if image_digests else {})},
         not_controllable=list(NOT_CONTROLLABLE),
         client={"name": "codex exec", "version": client_version or _codex_version(), "argv": r.get("argv")},
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,
