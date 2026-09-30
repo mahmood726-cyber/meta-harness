@@ -374,14 +374,43 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict]) -> Second
                      events_t=primary.get("events_t"), n_t=primary.get("n_t"), events_c=primary.get("events_c"),
                      n_c=primary.get("n_c"), effect=primary.get("effect"), lower=primary.get("lower"),
                      upper=primary.get("upper"))
+    # our primary values are floats ('0.80' arrives as 0.8, one decimal): restore each number's PRINTED form from its own
+    # span, so the comparison runs at the precision the trial printed (VITAL 0.81 vs 0.80 is a difference, not a match)
+    span_tokens = re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d])", (primary.get("span") or "").replace("·", "."))
+    for k in ("effect", "lower", "upper"):
+        v = getattr(p, k)
+        if v is not None:
+            same = [t for t in span_tokens if abs(float(t) - float(v)) < 1e-12]
+            if same:
+                setattr(p, k, max(same, key=_decimals))
+    # the primary gave COUNTS and the meta printed a ratio: derive the ratio + CI from the counts (no assumption), and
+    # compare at the meta's printed precision (13/81 vs 13/71 IS RR 0.88 [0.44, 1.76])
+    derived = False
+    if row.effect is not None and p.effect is None and None not in (p.events_t, p.n_t, p.events_c, p.n_c) and \
+            row.measure.upper() in ("RR", "OR"):
+        p.measure = row.measure.upper()
+        yi, vi = row_yi_vi(p)
+        z = 1.959963984540054
+        d = max(_decimals(row.effect), 1)
+        p.effect, p.lower, p.upper = (f"{math.exp(x):.{d}f}" for x in (yi, yi - z * math.sqrt(vi), yi + z * math.sqrt(vi)))
+        derived = True
+    # different MEASURES (a meta's RR against the trial's HR) are not a numeric disagreement: nothing to compare, the
+    # row stays queued for a same-measure primary
+    if row.effect is not None and p.effect is not None and row.measure.upper() != (p.measure or "").upper():
+        row.verification = {"result": "MEASURE_DIFFERS", "secondary_measure": row.measure, "primary_measure": p.measure,
+                            "primary_source": primary.get("source")}
+        return row
     if same_value(row, p):
         row.state = VERIFIED
-        row.verification = {"result": "MATCH", "primary_source": primary.get("source"), "primary_span": primary.get("span")}
+        row.verification = {"result": "MATCH" + ("_FROM_PRIMARY_COUNTS" if derived else ""),
+                            "primary_source": primary.get("source"), "primary_span": primary.get("span")}
         return row
     span = primary.get("span") or ""
-    nums = [str(x) for x in (primary.get("effect"), primary.get("lower"), primary.get("upper"), primary.get("events_t"),
-                             primary.get("n_t"), primary.get("events_c"), primary.get("n_c")) if x is not None]
-    anchored = bool(nums) and all(re.search(r"(?<![\d.])" + re.escape(n) + r"(?![\d])", span) for n in nums)
+    nums = [x for x in (primary.get("effect"), primary.get("lower"), primary.get("upper"), primary.get("events_t"),
+                        primary.get("n_t"), primary.get("events_c"), primary.get("n_c")) if x is not None]
+    # anchored NUMERICALLY: '0.8' is the span's '0.80' (a float drops the trailing zero; the span keeps it)
+    in_span = {float(m) for m in re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d])", span.replace("·", "."))}
+    anchored = bool(nums) and all(float(n) in in_span for n in nums)
     row.state = MISMATCH
     row.verification = {"result": "MISMATCH",
                         "secondary": {k: getattr(row, k) for k in ("measure", "effect", "lower", "upper", "events_t",

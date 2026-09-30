@@ -143,3 +143,22 @@ def test_typed_table_rows_are_read_by_regex_with_the_tables_own_pool_as_control(
 def test_typed_table_without_a_pooled_row_has_no_control():
     t = sm.typed_rows_from_jats(_JATS.replace(b"<tr><td>Overall</td><td>POOLED</td></tr>", b""), "555")[0]
     assert t["pooled"] is None
+
+
+def test_verification_derives_the_ratio_from_primary_counts_and_does_not_call_a_measure_difference_a_mismatch():
+    tab = sm.admit(_row(label="Tabbalat 2020", measure="RR", eff=("0.88", "0.44", "1.76"), outcome="POAF"),
+                   {"estimand": "RR", "keywords": ["POAF"]}, lambda r: "T20")
+    sm.verify_against_primary(tab, {"measure": "RR", "events_t": 13, "n_t": 81, "events_c": 13, "n_c": 71,
+                                    "source": "abstract", "span": "13 of 81 ... 13 of 71"})
+    assert tab.state == sm.VERIFIED and tab.verification["result"] == "MATCH_FROM_PRIMARY_COUNTS"
+    rr = sm.admit(_row(label="Manson 2019", measure="RR", eff=("0.92", "0.80", "1.06"), outcome="MACE"),
+                  {"estimand": "RR", "keywords": ["MACE"]}, lambda r: "VITAL")
+    sm.verify_against_primary(rr, {"measure": "HR", "effect": "0.92", "lower": "0.8", "upper": "1.06", "span": ""})
+    assert rr.state == sm.UNVERIFIED and rr.verification["result"] == "MEASURE_DIFFERS"
+
+
+def test_mismatch_side_is_decided_numerically_so_a_dropped_trailing_zero_still_anchors():
+    r = sm.admit(_row(label="VITAL", eff=("0.92", "0.81", "1.06")), SPEC, lambda r: "V")
+    sm.verify_against_primary(r, {"measure": "HR", "effect": "0.92", "lower": "0.8", "upper": "1.06",
+                                  "span": "hazard ratio, 0.92; 95% CI, 0.80 to 1.06"})
+    assert r.state == sm.MISMATCH and r.verification["which_side"].startswith("SECONDARY_WRONG")
