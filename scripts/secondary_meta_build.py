@@ -260,6 +260,8 @@ def primary_value(slug, pmid, run, runs):
     nums = {k: claim.get(k) for k in ("point", "lower", "upper", "events_t", "n_t", "events_c", "n_c") if claim.get(k)}
     if not nums or not all(re.search(r"(?<![\d.])" + re.escape(_norm_ws(v)) + r"(?![\d])", q) for v in nums.values()):
         return None, "LOCATOR_NUMBER_NOT_IN_QUOTE"
+    if not all(re.fullmatch(r"-?\d+(?:\.\d+)?", _norm_ws(v)) for v in nums.values()):
+        return None, "LOCATOR_NON_NUMERIC"                   # e.g. '0:31' (h:mm): a string in the quote, not a number
     meas = (claim.get("measure") or "").upper()
     meas = ("HR" if "HAZARD" in meas else "RR" if ("RISK" in meas or meas == "RR") else
             "OR" if ("ODDS" in meas or meas == "OR") else meas)
