@@ -41,7 +41,7 @@ from reproducible_ai import model_source as ms  # noqa: E402
 OUTD = os.path.join(ROOT, "registry", "secondary_meta")
 REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "secondary")   # the tier's recorded calls (named by Mahmood)
 DATE = "2026-09-30"
-N_CANDIDATES = 3
+N_CANDIDATES = 8
 CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative risk|meta-analys[ie]s of", re.I)
 NAMED = {"tocilizumab-covid19-mortality": ["34228774"]}      # WHO REACT (JAMA 2021), named by Mahmood
 QUERY = {
@@ -65,6 +65,20 @@ def _save(p, obj):
         json.dump(obj, fh, indent=1, ensure_ascii=False)
 
 
+def default_query(slug):
+    """A topic without a hand-set query: its own registered intervention agents (config), in the title. Built from the
+    config so it is reproducible; recorded with its response digest like every search."""
+    cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
+    agents = [a for a in (cfg.get("intervention_agents") or cfg.get("intervention_terms") or []) if len(a) >= 4][:3]
+    return " OR ".join(f'TITLE:"{a}"' for a in agents)
+
+
+# topics with shared comparator trials, beyond the first four (Mahmood 2026-09-30: saturate the tier)
+MORE = ["probiotics-aad-prevention", "omega3-cardiovascular-events", "colchicine-postop-af", "sglt2-hfref-hosp-cvdeath",
+        "pcsk9-mace", "finerenone-ckd-t2d-renal", "ticagrelor-vs-clopidogrel-acs", "melatonin-primary-insomnia-sol",
+        "semaglutide-obesity-mace", "colchicine-secondary-cv-prevention"]
+
+
 def candidates(slug, offline):
     """The recorded search, cached as its raw response digest + the hit list (small)."""
     p = os.path.join(OUTD, f"search_{slug}.json")
@@ -73,7 +87,7 @@ def candidates(slug, offline):
     if offline:
         return {"hits": []}
     from harness import http
-    q = f'(TITLE:"meta-analysis" OR TITLE:"meta analysis") AND ({QUERY[slug]}) AND OPEN_ACCESS:y AND HAS_FT:y'
+    q = f'(TITLE:"meta-analysis" OR TITLE:"meta analysis") AND ({QUERY.get(slug) or default_query(slug)}) AND OPEN_ACCESS:y AND HAS_FT:y'
     st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
                          {"query": q, "format": "json", "pageSize": "25", "sort": "CITED desc", "resultType": "lite"})
     d = json.loads(b.decode("utf-8"))
@@ -425,7 +439,7 @@ def verify_replay(slugs, runs):
 
 def main(argv):
     run = "--run" in argv
-    slugs = [a for a in argv if not a.startswith("--")] or list(QUERY)
+    slugs = [a for a in argv if not a.startswith("--")] or (list(QUERY) + MORE)
     rp = os.path.join(OUTD, "runs.json")
     runs = _j(rp) if os.path.exists(rp) else {}
     if "--verify-replay" in argv:
