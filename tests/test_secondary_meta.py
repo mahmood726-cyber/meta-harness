@@ -96,3 +96,14 @@ def test_primary_verification_match_and_typed_mismatch():
     sm.verify_against_primary(ok, {"measure": "HR", "effect": "0.87", "lower": "0.78", "upper": "0.97",
                                    "source": "PMID 27295427", "span": "hazard ratio, 0.87; 95% CI, 0.78 to 0.97"})
     assert ok.state == sm.VERIFIED
+
+
+def test_timepoint_unstated_is_refused_when_the_topic_registers_one_and_equal_lengths_match():
+    r = _row(outcome="Effect of tocilizumab on mortality", measure="OR")
+    assert sm.outcome_identity(r, ["28-day all-cause mortality"]) == "OUTCOME_NOT_THE_TOPICS"   # phrase only
+    assert sm.outcome_identity(r, ["28-day all-cause mortality"], (), ("mortality",)) is None    # core word
+    assert sm.timepoint_identity(r, "28 days") == "TIMEPOINT_NOT_STATED_BY_META"
+    r.timepoint = "day 28"
+    assert sm.timepoint_identity(r, "28 days") is None
+    r.timepoint = "60-day"
+    assert sm.timepoint_identity(r, "28 days").startswith("TIMEPOINT_60-day_NE")
