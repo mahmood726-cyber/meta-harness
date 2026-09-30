@@ -452,7 +452,7 @@ def build(slug, run, runs):
         else:
             skipped[pmid] = why
     if run:
-        done = {(r["prompt_sha256"], r["image_sha256"]) for r in runs.values() if r["state"] == "RAN_OK"}
+        done = {(r["prompt_sha256"], r.get("image_sha256")) for r in runs.values() if r["state"] == "RAN_OK"}
         todo = [i for i in items if (hashlib.sha256(fp.prompt_bytes(i)).hexdigest(), i["image_sha256"]) not in done]
         with cf.ThreadPoolExecutor(max_workers=3) as ex:
             for r in ex.map(read_one, todo):
