@@ -376,6 +376,11 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict]) -> Second
                      upper=primary.get("upper"))
     # our primary values are floats ('0.80' arrives as 0.8, one decimal): restore each number's PRINTED form from its own
     # span, so the comparison runs at the precision the trial printed (VITAL 0.81 vs 0.80 is a difference, not a match)
+    # a primary value that is not a plain number ('0:31', a sleep latency in h:mm) cannot be compared: the row stays queued
+    bad = [k for k in ("effect", "lower", "upper") if getattr(p, k) is not None and _num(getattr(p, k)) is None]
+    if bad:
+        row.verification = {"result": "PRIMARY_NOT_NUMERIC", "fields": bad, "primary_source": primary.get("source")}
+        return row
     span_tokens = re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d])", (primary.get("span") or "").replace("·", "."))
     for k in ("effect", "lower", "upper"):
         v = getattr(p, k)
