@@ -1,6 +1,6 @@
 # Signature request: the GLP-1 MACE primary pool gains FLOW and ELIXA (a served-number change), NOT LANDED
 
-**Status: QUEUED for Mahmood's signature. Nothing served has changed.** Prepared by the evidence lane (evid/evidence-records) on a senior external review's assignment, which Mahmood forwarded. Regenerated 2026-09-29 08:51Z by `make_signature_request.py`.
+**Status: QUEUED for Mahmood's signature. Nothing served has changed.** Prepared by the evidence lane (evid/evidence-records) on a senior external review's assignment, which Mahmood forwarded. Regenerated 2026-09-29 23:33Z by `make_signature_request.py`.
 
 ## What the signature admits
 Under the protocol's explicit B-prime rules (`protocols/glp1-ra-mace-t2d.md` at `b10c53d3`):
@@ -25,16 +25,16 @@ Every field of every decision carries its own witness span (sha256-pinned; re-ve
 
 ## Bytes this signature binds (sha256)
 ```
-7dbc3a890dbe507b2c0ea602537318089ce523773b5c105920d854fd39897611  evidence/glp1_adjudication/FLOW.json
-ed13bda6272a9da27008e8b7c16389e9ce52def10da9a2b527617644d5b4eda2  evidence/glp1_adjudication/ELIXA.json
-7693a410fc5c82d564f847accb220e29f2da2a3d6f7e85938210279a742cbafd  evidence/glp1_adjudication/FREEDOM-CVO.json
+3bcac851b41d4ee7c6de29ece99bd556cb533f542a854ca12ea6a7807347b4a0  evidence/glp1_adjudication/FLOW.json
+1775194410cccf92a477f93a540a27a6abfdb09b6d54aa23a432aa972444e376  evidence/glp1_adjudication/ELIXA.json
+3a91a0e81226101480f3ef471546056bcb9424185cd4ceb98ee8ce4201fb2b11  evidence/glp1_adjudication/FREEDOM-CVO.json
 e880b8f755673f6a6058e3a6ac464e77d121aa8c7b686e68fb31b5cd84435b56  evidence/glp1_adjudication/BEFORE_AFTER.json
 3c82a1dea34436c37b3f746258ed8eca0af3731d6a1394dac8e20efd5aec54c4  evidence/glp1_adjudication/compute_before_after.py
 f4b3b1b7b06758d5ac2dfa697a602d60aa860eff3559ec026e2a2c794706761b  evidence/glp1_adjudication/build_decisions.py
-dafab9244aba74e79650aef1c844080f2ebe60db8ce8f2dee1577b5067ddb5f3  docs/reviews/glp1-ra-mace-t2d/review.json
+c1e43a87d49c6fe63871f71bdb1becde71f7400910b709e2bd00f020e565bb06  docs/reviews/glp1-ra-mace-t2d/review.json
 d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c  protocols/glp1-ra-mace-t2d.md
 7d9922c55c43a8732c8c2e666478b2ae507ad9f904434c45c6213109f99714bc  outputs/handover/lanes/DECISION_CLASS_BOUNDARY_STRANDS.md
 ```
-**Bundle sha256 (sign this): `ed933a437f1e57868e6a1b917a4c56e1ed97e717afc2f7bd932f6a3f301d8b6f`**
+**Bundle sha256 (sign this): `a886c6e2ae12d84c87a1ed54d0a01652091787110917c76d1bb888af9e65874e`**
 
-Signature: `SIGNED-BY: ______  BUNDLE: ed933a437f1e57868e6a1b917a4c56e1ed97e717afc2f7bd932f6a3f301d8b6f  DATE: ______` (unsigned: this request lands nothing)
+Signature: `SIGNED-BY: ______  BUNDLE: a886c6e2ae12d84c87a1ed54d0a01652091787110917c76d1bb888af9e65874e  DATE: ______` (unsigned: this request lands nothing)

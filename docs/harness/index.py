@@ -491,6 +491,39 @@ def _error_rate_section(docs_dir: str) -> str:
         d = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return ""
+    if d.get("independent_audit_state") == "INCREMENTAL_BLIND_V2":
+        return _error_rate_incremental(d)
+    return _error_rate_body(d)
+
+
+def _error_rate_incremental(d: dict) -> str:
+    """An incremental blind wave re-checks only the pooled numbers the earlier census never saw. Its figures describe
+    THAT wave; the cycle-76 figures and narrative stay with the historical object they belong to, never relabelled."""
+    h = d.get("HISTORICAL_before_blind_v2")
+    b = d.get("blind_v2") or {}
+    n = b.get("n_rechecked")
+    counts = b.get("counts") or {}
+    ex = counts.get("EXACT_MATCH", 0)
+    dis = counts.get("DISAGREE", 0)
+    nr = counts.get("NOT_RECHECKABLE", 0)
+    live = b.get("live_population")
+    lo, hi = (b.get("disagreement_wilson95") or [None, None])[:2]
+    if not isinstance(h, dict) or n is None:
+        return ""
+    wave = (f"<p><strong>Incremental blind wave ({_E(d.get('measured_utc'))}).</strong> The live pooled inventory is "
+            f"<strong>{live}</strong> numbers. The <strong>{n}</strong> that entered the pool after the original census "
+            f"were re-extracted from their committed sources by a deterministic checker that never receives the stored "
+            f"value, and compared to the source's printed precision: <strong>{ex} of {n} matched exactly</strong>, "
+            f"<strong>{dis}</strong> disagreed, <strong>{nr}</strong> were not re-checkable"
+            + (f" (disagreement Wilson 95% CI {round(lo*100,1)}&ndash;{round(hi*100,1)}%, this wave only)"
+               if lo is not None else "")
+            + ". This wave covers only those additions; rows from the original census keep their historical verdicts "
+            "and were not re-verified again. Reproducible from <code>scripts/error_rate_blind_v2.py</code>.</p>")
+    body = _error_rate_body(h)
+    return body[:-len("</div>")] + wave + "</div>" if body.endswith("</div>") else body
+
+
+def _error_rate_body(d: dict) -> str:
     pop = d.get("census_population") or d.get("population")
     rv = d.get("independently_reverified")
     ex = d.get("exact_match")
@@ -507,8 +540,9 @@ def _error_rate_section(docs_dir: str) -> str:
     if d.get("independent_audit_state") == "HISTORICAL_ONLY":
         prov = (f"<em>Historical blind audit, measured {_E(when)} on {pop} then-pooled numbers; "
                 "this is not a current-population error-rate estimate. "
-                f"The live inventory contains {d.get('current_pooled_population')} pooled rows; "
-                f"{d.get('not_independently_rechecked_current')} are explicitly NOT_INDEPENDENTLY_RECHECKED. "
+                f"The inventory refreshed {_E(d.get('inventory_refreshed_utc'))} contained "
+                f"{d.get('current_pooled_population')} pooled rows; "
+                f"{d.get('not_independently_rechecked_current')} were explicitly NOT_INDEPENDENTLY_RECHECKED. "
                 "The inventory refresh does not increase the historical independent-verification numerator.</em> ")
     return (f"<div class='banner'><h2>We measured our own error rate (no meta-analysis reports this about "
             f"itself)</h2>"
@@ -952,17 +986,26 @@ def _prose_derived_numerals(docs_dir: str) -> set:
     ep = os.path.join(docs_dir, "error_rate.json")
     if os.path.exists(ep):
         try:
-            e = json.load(open(ep, encoding="utf-8"))
-            for v in (e.get("population"), e.get("census_population"), e.get("current_pooled_population"),
-                      e.get("independently_reverified"), e.get("exact_match"),
-                      e.get("disagreements_pre_adjudication"), e.get("confirmed_our_errors_after_adjudication"),
-                      e.get("not_independently_rechecked_current"),
-                      e.get("not_recheckable_from_abstract")):
+            e0 = json.load(open(ep, encoding="utf-8"))
+            b = e0.get("blind_v2") or {}
+            for v in ([b.get("n_rechecked"), b.get("live_population")] + list((b.get("counts") or {}).values())):
                 if isinstance(v, int):
                     out.add(str(v))
-            for v in (e.get("disagreement_wilson95") or []):
+            for v in (b.get("disagreement_wilson95") or []):
                 if isinstance(v, (int, float)):
                     out.add(str(round(v * 100, 1)))
+            hist = e0.get("HISTORICAL_before_blind_v2")
+            for e in ([e0, hist] if isinstance(hist, dict) else [e0]):
+                for v in (e.get("population"), e.get("census_population"), e.get("current_pooled_population"),
+                          e.get("independently_reverified"), e.get("exact_match"),
+                          e.get("disagreements_pre_adjudication"), e.get("confirmed_our_errors_after_adjudication"),
+                          e.get("not_independently_rechecked_current"),
+                          e.get("not_recheckable_from_abstract")):
+                    if isinstance(v, int):
+                        out.add(str(v))
+                for v in (e.get("disagreement_wilson95") or []):
+                    if isinstance(v, (int, float)):
+                        out.add(str(round(v * 100, 1)))
         except (OSError, ValueError):
             pass
     # spec-curve summary numerals

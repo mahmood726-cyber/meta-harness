@@ -1,38 +1,22 @@
 {
-  "_doc": "Blind accuracy census (cycle 76): every pooled number independently re-extracted from committed source by an offline checker BLIND to the stored value; deterministic compare; disagreements hand-adjudicated against source. See scripts/error_rate_compare.py + error_rate_pass2.py.",
-  "measured_utc": "2026-09-12",
+  "_doc": "Incremental blind source re-extraction. Current rate describes BLIND_V2 additions only, not all live rows. Original cycle-76 figures and notes are preserved verbatim as JSON values under HISTORICAL_before_blind_v2.",
+  "measured_utc": "2026-09-29",
   "measured_against": "docs/error_rate_sample.json (the committed sample of every pooled number at measurement time)",
-  "n_pooled_at_measurement": 99,
-  "population": 156,
-  "independently_reverified": 95,
-  "exact_match": 92,
-  "disagreements_pre_adjudication": 3,
-  "disagreement_rate": 0.0316,
+  "n_pooled_at_measurement": 157,
+  "population": 185,
+  "independently_reverified": 29,
+  "exact_match": 29,
+  "disagreements_pre_adjudication": 0,
+  "disagreement_rate": 0.0,
   "disagreement_wilson95": [
-    0.0108,
-    0.0888
+    0,
+    0.11697359446555587
   ],
-  "confirmed_our_errors_after_adjudication": 1,
-  "confirmed_our_errors_note": "1 wrong number (semaglutide GI-AE wrong endpoint) surfaced AND fixed this cycle; the 3 remaining disagreements are checker-side (label wording / estimand choice). 2026-09-19: two further wrong numbers (DELIVER, EMPEROR-Preserved composite rows) withdrawn -- component results served as composites; digits located, question wrong. See fixed_this_cycle.",
-  "not_recheckable_from_abstract": 4,
-  "not_recheckable_note": "sourced from ClinicalTrials.gov results / full text, so not re-extractable from the abstract the checker was given (not evidence of error).",
-  "adjudication": [
-    {
-      "row": "iv-iron-hfref-hosp::Heart-failure hospitalization::40159390",
-      "verdict": "checker_side",
-      "note": "Numbers identical (0.80 [0.60-1.06]); we label it IRR, the checker wrote \"rate ratio\" (RR). A rate ratio on TOTAL/recurrent HF hospitalizations IS an incidence-rate ratio; our IRR label is correct."
-    },
-    {
-      "row": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21830957",
-      "verdict": "checker_side",
-      "note": "ROCKET-AF: checker took the on-treatment/per-protocol HR 0.79; its own note flags the ITT HR 0.88, which is what we store — consistent with the other all-ITT NOAC trials. Our ITT choice is the standard MA choice."
-    },
-    {
-      "row": "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
-      "verdict": "checker_side",
-      "note": "ASCEND: numbers identical (0.97 [0.87-1.08]); IRR vs \"rate ratio\" wording only. Our IRR label is correct."
-    }
-  ],
+  "confirmed_our_errors_after_adjudication": 0,
+  "confirmed_our_errors_note": "BLIND_V2 only; no previously identified defect is erased. See HISTORICAL_before_blind_v2.",
+  "not_recheckable_from_abstract": 0,
+  "not_recheckable_note": "BLIND_V2 checks held tables, registry results and abstracts, not abstracts alone.",
+  "adjudication": [],
   "fixed_this_cycle": [
     {
       "row": "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
@@ -54,7 +38,7 @@
       "note": "Component result served as a composite: the topic declared no components, so the target was the component vocabulary's reading of the outcome title 'Composite cardiovascular death or worsening heart failure' -- {cardiovascular death} -- and a cardiovascular-death-only ClinicalTrials.gov measure matched a cardiovascular-death target with missing_components empty and was classified EXACT_TARGET. The digits WERE located in the cited span (census verdict unaffected); the number answered a different question. The registered composite primary was held in the same registry record (measure #1) throughout. Withdrawn 2026-09-19 (holding notice); corrected estimate published only when registry analysis selection by identity and the interval-level (ci_pct) fix land. Found by the verifier panel as an apparent cost of strict endpoint binding (a true positive), confirmed against CT.gov v2."
     }
   ],
-  "n_pooled_current_after_fixes": 127,
+  "n_pooled_current_after_fixes": 157,
   "removed_by_census_fixes": [
     "balanced-crystalloids-vs-saline-mortality::Acute kidney injury::26444692",
     "balanced-crystalloids-vs-saline-mortality::Mortality::26444692",
@@ -65,12 +49,11 @@
     "colchicine-postop-af::Postoperative atrial fibrillation::27502857",
     "colchicine-postop-af::Treatment discontinuation::32720823",
     "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::24694983",
+    "colchicine-secondary-cv-prevention::Gastrointestinal adverse effects::34876021",
     "dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::36027570",
     "dpp4-mace-t2d::Hospitalization for heart failure::23992601",
     "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::34449189",
     "esketamine-trd-madrs::Observed-case Day-28 raw change-score MADRS MD::TRANSFORM-1",
-    "noac-vs-warfarin-af-stroke::Major bleeding::19717844",
-    "noac-vs-warfarin-af-stroke::Major bleeding::21830957",
     "omega3-cardiovascular-events::Major vascular events / MACE::22686415",
     "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
     "pcsk9-mace::Injection-site reactions::25773378",
@@ -86,8 +69,8 @@
     "tocilizumab-covid19-mortality::Serious adverse events::33085857",
     "tranexamic-acid-pph::Thromboembolic events::28456509"
   ],
-  "census_population": 99,
-  "current_pooled_population": 127,
+  "census_population": 29,
+  "current_pooled_population": 157,
   "harms_sweep_added_verified": [
     "semaglutide-obesity-mace::Adverse events leading to permanent discontinuation::37952131"
   ],
@@ -130,9 +113,9 @@
     "balanced-crystalloids-vs-saline-mortality::Mortality::29485925"
   ],
   "design_key_removed_note": "Rows removed from the live pooled population by TRANCHE-design-key refusal of reconstructed balanced-crystalloids mortality trials. SH2 recovered the SPLIT (PMID 26444692) rows by selecting source-reported target-class effects; those rows are live again and remain in the committed census sample.",
-  "inventory_refreshed_utc": "2026-09-21",
-  "inventory_method": "scripts/refresh_error_rate_census.py; current review objects, no independent re-extraction",
-  "independent_audit_state": "HISTORICAL_ONLY",
+  "inventory_refreshed_utc": "2026-09-29",
+  "inventory_method": "scripts/error_rate_blind_v2.py; exact live predicate plus independent extraction of additions",
+  "independent_audit_state": "INCREMENTAL_BLIND_V2",
   "not_independently_rechecked_current": 24,
   "set_aside_2026-09-20": [
     {
@@ -399,5 +382,490 @@
       "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
     }
   ],
-  "set_aside_2026-09-20_note": "Rows removed from the live pooled population by the hand-row binder landing (m2/bind-hand-rows): each is a SET-ASIDE (the number is not bound to an endpoint in the held document, or refused as a different result), not a confirmed wrong number; the trial stays visible as eligible evidence awaiting adjudication. removed_by_census_fixes is refreshed by scripts/refresh_error_rate_census.py after the rebuild."
+  "set_aside_2026-09-20_note": "Rows removed from the live pooled population by the hand-row binder landing (m2/bind-hand-rows): each is a SET-ASIDE (the number is not bound to an endpoint in the held document, or refused as a different result), not a confirmed wrong number; the trial stays visible as eligible evidence awaiting adjudication. removed_by_census_fixes is refreshed by scripts/refresh_error_rate_census.py after the rebuild.",
+  "HISTORICAL_before_blind_v2": {
+    "_doc": "Blind accuracy census (cycle 76): every pooled number independently re-extracted from committed source by an offline checker BLIND to the stored value; deterministic compare; disagreements hand-adjudicated against source. See scripts/error_rate_compare.py + error_rate_pass2.py.",
+    "measured_utc": "2026-09-12",
+    "measured_against": "docs/error_rate_sample.json (the committed sample of every pooled number at measurement time)",
+    "n_pooled_at_measurement": 99,
+    "population": 156,
+    "independently_reverified": 95,
+    "exact_match": 92,
+    "disagreements_pre_adjudication": 3,
+    "disagreement_rate": 0.0316,
+    "disagreement_wilson95": [
+      0.0108,
+      0.0888
+    ],
+    "confirmed_our_errors_after_adjudication": 1,
+    "confirmed_our_errors_note": "1 wrong number (semaglutide GI-AE wrong endpoint) surfaced AND fixed this cycle; the 3 remaining disagreements are checker-side (label wording / estimand choice). 2026-09-19: two further wrong numbers (DELIVER, EMPEROR-Preserved composite rows) withdrawn -- component results served as composites; digits located, question wrong. See fixed_this_cycle.",
+    "not_recheckable_from_abstract": 4,
+    "not_recheckable_note": "sourced from ClinicalTrials.gov results / full text, so not re-extractable from the abstract the checker was given (not evidence of error).",
+    "adjudication": [
+      {
+        "row": "iv-iron-hfref-hosp::Heart-failure hospitalization::40159390",
+        "verdict": "checker_side",
+        "note": "Numbers identical (0.80 [0.60-1.06]); we label it IRR, the checker wrote \"rate ratio\" (RR). A rate ratio on TOTAL/recurrent HF hospitalizations IS an incidence-rate ratio; our IRR label is correct."
+      },
+      {
+        "row": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21830957",
+        "verdict": "checker_side",
+        "note": "ROCKET-AF: checker took the on-treatment/per-protocol HR 0.79; its own note flags the ITT HR 0.88, which is what we store — consistent with the other all-ITT NOAC trials. Our ITT choice is the standard MA choice."
+      },
+      {
+        "row": "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
+        "verdict": "checker_side",
+        "note": "ASCEND: numbers identical (0.97 [0.87-1.08]); IRR vs \"rate ratio\" wording only. Our IRR label is correct."
+      }
+    ],
+    "fixed_this_cycle": [
+      {
+        "row": "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
+        "verdict": "OUR_ERROR_FIXED",
+        "note": "Wrong endpoint: overall-AE counts (141/161 vs 61/81) were pooled under a gastrointestinal-AE outcome; the abstract has no GI-specific count. FIXED cycle 76 via an absent-override (declared absent). This is the one confirmed defect the census surfaced; it had passed every gate."
+      },
+      {
+        "row": "dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::36027570",
+        "verdict": "OUR_ERROR_WITHDRAWN",
+        "published": "HR 0.88 (0.74-1.05) from 'Subjects Included in the Endpoint of Cardiovascular Death'",
+        "source_holds": "measure #1 PRIMARY composite HR 0.82 (0.73-0.92) p=0.0008 (all randomised, FAS)",
+        "note": "Component result served as a composite: the topic declared no components, so the target was the component vocabulary's reading of the outcome title 'Composite cardiovascular death or worsening heart failure' -- {cardiovascular death} -- and a cardiovascular-death-only ClinicalTrials.gov measure matched a cardiovascular-death target with missing_components empty and was classified EXACT_TARGET. The digits WERE located in the cited span (census verdict unaffected); the number answered a different question. The registered composite primary was held in the same registry record (measure #1) throughout. Withdrawn 2026-09-19 (holding notice); corrected estimate published only when registry analysis selection by identity and the interval-level (ci_pct) fix land. Found by the verifier panel as an apparent cost of strict endpoint binding (a true positive), confirmed against CT.gov v2."
+      },
+      {
+        "row": "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::34449189",
+        "verdict": "OUR_ERROR_WITHDRAWN",
+        "published": "HR 0.91 (0.76-1.09) from 'Time to Adjudicated Cardiovascular (CV) Death'",
+        "source_holds": "measure #1 PRIMARY composite HR 0.79 (0.69-0.90) at 95.03% CI p=0.0003 (randomised set)",
+        "note": "Component result served as a composite: the topic declared no components, so the target was the component vocabulary's reading of the outcome title 'Composite cardiovascular death or worsening heart failure' -- {cardiovascular death} -- and a cardiovascular-death-only ClinicalTrials.gov measure matched a cardiovascular-death target with missing_components empty and was classified EXACT_TARGET. The digits WERE located in the cited span (census verdict unaffected); the number answered a different question. The registered composite primary was held in the same registry record (measure #1) throughout. Withdrawn 2026-09-19 (holding notice); corrected estimate published only when registry analysis selection by identity and the interval-level (ci_pct) fix land. Found by the verifier panel as an apparent cost of strict endpoint binding (a true positive), confirmed against CT.gov v2."
+      }
+    ],
+    "n_pooled_current_after_fixes": 127,
+    "removed_by_census_fixes": [
+      "balanced-crystalloids-vs-saline-mortality::Acute kidney injury::26444692",
+      "balanced-crystalloids-vs-saline-mortality::Mortality::26444692",
+      "balanced-crystalloids-vs-saline-mortality::Mortality::27749094",
+      "balanced-crystalloids-vs-saline-mortality::Mortality::29485925",
+      "balanced-crystalloids-vs-saline-mortality::New renal-replacement therapy::26444692",
+      "colchicine-postop-af::Gastrointestinal adverse effects::27502857",
+      "colchicine-postop-af::Postoperative atrial fibrillation::27502857",
+      "colchicine-postop-af::Treatment discontinuation::32720823",
+      "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::24694983",
+      "dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::36027570",
+      "dpp4-mace-t2d::Hospitalization for heart failure::23992601",
+      "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::34449189",
+      "esketamine-trd-madrs::Observed-case Day-28 raw change-score MADRS MD::TRANSFORM-1",
+      "noac-vs-warfarin-af-stroke::Major bleeding::19717844",
+      "noac-vs-warfarin-af-stroke::Major bleeding::21830957",
+      "omega3-cardiovascular-events::Major vascular events / MACE::22686415",
+      "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
+      "pcsk9-mace::Injection-site reactions::25773378",
+      "pcsk9-mace::Major adverse cardiovascular events::41211925",
+      "probiotics-aad-prevention::Antibiotic-associated diarrhoea::24456384",
+      "probiotics-aad-prevention::Antibiotic-associated diarrhoea::26973849",
+      "probiotics-aad-prevention::Antibiotic-associated diarrhoea::34541475",
+      "probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939",
+      "probiotics-aad-prevention::Antibiotic-associated diarrhoea::40488914",
+      "probiotics-aad-prevention::Any adverse events::26973849",
+      "probiotics-aad-prevention::Serious adverse events::39529939",
+      "spironolactone-hfref-mortality::Hyperkalemia::21073363",
+      "tocilizumab-covid19-mortality::Serious adverse events::33085857",
+      "tranexamic-acid-pph::Thromboembolic events::28456509"
+    ],
+    "census_population": 99,
+    "current_pooled_population": 127,
+    "harms_sweep_added_verified": [
+      "semaglutide-obesity-mace::Adverse events leading to permanent discontinuation::37952131"
+    ],
+    "build_verified_added": [
+      "dpp4-mace-t2d::3-point major adverse cardiovascular events::23992601",
+      "dpp4-mace-t2d::3-point major adverse cardiovascular events::30418475",
+      "sglt2-primary-prevention-hf::Hospitalization for heart failure::26378978",
+      "sglt2-primary-prevention-hf::Hospitalization for heart failure::28605608",
+      "sglt2-primary-prevention-hf::Hospitalization for heart failure::30415602",
+      "sglt2-primary-prevention-hf::Hospitalization for heart failure::32966714",
+      "doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::19966341",
+      "doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::21128814",
+      "doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::22449293",
+      "doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::23808982",
+      "doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::23991658",
+      "doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::24344086",
+      "omega3-cardiovascular-events SU.FOL.OM3 (PMID 21115589): omega-3 main-effect marginal on major vascular events, HR 1.08 (0.79-1.47), recovered from full text (PMC2993045) after the _pmc_fulltext citing-article fix; verified against the committed source span at build time, not part of the original blind census.",
+      "probiotics-aad-prevention Wright 2015 (PMID 24456384): AAD arm counts 5/41 vs 4/46 percentage-derived from the abstract (12.2%/8.7%), RR 1.40; a genuinely eligible declared-absent trial the extractor could not parse (N received X (P%) format).",
+      "probiotics-aad-prevention ECLISP (34541475, LcS 59/131 vs 53/126, primary AAD Abx+30d, RR 1.07) and S. boulardii trial (26973849, 21/246 vs 17/231 with >=1 AAD episode, RR 1.16): double-blind placebo-controlled prevention trials recovered from full text; both move the pool toward the null.",
+      "sglt2-ckd-progression EMPA-KIDNEY DKA (36331190): 6/3304 vs 1/3305 ketoacidosis, single-trial harm row (siblings DAPA-CKD/CREDENCE source-absent, not in PMC).",
+      "tranexamic-acid-pph WOMAN thromboembolic (28456509): 30/10033 vs 34/9985 any thromboembolic event, RR 0.88; large single-trial harm (WOMAN is the topic sole treatment trial).",
+      "screening RCT-evidence recovery (cycle 84): esketamine Chen 2023 (37025256, MADRS -10.1 vs -8.1) and statins STAREE (42670961, HR 0.70) recovered via full-abstract-overrules-incomplete-pubtype; both source-verified.",
+      "esketamine TRANSFORM-1 (NCT02417064): combined 56+84mg intranasal vs shared placebo, MADRS MD -18.91+/-13.95 (n=209) vs -14.8+/-15.07 (n=108); completes esketamine conclusion change to k=4 -3.34 (-6.07,-0.62).",
+      "metformin-pcos-ovulation::Ovulation with metformin added to clomifene::16769748",
+      "metformin-pcos-ovulation::Ovulation with metformin added to clomifene::19522426",
+      "corticosteroids-cap-mortality::All-cause mortality::25688779 (Torres 2015): in-hospital mortality 6/61 vs 9/59, RR 0.64; pooled after the mortality<->death outcome-keyword synonym fix (109053ad) recovered a previously-dropped eligible trial. Arm counts percentage-round-trip verified against the abstract (10%/15%) with per-arm sizes 61/59; source span committed. Build-verified at pooling time, NOT part of the original blind Codex census.",
+      "dpp4-mace-t2d::3-point major adverse cardiovascular events::28893244 (omarigliptin, PMID 28893244): source-reported HR 1.00 (0.77-1.29) verified against PubMed (DOI 10.1186/s12933-017-0593-8); double-blind vs placebo, 3-point MACE, T2D+established CVD; recovered + pooled (dpp4 k=2->3, CI 0.57-1.78 -> 0.84-1.21). Build-verified, not part of the original blind census.",
+      "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::40162642 (SOUL, PMID 40162642): source-reported HR 0.86 (0.77-0.96) verified against PubMed (DOI 10.1056/NEJMoa2501006); oral semaglutide vs placebo, double-blind, 3-point MACE, T2D+ASCVD/CKD; k=7->8, 0.850->0.856. Build-verified via verified_effects (abstract uses primary-outcome anchor the extractor scopes out to avoid ELIXA-style 4-point mispooling).",
+      "colchicine-secondary-cv-prevention::Trial-defined major coronary/cardiovascular composite::CLEAR SYNERGY (PMID 39555823): source-reported HR 0.99 (0.85-1.16) extracted from abstract, Codex-fetched + verified; colchicine vs placebo post-MI, 322/3528 vs 327/3534; k=2->3, 0.72->0.81 toward null.",
+      "ticagrelor-vs-clopidogrel-acs::MACE::PHILO (PMID 26376600): source-reported HR 1.47 (0.88-2.44), Codex-fetched+verified; ticagrelor vs clopidogrel East-Asian ACS; k=1->2, 0.84 significant -> 1.05 (0.03-33.9) NOT significant (direction reversal, cross-population heterogeneity).",
+      "spironolactone-hfref-mortality::All-cause mortality::J-EMPHASIS-HF (PMID 28824029): arm counts 17/111 vs 10/110 (round-trip 15.3%/9.1%), Codex-fetched+verified; eplerenone (MRA-class) vs placebo Japanese HFrEF; k=2->3, 0.72->0.87 toward null.",
+      "colchicine-postop-af::Postoperative atrial fibrillation::42132185 (Post-CABG Arrhythmias RCT, PMID 42132185): source-reported RR 0.37 (0.21-0.66) verified against the abstract (POAF 17.3% vs 46.3%, 163 analysed); double-blind placebo-controlled colchicine in on-pump CABG. Recovered by the PREVENTION_TRIAL_TITLE_OMITS_OUTCOME screening fix (title names 'Post-CABG Arrhythmias', not 'atrial fibrillation', so it was wrongly X2-excluded); k=3->4, 0.79->0.67 (still crosses null). Build-verified, not part of the original blind census.",
+      "pcsk9-mace::Major adverse cardiovascular events::41211925 (VESALIUS-CV, PMID 41211925): source-reported HR 0.75 (0.65-0.86) verified against the committed PubMed abstract in LANE_PROMPT.md; selected 3-point co-primary per 2026-09-16 protocol amendment. Build-verified, not part of the original blind census.",
+      "noac-vs-warfarin-af-stroke::Major bleeding::19717844 and ::21830957: HM lane recovered registered major-bleeding harm rows from source-verified RE-LY and ROCKET-AF held text; build-verified, not part of the original blind census.",
+      "sacubitril-valsartan-hfref::Composite cardiovascular death or heart-failure hospitalization::PARALLEL-HF: CT.gov structured target-endpoint HR 1.0881 (0.6501-1.8212), recovered by the target-result/source-hierarchy merge; build-verified, not part of the original blind census."
+    ],
+    "build_verified_note": "Topics added after the original blind census (dpp4, sglt2-pp, doac-vte) are listed in build_verified_added: each pooled number was verified against its committed source at build time (doac-vte-recurrence: all six DOAC-vs-VKA recurrent-VTE counts/effects re-extracted from the trial abstracts via PubMed and matched), not part of the original independent blind Codex census. Metformin-PCOS ovulation added two under-included trials post-census (Moll 16769748 and Ben Ayed 19522426): each arm count recovered from the abstract-reported ovulation rate and denominator and verified by percentage round-trip (published_rate provenance), not part of the original blind Codex census. PCSK9 VESALIUS-CV was added after the original blind census and is recorded in docs/error_rate_sample.json as BUILD_VERIFIED_POST_CENSUS; it does not alter the original independent re-verification numerator.",
+    "design_key_removed": [
+      "balanced-crystalloids-vs-saline-mortality::Mortality::27749094",
+      "balanced-crystalloids-vs-saline-mortality::Mortality::29485925"
+    ],
+    "design_key_removed_note": "Rows removed from the live pooled population by TRANCHE-design-key refusal of reconstructed balanced-crystalloids mortality trials. SH2 recovered the SPLIT (PMID 26444692) rows by selecting source-reported target-class effects; those rows are live again and remain in the committed census sample.",
+    "inventory_refreshed_utc": "2026-09-21",
+    "inventory_method": "scripts/refresh_error_rate_census.py; current review objects, no independent re-extraction",
+    "independent_audit_state": "HISTORICAL_ONLY",
+    "not_independently_rechecked_current": 24,
+    "set_aside_2026-09-20": [
+      {
+        "row": "colchicine-postop-af::Treatment discontinuation::32720823",
+        "trial": "PMID 32720823",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple located in 3 spans of the held document; ambiguity abstains",
+        "candidate_tuple": {
+          "ai": 1,
+          "n1i": 81,
+          "ci": 1,
+          "n2i": 71
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::24694983",
+        "trial": "PMID 24694983",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/colchicine-recurrent-pericarditis/records.json#PMID-24694983 (abstract): no span carries it",
+        "candidate_tuple": {
+          "ai": 9,
+          "n1i": 120,
+          "ci": 9,
+          "n2i": 120
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "dpp4-mace-t2d::Hospitalization for heart failure::23992601",
+        "trial": "PMID 23992601",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "span names neither components nor an endpoint",
+        "candidate_tuple": {
+          "effect": 1.27,
+          "ci_low": 1.07,
+          "ci_high": 1.51,
+          "scale": "HR"
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "esketamine-trd-madrs::Observed-case Day-28 raw change-score MADRS MD::TRANSFORM-1",
+        "trial": "NCT02417064",
+        "verdict": "SET_ASIDE_KNOWN_REPORTED_NOT_YET_EXTRACTED",
+        "reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+        "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+        "reason": "tuple not located in the held document cache/esketamine-trd-madrs/records.json#PMID-NCT02417064 (abstract): no span carries it",
+        "candidate_tuple": {
+          "scale": "MD",
+          "mean1": -18.91,
+          "sd1": 13.95,
+          "nc1": 209,
+          "mean2": -14.8,
+          "sd2": 15.07,
+          "nc2": 108
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "noac-vs-warfarin-af-stroke::Major bleeding::21830957",
+        "trial": "PMID 21830957",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/noac-vs-warfarin-af-stroke/records.json#PMID-21830957 (abstract): no span carries it",
+        "candidate_tuple": {
+          "effect": 1.04,
+          "ci_low": 0.9,
+          "ci_high": 1.2,
+          "scale": "HR"
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "noac-vs-warfarin-af-stroke::Major bleeding::19717844",
+        "trial": "PMID 19717844",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/noac-vs-warfarin-af-stroke/records.json#PMID-19717844 (abstract): no span carries it",
+        "candidate_tuple": {
+          "effect": 0.93,
+          "ci_low": 0.81,
+          "ci_high": 1.07,
+          "scale": "RR"
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "omega3-cardiovascular-events::Major vascular events / MACE::22686415",
+        "trial": "PMID 22686415",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "named endpoint has no definition span in the held text",
+        "candidate_tuple": {
+          "effect": 1.01,
+          "ci_low": 0.93,
+          "ci_high": 1.1,
+          "scale": "HR"
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "pcsk9-mace::Major adverse cardiovascular events::41211925",
+        "trial": "PMID 41211925",
+        "verdict": "SET_ASIDE_RESULT_INCOMPATIBLE",
+        "reason_code": "RESULT_INCOMPATIBLE",
+        "state": "REFUSED_ON_EVIDENCE",
+        "reason": "the bound endpoint span lacks component(s) of the declared composite (cardiovascular death): a component or subset result is not the composite 'Major adverse cardiovascular events'; refused rather than pooled under the c",
+        "candidate_tuple": null,
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "pcsk9-mace::Injection-site reactions::25773378",
+        "trial": "PMID 25773378",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "held document cache/pcsk9-mace/harms_aact_held.json changed since the approval (sha256 142c68c1dd5a != approved 108efeb5ed7e): the approval is stale",
+        "candidate_tuple": {
+          "ai": 91,
+          "n1i": 1550,
+          "ci": 33,
+          "n2i": 788
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::40488914",
+        "trial": "PMID 40488914",
+        "verdict": "SET_ASIDE_RESULT_INCOMPATIBLE",
+        "reason_code": "RESULT_INCOMPATIBLE",
+        "state": "REFUSED_ON_EVIDENCE",
+        "reason": "the bound endpoint span defines a different outcome from 'Antibiotic-associated diarrhoea'",
+        "candidate_tuple": null,
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939",
+        "trial": "PMID 39529939",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple located in 2 spans of the held document; ambiguity abstains",
+        "candidate_tuple": {
+          "ai": 26,
+          "n1i": 282,
+          "ci": 69,
+          "n2i": 273
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::34541475",
+        "trial": "PMID 34541475",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "table label 'AAD – Abx+30d (n, %)' names an endpoint but the held text holds no definition span carrying its words",
+        "candidate_tuple": {
+          "ai": 59,
+          "n1i": 131,
+          "ci": 53,
+          "n2i": 126
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::26973849",
+        "trial": "PMID 26973849",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/probiotics-aad-prevention/ft_26973849.txt (xml): no span carries it",
+        "candidate_tuple": {
+          "ai": 21,
+          "n1i": 246,
+          "ci": 17,
+          "n2i": 231
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::24456384",
+        "trial": "PMID 24456384",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/probiotics-aad-prevention/records.json#PMID-24456384 (abstract): no span carries it",
+        "candidate_tuple": {
+          "ai": 5,
+          "n1i": 41,
+          "ci": 4,
+          "n2i": 46
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Any adverse events::26973849",
+        "trial": "PMID 26973849",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/probiotics-aad-prevention/ft_26973849.txt (xml): no span carries it",
+        "candidate_tuple": {
+          "ai": 18,
+          "n1i": 245,
+          "ci": 12,
+          "n2i": 222
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "probiotics-aad-prevention::Serious adverse events::39529939",
+        "trial": "PMID 39529939",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple located in 9 spans of the held document; ambiguity abstains",
+        "candidate_tuple": {
+          "ai": 1,
+          "n1i": 285,
+          "ci": 0,
+          "n2i": 279
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "tocilizumab-covid19-mortality::Serious adverse events::33085857",
+        "trial": "PMID 33085857",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/tocilizumab-covid19-mortality/ft_33085857.txt (xml): no span carries it",
+        "candidate_tuple": {
+          "ai": 28,
+          "n1i": 161,
+          "ci": 12,
+          "n2i": 82
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      },
+      {
+        "row": "tranexamic-acid-pph::Thromboembolic events::28456509",
+        "trial": "PMID 28456509",
+        "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+        "reason_code": "ENDPOINT_UNBOUND",
+        "state": "EXTRACTION_DEBT",
+        "reason": "tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it",
+        "candidate_tuple": {
+          "ai": 30,
+          "n1i": 10033,
+          "ci": 34,
+          "n2i": 9985
+        },
+        "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+      }
+    ],
+    "set_aside_2026-09-20_note": "Rows removed from the live pooled population by the hand-row binder landing (m2/bind-hand-rows): each is a SET-ASIDE (the number is not bound to an endpoint in the held document, or refused as a different result), not a confirmed wrong number; the trial stays visible as eligible evidence awaiting adjudication. removed_by_census_fixes is refreshed by scripts/refresh_error_rate_census.py after the rebuild."
+  },
+  "measurement_scope": "BLIND_V2 additions only; legacy sample rows retain historical verdicts and are not newly reverified",
+  "blind_v2": {
+    "topics_examined": 38,
+    "topics_without_review": [
+      "antibiotics-vs-appendectomy-appendicitis",
+      "azithromycin-copd-exacerbation",
+      "hfnc-vs-conventional-o2-reintubation",
+      "prone-positioning-ards-mortality",
+      "vitamin-d-acute-respiratory-infection",
+      "zinc-common-cold-duration"
+    ],
+    "live_population": 157,
+    "data_denominator": 157,
+    "excluded": [],
+    "n_rechecked": 29,
+    "N_uncensused": 29,
+    "counts": {
+      "EXACT_MATCH": 29
+    },
+    "disagreement_rate": 0.0,
+    "disagreement_wilson95": [
+      0,
+      0.11697359446555587
+    ],
+    "unaccounted_removals": [],
+    "rules": {
+      "EXACT_MATCH": {
+        "n": 29,
+        "N": 29,
+        "n_of_N": "29 of 29",
+        "items": [
+          "corticosteroids-covid19-mortality::28-day all-cause mortality::32876695",
+          "denosumab-vertebral-fracture::Serious adverse events::19671655",
+          "denosumab-vertebral-fracture::Serious infection::19671655",
+          "dpp4-mace-t2d::3-point major adverse cardiovascular events::26052984",
+          "dpp4-mace-t2d::Hospitalization for heart failure::28893244",
+          "dpp4-mace-t2d::Hospitalization for heart failure::30418475",
+          "finerenone-ckd-t2d-renal::Hyperkalemia-related treatment discontinuation::34449181",
+          "finerenone-ckd-t2d-renal::Hyperkalemia::34449181",
+          "glp1-ra-mace-t2d::Adverse events leading to discontinuation::31185157",
+          "pcsk9-mace::Adverse events leading to discontinuation::30403574",
+          "pcsk9-mace::Injection-site reactions::28304224",
+          "pcsk9-mace::Injection-site reactions::30403574",
+          "sacubitril-valsartan-hfref::Hyperkalemia::PARALLEL-HF",
+          "sacubitril-valsartan-hfref::Hyperkalemia::PIONEER-HF",
+          "sacubitril-valsartan-hfref::Hypotension::PARALLEL-HF",
+          "sacubitril-valsartan-hfref::Hypotension::PIONEER-HF",
+          "semaglutide-obesity-mace::Gastrointestinal adverse events leading to permanent discontinuation::37952131",
+          "semaglutide-obesity-mace::Serious adverse events::37952131",
+          "semaglutide-obesity-mace::Serious gastrointestinal adverse events::37952131",
+          "semaglutide-obesity-weight::Gastrointestinal adverse events::33567185",
+          "semaglutide-obesity-weight::Gastrointestinal adverse events::33625476",
+          "semaglutide-obesity-weight::Gastrointestinal adverse events::STEP 8",
+          "sglt2-ckd-progression::Diabetic ketoacidosis::30990260",
+          "sglt2-ckd-progression::Diabetic ketoacidosis::32970396",
+          "sglt2-ckd-progression::Lower-limb amputation::30990260",
+          "sglt2-ckd-progression::Lower-limb amputation::32970396",
+          "spironolactone-hfref-mortality::Hyperkalemia::J-EMPHASIS-HF",
+          "statins-primary-prevention-elderly::Muscle symptoms/myopathy::20404379",
+          "statins-primary-prevention-elderly::New-onset diabetes::20404379"
+        ]
+      },
+      "DISAGREE": {
+        "n": 0,
+        "N": 29,
+        "n_of_N": "0 of 29",
+        "items": []
+      },
+      "NOT_RECHECKABLE": {
+        "n": 0,
+        "N": 29,
+        "n_of_N": "0 of 29",
+        "items": []
+      },
+      "EXCLUDED": {
+        "n": 0,
+        "N": 29,
+        "n_of_N": "0 of 29",
+        "items": []
+      }
+    }
+  }
 }
