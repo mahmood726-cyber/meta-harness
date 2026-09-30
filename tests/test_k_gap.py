@@ -515,3 +515,54 @@ def test_forest_join_narrows_a_repeated_surname_by_year_and_joins_by_registered_
     assert ra.forest_row("t", "Imazio [18]", ["25172965"])[1] == "0.66"               # the 2014 report
     assert ra.forest_row("t", "Bakris et al. (16)", [], ["FIDELIO-DKD"])[1] == "0.82"
     assert ra.forest_row("t", "Bakris et al. (16)", [], ["FIDELIO"])[1] == "0.82"     # leading-token acronym
+
+
+# ------------------------------------------------ exclusion audit: one plant per error class (real screen_record)
+
+def _ea():
+    import importlib
+    import sys
+    if "scripts" not in sys.path:
+        sys.path.append("scripts")
+    return importlib.import_module("k_gap_exclusion_audit")
+
+
+def _rec(title, abstract, pubtypes=("Randomized Controlled Trial",)):
+    return {"id": "1", "id_type": "pmid", "title": title, "abstract": abstract, "pubtypes": list(pubtypes), "conditions": []}
+
+
+def test_exclusion_audit_comparator_wording_head_term():
+    a = _ea()
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["placebo group", "placebo-controlled"], "population_any": ["polycystic ovary"]}
+    rec = _rec("Metformin in polycystic ovary syndrome", "Women were randomized to metformin or placebo for 12 weeks.")
+    assert a.decide(rec, inc)["rule_id"] == "X3"                                   # the screener excludes it
+    assert a.classify(rec, {"include": inc})[:2] == ("SCREENER_ERROR", "COMPARATOR_WORDING")
+
+
+def test_exclusion_audit_comparator_wording_typographic_dash():
+    a = _ea()
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["placebo-controlled"], "population_any": ["polycystic ovary"]}
+    rec = _rec("Metformin in polycystic ovary syndrome: a placebo\u2010controlled trial", "Women were randomized to metformin.")
+    assert a.decide(rec, inc)["rule_id"] == "X3"
+    assert a.classify(rec, {"include": inc})[:2] == ("SCREENER_ERROR", "COMPARATOR_WORDING")
+
+
+def test_exclusion_audit_condition_as_outcome():
+    a = _ea()
+    inc = {"intervention_any": ["lactobacillus"], "comparator_any": ["placebo"], "population_any": ["antibiotic-associated diarr*"]}
+    cfg = {"include": inc, "primary_outcome": {"keywords": ["antibiotic-associated diarrhea"]}}
+    rec = _rec("Prophylaxis with a lactobacillus preparation during ampicillin therapy",
+               "Patients were randomized to lactobacillus or placebo to prevent antibiotic-associated diarrhea.")
+    assert a.decide(rec, inc)["rule_id"] == "X2"
+    assert a.classify(rec, cfg)[1].startswith("CONDITION_AS_OUTCOME")
+
+
+def test_exclusion_audit_insufficient_vs_true_scope():
+    a = _ea()
+    inc = {"intervention_any": ["statin"], "comparator_any": ["placebo"], "population_any": ["older"]}
+    obs = _rec("Association of statin use with mortality in older adults",
+               "In this cohort of older adults, statin use was compared with no use. Randomized trials are limited.",
+               pubtypes=("Journal Article",))
+    assert a.classify(obs, {"include": inc})[:2] == ("TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)")
+    silent = _rec("Statin therapy in older adults", "Outcomes improved with statin therapy.", pubtypes=("Journal Article",))
+    assert a.classify(silent, {"include": inc})[0] == "INSUFFICIENT_RECORD"

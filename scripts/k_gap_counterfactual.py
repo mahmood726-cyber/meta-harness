@@ -431,6 +431,27 @@ def main(argv):
                              "reason_changed": {k: [why_b.get(k), why_c.get(k)] for k in why_b
                                                 if k in why_c and why_b.get(k) != why_c.get(k)},
                              "secs": round(time.time() - t0, 1)}
+            elif mode == "--held-ft":
+                # the topic's HELD full texts (cache/<slug>/ft_<pmid>.txt), which pool construction never reads: it
+                # takes full text only from records.json#fulltext_by_pmid (captain's finding, 2026-09-30)
+                import glob as _glob
+                base_core = build(slug)
+                base = core_primary(base_core)
+                held = {}
+                for fp in _glob.glob(os.path.join(ROOT, "cache", slug, "ft_*.txt")):
+                    pid = os.path.basename(fp)[3:-4]
+                    with open(fp, encoding="utf-8") as fh:
+                        held[pid] = fh.read()
+                cfc = build(slug, extra_fulltext=held) if held else base_core
+                cf = core_primary(cfc)
+                res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "held_ft": len(held),
+                             "baseline_k_valid": base["k_valid"], "counterfactual_k": cf["k"],
+                             "counterfactual_k_valid": cf["k_valid"],
+                             "admitted": sorted(set(cf["trials"]) - set(base["trials"])),
+                             "lost": sorted(set(base["trials"]) - set(cf["trials"])),
+                             "values_changed": sorted(k for k in set(base["values"]["trials"]) & set(cf["values"]["trials"])
+                                                      if base["values"]["trials"][k] != cf["values"]["trials"][k]),
+                             "secs": round(time.time() - t0, 1)}
             elif mode == "--baseline":
                 c = core_primary(build(slug))
                 vdiff = {k: [s["values"]["trials"].get(k), c["values"]["trials"].get(k)]
@@ -470,7 +491,7 @@ if __name__ == "__main__":
     r = main(sys.argv[1:])
     name = {"--baseline": "counterfactual_baseline.json", "--members": "counterfactual_members.json",
             "--fulltext": "counterfactual_fulltext.json", "--ctgov": "counterfactual_ctgov.json",
-            "--all": "counterfactual_all.json", "--unpaywall": "counterfactual_unpaywall.json",
+            "--all": "counterfactual_all.json", "--held-ft": "counterfactual_held_ft.json", "--unpaywall": "counterfactual_unpaywall.json",
             "--screen-hypothesis": "counterfactual_screen_hypothesis.json",
             "--all-hyp": "counterfactual_all_screen_hypothesis.json"}[sys.argv[1]]
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
