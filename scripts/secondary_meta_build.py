@@ -39,7 +39,7 @@ from reproducible_ai import model_call_live as mcl  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
 
 OUTD = os.path.join(ROOT, "registry", "secondary_meta")
-REC_DIR = os.path.join(ROOT, "registry", "model_calls")
+REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "secondary")   # the tier's recorded calls (named by Mahmood)
 DATE = "2026-09-30"
 N_CANDIDATES = 3
 CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative risk|meta-analys[ie]s of", re.I)
@@ -133,6 +133,29 @@ def meta_item(slug, pmid, offline):
             "held": held}, "SELECTED"
 
 
+def typed_table(slug, pmid, spec, run):
+    """The ONE JATS table of this meta that is usable by regex for the topic outcome, with its positive control."""
+    d = os.path.join(k_gap.COMP_DIR, pmid)
+    if run and not os.path.isdir(d):
+        k_gap.fetch_comparator_jats(pmid, DATE)
+    jp = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None)         if os.path.isdir(d) else None
+    if not jp:
+        return None
+    with open(jp, "rb") as fh:
+        tables = sm.typed_rows_from_jats(fh.read(), pmid)
+    ok = []
+    for t in tables:
+        probe = sm.SecondaryRow(meta_pmid=pmid, meta_doi="", location={"kind": "table", "id": t["table_id"]},
+                                source_digest=t["digest"], provenance="TYPED_TABLE", trial_label="",
+                                measure=t["measure"] or "", outcome_definition=t["caption"])
+        if not t["pooled"] or sm.outcome_identity(probe, spec["keywords"], (), tuple(spec.get("core") or ())):
+            continue
+        pc = sm.positive_control(t["rows"], t["pooled"], t["measure"] or "")
+        if pc["reproduced"]:
+            ok.append({**t, "positive_control": pc})
+    return ok[0] if len(ok) == 1 else None
+
+
 def read_one(item):
     p = fp.prompt_bytes(item)
     rec = mcl.call(p, schema=fp.SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
@@ -140,7 +163,7 @@ def read_one(item):
                            "purpose": f"secondary-tier forest read {item['slug']} meta {item['pmid']} (acq/k-gap lane)"},
                    input_digests=[{"ref": item["image_ref"], "sha256": item["image_sha256"],
                                    "what": "secondary meta forest-plot figure attached with -i"}],
-                   timeout_s=900, runner=fp.image_runner(item["image_path"]))
+                   timeout_s=900, images=(item["image_path"],))
     ms.write_record(rec, REC_DIR)
     return {"key": f"{item['slug']}::{item['pmid']}", "record_id": rec["record_id"], "state": rec["state"],
             "prompt_sha256": hashlib.sha256(p).hexdigest(), "image_sha256": item["image_sha256"]}
@@ -170,6 +193,19 @@ def our_trials(slug):
             acr_pmid.setdefault(p, set()).update(names)
             for n in r["ncts"]:
                 nct_pmid.setdefault(p, n)
+    # acronyms the REGISTRY or the PUBLICATION itself gives: a registry title's '(EXSCEL)' (AACT store acr_title), and
+    # the trial report's own PubMed title '(Harmony Outcomes)' -- the self-naming rule, never a guess from outside
+    store_p = os.path.join(ROOT, "outputs", "k_gap", "_aact_store.json")
+    store = _j(store_p) if os.path.exists(store_p) else {}
+    for a, ncts in (store.get("acr_title") or {}).items():
+        for n in ncts:
+            acr_nct.setdefault(n, set()).add(a)
+
+    def title_acronyms(pmid):
+        t = pubmed_title(pmid)
+        return {m.group(1).strip() for m in re.finditer(r"\(([A-Z][A-Za-z0-9‐-― -]{2,40})\)", t or "")
+                if re.search(r"[A-Z]{2,}|[A-Z][a-z]+ [A-Z][a-z]+", m.group(1))}
+
     out, seen_nct, seen_pid = [], set(), set()
     for t in prim.get("trials", []):
         pid = str(t.get("id", "")).replace("PMID ", "")
@@ -184,7 +220,8 @@ def our_trials(slug):
             prim_val = {"measure": "RR", "events_t": t["ai"], "n_t": t["n1i"], "events_c": t["ci"], "n_c": t["n2i"],
                         "source": src, "span": str(t.get("source") or "")}
         out.append({"id": t.get("id"), "pmid": pid, "nct": nct, "label": str(t.get("label") or ""),
-                    "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set())),
+                    "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set()) |
+                                       (title_acronyms(pid) if pid.isdigit() else set())),
                     "author_year": ra.first_author_year(pid) if pid.isdigit() else None, "primary": prim_val})
         seen_pid.add(pid)
         if nct:
@@ -203,9 +240,25 @@ def our_trials(slug):
         if nct:
             seen_nct.add(nct)
         out.append({"id": f"PMID {pid}", "pmid": pid, "nct": nct, "label": r["label"],
-                    "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set())),
+                    "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set()) | title_acronyms(pid)),
                     "author_year": ra.first_author_year(pid), "primary": None})
     return out
+
+
+def pubmed_title(pmid):
+    """PubMed title of one PMID, cached in outputs/k_gap/pubmed_titles.json (the identity reader's cache)."""
+    cp = os.path.join(ROOT, "outputs", "k_gap", "pubmed_titles.json")
+    c = _j(cp) if os.path.exists(cp) else {}
+    if pmid not in c:
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                              {"db": "pubmed", "id": pmid, "retmode": "json"}, tries=2)
+            c[pmid] = (d.get("result", {}).get(pmid) or {}).get("title", "")
+        except Exception:  # noqa: BLE001 - no title means no acronym from it, never a guess
+            return ""
+        _save(cp, c)
+    return c.get(pmid) or ""
 
 
 def family_of_factory(ours):
@@ -263,8 +316,16 @@ def meta_timepoint(held):
 
 def build(slug, run, runs):
     metas, comp = metas_for(slug, offline=not run)
-    items, skipped = [], {}
+    spec = spec_of(slug)
+    items, skipped, typed = [], {}, {}
     for pmid in metas:
+        # TYPED FIRST: a meta that prints its per-trial results in a JATS table is read by regex, and its figure is
+        # never sent to a model. A table counts only if it names the topic outcome, carries its own pooled row, and its
+        # rows reproduce that pooled row; exactly one such table, or none is used.
+        t = typed_table(slug, pmid, spec, run)
+        if t:
+            typed[pmid] = t
+            continue
         try:
             it, why = meta_item(slug, pmid, offline=not run)
         except Exception as exc:  # noqa: BLE001 - one meta's failure is recorded, never fatal to the topic
@@ -280,10 +341,15 @@ def build(slug, run, runs):
             for r in ex.map(read_one, todo):
                 runs[r["key"]] = r
                 print(r["key"], r["state"], r["record_id"], flush=True)
-    spec = spec_of(slug)
     ours = our_trials(slug)
     fam = family_of_factory(ours)
     rows, metas_out = [], {}
+    for pmid, t in typed.items():
+        metas_out[pmid] = {"table": t["table_id"], "measure": t["measure"], "provenance": "TYPED_TABLE",
+                           "positive_control": t["positive_control"], "rows_read": len(t["rows"]), "usable": True,
+                           "is_comparator": pmid == comp}
+        for r in t["rows"]:
+            rows.append(sm.admit(r, spec, fam))
     for it in items:
         run_r = runs.get(f"{slug}::{it['pmid']}")
         if not run_r or run_r["state"] != "RAN_OK" or run_r["image_sha256"] != it["image_sha256"]:
@@ -303,7 +369,7 @@ def build(slug, run, runs):
                           "row_label": x["label"]},
                 provenance=f"MODEL_PROPOSAL:{run_r['record_id']}", trial_label=x["label"], measure=measure,
                 outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
-                timepoint=meta_timepoint(it["held"]),
+                timepoint=meta_timepoint(it["held"]) if spec.get("core") else None,   # mortality/death outcomes only
                 effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
         pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
             {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}
@@ -332,11 +398,40 @@ def build(slug, run, runs):
     return out
 
 
+def verify_replay(slugs, runs):
+    """Byte-identical replay, checked: (1) every record the tier uses replays to exactly the response bytes it recorded
+    (sha256 of model_source.replay == the stored response digest); (2) rebuilding each topic twice from the records alone
+    (no network, no model) gives byte-identical output rows. Returns a list of problems (empty = replayable)."""
+    probs = []
+    for key, r in sorted(runs.items()):
+        if r.get("state") != "RAN_OK":
+            continue
+        fpth = os.path.join(REC_DIR, r["record_id"] + ".json")
+        if not os.path.exists(fpth):
+            probs.append(f"{key}: record {r['record_id']} not in {os.path.relpath(REC_DIR, ROOT)}")
+            continue
+        rec = ms.load_record(fpth)
+        if hashlib.sha256(ms.replay(rec)).hexdigest() != rec["response"]["sha256"]:
+            probs.append(f"{key}: replay bytes differ from the recorded response")
+    for s in slugs:
+        a = build(s, False, runs)
+        b = build(s, False, runs)
+        ha = hashlib.sha256(json.dumps(a["rows"], sort_keys=True).encode("utf-8")).hexdigest()
+        hb = hashlib.sha256(json.dumps(b["rows"], sort_keys=True).encode("utf-8")).hexdigest()
+        if ha != hb:
+            probs.append(f"{s}: two offline rebuilds differ ({ha[:12]} vs {hb[:12]})")
+    return probs
+
+
 def main(argv):
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")] or list(QUERY)
     rp = os.path.join(OUTD, "runs.json")
     runs = _j(rp) if os.path.exists(rp) else {}
+    if "--verify-replay" in argv:
+        probs = verify_replay(slugs, runs)
+        print("REPLAY_OK" if not probs else "REPLAY_PROBLEMS", json.dumps(probs, indent=1))
+        return
     for s in slugs:
         o = build(s, run, runs)
         _save(rp, runs)
