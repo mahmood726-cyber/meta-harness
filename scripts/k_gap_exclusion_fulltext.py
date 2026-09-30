@@ -60,8 +60,17 @@ def items(run):
         it = pop.get((row["slug"], row["pmid"]))
         rec = (it or {}).get("rec")
         ft = cfm.pmc_fulltext_cached(row["pmid"], offline=not run) if row["pmid"] else ""
+        ft_src = "PMC_OA" if ft else None
+        if not ft and (rec or {}).get("doi"):
+            # second legitimate open route: Unpaywall's OA copy as typed text (PDF text layer / HTML), never OCR
+            from kgap import k_gap
+            u = k_gap.unpaywall_text(rec["doi"], os.path.join(OUT, "_upw"), os.path.join(OUT, "unpaywall_text_index.json"),
+                                     offline=not run)
+            ft = u.get("text") or ""
+            ft_src = "UNPAYWALL_OA" if ft else None
         out.append({"slug": row["slug"], "pmid": row["pmid"], "label": row["label"], "rule_id": row["rule_id"],
-                    "subclass_before": row["subclass"], "rec": rec, "fulltext": (ft or "")[:FT_CAP]})
+                    "subclass_before": row["subclass"], "rec": rec, "fulltext": (ft or "")[:FT_CAP],
+                    "fulltext_source": ft_src})
     return out
 
 
@@ -102,14 +111,14 @@ def main(argv):
         cls, sub, _ = ea.classify(rec_ft, ea._cfg(it["slug"]))                    # regex first, on the full text
         if cls != "INSUFFICIENT_RECORD":
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
-                         "fulltext": "HELD", "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT"})
+                         "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT"})
             continue
         p, held, cd = reader_prompt(pilot, it, rec_ft)
         r = runs.get(key)
         if run and (not r or r.get("prompt_sha256") != hashlib.sha256(p).hexdigest()):
             todo.append((pilot, it, p, held, cd))
         rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
-                     "fulltext": "HELD", "_held": held, "_key": key})
+                     "fulltext": it["fulltext_source"], "_held": held, "_key": key})
     if todo:
         with cf.ThreadPoolExecutor(max_workers=3) as ex:
             for key, r in ex.map(run_reader, todo):
