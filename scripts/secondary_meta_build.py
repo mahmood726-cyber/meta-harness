@@ -42,6 +42,7 @@ OUTD = os.path.join(ROOT, "registry", "secondary_meta")
 REC_DIR = os.path.join(ROOT, "registry", "model_calls")
 DATE = "2026-09-30"
 N_CANDIDATES = 3
+CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative risk|meta-analys[ie]s of", re.I)
 NAMED = {"tocilizumab-covid19-mortality": ["34228774"]}      # WHO REACT (JAMA 2021), named by Mahmood
 QUERY = {
     "glp1-ra-mace-t2d": '(TITLE:"GLP-1" OR TITLE:"glucagon-like peptide") AND (TITLE:"cardiovascular" OR TITLE:"MACE")',
@@ -103,7 +104,8 @@ def meta_item(slug, pmid, offline):
     if not jp:
         return None, "NO_OPEN_JATS:" + str(man.get("state"))
     jdate = os.path.basename(jp)[:10]
-    fig, why = fp.select_figure(slug, pmid, jats_date=jdate)
+    # a secondary meta may caption its forest plot without the word "forest" ("Pooled hazard ratios for ...")
+    fig, why = fp.select_figure(slug, pmid, jats_date=jdate, caption_re=CAPTION)
     if not fig:
         return None, why
     pmcid = fp.comparator(slug)[2] if pmid == comparator_pmid(slug) else None
@@ -147,47 +149,61 @@ def read_one(item):
 # ------------------------------------------------------------------ our trials (family resolution + primary values)
 
 def our_trials(slug):
-    """Our served primary trials, each with its identity tokens and its PRIMARY value + span (the verification side)."""
+    """One entry per TRIAL (keyed by NCT where registered): our branch extraction of the trial's own report (the PRIMARY
+    value + span, the verification side), else a comparator-resolved k-gap family with no primary value yet."""
     # the verification side is OUR extraction of the trial's own report, as this branch builds it (in memory, fixes 3-4
     # applied): the served semaglutide-weight rows are CT.gov observed means, the quantity fix 3 showed is not the
     # trial's reported result, so the served page is not the primary reference for them
     import k_gap_counterfactual as cfm
+    import k_gap_identity_reader2 as r2
+    import k_gap_result_agreement as ra
     rev = cfm.build(slug)
     prim = next((o for o in rev["outcomes"] if o.get("primary")), {})
     T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
-    acr = {}
-    for r in T["trials"]:
-        if r["slug"] == slug:
-            for p in r["pmids"]:
-                for v in (r.get("study") or {}).values():
-                    if (v or {}).get("acronym"):
-                        acr.setdefault(p, set()).add(v["acronym"])
-    import k_gap_result_agreement as ra
-    out = []
+    rows = [r for r in T["trials"] if r["slug"] == slug]
+    acr_nct, acr_pmid, nct_pmid = {}, {}, {}
+    for r in rows:
+        names = {v["acronym"] for v in (r.get("study") or {}).values() if (v or {}).get("acronym")}
+        for n in r["ncts"]:
+            acr_nct.setdefault(n, set()).update(names)
+        for p in r["pmids"]:
+            acr_pmid.setdefault(p, set()).update(names)
+            for n in r["ncts"]:
+                nct_pmid.setdefault(p, n)
+    out, seen_nct, seen_pid = [], set(), set()
     for t in prim.get("trials", []):
         pid = str(t.get("id", "")).replace("PMID ", "")
-        fa = ra.first_author_year(pid) if pid.isdigit() else None
+        fam = str(t.get("trial_family_id") or "")
+        nct = fam if fam.startswith("NCT") else nct_pmid.get(pid)
         prim_val = None
+        src = f"our branch extraction {t.get('id')} ({t.get('provenance')})"
         if t.get("effect") is not None and t.get("ci_low") is not None:
             prim_val = {"measure": (t.get("scale") or "").upper(), "effect": str(t["effect"]), "lower": str(t["ci_low"]),
-                        "upper": str(t["ci_high"]), "source": f"our branch extraction {t.get('id')} ({t.get('provenance')})",
-                        "span": str(t.get("source") or "")}
+                        "upper": str(t["ci_high"]), "source": src, "span": str(t.get("source") or "")}
         elif t.get("ai") is not None:
             prim_val = {"measure": "RR", "events_t": t["ai"], "n_t": t["n1i"], "events_c": t["ci"], "n_c": t["n2i"],
-                        "source": f"our branch extraction {t.get('id')} ({t.get('provenance')})", "span": str(t.get("source") or "")}
-        out.append({"id": t.get("id"), "pmid": pid, "label": str(t.get("label") or ""), "acronyms": sorted(acr.get(pid, [])),
-                    "author_year": fa, "primary": prim_val})
-    # trials we do NOT serve are families too (the tier exists for them): the topic's comparator-resolved k-gap rows,
-    # identified by acronym or first author + year. No primary value of ours -> their rows wait in the queue.
-    have = {t["pmid"] for t in out}
-    for r in T["trials"]:
-        if r["slug"] != slug or r["drug"] == "OTHER_AGENT" or not r["pmids"] or r["status"] == "UNRESOLVED":
+                        "source": src, "span": str(t.get("source") or "")}
+        out.append({"id": t.get("id"), "pmid": pid, "nct": nct, "label": str(t.get("label") or ""),
+                    "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set())),
+                    "author_year": ra.first_author_year(pid) if pid.isdigit() else None, "primary": prim_val})
+        seen_pid.add(pid)
+        if nct:
+            seen_nct.add(nct)
+    # trials we do NOT pool are families too (the tier exists for them): the topic's comparator-resolved k-gap rows.
+    # Their report is the RESULT-typed PMID for the NCT (never pmids[0]: ELIXA's first linked PMID is a rat study).
+    # No primary value of ours -> their rows wait in the verification queue.
+    for r in rows:
+        if r["drug"] == "OTHER_AGENT" or not r["pmids"] or r["status"] == "UNRESOLVED":
             continue
-        pid = r["pmids"][0]
-        if pid in have:
+        nct = (r["ncts"] or [None])[0]
+        pid = r2.shown_pmid(r)
+        if (nct and nct in seen_nct) or pid in seen_pid:
             continue
-        have.add(pid)
-        out.append({"id": f"PMID {pid}", "pmid": pid, "label": r["label"], "acronyms": sorted(acr.get(pid, [])),
+        seen_pid.add(pid)
+        if nct:
+            seen_nct.add(nct)
+        out.append({"id": f"PMID {pid}", "pmid": pid, "nct": nct, "label": r["label"],
+                    "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set())),
                     "author_year": ra.first_author_year(pid), "primary": None})
     return out
 
@@ -195,16 +211,24 @@ def our_trials(slug):
 def family_of_factory(ours):
     toks = lambda x: re.findall(r"[a-z0-9]+", k_gap.fold_dashes(str(x or "")).lower())   # noqa: E731
 
+    def prefix(a, b):
+        """a and b name the same trial when one's tokens lead the other's ('HARMONY' / 'Harmony Outcomes'), with a
+        distinctive first token; 'STEP' then leads both 'STEP 1' and 'STEP 3' and is refused as ambiguous below."""
+        n = min(len(a), len(b))
+        return n > 0 and a[:n] == b[:n] and (len(a[0]) >= 4 or n >= 2)
+
+    def within(a, n):
+        """the acronym as a contiguous run anywhere in the label ('Rosas (COVACTA)'), distinctive only"""
+        return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
+
     def family_of(row):
-        lt = toks(row.trial_label)
-        hits = []
+        lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
+        hits = {}
         for t in ours:
             names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
-            if any(n and lt[:len(n)] == n for n in names):
-                hits.append(t)
-            elif t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt:
-                hits.append(t)
-        return hits[0]["id"] if len(hits) == 1 else None
+            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
+                hits[t["id"]] = t
+        return next(iter(hits)) if len(hits) == 1 else None
     return family_of
 
 
@@ -216,7 +240,23 @@ def spec_of(slug):
                                            list((c.get("outcome_endpoints") or {}).values())] + [po.get("name") or ""]
     est = (po.get("estimand") or "").upper()
     est = {"HAZARD RATIO": "HR", "RISK RATIO": "RR", "ODDS RATIO": "OR", "MEAN DIFFERENCE": "MD"}.get(est, est)
-    return {"estimand": est, "keywords": [k for k in kw if k], "components": [], "timepoint": None}
+    # a CORE word lets 'mortality' match '28-day all-cause mortality' (the timepoint is then checked on its own). Only for
+    # a single-noun outcome: for a composite, 'cardiovascular' would admit a cardiovascular-DEATH figure as MACE.
+    name = (po.get("name") or "").lower()
+    core = [w for w in ("mortality", "death") if w in name]
+    return {"estimand": est, "keywords": [k for k in kw if k], "components": [], "core": core,
+            "timepoint": po.get("timepoint")}
+
+
+_TP = re.compile(r"(\d+)[- ]day (?:all[- ]cause )?mortality|mortality (?:at|by|within) (?:day )?(\d+)(?:[- ]days?)?|"
+                 r"day[- ](\d+) (?:all[- ]cause )?mortality", re.I)
+
+
+def meta_timepoint(held):
+    """The mortality timepoint the meta itself states, only when it states exactly ONE (else unknown -> refused by
+    the timepoint check for a topic that registers one)."""
+    vals = {next(g for g in m.groups() if g) for m in _TP.finditer(held or "")}
+    return f"{vals.pop()} days" if len(vals) == 1 else None
 
 
 # ------------------------------------------------------------------ driver
@@ -263,6 +303,7 @@ def build(slug, run, runs):
                           "row_label": x["label"]},
                 provenance=f"MODEL_PROPOSAL:{run_r['record_id']}", trial_label=x["label"], measure=measure,
                 outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
+                timepoint=meta_timepoint(it["held"]),
                 effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
         pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
             {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}

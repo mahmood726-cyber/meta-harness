@@ -112,7 +112,7 @@ def printed_pool(c):
             "quote": (eff.get("span") or {}).get("quote"), "method": (ts.get("method") or {}).get("value")}
 
 
-def select_figure(slug, pmid, jats_date="2026-09-28"):
+def select_figure(slug, pmid, jats_date="2026-09-28", caption_re=None):
     jp = os.path.join(COMP, pmid, f"{jats_date}_kgap_jats.xml")
     if not os.path.exists(jp):
         return None, "NO_JATS"
@@ -135,7 +135,7 @@ def select_figure(slug, pmid, jats_date="2026-09-28"):
     for f in ET.parse(jp).getroot().iter("fig"):
         cap = " ".join("".join(x.itertext()) for x in f.iter("caption"))
         g = f.find(".//graphic")
-        if g is None or not FOREST.search(cap) or SUBGROUP.search(cap):
+        if g is None or not (caption_re or FOREST).search(cap) or SUBGROUP.search(cap):
             continue
         # The gate anchors the plot's pool to the comparator's TEXT, but a wrong-outcome figure's pool is printed there
         # too, so a figure whose outcome is not unambiguous is refused here, before any model call: a multi-panel

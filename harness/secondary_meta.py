@@ -187,12 +187,15 @@ def measure_identity(row: SecondaryRow, estimand: str) -> Optional[str]:
     return f"MEASURE_{m}_IS_NOT_ESTIMAND_{e}"
 
 
-def outcome_identity(row: SecondaryRow, outcome_keywords: list, component_words: tuple = ()) -> Optional[str]:
-    """The meta's outcome definition must name the topic's outcome; naming only a COMPONENT of a composite
-    (nonfatal MI for MACE) is a different outcome."""
+def outcome_identity(row: SecondaryRow, outcome_keywords: list, component_words: tuple = (),
+                     core_words: tuple = ()) -> Optional[str]:
+    """The meta's outcome definition must name the topic's outcome -- one of its keyword phrases, or its CORE word
+    ('mortality' for '28-day all-cause mortality'; the timepoint is then a separate check, timepoint_identity).
+    Naming only a COMPONENT of a composite (nonfatal MI for MACE) is a different outcome."""
     from . import lexicon
     d = lexicon.fold(row.outcome_definition or "")
-    if not any(lexicon.fold(k) in d for k in outcome_keywords if k):
+    if not any(lexicon.fold(k) in d for k in outcome_keywords if k) and \
+            not any(re.search(r"\b" + re.escape(lexicon.fold(c)) + r"\b", d) for c in core_words if c):
         return "OUTCOME_NOT_THE_TOPICS"
     if component_words and any(lexicon.fold(c) in d for c in component_words) and \
             not any(lexicon.fold(k) in d for k in outcome_keywords[:3]):
@@ -200,18 +203,37 @@ def outcome_identity(row: SecondaryRow, outcome_keywords: list, component_words:
     return None
 
 
+def _days(t):
+    """A stated follow-up as days ('28 days', '28-day', 'day 28', '6 months'); None when no length is stated."""
+    t = (t or "").lower()
+    m = re.search(r"(\d+)\s*[- ]?\s*(day|week|month|year)s?\b", t)
+    if m:
+        n, unit = int(m.group(1)), m.group(2)
+    else:
+        m = re.search(r"\b(day|week|month|year)\s*(\d+)", t)
+        if not m:
+            return None
+        n, unit = int(m.group(2)), m.group(1)
+    return n * {"day": 1, "week": 7, "month": 30, "year": 365}[unit]
+
+
 def timepoint_identity(row: SecondaryRow, timepoint: Optional[str]) -> Optional[str]:
-    if not timepoint or not row.timepoint:
+    """A topic that registers a timepoint (28-day mortality) cannot take a row whose meta does not state one: metas
+    pool mortality across mixed follow-up. Stated timepoints must be the same length of time."""
+    if not timepoint:
         return None
-    return None if re.sub(r"\W", "", row.timepoint.lower()) == re.sub(r"\W", "", timepoint.lower()) else \
-        f"TIMEPOINT_{row.timepoint}_NE_{timepoint}"
+    if not row.timepoint:
+        return "TIMEPOINT_NOT_STATED_BY_META"
+    a, b = _days(row.timepoint), _days(timepoint)
+    return None if (a is not None and a == b) else f"TIMEPOINT_{row.timepoint}_NE_{timepoint}"
 
 
 def admit(row: SecondaryRow, spec: dict, family_of, randomised_n: Optional[int] = None) -> SecondaryRow:
     """spec: {estimand, keywords, components, timepoint}. family_of(row) -> family id or None (ambiguous/unknown)."""
     reasons = validate(row)
     for check in (measure_identity(row, spec.get("estimand")),
-                  outcome_identity(row, spec.get("keywords") or [], tuple(spec.get("components") or ())),
+                  outcome_identity(row, spec.get("keywords") or [], tuple(spec.get("components") or ()),
+                                   tuple(spec.get("core") or ())),
                   timepoint_identity(row, spec.get("timepoint")),
                   nested_subgroup(row, randomised_n)):
         if check:
