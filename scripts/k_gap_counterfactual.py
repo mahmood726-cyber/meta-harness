@@ -102,21 +102,52 @@ FT_DIR = os.path.join(OUT, "_ft")          # bodies (gitignored); FT_INDEX (comm
 def pmc_fulltext_cached(pmid, offline=False):
     """PMC OA JATS body + structured tables + supplements for one PMID, via the harness's own fetch._pmc_fulltext
     (so the text is exactly what the pipeline would hold). Cached by PMID; '' when PMC holds no OA text."""
+    # harness.fetch._pmc_fulltext returns '' on ANY exception, a rate limit (HTTP 429) included, and this wrapper used to
+    # cache that '' for ever: 121 of 160 cached full texts were empty and 'no OA full text' could not be told from 'NCBI
+    # said slow down'. Now: the PMCID is resolved here (paced, retried) and NO_PMCID is recorded only when PMC's own ID
+    # converter says there is none; an empty body for a PMCID that exists is FETCH_EMPTY and is NOT cached (retried).
     import hashlib
+    import time
     os.makedirs(FT_DIR, exist_ok=True)
     fp = os.path.join(FT_DIR, pmid + ".txt")
-    if os.path.exists(fp):
-        return open(fp, encoding="utf-8").read()
-    if offline:
-        return ""
-    from harness import fetch
-    txt = fetch._pmc_fulltext(pmid, with_supplements=True)
-    with open(fp, "w", encoding="utf-8") as fh:
-        fh.write(txt)
     idx_p = os.path.join(OUT, "fulltext_index.json")
     idx = _j(idx_p) if os.path.exists(idx_p) else {}
-    idx[pmid] = {"bytes": len(txt.encode("utf-8")), "sha256": hashlib.sha256(txt.encode("utf-8")).hexdigest(),
-                 "source": "harness.fetch._pmc_fulltext(with_supplements=True)"}
+    if os.path.exists(fp) and os.path.getsize(fp) > 0:
+        return open(fp, encoding="utf-8").read()
+    if (idx.get(pmid) or {}).get("state") == "NO_PMCID" or offline:
+        return ""
+    from harness import fetch, http
+    pmcid = None
+    for attempt in range(4):
+        try:
+            time.sleep(0.4 + attempt * 2)                  # NCBI: <= 3 requests/s without a key
+            d = http.get_json("https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/",
+                              {"ids": pmid, "format": "json", "tool": "meta-harness", "email": "meta-harness@example.org"},
+                              tries=1)
+            pmcid = ((d.get("records") or [{}])[0]).get("pmcid") or ""
+            break
+        except Exception:  # noqa: BLE001 - a failed lookup is retried, never recorded as 'no PMCID'
+            pmcid = None
+    if pmcid is None:
+        idx[pmid] = {"state": "IDCONV_FAILED", "note": "not cached; retried on the next run"}
+        txt = ""
+    elif pmcid == "":
+        idx[pmid] = {"state": "NO_PMCID", "source": "PMC idconv"}
+        txt = ""
+    else:
+        time.sleep(0.4)
+        txt = fetch._pmc_fulltext(pmid, with_supplements=True)
+        if txt:
+            with open(fp, "w", encoding="utf-8") as fh:
+                fh.write(txt)
+            idx[pmid] = {"state": "HELD", "pmcid": pmcid, "bytes": len(txt.encode("utf-8")),
+                         "sha256": hashlib.sha256(txt.encode("utf-8")).hexdigest(),
+                         "source": "harness.fetch._pmc_fulltext(with_supplements=True)"}
+        else:
+            idx[pmid] = {"state": "FETCH_EMPTY", "pmcid": pmcid,
+                         "note": "PMCID exists but harness.fetch._pmc_fulltext returned '' (it swallows errors); not cached"}
+    if os.path.exists(fp) and os.path.getsize(fp) == 0:
+        os.remove(fp)
     with open(idx_p, "w", encoding="utf-8") as fh:
         json.dump(idx, fh, indent=1, sort_keys=True)
     return txt
