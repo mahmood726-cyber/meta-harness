@@ -170,6 +170,109 @@ def typed_table(slug, pmid, spec, run):
     return ok[0] if len(ok) == 1 else None
 
 
+LOCATE_SCHEMA = {"type": "object", "additionalProperties": False,
+                 "required": ["state", "quote", "measure", "point", "lower", "upper", "events_t", "n_t", "events_c", "n_c"],
+                 "properties": {"state": {"type": "string", "enum": ["REPORTED", "NOT_REPORTED"]},
+                                **{k: {"type": ["string", "null"]} for k in ("quote", "measure", "point", "lower", "upper",
+                                                                           "events_t", "n_t", "events_c", "n_c")}}}
+LOCATE_INSTR = """You are given the abstract (and, if available, full text) of ONE randomised trial report and ONE outcome.
+Quote, character for character, the shortest passage that states the trial's RESULT for that outcome comparing the
+intervention with the control. Copy the numbers exactly as printed in your quote: the effect measure with its point estimate
+and confidence limits, and/or events and totals per arm. Use null for anything not printed in your quote; never compute.
+If the text does not report a between-arm result for this outcome, state=NOT_REPORTED.
+"""
+
+
+def _trial_text(slug, pmid, run):
+    rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+    rec = next((x for x in rj.get("records", []) if str(x.get("id")) == pmid), None)
+    mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
+    mrec = _j(mp) if os.path.exists(mp) else {}
+    rec = rec or mrec.get(pmid)
+    if rec is None and run:
+        from harness import fetch
+        got = fetch._efetch([pmid])
+        if got:
+            rec = got[0]
+            mrec[pmid] = rec
+            _save(mp, mrec)
+    return rec
+
+
+def _norm_ws(t):
+    return re.sub(r"\s+", " ", (t or "").replace("\u2212", "-")).strip()
+
+
+def primary_value(slug, pmid, run, runs):
+    """(primary dict with span, how) for one trial from ITS OWN report: regex on the abstract, then the typed full-text
+    rung, then a recorded locator whose quote must be verbatim in the report and must contain every number it copies
+    (the model only LOCATES; each number is a string the report itself prints)."""
+    import k_gap_counterfactual as cfm
+    from harness import extract, pipeline
+    cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
+    po = cfg.get("primary_outcome") or {}
+    interv, comp = cfg.get("intervention_terms"), cfg.get("comparator_terms")
+    dc = extract.declared_is_composite(po.get("name", ""))
+    rec = _trial_text(slug, pmid, run)
+    if not rec:
+        return None, "NO_RECORD"
+
+    def as_prim(r, how):
+        if r and not r.get("absent") and r.get("effect") is not None and r.get("ci_low") is not None:
+            return {"measure": (r.get("scale") or "").upper(), "effect": str(r["effect"]), "lower": str(r["ci_low"]),
+                    "upper": str(r["ci_high"]), "source": f"PMID {pmid} {how}", "span": str(r.get("source") or "")}, how
+        if r and not r.get("absent") and r.get("ai") is not None:
+            return {"measure": "RR", "events_t": r["ai"], "n_t": r["n1i"], "events_c": r["ci"], "n_c": r["n2i"],
+                    "source": f"PMID {pmid} {how}", "span": str(r.get("source") or "")}, how
+        return None, None
+    got = as_prim(extract.extract_trial(rec.get("abstract") or "", po.get("keywords") or [], interv, comp,
+                                        declared_composite=dc, estimand=po.get("estimand")), "REGEX_ABSTRACT")
+    if got[0]:
+        return got
+    ft = cfm.pmc_fulltext_cached(pmid, offline=not run)
+    if ft:
+        got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
+        if got[0]:
+            return got
+    text = (rec.get("title") or "") + "\n" + (rec.get("abstract") or "") + ("\n\n" + ft if ft else "")
+    p = (LOCATE_INSTR + f"\nOUTCOME: {po.get('name')}\n<<<TEXT\n{text}\nTEXT>>>\n").encode("utf-8")
+    key = f"locate::{slug}::{pmid}"
+    r = runs.get(key)
+    if (not r or r.get("prompt_sha256") != hashlib.sha256(p).hexdigest()) and run:
+        rec_c = mcl.call(p, schema=LOCATE_SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
+                         caller={"file": "scripts/secondary_meta_build.py", "line": "primary_value",
+                                 "purpose": f"secondary-tier primary verification locate {slug} PMID {pmid} (acq/k-gap lane)"},
+                         input_digests=[{"ref": f"trial report PMID {pmid} (abstract + PMC OA full text if held)",
+                                         "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                                         "what": "held text shown whole"}],
+                         timeout_s=1200)
+        ms.write_record(rec_c, REC_DIR)
+        r = runs[key] = {"record_id": rec_c["record_id"], "state": rec_c["state"],
+                         "prompt_sha256": hashlib.sha256(p).hexdigest()}
+    if not r or r.get("state") != "RAN_OK":
+        return None, "LOCATOR_NOT_RUN"
+    claim = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
+    if claim.get("state") != "REPORTED" or not claim.get("quote"):
+        return None, "LOCATOR_NOT_REPORTED"
+    q = _norm_ws(claim["quote"])
+    if q not in _norm_ws(text):
+        return None, "LOCATOR_QUOTE_NOT_IN_TEXT"
+    nums = {k: claim.get(k) for k in ("point", "lower", "upper", "events_t", "n_t", "events_c", "n_c") if claim.get(k)}
+    if not nums or not all(re.search(r"(?<![\d.])" + re.escape(_norm_ws(v)) + r"(?![\d])", q) for v in nums.values()):
+        return None, "LOCATOR_NUMBER_NOT_IN_QUOTE"
+    meas = (claim.get("measure") or "").upper()
+    meas = ("HR" if "HAZARD" in meas else "RR" if ("RISK" in meas or meas == "RR") else
+            "OR" if ("ODDS" in meas or meas == "OR") else meas)
+    if claim.get("point") and claim.get("lower") and claim.get("upper"):
+        return {"measure": meas, "effect": claim["point"], "lower": claim["lower"], "upper": claim["upper"],
+                "source": f"PMID {pmid} LOCATOR:{r['record_id']}", "span": claim["quote"]}, "LOCATOR_QUOTE"
+    if all(claim.get(k) for k in ("events_t", "n_t", "events_c", "n_c")):
+        return {"measure": "RR", "events_t": int(claim["events_t"]), "n_t": int(claim["n_t"]),
+                "events_c": int(claim["events_c"]), "n_c": int(claim["n_c"]),
+                "source": f"PMID {pmid} LOCATOR:{r['record_id']}", "span": claim["quote"]}, "LOCATOR_QUOTE"
+    return None, "LOCATOR_INCOMPLETE"
+
+
 def read_one(item):
     p = fp.prompt_bytes(item)
     rec = mcl.call(p, schema=fp.SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
@@ -399,12 +502,20 @@ def build(slug, run, runs):
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
+    queue_src = Counter()
     for r in rows:
         if r.state == sm.UNVERIFIED:
-            sm.verify_against_primary(r, (by_id.get(r.family_id) or {}).get("primary"))
+            prim = (by_id.get(r.family_id) or {}).get("primary")
+            if prim is None and str(r.family_id or "").startswith("PMID "):
+                # the VERIFICATION QUEUE: a trial we do not pool -> derive its primary value from its OWN report
+                prim, how = primary_value(slug, r.family_id.replace("PMID ", ""), run, runs)
+                queue_src[how] += 1
+                if prim:
+                    by_id.setdefault(r.family_id, {})["primary"] = prim
+            sm.verify_against_primary(r, prim)
     g1 = sm.g1_countable(rows, {comp})
     out = {"slug": slug, "comparator_pmid": comp, "metas_considered": metas, "skipped": skipped, "metas": metas_out,
-           "tally": dict(Counter(r.state for r in rows)),
+           "tally": dict(Counter(r.state for r in rows)), "verification_queue_sources": dict(queue_src),
            "g1_countable_vs_comparator": sorted({r.family_id for r in g1}),
            "refusal_reasons": dict(Counter(x.split(":")[0] for r in rows for x in r.reasons)),
            "rows": [r.to_dict() for r in rows]}
