@@ -162,3 +162,10 @@ def test_mismatch_side_is_decided_numerically_so_a_dropped_trailing_zero_still_a
     sm.verify_against_primary(r, {"measure": "HR", "effect": "0.92", "lower": "0.8", "upper": "1.06",
                                   "span": "hazard ratio, 0.92; 95% CI, 0.80 to 1.06"})
     assert r.state == sm.MISMATCH and r.verification["which_side"].startswith("SECONDARY_WRONG")
+
+
+def test_a_non_numeric_primary_value_leaves_the_row_queued_not_crashing():
+    r = sm.admit(_row(label="Zhdanova", measure="MD", eff=("-7.0", "-12.0", "-2.0"), outcome="sleep onset latency"),
+                 {"estimand": "MD", "keywords": ["sleep onset latency"]}, lambda r: "Z")
+    sm.verify_against_primary(r, {"measure": "MD", "effect": "0:31", "lower": "0:20", "upper": "0:40", "span": "0:31"})
+    assert r.state == sm.UNVERIFIED and r.verification["result"] == "PRIMARY_NOT_NUMERIC"
