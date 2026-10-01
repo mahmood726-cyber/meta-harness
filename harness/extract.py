@@ -985,3 +985,94 @@ def extract_meta(abstract, outcome_kws):
                 eff = {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0], "source": s.strip()[:220]}
             break
     return {"primary": eff, "k": _parse_k(abstract)}
+
+
+def outcome_window_mismatch(declared_timepoint: str, keywords, source_span: str) -> str:
+    """Refuse a result measured over a DIFFERENT explicit day-window than the outcome declares.
+
+    `timepoint_mismatch` above is deliberately narrow: it fires only for a purely in-hospital /
+    index-admission declared timepoint, and returns early when the declared string itself names a
+    day window. So an outcome declaring '30-day or in-hospital' had NO guard at all against a source
+    reporting the same outcome at a different window.
+
+    corticosteroids-cap-mortality found it. PMID 35723686 (Meduri/ESCAPe) reports "There was no
+    significant difference in 60-day all-cause mortality (16% vs. 18%)". docs/refusals.json refuses
+    that trial by hand -- "reports 60-day mortality, not the declared 28-day; timepoint mismatch" --
+    but the harness had no rule, so when the committed full text became visible to pool construction
+    the row was pooled, and only the claimgraph's REFUSED_AND_POOLED check stopped it being served.
+    A registry entry written by a person is not a substitute for a rule.
+
+    The allowed windows come from the declared timepoint AND the outcome's own keywords, because a
+    topic states its intent in both: this outcome declares '30-day or in-hospital' and enumerates
+    '28-day mortality', '28-30', 'death by day 28'. So 28 and 30 are allowed and 60 is not.
+
+    Conservative on purpose -- it fires only when the span attaches an explicit day number to the
+    outcome ("60-day all-cause mortality", "mortality at 90 days"), never on a bare number
+    elsewhere in the sentence, and never when no window is declared at all.
+    """
+    dt = (declared_timepoint or "").lower()
+    allowed = {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", dt)}
+    for k in (keywords or []):
+        allowed |= {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", str(k).lower())}
+        allowed |= {int(n) for n in re.findall(r"\bday\s+(\d{1,3})\b", str(k).lower())}
+        m = re.fullmatch(r"(\d{1,3})\s*-\s*(\d{1,3})", str(k).strip())
+        if m:                                  # an explicit span such as '28-30'
+            allowed |= set(range(int(m.group(1)), int(m.group(2)) + 1))
+    if not allowed:
+        return ""
+    s = (source_span or "").lower()
+    found = set()
+    for m in re.finditer(r"(\d{1,3})\s*[- ]?\s*day\s+(?:all[- ]cause\s+)?(?:mortality|death|survival)", s):
+        found.add(int(m.group(1)))
+    for m in re.finditer(r"(?:mortality|death|survival)\s+at\s+(\d{1,3})\s*days?\b", s):
+        found.add(int(m.group(1)))
+    outside = sorted(w for w in found if w not in allowed)
+    if not outside:
+        return ""
+    return (f"source reports the outcome at {', '.join(str(w) + '-day' for w in outside)} but the outcome "
+            f"declares {declared_timepoint!r} (windows allowed: {sorted(allowed)}); pooling different "
+            "measurement windows would be estimand-inconsistent")
+
+
+_TABLE_ROLE_NEVER_AN_EFFECT_SOURCE = (
+    "baseline demographic", "baseline characteristic", "baseline clinical",
+    "demographic and clinical characteristic", "patient characteristic",
+    "subject characteristic", "study design", "trial design", "inclusion criteria",
+    "exclusion criteria", "eligibility criteria", "schedule of assessment",
+)
+
+
+def table_role_refusal(source_span: str) -> str:
+    """Refuse an effect read out of a BASELINE / DEMOGRAPHIC / DESIGN table.
+
+    A baseline table's numbers are arm sizes and patient characteristics. They look exactly like
+    outcome counts to a keyword-scoped extractor -- same shape, same two arms -- and pooling them
+    produces a confident, well-formed, entirely fictitious effect.
+
+    Found in colchicine-secondary-cv-prevention, PMID 32295417, the moment committed held full texts
+    reached pool construction: the extracted span was
+
+        "Supplementary Material Supplementary Material === TABLES (structured; cell boundaries =
+         ' | ') === TABLE Table 1.: Baseline demographic and clinical characteristics of subject..."
+
+    Nothing downstream would have caught it as a number -- it is arithmetically fine. The build was
+    refused only because docs/refusals.json independently refuses that trial and the claimgraph will
+    not publish a trial that is both refused and pooled. That is luck, not a gate.
+
+    The guard keys on the TABLE CAPTION nearest the span's start, because the caption is where a
+    document states a table's role. It does not key on the word "baseline" anywhere in the span: a
+    results table legitimately says "change from baseline", and refusing that would lose real
+    effects. Returns a reason or ''.
+    """
+    s = (source_span or "")
+    if not s:
+        return ""
+    head = s[:600].lower()
+    m = re.search(r"table\s+[^:\n]{0,40}:\s*([^\n|]{0,160})", head)
+    caption = (m.group(1) if m else head).lower()
+    for phrase in _TABLE_ROLE_NEVER_AN_EFFECT_SOURCE:
+        if phrase in caption:
+            return (f"the effect was read from a table whose caption describes it as {phrase!r} "
+                    "(baseline/demographic/design tables report arm composition, not outcome events); "
+                    "a number from such a table is not an effect")
+    return ""

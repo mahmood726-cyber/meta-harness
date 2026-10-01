@@ -211,12 +211,35 @@ def test_PLANT_page_renders_the_basis_and_the_basis_is_outside_the_signed_bytes(
     assert _block(relay) == _block(WITHDRAWN)          # the basis line sits under the block; the signed hash does not move
 
 
-def test_PLANT_every_committed_notice_keeps_the_not_asserted_wrong_sentence():
-    """'the numbers are not asserted wrong' is the difference between 'we cannot verify this' and 'this is wrong';
-    it must survive every edit of every notice in docs/result_changes.json."""
+def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
+    """A notice must say whether it is challenging the old number or only unable to bind it. Both, per kind.
+
+    'the numbers are not asserted wrong' is the difference between 'we cannot verify this' and 'this is wrong'.
+    Originally this test required that sentence on EVERY notice, which was right while every notice was a
+    SET-ASIDE: a trial left the pool because its number could not be bound to held bytes, so the number was
+    genuinely not challenged.
+
+    It is false on a SUBSTITUTION. When a trial stays in the pool and contributes a different number because the
+    previous one was the wrong quantity for the outcome -- J-EMPHASIS's CV-death/HHF composite HR served as
+    all-cause mortality -- the old number IS asserted wrong, and writing 'not asserted wrong' beside it would put
+    a false sentence on a served page. Satisfying the old assertion would have required exactly that.
+
+    So the requirement is per kind, and each kind must carry its own claim AND NOT the other one. A notice that
+    makes neither claim fails: silence about which claim is being made is the thing this plant exists to stop."""
+    NOT_WRONG = "the numbers are not asserted wrong"
+    AWAITING = "eligible evidence awaiting adjudication"
+    IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
     for n in result_changes.load():
-        assert "the numbers are not asserted wrong" in n["reason"], (n["slug"], n["outcome"])
-        assert "eligible evidence awaiting adjudication" in n["reason"], (n["slug"], n["outcome"])
+        where = (n["slug"], n["outcome"])
+        reason = n["reason"]
+        set_aside = bool(n.get("left_pool") or n.get("entered_pool"))
+        if set_aside:
+            assert NOT_WRONG in reason, where
+            assert AWAITING in reason, where
+            assert IS_WRONG not in reason, (where, "a set-aside must not assert the number wrong")
+        else:
+            assert IS_WRONG in reason, (where, "a substitution must say the served number was wrong")
+            assert NOT_WRONG not in reason, (where, "a substitution must not claim the number is unchallenged")
 
 
 def test_PLANT_a_page_carrying_a_notice_the_file_no_longer_has_is_held(tmp_path, monkeypatch):

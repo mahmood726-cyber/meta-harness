@@ -162,6 +162,36 @@ INLINE_SPECS = {
         "kind": "search", "what": "_multi_dose_arms: a dose with an arm/group context",
         "plants": {"accept": [("the 150 mg group", ("150",)), ("300-mg arm", ("300",))],
                    "refuse": ["150 mg daily", "a 150 mg dose. The group"]}},
+    "extract.py:findall:e0fa32946f": {
+        "kind": "search", "what": "outcome_window_mismatch: a day window named in the declared timepoint",
+        "plants": {"accept": [("30-day or in-hospital", ("30",)), ("28 day mortality", ("28",))],
+                   "refuse": ["in-hospital", "at 12 months"]}},
+    "extract.py:findall:e0fa32946f#2": {
+        "kind": "search", "what": "outcome_window_mismatch: a day window named in one of the outcome's keywords",
+        "plants": {"accept": [("28-day mortality", ("28",)), ("90 day death", ("90",))],
+                   "refuse": ["all-cause mortality", "death by day 28"]}},
+    "extract.py:findall:69685124cf": {
+        "kind": "search", "what": "outcome_window_mismatch: a keyword of the form 'by day N'",
+        "plants": {"accept": [("death by day 28", ("28",)), ("day 90", ("90",))],
+                   "refuse": ["28-day mortality", "daily dose 30"]}},
+    "extract.py:fullmatch:1f205fbc60": {
+        "kind": "search", "what": "outcome_window_mismatch: a keyword that is an explicit day span such as '28-30'",
+        "plants": {"accept": [("28-30", ("28", "30")), ("28 - 30", ("28", "30"))],
+                   "refuse": ["28", "day thirty"]}},
+    "extract.py:finditer:c53080676d": {
+        "kind": "search", "what": "outcome_window_mismatch: a day number attached to the outcome in the source span",
+        "plants": {"accept": [("no difference in 60-day all-cause mortality (16% vs. 18%)", ("60",)),
+                              ("90 day death", ("90",))],
+                   "refuse": ["mortality at 60 days", "60-day readmission"]}},
+    "extract.py:finditer:55df389410": {
+        "kind": "search", "what": "outcome_window_mismatch: 'mortality at N days' in the source span",
+        "plants": {"accept": [("mortality at 90 days", ("90",)), ("death at 28 day", ("28",))],
+                   "refuse": ["60-day mortality", "mortality at one year"]}},
+    "extract.py:search:7930f7731d": {
+        "kind": "search", "what": "table_role_refusal: the caption of the table nearest the span's start",
+        "plants": {"accept": [("table table 1.: baseline characteristics", ("baseline characteristics",)),
+                              ("table 3: death from any cause | hr", None)],
+                   "refuse": ["results are shown in table 2 and figure 1", "the tables below"]}},
 }
 
 
