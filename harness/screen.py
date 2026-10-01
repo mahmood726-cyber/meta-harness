@@ -546,11 +546,45 @@ def _is_unresolved(rec) -> bool:
                     rec.get("conditions"), rec.get("interventions")))
 
 
+def prevention_terms(config: dict) -> list[str]:
+    """Derive condition-as-outcome eligibility from the declared event endpoint.
+
+    Keyword overlap alone is unsafe: mortality keywords can include the enrolled
+    disease, and continuous outcomes can include body weight or sleep latency.
+    Require the population term to denote the entire event outcome, allowing the
+    configured trailing stem and an occurrence prefix. No topic names are used.
+    """
+    outcome = config.get("primary_outcome") or {}
+    if outcome.get("estimand") not in {"RR", "OR", "HR", "RD"}:
+        return []
+    name = lexicon.fold(outcome.get("name") or "").strip()
+    name = _re.sub(r"^(?:at least one|one or more|new|incident|recurrent)\s+", "", name)
+    keywords = [lexicon.fold(k).strip() for k in outcome.get("keywords") or []]
+    matches = []
+    for term in (config.get("include") or {}).get("population_any") or []:
+        folded = lexicon.fold(term).strip()
+        stem = folded.rstrip("*")
+        denotes_outcome = (bool(_re.fullmatch(_re.escape(stem) + r"\w*", name))
+                           if folded.endswith("*") else name == stem)
+        if stem and denotes_outcome and any(
+                k == stem or _has(k, [term]) for k in keywords):
+            matches.append(term)
+    return matches
+
+
+def effective_include(config: dict) -> dict:
+    """Resolve prevention in the harness without mutating registered topic data."""
+    inc = dict(config.get("include") or {})
+    if prevention_terms(config):
+        inc["prevention"] = True
+    return inc
+
+
 def run_dual(all_recs: list, config: dict) -> dict:
     """Run both rule screeners and report the disagreement rate (PRISMA item 8) over RESOLVED records
     only. Deterministic, replay-safe. Adjudicator = screener 1. Records with no retrievable text are
     'unresolved' (UNKNOWN != excluded) and counted separately, not as screening disagreements."""
-    inc = config.get("include", {})
+    inc = effective_include(config)
     neg = set(config.get("negative_control_pmids", []))
     dis = []
     agree = 0
@@ -598,7 +632,7 @@ def _source_case_basis(basis: str, rec: dict) -> str:
 
 
 def run(all_recs: list, config: dict) -> dict:
-    inc = config.get("include", {})
+    inc = effective_include(config)
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
     # publication defect the external audit named: a "design and rationale" paper or a secondary report
