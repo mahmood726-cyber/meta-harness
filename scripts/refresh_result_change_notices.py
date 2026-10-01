@@ -164,8 +164,46 @@ ADDED_EVIDENCE = ("Entering trials are new evidence, not a correction: the previ
                   "wrong; it was computed without the held document(s) this topic now admits to pool construction.")
 
 
+SUPPRESSION_LIFTED = ("Nothing entered or left the pool and no row's number moved: the estimate was computed before and "
+                      "withheld; it is now served, which is a new claim on the page, not a correction of a served number.")
+
+
+def _unresolved_ids(result):
+    """Trial ids a withheld harm result names as unresolved (compat_check's isolated-estimate suppression, or the
+    harms annotator's known-reported-not-yet-extracted list)."""
+    r = result or {}
+    ids = [str(x.get("trial_id") or x.get("id") or "") for x in
+           (r.get("known_eligible_outcome_reports_unresolved") or []) + (r.get("known_reported_not_yet_extracted") or [])
+           if isinstance(x, dict)]
+    return [i.replace("PMID ", "") for i in ids if i]
+
+
+def _suppression_lifted(before_result, after_result, after_absent, after_trials):
+    """The derived account when a WITHHELD estimate is now served: the withheld state, and for each trial that held it,
+    how the objects now resolve it. None when the before result was not withheld."""
+    b, a = before_result or {}, after_result or {}
+    ids = _unresolved_ids(b)
+    if not ids or b.get("estimate") is not None or a.get("estimate") is None:
+        return None
+    pooled = {str(t.get("id")).replace("PMID ", "") for t in after_trials or []}
+    rows = {str(x.get("id")).replace("PMID ", ""): x for x in after_absent or []}
+    out = [f"The k={a.get('k')} estimate was withheld on the served page ({b.get('state') or 'withheld'}: "
+           f"{len(ids)} known eligible outcome report(s) from primary-pool trials unresolved: "
+           f"{', '.join('PMID ' + i for i in ids)})."]
+    for i in ids:
+        x = rows.get(i)
+        if i in pooled:
+            out.append(f"PMID {i} is now resolved: it contributes to the pool.")
+        elif x and (x.get("typed_refusal") or x.get("absent_kind") in ("adjudicated_absent", "refused_on_evidence")):
+            code = x.get("reason_code") or x.get("state")
+            out.append(f"PMID {i} is now resolved as {code}: {(x.get('reason') or '').strip()}")
+        else:
+            return None   # the objects do not show what resolved it: say nothing rather than guess
+    return " ".join(out + [SUPPRESSION_LIFTED])
+
+
 def _reason(left, absent, before_trials=None, after_trials=None, entered=None, before_absent=None,
-            after_absent=None):
+            after_absent=None, before_result=None, after_result=None):
     parts = []
     for tid in left:
         x = absent.get(tid) or {}
@@ -177,6 +215,10 @@ def _reason(left, absent, before_trials=None, after_trials=None, entered=None, b
     parts += entered_parts + substitutions
     if parts:
         parts += _refused_on_evidence(before_absent, after_absent)
+    if not parts:
+        lifted = _suppression_lifted(before_result, after_result, after_absent, after_trials)
+        if lifted:
+            return lifted
     if not parts:
         # No trial left, none entered, and no row's number moved -- the result changed for a reason
         # this script cannot see. Say that, rather than attaching a mechanism sentence that happens
@@ -261,7 +303,8 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
                 else:
                     notice.pop(k, None)
             derived = _reason(left, absent, o.get("trials"), n.get("trials"), entered,
-                              o.get("declared_absent_trials"), n.get("declared_absent_trials"))
+                              o.get("declared_absent_trials"), n.get("declared_absent_trials"),
+                              o.get("result"), n.get("result"))
             # An UNSIGNED derived notice always carries the CURRENT derivation: when the numbers are unchanged but what
             # the harness can say about them grew (omega3 38199870's adjusted/exploratory qualifiers, 2026-10-01), the
             # old reason is stale and keeping it would send the reviewer an incomplete account. `prev` is only ever an

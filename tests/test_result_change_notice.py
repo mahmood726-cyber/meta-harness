@@ -230,6 +230,7 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
     AWAITING = "eligible evidence awaiting adjudication"
     IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
     ENTERED = "Entering trials are new evidence, not a correction"
+    LIFTED = "a new claim on the page, not a correction of a served number"
     for n in result_changes.load():
         where = (n["slug"], n["outcome"])
         reason = n["reason"]
@@ -245,6 +246,12 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
             assert IS_WRONG not in reason, (where, "new evidence must not assert the old number wrong")
             for tid in n["entered_pool"]:
                 assert f"{tid} entered the pool contributing" in reason, (where, tid)
+        elif "was withheld on the served page" in reason:
+            # A LIFTED SUPPRESSION (omega3 AF, 2026-10-01): the estimate existed and was withheld; serving it is a new
+            # claim, and asserts nothing about any served number.
+            assert LIFTED in reason, (where, "a lifted suppression must say it is a new claim, not a correction")
+            assert IS_WRONG not in reason and NOT_WRONG not in reason, where
+            assert n["before"].get("estimate") is None, (where, "only a withheld (absent) estimate can be lifted")
         else:
             assert IS_WRONG in reason, (where, "a substitution must say the served number was wrong")
             assert NOT_WRONG not in reason, (where, "a substitution must not claim the number is unchallenged")
@@ -316,3 +323,31 @@ def test_PLANT_a_page_carrying_a_notice_the_file_no_longer_has_is_held(tmp_path,
     assert reasons and "differ from docs/result_changes.json" in reasons[0]
     (root / "docs" / "result_changes.json").write_text(json.dumps({"_doc": "t", "notices": [_signed(WITHDRAWN, "SEEN_AND_SIGNED")]}) + chr(10), encoding="utf-8")
     assert gate.check_result_change_countersigned(str(d)) == []
+
+
+def test_PLANT_a_lifted_suppression_is_derived_not_left_unexplained(tmp_path, monkeypatch):
+    """2026-10-01, omega3 Atrial fibrillation: the k=1 estimate was WITHHELD on the served page (compat_check: an
+    isolated harm estimate is suppressed while a primary-pool trial's source-reported harm is unresolved -- VITAL's
+    sentence about future ancillary studies). A held-source decision typed that hit SIGNAL_SPURIOUS, the suppression
+    lifted, and the same estimate is now served. Nothing entered or left and no row moved, so the refresher said
+    'the cause is not derivable'. It is derivable from the objects: the withheld state and the row that resolved it."""
+    before = _rv(1, 1.2296, ["PMID 1"])
+    res = before["outcomes"][0]["result"]
+    res.update({"k": None, "estimate": None, "ci_low": None, "ci_high": None, "present": False,
+                "state": "HARMS_INCOMPLETE",
+                "known_eligible_outcome_reports_unresolved": [{"trial_id": "30415637", "terms": ["atrial fibrillation"]}]})
+    before["outcomes"][0]["declared_absent_trials"] = [{"id": "PMID 30415637", "state": "OUTCOME_NOT_IN_SOURCE",
+                                                         "absent_kind": "machine_absent"}]
+    after = _rv(1, 1.2296, ["PMID 1"])
+    after["outcomes"][0]["declared_absent_trials"] = [{"id": "PMID 30415637", "state": "SIGNAL_SPURIOUS",
+                                                        "reason_code": "SIGNAL_SPURIOUS", "typed_refusal": True,
+                                                        "absent_kind": "adjudicated_absent",
+                                                        "reason": "The hit names future ancillary studies."}]
+    out = _refresh_in(tmp_path, monkeypatch, [], before, after)
+    assert len(out) == 1
+    reason = out[0]["reason"]
+    assert "not derivable" not in reason
+    assert "was withheld on the served page (HARMS_INCOMPLETE" in reason
+    assert "PMID 30415637 is now resolved as SIGNAL_SPURIOUS: The hit names future ancillary studies." in reason
+    assert "a new claim on the page, not a correction" in reason
+    assert "asserted wrong" not in reason
