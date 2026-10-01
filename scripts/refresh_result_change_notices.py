@@ -260,10 +260,15 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
                     notice[k] = v
                 else:
                     notice.pop(k, None)
-            if not same or not prev.get("reason"):
+            derived = _reason(left, absent, o.get("trials"), n.get("trials"), entered,
+                              o.get("declared_absent_trials"), n.get("declared_absent_trials"))
+            # An UNSIGNED derived notice always carries the CURRENT derivation: when the numbers are unchanged but what
+            # the harness can say about them grew (omega3 38199870's adjusted/exploratory qualifiers, 2026-10-01), the
+            # old reason is stale and keeping it would send the reviewer an incomplete account. `prev` is only ever an
+            # unsigned notice here (a signed one is carried byte-identical above), so no signature can be touched.
+            if not same or not prev.get("reason") or (not notice.get("reason_locked") and prev.get("reason") != derived):
                 if not notice.get("reason_locked"):
-                    notice["reason"] = _reason(left, absent, o.get("trials"), n.get("trials"), entered,
-                                               o.get("declared_absent_trials"), n.get("declared_absent_trials"))
+                    notice["reason"] = derived
                 notice["by"] = by
                 notice["when_utc"] = when
                 notice["reviewer_countersignature"] = {"state": "OPEN", "note": "the reviewer has not yet seen the rendered notice; "

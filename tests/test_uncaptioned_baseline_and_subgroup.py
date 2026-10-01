@@ -102,3 +102,19 @@ def test_held_fulltexts_opt_in_is_read_from_the_topic_config(tmp_path, monkeypat
     assert pipeline.held_fulltexts("t", rec, config={"held_fulltexts_enabled": True})[0] == {"1": "held"}
     assert pipeline.held_fulltexts("t", rec, config={})[0] == {}
     assert pipeline.held_fulltexts("t", rec, config={"held_fulltexts_enabled": "yes"})[0] == {}
+
+
+def test_PLANT_an_incomplete_harms_outcome_still_states_that_its_pool_is_suppressed():
+    """corticosteroids-cap Hyperglycaemia, 2026-10-01: enabling its held full text revealed a fifth reporting trial,
+    the outcome became HARMS_INCOMPLETE, and page._outcome_block's early return for an incomplete harms synthesis
+    dropped 'Pooled result SUPPRESSED (estimand-incompatible)' -- the honest-state ratchet caught the page getting
+    quieter. Both states are true and both must be rendered."""
+    import json as _json
+    from harness import page
+    rv = _json.load(open(os.path.join(ROOT, "docs", "reviews", "corticosteroids-cap-mortality", "review.json"),
+                         encoding="utf-8"))
+    o = next(x for x in rv["outcomes"] if x["name"] == "Hyperglycaemia")
+    assert (o.get("result") or {}).get("suppressed_incompatible"), "fixture changed: Hyperglycaemia is no longer suppressed"
+    html = page._outcome_block(o, show_inputs=False)
+    assert "Pooled result SUPPRESSED (estimand-incompatible)" in html
+    assert "HARMS" in html or "harm" in html.lower()

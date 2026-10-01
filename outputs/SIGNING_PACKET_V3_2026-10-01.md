@@ -8,9 +8,9 @@ Built from branch captain/table-role-guard (not yet on main). Every hash recompu
 
 ### V3-01 — omega3-cardiovascular-events / Major vascular events / MACE
 
-`rendered_sha256 fda06897e5b85b993877bbad303f3c1c12d0f5632d6e0e17a56f2c6d11984209`
+`rendered_sha256 07c8fd020dc05fc5a68921075e9c6e1912e15941dae52d0f328406a09197eb9f`
 
-Major vascular events / MACE: the pooled result changed on 2026-10-01. Previously served: k = 5, 0.94 (0.77 to 1.14). Now: k = 6, 0.94 (0.80 to 1.10). The direction of the estimate is unchanged. Entered the pool: PMID 38199870. Why: PMID 38199870 entered the pool contributing HR 1.0 (0.64 to 1.56) (source pmc_fulltext from its committed held full text). Entering trials are new evidence, not a correction: the previously served number is not asserted wrong; it was computed without the held document(s) this topic now admits to pool construction. — Claude Opus 5.5 (captain lane, captain/table-role-guard); reviewer countersignature owed: Mahmood.
+Major vascular events / MACE: the pooled result changed on 2026-10-01. Previously served: k = 5, 0.94 (0.77 to 1.14). Now: k = 6, 0.94 (0.80 to 1.10). The direction of the estimate is unchanged. Entered the pool: PMID 38199870. Why: PMID 38199870 entered the pool contributing HR 1.0 (0.64 to 1.56) (source pmc_fulltext from its committed held full text). The source reports this estimate as covariate-adjusted: "risk of MACE: omega-3 versus no omega-3 (adjusted hazard ratio (aHR) = 1.00, 95% CI 0.64–1.56), nor vitamin". The source reports this estimate as an exploratory endpoint: "2.2.2 Major cardiovascular events Incident major CVD events (MACE) were an exploratory endpoint of DO-HEALTH and used as a composite (any of the events) individual endpoint and included myocardial infarction, stroke, procedures leading to coronary revascularization, incident congestive heart disease". Entering trials are new evidence, not a correction: the previously served number is not asserted wrong; it was computed without the held document(s) this topic now admits to pool construction. — Claude Opus 5.5 (captain lane, captain/table-role-guard); reviewer countersignature owed: Mahmood.
 
 ### V3-02 — probiotics-aad-prevention / Antibiotic-associated diarrhoea
 
