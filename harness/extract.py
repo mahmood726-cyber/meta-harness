@@ -1123,3 +1123,55 @@ def subgroup_refusal(source_span: str) -> str:
         return ""
     return (f"the source restricts this result to a subgroup ('{m.group(0)}'), not the randomised population "
             "the outcome declares; a subgroup estimate is a different population and is not pooled")
+
+
+_ADJUSTED_EFFECT = re.compile(
+    r"(?<!un)\badjusted\s+(?:hazard|odds|risk|rate)\s+ratio\b[^.;]{0,40}?"
+    r"|\ba(?:HR|OR|RR)\b|\b(?:multivariable|covariate)[- ]adjusted\b")
+_EXPLORATORY_STATEMENT = re.compile(r"\bexploratory\s+(?:end[\s-]?point|outcome|analysis|analyses)\b", re.I)
+_LABEL_ONLY_KW = re.compile(
+    r"^(?:the\s+)?(?:co-?primary|primary|key secondary|secondary|main)[\s-]+(?:composite\s+)?"
+    r"(?:outcome|end[\s-]?point|measure|variable|end[\s-]?point event)s?$|^(?:the\s+)?composite", re.I)
+
+
+def analysis_qualifiers(source_span: str, held_text: str, keywords) -> list:
+    """What the source itself says about HOW this result was estimated, with the verbatim span -- never typed.
+
+      COVARIATE_ADJUSTED    the row's own span reports an adjusted ratio ("adjusted hazard ratio", "aHR", ...);
+                            "unadjusted" does not fire.
+      EXPLORATORY_ENDPOINT  a sentence of the held document states that THIS outcome (one of its declared keywords,
+                            label-only keywords such as "primary endpoint" excluded) was an exploratory endpoint.
+
+    Not a refusal: whether such a result is poolable is the protocol's rule. This makes the qualifier visible on the
+    row and in any notice about it (omega3 PMID 38199870, DO-HEALTH: "adjusted hazard ratio (aHR) = 1.00" and "The
+    risk of MACE ... was an exploratory endpoint of DO-HEALTH"). Returns [] or [{code, quote}].
+    """
+    out = []
+    span = source_span or ""
+    # The row's stored span is a SNIPPET (220 chars) and can stop mid-phrase -- DO-HEALTH's ends at "(adjusted hazard".
+    # Locate it in the held document and read the whole sentence it came from.
+    content = span.split("): ", 1)[1] if "): " in span[:80] else span
+    probe = " ".join(content.split())[:60]
+    flat = " ".join((held_text or "").split())
+    at = flat.find(probe) if len(probe) >= 30 else -1
+    if at >= 0:
+        stop = re.search(r"(?<=[.!?])\s+[A-Z]", flat[at + len(probe):])
+        span = flat[at: at + len(probe) + (stop.start() if stop else 600)]
+    m = _ADJUSTED_EFFECT.search(span)
+    if m:
+        lo, hi = max(0, m.start() - 40), min(len(span), m.end() + 40)
+        while lo > 0 and not span[lo - 1].isspace():        # whole words only: the quote is read, not sliced
+            lo -= 1
+        while hi < len(span) and not span[hi].isspace():
+            hi += 1
+        out.append({"code": "COVARIATE_ADJUSTED", "quote": span[lo:hi].strip()})
+    kws = [str(k).lower() for k in (keywords or []) if str(k).strip() and not _LABEL_ONLY_KW.match(str(k).strip())]
+    if kws:
+        for sentence in re.split(r"(?<=[.!?])\s+", held_text or ""):
+            if not _EXPLORATORY_STATEMENT.search(sentence):
+                continue
+            low = sentence.lower()
+            if any((k in low) if len(k) > 4 else re.search(r"\b" + re.escape(k) + r"\b", low) for k in kws):
+                out.append({"code": "EXPLORATORY_ENDPOINT", "quote": sentence.strip()[:300]})
+                break
+    return out

@@ -109,6 +109,41 @@ SPECS = {
                             "trigger": r"composite|MACE|\bor\b", "plants": {
                                 "accept": ["death or hospitalization for heart failure"],
                                 "refuse": ["all-cause death"]}},
+    "_UNCAPTIONED_BASELINE_HEADER": {"kind": "classifier",
+                                     "spec": "an inline table's content opens with a 'Characteristic(s)' header column",
+                                     "trigger": r"characteristic", "plants": {
+                                         "accept": ["characteristic probiotic group (n=170) placebo group (n=170)",
+                                                    "baseline characteristics drug placebo"],
+                                         "refuse": ["death from any cause occurred in 17 patients"]}},
+    "_DEMOGRAPHIC_ROW_LABEL": {"kind": "classifier",
+                               "spec": "a row label naming a patient demographic (age, sex, BMI, ethnicity, smoking)",
+                               "trigger": r"\bage|\bsex|\bbmi", "plants": {
+                                   "accept": ["age groups (n;%) 18-30 years", "female 52 (30.6)"],
+                                   "refuse": ["death from any cause", "antibiotic-associated diarrhoea"]}},
+    "_SUBGROUP_RESTRICTION": {"kind": "classifier",
+                              "spec": "the sentence restricts its result to a subgroup of the randomised population",
+                              "trigger": r"subgroup|subset|group of patients who", "plants": {
+                                  "accept": ["in the group of patients who were on regular ppi, lcs use was associated",
+                                             "in a subgroup analysis of diabetic patients"],
+                                  "refuse": ["the effect was consistent across prespecified subgroups",
+                                             "of the participants receiving the studied probiotic mix"]}},
+    "_ADJUSTED_EFFECT": {"kind": "classifier",
+                         "spec": "the reported ratio is covariate-adjusted (adjusted HR/OR/RR, aHR, multivariable-adjusted)",
+                         "trigger": r"adjust|\baHR\b", "plants": {
+                             "accept": ["omega-3 versus no omega-3 (adjusted hazard ratio (aHR) = 1.00",
+                                        "the aHR was 0.80"],
+                             "refuse": ["the unadjusted hazard ratio was 0.91", "hazard ratio, 1.77"]}},
+    "_EXPLORATORY_STATEMENT": {"kind": "classifier",
+                               "spec": "the sentence states that an outcome or analysis was exploratory",
+                               "trigger": r"exploratory", "plants": {
+                                   "accept": ["MACE was an exploratory endpoint of DO-HEALTH",
+                                              "these exploratory analyses were not prespecified"],
+                                   "refuse": ["MACE was the primary endpoint", "an exploratory trial design"]}},
+    "_LABEL_ONLY_KW": {"kind": "classifier",
+                       "spec": "a declared keyword that is only an endpoint LABEL ('primary endpoint'), not an outcome",
+                       "trigger": r"primary|secondary|composite", "plants": {
+                           "accept": ["primary endpoint", "the composite outcome"],
+                           "refuse": ["major cardiovascular events", "death from any cause"]}},
 }
 
 
@@ -192,6 +227,14 @@ INLINE_SPECS = {
         "plants": {"accept": [("table table 1.: baseline characteristics", ("baseline characteristics",)),
                               ("table 3: death from any cause | hr", None)],
                    "refuse": ["results are shown in table 2 and figure 1", "the tables below"]}},
+    "extract.py:search:e1a55342c0": {
+        "kind": "search", "what": "analysis_qualifiers: the end of the sentence a truncated row snippet came from",
+        "plants": {"accept": [("(aHR = 1.00, 95% CI 0.64-1.56). Also, no effect", None)],
+                   "refuse": ["aHR = 1.00, 95% CI 0.64-1.56", "p. 12 of the supplement"]}},
+    "extract.py:split:373165b5f8": {
+        "kind": "split", "what": "analysis_qualifiers: split the held document into sentences after . ! or ?",
+        "plants": {"accept": [("MACE was exploratory. HR 1.00 was seen", ["MACE was exploratory.", "HR 1.00 was seen"])],
+                   "refuse": ["HR 1.00 (0.64-1.56) was seen"]}},
 }
 
 

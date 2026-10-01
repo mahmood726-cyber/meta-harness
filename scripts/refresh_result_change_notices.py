@@ -137,7 +137,12 @@ def _entered(entered, after_trials):
         where = ""
         if str(prov).startswith("pmc_fulltext"):
             where = " from its committed held full text"
-        out.append(f"{tid} entered the pool contributing {_fmt(t)} (source {prov}{where}).")
+        quals = ""
+        for q in t.get("analysis_qualifiers") or []:
+            word = {"COVARIATE_ADJUSTED": "covariate-adjusted",
+                    "EXPLORATORY_ENDPOINT": "an exploratory endpoint"}.get(q.get("code"), q.get("code"))
+            quals += f" The source reports this estimate as {word}: \"{q.get('quote')}\"."
+        out.append(f"{tid} entered the pool contributing {_fmt(t)} (source {prov}{where}).{quals}")
     return out
 
 

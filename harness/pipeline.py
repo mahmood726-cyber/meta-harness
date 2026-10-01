@@ -1436,6 +1436,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if _r:
             _prior = list(_t.get("endpoint_eligibility_refusals") or [])
             _t["endpoint_eligibility_refusals"] = _prior + [x for x in _r if x not in _prior]
+        # A row read from a HELD FULL TEXT carries what that document says about how the number was estimated
+        # (covariate-adjusted; an exploratory endpoint), quoted from its bytes. Set only when non-empty, so no
+        # other row's object changes.
+        if str(_t.get("provenance") or "").startswith("pmc_fulltext"):
+            _pid = str(_t.get("id") or "").replace("PMID ", "").strip()
+            _q = extract.analysis_qualifiers(_t.get("source", ""), fulltext_by_pmid.get(_pid) or "",
+                                             spec.get("keywords"))
+            if _q:
+                _t["analysis_qualifiers"] = _q
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
     if spec.get("withdrawn"):
