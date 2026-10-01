@@ -507,6 +507,95 @@ def queue_complete(rows: list) -> list:
     return [r for r in rows if r.state == UNVERIFIED and not ((r.verification or {}).get("queue_reason"))]
 
 
+# ------------------------------------------------------------------ DETERMINISTIC verification (no model)
+
+_MEASURE_WORDS = {"HR": r"\bHR\b|hazard ratio", "RR": r"\bRR\b|risk ratio|relative risk|rate ratio",
+                  "OR": r"\bOR\b|odds ratio", "MD": r"\bW?MD\b|mean difference|difference"}
+# point, then (anything but digits, or a "95%"), then lower SEP upper: "0.79; 95% confidence interval [CI], 0.57 to 1.11",
+# "0.79 (0.57-1.11)", "0.79 [95% CI 0.57, 1.11]"
+_TEXT_TRIPLE = re.compile(r"(-?\d+(?:\.\d+)?)(?:[^\d]|95\s?%){0,45}?(-?\d+(?:\.\d+)?)\s*(?:-|to|,)\s*(-?\d+(?:\.\d+)?)")
+
+
+def _eq_printed(a, b):
+    """Two printed numbers are the same at the coarser of their printed precisions."""
+    if _num(a) is None or _num(b) is None:
+        return False
+    d = max(min(_decimals(a), _decimals(b)), 0)
+    return abs(_num(a) - _num(b)) <= 0.5 * 10 ** (-d) + 1e-9
+
+
+def _outcome_near(text, i, j, outcome_terms, window=400):
+    w = text[max(0, i - window): j + window].lower()
+    return any(t.lower() in w for t in outcome_terms if t)
+
+
+def typed_match_text(row: SecondaryRow, text: str, outcome_terms: list, source_ref: str) -> Optional[dict]:
+    """The meta's printed numbers FOUND in a primary text, by regex: an effect+CI triple equal to the row's (rounding-
+    aware) with a word naming the SAME measure just before it, or both arms' events/N, each within an outcome-term
+    window. Returns {"result": "TYPED_MATCH", source, span} or None. A miss is not a mismatch (the text may report
+    it elsewhere or differently): the row stays queued."""
+    t = _fold_text(text or "")
+    if row.effect is not None and row.measure.upper() in _MEASURE_WORDS:
+        mw = re.compile(_MEASURE_WORDS[row.measure.upper()], re.I)
+        for m in _TEXT_TRIPLE.finditer(t):
+            if not (_eq_printed(m.group(1), row.effect) and _eq_printed(m.group(2), row.lower)
+                    and _eq_printed(m.group(3), row.upper)):
+                continue
+            if mw.search(t[max(0, m.start() - 80): m.start()]) and _outcome_near(t, m.start(), m.end(), outcome_terms):
+                return {"result": "TYPED_MATCH", "source": source_ref, "span": t[max(0, m.start() - 160): m.end() + 40]}
+    if None not in (row.events_t, row.n_t, row.events_c, row.n_c):
+        def pair(e, n):
+            return re.compile(rf"(?<![\d.]){e}\s*(?:/|of|out of)\s*{n:,}(?![\d])|(?<![\d.]){e}\s*(?:/|of|out of)\s*{n}(?![\d])")
+        for m in pair(row.events_t, row.n_t).finditer(t):
+            near = t[max(0, m.start() - 400): m.end() + 400]
+            if pair(row.events_c, row.n_c).search(near) and _outcome_near(t, m.start(), m.end(), outcome_terms):
+                return {"result": "TYPED_MATCH", "source": source_ref, "span": near[:400]}
+    return None
+
+
+def typed_match_registry(row: SecondaryRow, registry: dict, outcome_terms: list, source_ref: str) -> Optional[dict]:
+    """The meta's numbers FOUND in posted CT.gov results (AACT): registry = {"outcomes": {oid: {title, time_frame}},
+    "analyses": [{outcome_id, param_type, param_value, ci_lower, ci_upper}], "groups": {oid: [{group, count, n}]}}.
+    The outcome title must name the topic outcome; an analysis must be the same measure with the same estimate + CI,
+    or two result groups of one outcome must carry the row's (events, N) pairs."""
+    want_param = {"HR": "hazard ratio", "RR": "risk ratio", "OR": "odds ratio", "MD": "mean difference"}.get(row.measure.upper())
+    named = {oid for oid, o in (registry.get("outcomes") or {}).items()
+             if any(t.lower() in (o.get("title") or "").lower() for t in outcome_terms if t)}
+    if row.effect is not None and want_param:
+        for a in registry.get("analyses") or []:
+            if a.get("outcome_id") in named and want_param in (a.get("param_type") or "").lower() and \
+                    _eq_printed(a.get("param_value"), row.effect) and _eq_printed(a.get("ci_lower"), row.lower) and \
+                    _eq_printed(a.get("ci_upper"), row.upper):
+                o = registry["outcomes"][a["outcome_id"]]
+                return {"result": "TYPED_MATCH", "source": source_ref,
+                        "span": f"{o.get('title')} [{o.get('time_frame')}]: {a.get('param_type')} {a.get('param_value')} "
+                                f"({a.get('ci_lower')}, {a.get('ci_upper')})"}
+    if None not in (row.events_t, row.n_t, row.events_c, row.n_c):
+        for oid in named:
+            g = registry.get("groups", {}).get(oid) or []
+            pairs = {(x.get("count"), x.get("n")) for x in g}
+            if (row.events_t, row.n_t) in pairs and (row.events_c, row.n_c) in pairs:
+                o = registry["outcomes"][oid]
+                return {"result": "TYPED_MATCH", "source": source_ref,
+                        "span": f"{o.get('title')}: groups {sorted(pairs)}"}
+    return None
+
+
+def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> SecondaryRow:
+    """DETERMINISTIC VERIFICATION FIRST: try every held primary source (texts and the posted registry) for the meta's
+    exact printed numbers; a typed match -> PRIMARY_VERIFIED (no model). sources: [(kind, ref, payload)] with kind
+    'text' or 'registry'."""
+    if row.state != UNVERIFIED:
+        return row
+    for kind, ref, payload in sources:
+        hit = (typed_match_text(row, payload, outcome_terms, ref) if kind == "text"
+               else typed_match_registry(row, payload, outcome_terms, ref))
+        if hit:
+            row.state, row.verification = VERIFIED, hit
+            return row
+    return row
+
+
 def g1_countable(rows: list, comparator_meta_ids: set) -> list:
     """G1 'k matched' against a comparator: only PRIMARY_VERIFIED rows, and never a row sourced FROM that comparator
     (it would be the comparator agreeing with itself)."""
