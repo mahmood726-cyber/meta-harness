@@ -143,12 +143,16 @@ eligibility universe, and the tamper-evident-not-blinded claim) are recorded as 
 `docs/PROSPECTIVE_VALIDATION_SPEC.md` (served at `/PROSPECTIVE_VALIDATION_SPEC.md`).
 
 ## Reproducibility contract
-- Stdlib-only. The page is a **pure, deterministic** function of a `review.json`
+- The page is a **pure, deterministic** function of a `review.json`
   object; `review_sha256` covers the review core, `html_sha256` covers the served
   page. The census (`harness/census.py`) re-derives both on a fresh clone.
 - The search is **fetch-once**: results are cached in-repo under `cache/` and
   committed, so screening/extraction/synthesis replay **offline** and identically.
 - The index (`harness/index.py`) is **generated, never hand-maintained**.
+- Full corpus replay: `python scripts/replay_offline.py --report scratch/corpus-replay.json`.
+  Install the shipped, hashed NumPy/SciPy wheels first using [the offline contract](docs/offline/REPLAY.md).
+  Every topic has object-generated `REPLAY.md` instructions; `python scripts/generate_replay.py --check`
+  refuses stale guides, dependency bindings or wheel bytes. This check also runs in `verify_all.py`.
 
 ## Layout
 ```

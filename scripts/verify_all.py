@@ -275,7 +275,13 @@ def limb_gate_gaps():
     return (PASS if rc == 0 else REFUSED), tail
 
 
+def limb_replay_currency():
+    rc, output = _run([sys.executable, "scripts/generate_replay.py", "--check"])
+    return (PASS if rc == 0 else REFUSED), output
+
+
 LIMBS = [
+    ("replay currency (generated guides and offline dependencies)", limb_replay_currency),
     ("unit tests (pytest tests/)", limb_unit_tests),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
     ("publication gate on every live review page", limb_gate_every_page),
