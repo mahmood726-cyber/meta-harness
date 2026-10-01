@@ -706,3 +706,69 @@ def test_near_match_with_extra_component_is_refused_by_the_verifier():
     assert row["final"] == "INADMISSIBLE"
     others = [r for r in rep["rows"] if r["pmid"] != "27633186"]
     assert all(r["predicates"]["P13_no_extra_components"] and r["predicates"]["P14_missing_components_consistent"] for r in others)
+
+
+# ---- --corrupt is a self-test: its verdict reports the self-test, never PASS (captain lane, 2026-10-01) ---------------
+# Measured on main 65acd80: 13 of 17 limbs were detected inside the report (a predicate flipped, the row went
+# INADMISSIBLE) while the verdict said PASS, exit 0; served_basis_lie was a no-op on a row whose abstract never says
+# "intention-to-treat". After the fix: 17 of 17 by verdict (scratchpad corrupt17.py, both by internal diff and by verdict).
+
+@pytest.mark.parametrize("pmid,limb", [
+    ("27633186", "effect"),                      # one of the 13 the verdict used to hide
+    ("27633186", "served_basis_lie"),            # was a no-op on this row
+    ("27633186", "regulatory_strategy_swap"),    # visible only as a bundle-level failure, never a predicate flip
+    ("27633186", "regulatory_consistent_swap"),
+])
+def test_PLANT_a_corruption_self_test_reports_CORRUPTION_DETECTED_and_never_exits_zero(pmid, limb):
+    p = subprocess.run([sys.executable, VERIFIER, "--root", "docs", "--slug", SLUG, "--json", "--corrupt", pmid, limb],
+                       cwd=ROOT, capture_output=True, text=True, encoding="utf-8", stdin=subprocess.DEVNULL)
+    rep = json.loads(p.stdout)
+    assert p.returncode == 1, (limb, p.returncode)
+    assert rep["verdict"] == "CORRUPTION_DETECTED", (limb, rep["verdict"], rep.get("self_test"))
+    assert rep["self_test"]["detected_by"], limb
+    assert rep["corruption"] == {"pmid": pmid, "limb": limb}       # the record of WHAT was mutated stays exact
+
+
+def test_served_basis_plant_changes_a_source_without_itt_text():
+    rep = _run("--corrupt", "27633186", "served_basis_lie")
+    row = next(r for r in rep["rows"] if r["pmid"] == "27633186")
+    assert rep["verdict"] == "CORRUPTION_DETECTED"
+    assert not row["predicates"]["P10_estimand_evidence"]
+    assert not row["predicates"]["P11_registered_estimand"]
+    assert row["predicates"]["P1_source_bytes"] and row["predicates"]["P2_span_located"]
+
+
+def test_served_basis_lie_is_refused_without_self_test_mode(tmp_path):
+    """From rescue-wip/mh-wt-a3: the same lie, written into a doctored copy of the site, fails an ordinary run."""
+    def edit(records):
+        row = next(r for r in records["records"] if str(r["id"]) == "27633186")
+        row["abstract"] += " The primary outcome analysis used the on-treatment population."
+    root = _doctored_site(tmp_path, edit_records=edit, edited_pmids=("27633186",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27633186")
+    assert rep["corruption"] is None and rep["verdict"] == "FAIL"
+    assert row["predicates"]["P1_source_bytes"] and row["predicates"]["P2_span_located"]
+    assert not row["predicates"]["P10_estimand_evidence"]
+    assert not row["predicates"]["P11_registered_estimand"]
+    assert any(f.startswith("ESTIMAND_BASIS_DISAGREES 27633186/") for f in rep["failures"])
+
+
+@pytest.mark.parametrize("consistent,code", [
+    (False, "ANALYSIS_IDENTITY_MISMATCH"), (True, "BOUND_TO_UNREGISTERED_ESTIMAND"),
+])
+def test_regulatory_swap_is_refused_without_self_test_mode(tmp_path, consistent, code):
+    """From rescue-wip/mh-wt-a3: the swapped ELIXA decision, written into a doctored site, fails an ordinary run."""
+    bundle = json.load(open(os.path.join(ROOT, "docs", "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
+    root = str(tmp_path / "site")
+    _copy_served_tree(bundle, root)
+    rf = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
+    candidate = next(a for a in rf["candidate_analyses"] if a["kind"] == "table8_ontreatment_3p")
+    rf["decision"]["effect"] = {"scale": "HR", **candidate["tuple"]}
+    if consistent:
+        rf["decision"]["claimed_treatment_strategy"] = candidate["analysis_identity"]["treatment_strategy"]
+    with open(os.path.join(root, "reviews", SLUG, "BUNDLE.json"), "w", encoding="utf-8") as f:
+        json.dump(bundle, f, ensure_ascii=False)
+    rep = _verify(root)
+    assert rep["corruption"] is None and rep["verdict"] == "FAIL"
+    assert all(all(r["predicates"].values()) for r in rep["rows"])
+    assert [f.split(" ELIXA:")[0] for f in rep["failures"]] == [code]

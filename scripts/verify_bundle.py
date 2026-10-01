@@ -838,7 +838,13 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 if isinstance(fv, dict) and fv.get("basis") == "REGISTERED_DEFAULT":
                     fv["span"] = "intention-to-treat"; break
         elif limb == "served_basis_lie":   # the bundle says REGISTERED_DEFAULT where the source states on-treatment (a deserialised state must not be trusted)
-            rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"].replace("intention-to-treat", "on-treatment population"))
+            # The mutation must CHANGE the source. For a row whose abstract never says "intention-to-treat" the replace
+            # was a no-op, so the self-test "passed" without testing anything (27633186, 2026-10-01). Append the lie.
+            abstract = rec_by_pmid[pmid]["abstract"]
+            changed = abstract.replace("intention-to-treat", "on-treatment population")
+            if changed == abstract:
+                changed += " The primary outcome analysis used the on-treatment population."
+            rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=changed)
             br["source"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"])
             br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
         elif limb == "container":
@@ -1179,7 +1185,12 @@ def main(argv=None):
         pass
     store = Store(a.root, a.url)
     try:
+        # A self-test needs a baseline: it measures NEW refusals the corruption caused, not damage that was already there.
+        baseline = run(store, a.slug, None) if a.corrupt else None
         rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None, anchor_live=(a.anchor == "live"))
+        if baseline is not None:
+            rep["self_test"] = _self_test(baseline, rep, a.corrupt)
+            rep["verdict"] = rep["self_test"]["verdict"]
     except Refusal as r:
         rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": r.code, "detail": r.detail, "failures": [f"{r.code} {r.detail}"],
                "note": "the verifier could not complete; this is a verdict, not a crash"}
@@ -1226,7 +1237,39 @@ def main(argv=None):
             print(f"corruption {rep['corruption']}: rows no longer ADMISSIBLE = {[(r['pmid'], r['final']) for r in rep['rows'] if r['final'] != 'ADMISSIBLE']}")
         for f in rep["failures"]:
             print("  FAIL:", f)
+        if rep.get("self_test"):
+            st = rep["self_test"]
+            print(f"self-test {st['verdict']}: detected_by {st['detected_by']}")
+    # A corruption probe never exits 0: a caller reading only the exit code must not read success from a self-test.
+    # DETECTED and UNDETECTED are told apart by the verdict; both are refusals of the bundle-as-served (exit 1).
     return 0 if rep["verdict"] == "PASS" else 1
+
+
+def _self_test(baseline, rep, corrupt):
+    """--corrupt IS A SELF-TEST AND MUST NEVER REPORT PASS.
+
+    Measured on main 65acd80 (2026-10-01): 13 of 17 corruption limbs were detected inside the report (a predicate
+    flipped, the row went INADMISSIBLE) while the verdict said PASS, exit 0 -- so a reader following REPLAY.md, who
+    reads the verdict, would conclude the tampering was NOT detected. And predicate flips alone miss the regulatory
+    swaps, which surface only as bundle-level failures (ANALYSIS_IDENTITY_MISMATCH, BOUND_TO_UNREGISTERED_ESTIMAND).
+    Detection is therefore measured against an uncorrupted baseline run: any predicate True->False, any row that was
+    ADMISSIBLE and is not, or any failure the baseline did not have.
+    """
+    before = {r["pmid"]: r for r in baseline.get("rows", [])}
+    detected = [f"{r['pmid']}/{k}" for r in rep.get("rows", []) for k, v in (r.get("predicates") or {}).items()
+                if v is False and (before.get(r["pmid"], {}).get("predicates") or {}).get(k) is True]
+    detected += [f"{r['pmid']}/row_admissibility" for r in rep.get("rows", [])
+                 if r.get("final") != "ADMISSIBLE" and before.get(r["pmid"], {}).get("final") == "ADMISSIBLE"]
+    detected += [f for f in rep.get("failures", []) if f not in baseline.get("failures", [])]
+    if baseline.get("verdict") != "PASS":
+        verdict = "SELF_TEST_BASELINE_NOT_PASS"
+    else:
+        verdict = "CORRUPTION_DETECTED" if detected else "CORRUPTION_UNDETECTED"
+    if verdict == "CORRUPTION_UNDETECTED":
+        rep["failures"] = list(rep.get("failures", [])) + [
+            f"SELF_TEST_FAILED corruption {corrupt[0]}/{corrupt[1]} was injected and nothing the verifier reports changed"]
+    return {"verdict": verdict, "detected_by": detected, "baseline_verdict": baseline.get("verdict"),
+            "pmid": corrupt[0], "limb": corrupt[1]}
 
 
 if __name__ == "__main__":
