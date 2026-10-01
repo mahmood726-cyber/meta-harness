@@ -1160,6 +1160,43 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                              "appropriateness of CI-to-SE conversions for non-Wald intervals", "the production admission path"]
     report["failures"] = failures
     report["verdict"] = "PASS" if not failures else "FAIL"
+    if corrupt:
+        # --corrupt IS A SELF-TEST AND MUST NEVER RETURN PASS.
+        #
+        # An outsider following docs/reviews/<slug>/REPLAY.md is told this command "must refuse". It
+        # returned verdict PASS, failures [], exit 0 -- while the injected corruption HAD been
+        # detected: row 27633186's P3_effect_tokens_in_span, P9_span_target_mention and
+        # P10_estimand_evidence all flipped false and the row went INADMISSIBLE. The detection
+        # worked; the verdict ignored it. A reader who reads the verdict -- which is what a verdict
+        # is for -- concludes that tampering with a served effect was NOT detected.
+        #
+        # So in corrupt mode the verdict reports the self-test, not the bundle:
+        #   CORRUPTION_DETECTED     the mutation changed a predicate or an admissibility. Expected.
+        #   CORRUPTION_UNDETECTED   it changed nothing the verifier reports. That is the failure the
+        #                           control exists to find, and it is much louder than a FAIL.
+        # Both are non-zero, so "must refuse" is literally true of the command as documented.
+        detected = []
+        for row in report["rows"]:
+            if str(row.get("pmid")) != str(corrupt[0]):
+                continue
+            detected += [k for k, v in (row.get("predicates") or {}).items() if v is False]
+            if row.get("admissible") is False or row.get("admissibility") == "INADMISSIBLE":
+                detected.append("row_admissibility")
+        # The self-test result goes in its OWN key, not inside report["corruption"].
+        # tests/test_bundle_verifier.py asserts `rep["corruption"] == {"pmid":..., "limb":...}` by
+        # EXACT equality, and it is right to: that dict is the identity of what was mutated -- "one
+        # dependency, the one asked for". What the verifier concluded about the mutation is a
+        # different fact and must not be smuggled into the record of what was done.
+        report["self_test"] = {"self_test": "DETECTED" if detected else "UNDETECTED",
+                               "detected_by": sorted(set(detected)),
+                               "pmid": corrupt[0], "limb": corrupt[1]}
+        if detected:
+            report["verdict"] = "CORRUPTION_DETECTED"
+        else:
+            report["verdict"] = "CORRUPTION_UNDETECTED"
+            report["failures"] = failures + [
+                f"SELF_TEST_FAILED corruption {corrupt[0]}/{corrupt[1]} was injected and the verifier "
+                "reported nothing: no predicate flipped and no admissibility changed"]
     return report
 
 
@@ -1189,6 +1226,21 @@ def main(argv=None):
         rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": "VERIFIER_INTERNAL_ERROR", "detail": f"{type(e).__name__}: {str(e)[:300]}",
                "failures": [f"VERIFIER_INTERNAL_ERROR {type(e).__name__}: {str(e)[:300]}"]}
         print(json.dumps(rep, indent=1, ensure_ascii=False) if a.json else f"verdict REFUSED  VERIFIER_INTERNAL_ERROR: {type(e).__name__}: {e}")
+        return 1
+    if a.corrupt and rep["verdict"] in ("CORRUPTION_DETECTED", "CORRUPTION_UNDETECTED"):
+        # Non-zero either way: a self-test run is never a publication pass, and a caller that only
+        # reads the exit code must not read "0" from a corruption probe.
+        if a.json:
+            print(json.dumps(rep, indent=1, ensure_ascii=False))
+        else:
+            print(f"verdict {rep['verdict']}  self_test {rep['self_test']['self_test']}  "
+                  f"detected_by {rep['self_test']['detected_by']}")
+        # REFUSAL IS EXIT 1, like every other refusal in this script. An exit code of 2 was my
+        # invention; it broke tests/test_bundle_verifier.py's `_run`, which asserts
+        # returncode in (0, 1), and bought nothing the verdict field does not already carry.
+        # What matters is that a corruption probe can never exit 0 -- a caller reading only
+        # the exit code must not read success from a self-test. DETECTED and UNDETECTED are
+        # told apart by rep["verdict"] and rep["self_test"].
         return 1
     if a.json:
         print(json.dumps(rep, indent=1, ensure_ascii=False))

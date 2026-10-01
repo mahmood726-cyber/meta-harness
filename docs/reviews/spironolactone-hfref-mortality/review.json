@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure', 'HFrEF', 'systolic heart failure', 'reduced ejection fraction', 'left ventricular ejection fraction']; and none of ['preserved ejection fraction', 'HFpEF', 'mildly reduced', 'HFmrEF', 'acute myocardial infarction', 'myocardial infarction', 'post-acute myocardial infarction', 'post myocardial infarction', 'post-MI', 'kidney disease', 'chronic kidney disease', 'diabetes', 'diabetic kidney disease', 'hypertension', 'cirrhosis', 'ascites', 'dialysis', 'hemodialysis', 'polycystic ovary']; randomised intervention is one of ['spironolactone', 'eplerenone', 'aldosterone antagonist', 'aldosterone blocker', 'mineralocorticoid receptor antagonist'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - mineralocorticoid receptor antagonists for all-cause mortality in HFrEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced ejection fraction (HFrEF) / systolic heart failure.\n- **I** - a steroidal mineralocorticoid receptor antagonist, specifically spironolactone or eplerenone, added to recommended therapy.\n- **C** - placebo added to recommended therapy.\n- **O (primary)** - all-cause mortality.\n- **O (harms)** - hyperkalemia; gynecomastia or breast pain.\n\n## Estimand / population / timepoint\n- **Estimand** - published RR/HR with 95% CI when reported, or risk ratio (RR) when only percentage-corroborated arm counts are extractable.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest randomised follow-up reported for all-cause mortality.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult HFrEF / systolic heart-failure population, judged from title or registry conditions;\n- **I3** - spironolactone or eplerenone versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or post-hoc analysis not indexed as an RCT);\n- **X2** - wrong population (e.g. HFpEF, mildly reduced EF, post-myocardial-infarction LV dysfunction, CKD, diabetes, dialysis, hypertension, cirrhosis, or other non-HFrEF population);\n- **X3** - wrong intervention/comparison (no eligible spironolactone/eplerenone-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled in the machine-readable record;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports all-cause\n> mortality, or gives a 2x2 vs only an effect+CI, is recorded as *target-result status*\n> at extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: UID-anchored queries for RALES, EMPHASIS-HF, and the resolved open-access comparator.\n- ClinicalTrials.gov: condition \"HFrEF\", intervention \"mineralocorticoid receptor antagonist\".\n- Citation chasing: enabled from the comparator and positive-control trials; every retrieved record is still screened on P/I/C/design.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on the log ratio (RR/HR as configured for the outcome);\n**Paule-Mandel** tau^2; **HKSJ** 95% CI on `t_{k-1}` with variance floor\n`max(1, Q/(k-1))`; prediction interval `mu +/- t_{k-1}*sqrt(tau^2+se^2)`.\n0.5 continuity correction to all four cells of a study only if it has a zero cell.\nDerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nZhang et al., *Frontiers in Cardiovascular Medicine* 2025, \"Mineralocorticoid receptor\nantagonists in heart failure: a systematic review and meta-analysis\" (PMID 40959489,\nDOI 10.3389/fcvm.2025.1667236; PubMed links PubMed Central/free full text). The\ncomparator reports the HFrEF subgroup for all-cause mortality.\n\n## Controls\n- **Positive** - the search must recover the canonical HFrEF MRA trials:\n  RALES (spironolactone) and EMPHASIS-HF (eplerenone).\n- **Negative** - EPHESUS (eplerenone after acute myocardial infarction complicated by\n  LV dysfunction and heart failure) must be recovered and EXCLUDED as same-drug but wrong-topic.\n\n## Amendment 2026-09-16 (identifier scope widened from single agent to MRA class)\n**Status: retrospective scope correction.** This amendment is appended before rebuilding\nthe served page and does not rename the pinned slug/URL.\n\n- **Original identifier scope.** The served slug `spironolactone-hfref-mortality` read as a single-agent spironolactone identifier.\n- **Widened scope.** Steroidal mineralocorticoid receptor antagonist class review: spironolactone or eplerenone versus placebo in adults with HFrEF.\n- **Reason.** The page title and PICO intervention line already specify spironolactone or eplerenone; the slug/URL is a pinned served identity and is not renamed in this lane fix.\n- **Pre-specified list.** spironolactone; eplerenone.\n"
+    "text": "# Protocol - mineralocorticoid receptor antagonists for all-cause mortality in HFrEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced ejection fraction (HFrEF) / systolic heart failure.\n- **I** - a steroidal mineralocorticoid receptor antagonist, specifically spironolactone or eplerenone, added to recommended therapy.\n- **C** - placebo added to recommended therapy.\n- **O (primary)** - all-cause mortality.\n- **O (harms)** - hyperkalemia; gynecomastia or breast pain.\n\n## Estimand / population / timepoint\n- **Estimand** - published RR/HR with 95% CI when reported, or risk ratio (RR) when only percentage-corroborated arm counts are extractable.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest randomised follow-up reported for all-cause mortality.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult HFrEF / systolic heart-failure population, judged from title or registry conditions;\n- **I3** - spironolactone or eplerenone versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or post-hoc analysis not indexed as an RCT);\n- **X2** - wrong population (e.g. HFpEF, mildly reduced EF, post-myocardial-infarction LV dysfunction, CKD, diabetes, dialysis, hypertension, cirrhosis, or other non-HFrEF population);\n- **X3** - wrong intervention/comparison (no eligible spironolactone/eplerenone-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled in the machine-readable record;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports all-cause\n> mortality, or gives a 2x2 vs only an effect+CI, is recorded as *target-result status*\n> at extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: UID-anchored queries for RALES, EMPHASIS-HF, and the resolved open-access comparator.\n- ClinicalTrials.gov: condition \"HFrEF\", intervention \"mineralocorticoid receptor antagonist\".\n- Citation chasing: enabled from the comparator and positive-control trials; every retrieved record is still screened on P/I/C/design.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on the log ratio (RR/HR as configured for the outcome);\n**Paule-Mandel** tau^2; **HKSJ** 95% CI on `t_{k-1}` with variance floor\n`max(1, Q/(k-1))`; prediction interval `mu +/- t_{k-1}*sqrt(tau^2+se^2)`.\n0.5 continuity correction to all four cells of a study only if it has a zero cell.\nDerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nZhang et al., *Frontiers in Cardiovascular Medicine* 2025, \"Mineralocorticoid receptor\nantagonists in heart failure: a systematic review and meta-analysis\" (PMID 40959489,\nDOI 10.3389/fcvm.2025.1667236; PubMed links PubMed Central/free full text). The\ncomparator reports the HFrEF subgroup for all-cause mortality.\n\n## Controls\n- **Positive** - the search must recover the canonical HFrEF MRA trials:\n  RALES (spironolactone) and EMPHASIS-HF (eplerenone).\n- **Negative** - EPHESUS (eplerenone after acute myocardial infarction complicated by\n  LV dysfunction and heart failure) must be recovered and EXCLUDED as same-drug but wrong-topic.\n\n## Amendment 2026-09-16 (identifier scope widened from single agent to MRA class)\n**Status: retrospective scope correction.** This amendment is appended before rebuilding\nthe served page and does not rename the pinned slug/URL.\n\n- **Original identifier scope.** The served slug `spironolactone-hfref-mortality` read as a single-agent spironolactone identifier.\n- **Widened scope.** Steroidal mineralocorticoid receptor antagonist class review: spironolactone or eplerenone versus placebo in adults with HFrEF.\n- **Reason.** The page title and PICO intervention line already specify spironolactone or eplerenone; the slug/URL is a pinned served identity and is not renamed in this lane fix.\n- **Pre-specified list.** spironolactone; eplerenone.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 226,
@@ -3483,17 +3487,6 @@
             {
               "derivation": "reported",
               "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): The primary outcome occurred in 18.3% of patients in the eplerenone group as compared with 25.9% in the placebo group (hazard ratio, 0.63; 95% confidence interval [CI], 0.5...",
-              "effect": 0.63,
-              "ci_low": 0.54,
-              "ci_high": 0.74,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            },
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
               "source_span": "abstract effect+CI (HR): A total of 12.5% of patients receiving eplerenone and 15.5% of those receiving placebo died (hazard ratio, 0.76; 95% CI, 0.62 to 0.93; P=0.008); 10.8% and 13.5%, respective...",
               "effect": 0.76,
               "ci_low": 0.61,
@@ -3535,6 +3528,9 @@
             "corroborates_endpoint": false,
             "note": "SECOND_SOURCE_DIFFERENT_ENDPOINT: registry title is not the pooled endpoint: Number of Participants With First Occurrence of All-Cause Mortality or Heart Failure (HF) Hospitalization (Adjudicated)"
           },
+          "endpoint_eligibility_refusals": [
+            "the sentence names its endpoint only as 'primary outcome', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'All-cause mortality' is a single component, so this is a different quantity"
+          ],
           "endpoint_admissibility": "UNBOUND_LEGACY",
           "endpoint_binding": "unbound_legacy",
           "verified": "verified",
@@ -3566,8 +3562,8 @@
               "validity_critical": false
             }
           },
-          "effect_model_class": "TIME_TO_FIRST_DEATH_COX_RATIO",
           "source_label": "hazard ratio",
+          "effect_model_class": "TIME_TO_FIRST_DEATH_COX_RATIO",
           "study_effect": {
             "effect_estimate": 0.76,
             "standard_error": 0.10343687723509756,
@@ -3640,38 +3636,68 @@
           "family_id": "NCT00232180"
         },
         {
-          "effect": 0.85,
-          "ci_low": 0.53,
-          "ci_high": 1.36,
-          "scale": "HR",
-          "provenance": "abstract",
-          "source": "abstract effect+CI (HR): The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-          "derivation": "reported",
           "label": "J-EMPHASIS-HF",
           "id": "PMID 28824029",
-          "selection_rule": "PUBLISHED_EFFECT_TARGET_CLASS",
-          "selected_estimator": "published_effect_ci",
-          "alternatives": [
+          "ai": 17,
+          "n1i": 111,
+          "ci": 10,
+          "n2i": 110,
+          "provenance": "abstract_verified",
+          "source": "J-EMPHASIS-HF (PMID 28824029, NCT01115855) abstract: HFrEF patients received eplerenone (n=111) or placebo (n=110) on top of standard therapy; a total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died",
+          "kind": "extracted_counts",
+          "verification": "source-verified via Codex network fetch of NCBI eutils 2026-09-14; round-trip 17/111=15.3%, 10/110=9.1%",
+          "handed_abstract": "BACKGROUND: The mineralocorticoid receptor antagonist eplerenone improved clinical outcomes among patients with heart failure with reduced ejection faction (HFrEF) in the EMPHASIS-HF (Eplerenone in Mild Patients Hospitalization And SurvIval Study in Heart Failure) study. However, similar efficacy and safety have not been established in Japanese patients. We evaluated the efficacy and safety of eplerenone in patients with HFrEF in a multicenter, randomized, double-blind placebo-controlled outcome study (ClinicalTrials.gov Identifier: NCT01115855). The aim of the study was to evaluate efficacy predefined as consistency of the primary endpoint with that of EMPHASIS-HF at a point estimate of <1 for the hazard ratio. METHODS AND RESULTS: HFrEF patients with NYHA functional class II-IV and an EF ≤35% received eplerenone (n=111) or placebo (n=110) on top of standard therapy for at least 12 months. The primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF. The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)]. Hospitalization for any cause and changes in plasma BNP and LVEF were favorable with eplerenone. A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died. Adverse events, including hyperkalemia, were similar between the groups. CONCLUSIONS: Eplerenone was well-tolerated in Japanese patients with HFrEF and showed results consistent with those reported in the EMPHASIS-HF study.",
+          "document_candidates": [
+            "cache/spironolactone-hfref-mortality/records.json#PMID-28824029",
+            "cache/spironolactone-hfref-mortality/ft_28824029.txt"
+          ],
+          "source_hierarchy_limitations": [
             {
-              "derivation": "reconstructed",
-              "provenance": "abstract_verified",
-              "source_span": "J-EMPHASIS-HF (PMID 28824029, NCT01115855) abstract: HFrEF patients received eplerenone (n=111) or placebo (n=110) on top of standard therapy; a total of 17 patients (15.3%) in the eplerenone group...",
-              "ai": 17,
-              "n1i": 111,
-              "ci": 10,
-              "n2i": 110,
-              "implied_rr": 1.6846846846846846,
-              "not_selected_reason": "source_hierarchy_lower_precedence"
+              "code": "PUBLISHED_EFFECT_KNOWN_NOT_IN_COMMITTED_SOURCE",
+              "reason": "AUDIT_QUEUE item 7 reports a published J-EMPHASIS-HF all-cause mortality HR 1.77 [0.81, 3.87], but the committed abstract/cache for this clone contains only the arm counts; the row is not switched until that source span is committed.",
+              "citation": "AUDIT_QUEUE.md item 7"
+            },
+            {
+              "code": "MIXED_BY_SOURCE_LIMIT",
+              "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
+              "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
             }
           ],
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "derivation": "reconstructed",
+          "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
+          "selected_estimator": "reconstructed",
+          "alternatives": [],
+          "endpoint_eligibility_refusals": [
+            "the sentence names its endpoint only as 'primary endpoint', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'All-cause mortality' is a single component, so this is a different quantity"
+          ],
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died.",
+          "endpoint_definition_span": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died.",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/spironolactone-hfref-mortality/records.json#PMID-28824029",
+            "sha256": "e901036c243cd53f5c1b4644dc0e5d003caf8e540c1d13514856f1096a0cf461",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "verified": "verified",
-          "verify_basis": "effect present in committed source",
+          "verify_basis": "arm counts present in committed source",
           "design": {
             "unit_of_randomisation": "INDIVIDUAL",
             "design": "PARALLEL",
-            "estimator_source": "PUBLISHED_HR",
+            "estimator_source": "RECONSTRUCTED",
             "adjustment_status": "UNRESOLVED",
             "adjustment_axis": {
               "status": "UNRESOLVED"
@@ -3680,7 +3706,7 @@
               "method": "none",
               "evidence": []
             },
-            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "se_provenance": "synth.Study.yi_vi:2x2:RR",
             "basis": [
               {
                 "source": "AACT designs.intervention_model",
@@ -3697,20 +3723,20 @@
           },
           "source_label": "risk ratio reconstructed from arm counts",
           "study_effect": {
-            "effect_estimate": 0.85,
-            "standard_error": 0.24040313485787726,
+            "effect_estimate": 1.6846846846846846,
+            "standard_error": 0.37513145870727316,
             "estimand": "HR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "INDIVIDUAL",
             "study_design": "PARALLEL",
-            "estimator_method": "PUBLISHED_HR",
+            "estimator_method": "RECONSTRUCTED",
             "correlation_handling": {
               "method": "none",
               "evidence": []
             },
             "source_provenance": {
-              "source": "abstract",
-              "span": "abstract effect+CI (HR): The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)]."
+              "source": "abstract_verified",
+              "span": "J-EMPHASIS-HF (PMID 28824029, NCT01115855) abstract: HFrEF patients received eplerenone (n=111) or placebo (n=110) on top of standard therapy; a total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died"
             },
             "design_action": {
               "action": "ALLOW",
@@ -3721,9 +3747,9 @@
             }
           },
           "effect_object": {
-            "reported_label": "HR",
+            "reported_label": "RR",
             "statistical_model": null,
-            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+            "canonical_estimand": "RISK_RATIO"
           },
           "trial_family_id": "J-EMPHASIS-HF",
           "publication_role": "primary",
@@ -3763,6 +3789,7 @@
           },
           "trial_id": "PMID 28824029",
           "report_id": "PMID 28824029",
+          "effect_source_id": "PMID 28824029",
           "outcome_effect_id": "spironolactone-hfref-mortality::All-cause mortality::PMID 28824029::PMID 28824029",
           "family_identity_state": "REGISTRY_ANCHORED",
           "family_id": "NCT01115855"
@@ -3794,17 +3821,16 @@
       },
       "result": {
         "k": 3,
-        "estimate": 0.7294,
+        "estimate": 0.8685,
         "scale": "HR",
-        "ci_low": 0.5609,
-        "ci_high": 0.9486,
-        "tau2": 0.0,
-        "Q": 0.82952,
-        "i2": 0.0,
+        "ci_low": 0.3062,
+        "ci_high": 2.4635,
+        "tau2": 0.13998,
+        "Q": 5.36158,
+        "i2": 62.7,
         "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
-        "pi_low": 0.5609,
-        "pi_high": 0.9486,
-        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected).",
+        "pi_low": 0.1276,
+        "pi_high": 5.9118,
         "estmeasure": {
           "status": "compatible_labels",
           "classes": [
@@ -3824,17 +3850,17 @@
           "RR"
         ],
         "leave_one_out": {
-          "min": 0.7136,
-          "max": 0.7734,
+          "min": 0.7218,
+          "max": 1.0428,
           "most_influential": "10471456",
           "per_trial": [
             {
               "dropped": "10471456",
-              "estimate": 0.7734
+              "estimate": 1.0428
             },
             {
               "dropped": "21073363",
-              "estimate": 0.7136
+              "estimate": 1.006
             },
             {
               "dropped": "J-EMPHASIS-HF",
@@ -3845,18 +3871,18 @@
         },
         "claim": {
           "present": true,
-          "significant": true,
-          "crosses_null": false,
+          "significant": false,
+          "crosses_null": true,
           "touches_null": false,
           "null": 1.0,
           "direction": "benefit",
           "significant_fixed": null
         },
-        "effect_label": "pooled first-event ratio (2 HR + 1 RR)",
-        "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048",
-        "claim_id": "fe4b253b23fa1dc3",
+        "effect_label": "pooled first-event ratio (1 HR + 2 RR)",
+        "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a",
+        "claim_id": "8373dcb3bc70ef12",
         "depends_on": {
-          "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+          "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
         },
         "claim_kind": "outcome_result"
       },
@@ -3893,7 +3919,7 @@
           "status": "NOT_DECLARED"
         },
         "endpoint_canonical_status": "NOT_DECLARED",
-        "effect_label": "pooled first-event ratio (2 HR + 1 RR)",
+        "effect_label": "pooled first-event ratio (1 HR + 2 RR)",
         "dimension_matches": {
           "endpoint": false
         },
@@ -3915,7 +3941,8 @@
                 "TIME_TO_FIRST_DEATH_COX_RATIO"
               ],
               "missing_trials": [
-                "10471456"
+                "10471456",
+                "J-EMPHASIS-HF"
               ],
               "per_trial": [
                 {
@@ -3933,8 +3960,8 @@
                 {
                   "trial": "J-EMPHASIS-HF",
                   "id": "PMID 28824029",
-                  "value": "TIME_TO_FIRST_DEATH_COX_RATIO",
-                  "basis": "HR label for death outcome"
+                  "value": null,
+                  "basis": null
                 }
               ]
             },
@@ -3950,10 +3977,12 @@
           "RR"
         ],
         "k": 3,
-        "reconstructed_members": [],
+        "reconstructed_members": [
+          "J-EMPHASIS-HF"
+        ],
         "label_mix_small_k": true
       },
-      "recovery_disclosure": "Pooled trials report different effect-measure labels (HR + RR), combined as first-event relative ratios. This is an approximation, not an identity: a hazard ratio and a cumulative risk ratio are not the same number when events are common or follow-up differs. At this k a single influential trial can move the summary. Read the pooled effect as approximate.",
+      "recovery_disclosure": "Pooled trials report different effect-measure labels (HR + RR), combined as first-event relative ratios. This is an approximation, not an identity: a hazard ratio and a cumulative risk ratio are not the same number when events are common or follow-up differs. One contributing effect is reconstructed from raw arm counts (J-EMPHASIS-HF); at this k a single influential trial can move the summary and widen the interval. Read the pooled effect as approximate.",
       "compat_underlying": {
         "status": "COMPAT_DIMENSION_HETEROGENEOUS",
         "dimensions": [
@@ -5504,10 +5533,10 @@
     },
     {
       "id": "PMID 28824029",
-      "type": "not stated (abstract only - full text not retrieved)",
+      "type": "not stated (full text scanned)",
       "span": "",
-      "source": "abstract",
-      "scanned": "abstract",
+      "source": "full text",
+      "scanned": "full text",
       "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     }
   ],
@@ -5852,36 +5881,36 @@
       "21073363": "low",
       "28824029": "some_concerns"
     },
-    "input_set_version": "959b936d5c6be26465b1f059d9c182b369d53ff7309b087674d805cf6dc13db8",
+    "input_set_version": "38c9f0e395d27cefed02297f86088dd78b3ae25cbf80b3d7255586331b605261",
     "n_trials": 3,
     "n_rob_rated": 3,
     "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 3,
-      "estimate": 0.7294,
+      "estimate": 0.8685,
       "scale": "RR/HR",
-      "ci_low": 0.5609,
-      "ci_high": 0.9486,
-      "tau2": 0.0,
-      "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048",
-      "claim_id": "a1c7c73776cd95b2",
+      "ci_low": 0.3062,
+      "ci_high": 2.4635,
+      "tau2": 0.13998,
+      "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a",
+      "claim_id": "a757caaf1bdc0124",
       "depends_on": {
-        "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+        "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
       },
       "claim_kind": "rob_sensitivity.full"
     },
     "drop_high": {
       "k": 3,
-      "estimate": 0.7294,
+      "estimate": 0.8685,
       "scale": "RR/HR",
-      "ci_low": 0.5609,
-      "ci_high": 0.9486,
-      "tau2": 0.0,
-      "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048",
-      "claim_id": "39ab90735552966f",
+      "ci_low": 0.3062,
+      "ci_high": 2.4635,
+      "tau2": 0.13998,
+      "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a",
+      "claim_id": "61c6724a07f9f0ef",
       "depends_on": {
-        "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+        "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
@@ -5892,10 +5921,10 @@
       "ci_low": 0.3236,
       "ci_high": 1.6097,
       "tau2": 0.0,
-      "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048",
-      "claim_id": "081716dbda49d81e",
+      "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a",
+      "claim_id": "702e6292316099c3",
       "depends_on": {
-        "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+        "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
@@ -5927,22 +5956,22 @@
         ]
       },
       "inconsistency": {
-        "downgrade": 0,
+        "downgrade": 1,
         "not_estimable": false,
         "assessed": true,
-        "basis": "tau^2=0.0 (no between-study heterogeneity detected)",
+        "basis": "tau^2=0.13998; prediction interval [0.1276, 5.9118] is >=2x the CI width -> real heterogeneity",
         "state": "ASSESSED"
       },
       "imprecision": {
-        "downgrade": 0,
-        "assessed": false,
-        "state": "REQUIRES_JUDGEMENT",
-        "crosses_null": false,
+        "downgrade": 1,
+        "assessed": true,
+        "state": "ASSESSED",
+        "crosses_null": true,
         "missing_inputs": [
           "clinical threshold / MID with basis",
           "information-size assessment with adequacy and basis"
         ],
-        "basis": "95% CI [0.5609, 0.9486]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis"
+        "basis": "95% CI [0.3062, 2.4635]; GRADE default appreciable-effect thresholds 0.75/1.25; no topic threshold registered; spans clinical decisions or inadequate information -> imprecise; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -5966,26 +5995,25 @@
         ]
       }
     },
-    "downgrades": 0,
+    "downgrades": 2,
     "conservative_downgrades_pending_human_judgement": [],
     "certainty": "provisional",
     "certainty_state": "GRADE provisional -- not yet fully assessable",
     "certainty_capped_by_rob_coverage": false,
     "certainty_capped_single_trial": false,
-    "certainty_capped_d3_unassessed": true,
+    "certainty_capped_d3_unassessed": false,
     "certainty_capped_unassessed_domain": false,
     "unassessed_domains": [
       "risk_of_bias",
-      "imprecision",
       "publication_bias",
       "indirectness"
     ],
     "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 3 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048",
-    "claim_id": "692b3974ddaf594a",
+    "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a",
+    "claim_id": "d064bf14439793b2",
     "depends_on": {
-      "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+      "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
     },
     "claim_kind": "grade"
   },
@@ -10413,26 +10441,198 @@
           "measured": {
             "state": "YES",
             "span": {
-              "quote": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-              "source": "held abstract",
-              "report_id": "28824029"
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258432014",
+                "nct_id": "NCT01115855",
+                "title": "Number of Participants With With First Occurrence of All-Cause Mortality",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT01115855",
+                  "row_key": {
+                    "id": "258432014"
+                  },
+                  "row_sha256": "57d36e406aceb5070952c225cc92f002bc7c0bf9e454a85d8882c43a711eab3d",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 6.0,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1927480591",
+                    "nct_id": "NCT01115855",
+                    "outcome_id": "258432014",
+                    "param_type": "NUMBER",
+                    "param_value": "6",
+                    "param_value_num": "6.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT01115855",
+                      "row_key": {
+                        "id": "1927480591"
+                      },
+                      "row_sha256": "6a4f38a3432a2c3adfea4b5c9ee050cb46e1c6363beef437d8dda9caebec40d3",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                },
+                {
+                  "value": 1.77,
+                  "param_type": "Hazard Ratio (HR)",
+                  "source_row": {
+                    "id": "128873741",
+                    "nct_id": "NCT01115855",
+                    "outcome_id": "258432014",
+                    "param_type": "Hazard Ratio (HR)",
+                    "param_value": "1.77",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01115855",
+                      "row_key": {
+                        "id": "128873741"
+                      },
+                      "row_sha256": "46b2e19ddc16e60ee20f295057ae450ddaad09c540c5162008eb6d00fd12e822",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                }
+              ]
             }
           },
           "reported": {
             "state": "YES",
             "span": {
-              "quote": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-              "source": "held abstract",
-              "report_id": "28824029"
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258432014",
+                "nct_id": "NCT01115855",
+                "title": "Number of Participants With With First Occurrence of All-Cause Mortality",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT01115855",
+                  "row_key": {
+                    "id": "258432014"
+                  },
+                  "row_sha256": "57d36e406aceb5070952c225cc92f002bc7c0bf9e454a85d8882c43a711eab3d",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 6.0,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1927480591",
+                    "nct_id": "NCT01115855",
+                    "outcome_id": "258432014",
+                    "param_type": "NUMBER",
+                    "param_value": "6",
+                    "param_value_num": "6.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT01115855",
+                      "row_key": {
+                        "id": "1927480591"
+                      },
+                      "row_sha256": "6a4f38a3432a2c3adfea4b5c9ee050cb46e1c6363beef437d8dda9caebec40d3",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                },
+                {
+                  "value": 1.77,
+                  "param_type": "Hazard Ratio (HR)",
+                  "source_row": {
+                    "id": "128873741",
+                    "nct_id": "NCT01115855",
+                    "outcome_id": "258432014",
+                    "param_type": "Hazard Ratio (HR)",
+                    "param_value": "1.77",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01115855",
+                      "row_key": {
+                        "id": "128873741"
+                      },
+                      "row_sha256": "46b2e19ddc16e60ee20f295057ae450ddaad09c540c5162008eb6d00fd12e822",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                }
+              ]
             }
           },
           "extractable": {
             "state": "YES",
             "span": {
-              "quote": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-              "source": "held abstract",
-              "report_id": "28824029"
-            }
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258432014",
+                "nct_id": "NCT01115855",
+                "title": "Number of Participants With With First Occurrence of All-Cause Mortality",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT01115855",
+                  "row_key": {
+                    "id": "258432014"
+                  },
+                  "row_sha256": "57d36e406aceb5070952c225cc92f002bc7c0bf9e454a85d8882c43a711eab3d",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 6.0,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1927480591",
+                    "nct_id": "NCT01115855",
+                    "outcome_id": "258432014",
+                    "param_type": "NUMBER",
+                    "param_value": "6",
+                    "param_value_num": "6.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT01115855",
+                      "row_key": {
+                        "id": "1927480591"
+                      },
+                      "row_sha256": "6a4f38a3432a2c3adfea4b5c9ee050cb46e1c6363beef437d8dda9caebec40d3",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                },
+                {
+                  "value": 1.77,
+                  "param_type": "Hazard Ratio (HR)",
+                  "source_row": {
+                    "id": "128873741",
+                    "nct_id": "NCT01115855",
+                    "outcome_id": "258432014",
+                    "param_type": "Hazard Ratio (HR)",
+                    "param_value": "1.77",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01115855",
+                      "row_key": {
+                        "id": "128873741"
+                      },
+                      "row_sha256": "46b2e19ddc16e60ee20f295057ae450ddaad09c540c5162008eb6d00fd12e822",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                }
+              ]
+            },
+            "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
           },
           "in_primary_pool": {
             "state": "YES",
@@ -17003,26 +17203,198 @@
             "measured": {
               "state": "YES",
               "span": {
-                "quote": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-                "source": "held abstract",
-                "report_id": "28824029"
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258432014",
+                  "nct_id": "NCT01115855",
+                  "title": "Number of Participants With With First Occurrence of All-Cause Mortality",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT01115855",
+                    "row_key": {
+                      "id": "258432014"
+                    },
+                    "row_sha256": "57d36e406aceb5070952c225cc92f002bc7c0bf9e454a85d8882c43a711eab3d",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 6.0,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1927480591",
+                      "nct_id": "NCT01115855",
+                      "outcome_id": "258432014",
+                      "param_type": "NUMBER",
+                      "param_value": "6",
+                      "param_value_num": "6.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT01115855",
+                        "row_key": {
+                          "id": "1927480591"
+                        },
+                        "row_sha256": "6a4f38a3432a2c3adfea4b5c9ee050cb46e1c6363beef437d8dda9caebec40d3",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  },
+                  {
+                    "value": 1.77,
+                    "param_type": "Hazard Ratio (HR)",
+                    "source_row": {
+                      "id": "128873741",
+                      "nct_id": "NCT01115855",
+                      "outcome_id": "258432014",
+                      "param_type": "Hazard Ratio (HR)",
+                      "param_value": "1.77",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01115855",
+                        "row_key": {
+                          "id": "128873741"
+                        },
+                        "row_sha256": "46b2e19ddc16e60ee20f295057ae450ddaad09c540c5162008eb6d00fd12e822",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  }
+                ]
               }
             },
             "reported": {
               "state": "YES",
               "span": {
-                "quote": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-                "source": "held abstract",
-                "report_id": "28824029"
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258432014",
+                  "nct_id": "NCT01115855",
+                  "title": "Number of Participants With With First Occurrence of All-Cause Mortality",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT01115855",
+                    "row_key": {
+                      "id": "258432014"
+                    },
+                    "row_sha256": "57d36e406aceb5070952c225cc92f002bc7c0bf9e454a85d8882c43a711eab3d",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 6.0,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1927480591",
+                      "nct_id": "NCT01115855",
+                      "outcome_id": "258432014",
+                      "param_type": "NUMBER",
+                      "param_value": "6",
+                      "param_value_num": "6.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT01115855",
+                        "row_key": {
+                          "id": "1927480591"
+                        },
+                        "row_sha256": "6a4f38a3432a2c3adfea4b5c9ee050cb46e1c6363beef437d8dda9caebec40d3",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  },
+                  {
+                    "value": 1.77,
+                    "param_type": "Hazard Ratio (HR)",
+                    "source_row": {
+                      "id": "128873741",
+                      "nct_id": "NCT01115855",
+                      "outcome_id": "258432014",
+                      "param_type": "Hazard Ratio (HR)",
+                      "param_value": "1.77",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01115855",
+                        "row_key": {
+                          "id": "128873741"
+                        },
+                        "row_sha256": "46b2e19ddc16e60ee20f295057ae450ddaad09c540c5162008eb6d00fd12e822",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  }
+                ]
               }
             },
             "extractable": {
               "state": "YES",
               "span": {
-                "quote": "The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
-                "source": "held abstract",
-                "report_id": "28824029"
-              }
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258432014",
+                  "nct_id": "NCT01115855",
+                  "title": "Number of Participants With With First Occurrence of All-Cause Mortality",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT01115855",
+                    "row_key": {
+                      "id": "258432014"
+                    },
+                    "row_sha256": "57d36e406aceb5070952c225cc92f002bc7c0bf9e454a85d8882c43a711eab3d",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 6.0,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1927480591",
+                      "nct_id": "NCT01115855",
+                      "outcome_id": "258432014",
+                      "param_type": "NUMBER",
+                      "param_value": "6",
+                      "param_value_num": "6.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT01115855",
+                        "row_key": {
+                          "id": "1927480591"
+                        },
+                        "row_sha256": "6a4f38a3432a2c3adfea4b5c9ee050cb46e1c6363beef437d8dda9caebec40d3",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  },
+                  {
+                    "value": 1.77,
+                    "param_type": "Hazard Ratio (HR)",
+                    "source_row": {
+                      "id": "128873741",
+                      "nct_id": "NCT01115855",
+                      "outcome_id": "258432014",
+                      "param_type": "Hazard Ratio (HR)",
+                      "param_value": "1.77",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01115855",
+                        "row_key": {
+                          "id": "128873741"
+                        },
+                        "row_sha256": "46b2e19ddc16e60ee20f295057ae450ddaad09c540c5162008eb6d00fd12e822",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  }
+                ]
+              },
+              "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
             }
           },
           "analysis_input": true,
@@ -112066,16 +112438,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "2f0e50d0af8136de",
+        "claim_id": "85deec55a2311c02",
         "depends_on": {
-          "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+          "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "f64dded8730c55f0",
+        "claim_id": "673d84db7b631649",
         "depends_on": {
-          "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+          "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
         }
       }
     ]
@@ -112520,8 +112892,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 21073363</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Pfizer; ClinicalTrials.gov number, NCT00232180.).</td></tr><tr><td>PMID 10471456</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 28824029</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "fcd788ae10ef37353fc62e081816fee52d04c3698a27614245e7f3b11fd21e41",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 21073363</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Pfizer; ClinicalTrials.gov number, NCT00232180.).</td></tr><tr><td>PMID 10471456</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 28824029</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr></table></div>",
+      "text_sha256": "ee169fe1026ae98943463672a69659894824ed0cbf1690100e66912b98582a00",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -112579,8 +112951,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td>ASSESSED: not downgraded</td><td>tau^2=0.0 (no between-study heterogeneity detected)</td></tr><tr><td>Imprecision</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>95% CI [0.5609, 0.9486]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (13 of ~43 completed unpublished, 30%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "ff793699cfd265fd82fdcb82ea2766c4919c23e6c79a7522a31891aacc4906f5",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td>ASSESSED: &minus;1</td><td>tau^2=0.13998; prediction interval [0.1276, 5.9118] is &gt;=2x the CI width -&gt; real heterogeneity</td></tr><tr><td>Imprecision</td><td>ASSESSED: &minus;1</td><td>95% CI [0.3062, 2.4635]; GRADE default appreciable-effect thresholds 0.75/1.25; no topic threshold registered; spans clinical decisions or inadequate information -&gt; imprecise; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (13 of ~43 completed unpublished, 30%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "f308fb4e8035db8224d8adc3f340bed812db3a46fcfd8f3445a6830446abd949",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -112750,7 +113122,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "768c98fb539969c99716a5974e118d134ad6cf62",
-    "review_sha256": "f7342a793e53f013fe70165bca21478669a3c3f50d010f98c70f3b3863cd06fc",
+    "review_sha256": "31c0a3c435b41f6dddf0d7e8641d37918c1b36a2b5e06676929a9ef93aee0a26",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -112762,7 +113134,7 @@
       "unrenderable": true,
       "violation_code": "PROSE_PREDICATE_FALSE",
       "kind": "parity",
-      "claim_id": "ddff87542533106c",
+      "claim_id": "b6df4aed1b30ebb6",
       "detail": "stale parity prose is not rendered"
     },
     "refusals": [
@@ -112770,12 +113142,40 @@
         "trial": "EPHESUS (PMID 12668699)",
         "verified": "all-cause mortality RR 0.87 (0.79-0.95), 478 vs 554 deaths, extracts cleanly",
         "not_pooled_because": "EPHESUS enrolled ACUTE post-myocardial-infarction LV dysfunction, which this topic's preregistered population_none excludes (chronic HFrEF only). A preregistered scope exclusion, not a miss; the comparator's inclusion of it is a scope difference.",
-        "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048",
-        "claim_id": "7c71a97022ea5b61",
+        "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a",
+        "claim_id": "b03f7f9c7d64b259",
         "depends_on": {
-          "input_set_version": "1f848564a62acc6caa8f462e68002664b1c003060021c6cafaf540c520117048"
+          "input_set_version": "dcd353063b29ff58165a53baa197467230fe37632338f0f9a304e0395cf2ef6a"
         },
         "claim_kind": "refusal"
+      }
+    ],
+    "result_changes": [
+      {
+        "slug": "spironolactone-hfref-mortality",
+        "outcome": "All-cause mortality",
+        "before": {
+          "k": 3,
+          "estimate": 0.7294,
+          "ci_low": 0.5609,
+          "ci_high": 0.9486
+        },
+        "after": {
+          "k": 3,
+          "estimate": 0.8685,
+          "ci_low": 0.3062,
+          "ci_high": 2.4635
+        },
+        "left_pool": [],
+        "entered_pool": [],
+        "reason": "PMID 28824029 stayed in the pool but now contributes a different number: HR 0.85 (0.53 to 1.36) -> HR 1.685, reconstructed from 17/111 vs 10/110 (estimator selection PUBLISHED_EFFECT_TARGET_CLASS -> KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT; source reported -> reconstructed). The previously contributed candidate is no longer eligible: the sentence names its endpoint only as 'primary endpoint', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'All-cause mortality' is a single component, so this is a different quantity. PUBLISHED_EFFECT_KNOWN_NOT_IN_COMMITTED_SOURCE: AUDIT_QUEUE item 7 reports a published J-EMPHASIS-HF all-cause mortality HR 1.77 [0.81, 3.87], but the committed abstract/cache for this clone contains only the arm counts; the row is not switched until that source span is committed. (AUDIT_QUEUE.md item 7) MIXED_BY_SOURCE_LIMIT: Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit. (SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED) This is not a set-aside: the previously served number was the WRONG QUANTITY for this outcome, and is asserted wrong. The trial stays in the pool and contributes the quantity the outcome declares, read from the same held document.",
+        "by": "Claude Opus 5 (label-scoped harvest); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-30T17:49:40Z",
+        "reviewer_countersignature": {
+          "state": "OPEN",
+          "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+        },
+        "conclusion_changed": "the interval now includes the null: the previous conclusion of a difference is withdrawn"
       }
     ],
     "dual": {
@@ -112872,10 +113272,14 @@
         {
           "ref": "cache/spironolactone-hfref-mortality/comparator_fulltext.txt",
           "sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
+        },
+        {
+          "ref": "cache/spironolactone-hfref-mortality/ft_28824029.txt",
+          "sha256": "e44b31c82ad9409992dc1eaff0fa76ce67843e1ab29f98d650995f2a011c233a"
         }
       ],
       "config_sha256": "380a6cc2dc7e7b784c7d18b05025828ee14dfe43225bc44d87dc736e739e450c",
-      "analysis_code_sha256": "a813a7bcb3224f1805f58fc1076cdf917d19d7c157edad8d3c67e9c16481fb5c",
+      "analysis_code_sha256": "1cbc156bcda8d7fd98dbd14a94db9ba540e80e9582e46cf255bb84f603cebc5b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -112907,7 +113311,7 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
+        "harness/extract.py": "77d11d0e5061d70a114b794846aa597a2d779566",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
@@ -112934,7 +113338,7 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/page.py": "3e1e7e7206535b0ed03eb851060653137c9ad85c",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/pipeline.py": "536c41fa6648de34c99cdf18df2a14d31382342a",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -112951,7 +113355,7 @@
         "harness/screen.py": "18a65903f0dd9426f139ba8da95625dc3157c5e2",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
-        "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
+        "harness/source_hierarchy.py": "f2f5b06bebb03d3ca9de74416c2ca0a6990849b5",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
@@ -113004,8 +113408,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "256443b71e88738667241a2fb940c4ddb17a4e8a4d53e9039d6da7496d313b13",
-      "review_sha256": "f7342a793e53f013fe70165bca21478669a3c3f50d010f98c70f3b3863cd06fc",
+      "manuscript_sha256": "1621da9cbfe27431a0b05e90d45683785dbc0d039183e203ee0ae1ec9653cb79",
+      "review_sha256": "31c0a3c435b41f6dddf0d7e8641d37918c1b36a2b5e06676929a9ef93aee0a26",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/spironolactone-hfref-mortality.md UTF-8 text, universal newlines",
@@ -113025,7 +113429,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "1191301227b82645efd7f8110f1030553a5fdf710ea1b3ed5faa2fc24e3c369c"
+      "release_sha256": "c153f8285e0ec82aba70fd0c6aba01111e8acf49ac2b9e71d69d57de2e3e4e84"
     }
   }
 }
