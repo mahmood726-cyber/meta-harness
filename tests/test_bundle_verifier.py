@@ -33,7 +33,7 @@ def _reclaim_tmp_path(tmp_path):
 def _run(*extra):
     p = subprocess.run([sys.executable, VERIFIER, "--root", "docs", "--slug", SLUG, "--json", *extra],
                        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", stdin=subprocess.DEVNULL)
-    assert p.returncode in (0, 1), p.stderr
+    assert p.returncode == {"PASS": 0, "CORRUPTION_DETECTED": 2}.get(json.loads(p.stdout)["verdict"], 1), p.stderr
     return json.loads(p.stdout)
 
 
@@ -113,7 +113,8 @@ def test_PLANT_one_corrupted_limb_refuses_that_admissible_row_for_the_intended_r
     assert base_row["final"] == "ADMISSIBLE" and all(base_row["predicates"].values()),         f"{pmid} is not a positive control: it is {base_row['final']} at baseline"
     before = _sha256_of_served_files()
     rep = _run("--corrupt", pmid, limb)
-    assert rep["corruption"] == {"pmid": pmid, "limb": limb}          # one dependency, the one asked for
+    assert {k: rep["corruption"][k] for k in ("pmid", "limb")} == {"pmid": pmid, "limb": limb}
+    assert rep["verdict"] == "CORRUPTION_DETECTED" and rep["corruption"]["detected_by"]
     row = next(r for r in rep["rows"] if r["pmid"] == pmid)
     assert row["final"] == "INADMISSIBLE", (limb, row["final"])
     failed = sorted(k for k, v in row["predicates"].items() if not v)
@@ -626,6 +627,49 @@ def test_verifier_revalidates_served_states_instead_of_trusting_them(baseline):
     rep = _run("--corrupt", "28910237", "served_basis_lie")
     row = next(r for r in rep["rows"] if r["pmid"] == "28910237")
     assert row["predicates"]["P10_estimand_evidence"] is False and row["final"] == "INADMISSIBLE"
+
+
+def test_served_basis_plant_changes_a_source_without_itt_text():
+    rep = _run("--corrupt", "27633186", "served_basis_lie")
+    row = next(r for r in rep["rows"] if r["pmid"] == "27633186")
+    assert rep["verdict"] == "CORRUPTION_DETECTED"
+    assert not row["predicates"]["P10_estimand_evidence"]
+    assert not row["predicates"]["P11_registered_estimand"]
+    assert row["predicates"]["P1_source_bytes"] and row["predicates"]["P2_span_located"]
+
+
+def test_served_basis_lie_is_refused_without_self_test_mode(tmp_path):
+    def edit(records):
+        row = next(r for r in records["records"] if str(r["id"]) == "27633186")
+        row["abstract"] += " The primary outcome analysis used the on-treatment population."
+    root = _doctored_site(tmp_path, edit_records=edit, edited_pmids=("27633186",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27633186")
+    assert rep["corruption"] is None and rep["verdict"] == "FAIL"
+    assert row["predicates"]["P1_source_bytes"] and row["predicates"]["P2_span_located"]
+    assert not row["predicates"]["P10_estimand_evidence"]
+    assert not row["predicates"]["P11_registered_estimand"]
+    assert any(f.startswith("ESTIMAND_BASIS_DISAGREES 27633186/") for f in rep["failures"])
+
+
+@pytest.mark.parametrize("consistent,code", [
+    (False, "ANALYSIS_IDENTITY_MISMATCH"), (True, "BOUND_TO_UNREGISTERED_ESTIMAND"),
+])
+def test_regulatory_swap_is_refused_without_self_test_mode(tmp_path, consistent, code):
+    bundle = json.load(open(os.path.join(ROOT, "docs", "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
+    root = str(tmp_path / "site")
+    _copy_served_tree(bundle, root)
+    rf = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
+    candidate = next(a for a in rf["candidate_analyses"] if a["kind"] == "table8_ontreatment_3p")
+    rf["decision"]["effect"] = {"scale": "HR", **candidate["tuple"]}
+    if consistent:
+        rf["decision"]["claimed_treatment_strategy"] = candidate["analysis_identity"]["treatment_strategy"]
+    with open(os.path.join(root, "reviews", SLUG, "BUNDLE.json"), "w", encoding="utf-8") as f:
+        json.dump(bundle, f, ensure_ascii=False)
+    rep = _verify(root)
+    assert rep["corruption"] is None and rep["verdict"] == "FAIL"
+    assert all(all(r["predicates"].values()) for r in rep["rows"])
+    assert [f.split(" ELIXA:")[0] for f in rep["failures"]] == [code]
 
 
 def test_unsupported_representation_is_a_typed_state_not_a_not_found(tmp_path):
