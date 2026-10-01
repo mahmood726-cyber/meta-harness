@@ -227,3 +227,42 @@ def test_a_counts_request_takes_the_counts_when_an_hr_is_also_copied():
     assert sm.gate_locator_claim(c, text)[0]["measure"] == "HR"                     # default: the reported effect
     v, why = sm.gate_locator_claim(c, text, prefer="counts")
     assert why == "ACCEPTED" and (v["events_t"], v["n_t"], v["events_c"], v["n_c"]) == (386, 12933, 419, 12938)
+
+
+# ------------------------------------------------ deterministic verification (typed match, no model)
+
+def test_typed_text_match_needs_same_numbers_same_measure_and_the_outcome_nearby():
+    r = sm.admit(_row(label="PIONEER 6", eff=("0.79", "0.57", "1.11")), SPEC, lambda r: "P6")
+    ok = ("Major adverse cardiovascular events (MACE) occurred in 61 of 1591 patients and 76 of 1592 "
+          "(hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11).")
+    assert sm.typed_match_text(r, ok, ["MACE"], "abstract")["result"] == "TYPED_MATCH"
+    assert sm.typed_match_text(r, ok.replace("hazard ratio", "odds ratio"), ["MACE"], "abstract") is None   # measure
+    assert sm.typed_match_text(r, ok.replace("1.11", "1.10"), ["MACE"], "abstract") is None                 # numbers
+    far = "Death from any cause (hazard ratio, 0.79; 95% CI, 0.57 to 1.11)."
+    assert sm.typed_match_text(r, far, ["MACE"], "abstract") is None                                          # outcome
+
+
+def test_typed_text_match_on_arm_counts_both_arms_with_thousands_separators():
+    r = sm.admit(_row(label="VITAL", measure="RR", eff=(None, None, None), outcome="MACE", events_t=386, n_t=12933,
+                      events_c=419, n_c=12938), {"estimand": "RR", "keywords": ["MACE"]}, lambda r: "V")
+    t = "The MACE end point occurred in 386 of 12,933 participants and 419 of 12,938 in the placebo group."
+    assert sm.typed_match_text(r, t, ["MACE"], "abstract")["result"] == "TYPED_MATCH"
+    assert sm.typed_match_text(r, t.replace("419 of", "420 of"), ["MACE"], "abstract") is None
+
+
+def test_typed_registry_match_analysis_and_group_counts():
+    reg = {"outcomes": {"o1": {"title": "Time to First MACE", "time_frame": "3 years"}, "o2": {"title": "All-cause death"}},
+           "analyses": [{"outcome_id": "o1", "param_type": "Hazard Ratio (HR)", "param_value": "0.87",
+                         "ci_lower": "0.78", "ci_upper": "0.97"},
+                        {"outcome_id": "o2", "param_type": "Hazard Ratio (HR)", "param_value": "0.79",
+                         "ci_lower": "0.57", "ci_upper": "1.11"}],
+           "groups": {"o1": [{"group": "A", "count": 608, "n": 4668}, {"group": "B", "count": 694, "n": 4672}]}}
+    r = sm.admit(_row(label="LEADER"), SPEC, lambda r: "L")
+    assert sm.typed_match_registry(r, reg, ["MACE"], "AACT")["result"] == "TYPED_MATCH"
+    wrong = sm.admit(_row(label="X", eff=("0.79", "0.57", "1.11")), SPEC, lambda r: "X")
+    assert sm.typed_match_registry(wrong, reg, ["MACE"], "AACT") is None        # those numbers belong to 'death'
+    c = sm.admit(_row(label="LEADER", measure="RR", eff=(None, None, None), events_t=608, n_t=4668, events_c=694,
+                      n_c=4672), {"estimand": "RR", "keywords": ["MACE"]}, lambda r: "L")
+    assert sm.typed_match_registry(c, reg, ["MACE"], "AACT")["result"] == "TYPED_MATCH"
+    sm.verify_typed(c, [("registry", "AACT", reg)], ["MACE"])
+    assert c.state == sm.VERIFIED
