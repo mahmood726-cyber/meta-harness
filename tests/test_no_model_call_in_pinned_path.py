@@ -25,7 +25,10 @@ def test_no_model_call_in_the_pinned_path(report):
     assert report["model_calls"] == [], report["model_calls"]
     assert report["model_client_imports"] == []
     assert set(report["subprocess_programs"]) <= {"git", "python"}, report["subprocess_programs"]
-    assert all(x[0] == "harness/http.py" for x in report["http_imports"]), report["http_imports"]
+    # HTTP is allowed only in the two named fetchers: harness/http.py, and -- since POOL (V1.1) made the producer import
+    # check_pool_contract from it, which put it in the certificate's closure -- scripts/verify_bundle.py, whose urllib fetches the
+    # SERVED files a reader verifies by URL. Neither is a model endpoint; the model-client and subprocess rules above stay strict.
+    assert all(x[0] in ("harness/http.py", "scripts/verify_bundle.py") for x in report["http_imports"]), report["http_imports"]
 
 
 def test_PLANT_a_model_client_import_in_a_pinned_module_is_counted(tmp_path, monkeypatch):

@@ -57,17 +57,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+# its sibling `contrast_order` is imported bare: put scripts/ on the path HERE, so importing this module never depends on
+# another module having done it first (tests/test_build_bundle_import.py)
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(1, str(ROOT / "scripts"))
 
 from harness import certificate  # noqa: E402
 from harness import synth  # noqa: E402
+import contrast_order  # noqa: E402  (scripts/: harness/*.py membership is part of every certificate's scope)
 from harness.target_endpoint import _components_from_text  # noqa: E402
 from harness.canonical import canonical_json, review_core, sha256_text  # noqa: E402
 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.17"
+FORMAT_REVISION = "3.18"
 FORMAT_CHANGELOG = [
+    "3.18 (2026-09-25, lane OC, external audit: ordered contrast and estimator VALUE-checked, not state-checked): analysis_identity."
+    "comparator_direction.value is the ORDERED contrast ('<numerator arm> vs <reference arm>') recomputed from the tuple's own clause, with "
+    "ordered_contrast {measure, experimental_arm, reference_arm (F4 arm ids <NCT>:<AACT design_group id> from the certified families.json), "
+    "numerator_side, estimate, ci_low, ci_high, direction_witness (COMPARATIVE_CONNECTIVE | ORDER_OF_MENTION, located)}; "
+    "effect_less_than_1_favours is derived from numerator_side instead of asserted; registered_estimand.contrast is read from the protocol's "
+    "estimand line (it was hard-coded 'GLP-1 RA vs placebo' for every slug) and carries contrast_normalisation (reciprocal PERMITTED_WHEN_DECLARED, "
+    "decided by the review author 2026-09-25; registered_in_protocol false); P11 adds contrast and estimator departures. A row carries its tuple AS STATED; a "
+    "re-orientation is only a declared effect.normalisation. Verifier side: P10 compares VALUES (COMPARATOR_DIRECTION_MISMATCH, ESTIMATOR_MISMATCH, "
+    "CONTRAST_NORMALISATION_*), P11 the registered contrast/estimator, and the pool refuses mixed or unidentified measures BEFORE any log is taken.",
     "3.17 (2026-09-20, pcsk9-mace third live wrong pool): every row carries pooled_state (EXACT_TARGET_POOLED / NEAR_MATCH_POOLED / UNBOUND_POOLED) with extra_components and missing_components RENDERED beside components_as_classified; P13_no_extra_components and P14_missing_components_consistent added to the admission predicates in both copies (ODYSSEY's fields fail both); limit L15; served sweeps strict_subset_sweep.json and pooled_class_sweep.json.",
     "3.16 (2026-09-20): exclusion statements are also read from the DOCUMENT NEIGHBOURHOOD of the located span (+/-400 code points in the representation where P2 located it), so a footnote or a sentence outside both of the row's spans still cuts; P9 reports exclusion_scope_searched. Row-span and definition-span scope (3.15) was measured relational, not sentence-scoped, on E1-E10; this closes the remaining hole named in the 3.15 report (the scope was the row's spans, not the document).",
     "3.15 (2026-09-20, panel exclusion fixtures E1-E10): exclusion is read RELATIONALLY across the whole span, not the clause -- an exclusion statement in the next sentence or a footnote after the result ('X and Y were not included in / excluded from the primary analysis', 'neither X nor Y contributed') cuts those components from the target claim and is reported in exclusion_statements; a cue inside a parenthetical is scoped to the parenthetical and a qualifier on a component ('nonfatal MI (excluding silent infarction)') excludes nothing; a POPULATION exclusion ('patients with a prior stroke were excluded from enrolment') cuts nothing. Pre-fix on 3.14: E5 and E8 admitted, E9 refused.",
@@ -344,6 +358,7 @@ VOCABULARY = {
         "P10_estimand_evidence": "every STATED_IN_OWNING_EVIDENCE field reproduces at its offsets; no REGISTERED_DEFAULT carries a span (verifier-side)",
         "P11_registered_estimand": "a stated analysis set / treatment strategy agrees with the estimand the served protocol registers; UNRESOLVED fails; a default agrees by construction",
         "P12_ci_level": "the CI level stated in the tuple's clause equals the level the SE derivation assumed (95%); MISMATCH refuses; UNSTATED passes with the assumption recorded",
+        "P15_estimator_source_bound": "the served estimator label equals the measure the effect's OWNING evidence states (its clause first; a method span only through a typed link to the same result object); a label class never authenticates (HR and RR are both 'first-event ratios' and are not the same estimator)",
         "P13_no_extra_components": "the row's bound endpoint carries no component the target lacks (a NEAR_MATCH pooled with a named extra component fails)",
         "P14_missing_components_consistent": "missing_components names every target component the row's set lacks ([] beside a lacking row fails)",
         "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), "
@@ -1069,6 +1084,12 @@ DEFAULT_REGISTERED = {"analysis_set": "intention-to-treat (registered primary-an
                       "analysis_window": "on-study, treatment-policy (registered primary-analysis default)",
                       "contrast": "intervention vs placebo; effect < 1 favours intervention (topic registration)",
                       "estimator": "UNSTATED"}
+# A value the source states OUTSIDE the owning evidence cannot be a witness, but a departing one must not vanish either: these are
+# the values that make an unowned mention fail closed (UNRESOLVED) instead of letting the registered default stand in silence.
+# the result object a method sentence must name to be LINKED to the effect (and that the effect clause itself names)
+_OC_RESULT_OBJECT = re.compile(r"\b(primary[- ](?:composite[- ])?(?:outcome|end[- ]?point)|primary cardiovascular (?:composite )?(?:outcome|end[- ]?point)|"
+                               r"major adverse cardiovascular events?|MACE|composite (?:outcome|end[- ]?point))\b", re.I)
+_DEPARTING = {"analysis_set": {"per-protocol", "as-treated", "on-treatment population"}, "analysis_window": {"on-treatment"}, "estimator": set()}
 
 
 def _sentence_at(text, pos):
@@ -1078,53 +1099,106 @@ def _sentence_at(text, pos):
     return s, e
 
 
+def _locate_clause(parsed, result_clause):
+    """(representation, text, start, end) of the effect clause: PARSED_SOURCE when verbatim, else NORMALIZED_SOURCE; None if absent."""
+    rc = result_clause or ""
+    if not rc:
+        return None
+    i = parsed.find(rc)
+    if i >= 0:
+        return "PARSED_SOURCE", parsed, i, i + len(rc)
+    npar, nrc = normalize(parsed), normalize(rc)
+    j = npar.find(nrc)
+    return ("NORMALIZED_SOURCE", npar, j, j + len(nrc)) if j >= 0 else None
+
+
 def estimand_evidence(parsed, result_clause):
-    """Per field: STATED (value + located sentence with code-point offsets in PARSED_SOURCE), DEFAULT_REGISTERED (no statement in the
-    held representation), or ESTIMAND_UNBOUND (the same source states >= 2 differing values for the field)."""
+    """Per field: STATED_IN_OWNING_EVIDENCE (value + the OWNING span with code-point offsets), REGISTERED_DEFAULT (no owned
+    statement), or UNRESOLVED. EFFECT-SCOPED (lane OC, 2026-09-25, external audit: the estimator witness of LEADER's HR 0.87 was the
+    methods / noninferiority-margin sentence, hits[0] of a whole-document scan, which does not hold 0.87). A mention OWNS the effect only if
+      owner EFFECT_CLAUSE      -- it lies inside the tuple's own result clause (the estimator is resolved here FIRST), or
+      owner LINKED_METHOD_SPAN -- its sentence carries a typed link to the same result object: it names the primary outcome /
+                                  composite endpoint, as the effect clause does (link.result_object records the phrase on both sides).
+    Any other mention is UNOWNED: listed, never a witness. An unowned mention of a DEPARTING value (on-treatment, per-protocol ...)
+    with no owned statement fails closed (UNRESOLVED), so effect-scoping can never make a stated departure disappear. Two owned
+    values for one field -> UNRESOLVED (for the estimator only when the clause itself does not settle it)."""
     out = {}
+    loc = _locate_clause(parsed, result_clause)
+    clause_rep = loc[0] if loc else None
+    clause_obj = _OC_RESULT_OBJECT.search(result_clause or "")
     for field, pats in _ESTIMAND.items():
         hits = []
         for rx, value in pats:
             for m in re.finditer(rx, parsed, re.I):
                 s, e = _sentence_at(parsed, m.start())
-                hits.append({"value": value, "matched": m.group(0), "start": s, "end": e, "span": parsed[s:e].strip()})
-        values = {h["value"] for h in hits}
-        if field == "analysis_window":
-            strategies = {v for v in values if v in ("on-treatment", "on-study")}
-            if len(strategies) >= 2:
-                out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4],
-                              "rule": "the same source states two strategies for the analysis; the field cannot default"}
-                continue
-            if "on-treatment" in values and "on-study" not in values:
-                pick = next(h for h in hits if h["value"] == "on-treatment")
-                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
-                continue
-            prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
-            if prefer:
-                pick = prefer[0]
-                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
-                              "also_stated": sorted(values - {pick["value"]})}
-            else:
-                out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
+                hits.append({"value": value, "matched": m.group(0), "at": m.start(), "start": s, "end": e, "span": parsed[s:e].strip()})
+        in_clause = []
+        if loc:
+            rep, text, cs, ce = loc
+            for rx, value in pats:
+                for m in re.finditer(rx, text[cs:ce], re.I):
+                    in_clause.append({"value": value, "matched": m.group(0)})
+        linked = []
+        for h in hits:
+            sent_obj = _OC_RESULT_OBJECT.search(h["span"])
+            if clause_obj and sent_obj and not (loc and loc[0] == "PARSED_SOURCE" and loc[2] <= h["at"] < loc[3]):
+                linked.append(dict(h, link={"kind": "SAME_RESULT_OBJECT", "result_object": clause_obj.group(0).lower(),
+                                            "named_in_method_span": sent_obj.group(0).lower(),
+                                            "rule": "the method sentence and the effect clause both name the primary outcome / composite endpoint"}))
+        owned_link_ats = {h["at"] for h in linked}
+        unowned = [h for h in hits if h["at"] not in owned_link_ats and not (loc and loc[0] == "PARSED_SOURCE" and loc[2] <= h["at"] < loc[3])]
+        clause_values = {h["value"] for h in in_clause}
+        linked_values = {h["value"] for h in linked}
+        rec = {"unowned_mentions": [{"value": h["value"], "matched": h["matched"], "start": h["start"], "end": h["end"]} for h in unowned[:6]]}
+        if field == "analysis_window" and len({v for v in {h["value"] for h in hits} if v in ("on-treatment", "on-study")}) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted({h["value"] for h in hits}), "evidence": hits[:4],
+                          "rule": "the same source states two strategies for the analysis; the field cannot default", **rec}
             continue
-        if len(values) >= 2:
-            out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4]}
-        elif hits:
-            pick = hits[0]
-            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+        if field == "estimator" and len(clause_values) == 1:
+            v = next(iter(clause_values))
+            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": loc[2], "end": loc[3], "span": loc[1][loc[2]:loc[3]],
+                          "parent_representation": clause_rep, "owner": "EFFECT_CLAUSE", **rec}
+            continue
+        if field == "estimator" and len(clause_values) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted(clause_values), "owner": "EFFECT_CLAUSE",
+                          "rule": "the effect clause itself names two estimators", **rec}
+            continue
+        if field != "estimator" and clause_values:
+            owned_values, owner = clause_values, "EFFECT_CLAUSE"
         else:
-            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
+            owned_values, owner = linked_values, "LINKED_METHOD_SPAN"
+        if field == "analysis_window" and owned_values:
+            # the old preference order, now among OWNED mentions only: a stated on-treatment strategy wins, then on-study, then
+            # time-to-first-event, then a stated follow-up
+            order = ["on-treatment", "on-study", "time-to-first-event (treatment-policy)", "follow-up stated"]
+            owned_values = {next(v for v in order if v in owned_values)}
+        if len(owned_values) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted(owned_values), "owner": owner,
+                          "rule": "two owned statements disagree", **rec}
+        elif owned_values:
+            v = next(iter(owned_values))
+            if owner == "EFFECT_CLAUSE":
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": loc[2], "end": loc[3], "span": loc[1][loc[2]:loc[3]],
+                              "parent_representation": clause_rep, "owner": owner, **rec}
+            else:
+                pick = next(h for h in linked if h["value"] == v)
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": pick["start"], "end": pick["end"], "span": pick["span"],
+                              "parent_representation": "PARSED_SOURCE", "owner": owner, "link": pick["link"], **rec}
+        elif any(h["value"] in _DEPARTING[field] for h in unowned):
+            dep = sorted({h["value"] for h in unowned if h["value"] in _DEPARTING[field]})
+            out[field] = {"state": "UNRESOLVED", "values": dep,
+                          "rule": "the source states a departing value outside the owning evidence; it cannot witness this effect and it cannot be "
+                                  "ignored either (fail closed)", **rec}
+        else:
+            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field], **rec}
     rc = result_clause or ""
-    if "placebo" in rc.lower():
-        i = parsed.find(rc)
-        if i >= 0:
-            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": rc,
-                               "start": i, "end": i + len(rc), "parent_representation": "PARSED_SOURCE"}
-        else:   # the clause exists only after normalisation (e.g. Lancet middle dots): offsets in NORMALIZED_SOURCE coordinates
-            nrc, npar = normalize(rc), normalize(parsed)
-            j = npar.find(nrc)
-            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
-                               "start": j if j >= 0 else None, "end": (j + len(nrc)) if j >= 0 else None, "parent_representation": "NORMALIZED_SOURCE"}
+    if "placebo" in rc.lower() and loc:
+        out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": loc[1][loc[2]:loc[3]],
+                           "start": loc[2], "end": loc[3], "parent_representation": clause_rep, "owner": "EFFECT_CLAUSE"}
+    elif "placebo" in rc.lower():
+        nrc = normalize(rc)
+        out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
+                           "start": None, "end": None, "parent_representation": "NORMALIZED_SOURCE", "owner": "EFFECT_CLAUSE"}
     else:
         out["contrast"] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED["contrast"]}
     return out
@@ -1223,7 +1297,7 @@ def extraction_objects_coverage(slug: str, review: dict, cert: dict) -> dict:
     }
 
 
-def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
+def _analysis_identity(t: dict, review: dict, ee: dict, oc: dict | None = None) -> dict:
     """Endpoint identity is not estimand identity -- and an estimand field without evidence is a producer assertion. Every field
     here is {value, basis, span, start, end, parent_representation}; the review-target fallback ('trial end' on every row) is gone."""
     reg = registered_estimand(review["slug"])
@@ -1239,6 +1313,9 @@ def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
                "note": "observed is never filled from registered; a REGISTERED_DEFAULT is the requirement standing in for an unknown observation, and says so"}
         if basis == "STATED_IN_OWNING_EVIDENCE":
             out.update({"span": ev.get("span"), "start": ev.get("start"), "end": ev.get("end"), "parent_representation": ev.get("parent_representation")})
+            # lane OC: WHICH evidence owns this effect (EFFECT_CLAUSE, or LINKED_METHOD_SPAN with its typed link) -- the verifier
+            # recomputes the owner and refuses a witness that merely mentions the same word elsewhere (ESTIMATOR_/ESTIMAND_OWNER_MISMATCH)
+            out.update({k: ev[k] for k in ("owner", "link") if ev.get(k) is not None})
         elif basis == "UNRESOLVED":
             out.update({"values_stated": ev.get("values"), "evidence": ev.get("evidence")})
         return out
@@ -1251,8 +1328,12 @@ def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
         "treatment_strategy": field("treatment_strategy", window, strategy_value),
         "follow_up_window": field("follow_up_window", window, window.get("span") if window["state"] == "STATED_IN_OWNING_EVIDENCE" and window.get("value") == "follow-up stated"
                                   else window.get("value")),
-        "comparator_direction": {**field("comparator_direction", ee["contrast"]),
-                                 "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"},
+        "comparator_direction": {**field("comparator_direction", ee["contrast"], contrast_order.contrast_value(oc or {}) if ee["contrast"]["state"] == "STATED_IN_OWNING_EVIDENCE" else None),
+                                 # lane OC: the VALUE, not the state -- which arm is the numerator, with F4 arm ids and the witness that orders them
+                                 "ordered_contrast": oc,
+                                 "effect_less_than_1_favours": ("the experimental arm" if (oc or {}).get("numerator_side") == "EXPERIMENTAL" else
+                                                                "the reference arm" if (oc or {}).get("numerator_side") == "REFERENCE" else
+                                                                "UNORDERED: the clause does not order the arms")},
         "estimator": {**field("estimator", ee["estimator"]),
                       "producer_fields": {"method": se.get("estimator_method"), "reported_label": (t.get("effect_object") or {}).get("reported_label"),
                                           "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand")}},
@@ -1282,6 +1363,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
     certified = _read_json(ROOT / "cache" / slug / "families.json")
     fam_by_id = {f.get("family_id"): f for f in certified.get("families", []) if isinstance(f, dict)}   # AUTHORITATIVE: trial_family_map_sha256
     rec_ref = f"cache/{slug}/records.json"
+    vocab = contrast_order.contrast_vocabulary(_read_json(ROOT / "topics" / f"{slug}.json"))
     rec_raw_sha = art_by_ref[rec_ref]["sha256"]
     rec_canon_sha = art_by_ref[rec_ref]["declared_digest"]
     rows = []
@@ -1311,6 +1393,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         cov = (doc.get("coverage_status") or {}).get("value")
         located = loc["match"] in ("VERBATIM", "NORMALISED")
         ee = estimand_evidence(parsed, eff_clause)
+        oc = contrast_order.ordered_contrast(eff_clause, values, vocab, fam)
         predicates = {
             "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
@@ -1350,11 +1433,24 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             unregistered.append(("treatment_strategy", "on-treatment"))
         if aset["state"] == "UNRESOLVED" or win["state"] == "UNRESOLVED":
             unregistered.append(("estimand", "UNRESOLVED"))
+        unregistered += contrast_order.registered_departures(oc, effect["scale"], reg, vocab, t.get("contrast_normalisation"))
         cil = ci_level_record(eff_clause, (t.get("study_effect") or {}).get("standard_error"), t.get("ci_low"), t.get("ci_high"))
         predicates["P12_ci_level"] = {"state": "FAIL" if cil["level_agreement"] == "MISMATCH" else "PASS", **{k: cil.get(k) for k in ("source_ci_pct", "basis", "level_agreement", "assumed_ci_pct")}}
-        predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy")},
+        # P15 (lane OC): estimator identity bound to the evidence that OWNS this effect, decided before any compatibility class is
+        # consulted -- harness/estmeasure classifies the CLAIMED label, so HR relabelled RR stays 'compatible_labels'; this does not
+        _est = ee["estimator"]
+        _owned = (oc["measure"]["measure"] if oc["measure"]["state"] == "STATED" else
+                  contrast_order._ESTIMATOR_MEASURE.get(_est.get("value")) if _est["state"] == "STATED_IN_OWNING_EVIDENCE" else None)
+        predicates["P15_estimator_source_bound"] = {
+            "state": "PASS" if _owned is not None and contrast_order.scale_measure(effect["scale"]) == _owned else "FAIL",
+            "served_scale": effect["scale"], "owned_measure": _owned, "owner": _est.get("owner"), "owner_span_start": _est.get("start"),
+            "rule": "the served label must be the measure the tuple's own clause states (or, only when it states none, a method span linked to "
+                    "the same result object); a shared compatibility class never authenticates an estimator"}
+        predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy", "contrast", "estimator")},
                                                  "protocol_ref": reg["protocol_ref"], "protocol_span_start": reg["start"], "departures": unregistered,
-                                                 "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"}
+                                                 "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails; "
+                                                         "the ORDERED contrast that enters the pool must be the registered one and the measure the registered estimator's "
+                                                         "(a reversal only as a declared reciprocal under contrast_normalisation)"}
         csc = component_set_checks(t, components_canonical, canonical_components)
         predicates["P13_no_extra_components"] = {"state": "PASS" if csc["P13_no_extra_components"] else "FAIL", "extra_components": csc["extra_components"],
                                                  "pooled_state": csc["pooled_state"],
@@ -1400,9 +1496,10 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "population": {"analysis_set": t.get("analysis_set"), "population_age": t.get("population_age")},
                          "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
-            "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
+            "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect"),
+                       **({"normalisation": t["contrast_normalisation"]} if t.get("contrast_normalisation") else {})},
             "estimand_evidence": ee,
-            "analysis_identity": _analysis_identity(t, review, ee),
+            "analysis_identity": _analysis_identity(t, review, ee, oc),
             "spans": _spans_for_row(t, span, loc, parsed) + [
                 {"role": "analysis_method", "field": k, "text": v["span"], "parent_representation": v.get("parent_representation"),
                  "start": v.get("start"), "end": v.get("end"), "match": "VERBATIM" if v.get("start") is not None else "NORMALISED"}
@@ -1639,7 +1736,7 @@ def _endpoint_of(kind: str, text: str, tuple_text: str | None = None) -> str:
         for i, pc in enumerate(pieces):
             if tuple_text in pc.replace("\n", " "):
                 j = i
-                while j > 0 and not re.search(r"mace|point|composite", pieces[j].lower()):
+                while j > 0 and not re.search(r"mace|composite|\b\d-point\b", pieces[j].lower()):
                     j -= 1                      # back to the row label that names the endpoint
                 scope = " ".join(pieces[j:i + 1])
                 break
@@ -1674,6 +1771,12 @@ def _strategy_of(kind: str, text: str) -> str:
     return "UNSTATED"
 
 
+def _registered_contrast(line: str) -> str:
+    """'... assignment to GLP-1 RA versus placebo on ...' -> 'GLP-1 RA vs placebo' (was hard-coded to that string for every slug)."""
+    m = re.search(r"assignment to\s+(.+?)\s+(?:versus|vs\.?)\s+(.+?)\s+(?:on|for|in)\b", line or "", re.I)
+    return f"{m.group(1).strip()} vs {m.group(2).strip()}" if m else "UNSTATED"
+
+
 def registered_estimand(slug: str) -> dict:
     """The estimand the protocol registers, read from the served protocol text with its line located, so 'bound to an identity'
     can be checked against 'bound to the REGISTERED identity'."""
@@ -1688,8 +1791,20 @@ def registered_estimand(slug: str) -> dict:
         "analysis_set": "intention-to-treat" if "intention-to-treat" in low else "UNSTATED",
         "treatment_strategy": "on-study (ITT)",
         "treatment_strategy_basis": "the protocol registers the intention-to-treat effect during the prespecified randomised follow-up: a treatment-policy (on-study) strategy",
-        "contrast": "GLP-1 RA vs placebo" if "versus placebo" in low or "vs placebo" in low else "UNSTATED",
+        "contrast": _registered_contrast(line),
+        "contrast_basis": "read from the protocol's estimand line ('assignment to <A> versus <B>'); UNSTATED when the line names no ordered pair",
+        "contrast_normalisation": {"reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED",
+                                   "registered_in_protocol": False,
+                                   "decided_by": "Mahmood Ahmad, 2026-09-25 (lane OC brief: 'declared reciprocal normalisation (permitted, per my decision)')",
+                                   "basis": "a decision of the review's author, not a protocol statement, and recorded as one. For HR/OR/RR/IRR, A/B = 1/(B/A) "
+                                            "exactly and the interval's endpoints swap. A row carries its tuple AS STATED; a re-orientation is only a "
+                                            "declared effect.normalisation {operation: RECIPROCAL, orientation, estimate, ci_low, ci_high} that the "
+                                            "verifier recomputes to printed precision. An undeclared reversal is always refused "
+                                            "(COMPARATOR_DIRECTION_MISMATCH), and a declared one AWAY from the registered orientation is refused at P11."},
         "estimator": "hazard ratio, time to first event" if "time to first" in low else "UNSTATED",
+        "estimators_permitted": ["HR"] if "time to first" in low else [],
+        "estimators_permitted_basis": "the protocol's estimand line registers a time-to-first-event analysis, whose estimator is the hazard ratio; "
+                                      "no other estimator is registered (a relative risk would need an amendment, not a label)",
         "rule": "a binding whose identity differs from the registered estimand on analysis set or treatment strategy is BOUND_TO_UNREGISTERED_ESTIMAND -- "
                 "internally consistent is necessary and not sufficient",
     }
@@ -1705,7 +1820,21 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
         dec = f.get("decision") or {}
         eff = dec.get("effect") or {}
         analyses = []
+        expanded = []
         for sp in f.get("spans") or []:
+            pieces = (sp.get("span") or "").split("|")
+            cells = [i for i, pc in enumerate(pieces) if _parse_tuple(pc)]
+            if len(cells) > 1:
+                for ordinal, i in enumerate(cells):
+                    j = i
+                    while j > 0 and not re.search(r"mace|composite|\b\d-point\b", pieces[j], re.I):
+                        j -= 1
+                    # Preserve the table header's strategy, but only one labelled row's values.
+                    expanded.append(dict(sp, kind=f"{sp.get('kind')}::row{ordinal + 1}",
+                                         span=" | ".join([pieces[0], *pieces[j:i + 1]])))
+            else:
+                expanded.append(sp)
+        for sp in expanded:
             span_text = sp.get("span") or ""
             tup = _parse_tuple(span_text)
             if not tup:
@@ -1788,7 +1917,7 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
         # which analysis does the decision's tuple belong to?
         def _matches(a, e):
             t = a["tuple"]
-            return abs(t["estimate"] - float(e.get("estimate", -1))) < 1e-9 and abs(t["ci_low"] - float(e.get("ci_low", -1))) < 1e-9 and abs(t["ci_high"] - float(e.get("ci_high", -1))) < 1e-9
+            return all(t[k] == float(e.get(k, -1)) for k in ("estimate", "ci_low", "ci_high"))
         selected = [a for a in analyses if eff and _matches(a, eff)]
         claimed_strategy = _strategy_of("", dec.get("outcome") or "")
         claimed_endpoint = _endpoint_of("", dec.get("outcome") or "")
@@ -1999,7 +2128,10 @@ def pooled_reference(review: dict) -> dict:
     inputs = [{"id": str(t["id"]), "effect": t["effect"], "ci_low": t["ci_low"], "ci_high": t["ci_high"]} for t in primary["trials"]]
     return {"outcome": primary["name"], "k": res.k, "scale": res.scale,
             "heterogeneity": heterogeneity_statement(primary, res, inputs),
-            "inputs": [{"id": str(t["id"]), "effect": t["effect"], "ci_low": t["ci_low"], "ci_high": t["ci_high"]} for t in primary["trials"]],
+            # V1.0.1: REFERENCES, never free-standing values. Each input names one certified row by its analysis identity; the
+            # verifier dereferences it to that row (which it has just admitted), so a pooled value cannot differ from its row.
+            "inputs": [{"id": str(t["id"]), "outcome_effect_id": t.get("outcome_effect_id")} for t in primary["trials"]],
+            "inputs_are": "references: {id, outcome_effect_id} -> the certified primary row of review.json; no values are carried here",
             "method": "log-scale inverse-variance random effects; yi = ln(effect), se = (ln(ci_high) - ln(ci_low)) / (2 * 1.959963984540054); "
                       "Paule-Mandel tau^2 by bisection on Q_gen(tau^2) = k-1 (tol 1e-10; upper bound doubled from 1 until F(hi) <= 0; 200 iterations); "
                       "HKSJ: se_HK = se_RE * sqrt(max(1, Q_gen/(k-1))); CI = mu +/- t_{0.975, k-1} * se_HK; back-transform exp",
@@ -2394,6 +2526,28 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "regenerate": f"python scripts/acquire_bundle_evidence.py {slug} (only if new acquisitions are needed); commit any page rebuild; "
                       f"python scripts/build_bundle.py {slug}; tests/test_bundle.py refuses a stale bundle",
     }
+    # The independently implemented arithmetic consumes the certificate-covered primary
+    # rows. A redundant pool emitted by this producer must agree before it can be written.
+    from scripts.verify_bundle import Refusal, check_pool_contract
+    # Concrete contradictions block emission; an independently disclosed unknown
+    # admission state alone still does not control publication eligibility.
+    for fact in bundle.get("regulatory_facts", []):
+        if fact["tuple_to_identity_binding"] != "BOUND":
+            problems.append(f"{fact['tuple_to_identity_binding']} {fact['trial']}: decision tuple does not bind to claimed analysis")
+    for row in bundle.get("verification_rows", []):
+        p9 = row["admission"]["predicates"]["P9_span_target_mention"]
+        if p9["state"] == "ENDPOINT_INCOMPATIBLE":
+            problems.append(f"ENDPOINT_INCOMPATIBLE {row['trial']['id']}: {p9['mention']}")
+    try:
+        # Validate the JSON representation that is emitted, including numpy scalars
+        # returned by the producer's scipy/numpy engine; reject NaN before encoding.
+        _, pool_problems = check_pool_contract(review, json.loads(json.dumps(bundle, allow_nan=False)), records)
+        problems.extend(pool_problems)
+    except Refusal as exc:
+        problems.append(f"{exc.code} {exc.detail}")
+    except (TypeError, ValueError) as exc:
+        problems.append(f"POOL_BUNDLE_MALFORMED {exc}")
+    # Admission is reported per row; it is not a linkage or integrity refusal.
     return bundle, problems
 
 

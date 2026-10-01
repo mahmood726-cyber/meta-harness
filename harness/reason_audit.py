@@ -12,10 +12,13 @@ import re
 from pathlib import Path
 from typing import Any
 
-from . import absence, extract
+from . import absence, evidence_identity, extract
 
 REASON_TRUE = "REASON_TRUE"
 REASON_FALSE_VALUE_HELD = "REASON_FALSE_VALUE_HELD"
+# V1.0.1: held numbers exist, but none is evidence ABOUT the refused claim on every typed field (role, part, timepoint, population,
+# measure, comparison, and a design-appropriate model for a design refusal). The candidates are listed with their mismatches.
+REASON_NOT_DISPROVED = "REASON_NOT_DISPROVED"
 REASON_WRONG_KIND = "REASON_WRONG_KIND"
 NOT_VERIFIABLE = "NOT_VERIFIABLE"
 
@@ -160,10 +163,12 @@ def sources_by_trial(
             fp = root_path / "cache" / slug / f"ft_{key}.txt"
             if fp.exists():
                 try:
+                    raw = fp.read_text(encoding="utf-8")
                     rows.append({
                         "source_id": f"fulltext:{key}",
                         "source_kind": "fulltext",
-                        "text": _plain(fp.read_text(encoding="utf-8")),
+                        "text": _plain(raw),
+                        "raw": raw,              # tables keep their rows, headers and model footnotes (evidence_identity)
                     })
                 except OSError:
                     pass
@@ -263,6 +268,49 @@ def find_value_in_sources(
     return None
 
 
+def typed_candidates(
+    outcome: dict[str, Any],
+    row: dict[str, Any],
+    sources: list[dict[str, str]],
+    spec: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Every held number the auditor could cite for this refused row, as a typed identity with its mismatches against the typed
+    refused claim (harness.evidence_identity). Sentences first (regex), then table rows (headers + model footnotes). Fewest
+    mismatches first; a full match has an empty mismatch list."""
+    spec = spec or {}
+    keywords = spec.get("keywords") or []
+    terms = absence._terms(keywords, outcome.get("name"))
+    claim = evidence_identity.claim_of(outcome, row, " ".join(keywords))
+    trial = canonical_trial_id(row.get("id") or row.get("label"))
+    proposals = evidence_identity._recorded_proposals()
+    out: list[dict[str, Any]] = []
+    seen = set()
+    for src in sources or []:
+        sid = src.get("source_id") or "held_source"
+        for sent in _candidate_sentences(src.get("text") or "", keywords, outcome.get("name")):
+            if not _has_numeric_outcome(sent) or (sid, sent) in seen:
+                continue
+            seen.add((sid, sent))
+            ident = evidence_identity.from_sentence(sent, trial, sid, proposals)
+            ident["mismatch"] = evidence_identity.mismatches(ident, claim, outcome_named=True)
+            out.append(ident)
+        # labelled COUNT rows of the same source's tables: when a number is rejected as the wrong endpoint (e.g. 'any adverse
+        # event' offered for a specific endpoint), the correctly labelled row is searched for HERE, never summed from symptom rows
+        for ident in evidence_identity.count_rows(src.get("raw") or "", trial, sid):
+            if ident["any_event_row"] or not evidence_identity.names_the_outcome(ident["label"], outcome.get("name") or ""):
+                continue                              # a symptom row, or a restricted subset ('serious ...'), is not the outcome
+            ident["mismatch"] = evidence_identity.mismatches(ident, claim, outcome_named=True)
+            out.append(ident)
+        for ident in evidence_identity.from_tables(src.get("raw") or "", trial, sid):
+            named = bool(terms) and absence._matches_term(ident.get("label") or "", terms)
+            if not named:
+                continue
+            ident["mismatch"] = evidence_identity.mismatches(ident, claim, outcome_named=named)
+            out.append(ident)
+    out.sort(key=lambda c: len(c["mismatch"]))
+    return out
+
+
 def _expects_value(code: str, row: dict[str, Any]) -> bool:
     reason = (row.get("reason") or "").lower()
     return (
@@ -296,17 +344,28 @@ def audit_reason_row(
             "detail": "no held source",
             "stated_reason_code": code,
         }
-    found = find_value_in_sources(sources, spec.get("keywords") or [], outcome.get("name"))
-    if found:
+    candidates = typed_candidates(outcome, row, sources, spec)
+    matched = [c for c in candidates if not c["mismatch"]]
+    if matched:
+        best = matched[0]
         return {
             "verdict": REASON_FALSE_VALUE_HELD,
-            "detail": f"{REASON_FALSE_VALUE_HELD}({found['source_id']}, \"{found['span']}\")",
+            "detail": f"{REASON_FALSE_VALUE_HELD}({best['source_id']}, \"{best['span']}\")",
             "stated_reason_code": code,
-            "source_id": found["source_id"],
-            "source_kind": found["source_kind"],
-            "source_span": found["span"],
-            "source_contains": found["span"],
-            **({"value_text": found["value_text"]} if found.get("value_text") else {}),
+            "source_id": best["source_id"],
+            "source_kind": next((s.get("source_kind") for s in sources if s.get("source_id") == best["source_id"]), "held"),
+            "source_span": best["span"],
+            "source_contains": best["span"],
+            "evidence_identity": best,
+            "candidates": candidates[:8],
+        }
+    if candidates:
+        return {
+            "verdict": REASON_NOT_DISPROVED,
+            "detail": "held numbers exist, but none matches the refused claim on every typed field: "
+                      + "; ".join(f"{c['span'][:80]} -> {','.join(c['mismatch'])}" for c in candidates[:3]),
+            "stated_reason_code": code,
+            "candidates": candidates[:8],
         }
     if _expects_value(code, row) or _source_not_retrieved_wrong(code, sources):
         return {
@@ -322,7 +381,7 @@ def audit_reason_row(
 
 
 def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    verdicts = [REASON_TRUE, REASON_FALSE_VALUE_HELD, REASON_WRONG_KIND, NOT_VERIFIABLE]
+    verdicts = [REASON_TRUE, REASON_FALSE_VALUE_HELD, REASON_NOT_DISPROVED, REASON_WRONG_KIND, NOT_VERIFIABLE]
     counts = {v: sum(1 for r in rows if r.get("verdict") == v) for v in verdicts}
     by_code: dict[str, dict[str, int]] = {}
     for row in rows:

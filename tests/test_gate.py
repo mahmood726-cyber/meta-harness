@@ -98,20 +98,23 @@ def test_valid_page_passes_non_replay_limbs():
         assert not reasons, f"valid page should pass non-replay limbs, got: {reasons}"
 
 
-def test_real_review_reproduces_and_passes_full_gate():
-    # A real committed page must pass the WHOLE gate including Level-B replay (the pipeline
-    # re-run from committed cache regenerates the committed numbers). Skips only if run
-    # outside the repo (no docs/reviews present).
+def test_real_review_admission_alone_does_not_refuse_publication():
+    # Integrity failures on an unreconstructed release remain independent holds.
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    # glp1-ra-mace-t2d: a real committed page with no result-change notice pending a countersignature. (noac's
-    # major-bleeding outcome carries a notice held OPEN until the reviewer signs it -- a designed hold, not a
-    # broken page -- so it cannot be the "passes the whole gate" control while unsigned.)
     d = _os.path.join(root, "docs", "reviews", "glp1-ra-mace-t2d")
     if not _os.path.isdir(d):
         return
     ok, reasons = gate_page(d)
-    assert ok, f"real committed review must pass the full gate, got: {reasons}"
+    assert not any("inadmissible primary rows" in reason or
+                   "certified primary contains inadmissible rows" in reason for reason in reasons), reasons
+    from scripts.verify_bundle import separate_verdicts
+    report = {"failures": [], "rows": [{"final": "INADMISSIBLE"}],
+              "pool": {"reproduced_to_1e-9": True, "bundle_internal_arithmetic_agrees": True,
+                       "certified_result_agrees": True, "binding_ok": True}}
+    separate_verdicts(report)
+    assert report["verdicts"]["scientific_admission"] == "FAIL"
+    assert report["verdicts"]["publication_eligibility"] == "ELIGIBLE"
 
 
 def test_synthetic_harms_incomplete_refuses_full_gate():

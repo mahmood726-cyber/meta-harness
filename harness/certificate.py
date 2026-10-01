@@ -174,6 +174,37 @@ def _scope(blobs):
     }
 
 
+# V1.0.1 ROOT OF TRUST (auditor, 2026-09-26): BUNDLE.json was pinned nowhere -- not a certificate hash input, not in the served-
+# blob map, not in its own review_files -- yet the verifier loads it first and trusts it for artefacts, digests, rows and pooled
+# inputs. It is now pinned INTO the release identity: the certificate carries bundle_core_sha256, so any change to the bundle
+# moves release_sha256. The pin covers the bundle's CORE: the bundle minus exactly the fields that carry the release identity or
+# pin files that embed it (a bundle cannot contain the hash of a certificate that contains the hash of that bundle). Each
+# excluded field is checked against the real file on its own. scripts/verify_bundle.py carries the same definition (the served
+# verifier imports nothing from harness/); tests/test_bundle_pin.py pins their equality.
+BUNDLE_RELEASE_BOUND_TOP = ("certificate", "review_files", "source")
+BUNDLE_RELEASE_BOUND_EVIDENCE_VERSION = ("certificate_release_sha256", "review_blob")
+
+
+def bundle_core(bundle):
+    """The pinned part of a BUNDLE.json: everything except the release-bound fields."""
+    core = {k: v for k, v in bundle.items() if k not in BUNDLE_RELEASE_BOUND_TOP}
+    if isinstance(core.get("verification_rows"), list):         # a malformed bundle still hashes; it never crashes the pin
+        rows = []
+        for row in core["verification_rows"]:
+            adm = row.get("admission") if isinstance(row, dict) else None
+            ev = adm.get("evidence_version") if isinstance(adm, dict) else None
+            if isinstance(ev, dict):
+                row = {**row, "admission": {**adm, "evidence_version": {k: v for k, v in ev.items()
+                                                                       if k not in BUNDLE_RELEASE_BOUND_EVIDENCE_VERSION}}}
+            rows.append(row)
+        core["verification_rows"] = rows
+    return core
+
+
+def bundle_core_sha256(bundle):
+    return _hash(bundle_core(bundle))
+
+
 def compute(slug, review, protocol_sha):
     """Re-read each listed input; fail closed on absent required files or corpus drift."""
     if Path(slug).name != slug or slug in (".", ".."):
@@ -236,6 +267,13 @@ def compute(slug, review, protocol_sha):
             "release_sha256": "canonical entire certificate excluding only release_sha256",
         },
     }
+    bundle_path = ROOT / "docs" / "reviews" / slug / "BUNDLE.json"
+    if bundle_path.exists():                       # only a review that serves a bundle pins one; the others are unchanged
+        cert["bundle_core_sha256"] = bundle_core_sha256(_json(bundle_path))
+        cert["hash_inputs"]["bundle_core_sha256"] = (
+            "canonical docs/reviews/<slug>/BUNDLE.json EXCLUDING only the release-bound fields: top-level "
+            + ", ".join(BUNDLE_RELEASE_BOUND_TOP) + "; verification_rows[*].admission.evidence_version."
+            + "/".join(BUNDLE_RELEASE_BOUND_EVIDENCE_VERSION) + " -- each checked against its real file on its own")
     cert["release_sha256"] = _hash(cert)
     return cert
 

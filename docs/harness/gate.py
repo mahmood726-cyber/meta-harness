@@ -1286,6 +1286,36 @@ def check_adjustment_span_backed(review_dir):
     return reasons
 
 
+def check_bundle_pool(review_dir):
+    """Enforce the complete independent checker on pages carrying an evidence bundle.
+
+    Unbundled pages retain their existing gates; this is not portfolio-wide coverage.
+    The served code mirror remains pinned to its release until an authorised rebuild.
+    """
+    from pathlib import Path
+    from scripts.verify_bundle import Refusal, Store, run
+    directory = Path(review_dir).resolve()
+    if not (directory / "BUNDLE.json").exists():
+        # A missing required bundle cannot downgrade a bundled page to the legacy route.
+        try:
+            manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            return [f"L1(bundle_pool): POOL_CHECK_UNAVAILABLE {exc}"]
+        if (manifest.get("source") or {}).get("served_blob_git_sha1"):
+            return ["L1(bundle_pool): POOL_BUNDLE_REQUIRED content-addressed review is missing BUNDLE.json"]
+        return []
+    try:
+        report = run(Store(str(directory.parent.parent), None), directory.name, None)
+    except (Refusal, OSError, ValueError, KeyError, TypeError) as exc:
+        code = exc.code if isinstance(exc, Refusal) else "POOL_CHECK_UNAVAILABLE"
+        return [f"L1(bundle_pool): {code} {exc}"]
+    reasons = [f"L1(bundle_pool/{category}): {reason}"
+               for category, items in report["failure_categories"].items() for reason in items]
+    if report["verdicts"]["publication_eligibility"] != "ELIGIBLE":
+        reasons.append(f"L1(bundle_pool): POOL_PUBLICATION_INELIGIBLE {report['verdicts']}; linkage or integrity verification failed")
+    return reasons
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -1298,6 +1328,7 @@ def gate_page(review_dir):
                + check_result_change_countersigned(review_dir)
                + check_stale_heterogeneity_surfaces(review_dir)
                + check_certificate(review_dir)
+               + check_bundle_pool(review_dir)
                + check_no_independent_corroboration_claim(review_dir, html)
                + check_harms_synthesis_gated(review_dir, html)
                + check_adjustment_span_backed(review_dir)
