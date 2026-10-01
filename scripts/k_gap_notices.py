@@ -26,7 +26,10 @@ REASONS = {
                                    "quantity; found by G1 result agreement with the comparator (now 2/2 AGREE)."),
     "probiotics-aad-prevention": ("EXTRACTOR FIX 4: McFarland 1995 (PMID 7872284) served a multivariable-ADJUSTED RR 0.29 from a "
                                   "risk-factor model; the randomised contrast is the crude 7/97 vs 14/96 (RR 0.49), the value "
-                                  "the comparator pooled. Found by G1 forest-plot agreement."),
+                                  "the comparator pooled. Found by G1 forest-plot agreement. AND derived prevention screening "
+                                  "(harness/screen.prevention_terms, ported from rescue 46c5f294): AAD is this topic's outcome, so "
+                                  "a prevention trial's population is read from its abstract -- Hickson 2007 (PMID 17604300, "
+                                  "7/57 vs 19/56) enters; exclusion terms stay on title/conditions, so no pooled trial is lost."),
 }
 
 

@@ -60,3 +60,75 @@ def test_colchicine_postop_config_models_enrolled_population():
     assert inc.get("prevention") is True
     assert "atrial fibrillation" not in inc["population_any"]
     assert any("cardiac surgery" in p or "CABG" in p or "bypass" in p for p in inc["population_any"])
+
+
+def test_condition_as_outcome_real_trials():
+    # Held PubMed records: Hickson prevents AAD; 22370839 treats existing AAD.
+    from pathlib import Path
+    root = Path(_ROOT)
+    config = json.loads((root / "topics/probiotics-aad-prevention.json").read_text(encoding="utf-8"))
+    records = json.loads((root / "cache/probiotics-aad-prevention/records.json").read_text(encoding="utf-8"))
+    ids = {"111546", "17604300", "17900321", "19727002", "24291194", "22370839"}
+    selected = [r for r in records["records"] if r["id"] in ids]
+    assert {r["id"] for r in selected} == ids
+    assert "prevention" not in config["include"]
+    decisions = {d["id"]: d for d in S.run(selected, config)["decisions"]}
+    for pid in sorted(ids - {"22370839"}):
+        assert decisions[pid]["decision"] == "include", decisions[pid]
+    assert decisions["22370839"]["decision"] == "exclude"
+    assert decisions["22370839"]["rule_id"] == "X2"
+    assert "diarrhea treatment" in decisions["22370839"]["reason"]
+    assert "prevention" not in config["include"]
+
+
+def test_prevention_derivation_is_event_specific_and_topic_independent():
+    import copy
+    cfg = {"include": {"population_any": ["infection"]},
+           "primary_outcome": {"name": "At least one infection",
+                               "keywords": ["at least one infection"], "estimand": "RR"}}
+    original = copy.deepcopy(cfg)
+    assert S.effective_include(cfg)["prevention"] is True
+    assert cfg == original
+    cfg["include"]["prevention"] = False
+    assert S.effective_include(cfg)["prevention"] is True
+    cfg["primary_outcome"]["name"] = "Mortality"
+    assert not S.effective_include(cfg)["prevention"]
+    cfg["primary_outcome"].update(name="Infection", estimand="MD")
+    assert not S.effective_include(cfg)["prevention"]
+
+
+def test_keyword_overlap_does_not_turn_treatment_into_prevention():
+    cfg = {"include": {"population_any": ["appendicitis"]},
+           "primary_outcome": {"name": "Treatment failure or complication at 1 year",
+                               "keywords": ["appendicitis"], "estimand": "RR"}}
+    assert not S.effective_include(cfg).get("prevention")
+    cfg["primary_outcome"].update(name="Mortality", keywords=["appendicitis", "mortality"])
+    assert not S.effective_include(cfg).get("prevention")
+    cfg["include"]["population_any"] = ["infect*"]
+    cfg["primary_outcome"].update(name="Infection mortality", keywords=["infection"])
+    assert not S.effective_include(cfg).get("prevention")
+
+
+def test_dual_screen_uses_derived_prevention():
+    cfg = {"include": {"population_any": ["infection"]},
+           "primary_outcome": {"name": "Infection", "keywords": ["infection"], "estimand": "RR"}}
+    rec = _rec("A randomized prevention trial", "Treatment reduced infection versus placebo.")
+    dual = S.run_dual([rec], cfg)
+    assert dual["n"] == dual["agree"] == 1
+    assert dual["disagree"] == 0
+
+
+def test_prevention_widens_the_population_signal_not_the_exclusions():
+    # PLANT (probiotics, derived prevention): exclusion terms matched over the ABSTRACT excluded real trials on incidental
+    # words. They stay on title/conditions; a title that IS a subgroup report still excludes.
+    inc = {"prevention": True, "population_any": ["antibiotic-associated diarr*"], "intervention_any": ["probiotic"],
+           "comparator_any": ["placebo"], "population_none": ["model", "subgroup analysis", "treatment of AAD"]}
+    rec = _rec("Probiotic for the prevention of antibiotic-associated diarrhoea: a randomized trial",
+               "Patients were randomized to probiotic or placebo. Using a multivariate model to adjust for age, "
+               "the adjusted risk of antibiotic-associated diarrhoea fell. Subgroup analysis of subjects with AAD "
+               "showed shorter duration. There is interest in probiotics for the treatment of AAD.")
+    d, rule, reason, span = S.screen_record(rec, inc, [])
+    assert d == "include", (d, rule, reason)
+    sub = _rec("A subgroup analysis of a probiotic trial for antibiotic-associated diarrhoea", rec["abstract"])
+    d, rule, reason, span = S.screen_record(sub, inc, [])
+    assert d == "exclude" and rule == "X2" and "subgroup analysis" in reason
