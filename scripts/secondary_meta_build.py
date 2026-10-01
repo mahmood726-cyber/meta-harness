@@ -406,6 +406,44 @@ def report_text(slug, pmid):
     return ((rec or {}).get("title") or "") + " " + ((rec or {}).get("abstract") or "")
 
 
+_AACT = None
+
+
+def primary_sources(slug, pmid, nct=None):
+    """Every held primary source for one trial, offline: [(kind, ref, payload)]. Texts: abstract, PMC OA, the held
+    cache/<slug>/ft_<pmid>.txt (markup stripped), the Unpaywall copy. Registry: posted CT.gov results for its NCT(s) from
+    the local AACT index (scripts/k_gap_bulk_acquire.py)."""
+    import hashlib as _h
+    global _AACT
+    out = []
+    mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
+    rec = None
+    rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+    rec = next((x for x in rj.get("records", []) if str(x.get("id")) == str(pmid)), None)
+    if rec is None and os.path.exists(mp):
+        rec = _j(mp).get(str(pmid))
+    if rec:
+        out.append(("text", f"PMID {pmid} abstract", (rec.get("title") or "") + " " + (rec.get("abstract") or "")))
+    for ref, fpth in ((f"PMID {pmid} PMC OA", os.path.join(ROOT, "outputs", "k_gap", "_ft", f"{pmid}.txt")),
+                      (f"PMID {pmid} held cache/{slug}/ft_{pmid}.txt", os.path.join(ROOT, "cache", slug, f"ft_{pmid}.txt"))):
+        if os.path.exists(fpth) and os.path.getsize(fpth) > 0:
+            with open(fpth, encoding="utf-8", errors="replace") as fh:
+                out.append(("text", ref, re.sub(r"<[^>]+>", " ", fh.read())))
+    doi = ((rec or {}).get("doi") or "").lower()
+    if doi:
+        up = os.path.join(ROOT, "outputs", "k_gap", "_upw", _h.sha1(doi.encode("utf-8")).hexdigest()[:16] + ".txt")
+        if os.path.exists(up) and os.path.getsize(up) > 0:
+            with open(up, encoding="utf-8", errors="replace") as fh:
+                out.append(("text", f"PMID {pmid} Unpaywall OA (doi {doi})", fh.read()))
+    if _AACT is None:
+        ap = os.path.join(ROOT, "outputs", "k_gap", "_aact_results.json")
+        _AACT = _j(ap) if os.path.exists(ap) else {}
+    for n in {x for x in (nct, (rec or {}).get("nct")) if x}:
+        if _AACT.get(n, {}).get("outcomes"):
+            out.append(("registry", f"{n} CT.gov posted results (AACT 2026-08-30)", _AACT[n]))
+    return out
+
+
 def family_of_factory(ours):
     toks = lambda x: re.findall(r"[a-z0-9]+", k_gap.fold_dashes(str(x or "")).lower())   # noqa: E731
 
@@ -543,6 +581,20 @@ def build(slug, run, runs):
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
+    # DETERMINISTIC VERIFICATION FIRST (no model, no network): the meta's exact printed numbers found by regex in the
+    # trial's held primary sources -- abstract, PMC OA text, held cache/<slug>/ft_<pmid>.txt, Unpaywall text -- or in its
+    # posted CT.gov results (local AACT index). Only the residue goes on to our extraction and the recorded locator.
+    import time as _time
+    _t0 = _time.time()
+    terms = [k for k in (spec.get("keywords") or []) if k] + list(spec.get("core") or [])
+    nct_of = {t["id"]: t.get("nct") for t in ours}
+    typed_n = 0
+    for r in rows:
+        if r.state == sm.UNVERIFIED and str(r.family_id or "").startswith("PMID "):
+            pid = r.family_id[5:]
+            sm.verify_typed(r, primary_sources(slug, pid, nct_of.get(r.family_id)), terms)
+            typed_n += r.state == sm.VERIFIED
+    typed_secs = round(_time.time() - _t0, 2)
     tried = {}
     for r in rows:
         if r.state == sm.UNVERIFIED:
@@ -583,6 +635,7 @@ def build(slug, run, runs):
     g1 = sm.g1_countable(rows, {comp})
     out = {"slug": slug, "comparator_pmid": comp, "metas_considered": metas, "skipped": skipped, "metas": metas_out,
            "tally": dict(Counter(r.state for r in rows)),
+           "typed_verification": {"verified": typed_n, "secs": typed_secs},
            "verification_queue": queue, "verification_queue_reasons": dict(Counter(q["reason"] for q in queue)),
            "g1_countable_vs_comparator": sorted({r.family_id for r in g1}),
            "refusal_reasons": dict(Counter(x.split(":")[0] for r in rows for x in r.reasons)),
