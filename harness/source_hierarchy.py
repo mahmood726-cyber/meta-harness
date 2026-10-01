@@ -147,6 +147,18 @@ def label_only_harvest_refusal(spec: dict[str, Any], text: str, candidate: dict[
     return None
 
 
+def candidate_scope_refusal(candidate: dict[str, Any]) -> str | None:
+    """The row-level scope guards, applied to a HARVESTED candidate.
+
+    The pipeline applies extract's guards to the row it extracts, but the source-hierarchy selector can then
+    REPLACE that row's number with a harvested candidate (provenance pmc_fulltext_effect), and nothing guarded
+    the candidate. That is how a subgroup RR (probiotics PMID 34541475, patients on regular PPI) reached the pool
+    when held full texts were enabled. The sentence the number came from is checked, falling back to the snippet.
+    """
+    text = candidate.get("sentence") or candidate.get("source") or ""
+    return (extract.subgroup_refusal(text) or extract.table_role_refusal(text)) or None
+
+
 def effect_candidates_for_outcome(spec: dict[str, Any], text: str,
                                   record: list[str] | None = None) -> list[dict[str, Any]]:
     """Harvested effect candidates for the declared outcome, with label-only mismatches removed.
@@ -157,7 +169,8 @@ def effect_candidates_for_outcome(spec: dict[str, Any], text: str,
     """
     kept = []
     for cand in _effect_candidates_in_outcome(text or "", spec.get("keywords") or []):
-        refusal = label_only_harvest_refusal(spec, text or "", cand)
+        refusal = (label_only_harvest_refusal(spec, text or "", cand)
+                   or candidate_scope_refusal(cand))
         if refusal:
             # A refusal that is not recorded cannot be explained later. The pooled result moves,
             # the notice says a different number is now contributed, and nothing anywhere says
@@ -235,7 +248,8 @@ def span_effect_candidates(spec: dict[str, Any], selected: dict[str, Any],
     resolve_text = text or span_text
     candidates = list(base_candidates or [])
     for eff in _effect_candidates_in_outcome(span_text, spec.get("keywords") or []):
-        refusal = label_only_harvest_refusal(spec, resolve_text, eff, unresolved_is_refusal=not text)
+        refusal = (label_only_harvest_refusal(spec, resolve_text, eff, unresolved_is_refusal=not text)
+                   or candidate_scope_refusal(eff))
         if refusal:
             if record is not None:
                 record.append(refusal)

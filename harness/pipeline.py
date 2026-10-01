@@ -1291,7 +1291,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                    or extract.timepoint_mismatch(spec.get("timepoint", ""), ex.get("source", ""))
                    or extract.outcome_window_mismatch(spec.get("timepoint", ""), spec.get("keywords"),
                                                       ex.get("source", ""))
-                   or extract.table_role_refusal(ex.get("source", "")))
+                   or extract.table_role_refusal(ex.get("source", ""))
+                   or extract.subgroup_refusal(ex.get("source", "")))
             if _mm:
                 absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence", "reason": _mm})
                 continue
@@ -1341,7 +1342,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                     or extract.timepoint_mismatch(spec.get("timepoint", ""), fx.get("source", ""))
                     or extract.outcome_window_mismatch(spec.get("timepoint", ""), spec.get("keywords"),
                                                        fx.get("source", ""))
-                    or extract.table_role_refusal(fx.get("source", "")))
+                    or extract.table_role_refusal(fx.get("source", ""))
+                    or extract.subgroup_refusal(fx.get("source", "")))
             if _mmf:
                 absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence",
                                "reason": _mmf, "provenance": "pmc_fulltext"})

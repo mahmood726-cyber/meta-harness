@@ -1063,16 +1063,63 @@ def table_role_refusal(source_span: str) -> str:
     document states a table's role. It does not key on the word "baseline" anywhere in the span: a
     results table legitimately says "change from baseline", and refusing that would lose real
     effects. Returns a reason or ''.
+
+    UNCAPTIONED TABLES (2026-10-01). An inline table carries no 'Table N:' caption, so the caption
+    branch cannot see it -- and the original fallback (no caption found -> scan the whole head for
+    the phrases) refused real results that merely mention "baseline characteristics" in a sentence.
+    probiotics-aad-prevention PMID 39497860 is the case that forced this: its span
+    "Characteristic Probiotic Group (n=170) Placebo Group (n=170) Age Groups (n;%) 18-30 years ..."
+    was read as per-arm mean+/-SD, a mean difference of patient AGES entered an RR pool, and the
+    estimand mix suppressed the pooled result. So the phrase list applies only to a real caption, and
+    an uncaptioned table is refused on STRUCTURE: its content opens with a 'Characteristic(s)' header
+    AND a demographic row label (age, sex, BMI, ...) appears in the head.
     """
     s = (source_span or "")
     if not s:
         return ""
     head = s[:600].lower()
     m = re.search(r"table\s+[^:\n]{0,40}:\s*([^\n|]{0,160})", head)
-    caption = (m.group(1) if m else head).lower()
-    for phrase in _TABLE_ROLE_NEVER_AN_EFFECT_SOURCE:
-        if phrase in caption:
-            return (f"the effect was read from a table whose caption describes it as {phrase!r} "
-                    "(baseline/demographic/design tables report arm composition, not outcome events); "
-                    "a number from such a table is not an effect")
+    if m:
+        caption = m.group(1).lower()
+        for phrase in _TABLE_ROLE_NEVER_AN_EFFECT_SOURCE:
+            if phrase in caption:
+                return (f"the effect was read from a table whose caption describes it as {phrase!r} "
+                        "(baseline/demographic/design tables report arm composition, not outcome events); "
+                        "a number from such a table is not an effect")
+        return ""
+    # The span may carry a provenance label ("abstract mean+/-SD per arm (mean difference): ..."); the table's
+    # own content starts after it.
+    content = head.split("): ", 1)[1] if "): " in head[:120] else head
+    if (_UNCAPTIONED_BASELINE_HEADER.match(content.lstrip())
+            and _DEMOGRAPHIC_ROW_LABEL.search(content)):
+        return ("the effect was read from an uncaptioned table whose header is 'Characteristic' and whose rows "
+                "are patient demographics (a baseline table reports arm composition, not outcome events); "
+                "a number from such a table is not an effect")
     return ""
+
+
+_UNCAPTIONED_BASELINE_HEADER = re.compile(r"(?:baseline\s+)?(?:patient\s+)?characteristics?\b")
+_DEMOGRAPHIC_ROW_LABEL = re.compile(
+    r"\b(?:age(?:\s+groups?)?|sex|gender|male|female|bmi|body mass index|ethnicity|race|smoking)\b")
+_SUBGROUP_RESTRICTION = re.compile(
+    r"\bin the (?:sub)?group of (?:patients|participants|subjects|those) (?:who|with)\b"
+    r"|\bsubgroup (?:of|analysis|analyses)\b"
+    r"|\bamong (?:the )?(?:patients|participants|subjects|those) (?:who (?:were|was) (?:on|receiving|taking|using)|on regular)\b"
+    r"|\bin the subset of\b")
+
+
+def subgroup_refusal(source_span: str) -> str:
+    """Refuse an effect that the source itself restricts to a SUBGROUP of the randomised population.
+
+    probiotics-aad-prevention PMID 34541475: "in the group of patients who were on regular PPI, LcS use was
+    associated with a lower risk of AAD at 7 (... RR: 0.53, 95% CI: 0.29-0.99)" was harvested as the trial's
+    effect the moment its held full text was read. A subgroup estimate is a different population; pooling it
+    beside whole-trial effects is estimand-inconsistent. Conservative: fires only on an explicit restriction
+    phrase in the sentence that carries the number. "Consistent across subgroups" describes an overall
+    result and does not fire. Returns a reason or ''.
+    """
+    m = _SUBGROUP_RESTRICTION.search((source_span or "").lower())
+    if not m:
+        return ""
+    return (f"the source restricts this result to a subgroup ('{m.group(0)}'), not the randomised population "
+            "the outcome declares; a subgroup estimate is a different population and is not pooled")
