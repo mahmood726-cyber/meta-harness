@@ -169,3 +169,17 @@ def test_a_non_numeric_primary_value_leaves_the_row_queued_not_crashing():
                  {"estimand": "MD", "keywords": ["sleep onset latency"]}, lambda r: "Z")
     sm.verify_against_primary(r, {"measure": "MD", "effect": "0:31", "lower": "0:20", "upper": "0:40", "span": "0:31"})
     assert r.state == sm.UNVERIFIED and r.verification["result"] == "PRIMARY_NOT_NUMERIC"
+
+
+def test_queue_invariant_every_unverified_row_has_a_typed_queue_reason():
+    q = sm.admit(_row(label="LEADER"), SPEC, lambda r: "LEADER")
+    assert sm.queue_complete([q]) == [q]                        # the plant: admitted, unverified, no queue entry
+    sm.verify_against_primary(q, None, queue_reason="NO_PRIMARY:LOCATOR_NOT_REPORTED")
+    assert sm.queue_complete([q]) == [] and q.verification["queue_reason"] == "NO_PRIMARY:LOCATOR_NOT_REPORTED"
+    m = sm.admit(_row(label="VITAL", measure="RR", eff=("0.92", "0.80", "1.06"), outcome="MACE"),
+                 {"estimand": "RR", "keywords": ["MACE"]}, lambda r: "V")
+    sm.verify_against_primary(m, {"measure": "HR", "effect": "0.92", "lower": "0.80", "upper": "1.06", "span": ""})
+    assert sm.queue_complete([m]) == [] and m.verification["queue_reason"] == "MEASURE_DIFFERS"
+    n = sm.admit(_row(label="X"), SPEC, lambda r: "X")
+    sm.verify_against_primary(n, None)                            # no reason given -> still a typed default, never empty
+    assert n.verification["queue_reason"] == "NO_PRIMARY_VALUE"

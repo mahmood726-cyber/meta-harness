@@ -362,11 +362,16 @@ def cross_check(rows: list) -> list:
     return rows
 
 
-def verify_against_primary(row: SecondaryRow, primary: Optional[dict]) -> SecondaryRow:
+def verify_against_primary(row: SecondaryRow, primary: Optional[dict], queue_reason: Optional[str] = None) -> SecondaryRow:
     """primary: {'measure','effect','lower','upper' | 'events_t','n_t','events_c','n_c', 'span', 'source'} from the
     trial's OWN report/registry. None -> the row stays queued. A mismatch names the field, both values and locations,
     and which side the evidence points to: the primary value is taken as right only when its numbers are IN its span."""
-    if row.state not in (UNVERIFIED,) or not primary:
+    if row.state not in (UNVERIFIED,):
+        return row
+    if not primary:
+        # QUEUED: no primary value of the trial's own report yet. The reason is a typed field, never an absence: every
+        # row left SECONDARY_UNVERIFIED must say why (queue_complete)
+        row.verification = {"result": "QUEUED", "queue_reason": queue_reason or "NO_PRIMARY_VALUE"}
         return row
     p = SecondaryRow(meta_pmid="primary", meta_doi="", location={"kind": "primary", "id": primary.get("source", "")},
                      source_digest="0" * 64, provenance="PRIMARY", trial_label=row.trial_label,
@@ -379,7 +384,8 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict]) -> Second
     # a primary value that is not a plain number ('0:31', a sleep latency in h:mm) cannot be compared: the row stays queued
     bad = [k for k in ("effect", "lower", "upper") if getattr(p, k) is not None and _num(getattr(p, k)) is None]
     if bad:
-        row.verification = {"result": "PRIMARY_NOT_NUMERIC", "fields": bad, "primary_source": primary.get("source")}
+        row.verification = {"result": "PRIMARY_NOT_NUMERIC", "queue_reason": "PRIMARY_NOT_NUMERIC", "fields": bad,
+                            "primary_source": primary.get("source")}
         return row
     span_tokens = re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d])", (primary.get("span") or "").replace("·", "."))
     for k in ("effect", "lower", "upper"):
@@ -402,7 +408,8 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict]) -> Second
     # different MEASURES (a meta's RR against the trial's HR) are not a numeric disagreement: nothing to compare, the
     # row stays queued for a same-measure primary
     if row.effect is not None and p.effect is not None and row.measure.upper() != (p.measure or "").upper():
-        row.verification = {"result": "MEASURE_DIFFERS", "secondary_measure": row.measure, "primary_measure": p.measure,
+        row.verification = {"result": "MEASURE_DIFFERS", "queue_reason": "MEASURE_DIFFERS",
+                            "secondary_measure": row.measure, "primary_measure": p.measure,
                             "primary_source": primary.get("source")}
         return row
     if same_value(row, p):
@@ -427,6 +434,13 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict]) -> Second
                         "which_side": "SECONDARY_WRONG (primary numbers are in the primary's own span)" if anchored
                         else "UNDETERMINED (primary value not anchored in a primary span)"}
     return row
+
+
+def queue_complete(rows: list) -> list:
+    """INVARIANT: every row left SECONDARY_UNVERIFIED is IN the verification queue with a typed reason. Returns the rows
+    that break it (an unverified row with no queue entry is a row nobody will ever verify -- it silently stays
+    provisional). The build refuses to write its output while this list is non-empty."""
+    return [r for r in rows if r.state == UNVERIFIED and not ((r.verification or {}).get("queue_reason"))]
 
 
 def g1_countable(rows: list, comparator_meta_ids: set) -> list:
