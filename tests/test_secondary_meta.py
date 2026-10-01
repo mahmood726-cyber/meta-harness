@@ -191,3 +191,39 @@ def test_a_clipped_span_is_completed_by_the_report_text_when_deciding_the_side()
                                   "span": "... (hazard ratio, 0.79; ",                       # clipped at 200 chars
                                   "report_text": "hazard ratio, 0.79; 95% confidence interval, 0.57 to 1.11"})
     assert r.state == sm.MISMATCH and r.verification["which_side"].startswith("SECONDARY_WRONG")
+
+
+def _claim(quote, **kw):
+    base = {"state": "REPORTED", "quote": quote, "measure": None, "point": None, "lower": None, "upper": None,
+            "events_t": None, "n_t": None, "events_c": None, "n_c": None}
+    base.update(kw)
+    return base
+
+
+def test_locator_gate_reasons_are_distinct_and_printed_number_formats_are_numbers():
+    text = ("The primary end point occurred in 386 of 12,933 participants with n-3 fatty acids and 419 of 12,938 with "
+            "placebo (hazard ratio, 0·92; 95% CI, 0·80 to 1·06). Sleep latency fell to 0:31.")
+    # VITAL: thousands separators were refused as NON_NUMERIC -- now the counts are accepted as printed
+    v, why = sm.gate_locator_claim(_claim("386 of 12,933 participants with n-3 fatty acids and 419 of 12,938",
+                                          events_t="386", n_t="12,933", events_c="419", n_c="12,938"), text)
+    assert why == "ACCEPTED" and v["n_t"] == 12933
+    # a mid-dot decimal is the number it prints
+    v, why = sm.gate_locator_claim(_claim("hazard ratio, 0·92; 95% CI, 0·80 to 1·06", measure="hazard ratio",
+                                          point="0·92", lower="0·80", upper="1·06"), text)
+    assert why == "ACCEPTED" and (v["effect"], v["lower"], v["upper"]) == ("0.92", "0.80", "1.06")
+    # nothing copied is NOT 'number not in quote' (13 of 58 answers were mislabelled so)
+    assert sm.gate_locator_claim(_claim("hazard ratio, 0·92"), text)[1] == "NO_NUMBERS_COPIED"
+    assert sm.gate_locator_claim(_claim("Sleep latency fell to 0:31.", point="0:31"), text)[1] == "NON_NUMERIC"
+    assert sm.gate_locator_claim(_claim("hazard ratio, 0·92", point="0.91"), text)[1] == "NUMBER_NOT_IN_QUOTE"
+    assert sm.gate_locator_claim(_claim("not in the text at all", point="1"), text)[1] == "QUOTE_NOT_IN_TEXT"
+    assert sm.gate_locator_claim(_claim("386 of 12,933", events_t="386", n_t="12,933"), text)[1] == "INCOMPLETE"
+    assert sm.gate_locator_claim({"state": "NOT_REPORTED"}, text)[1] == "NOT_REPORTED"
+
+
+def test_a_counts_request_takes_the_counts_when_an_hr_is_also_copied():
+    text = "386 of 12,933 vs 419 of 12,938 (hazard ratio, 0.92; 95% CI, 0.80 to 1.06)"
+    c = _claim(text, measure="hazard ratio", point="0.92", lower="0.80", upper="1.06",
+               events_t="386", n_t="12,933", events_c="419", n_c="12,938")
+    assert sm.gate_locator_claim(c, text)[0]["measure"] == "HR"                     # default: the reported effect
+    v, why = sm.gate_locator_claim(c, text, prefer="counts")
+    assert why == "ACCEPTED" and (v["events_t"], v["n_t"], v["events_c"], v["n_c"]) == (386, 12933, 419, 12938)
