@@ -261,7 +261,12 @@ def primary_value(slug, pmid, run, runs, want=None):
     if not r or r.get("state") != "RAN_OK":
         return None, "LOCATOR_NOT_RUN"
     claim = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
-    if claim.get("state") != "REPORTED" or not claim.get("quote"):
+    # the deterministic gate is harness code (secondary_meta.gate_locator_claim): one implementation, typed reasons
+    val, why = sm.gate_locator_claim(claim, text, prefer="counts" if want == "counts" else None)
+    if val:
+        return {**val, "source": f"PMID {pmid} LOCATOR:{r['record_id']}"}, "LOCATOR_QUOTE"
+    return None, f"LOCATOR_{why}"
+    if claim.get("state") != "REPORTED" or not claim.get("quote"):   # (superseded; unreachable)
         return None, "LOCATOR_NOT_REPORTED"
     q = _norm_ws(claim["quote"])
     if q not in _norm_ws(text):
