@@ -421,7 +421,10 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict], queue_rea
     nums = [x for x in (primary.get("effect"), primary.get("lower"), primary.get("upper"), primary.get("events_t"),
                         primary.get("n_t"), primary.get("events_c"), primary.get("n_c")) if x is not None]
     # anchored NUMERICALLY: '0.8' is the span's '0.80' (a float drops the trailing zero; the span keeps it)
-    in_span = {float(m) for m in re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d])", span.replace("·", "."))}
+    # ...against the primary's span AND its full report text: a stored span is often clipped (PIONEER 6's ends before
+    # "0.57 to 1.11"), which made a primary-right mismatch look UNDETERMINED
+    anchor_text = span + " " + (primary.get("report_text") or "")
+    in_span = {float(m) for m in re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d])", anchor_text.replace("·", "."))}
     anchored = bool(nums) and all(float(n) in in_span for n in nums)
     row.state = MISMATCH
     row.verification = {"result": "MISMATCH",
