@@ -517,20 +517,32 @@ def build(slug, run, runs):
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
-    queue_src = Counter()
+    tried = {}
     for r in rows:
         if r.state == sm.UNVERIFIED:
             prim = (by_id.get(r.family_id) or {}).get("primary")
+            why = None
             if prim is None and str(r.family_id or "").startswith("PMID "):
-                # the VERIFICATION QUEUE: a trial we do not pool -> derive its primary value from its OWN report
-                prim, how = primary_value(slug, r.family_id.replace("PMID ", ""), run, runs)
-                queue_src[how] += 1
+                # the VERIFICATION QUEUE: no primary value of ours -> derive it from the trial's OWN report (once per trial)
+                if r.family_id not in tried:
+                    tried[r.family_id] = primary_value(slug, r.family_id.replace("PMID ", ""), run, runs)
+                prim, how = tried[r.family_id]
+                why = None if prim else f"NO_PRIMARY:{how}"
                 if prim:
                     by_id.setdefault(r.family_id, {})["primary"] = prim
-            sm.verify_against_primary(r, prim)
+            elif prim is None:
+                why = "NO_PRIMARY:FAMILY_NOT_KEYED_BY_PMID"
+            sm.verify_against_primary(r, prim, queue_reason=why)
+    broken = sm.queue_complete(rows)
+    if broken:
+        raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "
+                           f"{[(x.trial_label, x.family_id) for x in broken][:5]}")
+    queue = [{"trial": r.trial_label, "family": r.family_id, "meta": r.meta_pmid,
+              "reason": r.verification["queue_reason"]} for r in rows if r.state == sm.UNVERIFIED]
     g1 = sm.g1_countable(rows, {comp})
     out = {"slug": slug, "comparator_pmid": comp, "metas_considered": metas, "skipped": skipped, "metas": metas_out,
-           "tally": dict(Counter(r.state for r in rows)), "verification_queue_sources": dict(queue_src),
+           "tally": dict(Counter(r.state for r in rows)),
+           "verification_queue": queue, "verification_queue_reasons": dict(Counter(q["reason"] for q in queue)),
            "g1_countable_vs_comparator": sorted({r.family_id for r in g1}),
            "refusal_reasons": dict(Counter(x.split(":")[0] for r in rows for x in r.reasons)),
            "rows": [r.to_dict() for r in rows]}
