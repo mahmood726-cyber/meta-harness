@@ -89,7 +89,8 @@ def test_no_committed_record_or_lane_log_line_carries_a_local_path():
     for p in (ROOT / "registry" / "model_calls").glob("mc-*.json"):
         assert not rx.search(p.read_text(encoding="utf-8")), p.name
     log = (ROOT / "registry" / "model_calls" / "lane_log" / "evid2.jsonl").read_text(encoding="utf-8")
-    assert "INDEX.md" not in log and "rewrite-workbook" not in log
+    assert not rx.search(log)                                  # no local path; a file's NAME may be logged
+    assert "C: Drive Project Index" not in log                 # and never the private CONTENT the client printed
 
 
 def test_every_live_call_disables_web_search():

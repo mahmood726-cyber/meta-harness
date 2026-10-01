@@ -116,7 +116,9 @@ def _local_path_redacted(path: str) -> str:
     digest -- one row_binding call read two of the user's own files, following the client-injected ~/.codex/AGENTS.md."""
     if not _ABS_PATH.match(path or ""):
         return path
-    return "<local path outside the workdir, sha256 " + hashlib.sha256(path.encode("utf-8")).hexdigest()[:12] + ">"
+    # the file's NAME is kept (the log must say what was read -- tests/test_codex_call_log.py); its directory is not
+    name = re.split(r"[\\/]+", path.rstrip("\\/"))[-1]
+    return "<local path outside the workdir, sha256 " + hashlib.sha256(path.encode("utf-8")).hexdigest()[:12] + ">/" + name
 
 
 def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
@@ -142,6 +144,7 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
     if outside or web:
         red = (f"<transcript withheld: the client {'read files outside its workdir' if outside else ''}"
                f"{' and ' if outside and web else ''}{'searched the web' if web else ''}; "
+               f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>; "
                f"sha256 of the redacted transcript {hashlib.sha256(red.encode('utf-8')).hexdigest()}>")
         calls = [dict(c, command=re.sub(r"(?<![\w<])(?:[A-Za-z]:[\\/]|[\\/]{2})[^\s'\";]+",
                                         lambda mm: _local_path_redacted(mm.group(0)), c["command"]))
