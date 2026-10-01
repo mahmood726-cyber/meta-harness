@@ -19,19 +19,25 @@ def test_held_document_byte_mutation_refuses(tmp_path, monkeypatch):
         shutil.copytree(ROOT / folder, tmp_path / folder)
     held = next((tmp_path / "outputs/handover/glp1_regulatory").rglob("*.txt"))
     before = held.read_bytes()
-    held.write_bytes(bytes([before[0] ^ 1]) + before[1:])
     try:
         certificate = importlib.import_module("harness.certificate")
     except ModuleNotFoundError:
         certificate = None
+    unmutated = None
     if certificate:
         monkeypatch.setattr(certificate, "ROOT", tmp_path)
         review = json.loads((ROOT / "docs/reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
         saved = review["reproduction"]["certificate"]
+        # V1.0.1: the SERVED certificate also carries the bundle pin (bundle_core_sha256, stamped after compute by the bundle step),
+        # so compare the certificate compute() makes BEFORE and AFTER the one-byte mutation, from identical inputs: exactly the held
+        # document digest and the release digest may move.
+        unmutated = certificate.compute(SLUG, review, saved["protocol_sha"])
+    held.write_bytes(bytes([before[0] ^ 1]) + before[1:])
+    if certificate:
         changed = certificate.compute(SLUG, review, saved["protocol_sha"])
-        assert changed["release_sha256"] != saved["release_sha256"]
-        assert {k for k in saved if saved[k] != changed[k]} == {"held_documents", "release_sha256"}
-        print(f"one-byte plant: saved release_sha256={saved['release_sha256']}; recomputed={changed['release_sha256']}")
+        assert changed["release_sha256"] != unmutated["release_sha256"]
+        assert {k for k in set(unmutated) | set(changed) if unmutated.get(k) != changed.get(k)} == {"held_documents", "release_sha256"}
+        print(f"one-byte plant: unmutated release_sha256={unmutated['release_sha256']}; mutated={changed['release_sha256']}")
     ok, reasons = reproduce_review.reproduce(SLUG)
     print(f"held-document reproduction: ok={ok}; reasons={reasons}")
     assert not ok and any("release_sha256" in r for r in reasons), (

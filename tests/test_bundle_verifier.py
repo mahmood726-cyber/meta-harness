@@ -199,7 +199,9 @@ def test_PLANT_a_rendered_unbound_legacy_row_is_a_migration_state_never_counted_
 def test_failures_carry_named_codes():
     src = open(VERIFIER, encoding="utf-8").read()
     for code in ("ANCHOR_PRESERVATION_FAILURE", "ANCHOR_XML_DIGEST_MISMATCH", "ARTEFACT_DIGEST_MISMATCH", "CERTIFICATE_MISMATCH",
-                 "DIGEST_SCOPE_MISMATCH", "ROW_VERDICT_DISAGREES", "ABSENCE_CLAIM_DISAGREES", "POOL_NOT_REPRODUCED", "SELECTOR_REFUSED"):
+                 "DIGEST_SCOPE_MISMATCH", "ROW_VERDICT_DISAGREES", "ABSENCE_CLAIM_DISAGREES", "SELECTOR_REFUSED",
+                 # V1.1 POOL: a pool that does not reproduce is named by WHICH declaration it disagrees with (was POOL_NOT_REPRODUCED)
+                 "POOL_BUNDLE_RESULT_DISAGREES", "POOL_CERTIFIED_RESULT_DISAGREES"):
         assert code in src, code
 
 
@@ -218,7 +220,19 @@ def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
     assert "does NOT check" in src and "PRODUCTION admission path" in src
     # 1001 at 3.10; 1200 bound set then; 1233 after M1 (certificate-pin invariants + execution-record cross-link, +34 lines) -- bound moved to 1300
     # and the move is stated here and in the commit message; the 200-500 target was for a minimal checker
-    assert len(src.splitlines()) <= 1300
+    # 2026-09-25 lane OC: ordered contrast + estimator VALUE checks, the pre-log measure guard and nine --corrupt limbs (+~420 lines); the
+    # enforcement-gate branch alone reaches 1300 -- bound moved to 1750, stated here and in the commit message; then +~200 for estimator
+    # provenance (effect-scoped owner rule, P15, seven estimator limbs; auditor 2026-09-25) -- bound moved to 1900
+    # 2026-09-25 V1 CANDIDATE: lanes OC and POOL merged. POOL adds certified-row binding, per-input result
+    # comparison and the five separate verdicts. OC's bound was 1900 and POOL's was 1550; NEITHER is the
+    # merged size. Measured at 2149 -> bound 2200. This is a budget, not a target: it exists so the checker
+    # cannot grow unnoticed, so it is set from the MEASURED merge, never carried over from one side.
+    # 2026-09-26 V1.1: POOL rebased onto the candidate WITH lane OC's pool_guarded (4cc42b86, +17), the measure guard moved INSIDE
+    # check_pool_contract over both the declared and the certified inputs, and POOL's contrast check re-expressed on OC's typed
+    # contrast (+~60). Measured at 2227 -> bound 2250; stated here and in the commit message.
+    # 2026-09-26 V1.0.1: bundle-core pinning, reference-only inputs and admission-gated pooling.
+    # Measured at 2297 -> bound 2350 (53 lines of headroom); the explicit budget still guards unnoticed growth.
+    assert len(src.splitlines()) <= 2350
 
 
 def _copy_served_tree(bundle, dst):
@@ -258,17 +272,12 @@ def test_h1_delete_a_sentence_and_recompute_every_digest_is_caught_by_the_anchor
     cert_path = os.path.join(root, "reviews", SLUG, "CERTIFICATE.json")
     cert = json.load(open(cert_path, encoding="utf-8"))
     cert["records_file_sha256"], cert["retrieved_corpus_sha256"] = canon_sha, corpus_sha
-    cert.pop("release_sha256")
-    cert["release_sha256"] = sha256_text(canonical_json(cert))
-    cert_bytes = json.dumps(cert, ensure_ascii=False, indent=2).encode("utf-8") + b"\n"
-    open(cert_path, "wb").write(cert_bytes)
     b = json.load(open(os.path.join(root, "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
     for a in b["artefacts"]:
         if a["ref"].endswith("records.json"):
             a["sha256"], a["bytes"], a["declared_digest"] = raw_sha, len(new_raw), canon_sha
     for sc in b["digest_scopes"][0]["scopes"]:
         sc["value"] = {"raw served bytes": raw_sha, "whole file as JSON object": canon_sha, "obj['records'] only": corpus_sha}[sc["subject"]]
-    b["certificate"]["sha256_of_file"], b["certificate"]["bytes"], b["certificate"]["release_sha256"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes), cert["release_sha256"]
     parsed_sha = sha256_text(victim["abstract"])
     for r in b["verification_rows"]:
         r["source"]["source_sha256"] = raw_sha
@@ -280,12 +289,10 @@ def test_h1_delete_a_sentence_and_recompute_every_digest_is_caught_by_the_anchor
             i = victim["abstract"].find(r["span"]["text"])
             assert i >= 0, "the result span must survive the deletion for H1 to be the right experiment"
             r["span"]["start"], r["span"]["end"] = i, i + len(r["span"]["text"])
-    for rf in b["review_files"]:
-        if rf["file"] == "CERTIFICATE.json":
-            rf["sha256"], rf["bytes"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes)
     doc = next(d for d in b["documents"] if d["document_id"] == "pubmed:27295427")
     doc["representations"]["PARSED_SOURCE"]["container_sha256"] = raw_sha
     doc["representations"]["PARSED_SOURCE"]["sha256_parsed"] = parsed_sha
+    _pin_and_stamp(cert, cert_path, b)                  # a consistent producer pins the final bundle and re-releases
     json.dump(b, open(os.path.join(root, "reviews", SLUG, "BUNDLE.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
     p = subprocess.run([sys.executable, VERIFIER, "--root", root, "--slug", SLUG, "--json"], cwd=ROOT,
@@ -325,10 +332,6 @@ def _recompute_everything(root, edited_pmids=()):
     cert_path = os.path.join(root, "reviews", SLUG, "CERTIFICATE.json")
     cert = json.load(open(cert_path, encoding="utf-8"))
     cert["records_file_sha256"], cert["retrieved_corpus_sha256"], cert["review_sha256"] = canon_sha, corpus_sha, review_sha
-    cert.pop("release_sha256")
-    cert["release_sha256"] = sha256_text(canonical_json(cert))
-    cert_bytes = json.dumps(cert, ensure_ascii=False, indent=2).encode("utf-8") + b"\n"
-    open(cert_path, "wb").write(cert_bytes)
     bpath = os.path.join(root, "reviews", SLUG, "BUNDLE.json")
     b = json.load(open(bpath, encoding="utf-8"))
     for a in b["artefacts"]:
@@ -336,12 +339,6 @@ def _recompute_everything(root, edited_pmids=()):
             a["sha256"], a["bytes"], a["declared_digest"] = raw_sha, len(new_raw), canon_sha
     for sc in b["digest_scopes"][0]["scopes"]:
         sc["value"] = {"raw served bytes": raw_sha, "whole file as JSON object": canon_sha, "obj['records'] only": corpus_sha}[sc["subject"]]
-    b["certificate"]["sha256_of_file"], b["certificate"]["bytes"], b["certificate"]["release_sha256"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes), cert["release_sha256"]
-    for rf in b["review_files"]:
-        if rf["file"] == "CERTIFICATE.json":
-            rf["sha256"], rf["bytes"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes)
-        if rf["file"] == "review.json":
-            rf["sha256"], rf["bytes"] = hashlib.sha256(review_bytes).hexdigest(), len(review_bytes)
     by_pmid = {str(r["id"]): r for r in records["records"]}
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     trial_by = {str(t["id"]).replace("PMID ", ""): t for t in primary["trials"]}
@@ -366,7 +363,38 @@ def _recompute_everything(root, edited_pmids=()):
             if pm in by_pmid:
                 d["representations"]["PARSED_SOURCE"]["container_sha256"] = raw_sha
                 d["representations"]["PARSED_SOURCE"]["sha256_parsed"] = sha256_text(by_pmid[pm]["abstract"])
+    _pin_and_stamp(cert, cert_path, b, review_bytes=review_bytes)
     json.dump(b, open(bpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+
+def _pin_and_stamp(cert, cert_path, b, review_bytes=None):
+    """What a CONSISTENT producer does last (V1.0.1 bundle pin): once the bundle's content is final, pin its core into the
+    certificate (bundle_core_sha256 feeds release_sha256), recompute the release, write the certificate, then stamp the
+    certificate's digests into the bundle's release-bound fields (outside the core, so the pin stays valid)."""
+    import hashlib
+    from harness.canonical import canonical_json, sha256_text
+    from harness.certificate import bundle_core_sha256
+    cert["bundle_core_sha256"] = bundle_core_sha256(b)
+    cert.pop("release_sha256", None)
+    cert["release_sha256"] = sha256_text(canonical_json(cert))
+    cert_bytes = json.dumps(cert, ensure_ascii=False, indent=2).encode("utf-8") + b"\n"
+    open(cert_path, "wb").write(cert_bytes)
+    b["certificate"]["sha256_of_file"], b["certificate"]["bytes"], b["certificate"]["release_sha256"] = \
+        hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes), cert["release_sha256"]
+    for rf in b["review_files"]:
+        if rf["file"] == "CERTIFICATE.json":
+            rf["sha256"], rf["bytes"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes)
+        if rf["file"] == "review.json" and review_bytes is not None:
+            rf["sha256"], rf["bytes"] = hashlib.sha256(review_bytes).hexdigest(), len(review_bytes)
+    for r in b.get("verification_rows") or []:
+        ev = (r.get("admission") or {}).get("evidence_version")
+        if isinstance(ev, dict) and "certificate_release_sha256" in ev:
+            ev["certificate_release_sha256"] = cert["release_sha256"]
+
+
+def _repin(root, b):
+    cert_path = os.path.join(root, "reviews", SLUG, "CERTIFICATE.json")
+    _pin_and_stamp(json.load(open(cert_path, encoding="utf-8")), cert_path, b)
 
 
 def _doctored_site(tmp_path, edit_records=None, edit_review=None, edited_pmids=()):
@@ -462,6 +490,7 @@ def test_m11_rewritten_fragment_is_a_selector_mismatch(tmp_path):
     b = json.load(open(bpath, encoding="utf-8"))
     row = next(r for r in b["verification_rows"] if r["trial"]["id"] == "PMID 27633186")
     row["source"]["document_ref"] = row["source"]["document_ref"].split("#")[0] + "#PMID-99999999"
+    _repin(root, b)                                   # a consistent producer pins the edited bundle (else BUNDLE_DIGEST_MISMATCH first)
     json.dump(b, open(bpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     rep = _verify(root)
     r = next(x for x in rep["rows"] if x["pmid"] == "27633186")
@@ -636,6 +665,7 @@ def test_unsupported_representation_is_a_typed_state_not_a_not_found(tmp_path):
     b = json.load(open(bpath, encoding="utf-8"))
     row = next(r for r in b["verification_rows"] if r["trial"]["id"] == "PMID 27633186")
     row["source"]["document_ref"] = "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt#p23"    # a pooled row sourced from a text artefact (C-class)
+    _repin(root, b)                                   # a consistent producer pins the edited bundle (else BUNDLE_DIGEST_MISMATCH first)
     json.dump(b, open(bpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     rep = _verify(root)
     r = next(x for x in rep["rows"] if x["pmid"] == "27633186")

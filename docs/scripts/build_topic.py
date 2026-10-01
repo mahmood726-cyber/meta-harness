@@ -66,6 +66,14 @@ def main(slug, now, argv=None):
                      "comparator": {k: core["comparator"][k] for k in
                                     ("name", "year", "journal", "pmid", "doi", "url", "open_access", "overlap")}}
     review_dir = os.path.join(ROOT, "docs", "reviews", slug)
+    # The page embeds the served verifier digest. Stage those exact bytes before
+    # rendering; build_bundle mirrors the same source after rendering otherwise.
+    # This does not change any verification verdict or certificate predicate.
+    from pathlib import Path
+    verifier_source = Path(ROOT) / "scripts" / "verify_bundle.py"
+    verifier_served = Path(ROOT) / "docs" / "scripts" / "verify_bundle.py"
+    verifier_served.parent.mkdir(parents=True, exist_ok=True)
+    verifier_served.write_bytes(verifier_source.read_bytes())
     manifest = build_review_dir(core, manifest_meta, review_dir, protocol_sha, from_cache=True, certify=True)
 
     comp_core = build_comparator_core(slug, config, records)

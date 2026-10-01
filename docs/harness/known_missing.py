@@ -9,12 +9,15 @@ from __future__ import annotations
 
 from . import claimgraph as _claimgraph
 import re
+from pathlib import Path
 from typing import Any
 
 from . import claim as claim_mod
 from .synth import Study, pool
 
 IN_COMMITTED_SOURCE = "IN_COMMITTED_SOURCE"
+# a matching typed row is held but not extracted: extraction debt, never pooled here (no counts are set on the row)
+HELD_ROW_NOT_EXTRACTED = "HELD_ROW_NOT_EXTRACTED"
 IN_SOURCE_DIFFERENT_ESTIMAND = "IN_SOURCE_DIFFERENT_ESTIMAND"
 NOT_IN_COMMITTED_SOURCE = "NOT_IN_COMMITTED_SOURCE"
 
@@ -121,8 +124,31 @@ def conclusion_effect(primary: dict[str, Any], sensitivity: dict[str, Any] | Non
     return "UNCHANGED"
 
 
+def _held_row(outcome: dict[str, Any], key: str, held_sources: dict[str, list] | None,
+              review: dict[str, Any] | None) -> dict[str, Any] | None:
+    """No NOT_IN_COMMITTED_SOURCE while a matching typed row is held (harness.held_rows): the trial's held full text and its tables,
+    and the spans other extractions in this review quote, are searched before absence may be stated. A hit is extraction debt that
+    carries the held row and its outcome-ascertained counts; a non-target subpopulation is flagged for eligibility adjudication."""
+    if not key or held_sources is None:
+        return None
+    from . import held_rows
+    srcs = list(held_sources.get(key, [])) + (held_rows.review_texts(review, key) if review else [])
+    hits = held_rows.matching_rows(outcome, key, srcs, None)
+    if not hits:
+        return None
+    best = hits[0]
+    return {"value_status": HELD_ROW_NOT_EXTRACTED, "missing_class": "EXTRACTION_DEBT", "source_ref": best["source_id"],
+            "source_span": best["span"],
+            "verify_basis": "a matching typed row is held; recorded as extraction debt, not absence, and not pooled here",
+            "held_row": {"source_id": best["source_id"], "kind": best.get("kind"), "timepoint": best.get("timepoint"),
+                         "mismatch_for_admission": best["mismatch"]},
+            "counts_ascertained": held_rows.ascertained_counts(best),
+            "eligibility": held_rows.subpopulation_flags(srcs, [(review or {}).get("question") or ""])}
+
+
 def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
-                  rec_by_id: dict[str, dict[str, Any]], records: dict[str, Any]) -> dict[str, Any]:
+                  rec_by_id: dict[str, dict[str, Any]], records: dict[str, Any],
+                  held_sources: dict[str, list] | None = None, review: dict[str, Any] | None = None) -> dict[str, Any]:
     rec = _record_for(row, rec_by_id)
     text = rec.get("abstract") or ""
     title = rec.get("title") or row.get("name") or row.get("trial") or row.get("label")
@@ -182,6 +208,10 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
             })
             return out
 
+    held = _held_row(outcome, key, held_sources, review)
+    if held:
+        out.update(held)
+        return out
     if not rec:
         out["verify_basis"] = "named trial is not present in the committed topic cache"
     else:
@@ -244,8 +274,10 @@ def build(review: dict[str, Any], signals: dict[str, Any],
     scale = res.get("scale") or primary.get("estimand") or "RR"
     rows = []
     computable = []
+    from . import reason_audit
+    held_sources = reason_audit.sources_by_trial(review.get("slug", ""), records, Path(__file__).resolve().parents[1])
     for cand in candidates:
-        row = _source_value(review.get("slug", ""), primary, cand, rec_by_id, records)
+        row = _source_value(review.get("slug", ""), primary, cand, rec_by_id, records, held_sources, review)
         row["why_eligible"] = cand.get("why_eligible") or cand.get("reason") or ""
         row["sensitivity_label"] = "SENSITIVITY"
         from .invalidation import missing_state

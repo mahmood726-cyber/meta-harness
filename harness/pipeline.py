@@ -31,6 +31,8 @@ from . import claim as claim_mod
 from . import claimgraph as claimgraph_mod
 from . import invalidation as invalidation_mod
 from . import known_missing as known_missing_mod
+from . import held_rows as held_rows_mod
+from . import safety_rules as safety_rules_mod
 from . import missing_effect as missing_effect_mod
 from . import compat as compat_mod
 from . import compat_check as compat_check_mod
@@ -2201,6 +2203,16 @@ def build_review_core(slug, config, records, protocol_sha):
     # additive: it annotates the review object and row-level audit fields, but never changes the
     # extractor output, reason_code, membership, or pool.
     _src_map = reason_audit_mod.sources_by_trial(slug, records, ROOT)
+    # HELD-ROW INVARIANT (lane rai, V1.0.1): no absent state stands while a matching typed row is held -- in any held text for the
+    # trial, including text another extraction in this review quotes. A contradicted absence becomes extraction debt carrying the
+    # held row; membership and the pool are unchanged. Runs before the audit so the audit sees the refused state.
+    held_rows_mod.enforce(slug, review, _src_map, _spec_by_name)
+    # PROTOCOL STATUS (lane rai, V1.0.1): an outcome the protocol's outcome sections do not name is EXPLORATORY -- harms included
+    try:
+        _protocol_md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+    except OSError:
+        _protocol_md = None
+    safety_rules_mod.annotate_protocol_status(review, _protocol_md)
     reason_audit_mod.annotate_review(slug, review, _spec_by_name, _src_map)
     unextracted_mod.annotate_review(slug, review, _spec_by_name, _src_map)
     if slug == "colchicine-postop-af" or config.get("eligibility_chain_enforced"):

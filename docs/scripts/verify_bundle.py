@@ -42,6 +42,7 @@ Usage:
   python scripts/verify_bundle.py --root docs --slug glp1-ra-mace-t2d
   python scripts/verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d
   python scripts/verify_bundle.py --root docs --slug glp1-ra-mace-t2d --corrupt 40162642 span
+  python scripts/verify_bundle.py --root docs --slug glp1-ra-mace-t2d --corrupt 27295427 contrast_reverse   (ordered-contrast limbs: LEADER)
   add --json for machine-readable output
 """
 from __future__ import annotations
@@ -498,6 +499,12 @@ DEFAULT_REGISTERED = {"analysis_set": "intention-to-treat (registered primary-an
                       "analysis_window": "on-study, treatment-policy (registered primary-analysis default)",
                       "contrast": "intervention vs placebo; effect < 1 favours intervention (topic registration)",
                       "estimator": "UNSTATED"}
+# A value the source states OUTSIDE the owning evidence cannot be a witness, but a departing one must not vanish either: these are
+# the values that make an unowned mention fail closed (UNRESOLVED) instead of letting the registered default stand in silence.
+# the result object a method sentence must name to be LINKED to the effect (and that the effect clause itself names)
+_OC_RESULT_OBJECT = re.compile(r"\b(primary[- ](?:composite[- ])?(?:outcome|end[- ]?point)|primary cardiovascular (?:composite )?(?:outcome|end[- ]?point)|"
+                               r"major adverse cardiovascular events?|MACE|composite (?:outcome|end[- ]?point))\b", re.I)
+_DEPARTING = {"analysis_set": {"per-protocol", "as-treated", "on-treatment population"}, "analysis_window": {"on-treatment"}, "estimator": set()}
 
 
 def _sentence_at(text, pos):
@@ -507,56 +514,603 @@ def _sentence_at(text, pos):
     return s, e
 
 
+def _locate_clause(parsed, result_clause):
+    """(representation, text, start, end) of the effect clause: PARSED_SOURCE when verbatim, else NORMALIZED_SOURCE; None if absent."""
+    rc = result_clause or ""
+    if not rc:
+        return None
+    i = parsed.find(rc)
+    if i >= 0:
+        return "PARSED_SOURCE", parsed, i, i + len(rc)
+    npar, nrc = normalize(parsed), normalize(rc)
+    j = npar.find(nrc)
+    return ("NORMALIZED_SOURCE", npar, j, j + len(nrc)) if j >= 0 else None
+
+
 def estimand_evidence(parsed, result_clause):
-    """Per field: STATED (value + located sentence with code-point offsets in PARSED_SOURCE), DEFAULT_REGISTERED (no statement in the
-    held representation), or ESTIMAND_UNBOUND (the same source states >= 2 differing values for the field)."""
+    """Per field: STATED_IN_OWNING_EVIDENCE (value + the OWNING span with code-point offsets), REGISTERED_DEFAULT (no owned
+    statement), or UNRESOLVED. EFFECT-SCOPED (lane OC, 2026-09-25, external audit: the estimator witness of LEADER's HR 0.87 was the
+    methods / noninferiority-margin sentence, hits[0] of a whole-document scan, which does not hold 0.87). A mention OWNS the effect only if
+      owner EFFECT_CLAUSE      -- it lies inside the tuple's own result clause (the estimator is resolved here FIRST), or
+      owner LINKED_METHOD_SPAN -- its sentence carries a typed link to the same result object: it names the primary outcome /
+                                  composite endpoint, as the effect clause does (link.result_object records the phrase on both sides).
+    Any other mention is UNOWNED: listed, never a witness. An unowned mention of a DEPARTING value (on-treatment, per-protocol ...)
+    with no owned statement fails closed (UNRESOLVED), so effect-scoping can never make a stated departure disappear. Two owned
+    values for one field -> UNRESOLVED (for the estimator only when the clause itself does not settle it)."""
     out = {}
+    loc = _locate_clause(parsed, result_clause)
+    clause_rep = loc[0] if loc else None
+    clause_obj = _OC_RESULT_OBJECT.search(result_clause or "")
     for field, pats in _ESTIMAND.items():
         hits = []
         for rx, value in pats:
             for m in re.finditer(rx, parsed, re.I):
                 s, e = _sentence_at(parsed, m.start())
-                hits.append({"value": value, "matched": m.group(0), "start": s, "end": e, "span": parsed[s:e].strip()})
-        values = {h["value"] for h in hits}
-        if field == "analysis_window":
-            strategies = {v for v in values if v in ("on-treatment", "on-study")}
-            if len(strategies) >= 2:
-                out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4],
-                              "rule": "the same source states two strategies for the analysis; the field cannot default"}
-                continue
-            if "on-treatment" in values and "on-study" not in values:
-                pick = next(h for h in hits if h["value"] == "on-treatment")
-                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
-                continue
-            prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
-            if prefer:
-                pick = prefer[0]
-                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
-                              "also_stated": sorted(values - {pick["value"]})}
-            else:
-                out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
+                hits.append({"value": value, "matched": m.group(0), "at": m.start(), "start": s, "end": e, "span": parsed[s:e].strip()})
+        in_clause = []
+        if loc:
+            rep, text, cs, ce = loc
+            for rx, value in pats:
+                for m in re.finditer(rx, text[cs:ce], re.I):
+                    in_clause.append({"value": value, "matched": m.group(0)})
+        linked = []
+        for h in hits:
+            sent_obj = _OC_RESULT_OBJECT.search(h["span"])
+            if clause_obj and sent_obj and not (loc and loc[0] == "PARSED_SOURCE" and loc[2] <= h["at"] < loc[3]):
+                linked.append(dict(h, link={"kind": "SAME_RESULT_OBJECT", "result_object": clause_obj.group(0).lower(),
+                                            "named_in_method_span": sent_obj.group(0).lower(),
+                                            "rule": "the method sentence and the effect clause both name the primary outcome / composite endpoint"}))
+        owned_link_ats = {h["at"] for h in linked}
+        unowned = [h for h in hits if h["at"] not in owned_link_ats and not (loc and loc[0] == "PARSED_SOURCE" and loc[2] <= h["at"] < loc[3])]
+        clause_values = {h["value"] for h in in_clause}
+        linked_values = {h["value"] for h in linked}
+        rec = {"unowned_mentions": [{"value": h["value"], "matched": h["matched"], "start": h["start"], "end": h["end"]} for h in unowned[:6]]}
+        if field == "analysis_window" and len({v for v in {h["value"] for h in hits} if v in ("on-treatment", "on-study")}) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted({h["value"] for h in hits}), "evidence": hits[:4],
+                          "rule": "the same source states two strategies for the analysis; the field cannot default", **rec}
             continue
-        if len(values) >= 2:
-            out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4]}
-        elif hits:
-            pick = hits[0]
-            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+        if field == "estimator" and len(clause_values) == 1:
+            v = next(iter(clause_values))
+            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": loc[2], "end": loc[3], "span": loc[1][loc[2]:loc[3]],
+                          "parent_representation": clause_rep, "owner": "EFFECT_CLAUSE", **rec}
+            continue
+        if field == "estimator" and len(clause_values) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted(clause_values), "owner": "EFFECT_CLAUSE",
+                          "rule": "the effect clause itself names two estimators", **rec}
+            continue
+        if field != "estimator" and clause_values:
+            owned_values, owner = clause_values, "EFFECT_CLAUSE"
         else:
-            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
+            owned_values, owner = linked_values, "LINKED_METHOD_SPAN"
+        if field == "analysis_window" and owned_values:
+            # the old preference order, now among OWNED mentions only: a stated on-treatment strategy wins, then on-study, then
+            # time-to-first-event, then a stated follow-up
+            order = ["on-treatment", "on-study", "time-to-first-event (treatment-policy)", "follow-up stated"]
+            owned_values = {next(v for v in order if v in owned_values)}
+        if len(owned_values) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted(owned_values), "owner": owner,
+                          "rule": "two owned statements disagree", **rec}
+        elif owned_values:
+            v = next(iter(owned_values))
+            if owner == "EFFECT_CLAUSE":
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": loc[2], "end": loc[3], "span": loc[1][loc[2]:loc[3]],
+                              "parent_representation": clause_rep, "owner": owner, **rec}
+            else:
+                pick = next(h for h in linked if h["value"] == v)
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": pick["start"], "end": pick["end"], "span": pick["span"],
+                              "parent_representation": "PARSED_SOURCE", "owner": owner, "link": pick["link"], **rec}
+        elif any(h["value"] in _DEPARTING[field] for h in unowned):
+            dep = sorted({h["value"] for h in unowned if h["value"] in _DEPARTING[field]})
+            out[field] = {"state": "UNRESOLVED", "values": dep,
+                          "rule": "the source states a departing value outside the owning evidence; it cannot witness this effect and it cannot be "
+                                  "ignored either (fail closed)", **rec}
+        else:
+            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field], **rec}
     rc = result_clause or ""
-    if "placebo" in rc.lower():
-        i = parsed.find(rc)
-        if i >= 0:
-            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": rc,
-                               "start": i, "end": i + len(rc), "parent_representation": "PARSED_SOURCE"}
-        else:   # the clause exists only after normalisation (e.g. Lancet middle dots): offsets in NORMALIZED_SOURCE coordinates
-            nrc, npar = normalize(rc), normalize(parsed)
-            j = npar.find(nrc)
-            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
-                               "start": j if j >= 0 else None, "end": (j + len(nrc)) if j >= 0 else None, "parent_representation": "NORMALIZED_SOURCE"}
+    if "placebo" in rc.lower() and loc:
+        out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": loc[1][loc[2]:loc[3]],
+                           "start": loc[2], "end": loc[3], "parent_representation": clause_rep, "owner": "EFFECT_CLAUSE"}
+    elif "placebo" in rc.lower():
+        nrc = normalize(rc)
+        out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
+                           "start": None, "end": None, "parent_representation": "NORMALIZED_SOURCE", "owner": "EFFECT_CLAUSE"}
     else:
         out["contrast"] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED["contrast"]}
     return out
+
+
+# ---- ordered contrast: WHICH arm is the numerator is a VALUE, recomputed from the tuple's own clause ----------------
+# (lane OC, 2026-09-25, external audit: "ordered contrast and estimator must be value-checked, not state-checked").
+# 'placebo' appearing in a clause is a STATE; it says nothing about whether 0.87 is liraglutide/placebo or placebo/liraglutide,
+# and a ratio read the wrong way round is a different clinical claim with every digit still present in the source. The value is
+#   {measure, experimental_arm, reference_arm, numerator_side, estimate, ci_low, ci_high, direction_witness}
+# P10 compares the served contrast and estimator VALUES with it; P11 compares it with the registered contrast and estimator; a
+# reversal is admissible only as a DECLARED reciprocal normalisation (A/B = 1/(B/A); the CI's endpoints swap) under a policy that
+# permits it -- absent a policy, refused (fail closed).
+RATIO_MEASURES = ("HR", "OR", "RR", "IRR")
+_CLAUSE_MEASURE = (("HR", r"hazard ratio|(?-i:\bHR\b)"), ("OR", r"odds ratio|(?-i:\bOR\b)"),
+                   ("RR", r"relative risk|risk ratio|(?-i:\bRR\b)"), ("IRR", r"(?:incidence[- ])?rate ratio|(?-i:\bIRR\b)"))
+_ESTIMATOR_MEASURE = {"hazard ratio": "HR", "odds ratio": "OR", "risk ratio": "RR", "rate ratio": "IRR"}
+_SCALE_ALIASES = {"HR": "HR", "OR": "OR", "RR": "RR", "IRR": "IRR", "RATE RATIO": "IRR", "RISK RATIO": "RR", "HAZARD RATIO": "HR", "ODDS RATIO": "OR"}
+# the object of a comparison is the REFERENCE arm: "... than in the placebo group", "compared with placebo", "A versus B"
+_REFERENCE_MARK = re.compile(r"\b(?:as\s+)?(?:compared\s+(?:with|to)|versus|vs\.?|relative\s+to|than|(?:non-?)?inferior\s+to|superior\s+to)\s+"
+                             r"(?:(?:in|on|with|among|receiving|assigned\s+to(?:\s+receive)?|those|patients|participants|the)\s+){0,4}$", re.I)
+# ... and a ratio 'for' an arm names that arm as the NUMERATOR: "hazard ratio for liraglutide, 0.87", "the hazard ratio for placebo versus ..."
+_NUMERATOR_MARK = re.compile(r"\b(?:hazard|odds|risk|rate)\s+ratios?\s*(?:\([A-Z]{2,3}\)\s*|\[[A-Z]{2,3}\]\s*)?,?\s*(?:for|with|of)\s+"
+                             r"(?:(?:the|patients|participants|those|in|receiving|assigned\s+to(?:\s+receive)?)\s+){0,4}$", re.I)
+_PCT = re.compile(r"(\d+(?:\.\d+)?)\s*%")
+_NOT_AN_ARM = re.compile(r"^-(?:controlled|matched|treated|based|like)", re.I)
+_GENERIC_REFERENCE = ("control",)          # names an arm only as '<control> group|arm'; 'glycaemic control' is not an arm
+
+
+def scale_measure(scale):
+    """The measure a served label names (HR / OR / RR / IRR), None when unidentified. No class mapping: OR is not RR."""
+    return _SCALE_ALIASES.get(str(scale or "").strip().upper())
+
+
+def clause_measure(clause):
+    """The ratio measure the tuple's OWN clause names: STATED (exactly one), UNRESOLVED (two differ), UNSTATED (none)."""
+    found = {}
+    for m, rx in _CLAUSE_MEASURE:
+        hit = re.search(rx, clause or "", re.I)
+        if hit:
+            found[m] = hit.group(0)
+    if len(found) == 1:
+        (m, word), = found.items()
+        return {"state": "STATED", "measure": m, "matched": word}
+    return {"state": "UNRESOLVED" if found else "UNSTATED", "measure": None, "matched": sorted(found.values())}
+
+
+def contrast_vocabulary(topic):
+    """Arm vocabulary from the SERVED topic registration (digest-checked artefact): experimental = the intervention agents, their
+    aliases and the class terms; reference = the comparator terms. Longest first so 'oral semaglutide' never loses to a fragment."""
+    exp = set(topic.get("intervention_class_terms") or []) | set(topic.get("intervention_terms") or [])
+    for k, v in (topic.get("intervention_agents") or {}).items():
+        exp.add(k)
+        exp.update(v or [])
+    ref = set(topic.get("comparator_terms") or [])
+    key = lambda s: (-len(s), s)
+    return {"experimental": sorted({t.strip().lower() for t in exp if t and t.strip()}, key=key),
+            "reference": sorted({t.strip().lower() for t in ref if t and t.strip()}, key=key)}
+
+
+def side_of(text, vocab):
+    """EXPERIMENTAL / REFERENCE / None for a free-text arm name. A name carrying a reference term is the reference ('placebo for X')."""
+    low = (text or "").lower()
+    if any(re.search(r"(?<![\w])" + re.escape(t) + r"(?![\w])", low) for t in vocab.get("reference", [])):
+        return "REFERENCE"
+    if any(re.search(r"(?<![\w])" + re.escape(t) + r"(?![\w])", low) for t in vocab.get("experimental", [])):
+        return "EXPERIMENTAL"
+    return None
+
+
+def arm_mentions(clause, vocab):
+    """Every non-overlapping arm mention in the clause, in order: (start, end, side, term)."""
+    cands = []
+    for side, terms in (("EXPERIMENTAL", vocab.get("experimental", [])), ("REFERENCE", vocab.get("reference", []))):
+        for t in terms:
+            for m in re.finditer(r"(?<![\w])" + re.escape(t) + r"(?![\w])", clause or "", re.I):
+                if _NOT_AN_ARM.match((clause or "")[m.end():]):
+                    continue
+                if t in _GENERIC_REFERENCE and not re.match(r"\s+(?:group|arm)\b", (clause or "")[m.end():], re.I):
+                    continue
+                cands.append((m.start(), m.end(), side, t))
+    cands.sort(key=lambda c: (c[0], -(c[1] - c[0])))
+    out, last = [], -1
+    for c in cands:
+        if c[0] >= last:
+            out.append(c)
+            last = c[1]
+    return out
+
+
+def family_arm_ids(fam, vocab):
+    """F4 / families.json arm identities (<NCT>:<AACT design_group id>) by side, from the certified family's arm labels."""
+    by = {"EXPERIMENTAL": [], "REFERENCE": []}
+    for a in (fam or {}).get("arms") or []:
+        s = side_of(((a.get("label") or {}).get("value")) or "", vocab)
+        if s:
+            by[s].append(a.get("arm_id"))
+    return by
+
+
+def rate_witness(clause, ms, num_side, estimate):
+    """Second, NUMERIC witness of orientation: the two per-arm percentages stated before the tuple ('608 of 4668 [13.0%] ... 694 of 4672
+    [14.9%]'), paired to their arms by position (all percentages precede their arm, or all follow it), must put the numerator arm on the
+    same side of 1 as the estimate. Informative only when both the crude ratio and the estimate are at least 5% from 1 (an HR and a crude
+    proportion ratio can straddle 1 near the null). CONTRADICTS makes the contrast UNORDERED: two witnesses that disagree order nothing."""
+    tuple_at = min([m.start() for _, rx in _CLAUSE_MEASURE for m in [re.search(rx, clause, re.I)] if m] or [len(clause)])
+    arms = []
+    for m in ms:
+        if m[0] < tuple_at and m[2] not in {a[2] for a in arms}:
+            arms.append(m)
+    pcts = [(m.start(), float(m.group(1))) for m in _PCT.finditer(clause[:tuple_at])]
+    out = {"state": "NOT_INFORMATIVE"}
+    if len(arms) != 2 or len(pcts) != 2 or estimate is None:
+        return dict(out, reason=f"{len(arms)} arm(s) and {len(pcts)} percentage(s) before the tuple; estimate {'given' if estimate is not None else 'absent'}")
+    (a1, a2), (p1, p2) = arms, pcts
+    if not (p1[0] < a1[0] < p2[0] < a2[0] or a1[0] < p1[0] < a2[0] < p2[0]):
+        return dict(out, reason="percentages and arms are not interleaved one-to-one")
+    rate = {a1[2]: p1[1], a2[2]: p2[1]}
+    ref_side = "REFERENCE" if num_side == "EXPERIMENTAL" else "EXPERIMENTAL"
+    if not rate[ref_side] or not rate[num_side] or float(estimate) <= 0:
+        return dict(out, reason="a zero rate or a non-positive estimate")
+    crude = rate[num_side] / rate[ref_side]
+    out.update(rates={"numerator": rate[num_side], "reference": rate[ref_side]}, crude_ratio=round(crude, 6), estimate=estimate)
+    if abs(math.log(crude)) < math.log(1.05) or abs(math.log(float(estimate))) < math.log(1.05):
+        return dict(out, reason="the crude ratio or the estimate is within 5% of 1")
+    return dict(out, state="AGREES" if (crude < 1) == (float(estimate) < 1) else "CONTRADICTS")
+
+
+def ordered_contrast(clause, values, vocab, fam=None):
+    """Recompute the ordered contrast from the tuple's own clause.
+    Rule 0 (NUMERATOR_NAMED): 'hazard ratio for X' names X as the numerator.
+    Rule 1 (COMPARATIVE_CONNECTIVE): an arm introduced by 'than (in the)', 'compared with', 'versus', 'relative to',
+      '(non)inferior/superior to' is the REFERENCE (the denominator).
+    Rule 2 (ORDER_OF_MENTION): with neither, the first-named arm is the numerator ('X in the A group and Y in the B group (HR ...)'
+      reports A/B) -- the reporting convention, recorded as a weaker witness.
+    Conflicting marks (both arms named numerator, both marked reference, or one arm marked both ways) -> UNORDERED.
+    Then the NUMERIC witness (rate_witness): per-arm percentages that contradict the ordering -> UNORDERED (fail closed)."""
+    out = {"measure": clause_measure(clause), "experimental_arm": None, "reference_arm": None, "numerator_side": None,
+           "estimate": values[0] if values else None, "ci_low": values[1] if values else None, "ci_high": values[2] if values else None,
+           "direction_witness": None, "rate_witness": None, "state": "UNORDERED"}
+    if not clause:
+        out["reason"] = "no result clause holds the effect tuple"
+        return out
+    ms = arm_mentions(clause, vocab)
+    sides = {m[2] for m in ms}
+    ref_marked = {m[2]: m for m in ms if _REFERENCE_MARK.search(clause[:m[0]])}
+    num_marked = {m[2]: m for m in ms if _NUMERATOR_MARK.search(clause[:m[0]])}
+    first = {}
+    for m in ms:
+        first.setdefault(m[2], m)
+    if len(ref_marked) == 2 or len(num_marked) == 2 or set(ref_marked) & set(num_marked):
+        out["reason"] = "conflicting marks: " + "; ".join(clause[max(0, m[0] - 30):m[1]] for m in list(ref_marked.values()) + list(num_marked.values()))
+        return out
+    if num_marked:
+        num_side = next(iter(num_marked))
+        nm = num_marked[num_side]
+        lead = _NUMERATOR_MARK.search(clause[:nm[0]])
+        out["direction_witness"] = {"rule": "NUMERATOR_NAMED", "text": clause[lead.start():nm[1]], "clause_start": lead.start(), "clause_end": nm[1]}
+    elif ref_marked:
+        ref_side = next(iter(ref_marked))
+        num_side = "EXPERIMENTAL" if ref_side == "REFERENCE" else "REFERENCE"
+        rm = ref_marked[ref_side]
+        lead = _REFERENCE_MARK.search(clause[:rm[0]])
+        out["direction_witness"] = {"rule": "COMPARATIVE_CONNECTIVE", "text": clause[lead.start():rm[1]], "clause_start": lead.start(), "clause_end": rm[1]}
+    elif sides == {"EXPERIMENTAL", "REFERENCE"}:
+        a, b = sorted((first["EXPERIMENTAL"], first["REFERENCE"]))
+        num_side = a[2]
+        out["direction_witness"] = {"rule": "ORDER_OF_MENTION", "text": clause[a[0]:b[1]], "clause_start": a[0], "clause_end": b[1],
+                                    "note": "no comparative connective; the first-named arm is the numerator by the reporting convention"}
+    else:
+        out["reason"] = f"the clause names {sorted(sides) or 'no arm'} and no comparative connective orders them"
+        return out
+    rw = rate_witness(clause, ms, num_side, out["estimate"])
+    out["rate_witness"] = rw
+    if rw["state"] == "CONTRADICTS":
+        out["reason"] = (f"{out['direction_witness']['rule']} puts the {num_side} arm in the numerator, but the stated rates "
+                         f"({rw['rates']['numerator']}% vs {rw['rates']['reference']}%, crude {rw['crude_ratio']}) and the estimate {rw['estimate']} disagree")
+        out["direction_witness"] = None
+        return out
+    ids = family_arm_ids(fam, vocab)
+    for s, key in (("EXPERIMENTAL", "experimental_arm"), ("REFERENCE", "reference_arm")):
+        m = first.get(s)
+        out[key] = {"side": s, "term": m[3] if m else None, "named_in_clause": bool(m), "arm_ids": ids[s],
+                    "arm_id_basis": "certified families.json arm labels matched to the topic vocabulary" if ids[s] else "no certified arm label matches"}
+    out["numerator_side"] = num_side
+    out["state"] = "ORDERED"
+    return out
+
+
+def served_orientation(cd, vocab):
+    """The numerator side a SERVED comparator_direction VALUE declares: 'A vs B', or a legacy 'vs B' that names only the reference
+    (the numerator is then the other side). A typed ordered_contrast beside it is checked separately, never preferred to the value."""
+    v = re.sub(r"\s*\(.*$", "", str((cd or {}).get("value") or "")).strip()
+    m = re.match(r"^(?:(?P<a>.+?)\s+)?(?:vs\.?|versus)\s+(?P<b>.+)$", v, re.I)
+    if not m:
+        return None
+    sa, sb = (side_of(m.group("a"), vocab) if m.group("a") else None), side_of(m.group("b"), vocab)
+    if sa and sb:
+        return sa if sa != sb else None
+    if sb:
+        return "EXPERIMENTAL" if sb == "REFERENCE" else "REFERENCE"
+    return None
+
+
+def normalisation_policy(regd):
+    """The registered policy for re-orienting a ratio. Absent -> FORBIDDEN (a reversal nobody permitted is refused)."""
+    pol = (regd or {}).get("contrast_normalisation") or {}
+    return str(pol.get("reciprocal_for_ratio_measures") or "FORBIDDEN").upper()
+
+
+def _dec(x):
+    s = str(x)
+    return len(s.split(".")[1]) if "." in s else 0
+
+
+def reciprocal_reproduces(src, dst):
+    """dst == 1/src with the interval's endpoints swapped, to the precision BOTH sides were printed at (|d(1/x)| = |dx|/x^2)."""
+    pairs = ((src["estimate"], dst["estimate"]), (src["ci_high"], dst["ci_low"]), (src["ci_low"], dst["ci_high"]))
+    for s, d in pairs:
+        if s is None or d is None or float(s) <= 0:
+            return False
+        tol = 0.5 * 10 ** -_dec(d) + 0.5 * 10 ** -_dec(s) / float(s) ** 2 + 1e-12
+        if abs(1.0 / float(s) - float(d)) > tol:
+            return False
+    return True
+
+
+def contrast_value_check(served_row, oc, ee_re, vocab, regd):
+    """P10 (value) and P11 (registered) for contrast and estimator. Returns {'p10': [...codes], 'p11': [...departures], 'pooled': tuple, ...}.
+    The row's effect is ALWAYS the tuple as the source states it; a re-orientation lives in effect.normalisation, never in effect.*."""
+    br = served_row or {}
+    ai = br.get("analysis_identity") or {}
+    cd = ai.get("comparator_direction") or {}
+    eff = br.get("effect") or {}
+    p10, p11 = [], []
+    detail = {}
+    # --- contrast VALUE: the served numerator side must be the one the clause orders ---
+    srv_num = served_orientation(cd, vocab)
+    detail["served_numerator_side"], detail["recomputed_numerator_side"] = srv_num, oc.get("numerator_side")
+    if cd.get("basis") == "STATED_IN_OWNING_EVIDENCE" or oc.get("state") == "ORDERED":
+        if oc.get("state") != "ORDERED":
+            p10.append(("COMPARATOR_DIRECTION_UNRESOLVED", f"served basis {cd.get('basis')} but the clause does not order the arms: {oc.get('reason')}"))
+        elif srv_num != oc["numerator_side"]:
+            p10.append(("COMPARATOR_DIRECTION_MISMATCH", f"served {cd.get('value')!r} puts the {srv_num} arm in the numerator; the clause orders "
+                        f"{oc['numerator_side']} over the other ({oc['direction_witness']['rule']}: {oc['direction_witness']['text']!r}); the stated tuple "
+                        f"{eff.get('estimate')} was not reciprocated"))
+    typed = cd.get("ordered_contrast")
+    if isinstance(typed, dict) and oc.get("state") == "ORDERED":
+        diffs = [k for k, a, b in (("numerator_side", typed.get("numerator_side"), oc.get("numerator_side")),
+                                   ("measure", (typed.get("measure") or {}).get("measure"), (oc.get("measure") or {}).get("measure")),
+                                   ("experimental_arm_ids", (typed.get("experimental_arm") or {}).get("arm_ids"), (oc.get("experimental_arm") or {}).get("arm_ids")),
+                                   ("reference_arm_ids", (typed.get("reference_arm") or {}).get("arm_ids"), (oc.get("reference_arm") or {}).get("arm_ids")),
+                                   ("estimate", typed.get("estimate"), oc.get("estimate")), ("ci_low", typed.get("ci_low"), oc.get("ci_low")),
+                                   ("ci_high", typed.get("ci_high"), oc.get("ci_high")),
+                                   ("direction_witness", (typed.get("direction_witness") or {}).get("text"), (oc.get("direction_witness") or {}).get("text")))
+                 if a != b]
+        if diffs:
+            p10.append(("COMPARATOR_DIRECTION_MISMATCH", f"the served ordered_contrast object disagrees with the recomputation on {diffs}"))
+    # --- estimator IDENTITY, source-bound (auditor, 2026-09-25): VALUE and OWNERSHIP, before any class / compatibility logic ---
+    # The measure is the one the OWNING evidence states: the tuple's own clause first; a linked method span only when the clause names
+    # none (estimand_evidence's owner rule). A label class (HR and RR both 'first-event ratios') never authenticates anything here.
+    cm = oc.get("measure") or {}
+    srv_scale = scale_measure(eff.get("scale"))
+    est_field = ai.get("estimator") or {}
+    est_re = (ee_re or {}).get("estimator") or {}
+    owned = (cm.get("measure") if cm.get("state") == "STATED" else
+             _ESTIMATOR_MEASURE.get(est_re.get("value")) if est_re.get("state") == "STATED_IN_OWNING_EVIDENCE" else None)
+    detail["served_scale"], detail["clause_measure"], detail["owned_measure"] = srv_scale, cm.get("measure"), owned
+    detail["estimator_owner"] = est_re.get("owner")
+    if owned is None:
+        p10.append(("ESTIMATOR_VALUE_MISMATCH", f"served effect.scale {eff.get('scale')!r}: neither the tuple's clause ({cm.get('state')}) nor a linked "
+                    f"method span ({est_re.get('state')}) states the estimator of this effect"))
+    elif srv_scale != owned:
+        p10.append(("ESTIMATOR_VALUE_MISMATCH", f"served effect.scale {eff.get('scale')!r} but the owning evidence states "
+                    f"{cm.get('matched') if cm.get('state') == 'STATED' else est_re.get('value')!r} ({owned}); a shared label class does not make them equal"))
+    if est_field.get("basis") == "STATED_IN_OWNING_EVIDENCE" and est_re.get("state") == "STATED_IN_OWNING_EVIDENCE" and est_field.get("value") != est_re.get("value"):
+        p10.append(("ESTIMATOR_MISMATCH", f"served estimator {est_field.get('value')!r}, recomputed from the owning evidence {est_re.get('value')!r}"))
+    if est_field.get("value") and _ESTIMATOR_MEASURE.get(est_field.get("value")) and srv_scale and _ESTIMATOR_MEASURE[est_field["value"]] != srv_scale:
+        p10.append(("ESTIMATOR_MISMATCH", f"served estimator {est_field.get('value')!r} and served effect.scale {eff.get('scale')!r} name different measures"))
+    # OWNERSHIP of every stated estimand field: the served witness must be the span the owner rule selects -- a sentence that merely
+    # mentions the same word elsewhere in the abstract (LEADER's noninferiority-margin sentence) owns nothing
+    for fname, src in (("estimator", "estimator"), ("analysis_set", "analysis_set"), ("treatment_strategy", "analysis_window"),
+                       ("follow_up_window", "analysis_window"), ("comparator_direction", "contrast")):
+        fv, rv = ai.get(fname), (ee_re or {}).get(src) or {}
+        if not (isinstance(fv, dict) and fv.get("basis") == "STATED_IN_OWNING_EVIDENCE" and rv.get("state") == "STATED_IN_OWNING_EVIDENCE"):
+            continue
+        served_at = (fv.get("start"), fv.get("end"), fv.get("parent_representation"))
+        owner_at = (rv.get("start"), rv.get("end"), rv.get("parent_representation"))
+        if served_at != owner_at or (fv.get("owner") is not None and fv.get("owner") != rv.get("owner")):
+            code = "ESTIMATOR_OWNER_MISMATCH" if fname == "estimator" else "ESTIMAND_OWNER_MISMATCH"
+            p10.append((code, f"{fname}: the served witness {served_at} (owner {fv.get('owner')!r}) is not the owning evidence {owner_at} "
+                        f"(owner {rv.get('owner')!r}{', linked via ' + repr((rv.get('link') or {}).get('named_in_method_span')) if rv.get('link') else ''})"))
+    # --- declared normalisation: the only admissible way a reversed contrast reaches the pool ---
+    stated = {k: eff.get(k) for k in ("estimate", "ci_low", "ci_high")}
+    norm = eff.get("normalisation")
+    pooled_num, pooled = srv_num, stated
+    if norm:
+        pol = normalisation_policy(regd)
+        detail["normalisation"] = {"operation": norm.get("operation"), "policy": pol}
+        if str(norm.get("operation") or "").upper() != "RECIPROCAL":
+            p10.append(("CONTRAST_NORMALISATION_UNKNOWN", f"declared normalisation {norm.get('operation')!r}; only RECIPROCAL is defined"))
+        elif srv_scale not in RATIO_MEASURES:
+            p10.append(("CONTRAST_NORMALISATION_UNKNOWN", f"a reciprocal is defined for ratio measures only; served scale {eff.get('scale')!r}"))
+        elif not pol.startswith("PERMITTED"):
+            p10.append(("CONTRAST_NORMALISATION_NOT_PERMITTED", f"a declared reciprocal re-orientation is refused under policy {pol} "
+                        "(registered_estimand.contrast_normalisation; absent = FORBIDDEN)"))
+        else:
+            dst = {k: norm.get(k) for k in ("estimate", "ci_low", "ci_high")}
+            nnum = served_orientation({"value": norm.get("orientation")}, vocab)
+            if not reciprocal_reproduces(stated, dst):
+                p10.append(("CONTRAST_NORMALISATION_NOT_REPRODUCED", f"declared reciprocal {dst} is not 1/{stated} with the endpoints swapped"))
+            elif nnum is None or nnum == srv_num:
+                p10.append(("CONTRAST_NORMALISATION_NOT_REPRODUCED", f"declared orientation {norm.get('orientation')!r} is not the reverse of the stated one"))
+            else:
+                pooled_num, pooled = nnum, dst
+    detail["pooled_numerator_side"], detail["pooled_tuple"] = pooled_num, pooled
+    # --- P11: what enters the pool must be the REGISTERED contrast and estimator ---
+    reg_num = served_orientation({"value": (regd or {}).get("contrast")}, vocab)
+    reg_measure = next((m for w, m in _ESTIMATOR_MEASURE.items() if w in str((regd or {}).get("estimator") or "").lower()), None)
+    permitted = [scale_measure(x) for x in ((regd or {}).get("estimators_permitted") or ([reg_measure] if reg_measure else []))]
+    detail["registered_numerator_side"], detail["registered_measure"], detail["estimators_permitted"] = reg_num, reg_measure, permitted
+    if (regd or {}).get("contrast") not in (None, "UNSTATED"):
+        if reg_num is None:
+            p11.append("contrast (the registered contrast names no arm this topic's vocabulary resolves)")
+        elif pooled_num != reg_num:
+            p11.append(f"contrast (pooled orientation puts the {pooled_num} arm in the numerator; registered {regd.get('contrast')!r})")
+        elif oc.get("experimental_arm") and oc["experimental_arm"].get("term") is None and oc.get("state") == "ORDERED":
+            pass   # 'HR vs placebo': the experimental arm is implied, not named -- the registered class is not contradicted
+    if (regd or {}).get("estimator") not in (None, "UNSTATED") and permitted and srv_scale not in permitted:
+        p11.append(f"estimator (served {eff.get('scale')!r}; registered {regd.get('estimator')!r}, permitted {permitted})")
+    return {"p10": p10, "p11": p11, "detail": detail, "pooled": pooled, "pooled_numerator_side": pooled_num, "measure": srv_scale}
+
+
+def pool_measure_guard(inputs, rows_by_pmid, declared_scale):
+    """Refuse BEFORE any log is taken: pool() is log(effect) whatever the effect is. Every input's measure must be identified from its
+    row (served label value-checked against the clause), all inputs one ratio measure, equal to the pool's declared scale; and every
+    input must be its row's tuple in the orientation that enters the pool (a reciprocal in the pool beside a canonical row is refused)."""
+    measures, problems = {}, []
+    for i in inputs:
+        pid = str(i.get("id", "")).replace("PMID ", "")
+        r = rows_by_pmid.get(pid)
+        if r is None:
+            problems.append(("POOL_MEASURE_UNIDENTIFIED", f"{pid}: pool input has no verified row"))
+            continue
+        cv = r
+        m = cv.get("measure")
+        measures[pid] = m
+        if m is None or any(c.startswith("ESTIMATOR_") for c in cv.get("p10", [])):
+            problems.append(("POOL_MEASURE_UNIDENTIFIED", f"{pid}: the row's measure is not identified (served {m!r}; clause {(cv.get('detail') or {}).get('clause_measure')!r})"))
+        want = cv.get("pooled") or {}
+        if want and any(want.get(k) is None or abs(float(i.get(src)) - float(want[k])) > 1e-12
+                        for k, src in (("estimate", "effect"), ("ci_low", "ci_low"), ("ci_high", "ci_high"))):
+            problems.append(("POOL_INPUT_DISAGREES_WITH_ROW", f"{pid}: pool input {i.get('effect')} ({i.get('ci_low')}-{i.get('ci_high')}) is not the row's "
+                              f"pooled-orientation tuple {want}"))
+    ids = {m for m in measures.values() if m}
+    if len(ids) > 1:
+        problems.append(("POOL_MEASURE_MIXED", f"inputs carry {sorted(ids)}: log(HR), log(OR), log(RR) are different quantities"))
+    if any(m not in RATIO_MEASURES for m in ids):
+        problems.append(("POOL_MEASURE_NOT_RATIO", f"{sorted(ids)}: the pool takes logs; only ratio measures are defined"))
+    ds = scale_measure(declared_scale)
+    if ids and len(ids) == 1 and ds != next(iter(ids)):
+        problems.append(("POOL_MEASURE_MIXED", f"the pool declares scale {declared_scale!r}; its inputs are {sorted(ids)}"))
+    return {"measures": measures, "refusals": problems, "refused": bool(problems)}
+
+
+def pool_guarded(inputs, rows_by_pmid, declared_scale):
+    """The ONLY route by which a verdict may reach pool() (release-captain finding, 2026-09-25: a pooling contract computed the log
+    BEFORE pool_measure_guard could veto it). The guard runs first; a refused pool is never computed -- not computed and discarded,
+    NOT COMPUTED. Returns (result or None, guard). tests/test_pool_guarded.py fails on any call to pool() outside this function and
+    _plant_expected_pool, and runs every refusing plant with pool() replaced by a sentinel that raises if it is ever reached."""
+    mg = pool_measure_guard(inputs, rows_by_pmid, declared_scale)
+    if mg["refused"]:
+        return None, mg
+    return pool(inputs), mg
+
+
+def _plant_input_values(inputs, review):
+    """For a --corrupt limb only: the values a producer would pool for these REFERENCES -- each referenced certified row's own
+    tuple, overlaid with any value the limb planted onto the reference (which the verifier then refuses as a carried value)."""
+    primary = next(o for o in review["outcomes"] if o.get("primary"))
+    rows = {str(t["id"]): t for t in primary["trials"]}
+    return [{"id": i["id"], **{k: i.get(k, rows.get(str(i["id"]), {}).get(k)) for k in ("effect", "ci_low", "ci_high")}}
+            for i in inputs]
+
+
+def _oc_referenced_trial(review, reference):
+    """Resolve an OC plant's reference to the REVIEW row it actually changes.
+
+    Corruption controls must edit the same object the pool contract dereferences;
+    adding values to the reference is a separate, deliberately refused attack.
+    """
+    primary = next(o for o in review["outcomes"] if o.get("primary"))
+    matches = [t for t in primary["trials"]
+               if (t.get("id"), t.get("outcome_effect_id")) ==
+               (reference.get("id"), reference.get("outcome_effect_id"))]
+    if len(matches) != 1:
+        raise Refusal("POOL_ROW_IDENTITY_MISMATCH", "OC plant requires one referenced outcome effect")
+    return matches[0]
+
+
+def _plant_expected_pool(inputs):
+    """Only a --corrupt limb's model of a CONSISTENT PRODUCER recomputing the pool it would declare after the planted edit. Never a
+    verdict: the verifier's own comparison still goes through pool_guarded."""
+    return pool(inputs)
+
+
+# LEADER's primary clause, as held, and two re-orientations of it -- the fixtures of the OC --corrupt limbs (in memory only)
+_OC_LEADER_HELD = ("fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) "
+                   "(hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97")
+_OC_LEADER_SWAPPED = ("fewer patients in the placebo group (608 of 4668 patients [13.0%]) than in the liraglutide group (694 of 4672 [14.9%]) "
+                      "(hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97")          # arm NAMES swapped: a self-consistent source in which
+                                                                                                  # placebo/liraglutide = 0.87 (its rates agree)
+_OC_LEADER_RECIPROCAL = ("more patients in the placebo group (694 of 4672 [14.9%]) than in the liraglutide group (608 of 4668 patients [13.0%]) "
+                         "(hazard ratio, 1.15; 95% confidence interval [CI], 1.03 to 1.28")        # the same trial stated placebo/liraglutide
+
+
+def _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, old, new):
+    """A controlled source edit that keeps every OTHER layer self-consistent (records, span, offsets, representation digests, the
+    retained XML and its recorded digest), so only the contrast can be what a refusal is about. In memory; nothing is written."""
+    ab = rec_by_pmid[pmid]["abstract"]
+    if old not in ab or old not in t["endpoint_result_span"]:
+        raise Refusal("UNKNOWN_LIMB", f"{pmid}: the OC contrast fixture is not in this record")
+    rec_by_pmid[pmid]["abstract"] = ab.replace(old, new)
+    t["endpoint_result_span"] = t["endpoint_result_span"].replace(old, new)
+    parsed = rec_by_pmid[pmid]["abstract"]
+    br["source"]["representation_sha256"] = sha256_text(parsed)
+    rep = parsed if br["span"].get("parent_representation") == "PARSED_SOURCE" else normalize(parsed)
+    br["span"]["representation_sha256"] = sha256_text(rep)
+    if br["span"].get("start") is not None:
+        br["span"]["end"] = br["span"]["start"] + len(t["endpoint_result_span"] if br["span"].get("parent_representation") == "PARSED_SOURCE" else normalize(t["endpoint_result_span"]))
+    delta = len(new) - len(old)
+    for fv in (br.get("analysis_identity") or {}).values():
+        if isinstance(fv, dict) and fv.get("span") and old in fv["span"]:
+            fv["span"] = fv["span"].replace(old, new)
+            fv["end"] = fv["end"] + delta if fv.get("end") is not None else None
+            if isinstance(fv.get("observed"), dict):
+                fv["observed"].update(span=fv["span"], end=fv["end"])
+    for d in bundle.get("documents", []):
+        ac = (d.get("representations") or {}).get("ACQUIRED_SOURCE") or {}
+        if d["document_id"] == f"pubmed:{pmid}" and ac.get("ref"):
+            path = ac["ref"].removeprefix("docs/")
+            xml = store.get(path).replace(old.encode("utf-8"), new.encode("utf-8"))
+            store.cache[path] = xml
+            ac["sha256_original"] = sha256(xml)
+
+
+def _oc_set_tuple(t, br, est, lo, hi, scale=None):
+    t["effect"], t["ci_low"], t["ci_high"] = est, lo, hi
+    br["effect"].update(estimate=est, ci_low=lo, ci_high=hi)
+    t["study_effect"]["effect_estimate"] = est
+    if scale is not None:
+        _oc_set_scale(t, br, scale)
+
+
+def _oc_set_scale(t, br, scale):
+    t["scale"] = br["effect"]["scale"] = t["study_effect"]["estimand"] = scale
+
+
+def _oc_set_contrast(br, value):
+    cd = br["analysis_identity"]["comparator_direction"]
+    cd["value"] = value
+    if isinstance(cd.get("observed"), dict):
+        cd["observed"]["value"] = value
+
+
+def _oc_recip(x, nd=4):
+    return round(1.0 / float(x), nd)
+
+
+def _oc_reemit(store, slug, br, t, parsed, fam):
+    """What a CONSISTENT producer would serve after a meaning-preserving source edit: the estimator field from the owner rule and the
+    typed ordered contrast, both recomputed from the edited source. Used only by CONTROL limbs, never by an attack."""
+    vals = [t["effect"], t["ci_low"], t["ci_high"]]
+    cl = clause_with_effect(t["endpoint_result_span"], vals)
+    ev = estimand_evidence(parsed, cl)["estimator"]
+    fv = br["analysis_identity"]["estimator"]
+    if ev["state"] == "STATED_IN_OWNING_EVIDENCE":
+        fv.update(value=ev["value"], basis=ev["state"], span=ev["span"], start=ev["start"], end=ev["end"],
+                  parent_representation=ev["parent_representation"], owner=ev.get("owner"))
+        fv.pop("link", None)
+        if ev.get("link"):
+            fv["link"] = ev["link"]
+        if isinstance(fv.get("observed"), dict):
+            fv["observed"].update(value=ev["value"], span=ev["span"], start=ev["start"], end=ev["end"], parent_representation=ev["parent_representation"])
+    br["analysis_identity"]["comparator_direction"]["ordered_contrast"] = ordered_contrast(
+        cl, vals, contrast_vocabulary(store.json(f"topics/{slug}.json")), fam)
+    ai = br["analysis_identity"]
+    key = " | ".join(f"{field}={ai[field]['value']}[{ai[field]['basis'][:3]}]"
+                     for field in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
+    ai["analysis_identity_key"] = br["admission"]["analysis_identity_key"] = key
+
+
+# the estimator fixtures (LEADER's primary clause): the measure word as held, abbreviated, absent, and a genuinely different estimator
+_OC_EST_HELD = "(hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97"
+_OC_EST_ABBREV = "(HR, 0.87; 95% confidence interval [CI], 0.78 to 0.97"
+_OC_EST_NONE = "(0.87; 95% confidence interval [CI], 0.78 to 0.97"
+_OC_EST_RR = "(relative risk, 0.87; 95% confidence interval [CI], 0.78 to 0.97"
 
 
 # ---- CI level: the level the source STATES vs the level the derivation ASSUMED --------------------------------------
@@ -685,11 +1239,420 @@ def live_anchor(pmid: str, retained_xml: bytes, cached_abstract: str) -> dict:
             "live_equals_retained_bytes": sha256(live) == sha256(retained_xml)}
 
 
+def _finite_number(value):
+    # a JSON integer too large for a float is not a finite number here; it must refuse, never crash (V1.0.1 review F3)
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
+# V1.0.1 ROOT OF TRUST: the verifier's own copy of harness.certificate.bundle_core (this served script imports nothing from
+# harness/); equality is pinned by tests/test_bundle_pin.py. The pin is read from CERTIFICATE.json -- the root -- never from the
+# bundle, and it is checked before any scientific predicate.
+BUNDLE_RELEASE_BOUND_TOP = ("certificate", "review_files", "source")
+BUNDLE_RELEASE_BOUND_EVIDENCE_VERSION = ("certificate_release_sha256", "review_blob")
+# input linkage: every statistical input is tied to one certified row of this analysis that this verification ADMITTED
+LINKAGE_CODES = ("POOL_INPUT_", "POOL_ROW_", "POOL_SCALE_", "POOL_ANALYSIS_", "POOL_CONTRAST_", "POOL_CONTAINS_INADMISSIBLE_ROW")
+
+
+def _bundle_core(bundle):
+    core = {k: v for k, v in bundle.items() if k not in BUNDLE_RELEASE_BOUND_TOP}
+    if isinstance(core.get("verification_rows"), list):
+        rows = []
+        for row in core["verification_rows"]:
+            adm = row.get("admission") if isinstance(row, dict) else None
+            ev = adm.get("evidence_version") if isinstance(adm, dict) else None
+            if isinstance(ev, dict):
+                row = {**row, "admission": {**adm, "evidence_version": {k: v for k, v in ev.items()
+                                                                       if k not in BUNDLE_RELEASE_BOUND_EVIDENCE_VERSION}}}
+            rows.append(row)
+        core["verification_rows"] = rows
+    return core
+
+
+def _bundle_core_sha256(bundle):
+    return sha256_text(canonical(_bundle_core(bundle)))
+
+
+def bundle_pin_problem(bundle, cert_bytes):
+    """None when the certificate (self-consistent) pins exactly this bundle's core; else the refusal. Runs FIRST in run()."""
+    try:
+        cert = json.loads(cert_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        return f"BUNDLE_DIGEST_MISMATCH CERTIFICATE.json unreadable: {exc}"
+    if not isinstance(cert, dict) or sha256_text(canonical({k: v for k, v in cert.items() if k != "release_sha256"})) != cert.get("release_sha256"):
+        return "BUNDLE_DIGEST_MISMATCH CERTIFICATE.json release_sha256 does not recompute: the pin's own root is not intact"
+    pin = cert.get("bundle_core_sha256")
+    if not pin:
+        return "BUNDLE_DIGEST_MISMATCH the certificate pins no bundle (bundle_core_sha256 absent): the bundle is not part of this release"
+    got = _bundle_core_sha256(bundle)
+    if got != pin:
+        return f"BUNDLE_DIGEST_MISMATCH bundle core {got} is not the certificate's bundle_core_sha256 {pin}"
+    return None
+
+
+def _served_contrast_value(oc):
+    """The served comparator_direction value an ORDERED contrast implies: '<numerator arm> vs <other arm>' -- the verifier's own copy
+    of scripts/contrast_order.contrast_value (the served verifier imports nothing from the producer); parity is pinned by
+    tests/test_pool_contract_guard.py."""
+    if (oc or {}).get("state") != "ORDERED":
+        return None
+    e = (oc.get("experimental_arm") or {}).get("term") or "the experimental arm"
+    r = (oc.get("reference_arm") or {}).get("term") or "the reference arm"
+    return f"{e} vs {r}" if oc.get("numerator_side") == "EXPERIMENTAL" else f"{r} vs {e}"
+
+
+def check_pool_contract(review, bundle, records, measure_rows=None, admitted=None):
+    """Bind the redundant bundle pool to the certificate-covered review, never to itself.
+
+    This checker supports the verifier's existing HR, PubMed, placebo contract only.
+    Unknown scales/identities refuse; registered defaults stay defaults, not observations.
+    The producer also calls this pure check before emitting a bundle.
+
+    V1.1: lane OC's measure guard runs HERE, before any pool is computed -- every pool() this contract needs goes
+    through pool_guarded(), so a refused pool is never COMPUTED (not computed and discarded). `measure_rows` is the guard's
+    evidence: the verifier passes its value-checked ordered contrasts (report["ordered_contrasts"]). A producer, which has
+    none, gets the guard over each certified row's own declared scale, recorded as measure_basis CERTIFIED_ROW_SCALE -- a
+    weaker basis than the verifier's, and named as such rather than passed off as the same check.
+    """
+    verified_rows = measure_rows                          # the caller's evidence, before the producer path synthesises any
+    errors = []
+    primaries = [o for o in review.get("outcomes", []) if o.get("primary")]
+    if len(primaries) != 1:
+        raise Refusal("POOL_PRIMARY_AMBIGUOUS", "exactly one certified primary outcome required")
+    primary = primaries[0]
+    trials = primary.get("trials") or []
+    reference = bundle.get("pooled_reference") or {}
+    inputs = reference.get("inputs")
+    if not isinstance(inputs, list) or not all(isinstance(r, dict) for r in inputs):
+        raise Refusal("POOL_INPUT_MALFORMED", "pool inputs must be an array of objects")
+
+    def index(rows, key, name):
+        indexed = {}
+        for row in rows:
+            ident = key(row)
+            if not isinstance(ident, str) or not ident.strip():
+                errors.append(f"POOL_ROW_IDENTITY_MISMATCH {name}: missing identity")
+            elif ident in indexed:
+                errors.append(f"POOL_INPUT_DUPLICATE {name}: {ident}")
+            else:
+                indexed[ident] = row
+        return indexed
+
+    certified = index(trials, lambda r: r.get("id"), "certified primary")
+    # THE SELECTED SET IS ITS OWN OBJECT. Eligible candidates and the selected set are different things: a row
+    # that is admissible evidence is not thereby a permitted input to THIS analysis, and not every admissible
+    # candidate must be forced into every pool. Until the set is NAMED, "every statistical input is exactly the
+    # permitted derivation of one selected record" is an assumption rather than something a checker can test.
+    # The multiplicity rule is DECLARED here rather than left implicit, because the failure it forbids -- one
+    # trial contributing eight rows to an independent-trial pool -- is arithmetically silent.
+    candidates = trials + list(primary.get("declared_absent_trials") or [])
+    selected_set = {
+        "identity": f"{review.get('slug')}::{primary.get('name')}",
+        "members": sorted(certified),
+        "k_selected": len(certified),
+        "candidates_considered": len(candidates),
+        "not_selected": sorted({str(c.get("id") or c.get("label")) for c in candidates} - set(certified)),
+        "multiplicity_policy": "ONE_ROW_PER_TRIAL_FAMILY",
+        "multiplicity_rule": ("an independent-trial pool admits at most one row per trial family and per analysis "
+                              "identity; a repeated contribution is permitted only under a model that accounts for "
+                              "the dependence, and no such model is declared for this analysis"),
+        "selection_basis": "the certificate-covered primary outcome's trial rows",
+    }
+    supplied = index(inputs, lambda r: r.get("id"), "bundle inputs")
+    # V1.0.1: pooled inputs are REFERENCES ({id, outcome_effect_id}) dereferenced to the certified row -- never free-standing values
+    # that could differ from their row. A carried value is refused as such, before anything is computed.
+    carried = sorted({str(r.get("id")) for r in inputs if set(r) & {"effect", "ci_low", "ci_high", "estimate"}})
+    if carried:
+        errors.append(f"POOL_INPUT_NOT_A_REFERENCE {carried}: pooled inputs must be references, not values")
+    if any(set(r) != {"id", "outcome_effect_id"} for r in inputs):
+        errors.append("POOL_INPUT_MALFORMED inputs must contain exactly id and outcome_effect_id (a reference to one certified row)")
+    for ident, ref in supplied.items():
+        row = certified.get(ident)
+        if row is not None and ref.get("outcome_effect_id") != row.get("outcome_effect_id"):
+            errors.append(f"POOL_ROW_IDENTITY_MISMATCH {ident}: reference names {ref.get('outcome_effect_id')!r}, "
+                          f"the certified row is {row.get('outcome_effect_id')!r}")
+    witnesses = index(bundle.get("verification_rows", []), lambda r: (r.get("trial") or {}).get("id"), "verification rows")
+    for name, indexed in (("bundle inputs", supplied), ("verification rows", witnesses)):
+        if set(indexed) != set(certified):
+            errors.append(f"POOL_INPUT_MEMBERSHIP_MISMATCH {name}: missing={sorted(set(certified)-set(indexed))} unknown={sorted(set(indexed)-set(certified))}")
+    # A reassigned certified tuple names an identity defect, before value checks.
+    # Require exact membership and a complete tuple multiset permutation: a novel
+    # altered tuple must retain the distinct POOL_INPUT_TUPLE_MISMATCH diagnosis.
+    tuple_keys = ("effect", "ci_low", "ci_high")
+    from collections import Counter
+    if (not errors and set(supplied) == set(certified)
+            and all(all(_finite_number(r.get(k)) for k in tuple_keys)
+                    for r in [*inputs, *trials])):
+        tuples = lambda rows: Counter(tuple(r[k] for k in tuple_keys) for r in rows)
+        if (tuples(inputs) == tuples(trials)
+                and any(tuple(supplied[i][k] for k in tuple_keys) !=
+                        tuple(certified[i][k] for k in tuple_keys) for i in certified)):
+            errors.append("POOL_ROW_IDENTITY_MISMATCH certified value tuples assigned to different selected IDs")
+    families, analyses = set(), set()
+    derived = []
+    for ident, trial in certified.items():
+        family = trial.get("family_id")
+        analysis = trial.get("outcome_effect_id")
+        expected_analysis = f"{review.get('slug')}::{primary.get('name')}::{ident}::{ident}"
+        if (not re.fullmatch(r"PMID [1-9][0-9]*", ident) or trial.get("trial_id") != ident
+                or trial.get("report_id") != ident or analysis != expected_analysis
+                or not isinstance(family, str) or not re.fullmatch(r"NCT[0-9]{8}", family)
+                or not isinstance(trial.get("trial_family_id"), str) or not trial["trial_family_id"].strip()):
+            errors.append(f"POOL_ROW_IDENTITY_MISMATCH {ident}: trial/report/family/analysis identity")
+        if (isinstance(family, str) and family in families) or (isinstance(analysis, str) and analysis in analyses):
+            errors.append(f"POOL_INPUT_DUPLICATE certified family/analysis: {ident}")
+        if isinstance(family, str):
+            families.add(family)
+        if isinstance(analysis, str):
+            analyses.add(analysis)
+        witness = witnesses.get(ident, {})
+        wt, effect = witness.get("trial") or {}, witness.get("effect") or {}
+        if (wt.get("family_id") != family or wt.get("trial_family_id") != trial.get("trial_family_id")
+                or witness.get("outcome_effect_id") != analysis):
+            errors.append(f"POOL_ROW_IDENTITY_MISMATCH {ident}: verification row differs from certified identity")
+        se = trial.get("study_effect") or {}
+        if (not primary.get("population") or trial.get("analysis_set") != primary["population"]
+                or se.get("analysis_population") != trial.get("analysis_set")):
+            errors.append(f"POOL_ANALYSIS_IDENTITY_MISMATCH {ident}: certified row/primary/study_effect populations disagree")
+        if (primary.get("estimand") != "HR" or primary.get("served_estimand") != "HR"
+                or reference.get("scale") != "HR" or trial.get("scale") != "HR"
+                or effect.get("scale") != "HR" or se.get("estimand") != "HR"):
+            errors.append(f"POOL_SCALE_MISMATCH {ident}: supported certified scale is HR")
+        tuple_keys = ("effect", "ci_low", "ci_high")
+        values = [trial.get(k) for k in tuple_keys]
+        valid = all(_finite_number(x) and x > 0 for x in values)
+        valid = valid and values[1] < values[2] and values[1] <= values[0] <= values[2]
+        if not valid:
+            errors.append(f"POOL_INPUT_MALFORMED {ident}: finite positive estimate and ordered interval required")
+            continue
+        derived.append({"id": ident, **dict(zip(tuple_keys, values))})     # the dereferenced value: the certified row's own
+        for key, value in zip(tuple_keys, values):
+            other_key = "estimate" if key == "effect" else key
+            if not _finite_number(effect.get(other_key)) or effect[other_key] != value:
+                errors.append(f"POOL_INPUT_TUPLE_MISMATCH {ident}/{key}: verification effect differs from certified row")
+        if se.get("effect_estimate") != trial["effect"]:
+            errors.append(f"POOL_INPUT_TUPLE_MISMATCH {ident}: study_effect disagrees")
+        # Re-read the owning record; an identity key is not evidence for its own fields.
+        try:
+            record = resolve_selector(records, ident.removeprefix("PMID "))
+        except Refusal as exc:
+            errors.append(f"POOL_ROW_IDENTITY_MISMATCH {ident}: {exc.code}")
+            continue
+        parsed = record.get("abstract") or ""
+        clause = clause_with_effect(trial.get("endpoint_result_span") or "", values)
+        evidence = estimand_evidence(parsed, clause)
+        identity = witness.get("analysis_identity")
+        identity = identity if isinstance(identity, dict) else {}
+        direction = identity.get("comparator_direction") or {}
+        direction = direction if isinstance(direction, dict) else {}
+        # V1.1 MERGE (lane POOL x lane OC): POOL's "certified experimental-versus-placebo contract", expressed in lane OC's TYPED
+        # contrast instead of the prose string OC's producer no longer writes. The contract: the ratio's numerator is the
+        # EXPERIMENTAL arm, so an estimate below 1 favours it. On the verifier path the ordered contrast is OC's independent
+        # RECOMPUTATION (measure_rows[pmid]['recomputed']) and any OC P10 direction finding refuses the pool input; a producer,
+        # which has no recomputation, is held to its own served typed contrast -- the weaker basis, used only there.
+        pid = ident.removeprefix("PMID ")
+        if verified_rows is not None:
+            vrow = verified_rows.get(pid) or {}
+            contrast = vrow.get("recomputed") or {}
+            if any(str(c).startswith("COMPARATOR_DIRECTION") for c in vrow.get("p10") or []):
+                errors.append(f"POOL_CONTRAST_MISMATCH {ident}: the verifier's ordered-contrast check refuses this row's direction")
+        else:
+            contrast = direction.get("ordered_contrast") or {}
+            if direction.get("effect_less_than_1_favours") != "the experimental arm":
+                errors.append(f"POOL_CONTRAST_MISMATCH {ident}: ratio direction differs from the certified experimental-versus-placebo contract")
+        if contrast.get("state") != "ORDERED" or contrast.get("numerator_side") != "EXPERIMENTAL":
+            errors.append(f"POOL_CONTRAST_MISMATCH {ident}: ratio direction differs from the certified experimental-versus-placebo contract")
+        ev_contrast = evidence["contrast"]
+        want_value = _served_contrast_value(contrast) if ev_contrast["state"] == "STATED_IN_OWNING_EVIDENCE" else None
+        if (direction.get("value"), direction.get("basis")) != (want_value, ev_contrast["state"]):
+            errors.append(f"POOL_CONTRAST_MISMATCH {ident}/comparator_direction: identity differs from owning evidence")
+        elif want_value is not None and (direction.get("observed") or {}).get("value") != want_value:
+            errors.append(f"POOL_ANALYSIS_IDENTITY_MISMATCH {ident}/comparator_direction: observed value differs")
+        fields = {"analysis_set": "analysis_set", "treatment_strategy": "analysis_window",
+                  "follow_up_window": "analysis_window", "estimator": "estimator"}
+        expected_fields = {}
+        for field, source in fields.items():
+            ev = evidence[source]
+            value = ev.get("value")
+            if field == "treatment_strategy" and ev["state"] == "STATED_IN_OWNING_EVIDENCE":
+                value = "on-treatment" if value == "on-treatment" else "treatment-policy (on-study)"
+            if field == "follow_up_window" and value == "follow-up stated":
+                value = ev.get("span")
+            expected_fields[field] = (value, ev["state"])
+            actual = identity.get(field)
+            if not isinstance(actual, dict) or (actual.get("value"), actual.get("basis")) != (value, ev["state"]):
+                code = "POOL_CONTRAST_MISMATCH" if field == "comparator_direction" else "POOL_ANALYSIS_IDENTITY_MISMATCH"
+                errors.append(f"{code} {ident}/{field}: identity differs from owning evidence")
+            elif ev["state"] == "STATED_IN_OWNING_EVIDENCE" and (actual.get("observed") or {}).get("value") != value:
+                errors.append(f"POOL_ANALYSIS_IDENTITY_MISMATCH {ident}/{field}: observed value differs")
+        key = " | ".join(f"{f}={expected_fields[f][0]}[{expected_fields[f][1][:3]}]"
+                         for f in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
+        if identity.get("analysis_identity_key") != key or (witness.get("admission") or {}).get("analysis_identity_key") != key:
+            errors.append(f"POOL_ANALYSIS_IDENTITY_MISMATCH {ident}: analysis key differs from owning evidence")
+    if reference.get("outcome") != primary.get("name") or reference.get("k") != len(trials):
+        errors.append("POOL_INPUT_MEMBERSHIP_MISMATCH outcome or k differs from certified primary")
+    if len(derived) != len(trials) or len(derived) < 2:
+        raise Refusal("POOL_INPUT_MALFORMED", "; ".join(errors) or "at least two valid certified rows required")
+    # The measure guard decides BEFORE any log is taken (lane OC): only then do these certificate-covered rows drive the
+    # authoritative recomputation, and only through pool_guarded().
+    if measure_rows is None:
+        measure_basis = "CERTIFIED_ROW_SCALE (producer-side: the certified row's declared scale, not value-checked against its clause)"
+        measure_rows = {i.removeprefix("PMID "): {"measure": scale_measure(certified[i].get("scale")), "p10": []} for i in certified}
+    else:
+        measure_basis = "VERIFIED_ORDERED_CONTRAST (the verifier's value-checked measure and pooled-orientation tuple per row)"
+    expected = reference.get("expected") or {}
+    keys = ("estimate", "ci_low", "ci_high", "tau2", "mu_log", "se_log", "Q")
+    # There is ONE pool: the dereferenced certified rows (V1.0.1 -- the bundle carries references, so no separate "declared" pool
+    # exists to disagree with it). It is computed only if (a) every member JUST PASSED ADMISSION -- a member the caller did not admit
+    # refuses the pool with membership unchanged, never silently dropped, and no trial is special-cased -- (b) the references are
+    # structurally sound, and (c) lane OC's measure guard admits it; otherwise nothing is computed at all.
+    inadmissible = sorted(i for i in certified if admitted is not None and i.removeprefix("PMID ") not in admitted)
+    structural = [e for e in errors if e.startswith(("POOL_INPUT_NOT_A_REFERENCE", "POOL_INPUT_MALFORMED"))]
+    if inadmissible:
+        got, guard = None, {"measures": {}, "refusals": [("POOL_CONTAINS_INADMISSIBLE_ROW", f"{i}: pooled, but not admitted by this verification")
+                                                         for i in inadmissible], "refused": True}
+    elif structural:
+        got, guard = None, {"measures": {}, "refusals": [tuple(e.split(" ", 1)) for e in structural], "refused": True}
+    else:
+        got, guard = pool_guarded(derived, measure_rows, reference.get("scale"))
+    guard = dict(guard, measure_basis=measure_basis, vetted=["the dereferenced certified inputs"])
+    if got is None:
+        # refused: nothing was computed, so there is nothing to compare -- the refusal IS the result
+        errors.extend(e for e in (f"{code} {why}" for code, why in guard["refusals"]) if e not in errors)
+        return {"inputs_source": "certificate-covered review.json primary trials", "certified_inputs": derived,
+                "selected_set": selected_set, "k_declared": len(inputs), "recomputed": None, "declared": expected,
+                "abs_deltas": {}, "reproduced_to_1e-9": False, "certified_result_agrees": False,
+                "bundle_internal_arithmetic_agrees": False, "certified_result_rounding": None,
+                "pool_measure_guard": guard, "binding_ok": False, "refusals": errors}, errors
+    deltas = {k: abs(got[k] - expected[k]) if _finite_number(expected.get(k)) else None for k in keys}
+    bundle_ok = all(d is not None and d < 1e-9 for d in deltas.values())
+    if not bundle_ok:
+        errors.append(f"POOL_BUNDLE_RESULT_DISAGREES {deltas}")
+    # harness.pipeline._pool_result serializes these fixed precisions; not a free tolerance.
+    rounding = {"estimate": 4, "ci_low": 4, "ci_high": 4, "tau2": 5, "Q": 5}
+    result = primary.get("result") or {}
+    certified_ok = (type(result.get("k")) is int and result["k"] == len(trials) and result.get("scale") == "HR"
+                    and all(_finite_number(result.get(k)) and round(got[k], n) == result[k] for k, n in rounding.items()))
+    if not certified_ok:
+        errors.append("POOL_CERTIFIED_RESULT_DISAGREES recomputation differs from certificate-covered primary result")
+    # The bundle carries no values of its own any more, so its arithmetic is the dereferenced pool's: the declared result must be
+    # what the referenced rows give (this is bundle_ok, restated under the name the five-verdict split reads).
+    self_ok = bundle_ok
+    # The invariant the selected set exists to make checkable: every derived statistical input is exactly the
+    # permitted derivation of ONE selected record, and nothing else reached the pool.
+    derived_ids = [d.get("id") for d in derived]
+    if sorted(derived_ids) != selected_set["members"]:
+        errors.append("POOL_INPUT_MEMBERSHIP_MISMATCH derived inputs are not exactly the selected set: "
+                      f"derived={sorted(derived_ids)} selected={selected_set['members']}")
+    if len(derived_ids) != len(set(derived_ids)):
+        errors.append("POOL_INPUT_DUPLICATE derived inputs repeat a selected record; "
+                      f"policy {selected_set['multiplicity_policy']} admits one row per trial family")
+    selected_set["derivation_is_one_per_selected_record"] = (
+        sorted(derived_ids) == selected_set["members"] and len(derived_ids) == len(set(derived_ids)))
+    return {"inputs_source": "certificate-covered review.json primary trials", "certified_inputs": derived,
+            "selected_set": selected_set,
+            "k_declared": len(inputs), "recomputed": got, "declared": expected, "abs_deltas": deltas,
+            "reproduced_to_1e-9": bundle_ok, "certified_result_agrees": certified_ok,
+            "bundle_internal_arithmetic_agrees": self_ok, "certified_result_rounding": rounding,
+            "pool_measure_guard": guard,
+            "binding_ok": not any(e.startswith(("POOL_INPUT_", "POOL_ROW_", "POOL_SCALE_", "POOL_ANALYSIS_", "POOL_CONTRAST_")) for e in errors),
+            "refusals": errors}, errors
+
+
+def regulatory_tuple_matches(text, effect):
+    """Recognise complete numeric tuples, never numeric prefixes or cross-row bags."""
+    number = r"(?<![\d.])(\d+\.\d+)(?!\d|\.\d)"
+    forms = [
+        (number + r"\s*\((?:95%\s*CI:?\s*)?" + number + r",?\s*(?:to\s*)?" + number + r"\s*\)", (0, 1, 2)),
+        (r"\(" + number + r",\s*" + number + r"\)\s*with a point estimate of\s*" + number, (2, 0, 1)),
+        (r"estimate of\s*" + number + r"\s*with an associated 95% confidence interval of\s*\(" + number + r",\s*" + number + r"\)", (0, 1, 2)),
+    ]
+    wanted = tuple(float(effect[k]) for k in ("estimate", "ci_low", "ci_high"))
+    flat = text.replace("\n", " ")
+    return any(tuple(float(m.group(i + 1)) for i in order) == wanted
+               for pattern, order in forms for m in re.finditer(pattern, flat))
+
+
+def regulatory_holder_endpoint(candidate, effect):
+    """Re-read a table's owning row label, including legacy multi-row spans."""
+    pieces = candidate["text"].split("|")
+    endpoints = set()
+    if len(pieces) > 1:
+        for i, piece in enumerate(pieces):
+            if not regulatory_tuple_matches(piece, effect):
+                continue
+            j = i
+            while j > 0 and not re.search(r"mace|composite|\b\d-point\b", pieces[j], re.I):
+                j -= 1
+            label = " ".join(pieces[j:i + 1]).lower()
+            endpoints.add("4-point MACE+" if "4-point" in label or "mace+" in label or "unstable angina" in label
+                          else "3-point MACE" if "3-point" in label or "mace endpoint" in label else "UNSTATED")
+    else:
+        endpoints.add(candidate["analysis_identity"]["endpoint"])
+    return endpoints
+
+
+def separate_verdicts(report):
+    """FIVE verdicts, because four conflated two different arrows of the chain.
+
+    The chain is: authenticated source -> owned observations -> clinical result + admission -> SELECTED set ->
+    derived statistical inputs -> computed and published result. `input linkage` and `scientific admission` are
+    DIFFERENT arrows: a calculation can be arithmetically perfect over rows that are not the certified ones
+    (rotate the trial IDs among fixed value tuples and the pooled result does not move), and a correctly linked
+    set can still contain an inadmissible trial. Folding `binding_ok` into `scientific_admissibility` — which is
+    what the four-verdict split did — let a correct calculation over the wrong rows read as a pass.
+
+    So `input_linkage` is reported on its own, from the row-level refusals only. Aggregate agreement
+    (`certified_result_agrees`) is NOT linkage: it is state reproduction, and using it as a substitute for
+    row-level agreement is the substitution this split exists to prevent.
+
+    A global PASS must not imply more than the enforced conjunction, so there is no global PASS here."""
+    integrity_codes = ("ARTEFACT_", "SUPPORTING_FILE_", "CERTIFICATE_", "DIGEST_SCOPE_", "ANCHOR_XML_DIGEST_", "EXECUTION_RECORD_",
+                       "BUNDLE_DIGEST_")
+    linkage_codes = LINKAGE_CODES
+    failures = report.get("failures", [])
+    integrity = [f for f in failures if f.startswith(integrity_codes)]
+    linkage_failures = [f for f in failures if f.startswith(linkage_codes)]
+    semantics = [f for f in failures if f not in integrity and f not in linkage_failures]
+    p = report["pool"]
+    # state reproduction: the stored state recomputes and agrees with what is declared, at the aggregate.
+    reproduction = p["reproduced_to_1e-9"] and p["bundle_internal_arithmetic_agrees"] and p["certified_result_agrees"]
+    # input linkage: every statistical input is tied, row by row, to one certified row of this analysis.
+    linkage = p["binding_ok"] and not linkage_failures
+    # scientific admission: the linked rows are admissible evidence for this question.
+    admission = bool(report["rows"]) and all(r["final"] == "ADMISSIBLE" for r in report["rows"]) and not semantics
+    verdicts = {"artifact_integrity": "FAIL" if integrity else "PASS",
+                "state_reproduction": "PASS" if reproduction else "FAIL",
+                "input_linkage": "PASS" if linkage else "FAIL",
+                "scientific_admission": "PASS" if admission else "FAIL",
+                "publication_eligibility": ("ELIGIBLE" if not failures and reproduction and linkage
+                                            else "REFUSED")}
+    report["verdicts"] = verdicts
+    report["failure_categories"] = {"integrity": integrity, "input_linkage": linkage_failures, "semantics": semantics}
+    report["publication_rule"] = ("No verifier failures; artifact integrity, state reproduction and input linkage "
+                                  "must pass. Scientific admission is reported independently and does not gate "
+                                  "publication. Other publication gates and human signatures still apply.")
+
+
+
 def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: bool = False):
     R = f"reviews/{slug}/"
     bundle = store.json(R + "BUNDLE.json")
     report = {"slug": slug, "schema_version": bundle.get("schema_version"), "artefacts": [], "supporting": [], "certificate": {},
               "rows": [], "absence_claims": [], "pool": {}, "corruption": None, "verdict": None}
+    # ROOT OF TRUST, FIRST: nothing in the bundle is used until the certificate pins it (V1.0.1). A bundle the release does not
+    # pin is refused as an integrity failure, and no scientific predicate runs on it.
+    pin_problem = bundle_pin_problem(bundle, store.get(R + "CERTIFICATE.json"))
+    if pin_problem:
+        report.update(verdict="FAIL", failures=[pin_problem],
+                      verdicts={"artifact_integrity": "FAIL", "state_reproduction": "NOT_COMPLETED", "input_linkage": "NOT_COMPLETED",
+                                "scientific_admission": "NOT_ESTABLISHED", "publication_eligibility": "REFUSED"},
+                      failure_categories={"integrity": [pin_problem], "input_linkage": [], "semantics": []})
+        return report
     failures = []
 
     # 1. artefacts ---------------------------------------------------------------------------------------------
@@ -841,6 +1804,82 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"].replace("intention-to-treat", "on-treatment population"))
             br["source"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"])
             br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
+        elif limb in ("contrast_reverse", "contrast_reverse_served", "contrast_reverse_declared", "contrast_reverse_declared_permitted",
+                      "contrast_reverse_declared_forbidden", "contrast_reverse_declared_away", "estimator_swap", "measure_unidentified",
+                      "pool_input_reciprocal", "estimator_owner_methods", "estimator_claim_or", "estimator_label_rr",
+                      "estimator_hr_abbrev", "estimator_linked_method", "estimator_genuine_rr", "estimator_genuine_rr_permitted"):
+            # lane OC: ordered contrast / estimator / measure limbs (fixtures: LEADER's primary clause; see _OC_LEADER_*)
+            regd_ = bundle.setdefault("registered_estimand", {})
+            pin = next(i for i in bundle["pooled_reference"]["inputs"] if str(i["id"]).replace("PMID ", "") == pmid)
+            referenced = _oc_referenced_trial(review, pin)
+            trials[trials.index(t)] = referenced
+            t = referenced
+            pooled_before = {dst: t[src] for dst, src in
+                             (("estimate", "effect"), ("ci_low", "ci_low"), ("ci_high", "ci_high"))}
+            if limb == "contrast_reverse":                  # the SOURCE orders placebo/liraglutide; the served 0.87 stays liraglutide/placebo
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_LEADER_HELD, _OC_LEADER_SWAPPED)
+            elif limb == "contrast_reverse_served":         # the SERVED contrast claims placebo/liraglutide for the unreciprocated 0.87
+                _oc_set_contrast(br, "placebo vs liraglutide")
+            elif limb.startswith("contrast_reverse_declared") and limb != "contrast_reverse_declared_away":
+                # the source states placebo/liraglutide 1.15 (1.03-1.28); the row carries that tuple AS STATED and a DECLARED reciprocal to the
+                # registered orientation, 0.87 (0.78-0.97) -- the pool input. PASS only where the registered policy permits it.
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_LEADER_HELD, _OC_LEADER_RECIPROCAL)
+                _oc_set_tuple(t, br, 1.15, 1.03, 1.28)
+                _oc_set_contrast(br, "placebo vs liraglutide")
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+                br["effect"]["normalisation"] = {"operation": "RECIPROCAL", "orientation": "liraglutide vs placebo",
+                                                 **pooled_before}
+                if limb.endswith("_permitted"):
+                    regd_["contrast_normalisation"] = {"reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED"}
+                elif limb.endswith("_forbidden"):
+                    regd_["contrast_normalisation"] = {"reciprocal_for_ratio_measures": "FORBIDDEN"}
+            elif limb == "contrast_reverse_declared_away":  # LEADER 0.87 declared-reciprocated to placebo/liraglutide ~1.149, and pooled so
+                regd_["contrast_normalisation"] = {"reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED"}
+                norm = {"operation": "RECIPROCAL", "orientation": "placebo vs liraglutide", "estimate": _oc_recip(t["effect"]),
+                        "ci_low": _oc_recip(t["ci_high"]), "ci_high": _oc_recip(t["ci_low"])}
+                br["effect"]["normalisation"] = norm
+                values = _plant_input_values(bundle["pooled_reference"]["inputs"], review)
+                next(i for i in values if i["id"] == pin["id"]).update(
+                    effect=norm["estimate"], ci_low=norm["ci_low"], ci_high=norm["ci_high"])
+                bundle["pooled_reference"]["expected"] = _plant_expected_pool(values)
+            elif limb == "estimator_swap":                  # the hazard ratio relabelled an odds ratio (label AND estimator field)
+                _oc_set_tuple(t, br, t["effect"], t["ci_low"], t["ci_high"], scale="OR")
+                est = br["analysis_identity"]["estimator"]
+                est["value"] = "odds ratio"
+                if isinstance(est.get("observed"), dict):
+                    est["observed"]["value"] = "odds ratio"
+            elif limb == "measure_unidentified":            # the label dropped: log() would be taken of a number of unknown kind
+                _oc_set_scale(t, br, None)
+            elif limb == "estimator_owner_methods":         # auditor F1: the estimator witness pointed at the methods / noninferiority sentence
+                fv = br["analysis_identity"]["estimator"]
+                ab = rec_by_pmid[pmid]["abstract"]
+                i = ab.find("The primary hypothesis was that liraglutide would be noninferior")
+                j = ab.find(". ", i) + 1
+                fv.update(span=ab[i:j], start=i, end=j, parent_representation="PARSED_SOURCE")
+                if isinstance(fv.get("observed"), dict):
+                    fv["observed"].update(span=ab[i:j], start=i, end=j)
+            elif limb == "estimator_claim_or":              # auditor F1 paired test: only the claimed VALUE, authentic bytes
+                fv = br["analysis_identity"]["estimator"]
+                fv["value"] = "odds ratio"
+                if isinstance(fv.get("observed"), dict):
+                    fv["observed"]["value"] = "odds ratio"
+            elif limb == "estimator_label_rr":              # auditor F2: ONLY the stored estimator HR -> RR; span, estimate, CI, endpoint, arms unchanged
+                _oc_set_scale(t, br, "RR")
+            elif limb == "estimator_hr_abbrev":             # control: 'HR' abbreviation in the effect clause
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_EST_HELD, _OC_EST_ABBREV)
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+            elif limb == "estimator_linked_method":         # control: no measure word in the clause; the linked method sentence owns it
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_EST_HELD, _OC_EST_NONE)
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+            elif limb in ("estimator_genuine_rr", "estimator_genuine_rr_permitted"):   # a source that genuinely states a relative risk
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_EST_HELD, _OC_EST_RR)
+                _oc_set_scale(t, br, "RR")
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+                if limb.endswith("_permitted"):
+                    regd_["estimators_permitted"] = ["HR", "RR"]
+            elif limb == "pool_input_reciprocal":           # the row stays canonical; its POOL INPUT is the reciprocal
+                pin.update(effect=_oc_recip(t["effect"]), ci_low=_oc_recip(t["ci_high"]), ci_high=_oc_recip(t["ci_low"]))
+                bundle["pooled_reference"]["expected"] = _plant_expected_pool(_plant_input_values(bundle["pooled_reference"]["inputs"], review))
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
@@ -937,7 +1976,31 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 ee_ok = False
                 if not corrupt:
                     failures.append(f"ESTIMAND_BASIS_DISAGREES {pmid}/{fname}: served basis {fv.get('basis')}, recomputed from the source {ee_re.get(src, {}).get('state')}")
+        # P10 is a VALUE check, not a state check (lane OC): the ordered contrast and the estimator are recomputed from the tuple's own
+        # clause and compared with the served values; the basis agreeing is necessary and not sufficient
+        try:
+            vocab = contrast_vocabulary(store.json(f"topics/{slug}.json"))
+        except Refusal:
+            vocab = {"experimental": [], "reference": []}      # no vocabulary: nothing orders, every STATED contrast refuses (fail closed)
+        oc = ordered_contrast(eff_clause, values, vocab, fam_c)
+        cv = contrast_value_check(br, oc, ee_re, vocab, regd)
+        stated_copy = {k: (br or {}).get("effect", {}).get(k) for k in ("estimate", "ci_low", "ci_high")}
+        if br and not corrupt and ([stated_copy[k] for k in ("estimate", "ci_low", "ci_high")] != values
+                                   or scale_measure(br["effect"].get("scale")) != scale_measure(t.get("scale"))):
+            cv["p10"].append(("ROW_EFFECT_COPIES_DISAGREE", f"bundle row {stated_copy} {br['effect'].get('scale')!r} vs rendered row {values} {t.get('scale')!r}"))
+        # admission is computed and reported; it fails the VERDICT only where it contradicts what the bundle served (a row recorded
+        # ADMISSIBLE) or under a declared plant -- a refusal the bundle already discloses is not a second defect (F4 lane's constraint:
+        # publication eligibility must not collapse into scientific admission)
+        contradicts_served = bool(corrupt) or (br or {}).get("admission", {}).get("final") == "ADMISSIBLE"
+        for code, why in cv["p10"]:
+            ee_ok = False
+            if contradicts_served or code == "ROW_EFFECT_COPIES_DISAGREE":
+                failures.append(f"{code} {pmid}: {why}")
+            else:
+                report.setdefault("disclosed_refusals", []).append(f"{code} {pmid}: {why}")
         P["P10_estimand_evidence"] = ee_ok
+        # P15: estimator identity bound to the source that owns THIS effect (value + ownership), decided before compatibility or pooling
+        P["P15_estimator_source_bound"] = not any(c.startswith("ESTIMATOR_") for c, _ in cv["p10"])
         # P11: the bound identity must be the REGISTERED one -- from the RECOMPUTED evidence
         dep = []
         if ee_re["analysis_set"]["state"] == "STATED_IN_OWNING_EVIDENCE" and ee_re["analysis_set"]["value"] != regd.get("analysis_set"):
@@ -946,9 +2009,14 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             dep.append("treatment_strategy")
         if ee_re["analysis_set"]["state"] == "UNRESOLVED" or ee_re["analysis_window"]["state"] == "UNRESOLVED":
             dep.append("UNRESOLVED")
+        dep += cv["p11"]                                          # the registered contrast ("GLP-1 RA vs placebo") and estimator ("hazard ratio")
         P["P11_registered_estimand"] = not dep
-        if dep and not corrupt:
+        if dep and ((not corrupt and not cv["p11"]) or (cv["p11"] and contradicts_served)):
             failures.append(f"BOUND_TO_UNREGISTERED_ESTIMAND {pmid}: {dep}")
+        elif dep and cv["p11"]:
+            report.setdefault("disclosed_refusals", []).append(f"BOUND_TO_UNREGISTERED_ESTIMAND {pmid}: {dep}")
+        report.setdefault("ordered_contrasts", {})[pmid] = {"recomputed": oc, "p10": [c for c, _ in cv["p10"]], "p11": cv["p11"],
+                                                            "detail": cv["detail"], "pooled": cv["pooled"], "measure": cv["measure"]}
         csc = component_set_checks(t, comps_canon, canonical_components)
         P["P13_no_extra_components"] = csc["P13_no_extra_components"]
         P["P14_missing_components_consistent"] = csc["P14_missing_components_consistent"]
@@ -1098,10 +2166,11 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         claimed_ep = rf["decision"].get("claimed_endpoint")
 
         def _holds(a):
-            flat = normalize(a["text"])
-            return all(tok in flat for tok in etoks)
+            return regulatory_tuple_matches(a["text"], eff)
         holders = [a["kind"] for a in rf["candidate_analyses"] if _holds(a)]
-        holder_ids = {(found[k]["strategy"], found[k]["endpoint"]) for k in holders}
+        holder_ids = {(found[a["kind"]]["strategy"], endpoint)
+                      for a in rf["candidate_analyses"] if a["kind"] in holders
+                      for endpoint in regulatory_holder_endpoint(a, eff)}
         regd = bundle.get("registered_estimand") or {}
         if len(holder_ids) > 1:
             code = "AMBIGUOUS"
@@ -1124,16 +2193,27 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         if code != "BOUND":
             failures.append(f"{code} {rf['trial']}: decision tuple {etoks} claims ({claimed}, {claimed_ep}); found in {holders} ({sorted(holder_ids)})"
                             + ("; competing candidates carried" if code == "AMBIGUOUS" else ""))
-        elif code != rf["tuple_to_identity_binding"] and not corrupt:
+        if code != rf["tuple_to_identity_binding"] and not corrupt:
             failures.append(f"ROW_VERDICT_DISAGREES regulatory {rf['trial']}: verifier {code} vs bundle {rf['tuple_to_identity_binding']}")
 
     # 6. pool ------------------------------------------------------------------------------------------------------
-    inputs = bundle["pooled_reference"]["inputs"]
-    exp = bundle["pooled_reference"]["expected"]
-    got = pool(inputs)
-    deltas = {k: abs(got[k] - exp[k]) for k in ("estimate", "ci_low", "ci_high", "tau2")}
-    pool_ok = all(d < 1e-9 for d in deltas.values())
-    adm = [i for i in inputs if any(r["pmid"] == i["id"].replace("PMID ", "") and r["final"] == "ADMISSIBLE" for r in report["rows"])]
+    # V1.1 MERGE of lane POOL (finding A) with lane OC's measure guard. BOTH properties are kept, and the gap the POOL side
+    # flagged ("check_pool_contract recomputes internally, so the log is taken before this guard can veto it") is closed:
+    #   - the pooled inputs are the CERTIFIED rows (check_pool_contract), so the bundle's pooled_reference list is a checked
+    #     copy and never an alternate authority (F.3 iv);
+    #   - the measure guard runs INSIDE check_pool_contract, on those certified inputs, through pool_guarded(): a refused
+    #     pool is never COMPUTED -- not computed and discarded (tests/test_pool_guarded.py, tests/test_pool_contract_guard.py).
+    # The verifier passes its value-checked ordered contrasts as the guard's evidence; with none, every input is
+    # unidentified and the pool refuses (fail closed).
+    admitted = {r["pmid"] for r in report["rows"] if r.get("final") == "ADMISSIBLE"}      # the rows that JUST PASSED admission
+    contract, pool_failures = check_pool_contract(review, bundle, records, measure_rows=report.get("ordered_contrasts") or {},
+                                                  admitted=admitted)
+    failures.extend(pool_failures)                       # carries the guard's refusal codes too: they are contract errors
+    inputs = contract["certified_inputs"]
+    mg = contract["pool_measure_guard"]
+    report["pool_measure_guard"] = mg
+    got = contract["recomputed"]                         # None when the guard refused: nothing was computed
+    adm = [i for i in inputs if any(r["pmid"] == i["id"].removeprefix("PMID ") and r["final"] == "ADMISSIBLE" for r in report["rows"])]
     report["binding_states"] = {"rendered_rows": [], "migration_state_unbound_legacy": 0}
     for o in review.get("outcomes", []):
         for t in o.get("trials", []):
@@ -1143,12 +2223,14 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             report["binding_states"]["migration_state_unbound_legacy"] += (cls == "MIGRATION_STATE_UNBOUND_LEGACY")
     report["binding_states"]["migration_rows_counted_admissible"] = sum(
         1 for r in report["rows"] if r["final"] == "MIGRATION_STATE_UNBOUND_LEGACY")  # by construction never in admissible set
-    report["pool"] = {"k_declared": len(inputs), "recomputed": got, "declared": exp, "abs_deltas": deltas, "reproduced_to_1e-9": pool_ok,
-                      "t_crit_recomputed": got["t_crit"], "admissible_rows": len(adm),
-                      "admissible_only_pool_for_information": pool(adm) if len(adm) >= 2 and len(adm) != len(inputs) else None,
-                      "note": "the declared pool is the page's; admissible_only_pool is a verifier sensitivity, not a replacement result"}
-    if not pool_ok:
-        failures.append(f"POOL_NOT_REPRODUCED {deltas}")
+    # The contract's own fields are the authority (the certified-row recomputation and its per-input agreement), plus lane OC's
+    # refused_before_logs so a measure refusal is visible in the report, not only in failures. Every derived field is guarded on
+    # `got` (None when the guard refused), and the admissible-only sensitivity pool also goes through pool_guarded.
+    report["pool"] = {**contract, "t_crit_recomputed": got["t_crit"] if got else None, "admissible_rows": len(adm),
+                      "admissible_only_pool_for_information": (pool_guarded(adm, report.get("ordered_contrasts") or {}, bundle["pooled_reference"].get("scale"))[0]
+                                                               if got and len(adm) >= 2 and len(adm) != len(inputs) else None),
+                      "refused_before_logs": [c for c, _ in mg["refusals"]] or None,
+                      "note": "certified primary rows drive recomputation; the admissible-only pool is queued sensitivity, never an automatic replacement"}
 
     report["endpoint_compatibility"] = {"state": (bundle.get("endpoint_compatibility") or {}).get("state"),
                                         "per_trial": {k: v["value"] for k, v in ((bundle.get("endpoint_compatibility") or {}).get("per_trial") or {}).items()}}
@@ -1160,6 +2242,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                              "appropriateness of CI-to-SE conversions for non-Wald intervals", "the production admission path"]
     report["failures"] = failures
     report["verdict"] = "PASS" if not failures else "FAIL"
+    separate_verdicts(report)
     return report
 
 
@@ -1169,9 +2252,10 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|served_basis_lie|regulatory_strategy_swap|regulatory_consistent_swap|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|served_basis_lie|regulatory_strategy_swap|regulatory_consistent_swap|container|contrast_reverse|contrast_reverse_served|contrast_reverse_declared[_permitted|_forbidden|_away]|estimator_swap|measure_unidentified|pool_input_reciprocal|estimator_owner_methods|estimator_claim_or|estimator_label_rr|estimator_hr_abbrev|estimator_linked_method|estimator_genuine_rr[_permitted]")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--require-publication", action="store_true", help="also refuse scientifically inadmissible pools; never changes served results")
     a = ap.parse_args(argv)
     try:  # the report carries source text (thin spaces, middle dots); a cp1252 console must not turn a verdict into a crash
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -1180,13 +2264,24 @@ def main(argv=None):
     store = Store(a.root, a.url)
     try:
         rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None, anchor_live=(a.anchor == "live"))
+        if a.require_publication and rep["verdicts"]["publication_eligibility"] != "ELIGIBLE":
+            rep["verdict"] = "REFUSED"
+            rep["failures"].append("POOL_PUBLICATION_INELIGIBLE: see separate verdicts and per-row predicates")
     except Refusal as r:
         rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": r.code, "detail": r.detail, "failures": [f"{r.code} {r.detail}"],
+               "verdicts": {"artifact_integrity": "NOT_COMPLETED", "state_reproduction": "NOT_COMPLETED",
+                            "input_linkage": "NOT_COMPLETED", "scientific_admission": "NOT_ESTABLISHED",
+                            "publication_eligibility": "REFUSED"},
+               "failure_categories": {"integrity" if r.code.startswith("ARTEFACT_") else "semantics": [f"{r.code} {r.detail}"]},
                "note": "the verifier could not complete; this is a verdict, not a crash"}
         print(json.dumps(rep, indent=1, ensure_ascii=False) if a.json else f"verdict REFUSED  {r.code}: {r.detail}")
         return 1
     except Exception as e:  # noqa: BLE001 -- a validator that crashes only when it has something to say looks like a clean corpus
         rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": "VERIFIER_INTERNAL_ERROR", "detail": f"{type(e).__name__}: {str(e)[:300]}",
+               "verdicts": {"artifact_integrity": "NOT_COMPLETED", "state_reproduction": "NOT_COMPLETED",
+                            "input_linkage": "NOT_COMPLETED", "scientific_admission": "NOT_ESTABLISHED",
+                            "publication_eligibility": "REFUSED"},
+               "failure_categories": {"execution": [f"VERIFIER_INTERNAL_ERROR {type(e).__name__}: {str(e)[:300]}"]},
                "failures": [f"VERIFIER_INTERNAL_ERROR {type(e).__name__}: {str(e)[:300]}"]}
         print(json.dumps(rep, indent=1, ensure_ascii=False) if a.json else f"verdict REFUSED  VERIFIER_INTERNAL_ERROR: {type(e).__name__}: {e}")
         return 1
@@ -1194,6 +2289,11 @@ def main(argv=None):
         print(json.dumps(rep, indent=1, ensure_ascii=False))
     else:
         print(f"bundle schema {rep['schema_version']}  verdict {rep['verdict']}")
+        print("separate verdicts: " + json.dumps(rep["verdicts"], sort_keys=True))
+        # The reasons first: a verification that stops early (e.g. BUNDLE_DIGEST_MISMATCH) has no pool, anchors or binding states,
+        # and an outsider must still see WHY it was refused -- the report never assumes a stage it did not reach.
+        for f in rep["failures"]:
+            print("  FAIL:", f)
         print(f"artefacts ok: {sum(1 for x in rep['artefacts'] if x.get('bytes_ok') and x.get('declared_digest_ok'))}/{sum(1 for x in rep['artefacts'] if 'bytes_ok' in x)}"
               f"  supporting ok: {sum(1 for x in rep['supporting'] if x['ok'])}/{len(rep['supporting'])}  certificate: {rep['certificate']}")
         for r in rep["rows"]:
@@ -1202,11 +2302,18 @@ def main(argv=None):
         for c in rep["absence_claims"]:
             if c["claim_kind"] == "NEGATIVE":
                 print(f"  absence {c['pmid']} {c['outcome'][:36]:<36} coverage={c.get('coverage_recomputed')} negative_claim_admissible={c.get('negative_claim_admissible')}")
-        p = rep["pool"]
-        print(f"pool k={p['k_declared']}: recomputed {p['recomputed']['estimate']:.16f} ({p['recomputed']['ci_low']:.16f}-{p['recomputed']['ci_high']:.16f}) "
-              f"tau2 {p['recomputed']['tau2']:.16e}  reproduced_to_1e-9={p['reproduced_to_1e-9']}  admissible rows {p['admissible_rows']}")
-        print(f"endpoint_compatibility {rep['endpoint_compatibility']['state']} {rep['endpoint_compatibility']['per_trial']}")
-        print("statistical_input: " + "; ".join(f"{k}={v['interval_construction']}" for k, v in rep["statistical_input"].items() if v["interval_construction"] != "UNSTATED_IN_HELD_REPRESENTATION") + " (others UNSTATED_IN_HELD_REPRESENTATION; all SE DERIVED_FROM_CI)")
+        p = rep.get("pool") or {}
+        if not p:
+            print("pool: NOT REACHED (verification stopped before the pool stage; see FAIL above)")
+        elif p.get("recomputed") is None:
+            print(f"pool k={p['k_declared']}: REFUSED before any log was taken {p['refused_before_logs']}  admissible rows {p['admissible_rows']}")
+        else:
+            print(f"pool k={p['k_declared']}: recomputed {p['recomputed']['estimate']:.16f} ({p['recomputed']['ci_low']:.16f}-{p['recomputed']['ci_high']:.16f}) "
+                  f"tau2 {p['recomputed']['tau2']:.16e}  reproduced_to_1e-9={p['reproduced_to_1e-9']}  admissible rows {p['admissible_rows']}")
+        if "endpoint_compatibility" in rep:
+            print(f"endpoint_compatibility {rep['endpoint_compatibility']['state']} {rep['endpoint_compatibility']['per_trial']}")
+        if "statistical_input" in rep:
+            print("statistical_input: " + "; ".join(f"{k}={v['interval_construction']}" for k, v in rep["statistical_input"].items() if v["interval_construction"] != "UNSTATED_IN_HELD_REPRESENTATION") + " (others UNSTATED_IN_HELD_REPRESENTATION; all SE DERIVED_FROM_CI)")
         for an in rep.get("anchors", []):
             live = an.get("live")
             extra = (f" live: fetched={live.get('fetched')} equal_bytes={live.get('live_equals_retained_bytes')} "
@@ -1215,17 +2322,17 @@ def main(argv=None):
                      f"live_units_missing_from_cache={live.get('live_units_missing_from_cached_abstract')}") if live else ""
             print(f"  anchor {an['pmid']} xml_ok={an['acquired_xml_sha256_ok']} preservation={an['preservation']['verdict']} "
                   f"({an['preservation']['preserved']}/{an['preservation']['units']}) coverage {an['coverage_recomputed']} recorded {an['coverage_recorded']}{extra}")
-        bs = rep["binding_states"]
-        print(f"binding: {bs['migration_state_unbound_legacy']} rendered row(s) UNBOUND_LEGACY = migration state, not admissible, not refused: "
-              + ", ".join(f"{r['id']} ({r['outcome'][:28]})" for r in bs["rendered_rows"] if r["binding_class"] != "BOUND"))
+        bs = rep.get("binding_states")
+        if bs:
+            print(f"binding: {bs['migration_state_unbound_legacy']} rendered row(s) UNBOUND_LEGACY = migration state, not admissible, not refused: "
+                  + ", ".join(f"{r['id']} ({r['outcome'][:28]})" for r in bs["rendered_rows"] if r["binding_class"] != "BOUND"))
         for rf in rep.get("regulatory_facts", []):
             print(f"  regulatory {rf['trial']}: candidates {len(rf['candidates'])} located, distinct identity keys {rf['distinct_identity_keys']}, "
                   f"distinguishable={rf['distinguishable']}, decision tuple -> {rf['decision_tuple_holders']} binding {rf['binding']}")
-        print("NOT checked: " + "; ".join(rep["not_checked"]))
-        if rep["corruption"]:
+        if "not_checked" in rep:
+            print("NOT checked: " + "; ".join(rep["not_checked"]))
+        if rep.get("corruption"):
             print(f"corruption {rep['corruption']}: rows no longer ADMISSIBLE = {[(r['pmid'], r['final']) for r in rep['rows'] if r['final'] != 'ADMISSIBLE']}")
-        for f in rep["failures"]:
-            print("  FAIL:", f)
     return 0 if rep["verdict"] == "PASS" else 1
 
 

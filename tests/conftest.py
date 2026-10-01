@@ -1,10 +1,28 @@
-"""Keep fixed-port browser contracts isolated across concurrent Windows lanes."""
+"""Keep fixed-port browser contracts isolated across concurrent Windows lanes, and keep tests out of the repository that runs them."""
 import errno
 import http.server
+import os
 import socket
 import time
 
 import pytest
+
+# A git hook exports GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE for ITS repository. A test that runs `git init` + `git commit` in a temp
+# dir inherits them and writes into the real repo instead (2026-09-27: test_heldout/test_target, run by the pre-commit hook, moved
+# v1.0.1/pool-pin onto fixture commits and set core.bare=true). Strip every repository-locating variable at import (collection
+# included) and again per test.
+GIT_LOCATING = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+                "GIT_COMMON_DIR", "GIT_PREFIX", "GIT_NAMESPACE", "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_DATE",
+                "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "GIT_COMMITTER_DATE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS",
+                "GIT_CONFIG_COUNT")
+for _k in GIT_LOCATING:
+    os.environ.pop(_k, None)
+
+
+@pytest.fixture(autouse=True)
+def no_inherited_git_repository(monkeypatch):
+    for k in GIT_LOCATING:
+        monkeypatch.delenv(k, raising=False)
 
 
 @pytest.fixture(autouse=True)
