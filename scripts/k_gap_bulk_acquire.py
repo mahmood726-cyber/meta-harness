@@ -20,6 +20,7 @@ import io
 import json
 import os
 import sys
+import threading
 import time
 from collections import Counter
 
@@ -32,6 +33,9 @@ from kgap import k_gap  # noqa: E402
 OUT = os.path.join(ROOT, "outputs", "k_gap")
 AACT_IDX = os.path.join(OUT, "_aact_results.json")
 csv.field_size_limit(10 ** 8)
+# set by the NCBI lane once the abstracts (which carry the DOIs) are written; the Unpaywall lane waits on it. Waiting on the
+# cache FILE was wrong: it existed from earlier runs, so the lane read stale records (257 NO_DOI instead of 13).
+RECORDS_READY = threading.Event()
 
 
 def _j(p):
@@ -74,6 +78,7 @@ def ncbi_lane(pmids):
         time.sleep(0.4)
     with open(mp, "w", encoding="utf-8") as fh:
         json.dump(mrec, fh, indent=1, sort_keys=True)
+    RECORDS_READY.set()
     for p in pmids:
         txt = cfm.pmc_fulltext_cached(p)                   # paced inside
         st["PMC_TEXT" if txt else "PMC_NONE"] += 1
@@ -84,10 +89,7 @@ def ncbi_lane(pmids):
 def unpaywall_lane(pmids):
     t0, st = time.time(), Counter()
     mp = os.path.join(OUT, "member_records.json")
-    for _ in range(60):                                     # the NCBI lane fills DOIs first; wait for the record cache
-        if os.path.exists(mp):
-            break
-        time.sleep(5)
+    RECORDS_READY.wait(timeout=3600)                        # DOIs come from the NCBI lane's abstracts
     mrec = _j(mp) if os.path.exists(mp) else {}
     for p in pmids:
         doi = (mrec.get(p) or {}).get("doi")
