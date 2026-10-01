@@ -1836,7 +1836,9 @@
         "decision": "cumulative_risk_at_trial_end",
         "target_scale": "RR",
         "target_class": "FIRST_EVENT_RATIO",
-        "published_candidate_scales": [],
+        "published_candidate_scales": [
+          "OR"
+        ],
         "served_scale_changed": false,
         "reason": "declared cumulative risk-ratio estimand",
         "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
@@ -2139,8 +2141,9 @@
         {
           "label": "35723686",
           "id": "PMID 35723686",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "refused_on_evidence",
+          "reason": "source reports the outcome at 60-day but the outcome declares '30-day or in-hospital' (windows allowed: [28, 29, 30]); pooling different measurement windows would be estimand-inconsistent",
+          "provenance": "pmc_fulltext",
           "trial_family_id": "NCT01283009",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2342,9 +2345,11 @@
           "PMID 25608756",
           "PMID 21636122"
         ],
-        "refused": [],
+        "refused": [
+          "PMID 35723686"
+        ],
         "screened_in_not_pooled": [],
-        "input_set_version": "e624701ebae3d4b0b3033ef276b6a03553ef8b00bfc4fed0ca7fc1e74691066a"
+        "input_set_version": "c3f19ab166977a4ed396010babe3ea90224eddca8910fc149761660deb6c8b76"
       },
       "result": {
         "k": 2,
@@ -3437,8 +3442,10 @@
             "detail": "value absent from every held source inspected; code is consistent",
             "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "Omeprazole was administered to patients to minimize the side effects of steroids and, if necessary, insulin therapy was started to control blood glucose levels.",
+          "harm_source_signal": "term_signal",
           "family_id": "ISRCTN22426306",
           "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "be6ae96ec16f7935b5d08b654fb39ef63e0fd7d37da77516fc9a716f6274fef4",
@@ -3513,11 +3520,14 @@
         "suppressed_reason": "pooled effect SUPPRESSED: the trials mix incompatible estimand classes (ODDS_RATIO + RISK_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately.",
         "claim": {
           "present": false,
+          "pooled_claim": false,
+          "state": "HARMS_INCOMPLETE",
           "significant": false,
           "crosses_null": null,
           "touches_null": null,
           "null": null,
-          "direction": null
+          "direction": null,
+          "basis": "No quantitative safety conclusion while source-reporting trials remain unresolved"
         },
         "harm_reporting_trials": [
           {
@@ -3617,11 +3627,46 @@
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
+          },
+          {
+            "id": "21406101",
+            "label": "21406101",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "Omeprazole was administered to patients to minimize the side effects of steroids and, if necessary, insulin therapy was started to control blood glucose levels.",
+            "extracted": false,
+            "reason_code": "OUTCOME_NOT_IN_SOURCE",
+            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              }
+            ]
           }
         ],
-        "harm_reporting_trials_n": 4,
+        "harm_reporting_trials_n": 5,
         "harm_extracted_trials_n": 4,
         "harm_registered_trials_n": 9,
+        "harms_incomplete": true,
+        "known_reported_not_yet_extracted": [
+          {
+            "id": "21406101",
+            "label": "21406101",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "Omeprazole was administered to patients to minimize the side effects of steroids and, if necessary, insulin therapy was started to control blood glucose levels."
+          }
+        ],
+        "reason": "HARMS_INCOMPLETE -- 1 known reported outcome(s) unresolved (21406101) among 5 source-reporting trial(s); extracted k=4. The page must not render this as harm absence.",
+        "harms_synthesis_suppressed": true,
         "input_set_version": "be6ae96ec16f7935b5d08b654fb39ef63e0fd7d37da77516fc9a716f6274fef4",
         "claim_id": "99185f1e67d6e814",
         "depends_on": {
@@ -3786,8 +3831,10 @@
             "detail": "value absent from every held source inspected; code is consistent",
             "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "Five patients who did not meet eligibility criteria (three did not meet inclusion criteria and two met exclusion criteria) were randomized. *Reasons for study drug withdrawal were check all that apply. ¶Active gastrointestinal bleeding requiring transfusion of at least 5 units of PRBC’s. ¶¶Such as e",
+          "harm_source_signal": "term_signal",
           "family_id": "NCT01283009",
           "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -3854,8 +3901,10 @@
             "detail": "value absent from every held source inspected; code is consistent",
             "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "Additionally, one patient suffered a digestive haemorrhage related to an active peptic ulcer 12 days after inclusion in the study (3 days after MPDN and omeprazole had been discontinued).",
+          "harm_source_signal": "term_signal",
           "family_id": "ISRCTN22426306",
           "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -3998,7 +4047,7 @@
         "reported_by": [
           "36942789"
         ],
-        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
+        "reason": "HARMS_INCOMPLETE -- 2 known reported outcome(s) unresolved (35723686, 21406101) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -4039,11 +4088,74 @@
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
+          },
+          {
+            "id": "35723686",
+            "label": "35723686",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "Five patients who did not meet eligibility criteria (three did not meet inclusion criteria and two met exclusion criteria) were randomized. *Reasons for study drug withdrawal were check all that appl...",
+            "extracted": false,
+            "reason_code": "OUTCOME_NOT_IN_SOURCE",
+            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              }
+            ]
+          },
+          {
+            "id": "21406101",
+            "label": "21406101",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "INTRODUCTION: The benefit of corticosteroids as adjunctive treatment in patients with severe community-acquired pneumonia (CAP) requiring hospital admission remains unclear. This study aimed to evalu...",
+            "extracted": false,
+            "reason_code": "OUTCOME_NOT_IN_SOURCE",
+            "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              }
+            ]
           }
         ],
-        "harm_reporting_trials_n": 1,
+        "harm_reporting_trials_n": 3,
         "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 9,
+        "harms_incomplete": true,
+        "known_reported_not_yet_extracted": [
+          {
+            "id": "35723686",
+            "label": "35723686",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "Five patients who did not meet eligibility criteria (three did not meet inclusion criteria and two met exclusion criteria) were randomized. *Reasons for study drug withdrawal were check all that apply. ¶Active gastrointestinal bleeding requiring transfusion of at least 5 units of PRBC’s. ¶¶Such as e"
+          },
+          {
+            "id": "21406101",
+            "label": "21406101",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "Additionally, one patient suffered a digestive haemorrhage related to an active peptic ulcer 12 days after inclusion in the study (3 days after MPDN and omeprazole had been discontinued)."
+          }
+        ],
         "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "ad72cca421f0b634",
@@ -73043,27 +73155,26 @@
       }
     },
     {
-      "limitation_id": "topic:corticosteroids-cap-mortality:harms:0:hyperglycaemia:suppressed-pool",
-      "kind": "SUPPRESSED_POOL",
+      "limitation_id": "topic:corticosteroids-cap-mortality:harms:0:hyperglycaemia:harms-incomplete",
+      "kind": "HARMS_INCOMPLETE",
       "limitation_class": "VALIDITY_THREATENING",
       "severity": "BLOCKS_CLAIM",
-      "claim_affected": "pooled estimate: Hyperglycaemia",
-      "evidence_state": "SUPPRESSED",
+      "claim_affected": "outcome result: Hyperglycaemia",
+      "evidence_state": "PARTIAL",
       "source_fields": [
-        "/outcomes/*/result/suppressed_incompatible",
-        "/outcomes/*/result/suppressed_reason"
+        "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (ODDS_RATIO + RISK_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: ODDS_RATIO + RISK_RATIO; k = 4 trials, shown individually below, not pooled.</em> <em>Refusal is reversible and auditable &mdash; reason code <code>INCOMPATIBLE_ESTIMANDS</code>; had these classes been pooled anyway the (INVALID) result would have been 2.13 (0.8&ndash;5.64) &mdash; shown only so the refusal is inspectable, never as a usable number.</em></div>",
-      "text_sha256": "8872b92de5aad42c25c30e8d32fb37a20a17750eda8b8e26cbe05be089d5abf4",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>25688779</td><td>EXTRACTED / : </td><td>abstract arm-level counts (percentage-corroborated): Hyperglycemia occurred in 11 patients (18%) in the methylprednisolone group and in 7 patients (12%) in the placebo group (P = .34).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>33446608</td><td>EXTRACTED / : </td><td>RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/corticosteroids-cap-mortality/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>25608756</td><td>EXTRACTED / : </td><td>abstract effect+CI (OR): The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1.96, 95% CI 1.31-2.93, p=0.0010).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>21636122</td><td>EXTRACTED / : </td><td>In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p&lt;0·0001).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/corticosteroids-cap-mortality/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>21406101</td><td>KNOWN_REPORTED_NOT_YET_EXTRACTED / OUTCOME_NOT_IN_SOURCE: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract</td><td>Omeprazole was administered to patients to minimize the side effects of steroids and, if necessary, insulin therapy was started to control blood glucose levels.</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr></table>",
+      "text_sha256": "64813e8bfc78df59830fb7ceeaeaae1b6ae4a0a3a2c39d67e34d9375a6c3fe39",
       "linked_decision": {
         "action": "REFUSE",
-        "gate_id": "limitation:suppressed_pool",
-        "decision_state": "SUPPRESSED_POOL blocks the affected analytic claim"
+        "gate_id": "compat-check:harms-incomplete",
+        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
       },
       "consumer": {
-        "gate_id": "estmeasure.pool_compatibility",
-        "gate_input_path": "/outcomes/*/result/estmeasure/status",
-        "gate_verdict_at_build": "SUPPRESSED: Hyperglycaemia: incompatible"
+        "gate_id": "compat_check.harms_incomplete",
+        "gate_input_path": "/harms/*/result/state",
+        "gate_verdict_at_build": "NO_HARMS_INCOMPLETE"
       }
     },
     {
@@ -73076,8 +73187,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>36942789</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The source describes similar gastrointestinal bleeding frequencies without per-arm counts or an effect and confidence interval.</td><td>The frequencies of hospital-acquired infections and gastrointestinal bleeding were similar in the two groups; patients in the hydrocortisone group received higher daily doses of insulin during the first week of treatment.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/corticosteroids-cap-mortality/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "7bc4d9341bb660fd227e729f64fd7aa07f51c15b68fda9881ebad0e73364545e",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>36942789</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The source describes similar gastrointestinal bleeding frequencies without per-arm counts or an effect and confidence interval.</td><td>The frequencies of hospital-acquired infections and gastrointestinal bleeding were similar in the two groups; patients in the hydrocortisone group received higher daily doses of insulin during the first week of treatment.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/corticosteroids-cap-mortality/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>35723686</td><td>KNOWN_REPORTED_NOT_YET_EXTRACTED / OUTCOME_NOT_IN_SOURCE: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract</td><td>Five patients who did not meet eligibility criteria (three did not meet inclusion criteria and two met exclusion criteria) were randomized. *Reasons for study drug withdrawal were check all that appl...</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>21406101</td><td>KNOWN_REPORTED_NOT_YET_EXTRACTED / OUTCOME_NOT_IN_SOURCE: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract</td><td>INTRODUCTION: The benefit of corticosteroids as adjunctive treatment in patients with severe community-acquired pneumonia (CAP) requiring hospital admission remains unclear. This study aimed to evalu...</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr></table>",
+      "text_sha256": "2e6a306e4fbdcba815c2255ce1ded48fc26586a5296edc1925b2a52f88b0dc91",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -73430,7 +73541,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "d26a4681fa259b8274aa7f8fcbe22f049842d3a4c425438d66637839417398bb",
+    "review_sha256": "723df905a0c7424f1b6639d8f556d12a7bbdeabb04dc6cf37194fccba05b4353",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -73545,8 +73656,8 @@
           "sha256": "9c2c8fa8eaabac5eee60a3500fe667e7da2f15a65b483d18634fa893d5d56fde"
         }
       ],
-      "config_sha256": "b8cdfb79e7ec2f13ece39b095f067b879067545dd8d91478f732bd995846cebb",
-      "analysis_code_sha256": "1cbc156bcda8d7fd98dbd14a94db9ba540e80e9582e46cf255bb84f603cebc5b",
+      "config_sha256": "ee5862fa8a9d968b4d70cb4c4a7e4d14099b242f6f5be972b69eff379e1d5e4b",
+      "analysis_code_sha256": "066d946a00d36dbff5eac3f556e6e3f2653fbc843018d337eeefb7272618e0a7",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -73578,7 +73689,7 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "77d11d0e5061d70a114b794846aa597a2d779566",
+        "harness/extract.py": "581370731a4d393b46ac1ee5a6237379b550e29b",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
@@ -73605,7 +73716,7 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/page.py": "3e1e7e7206535b0ed03eb851060653137c9ad85c",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "536c41fa6648de34c99cdf18df2a14d31382342a",
+        "harness/pipeline.py": "aee19468317190a9cad71e7bae704b5ed3041acc",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -73622,7 +73733,7 @@
         "harness/screen.py": "18a65903f0dd9426f139ba8da95625dc3157c5e2",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
-        "harness/source_hierarchy.py": "f2f5b06bebb03d3ca9de74416c2ca0a6990849b5",
+        "harness/source_hierarchy.py": "17ffff1b0e9f7c7e74a59b1be6fe4f7a9afa5e2b",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
@@ -73676,7 +73787,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "4a148770ade7d891e4c97d1df5311b5a6b4d6408ed8dde0c09553ffc0897c22c",
-      "review_sha256": "d26a4681fa259b8274aa7f8fcbe22f049842d3a4c425438d66637839417398bb",
+      "review_sha256": "723df905a0c7424f1b6639d8f556d12a7bbdeabb04dc6cf37194fccba05b4353",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/corticosteroids-cap-mortality.md UTF-8 text, universal newlines",
@@ -73696,7 +73807,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "93e30c4ea0d98fff3266756106a6433b8e9530f5c403563fd16a5ffd0250e5a1"
+      "release_sha256": "2c37a6785978626bbd428756cd1696d8b59bbc60ed7574388712bc12cb3def7f"
     }
   }
 }

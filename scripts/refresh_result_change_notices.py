@@ -123,14 +123,55 @@ def _estimator_substitutions(before_trials, after_trials):
     return out
 
 
-def _reason(left, absent, before_trials=None, after_trials=None):
+def _entered(entered, after_trials):
+    """Say what each ENTERING trial contributes and where the number was read.
+
+    The original refresher had no clause for an entering trial, so a notice whose entered_pool listed one
+    still said "no trial leaving or entering the pool" -- a false sentence on a notice a reviewer signs.
+    """
+    rows = {str(t.get("id")): t for t in after_trials or []}
+    out = []
+    for tid in entered:
+        t = rows.get(str(tid)) or {}
+        prov = t.get("provenance") or "unrecorded"
+        where = ""
+        if str(prov).startswith("pmc_fulltext"):
+            where = " from its committed held full text"
+        out.append(f"{tid} entered the pool contributing {_fmt(t)} (source {prov}{where}).")
+    return out
+
+
+def _refused_on_evidence(before_absent, after_absent):
+    """Trials newly refused on evidence in this change, with the harness's own reason -- the named reasons a
+    reviewer needs when a held document is admitted and some of what it yields is not poolable."""
+    # Compare the KIND, not the id: a trial already absent for another reason (machine_absent) that is now
+    # refused on evidence is a change a reviewer must be told about (probiotics PMID 39497860, 2026-10-01).
+    was = {str(x.get("id")) for x in before_absent or [] if x.get("absent_kind") == "refused_on_evidence"}
+    out = []
+    for x in after_absent or []:
+        if x.get("absent_kind") != "refused_on_evidence" or str(x.get("id")) in was:
+            continue
+        out.append(f"{x.get('id')} refused on evidence: {(x.get('reason') or '').strip().rstrip('.')}.")
+    return out
+
+
+ADDED_EVIDENCE = ("Entering trials are new evidence, not a correction: the previously served number is not asserted "
+                  "wrong; it was computed without the held document(s) this topic now admits to pool construction.")
+
+
+def _reason(left, absent, before_trials=None, after_trials=None, entered=None, before_absent=None,
+            after_absent=None):
     parts = []
     for tid in left:
         x = absent.get(tid) or {}
         code = x.get("reason_code") or x.get("state") or "ABSENT"
         why = (x.get("endpoint_binding_reason") or x.get("reason") or "").strip().rstrip(".")
         parts.append(f"{tid} {CODE_WORD.get(code, 'set aside')} ({code}): {why}.")
-    parts += _estimator_substitutions(before_trials, after_trials)
+    entered_parts = _entered(entered or [], after_trials)
+    substitutions = _estimator_substitutions(before_trials, after_trials)
+    parts += entered_parts + substitutions
+    if parts:
+        parts += _refused_on_evidence(before_absent, after_absent)
     if not parts:
         # No trial left, none entered, and no row's number moved -- the result changed for a reason
         # this script cannot see. Say that, rather than attaching a mechanism sentence that happens
@@ -143,15 +184,27 @@ def _reason(left, absent, before_trials=None, after_trials=None):
     # number could not be bound, so it is not challenged) and FALSE of a substitution (the served
     # number was the wrong quantity). Attaching it to a substitution would put a false sentence on
     # a served page, so a substitution gets the opposite statement, said plainly.
+    # Each kind of change carries its own claim, and only its own: a set-aside is not asserted wrong; a
+    # substitution IS asserted wrong; an entering trial is new evidence and asserts nothing about the old number.
+    claims = []
     if left:
-        return " ".join(parts) + " " + MECH
-    return " ".join(parts) + " " + WRONG_QUANTITY
+        claims.append(MECH)
+    if entered_parts:
+        claims.append(ADDED_EVIDENCE)
+    if substitutions:
+        claims.append(WRONG_QUANTITY)
+    return " ".join(parts + claims)
 
 
 def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = False):
     data = json.load(open(PATH, encoding="utf-8")) if PATH.exists() else {"_doc": "", "notices": []}
-    old = {(n["slug"], n["outcome"]): n for n in data.get("notices", [])}
+    olds = list(data.get("notices", []))
     new, kept, rebuilt, added, dropped = [], [], [], [], []
+    used = set()            # indices into `olds` that this run has accounted for
+
+    def _signed(nt):
+        return ((nt.get("reviewer_countersignature") or {}).get("state") or "").upper().endswith("SIGNED")
+
     for slug in sorted(os.listdir(ROOT / "docs" / "reviews")):
         b, a = _before(commit, slug), _after(slug)
         if not b or not a:
@@ -169,8 +222,31 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
             left, entered = sorted(set(bp) - set(ap)), sorted(set(ap) - set(bp))
             absent = {x["id"]: x for x in n.get("declared_absent_trials") or []}
             key = (slug, o["name"])
-            prev = old.get(key)
-            same = (prev is not None and result_changes._same(prev.get("before"), tb) and result_changes._same(prev.get("after"), ta)
+            # A NOTICE RECORDS ONE CHANGE FROM ONE BASE, AND A SIGNED NOTICE IS NEVER REWRITTEN.
+            #
+            # Notices used to be keyed one per (slug, outcome). A second change to an outcome whose notice
+            # Mahmood had already signed therefore REBUILT that notice and reset its countersignature to OPEN
+            # -- deleting a signature by overwriting it rather than dropping it (2026-10-01: omega3 MACE and
+            # probiotics AAD, signed 2026-09-29, were both overwritten by the held-full-text enables). So the
+            # notice this change updates is the one describing the SAME base (same `before`), and only if it is
+            # unsigned. A signed notice for an earlier change is carried untouched and the new change gets a new
+            # notice beside it.
+            prev_i = next((i for i, nt in enumerate(olds)
+                           if i not in used and (nt["slug"], nt["outcome"]) == key and not _signed(nt)
+                           and result_changes._same(nt.get("before"), tb)), None)
+            same_signed_i = next((i for i, nt in enumerate(olds)
+                                  if i not in used and (nt["slug"], nt["outcome"]) == key and _signed(nt)
+                                  and result_changes._same(nt.get("before"), tb) and result_changes._same(nt.get("after"), ta)), None)
+            if same_signed_i is not None:
+                # this exact change is already recorded and signed: carry it, byte for byte
+                used.add(same_signed_i)
+                new.append(olds[same_signed_i])
+                kept.append(key)
+                continue
+            prev = olds[prev_i] if prev_i is not None else None
+            if prev_i is not None:
+                used.add(prev_i)
+            same = (prev is not None and result_changes._same(prev.get("after"), ta)
                     and sorted(map(str, prev.get("left_pool") or [])) == left and sorted(map(str, prev.get("entered_pool") or [])) == entered)
             notice = dict(prev) if prev else {"slug": slug, "outcome": o["name"]}
             notice.update({"before": tb, "after": ta, "left_pool": left, "entered_pool": entered})
@@ -181,7 +257,8 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
                     notice.pop(k, None)
             if not same or not prev.get("reason"):
                 if not notice.get("reason_locked"):
-                    notice["reason"] = _reason(left, absent, o.get("trials"), n.get("trials"))
+                    notice["reason"] = _reason(left, absent, o.get("trials"), n.get("trials"), entered,
+                                               o.get("declared_absent_trials"), n.get("declared_absent_trials"))
                 notice["by"] = by
                 notice["when_utc"] = when
                 notice["reviewer_countersignature"] = {"state": "OPEN", "note": "the reviewer has not yet seen the rendered notice; "
@@ -197,22 +274,18 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
     # The original rule was "notices for outcomes that no longer differ are dropped". That is only
     # coherent if the whole file is derived against one base for all time. It is not: notices
     # accumulate across landings, each derived against the base current when its change was made.
-    # The moment a change lands on main, its outcome stops differing from main -- so from then on
-    # every past notice is permanently droppable, signatures and all. Running this against current
-    # main after the 13 countersignatures landed proposed to delete all 13.
-    #
-    # So nothing is dropped automatically. An outcome that no longer differs keeps its notice,
-    # carried forward untouched, because the change it records did happen and a reader of the page
-    # is entitled to it. Removal is a deliberate act: --prune drops UNSIGNED stale notices and
-    # names each one; a signed notice additionally needs --drop-signed. The default cannot delete.
+    # So nothing is dropped automatically: every notice this run did not account for is carried forward
+    # untouched, in its original position order. --prune drops UNSIGNED stale notices and names each one;
+    # a signed notice additionally needs --drop-signed. The default cannot delete.
     carried = []
-    live = {(n["slug"], n["outcome"]) for n in new}
-    for key, notice in old.items():
-        if key in live:
+    old = {}
+    for i, notice in enumerate(olds):
+        if i in used:
             continue
-        state = ((notice.get("reviewer_countersignature") or {}).get("state") or "").upper()
-        if prune and not state.endswith("SIGNED"):
+        key = (notice["slug"], notice["outcome"])
+        if prune and not _signed(notice):
             dropped.append(key)
+            old[key] = notice
         else:
             carried.append(key)
             new.append(notice)

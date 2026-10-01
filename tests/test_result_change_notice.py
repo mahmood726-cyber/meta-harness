@@ -229,17 +229,75 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
     NOT_WRONG = "the numbers are not asserted wrong"
     AWAITING = "eligible evidence awaiting adjudication"
     IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
+    ENTERED = "Entering trials are new evidence, not a correction"
     for n in result_changes.load():
         where = (n["slug"], n["outcome"])
         reason = n["reason"]
-        set_aside = bool(n.get("left_pool") or n.get("entered_pool"))
-        if set_aside:
+        # Three kinds, each with its own claim: a trial LEFT (set-aside: not asserted wrong, awaiting
+        # adjudication); a trial ENTERED (new evidence: the old number is not asserted wrong); a row's number was
+        # SUBSTITUTED with nobody leaving or entering (the old number was the wrong quantity: asserted wrong).
+        if n.get("left_pool"):
             assert NOT_WRONG in reason, where
             assert AWAITING in reason, where
             assert IS_WRONG not in reason, (where, "a set-aside must not assert the number wrong")
+        elif n.get("entered_pool"):
+            assert ENTERED in reason, (where, "an entering trial must be described as new evidence")
+            assert IS_WRONG not in reason, (where, "new evidence must not assert the old number wrong")
+            for tid in n["entered_pool"]:
+                assert f"{tid} entered the pool contributing" in reason, (where, tid)
         else:
             assert IS_WRONG in reason, (where, "a substitution must say the served number was wrong")
             assert NOT_WRONG not in reason, (where, "a substitution must not claim the number is unchallenged")
+        assert "no trial leaving or entering" not in reason or not (n.get("left_pool") or n.get("entered_pool")),             (where, "the notice says nothing left or entered while its own pool lists say otherwise")
+
+
+def _refresh_in(tmp, monkeypatch, notices, before, after):
+    """Run scripts/refresh_result_change_notices.refresh against synthetic before/after review objects."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("rrcn", str(Path(__file__).resolve().parents[1] / "scripts" / "refresh_result_change_notices.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    (tmp / "docs" / "reviews" / "t").mkdir(parents=True)
+    path = tmp / "docs" / "result_changes.json"
+    path.write_text(json.dumps({"_doc": "", "notices": notices}), encoding="utf-8")
+    monkeypatch.setattr(mod, "ROOT", tmp)
+    monkeypatch.setattr(mod, "PATH", path)
+    monkeypatch.setattr(mod, "_before", lambda commit, slug: before)
+    monkeypatch.setattr(mod, "_after", lambda slug: after)
+    mod.refresh("BASE", "tester", "2026-10-01T00:00:00Z")
+    return json.loads(path.read_text(encoding="utf-8"))["notices"]
+
+
+def _rv(k, est, trial_ids, entered_row=None):
+    trials = [{"id": t, "effect": 0.9, "ci_low": 0.8, "ci_high": 1.0, "scale": "RR", "provenance": "abstract"}
+              for t in trial_ids]
+    if entered_row:
+        trials.append(entered_row)
+    return {"outcomes": [{"name": "O", "result": {"k": k, "estimate": est, "ci_low": est - 0.1, "ci_high": est + 0.1},
+                          "trials": trials, "declared_absent_trials": []}]}
+
+
+def test_PLANT_a_signed_notice_is_never_rewritten_by_a_later_change(tmp_path, monkeypatch):
+    """2026-10-01: the held-full-text enables changed two outcomes (omega3 MACE, probiotics AAD) whose notices
+    Mahmood had countersigned on 2026-09-29. Notices were keyed one per outcome, so the refresher REBUILT the
+    signed notices and reset their signatures to OPEN -- deleting a signature by overwriting it. A later change
+    must get a NEW notice; the signed one must survive byte-identical."""
+    signed = {"slug": "t", "outcome": "O", "before": {"k": 6, "estimate": 0.95, "ci_low": 0.85, "ci_high": 1.05},
+              "after": {"k": 5, "estimate": 0.937, "ci_low": 0.837, "ci_high": 1.037}, "left_pool": ["PMID 1"],
+              "entered_pool": [], "reason": "earlier change", "by": "x", "when_utc": "2026-09-21T00:00:00Z",
+              "reviewer_countersignature": {"state": "BATCH_SEEN_AND_SIGNED", "by": "Mahmood",
+                                            "when_utc": "2026-09-29T09:09:04Z", "rendered_sha256": "ab" * 32}}
+    before = _rv(5, 0.937, ["PMID 2", "PMID 3"])
+    entering = {"id": "PMID 9", "effect": 1.0, "ci_low": 0.64, "ci_high": 1.56, "scale": "HR",
+                "provenance": "pmc_fulltext"}
+    after = _rv(6, 0.9386, ["PMID 2", "PMID 3"], entering)
+    out = _refresh_in(tmp_path, monkeypatch, [json.loads(json.dumps(signed))], before, after)
+    assert signed in out, "the countersigned notice was rewritten or dropped"
+    fresh = [n for n in out if n is not None and n != signed]
+    assert len(fresh) == 1 and fresh[0]["reviewer_countersignature"]["state"] == "OPEN"
+    assert fresh[0]["entered_pool"] == ["PMID 9"]
+    assert "PMID 9 entered the pool contributing HR 1.0 (0.64 to 1.56)" in fresh[0]["reason"]
+    assert "no trial leaving or entering" not in fresh[0]["reason"]
 
 
 def test_PLANT_a_page_carrying_a_notice_the_file_no_longer_has_is_held(tmp_path, monkeypatch):
