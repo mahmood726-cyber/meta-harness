@@ -439,6 +439,67 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict], queue_rea
     return row
 
 
+_NUM = re.compile(r"-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?")
+
+
+def _fold_text(t):
+    """What a typographer varies without changing a number: dashes/minus -> '-', mid-dot -> '.', NBSP/thin spaces -> ' '."""
+    t = re.sub("[‐-―−]", "-", t or "")
+    t = t.replace("·", ".").replace("‧", ".")
+    t = re.sub("[    ]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _as_number(v):
+    """A copied value as a plain number string ('12,933' -> '12933', '0·87' -> '0.87', U+2212 minus -> '-'); None if it
+    is not a number ('0:31' h:mm, 'NR')."""
+    s = _fold_text(str(v))
+    if not _NUM.fullmatch(s):
+        return None
+    return s.replace(",", "")
+
+
+def gate_locator_claim(claim: dict, shown_text: str, prefer: Optional[str] = None) -> tuple:
+    """The deterministic gate on a recorded locator answer ('quote where the trial reports its result and copy the numbers').
+    Returns (value dict or None, typed reason). The model only LOCATES: every accepted number is a string the trial's own
+    text prints, inside a quote that is verbatim in the text that was shown. Reasons are distinct, never one bucket:
+      NOT_REPORTED          the model said the text does not report it
+      QUOTE_NOT_IN_TEXT     the quote is not in the shown text (after typographic folding)
+      NO_NUMBERS_COPIED     reported with a quote but no number copied (was mislabelled NUMBER_NOT_IN_QUOTE: 13 of 58)
+      NON_NUMERIC           a copied value is not a number ('0:31')
+      NUMBER_NOT_IN_QUOTE   a copied number does not occur in the quote in any printed form
+      INCOMPLETE            numbers clean, but neither a full effect+CI nor full arm counts
+      ACCEPTED              effect (point, lower, upper) and/or arm counts, as plain numbers"""
+    if not isinstance(claim, dict) or claim.get("state") != "REPORTED" or not claim.get("quote"):
+        return None, "NOT_REPORTED"
+    q = _fold_text(claim["quote"])
+    if q not in _fold_text(shown_text):
+        return None, "QUOTE_NOT_IN_TEXT"
+    raw = {k: claim.get(k) for k in ("point", "lower", "upper", "events_t", "n_t", "events_c", "n_c")
+           if claim.get(k) not in (None, "")}
+    if not raw:
+        return None, "NO_NUMBERS_COPIED"
+    nums = {k: _as_number(v) for k, v in raw.items()}
+    if any(v is None for v in nums.values()):
+        return None, "NON_NUMERIC"
+    qn = q.replace(",", "")
+    if not all(re.search(r"(?<![\d.])" + re.escape(v.lstrip("-")) + r"(?![\d])", qn) for v in nums.values()):
+        return None, "NUMBER_NOT_IN_QUOTE"
+    meas = (claim.get("measure") or "").upper()
+    meas = ("HR" if "HAZARD" in meas or meas == "HR" else "RR" if ("RISK" in meas or meas == "RR") else
+            "OR" if ("ODDS" in meas or meas == "OR") else "MD" if ("MEAN" in meas or meas in ("MD", "WMD")) else meas)
+    counts_ok = all(k in nums for k in ("events_t", "n_t", "events_c", "n_c"))
+    # a request FOR COUNTS (to verify a meta's RR against a trial that reports an HR) takes the counts when both are
+    # copied: returning the HR first left VITAL's 386/12,933 vs 419/12,938 unused and the row MEASURE_DIFFERS
+    if all(k in nums for k in ("point", "lower", "upper")) and not (prefer == "counts" and counts_ok):
+        return {"measure": meas, "effect": nums["point"], "lower": nums["lower"], "upper": nums["upper"],
+                "span": claim["quote"]}, "ACCEPTED"
+    if counts_ok:
+        return {"measure": "RR", "events_t": int(nums["events_t"]), "n_t": int(nums["n_t"]),
+                "events_c": int(nums["events_c"]), "n_c": int(nums["n_c"]), "span": claim["quote"]}, "ACCEPTED"
+    return None, "INCOMPLETE"
+
+
 def queue_complete(rows: list) -> list:
     """INVARIANT: every row left SECONDARY_UNVERIFIED is IN the verification queue with a typed reason. Returns the rows
     that break it (an unverified row with no queue entry is a row nobody will ever verify -- it silently stays
