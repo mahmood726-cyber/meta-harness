@@ -87,3 +87,18 @@ def test_candidate_harvest_drops_the_subgroup_candidate_and_keeps_the_primary():
 def test_both_guards_are_wired_into_both_row_routes():
     src = open(os.path.join(ROOT, "harness", "pipeline.py"), encoding="utf-8").read()
     assert src.count("extract.subgroup_refusal(") >= 2, "subgroup guard not applied on both abstract and full-text routes"
+
+
+def test_held_fulltexts_opt_in_is_read_from_the_topic_config(tmp_path, monkeypatch):
+    """The per-topic opt-in lives in topics/<slug>.json, so enabling one topic re-pins only that topic's certificate.
+    Plant both ways: the config flag enables; its absence (or any value other than literal true) does not."""
+    from harness import pipeline
+    monkeypatch.setattr(pipeline, "ROOT", str(tmp_path))
+    monkeypatch.setattr(pipeline, "HELD_FULLTEXT_ENABLED", frozenset())
+    cache = tmp_path / "cache" / "t"
+    cache.mkdir(parents=True)
+    (cache / "ft_1.txt").write_text("held", encoding="utf-8")
+    rec = {"records": [{"id": "1"}]}
+    assert pipeline.held_fulltexts("t", rec, config={"held_fulltexts_enabled": True})[0] == {"1": "held"}
+    assert pipeline.held_fulltexts("t", rec, config={})[0] == {}
+    assert pipeline.held_fulltexts("t", rec, config={"held_fulltexts_enabled": "yes"})[0] == {}

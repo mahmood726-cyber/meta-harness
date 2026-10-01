@@ -470,7 +470,14 @@ number can be attributed to the document that moved it.
 """
 
 
-def held_fulltexts(slug, records, included_ids=None):
+def held_fulltexts_enabled(slug, config=None):
+    """The per-topic opt-in. Declared in topics/<slug>.json as `"held_fulltexts_enabled": true`, so enabling one topic
+    changes that topic's config hash and nobody else's certificate (a code-level set would re-pin all 32 pages for
+    every enable). HELD_FULLTEXT_ENABLED remains as an override for tests."""
+    return str(slug) in HELD_FULLTEXT_ENABLED or bool((config or {}).get("held_fulltexts_enabled") is True)
+
+
+def held_fulltexts(slug, records, included_ids=None, config=None):
     """Committed held full texts for this topic, merged under the recorded fetch, with digests.
 
     Returns (texts_by_pmid, digests_by_pmid). `records.json`'s `fulltext_by_pmid` is the recorded
@@ -489,7 +496,7 @@ def held_fulltexts(slug, records, included_ids=None):
     if included_ids:
         known |= {str(x) for x in included_ids}
     cache_dir = _os.path.join(ROOT, "cache", str(slug))
-    if not _os.path.isdir(cache_dir) or str(slug) not in HELD_FULLTEXT_ENABLED:
+    if not _os.path.isdir(cache_dir) or not held_fulltexts_enabled(slug, config):
         # Not opted in: the recorded fetch alone, exactly as before. The digests map stays empty so
         # nothing downstream can believe a held document was read when it was not.
         return texts, digests
@@ -1966,7 +1973,7 @@ def outcome_inputs(slug, config, records):
     cgr = records.get("ctgov_results") or {}
     # Committed held documents are evidence and must reach pool construction, not only the
     # consistency checker. Digests are recorded so the page can state which bytes were read.
-    ftbp, ftbp_digests = held_fulltexts(slug, records)
+    ftbp, ftbp_digests = held_fulltexts(slug, records, config=config)
     # Outcome-identity gate is OPT-IN per topic (config.outcome_identity) AND requires a committed
     # judgments cache; absent either, judgments=None and ctgov selection is the deterministic
     # substring match. This keeps every existing topic byte-identical until it opts in.
