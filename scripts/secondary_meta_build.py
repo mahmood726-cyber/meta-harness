@@ -203,7 +203,7 @@ def _norm_ws(t):
     return re.sub(r"\s+", " ", (t or "").replace("\u2212", "-")).strip()
 
 
-def primary_value(slug, pmid, run, runs):
+def primary_value(slug, pmid, run, runs, want=None):
     """(primary dict with span, how) for one trial from ITS OWN report: regex on the abstract, then the typed full-text
     rung, then a recorded locator whose quote must be verbatim in the report and must contain every number it copies
     (the model only LOCATES; each number is a string the report itself prints)."""
@@ -227,16 +227,25 @@ def primary_value(slug, pmid, run, runs):
         return None, None
     got = as_prim(extract.extract_trial(rec.get("abstract") or "", po.get("keywords") or [], interv, comp,
                                         declared_composite=dc, estimand=po.get("estimand")), "REGEX_ABSTRACT")
-    if got[0]:
+    if got[0] and (want != "counts" or got[0].get("events_t") is not None):
         return got
     ft = cfm.pmc_fulltext_cached(pmid, offline=not run)
     if ft:
         got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
-        if got[0]:
+        if got[0] and (want != "counts" or got[0].get("events_t") is not None):
             return got
+    if not ft and rec.get("doi"):
+        # a further legitimate open route: Unpaywall's OA copy as typed text (never OCR)
+        u = k_gap.unpaywall_text(rec["doi"], os.path.join(ROOT, "outputs", "k_gap", "_upw"),
+                                 os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=not run)
+        ft = (u.get("text") or "")[:120000]
     text = (rec.get("title") or "") + "\n" + (rec.get("abstract") or "") + ("\n\n" + ft if ft else "")
-    p = (LOCATE_INSTR + f"\nOUTCOME: {po.get('name')}\n<<<TEXT\n{text}\nTEXT>>>\n").encode("utf-8")
-    key = f"locate::{slug}::{pmid}"
+    wanted = ("" if not want else
+              "\nWANTED: the number of participants WITH the outcome and the number randomised, in EACH arm (events_t, n_t, "
+              "events_c, n_c), copied as printed.\n" if want == "counts" else
+              f"\nWANTED: the {want} with its 95% confidence interval, copied as printed.\n")
+    p = (LOCATE_INSTR + wanted + f"\nOUTCOME: {po.get('name')}\n<<<TEXT\n{text}\nTEXT>>>\n").encode("utf-8")
+    key = f"locate::{slug}::{pmid}" + (f"::{want}" if want else "")
     r = runs.get(key)
     if (not r or r.get("prompt_sha256") != hashlib.sha256(p).hexdigest()) and run:
         rec_c = mcl.call(p, schema=LOCATE_SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
@@ -334,10 +343,11 @@ def our_trials(slug):
         src = f"our branch extraction {t.get('id')} ({t.get('provenance')})"
         if t.get("effect") is not None and t.get("ci_low") is not None:
             prim_val = {"measure": (t.get("scale") or "").upper(), "effect": str(t["effect"]), "lower": str(t["ci_low"]),
-                        "upper": str(t["ci_high"]), "source": src, "span": str(t.get("source") or "")}
+                        "upper": str(t["ci_high"]), "source": src, "span": str(t.get("source") or ""),
+                        "report_text": report_text(slug, pid)}
         elif t.get("ai") is not None:
             prim_val = {"measure": "RR", "events_t": t["ai"], "n_t": t["n1i"], "events_c": t["ci"], "n_c": t["n2i"],
-                        "source": src, "span": str(t.get("source") or "")}
+                        "source": src, "span": str(t.get("source") or ""), "report_text": report_text(slug, pid)}
         out.append({"id": t.get("id"), "pmid": pid, "nct": nct, "label": str(t.get("label") or ""),
                     "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set()) |
                                        (title_acronyms(pid) if pid.isdigit() else set())),
@@ -378,6 +388,17 @@ def pubmed_title(pmid):
             return ""
         _save(cp, c)
     return c.get(pmid) or ""
+
+
+def report_text(slug, pmid):
+    """The trial report's own title + abstract (topic cache, else the member-record cache): the text a primary value is
+    anchored against when its stored span is clipped."""
+    rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+    rec = next((x for x in rj.get("records", []) if str(x.get("id")) == str(pmid)), None)
+    if rec is None:
+        mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
+        rec = (_j(mp) if os.path.exists(mp) else {}).get(str(pmid))
+    return ((rec or {}).get("title") or "") + " " + ((rec or {}).get("abstract") or "")
 
 
 def family_of_factory(ours):
@@ -533,6 +554,21 @@ def build(slug, run, runs):
             elif prim is None:
                 why = "NO_PRIMARY:FAMILY_NOT_KEYED_BY_PMID"
             sm.verify_against_primary(r, prim, queue_reason=why)
+            pid = str(r.family_id or "").replace("PMID ", "")
+            if r.state == sm.UNVERIFIED and pid.isdigit():
+                v = r.verification or {}
+                want = ("counts" if v.get("result") == "MEASURE_DIFFERS" and r.measure.upper() in ("RR", "OR")
+                        else r.measure.upper() if v.get("result") == "QUEUED" else None)
+                if want:
+                    k2 = (r.family_id, want)
+                    if k2 not in tried:
+                        tried[k2] = primary_value(slug, pid, run, runs, want=want)
+                    prim2, how2 = tried[k2]
+                    if prim2:
+                        r.verification = None
+                        sm.verify_against_primary(r, prim2, queue_reason=f"NO_PRIMARY:{how2}")
+                    else:
+                        r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "

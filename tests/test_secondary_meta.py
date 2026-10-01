@@ -183,3 +183,11 @@ def test_queue_invariant_every_unverified_row_has_a_typed_queue_reason():
     n = sm.admit(_row(label="X"), SPEC, lambda r: "X")
     sm.verify_against_primary(n, None)                            # no reason given -> still a typed default, never empty
     assert n.verification["queue_reason"] == "NO_PRIMARY_VALUE"
+
+
+def test_a_clipped_span_is_completed_by_the_report_text_when_deciding_the_side():
+    r = sm.admit(_row(label="PIONEER 6", eff=("0.79", "0.57", "1.10")), SPEC, lambda r: "P6")
+    sm.verify_against_primary(r, {"measure": "HR", "effect": "0.79", "lower": "0.57", "upper": "1.11",
+                                  "span": "... (hazard ratio, 0.79; ",                       # clipped at 200 chars
+                                  "report_text": "hazard ratio, 0.79; 95% confidence interval, 0.57 to 1.11"})
+    assert r.state == sm.MISMATCH and r.verification["which_side"].startswith("SECONDARY_WRONG")
