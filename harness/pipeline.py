@@ -403,13 +403,14 @@ def _reported_effect_candidate(eff, provenance, source_label):
 
 
 def _source_effect_candidates(spec, *, abstract=None, fulltext=None, ctgov_outcomes=None,
-                              verified_effect=None):
+                              verified_effect=None, record=None):
     return source_hierarchy_mod.source_effect_candidates(
         spec,
         abstract=abstract,
         fulltext=fulltext,
         ctgov_outcomes=ctgov_outcomes,
         verified_effect=verified_effect,
+        record=record,
     )
 
 
@@ -458,8 +459,18 @@ def _hand_fields(entry, slug, pid, rec=None):
     return out
 
 
-def _span_effect_candidates(spec, selected, base_candidates):
-    return source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates)
+def _span_effect_candidates(spec, selected, base_candidates, text=None):
+    # `text` is the HELD DOCUMENT. Without it a label-only candidate cannot be resolved to a
+    # definition span and is refused rather than admitted (endpoint eligibility before source
+    # preference). Every refusal is recorded ON THE ROW: when a refusal changes which number a
+    # trial contributes, the served page and the result-change notice must be able to say why,
+    # and a reason that exists only inside the function that applied it cannot be quoted later.
+    refusals: list[str] = []
+    out = source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates, text, refusals)
+    if refusals:
+        prior = list(selected.get("endpoint_eligibility_refusals") or [])
+        selected["endpoint_eligibility_refusals"] = prior + [r for r in refusals if r not in prior]
+    return out
 
 
 CROSS_SOURCE_LOG_TOL = 0.12
@@ -1046,19 +1057,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
     candidate_index = {}
+    eligibility_refusals = {}
     all_effect_candidates = []
     for d in included:
         rec = rec_by_id.get(d["id"], {})
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
         ve = (verified_effects or {}).get(d["id"])
+        _refusals: list[str] = []
         cands = _source_effect_candidates(
             spec,
             abstract=rec.get("abstract", ""),
             fulltext=ft,
             ctgov_outcomes=ctgov_results.get(nct) if nct else None,
             verified_effect=ve,
+            record=_refusals,
         )
+        if _refusals:
+            eligibility_refusals[d["id"]] = _refusals
         candidate_index[d["id"]] = cands
         all_effect_candidates.extend(cands)
     estimand_decision = source_hierarchy_mod.estimand_decision(spec, all_effect_candidates)
@@ -1208,7 +1224,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
@@ -1224,7 +1240,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             cg["provenance"] = "ctgov_results"
             t = {"label": label, "id": idstr, **cg}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1238,7 +1254,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             fx["provenance"] = "pmc_fulltext"
             t = {"label": label, "id": idstr, **fx}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1256,7 +1272,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "source": va.get("source", "hand-verified structured arm-level counts"),
                  **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1274,7 +1290,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "source": va.get("source", "hand-verified continuous per-arm mean/SD/n"),
                  **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1306,6 +1322,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
     # refused with the number they carried and both spans, so a reader sees what was refused and why.
+    # Carry every endpoint-eligibility refusal onto the row it applied to, before admissibility.
+    # These refusals decide WHICH candidate a trial contributes, so when a pooled result moves the
+    # notice has to be able to quote the reason rather than only report that the number changed.
+    for _t in trials:
+        _r = eligibility_refusals.get(str(_t.get("label") or "")) or             eligibility_refusals.get(str(_t.get("id") or "").replace("PMID ", "").strip())
+        if _r:
+            _prior = list(_t.get("endpoint_eligibility_refusals") or [])
+            _t["endpoint_eligibility_refusals"] = _prior + [x for x in _r if x not in _prior]
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
     if spec.get("withdrawn"):
