@@ -34,10 +34,12 @@ def test_every_colchicine_exclusion_is_audited_with_its_class():
     assert {p: (rows[p]["class"], rows[p]["subclass"]) for p in want} == want
 
 
-def test_pre_fix_audit_never_saw_them():
-    # the committed audit at the branch base had none of this topic's exclusions (pre-fix firing)
+def test_pre_fix_audit_missed_the_substudy_screener_error():
+    # pre-fix firing: the base audit (acq/k-gap, which since audits in-screen exclusions too) left the COPPS POAF
+    # substudy a thin record -- the screener error it is went unseen
     raw = subprocess.check_output(["git", "show", "origin/acq/k-gap:outputs/k_gap/exclusion_audit.json"], cwd=ROOT)
-    assert not [r for r in json.loads(raw)["rows"] if r["slug"] == CPAF]
+    base = {r["pmid"]: r for r in json.loads(raw)["rows"] if r["slug"] == CPAF}
+    assert (base["22090167"]["class"], base["22090167"]["subclass"]) == ("INSUFFICIENT_RECORD", "DESIGN_NOT_ESTABLISHED_BY_RECORD")
 
 
 def _rec(title, abstract, pubtypes=("Journal Article", "Randomized Controlled Trial")):
@@ -77,3 +79,83 @@ def test_substudy_of_an_rct_is_a_screener_error_and_a_protocol_paper_is_not():
     assert (cls, sub.split(":")[0]) == ("SCREENER_ERROR", "SECONDARY_REPORT_OF_RCT")
     cls, sub, _ = audit.classify(_rec("Rationale and design of the X trial of colchicine after cardiac surgery", body), CFG)
     assert (cls, sub.split(":")[0]) == ("TRUE_SCOPE_DIFFERENCE", "DESIGN_OR_PROTOCOL_PAPER_STATED")
+
+
+def test_a_full_text_span_names_zarpelon_only_when_verified_against_the_held_body(monkeypatch):
+    # acq/k-gap 8de6953 requires a verbatim span for every named scope difference; Zarpelon's open design is stated only
+    # in its PMC full text, so the span is the FULL TEXT's words, checked against the body whose sha256 was recorded
+    import g1_tracker as gt
+    sp = gt.exclusion_audit_span(CPAF, "27223641")
+    assert sp["field"] == "fulltext" and sp["text"].startswith("Methods Study Design and Participants This is a prospective, randomized, open")
+    assert sp["fulltext_sha256"].startswith("25981c8e")
+    if gt.held_fulltext("27223641", sp["fulltext_sha256"], sp["fulltext_source"], CPAF) is not None:      # a clone holding the body verifies it
+        assert gt.span_is_verbatim(CPAF, "27223641", sp)
+    assert not gt.span_is_verbatim(CPAF, "27223641", dict(sp, fulltext_sha256="0" * 64))    # a different body: refused
+    monkeypatch.setattr(gt, "held_fulltext", lambda *a, **k: None)                     # no body here: fails closed
+    assert not gt.span_is_verbatim(CPAF, "27223641", sp)
+
+
+def test_pre_merge_base_left_zarpelon_an_open_gap():
+    base = json.loads(subprocess.check_output(["git", "show", f"origin/acq/k-gap:outputs/k_gap/g1/{CPAF}.json"], cwd=ROOT))
+    assert "Zarpelon [20]" in base["open_gaps"]
+
+
+def test_lane_named_exclusions_are_read_from_the_lanes_pinned_file():
+    # the local tracker copy has SOLOIST-WHF already demoted; the audit must audit what the LANE named, so regenerating it
+    # reproduces the committed row (it vanished when read from the local copy)
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-hfref-hosp-cvdeath.json"), encoding="utf-8"))
+    assert "SOLOIST" not in json.dumps(o["named_differences"])
+    assert any(d.get("pmid") == "33200892" for d in audit.lane_named_differences(o))
+    rows = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "exclusion_audit.json"), encoding="utf-8"))["rows"]
+    assert any(r["slug"] == "sglt2-hfref-hosp-cvdeath" and r["pmid"] == "33200892" for r in rows)
+    import pytest
+    with pytest.raises(audit.LaneSourceUnreadable):
+        audit.lane_named_differences(dict(o, lane_source=dict(o["lane_source"], sha256="0" * 64)))
+
+
+# --- plants from the cross-vendor adversarial review NR-C21 (Codex; C:/mh-lanes/nr/codex/CALL_LOG.jsonl, artefact
+# F:/mh-nr101-codex/c21-g1-scope-spans/last_message.txt); each failed against the code before its fix
+_BODY = ("METHODS: 300 patients undergoing cardiac surgery in a multicenter, double-blind trial were randomized to "
+         "colchicine or placebo. RESULTS: AF fell.")
+
+
+def test_c21_a_protocol_paper_titled_substudy_is_a_protocol_paper_not_a_screener_error():
+    cls, sub, d = audit.classify(_rec("Substudy design and protocol of a randomized trial of colchicine after cardiac surgery",
+                                      _BODY), CFG)
+    assert (cls, sub.split(":")[0]) == ("TRUE_SCOPE_DIFFERENCE", "DESIGN_OR_PROTOCOL_PAPER_STATED")
+    assert d["span"]["field"] == "title"
+
+
+def test_c21_a_non_randomised_substudy_is_not_a_randomised_report():
+    cls, sub, _ = audit.classify(_rec("Non-randomised substudy of a randomized trial of colchicine after cardiac surgery",
+                                      "METHODS: In the parent trial, patients were randomized to colchicine or placebo; "
+                                      "this substudy was non-randomized. RESULTS: x."), CFG)
+    assert cls != "SCREENER_ERROR"
+
+
+def test_c21_a_post_hoc_per_protocol_report_is_still_a_screener_error():
+    cls, sub, _ = audit.classify(_rec("Post hoc per-protocol analysis of a randomized trial of colchicine after cardiac "
+                                      "surgery", _BODY), CFG)
+    assert (cls, sub.split(":")[0]) == ("SCREENER_ERROR", "SECONDARY_REPORT_OF_RCT")
+
+
+def test_c21_a_background_open_study_is_not_this_studys_design():
+    assert not audit.OPEN.search("Unlike the earlier randomized, open, single-center study, we used placebo.")
+    assert audit.OPEN_DESIGN_SELF.search("This is a prospective, randomized, open, single-center clinical assay")
+
+
+def test_c21_a_control_group_given_dummy_tablets_is_a_placebo_control():
+    assert not audit.OTHER_COMP.search("the control group not receiving the study medication received identical dummy tablets.")
+    assert audit.OTHER_COMP.search("the control group, not receiving the study medication, was followed as usual.")
+
+
+def test_c21_the_full_text_pass_reads_the_whole_audit_population():
+    import k_gap_exclusion_fulltext as eft
+    assert ("colchicine-postop-af", "27223641") in {(i["slug"], i["pmid"]) for i in eft.items(False)}
+
+
+def test_c21_a_pinned_lane_file_for_another_topic_is_refused():
+    import pytest
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-hfref-hosp-cvdeath.json"), encoding="utf-8"))
+    with pytest.raises(audit.LaneSourceUnreadable):
+        audit.lane_named_differences(dict(o, slug="tocilizumab-covid19-mortality"))

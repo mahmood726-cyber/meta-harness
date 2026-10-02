@@ -149,6 +149,11 @@ INLINE_SPECS = {
         "plants": {"accept": [("Mortality fell. The HR was 0.8.", ["Mortality fell.", "The HR was 0.8."]),
                               ("Death 10%. (95% CI 1-2)", ["Death 10%.", "(95% CI 1-2)"])],
                    "refuse": ["HR 0.80 (95% CI 0.70-0.90) was seen", "rate was 1.5 per 100"]}},
+    "extract.py:search:b494c39a77": {
+        "kind": "search", "what": "extract_md_effect: where the CI marker starts after the point estimate (the unit is "
+                                  "read BEFORE it: STEP 1's '-12.7 kg; 95% CI' must not pass a percent-unit test)",
+        "plants": {"accept": [(" kg; 95% CI", None), (" percentage points (confidence", None), (" % [CI", None)],
+                   "refuse": [" kg; difference", " percentage points"]}},
     "extract.py:search:159a89219d": {
         "kind": "search", "what": "_kw_only_in_null_result: a digit follows the keyword",
         "plants": {"accept": [(" 12 events", None)], "refuse": [" no events were seen"]}},
