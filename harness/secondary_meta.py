@@ -600,6 +600,10 @@ def gate_locator_claim(claim: dict, shown_text: str, prefer: Optional[str] = Non
     qn = q.replace(",", "")
     if not all(re.search(r"(?<![\d.])" + re.escape(v.lstrip("-")) + r"(?![\d])", qn) for v in nums.values()):
         return None, "NUMBER_NOT_IN_QUOTE"
+    # a SIGNED copy must be printed with its sign: '-2.5' is not in 'mean difference 2.5 (1.2 to 3.8)'
+    if not all(re.search(r"-\s?" + re.escape(v.lstrip("-")) + r"(?![\d])", qn) for v in nums.values()
+               if v.startswith("-")):
+        return None, "SIGN_NOT_IN_QUOTE"
     meas = (claim.get("measure") or "").upper()
     meas = ("HR" if "HAZARD" in meas or meas == "HR" else "RR" if ("RISK" in meas or meas == "RR") else
             "OR" if ("ODDS" in meas or meas == "OR") else "MD" if ("MEAN" in meas or meas in ("MD", "WMD")) else meas)
@@ -609,9 +613,11 @@ def gate_locator_claim(claim: dict, shown_text: str, prefer: Optional[str] = Non
     if all(k in nums for k in ("point", "lower", "upper")) and not (prefer == "counts" and counts_ok):
         return {"measure": meas, "effect": nums["point"], "lower": nums["lower"], "upper": nums["upper"],
                 "span": claim["quote"]}, "ACCEPTED"
+    if counts_ok and not all(float(nums[k]) == int(float(nums[k])) for k in ("events_t", "n_t", "events_c", "n_c")):
+        return None, "NON_INTEGER_COUNT"
     if counts_ok:
-        return {"measure": "RR", "events_t": int(nums["events_t"]), "n_t": int(nums["n_t"]),
-                "events_c": int(nums["events_c"]), "n_c": int(nums["n_c"]), "span": claim["quote"]}, "ACCEPTED"
+        return {"measure": "RR", "events_t": int(float(nums["events_t"])), "n_t": int(float(nums["n_t"])),
+                "events_c": int(float(nums["events_c"])), "n_c": int(float(nums["n_c"])), "span": claim["quote"]}, "ACCEPTED"
     return None, "INCOMPLETE"
 
 
@@ -905,3 +911,81 @@ def g1_countable(rows: list, comparator_meta_ids: set) -> list:
         groups = v.get("independent_pair_ids") or v.get("independent_pairs") or []
         return r.state == TWO_SOURCE and any(not ({str(m).lower() for m in p} & ids) for p in groups)
     return [r for r in rows if ok(r)]
+
+
+# ------------------------------------------------------------------ TABLE LOCATION gate (recorded proposals -> pool)
+
+def gate_table_location(claim: dict, text: str, outcome_keywords: list, spec_name: str,
+                        prefer: Optional[str] = None, interv: Optional[list] = None, comp: Optional[list] = None) -> tuple:
+    """A recorded table-location proposal is admitted only when (1) gate_locator_claim accepts it (the quote is verbatim
+    in the held text and every number it copies is printed in that quote), (2) the quote NAMES the topic's outcome by a
+    non-generic keyword, and (3) for a declared SINGLE outcome the quote is not a composite: SMART's primary
+    'major adverse kidney event (the composite of death, new renal-replacement therapy, or persistent renal
+    dysfunction)' would otherwise bind as mortality. Returns (value | None, reason)."""
+    from harness import extract
+    val, why = gate_locator_claim(claim, text, prefer=prefer)
+    if not val:
+        return None, why
+    q = claim.get("quote") or ""
+    ql = q.lower()
+    named = [k for k in outcome_keywords if k and k.lower() not in extract.GENERIC_ANCHORS
+             and extract._kw_in_sentence(k, ql)]
+    if not named:
+        return None, "OUTCOME_NOT_NAMED_IN_QUOTE"
+    # the keyword must GOVERN the numbers: it precedes the first copied number with no sentence/clause break between
+    # ('Mortality was similar. Stroke HR 0.80 (0.60 to 0.95)' names mortality, but the numbers are stroke's)
+    qf = _fold_text(q)
+    firsts = [m.start() for v in (claim.get(k) for k in ("point", "events_t", "lower", "n_t", "events_c", "n_c"))
+              if v not in (None, "") for m in [re.search(r"(?<![\d.])" + re.escape(str(v).lstrip("-")) + r"(?![\d])",
+                                                          qf.replace(",", ""))] if m]
+    first = min(firsts) if firsts else len(qf)
+    before = qf.replace(",", "")[:first].lower()
+    governs = False
+    for k in named:
+        j = before.rfind(_fold_text(k).lower())
+        if j >= 0 and not re.search(r"[.;]\s|\b(?:but|while|whereas|although)\b", before[j:]):
+            governs = True
+    if not governs:
+        return None, "OUTCOME_DOES_NOT_GOVERN_THE_NUMBERS"
+    # the harness never takes a subgroup / post-hoc / per-protocol result as the trial's (abstract rule, same detector),
+    # in the quote OR in the text just before it (a heading 'Subgroup analysis: women only.' the quote leaves out)
+    tf = _fold_text(text)
+    at = tf.find(qf)
+    if extract._is_subgroup_sentence(q) or (at > 0 and extract._is_subgroup_sentence(tf[max(0, at - 200):at])):
+        return None, "SUBGROUP_OR_POST_HOC_QUOTED"
+    # ARMS BY THEIR LABELS: when the quote names both arms, each copied count must follow ITS OWN arm's label, and a
+    # 'control versus drug' comparison is refused (it is the inverse of the topic's contrast)
+    ql2 = qf.lower()
+    it = [ql2.find(t.lower()) for t in (interv or []) if t and ql2.find(t.lower()) >= 0]
+    ct = [ql2.find(t.lower()) for t in (comp or []) if t and ql2.find(t.lower()) >= 0]
+    if it and ct:
+        pi, pc = min(it), min(ct)
+        if pc < pi and re.search(r"\b(?:versus|vs\.?|compared with)\b", ql2[pc:pi]):
+            return None, "INVERSE_COMPARISON_QUOTED"
+        if claim.get("events_t") and claim.get("events_c"):
+            def owner(v):
+                m = re.search(r"(?<![\d.])" + re.escape(str(v)) + r"(?![\d])", ql2)
+                if not m:
+                    return None
+                prev = [(p, "t") for p in it if p < m.start()] + [(p, "c") for p in ct if p < m.start()]
+                nxt = [(p, "t") for p in it if p > m.start()] + [(p, "c") for p in ct if p > m.start()]
+                if prev:
+                    return max(prev)[1]
+                return min(nxt)[1] if nxt else None
+            ot, oc = owner(claim["events_t"]), owner(claim["events_c"])
+            if ot and oc and (ot, oc) != ("t", "c"):
+                return None, "ARM_COUNTS_SWAPPED"
+    # a ratio and the arm events copied from ONE quote must point the same way: 'Total MACE | 8 (6.7) | 28 (21.7) |
+    # 3.52 (1.60-7.74)' carries the INVERSE comparison (control vs colchicine)
+    e = _num(claim.get("point"))
+    et, ec, nt, nc = (_num(claim.get(k)) for k in ("events_t", "events_c", "n_t", "n_c"))
+    if e and e > 0 and et is not None and ec is not None and et != ec:
+        rt, rc = (et / nt, ec / nc) if (nt and nc) else (et, ec)
+        if rt > 0 and rc > 0 and (e - 1) * (rt - rc) < 0 and abs(math.log(e)) > 0.05 and                 abs(math.log(rt / rc)) > (0.05 if (nt and nc) else 0.25):
+            return None, "RATIO_DIRECTION_CONTRADICTS_ARM_EVENTS"
+    if not extract.declared_is_composite(spec_name):
+        if extract._names_composite(q) or re.search(r"\bcomposite\b|\bmajor adverse\b", q, re.I):
+            return None, "COMPOSITE_QUOTED_FOR_SINGLE_OUTCOME"
+    elif extract.composite_component_mismatch(spec_name, "composite outcome definition: " + q):
+        return None, "COMPOSITE_COMPONENTS_DIFFER"
+    return dict(val, named_by=named), "ACCEPTED"
