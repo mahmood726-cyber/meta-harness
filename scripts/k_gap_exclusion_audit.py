@@ -44,9 +44,17 @@ RANDOMISED_HERE = re.compile(r"\b(?:were|was|been|are|is)\s+(?:\w+\s+)?randomi[s
 # a comparison is STATED (an active or non-placebo comparator), even when no placebo is named
 COMPARISON_STATED = re.compile(r"\bversus\b|\bvs\.?\s|compared (?:with|to)|\bcombination\b|with (?:and|or) without|added to", re.I)
 BLIND = re.compile(r"\b(?:double|single|triple)[- ]?blind\w*|\bblinded\b|\bmasked\b|open[- ]label|unblinded|not blinded", re.I)
-OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded", re.I)
+# an open design, also as a bare design adjective: 'a prospective, randomized, open, single-center clinical assay'
+# (Zarpelon 27223641 full text) -- 'open' only between design words, never 'open heart' / 'open surgery'
+OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded|"
+                  r"\b(?:randomi[sz]ed|prospective|controlled)\s*,\s*open\s*,|\bopen\s*,\s*(?:single|multi)[- ]?cent(?:er|re)", re.I)
+# THIS study self-described as open ('This is a prospective, randomized, open, single-center clinical assay') -- narrow on
+# purpose: never 'open-label extension' (a double-blind trial can have one), never 'open heart'
+OPEN_DESIGN_SELF = re.compile(r"\b(?:this|the present|our)\s+(?:is\s+an?\s+|was\s+an?\s+)?(?:\w+\s*,\s*){0,3}?"
+                              r"(?:randomi[sz]ed|prospective|controlled)\s*,\s*open\s*,", re.I)
 OTHER_COMP = re.compile(r"\b(?:usual care|standard (?:of )?care|standard therapy|no treatment|untreated|"
-                        r"conventional (?:care|therapy|treatment)|control group received no|best supportive care)\b", re.I)
+                        r"conventional (?:care|therapy|treatment)|control group received no|best supportive care|"
+                        r"control group,? not receiving (?:the )?(?:study )?(?:medication|drug|treatment))\b", re.I)
 OBSERVATIONAL = re.compile(r"\bassociation of\b|\bcohort\b|\bobservational\b|\bretrospective\b|\bregistry\b|"
                            r"\bcase series\b|\bcross-sectional\b|population-based|case-control|nationwide", re.I)
 ORDER = ("SCREENER_ERROR", "INSUFFICIENT_RECORD", "TRUE_SCOPE_DIFFERENCE", "INCONSISTENT")
@@ -169,6 +177,12 @@ def classify(rec, cfg):
     inc = copy.deepcopy(cfg.get("include") or {})
     base = decide(rec, inc)
     if base["decision"] == "include":
+        # a FULL TEXT can mention 'placebo-controlled' while citing ANOTHER study (Zarpelon 27223641's sample-size
+        # paragraph) and so pass the ruleset's design check; an explicit self-description of THIS study's design as open
+        # decides the design axis (the protocol requires double-blind or placebo-controlled)
+        if inc.get("design_double_blind") and OPEN_DESIGN_SELF.search(rec.get("abstract") or ""):
+            return ("TRUE_SCOPE_DIFFERENCE", "OPEN_DESIGN_STATED_FOR_THIS_STUDY (a placebo mention elsewhere cites another "
+                    "study)", base)
         return "INCONSISTENT", "RULESET_INCLUDES", base
     rule, reason = base["rule_id"], base["reason"] or ""
     ab = rec.get("abstract") or ""

@@ -223,7 +223,30 @@ def exclusion_audit_class(slug, pmid):
         for r in (_j(ap).get("rows") or []) if os.path.exists(ap) else []:
             _AUDIT.setdefault((r.get("slug"), str(r.get("pmid"))), r)
     r = _AUDIT.get((slug, str(pmid)))
+    if r and r.get("class") == "INSUFFICIENT_RECORD":
+        # the record lacked the fact; the committed FULL-TEXT pass (scripts/k_gap_exclusion_fulltext.py: regex on the held
+        # OA full text first, a verified recorded reader second) may have resolved it -- its class decides then
+        ft = _ft_resolution(slug, pmid)
+        if ft:
+            return ft
     return (r.get("class"), r.get("subclass")) if r else (None, None)
+
+
+_FT = None
+
+
+def _ft_resolution(slug, pmid):
+    global _FT
+    if _FT is None:
+        fp = os.path.join(OUT, "exclusion_fulltext.json")
+        _FT = {(x.get("slug"), str(x.get("pmid"))): x for x in ((_j(fp).get("rows") or []) if os.path.exists(fp) else [])}
+    x = _FT.get((slug, str(pmid)))
+    # only a DETERMINISTIC resolution (regex on the held full text) decides; a recorded model reader's verdict stays a
+    # PROPOSAL (lane rule: recorded model calls only as proposals) and leaves the item an open, insufficient-record gap
+    if x and x.get("class_after") in ("TRUE_SCOPE_DIFFERENCE", "SCREENER_ERROR") and \
+            str(x.get("how") or "").startswith("REGEX_ON_FULLTEXT"):
+        return x["class_after"], f"{x.get('subclass_after') or x.get('reader_agreement') or ''} [full text: {x.get('how')}]"
+    return None
 
 
 def scope_difference(x, cfg, slug=None):
