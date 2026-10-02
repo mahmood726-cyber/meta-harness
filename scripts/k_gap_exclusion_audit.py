@@ -101,6 +101,32 @@ def population():
     return dedup
 
 
+def population_in_screen():
+    """(slug, label, record, recorded rule) per comparator trial ALREADY in our screen and excluded there -- the class
+    SCREENED_OUT_UNAUDITED (76 trials over 31 topics on 3 Oct). Read from the tracker files (outputs/k_gap/g1/*.json,
+    trials[].seeded_funnel with already_in_screen) and the topic's own pinned records.json; same classifier, same
+    INCONSISTENT check as the seeded population."""
+    gdir = os.path.join(OUT, "g1")
+    out, pinned = [], {}
+    for f in sorted(os.listdir(gdir)) if os.path.isdir(gdir) else []:
+        if not f.endswith(".json") or ".tmp" in f:
+            continue
+        o = _j(os.path.join(gdir, f))
+        if o.get("lane_source"):
+            continue                                  # a lane-owned topic: that lane audits its own exclusions
+        for x in o.get("trials") or []:
+            fn = x.get("seeded_funnel") or {}
+            if not (fn.get("already_in_screen") and fn.get("stage") == "SCREENED_OUT"):
+                continue
+            slug = o["slug"]
+            if slug not in pinned:
+                rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+                pinned[slug] = {str(r.get("id")): r for r in rj.get("records", []) + rj.get("ctgov", [])}
+            out.append({"slug": slug, "label": x["label"], "pmid": fn["pmid"], "rec": pinned[slug].get(str(fn["pmid"])),
+                        "stage": "SCREENED_OUT", "recorded_rule": fn.get("rule_id"), "origin": "IN_SCREEN"})
+    return out
+
+
 def comparator_eligibility(slug):
     from kgap import k_gap
     try:
@@ -219,6 +245,8 @@ def load_reader():
 def main():
     load_reader()
     pop = population()
+    have = {(it["slug"], it["pmid"]) for it in pop}
+    pop += [it for it in population_in_screen() if (it["slug"], it["pmid"]) not in have]
     elig = {}
     rows, tally, sub = [], Counter(), Counter()
     for it in pop:
@@ -234,6 +262,7 @@ def main():
         tally[cls] += 1
         sub[(cls, sc.split(":")[0].split(" (")[0])] += 1
         rows.append({"slug": s, "label": it["label"], "pmid": it["pmid"], "stage": it["stage"],
+                     "origin": it.get("origin", "SEEDED"),
                      "rule_id": base.get("rule_id") or it["recorded_rule"], "reason": (base.get("reason") or "")[:160],
                      "class": cls, "subclass": sc, "title": ((it["rec"] or {}).get("title") or "")[:140]})
     out = {"n": len(rows), "duplicate_table_rows_counted_once": DUPLICATES, "by_class": {k: tally.get(k, 0) for k in ORDER},

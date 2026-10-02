@@ -210,6 +210,35 @@ def protocol_rule(cfg, term):
     return None
 
 
+def protocol_rule_for(cfg, rule_id, reason):
+    """The REGISTERED protocol field a screen exclusion applied (harness/screen.py), cited as 'include.<field>[i] = ...'.
+      X1        the protocol's randomised-controlled-trial requirement
+      X2        include.population_none[i] (a named excluded population) / include.population_any (none met)
+      X3        include.intervention_none[i] (wrong form) / include.intervention_any / include.comparator_any
+      X-DESIGN  include.design_none[i] / include.design_double_blind / include.design_any"""
+    import re as _re
+    inc = cfg.get("include") or {}
+    m = _re.search(r"(?:mention|mentions|matches excluded) '([^']+)'", reason or "")
+    term = m.group(1) if m else None
+    if rule_id == "X1":
+        return "protocol design: randomised controlled trials only (harness/screen.py X1)"
+    if rule_id == "X2":
+        return protocol_rule(cfg, term) if term else f"include.population_any = {inc.get('population_any')!r} (none met)"
+    if rule_id == "X3":
+        if "wrong form" in (reason or "") and term:
+            return protocol_rule(cfg, term)
+        if "comparator" in (reason or ""):
+            return f"include.comparator_any = {inc.get('comparator_any')!r} (none met)"
+        return f"include.intervention_any = {inc.get('intervention_any')!r} (none met)"
+    if rule_id == "X-DESIGN":
+        if term:
+            return protocol_rule(cfg, term)
+        if "double-blind" in (reason or ""):
+            return f"include.design_double_blind = {inc.get('design_double_blind')!r}"
+        return f"include.design_any = {inc.get('design_any')!r} (none met)"
+    return None
+
+
 _AUDIT = None
 
 
@@ -240,10 +269,9 @@ def scope_difference(x, cfg, slug=None):
         cls, sub = exclusion_audit_class(slug, f.get("pmid"))
         if cls != "TRUE_SCOPE_DIFFERENCE":
             return None
-        m = _re.search(r"mention '([^']+)'", f.get("reason") or "")
         return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f["rule_id"], "screen_reason": f.get("reason"),
                 "audit": {"class": cls, "subclass": sub},
-                "protocol_rule": protocol_rule(cfg, m.group(1)) if m else None,
+                "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")),
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
     rb = x.get("registry_binding") or {}
     cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
@@ -310,6 +338,40 @@ def comparator_findings(trials, comp):
             out.append({"finding": f.get("finding"), "trial": x["label"], "comparator": comp,
                         "comparator_row": x.get("comparator_row"), "detail": f.get("printed_vs_arm_derived")})
     return out
+
+
+def our_value_from_row(t):
+    """Our value for one pooled trial, from its pool row: effect + CI, or the 2x2; None when neither is there."""
+    if t.get("effect") is not None and t.get("ci_low") is not None:
+        return {"measure": (t.get("scale") or "").upper(), "effect": str(t["effect"]), "lower": str(t["ci_low"]),
+                "upper": str(t["ci_high"]), "source": f"our held-source pool {t.get('id')} ({t.get('provenance')})"}
+    if t.get("ai") is not None:
+        return {"measure": "RR", "events_t": t["ai"], "n_t": t["n1i"], "events_c": t["ci"], "n_c": t["n2i"],
+                "source": f"our held-source pool {t.get('id')} ({t.get('provenance')})"}
+    return None
+
+
+def with_identity_chain(T):
+    """k-gap rows with NO identity take the identity chain's RESOLVED identity (outputs/k_gap/identity_chain.json:
+    label -> PMID -> NCT through AACT study_references, own publications only), basis recorded. A resolved trial of
+    ANOTHER agent becomes drug OTHER_AGENT (reported in other_agent_units, out of a drug-specific topic's N)."""
+    import copy
+    ip = os.path.join(OUT, "identity_chain.json")
+    if not os.path.exists(ip):
+        return T
+    res = _j(ip).get("results") or {}
+    T = copy.deepcopy(T)
+    for t in T["trials"]:
+        v = res.get(f"{t['slug']}::{t['label']}")
+        if not v or v.get("state") != "RESOLVED" or t.get("ncts") or t.get("pmids"):
+            continue
+        t["ncts"] = [v["nct"]] if v.get("nct") else []
+        t["pmids"] = [v["pmid"]] if v.get("pmid") else []
+        t["identity_basis"] = [f"IDENTITY_CHAIN:{v.get('basis')}"]
+        t["status"] = "RESOLVED_BY_CHAIN"
+        if str(v.get("scope") or "").startswith("OTHER_AGENT"):
+            t["drug"] = "OTHER_AGENT"
+    return T
 
 
 def is_pooled(mine, pooled_ids):
@@ -386,8 +448,12 @@ def topic(slug, T):
     rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     comp = S["comparator_pmid"]
     ours = smb.our_trials(slug)
-    core = cfm.build(slug)
+    # POOL BASIS: this harness's own build of the topic WITH every open primary source it holds (PMC / Unpaywall full
+    # text, posted CT.gov results, member records) -- k_gap_counterfactual.build_with_held_sources. The served page
+    # may lag it; the trials it pools that the served page does not are listed (served_pool_lags).
+    core, src = cfm.build_with_held_sources(slug)
     prim = next((o for o in core["outcomes"] if o.get("primary")), {})
+    row_by_id = {str(t.get("id")): t for t in prim.get("trials", [])}
     pooled_ids = {str(t.get("id")) for t in prim.get("trials", [])}
     absent_by_id = {str(a.get("id")): str(a.get("reason") or a.get("reason_code") or "")[:240]
                     for a in prim.get("declared_absent_trials", [])}
@@ -408,6 +474,9 @@ def topic(slug, T):
                      or o["pmid"] in (t.get("pmids") or [])), None)
         fam = mine["id"] if mine else None
         in_pool = is_pooled(mine, pooled_ids)
+        if in_pool and not mine.get("primary"):
+            # a trial the held-source build admitted: our value is its pool row (effect + CI, or the 2x2)
+            mine = dict(mine, primary=our_value_from_row(row_by_id.get(str(mine["id"])) or {}))
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
@@ -530,6 +599,11 @@ def topic(slug, T):
     if wp:
         out["same_trials_per_trial"] = out["same_trials"]
         out["same_trials"] = wp
+    served_ids = {str(t.get("id")) for o_ in rev.get("outcomes", []) if o_.get("primary") for t in o_.get("trials", [])}
+    out["pool_basis"] = {"build": "k_gap_counterfactual.build_with_held_sources",
+                         "held_records": len(src[0]), "held_fulltext": len(src[1]), "held_unpaywall": src[3],
+                         "held_registry": len(src[2])}
+    out["served_pool_lags"] = sorted(pooled_ids - served_ids)
     out["g1_status"] = g1_status(out)
     return out
 
@@ -603,6 +677,7 @@ def main(argv):
     if argv and argv != ["--table"]:
         T = _j(os.path.join(OUT, "k_gap_table.json"))
         os.makedirs(G1_DIR, exist_ok=True)
+        T = with_identity_chain(T)
         for s in [a for a in argv if not a.startswith("--")]:
             o = topic(s, T)
             # ATOMIC: a concurrent reader (another process building the table) must never see a truncated file
