@@ -421,19 +421,41 @@ def shape_problems(d):
 
 # ------------------------------------------------------------------ agreement (two readings -> proposed rows)
 
+def _nfkc(s):
+    """Compatibility-folded text: a footnote superscript 'COV-AIDᵃ' reads as 'COV-AIDa' (REACT, PMID 34228774)."""
+    import unicodedata
+    return unicodedata.normalize("NFKC", str(s or ""))
+
+
 def _norm_label(s):
-    return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
+    return re.sub(r"[^a-z0-9]", "", _nfkc(s).lower())
 
 
 def _num(s):
-    return fp._num(s) if s is not None else None
+    """A printed number; a leading '+' ('+0.50', esketamine MD rows) is a sign, not text."""
+    return fp._num(re.sub(r"^\s*\+", "", _nfkc(s))) if s is not None else None
+
+
+_NOT_ESTIMABLE = re.compile(r"^(?:na[a-z]?|n/a|ne|not estimable|not estimated|not applicable|[-–—]+)$", re.I)
+
+
+def _keyed(rows):
+    """[(key, row)]: the normalised label, with its occurrence number when a meta prints one trial label twice (REACT
+    lists REMAP-CAP once per drug): rows are matched by (label, k-th occurrence), in print order."""
+    seen, out = {}, []
+    for r in rows or []:
+        lab = _norm_label(r.get("label"))
+        seen[lab] = seen.get(lab, 0) + 1
+        out.append((lab if seen[lab] == 1 else f"{lab}#{seen[lab]}", r))
+    return out
 
 
 def agree_value(a, b):
     """Two printed numbers agree within the figure's printed rounding: |a-b| <= half a unit of the finer printing.
     Returns the agreed printed string (the finer one) or None."""
     x, y = _num(a), _num(b)
-    if x is None and y is None and a and b and " ".join(str(a).lower().split()) == " ".join(str(b).lower().split()):
+    if x is None and y is None and a and b and \
+            " ".join(_nfkc(a).lower().split()) == " ".join(_nfkc(b).lower().split()):
         return a           # the same printed words ('Not estimable'): agreed as text, never pooled as a number
     if x is None or y is None:
         return None
@@ -459,13 +481,14 @@ def agree(ra, rb):
             probs.append("NOT_LEGIBLE_IN_BOTH")
     if ra.get("row_kind") != "study" or rb.get("row_kind") != "study":
         probs.append(f"ROWS_ARE_NOT_STUDIES:{ra.get('row_kind')}/{rb.get('row_kind')}")
-    la = [_norm_label(r.get("label")) for r in ra.get("rows") or []]
-    lb = [_norm_label(r.get("label")) for r in rb.get("rows") or []]
-    if len(set(la)) != len(la) or len(set(lb)) != len(lb):
-        probs.append("DUPLICATE_ROW_LABELS")
-    by_b = {_norm_label(r.get("label")): r for r in rb.get("rows") or []}
-    for r in ra.get("rows") or []:
-        s = by_b.pop(_norm_label(r.get("label")), None)
+    ka, kb = _keyed(ra.get("rows")), _keyed(rb.get("rows"))
+    la, lb = [k for k, _ in ka], [k for k, _ in kb]
+    key_a = {id(r): k for k, r in ka}
+    key_b = {id(r): k for k, r in kb}
+    by_b = dict(kb)
+    not_estimable = []
+    for ka_, r in ka:
+        s = by_b.pop(ka_, None)
         if s is None:
             refused.append({"label": r.get("label"), "why": "ONLY_IN_READING_A", "a": r, "b": None})
             continue
@@ -482,6 +505,11 @@ def agree(ra, rb):
             vals[k] = v
         if why:
             refused.append({"label": r.get("label"), "why": ",".join(why), "a": r, "b": s})
+        elif all(_num(vals[k]) is None and _NOT_ESTIMABLE.match(_nfkc(vals[k]).strip())
+                 for k in ("effect", "lower", "upper")) and not has_counts([vals]):
+            # both readers print the row as not estimable ('NA'): agreed, but it carries no number -- never pooled,
+            # never a secondary row (with counts it stays a row: the counts decide estimability)
+            not_estimable.append({"label": r.get("label"), **vals})
         else:
             proposed.append({"label": r.get("label"), **vals})
     for s in by_b.values():
@@ -491,8 +519,8 @@ def agree(ra, rb):
     nums = ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")
     only_a = [x for x in refused if x["why"] == "ONLY_IN_READING_A"]
     only_b = [x for x in refused if x["why"] == "ONLY_IN_READING_B"]
-    pos_a = {id(x): la.index(_norm_label(x["a"].get("label"))) for x in only_a}
-    pos_b = {id(x): lb.index(_norm_label(x["b"].get("label"))) for x in only_b}
+    pos_a = {id(x): la.index(key_a[id(x["a"])]) for x in only_a}
+    pos_b = {id(x): lb.index(key_b[id(x["b"])]) for x in only_b}
     for x in only_a:
         y = next((y for y in only_b if pos_b[id(y)] == pos_a[id(x)] and all(
             (agree_value(x["a"].get(k), y["b"].get(k)) is not None) if k in ("effect", "lower", "upper")
@@ -513,7 +541,7 @@ def agree(ra, rb):
     ma, mb = fp.is_ratio(ra.get("measure")), fp.is_ratio(rb.get("measure"))
     if ma != mb:
         probs.append("MEASURE_DISAGREES")
-    return proposed, refused, pooled, probs
+    return proposed, refused, pooled, probs, not_estimable
 
 
 # ------------------------------------------------------------------ the meta's STATED model, from its own text
@@ -531,7 +559,10 @@ def _ipd_sentence(t):
     stratified Cox model'; its body 'Cox models were stratified by trial allowing random effects'). Returns the
     quoted sentence(s), else None."""
     sents = re.split(r"(?<=[.;])\s+", t)
-    data = next((s for s in sents if _IPD_SENT.search(s) and not _IPD_NEG.search(s)), None)
+    # the meta's OWN use ('We used individual patient data'); a background sentence about others' IPD work is not it
+    # (esketamine PMID 42490943: 'Recent efforts have also leveraged individual participant data ...')
+    data = next((s for s in sents if _IPD_SENT.search(s) and not _IPD_NEG.search(s)
+                 and re.search(r"\b(?:we|our)\b", s, re.I)), None)
     model = next((s for s in sents if _IPD_MODEL.search(s) and not _IPD_NEG.search(s)), None)
     if not (data and model):
         return None
@@ -828,7 +859,7 @@ def measure_code(m):
 
 def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
     """Two parsed readings -> the figure's verdict, the proposed/refused rows, and (if ACCEPTED) the secondary rows."""
-    proposed, refused, pooled, probs = agree(reading_a, reading_b)
+    proposed, refused, pooled, probs, not_estimable = agree(reading_a, reading_b)
     agreed_not_trials = []
     if any(p.startswith("ROWS_ARE_NOT_STUDIES") for p in probs):
         # rows both readers agree on but which are NOT trials (outcomes / subgroups) are never per-trial proposals
@@ -853,10 +884,10 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
                          **{k: r[k] for k in ("events_t", "n_t", "events_c", "n_c")}})
     return {"state": state, "problems": problems, "measure": measure, "stated_model": model,
             "proposed_rows": proposed, "refused_rows": refused, "pooled_agreed": pooled,
-            "agreed_rows_not_trials": agreed_not_trials,
+            "agreed_rows_not_trials": agreed_not_trials, "agreed_rows_not_estimable": not_estimable,
             "acceptance": acc, "secondary_rows": rows,
-            "anti_circularity": f"comparator-side rows of meta {item['pmid']}: never pool inputs; never count toward "
-                                f"agreement with meta {item['pmid']} (secondary_meta.g1_countable)"}
+            "anti_circularity": f"rows of meta {item['pmid']}: never pool inputs; never count toward agreement with "
+                                f"meta {item['pmid']} (secondary_meta.g1_countable)"}
 
 
 # ------------------------------------------------------------------ driver
