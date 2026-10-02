@@ -191,7 +191,42 @@ def numbered_citations(text):
 _LF_STOP = {"of", "and", "the", "for", "in", "with", "on", "to", "a", "an", "vs", "versus", "by", "after"}
 
 
-def acronym_long_form(acr, text, max_skips=4):
+_TRIAL_TYPES = {"randomized controlled trial", "clinical trial", "clinical trial, phase iii", "clinical trial, phase ii",
+                "clinical trial, phase iv", "controlled clinical trial", "pragmatic clinical trial"}
+
+
+def trial_context(ref):
+    """Is this reference a TRIAL report? Trial words in its own text/title, or a PubMed publication type of RCT /
+    clinical trial for its PMID -- its own, or the one its title CONFIRMED (outputs/k_gap/pubmed_collective.json holds
+    publication types beside collective names)."""
+    if re.search(r"\b(?:trial|randomi[sz]ed|placebo|double[- ]blind|controlled)\b",
+                 (ref.get("text") or "") + " " + (ref.get("title") or ""), re.I):
+        return True
+    pmid = ref.get("pmid")
+    if not pmid:
+        hit = REF_PMID.get(_ref_key(ref)) or {}
+        pmid = hit.get("pmid") if hit.get("state") == "CONFIRMED" else None
+    types = {t.lower() for t in ((COLLECTIVE.get(pmid or "") or {}).get("pubtypes") or [])}
+    return bool(types & _TRIAL_TYPES)
+
+
+def long_form_refusal(acr, text, phrase):
+    """Why a matched long form belongs to ANOTHER named trial (IDREVIEW2 P1): it starts with a different all-caps
+    acronym ('CORE COlchicine for REcurrent pericarditis' read as CORP), or the text labels that phrase with a
+    different acronym in parentheses ('COlchicine for REcurrent pericarditis (CORE)'). None when it is ours."""
+    want = re.sub(r"[^A-Z0-9]", "", (acr or "").upper())
+    first = (phrase.split() or [""])[0]
+    if re.fullmatch(r"[A-Z][A-Z0-9]{2,}", first) and re.sub(r"[^A-Z0-9]", "", first) != want:
+        return f"starts_with_other_acronym:{first}"
+    folded = k_gap.fold_dashes(text or "")
+    i = folded.find(phrase.split()[-1]) if phrase else -1
+    tail = re.match(r"\W*\(\s*([A-Z][A-Z0-9-]{2,})\s*\)", folded[i + len(phrase.split()[-1]):]) if i >= 0 else None
+    if tail and re.sub(r"[^A-Z0-9]", "", tail.group(1)) != want:
+        return f"labelled_as_other_acronym:{tail.group(1)}"
+    return None
+
+
+def acronym_long_form(acr, text, max_skips=4, check=True, anchored=True):
     """Does `text` spell out acronym `acr` (Schwartz-Hearst style)? The acronym's letters are consumed IN ORDER by
     prefixes of consecutive words: the FIRST letter from the first word's initial, the LAST letters from the last
     word; a word may contribute nothing only if it is a stopword or one of at most `max_skips` skipped content
@@ -238,8 +273,9 @@ def acronym_long_form(acr, text, max_skips=4):
         # ...and is a LONG form: at least 3 words, not the acronym's own tokens ('Aldo DHF' is not a long form of
         # 'Aldo-DHF' -- that is chain 3's evidence, whose ambiguity must stand)
         if end is not None and end - s >= 3 and "".join(low[s:end]) != letters and \
-                (low[end - 1] in anchor or any(w in anchor for w in low[end:end + 2])):
-            return " ".join(words[s:end])
+                (not anchored or low[end - 1] in anchor or any(w in anchor for w in low[end:end + 2])):
+            if not check or long_form_refusal(acr, text, " ".join(words[s:end])) is None:
+                return " ".join(words[s:end])
     return ""
 
 
@@ -257,6 +293,10 @@ def pmc_html_refs(html):
         surname = re.match(r"([^\s,]+(?:\s+[a-z][^\s,]*)*)\s+[A-Z]", cite)
         year = re.search(r"\b((?:19|20)\d\d)\b", cite)
         parts = re.split(r"(?<=[a-z0-9\)])\.\s+(?=[A-Z])", cite)
+        if m.group("lab") in out:
+            # a number used twice makes every marker -> reference link on the page unsafe: no reference list at all
+            # (IDREVIEW2 P2), never a silent overwrite
+            return {}
         out[m.group("lab")] = {"rid": m.group("rid"), "label": m.group("lab"), "ordinal": int(m.group("lab")),
                                "pmid": pmid.group(1) if pmid else None, "doi": doi.group(1) if doi else None,
                                "first_author": surname.group(1) if surname else "",
@@ -478,7 +518,11 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             return re.sub(r"\s+", "", "".join(c for c in unicodedata.normalize("NFKD", x or "")
                                                 if not unicodedata.combining(c)).lower())
         hits = [r for r in parsed["refs"].values() if fold2(r.get("first_author")) == fold2(u["author"])]
-        if len(hits) == 1:
+        if len(hits) == 1 and not trial_context(hits[0]):
+            # a unique first author is not yet a TRIAL: a background, guideline or methods citation would pass
+            # (IDREVIEW2 P1). Trial words in the reference, or a PubMed RCT / clinical-trial publication type, needed.
+            basis.append(f"author_only_ref_refused_no_trial_context:{hits[0]['rid']}")
+        elif len(hits) == 1:
             kept.append(dict(hits[0], basis=None))
             basis.append(f"author_only_ref:{hits[0]['rid']}")
         elif len(hits) > 1:
@@ -488,6 +532,11 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     for i, c in enumerate(kept):
         if c.get("pmid"):
             continue
+        # a citation LINK carries rid/title/ids but not the citation text; the title of a congress abstract lives only
+        # in that text (Ratanarat [18]), so the key is built from the full reference record when one is held
+        full = (parsed or {}).get("refs", {}).get(c.get("rid")) if c.get("rid") else None
+        if full and not c.get("text"):
+            c = kept[i] = dict(full, **{k: v for k, v in c.items() if v not in (None, "")})
         hit = REF_PMID.get(_ref_key(c))
         if hit and hit.get("state") == "CONFIRMED":
             kept[i] = dict(c, pmid=hit["pmid"])
@@ -601,6 +650,11 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 regs = [{n for n, _t in idx["pmid_nct"].get(r.get("pmid") or "", [])
                          if registered_before(n, years.get(r.get("pmid")), idx)} for r in refs]
                 common = set.intersection(*regs) if regs and all(regs) else set()
+                unit_words = re.compile(r"\bextension\b|\bfollow-?up\b|\blong-term\b|\bopen-label\b|\bsubstudy\b",
+                                        re.I)
+                if len(common) == 1 and any(unit_words.search(r.get("text") or "") for r in refs):
+                    basis.append(f"acronym_in_comparator_refs_same_registration_publication_unit_ambiguous:{a}:{len(refs)}")
+                    break
                 if len(common) == 1 and all(len(x) == 1 for x in regs):
                     ncts.add(next(iter(common)))
                     pmids |= {r["pmid"] for r in refs if r.get("pmid")}
@@ -624,6 +678,15 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 coll = (COLLECTIVE.get(r.get("pmid") or "") or {}).get("collective") or []
                 lf = acronym_long_form(a, r.get("text") or "") or next(
                     (x for x in (acronym_long_form(a, c) for c in coll) if x), "")
+                if not lf:
+                    # what the matcher WOULD take with no refusal and no anchor: if that is another trial's phrase,
+                    # record WHY it was refused (the acceptance above keeps every rule)
+                    raw = acronym_long_form(a, r.get("text") or "", check=False, anchored=False)
+                    if raw and long_form_refusal(a, r.get("text") or "", raw) is None:
+                        raw = ""
+                    if raw:
+                        basis.append(f"acronym_long_form_refused:{a}:{r['rid']}:"
+                                     + (long_form_refusal(a, r.get("text") or "", raw) or "other_trial_phrase"))
                 if lf:
                     refs.append((r, lf))
             if len(refs) == 1 and refs[0][0].get("pmid"):
@@ -1021,8 +1084,18 @@ REF_PMID: dict = {}
 COLLECTIVE: dict = {}
 
 
+def ref_title(ref) -> str:
+    """The reference's title; when JATS carries none (a congress abstract in a <mixed-citation>: 'Ratanarat ...
+    The effects of normal saline versus ... trial. 30th Annu Congr ESICM 2017'), the one sentence of its citation
+    text that reads as a trial title ('The ... trial|study.'). '' when there is no such single sentence."""
+    if ref.get("title"):
+        return ref["title"]
+    hits = re.findall(r"(The [a-z][^.]{20,300}?(?:trial|study))\.", ref.get("text") or "")
+    return hits[0] if len(hits) == 1 else ""
+
+
 def _ref_key(ref) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", (ref.get("title") or "").lower()).strip() + "|" + (ref.get("first_author") or "").lower()
+    return re.sub(r"[^a-z0-9]+", " ", ref_title(ref).lower()).strip() + "|" + (ref.get("first_author") or "").lower()
 
 
 def load_ref_pmid() -> dict:

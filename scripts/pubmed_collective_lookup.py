@@ -30,14 +30,16 @@ def fetch(pmids):
     out = {}
     for art in root.iter("PubmedArticle"):
         pmid = art.findtext(".//MedlineCitation/PMID")
-        out[pmid] = sorted({"".join(c.itertext()).strip() for c in art.iter("CollectiveName")
-                            if "".join(c.itertext()).strip()})
+        out[pmid] = {"collective": sorted({"".join(c.itertext()).strip() for c in art.iter("CollectiveName")
+                                           if "".join(c.itertext()).strip()}),
+                     "pubtypes": sorted({(t.text or "").strip() for t in art.iter("PublicationType") if t.text})}
     return out
 
 
 def main(pmids):
     cache = json.load(open(OUT, encoding="utf-8")) if os.path.exists(OUT) else {}
-    todo = sorted({p for p in pmids if p.isdigit() and p not in cache})
+    # a PMID is (re)fetched when absent, or cached before publication types were recorded
+    todo = sorted({p for p in pmids if p.isdigit() and (p not in cache or "pubtypes" not in cache[p])})
     for i in range(0, len(todo), 100):
         chunk = todo[i:i + 100]
         got = fetch(chunk)
@@ -45,7 +47,7 @@ def main(pmids):
         for p in chunk:
             if p not in got:
                 raise ValueError(f"PMID {p} missing from the efetch payload")   # fail closed, never record a gap as []
-            cache[p] = {"collective": got[p], "retrieved_utc": stamp}
+            cache[p] = dict(got[p], retrieved_utc=stamp)
         time.sleep(0.4)
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8", newline="\n") as fh:

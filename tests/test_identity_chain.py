@@ -140,7 +140,10 @@ def test_ref_title_lookup_cache_records_retrieval_and_never_a_bare_zero():
     assert c
     for k, v in c.items():
         assert v['retrieved_utc'] and v['query'] and v['state']
-        if v['state'].startswith('NOT_IN_PUBMED'):
+        if v['state'] == 'NOT_IN_PUBMED_FIRST_AUTHOR_NOT_INDEXED':
+            # the ONLY term PubMed could not find is the first author's whole surname: no such author is indexed
+            assert [w.lower() for w in v['errors']['phrasesnotfound']] == [v['ref']['first_author'].lower()]
+        elif v['state'].startswith('NOT_IN_PUBMED'):
             # a zero is only a finding when PubMed executed the query as written
             assert not any((v.get('warnings') or {}).get(w) for w in ('quotedphrasesnotfound', 'phrasesignored'))
             assert not any((v.get('errors') or {}).get(e) for e in ('phrasesnotfound', 'fieldsnotfound'))
@@ -339,6 +342,11 @@ def test_author_only_et_al_needs_exactly_one_first_author(monkeypatch):
            'title': 'Colchicine for the prevention of postpericardiotomy syndrome'}
     other = {'rid': 'REF:6', 'label': '6', 'first_author': 'Adler', 'year': '1998', 'title': 'x'}
     monkeypatch.setattr(kt, 'REF_PMID', {kt._ref_key(ref): {'state': 'CONFIRMED', 'pmid': '12574898'}})
+    # no trial words in the citation and no publication type known: a unique first author is not yet a trial
+    r = kt.resolve_unit(unit('Finkelstein Y et al', layout='text'), parsed(ref, other), IDX, None)
+    assert r['pmids'] == [] and 'author_only_ref_refused_no_trial_context:REF:10' in r['basis']
+    # PubMed types its confirmed PMID as a Randomized Controlled Trial: admitted
+    monkeypatch.setattr(kt, 'COLLECTIVE', {'12574898': {'collective': [], 'pubtypes': ['Randomized Controlled Trial']}})
     r = kt.resolve_unit(unit('Finkelstein Y et al', layout='text'), parsed(ref, other), IDX, None)
     assert r['pmids'] == ['12574898'] and 'author_only_ref:REF:10' in r['basis']
     two = dict(ref, rid='REF:11', label='11')
@@ -399,3 +407,19 @@ def test_name_words_match_is_positive_name_evidence(monkeypatch):
     assert kt.name_words_match('Risk & Prevention 2013 [42]', ref)
     assert not kt.name_words_match('Risk & Outcomes 2013 [42]', ref)       # every name word must be there
     assert not kt.name_words_match('Prevention 2013 [42]', ref)             # one word is not a name
+
+
+def test_congress_abstract_title_and_unindexed_first_author(monkeypatch):
+    text = ('18.RatanaratRSanguanwitPChitsomkasemAThe effects of normal saline versus balanced crystalloid solution as a '
+            'resuscitation fluid on acute kidney injury in shock patients: a randomized opened label-controlled trial. '
+            '30th Annu Congr Eur Soc intensive care Med ESICM 20172017')
+    assert kt.ref_title({'title': '', 'text': text}).startswith('The effects of normal saline versus balanced')
+    assert kt.ref_title({'title': '', 'text': 'The A trial. The B study.'}) == ''      # two candidate titles: none
+    ref = {'rid': 'CR18', 'label': '18', 'first_author': 'Ratanarat', 'year': '2017', 'title': '', 'text': text}
+    monkeypatch.setattr(kt, 'REF_PMID', {kt._ref_key(ref): {'state': 'NOT_IN_PUBMED_BY_TITLE_WORDS_AND_FIRST_AUTHOR'}})
+    r = kt.resolve_unit(unit('Ratanarat [18]', layout='row'), parsed(ref), IDX, None)
+    assert r['pmids'] == [] and 'ref_not_in_pubmed:NOT_IN_PUBMED_BY_TITLE_WORDS_AND_FIRST_AUTHOR' in r['basis']
+    # a first author PubMed's author index does not hold is a NOT_IN_PUBMED finding too
+    monkeypatch.setattr(kt, 'REF_PMID', {kt._ref_key(ref): {'state': 'NOT_IN_PUBMED_FIRST_AUTHOR_NOT_INDEXED'}})
+    r = kt.resolve_unit(unit('Ratanarat [18]', layout='row'), parsed(ref), IDX, None)
+    assert 'ref_not_in_pubmed:NOT_IN_PUBMED_FIRST_AUTHOR_NOT_INDEXED' in r['basis']

@@ -93,6 +93,11 @@ def lookup(ref):
         # ONE retry without exactly the words PubMed names as not found (a title word the index lacks, e.g. 'infloran');
         # precision is unchanged -- the confirmation below still demands the exact title, first author and year.
         missing = [w.lower() for w in (out["errors"].get("phrasesnotfound") or [])]
+        # the ONE missing token is the first author's whole (single-word) surname: PubMed's author index has no such
+        # author, so no paper with that first author is in PubMed. A finding about PubMed, stated as exactly that.
+        sur = (ref.get("first_author") or "").strip().lower()
+        if missing == [sur] and sur and " " not in sur and not out["errors"].get("fieldsnotfound"):
+            return dict(out, state="NOT_IN_PUBMED_FIRST_AUTHOR_NOT_INDEXED")
         # a missing token that belongs to the AUTHOR is a PDF-split surname ('Finke lstein'): retry it joined
         in_author = [w for w in missing if w in (ref.get("first_author") or "").lower().split()]
         if in_author and " " in (ref.get("first_author") or "") and not ref.get("_join_author"):
