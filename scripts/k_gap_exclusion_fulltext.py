@@ -97,9 +97,17 @@ def run_reader(args):
 
 def main(argv):
     run = "--run" in argv
+    # --only SLUG:PMID[,SLUG:PMID]: process just these items and MERGE their rows into the committed output, keeping every
+    # other row (the full-text bodies are gitignored, so a clone without them must not regenerate -- and silently empty --
+    # every other row; lane G1 2026-10-02 did exactly that once and restored it)
+    only = None
+    if "--only" in argv:
+        only = {tuple(x.split(":", 1)) for x in argv[argv.index("--only") + 1].split(",") if ":" in x}
     pilot = _pilot()
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
     its = items(run)
+    if only is not None:
+        its = [it for it in its if (it["slug"], it["pmid"]) in only]
     rows, todo = [], []
     for it in its:
         key = f"{it['slug']}::{it['pmid']}"
@@ -111,7 +119,8 @@ def main(argv):
         cls, sub, _ = ea.classify(rec_ft, ea._cfg(it["slug"]))                    # regex first, on the full text
         if cls != "INSUFFICIENT_RECORD":
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
-                         "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT"})
+                         "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT",
+                         "fulltext_sha256": hashlib.sha256(it["fulltext"].encode("utf-8")).hexdigest()})
             continue
         p, held, cd = reader_prompt(pilot, it, rec_ft)
         r = runs.get(key)
@@ -142,6 +151,10 @@ def main(argv):
                "SCREENER_ERROR" if ag.startswith("RULE_MODEL_DISAGREE") else "INSUFFICIENT_RECORD")
         row.update(class_after=cls, how=f"RECORDED_READER:{r['record_id']}", reader_agreement=ag.split("(")[0],
                    reader_axes=axes, verifier_state=v.get("state"))
+    if only is not None:
+        prev = _j(os.path.join(OUT, "exclusion_fulltext.json")).get("rows", [])
+        mine = {(r["slug"], r["pmid"]): r for r in rows}
+        rows = [mine.pop((r["slug"], r["pmid"]), r) for r in prev] + list(mine.values())
     out = {"n": len(rows), "by_class_after": dict(Counter(r["class_after"] for r in rows)),
            "by_how": dict(Counter((r.get("how") or "NONE").split(":")[0] for r in rows)), "rows": rows}
     json.dump(out, open(os.path.join(OUT, "exclusion_fulltext.json"), "w", encoding="utf-8", newline="\n"),

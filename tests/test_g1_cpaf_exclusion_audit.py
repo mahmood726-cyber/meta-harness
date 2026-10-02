@@ -47,6 +47,29 @@ def _rec(title, abstract, pubtypes=("Journal Article", "Randomized Controlled Tr
 CFG = json.load(open(os.path.join(ROOT, "topics", CPAF + ".json"), encoding="utf-8"))
 
 
+def test_an_open_design_self_description_beats_a_cited_placebo_trial():
+    # Zarpelon's PMC full text: 'This is a prospective, randomized, open, single-center clinical assay' ... and, citing
+    # COPPS in its sample-size paragraph, 'a randomized, placebo-controlled study' -- the ruleset alone would INCLUDE it
+    text = ("Methods Study Design and Participants This is a prospective, randomized, open, single-center clinical assay "
+            "of patients undergoing myocardial revascularization surgery; the control group was not receiving the study "
+            "medication. The AF rate was estimated based on the results of a randomized, placebo-controlled study of "
+            "colchicine after cardiac surgery.")
+    cls, sub, _ = audit.classify(_rec("Colchicine to Reduce Atrial Fibrillation after Myocardial Revascularization", text,
+                                      ("Journal Article", "Randomized Controlled Trial")), CFG)
+    assert (cls, sub.split(" (")[0]) == ("TRUE_SCOPE_DIFFERENCE", "OPEN_DESIGN_STATED_FOR_THIS_STUDY")
+    assert not audit.OPEN_DESIGN_SELF.search("The trial was double-blind, followed by an open-label extension.")
+    assert not audit.OPEN_DESIGN_SELF.search("patients undergoing open heart surgery were randomized")
+
+
+def test_the_committed_full_text_verdict_reaches_the_tracker():
+    import g1_tracker as gt
+    rows = {r["pmid"]: r for r in json.load(open(os.path.join(ROOT, "outputs", "k_gap", "exclusion_fulltext.json"),
+                                                 encoding="utf-8"))["rows"] if r["slug"] == CPAF}
+    assert rows["27223641"]["class_after"] == "TRUE_SCOPE_DIFFERENCE" and rows["27223641"]["fulltext"] == "PMC_OA"
+    cls, sub = gt.exclusion_audit_class(CPAF, "27223641")
+    assert cls == "TRUE_SCOPE_DIFFERENCE" and "full text: REGEX_ON_FULLTEXT" in sub
+
+
 def test_substudy_of_an_rct_is_a_screener_error_and_a_protocol_paper_is_not():
     body = ("BACKGROUND: x. METHODS: 300 patients undergoing cardiac surgery in a multicenter, double-blind, randomized "
             "trial received colchicine or placebo. RESULTS: postoperative atrial fibrillation fell.")
