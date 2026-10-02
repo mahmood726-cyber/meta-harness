@@ -34,6 +34,12 @@ def patched(obj, name, value):
         setattr(obj, name, old)
 
 
+@contextlib.contextmanager
+def _both(a, b):
+    with a, b:
+        yield
+
+
 def _extract(title, time_frame, rows, units="Percentage of Participants", param="NUMBER", nct="NCT04356937"):
     return {"outcomes": {"o1": {"nct_id": nct, "outcome_type": "SECONDARY", "title": title, "time_frame": time_frame,
                                 "population": "", "units": units, "param_type": param,
@@ -181,7 +187,10 @@ def run() -> dict:
                                                                  lambda: patched(g, "_pct_ok", lambda p, d, n: True)),
         "Q4_paper_bound_to_a_trial_its_text_does_not_name": (q4_paper_binding, None),
         "Q6_ambiguous_percentage_forced_to_a_count": (q6_unique_count, None),
-        "Q7_day_30_read_as_day_28": (q7_timepoint, lambda: patched(g, "_DAY28", re.compile(r"\d+\s*days?", re.I))),
+        # two layers since the codex review (toci_match#2): the day-28 word AND the any-other-day refusal on the time
+        # frame -- the guard removed is BOTH
+        "Q7_day_30_read_as_day_28": (q7_timepoint, lambda: _both(patched(g, "_DAY28", re.compile(r"\d+\s*days?", re.I)),
+                                                                patched(g, "_OTHER_DAY", NEVER))),
         "Q9_hyphenated_control_arm_header_missed": (q9_hyphenated_arm_header,
                                                     lambda: patched(g, "_TABLE_HEAD", _OLD_TABLE_HEAD)),
         "Q10_RECOVERY_open_full_text_not_acquired": (q10_recovery_full_text_not_acquired, lambda: patched(
