@@ -119,8 +119,23 @@ def _read(p: Path) -> dict:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
+AUDIT = ROOT / "docs" / "evidence" / "override-audit-2026-09-14" / "overrides.json"
+
+
+def audit_row(slug: str, pid: str, outcome: str, fname: str, entry: dict) -> dict:
+    """The override-audit row (tests/test_override_audit.py requires one per committed override)."""
+    why = entry.get("reason") or entry.get("verification")
+    return dict(topic=slug, trial=pid, outcome=outcome, file=fname, source_committed=True,
+                source_committed_evidence=entry["document_ref"],
+                override_replaces="Unresolved held-full-text harm reporting signal (HARMS_INCOMPLETE)",
+                override_with=entry["kind"], stated_reason=why, judgement=why,
+                rule_group="Held-full-text harm adjudication 2026-10-01 (scripts/held_harms_adjudication.py)")
+
+
 def apply(check: bool = False) -> list[str]:
     problems = []
+    audit = json.loads(AUDIT.read_text(encoding="utf-8"))
+    akey = lambda r: (r["topic"], r["file"], str(r["trial"]), r["outcome"])  # noqa: E731
     for slug, pid, outcome, prov, span, reason, counts in DECISIONS:
         raw = (ROOT / "cache" / slug / f"ft_{pid}.txt").read_text(encoding="utf-8")
         if span not in raw:
@@ -132,6 +147,10 @@ def apply(check: bool = False) -> list[str]:
         if any(e["outcome"] == outcome for e in entries(_read(other).get(pid))):
             problems.append(f"{slug}/{pid}/{outcome}: a decision already exists in {other.name}")
             continue
+        row = audit_row(slug, pid, outcome, fname, entry)
+        if check and row not in audit:
+            problems.append(f"{slug}/{pid}/{outcome}: override-audit row missing or different")
+        audit = [r for r in audit if akey(r) != akey(row)] + [row]
         data = _read(path)
         rows = entries(data.get(pid))
         if check:
@@ -142,6 +161,7 @@ def apply(check: bool = False) -> list[str]:
         data[pid] = rows[0] if len(rows) == 1 else rows
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     if not check:
+        AUDIT.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
         for slug in sorted({d[0] for d in DECISIONS}):
             load(slug)  # re-validates every span against the held bytes; raises on any mismatch
     return problems
