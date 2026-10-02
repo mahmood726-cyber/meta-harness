@@ -716,7 +716,9 @@ def build(slug, run, runs):
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
-    sm.two_source(rows, refs_of, [meta_aliases(m) for m in metas])
+    # every meta that contributed a row is a KNOWN meta of the topic (incl. dual-read metas beyond the search's top N):
+    # the common-cited-meta independence check must see all of them
+    sm.two_source(rows, refs_of, [meta_aliases(m) for m in dict.fromkeys(list(metas) + sorted({r.meta_pmid for r in rows}))])
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "
