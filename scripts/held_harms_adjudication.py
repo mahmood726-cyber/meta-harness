@@ -2,8 +2,7 @@
 
 Enabling held full texts let harms.reporting_signal see 17 term hits in primary-pool trials that the abstracts never
 showed, and gate.check_harms_complete refused 7 pages (HARMS_INCOMPLETE). Each hit was read in its held document and
-is resolved here as a static, source-backed decision -- one extraction where the held text reports per-arm counts,
-otherwise a typed refusal whose verbatim span the loader re-validates against the held bytes
+is resolved here as a static, source-backed typed refusal whose verbatim span the loader re-validates against the held bytes
 (harness.verified_inputs._validate). Conventions follow the corpus's existing decisions:
   * a narrative zero or an arm-attributed statement with no control-arm count is REFUSED_ON_EVIDENCE
     (probiotics 18701826, 18410562, 9570649, 34541475);
@@ -26,21 +25,17 @@ R, S, T = "REFUSED_ON_EVIDENCE", "SIGNAL_SPURIOUS", "TIMEPOINT_MISMATCH"
 
 # (slug, pmid, outcome, provenance-or-None, span, reason, counts-or-None)
 DECISIONS = [
-    ("colchicine-secondary-cv-prevention", "32295417", "Gastrointestinal adverse effects", None,
-     # header (arm denominators) through the GI row: verify.verify_pooled checks every count's digits in this span
-     '<thead><tr><th align="left" valign="top" rowspan="1" colspan="1"/><th align="center" valign="middle" '
-     'rowspan="1" colspan="1">Colchicine<break/>(n=366)</th><th align="center" valign="middle" rowspan="1" '
-     'colspan="1">Placebo<break/>(n=348)</th><th align="center" valign="middle" rowspan="1" colspan="1">p-value</th>'
-     '</tr></thead><tbody><tr><td align="left" valign="middle" rowspan="1" colspan="1">Chest pain, %</td>'
-     '<td align="center" valign="middle" rowspan="1" colspan="1">33 (9.0)</td><td align="center" valign="middle" '
-     'rowspan="1" colspan="1">25 (7.2)</td><td align="center" valign="middle" rowspan="1" colspan="1">0.45</td></tr>'
-     '<tr><td align="left" valign="middle" rowspan="1" colspan="1">Gastrointestinal symptoms, %</td>'
-     '<td align="center" valign="middle" rowspan="1" colspan="1">34 (9.3)</td>'
-     '<td align="center" valign="middle" rowspan="1" colspan="1">11 (3.2)</td>'
-     '<td align="center" valign="middle" rowspan="1" colspan="1">0.001</td></tr>',
-     "Table 4 (adverse events, colchicine n=366, placebo n=348): gastrointestinal symptoms 34 (9.3%) vs 11 (3.2%). "
-     "The safety assessment uses the entire randomized cohort (366 and 348 randomized).",
-     (34, 366, 11, 348)),
+    # COLCHICINE-PCI: Table 4 does report GI symptoms 34/366 vs 11/348 in the randomized cohort, but over a
+    # single pre-PCI 1.8 mg loading dose and only "through hospital discharge". The topic already refuses this
+    # trial on scope (docs/refusals.json: "30-day peri-PCI ... wrong timepoint/scope for secondary CV
+    # prevention"); pooling its peri-procedural harm would contradict that. Dropped from packet v3 (2026-10-02).
+    ("colchicine-secondary-cv-prevention", "32295417", "Gastrointestinal adverse effects", T,
+     "Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study "
+     "cohort are shown in",
+     "Gastrointestinal symptoms (34/366 vs 11/348, Table 4) are peri-procedural events after a single pre-PCI "
+     "loading dose, counted only through hospital discharge; this is not the long-term exposure of secondary "
+     "cardiovascular prevention, and the topic already refuses COLCHICINE-PCI on this scope "
+     "(docs/refusals.json: a 30-day peri-PCI composite, wrong timepoint/scope).", None),
     ("corticosteroids-cap-mortality", "21406101", "Hyperglycaemia", R,
      "among the 23 patients of the MPDN group, only one needed insulin for adequate diabetes control",
      "Only the steroid arm is described, and insulin need is not the hyperglycaemia outcome; no control-arm count "
@@ -135,7 +130,8 @@ def audit_row(slug: str, pid: str, outcome: str, fname: str, entry: dict) -> dic
 def apply(check: bool = False) -> list[str]:
     problems = []
     audit = json.loads(AUDIT.read_text(encoding="utf-8"))
-    akey = lambda r: (r["topic"], r["file"], str(r["trial"]), r["outcome"])  # noqa: E731
+    # keyed WITHOUT the file: a decision that changes kind (extraction -> refusal) moves files and must replace its row
+    akey = lambda r: (r["topic"], str(r["trial"]), r["outcome"])  # noqa: E731
     for slug, pid, outcome, prov, span, reason, counts in DECISIONS:
         raw = (ROOT / "cache" / slug / f"ft_{pid}.txt").read_text(encoding="utf-8")
         if span not in raw:

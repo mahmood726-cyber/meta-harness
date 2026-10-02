@@ -8,11 +8,7 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['coronary', 'myocardial infarction', 'acute coronary', 'stable angina', 'atherosclerotic cardiovascular', 'percutaneous coronary intervention', 'stent restenosis', 'bare-metal stent']; and none of ['pericarditis', 'postpericardiotomy', 'post-pericardiotomy', 'post pericardiotomy', 'atrial fibrillation', 'cardiac surgery', 'coronary artery bypass', 'coronary artery bypass grafting', 'cabg', 'postoperative', 'ablation', 'stroke', 'transient ischemic', 'intracerebral', 'covid', 'osteoarthritis', 'hypertension', 'aortic stenosis', 'gout']; randomised intervention is one of ['colchicine'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n",
-    "target_endpoint_selection": {
-      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
-      "results_known_at_rule_time": true
-    }
+    "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n"
   },
   "search": {
     "n_records": 120,
@@ -3710,7 +3706,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
       "served_estimand": "RR",
       "estimand_decision": {
         "declared_estimand": "RR",
@@ -3834,165 +3830,6 @@
           "harm_source_reported": true,
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
           "family_id": "SYN-981b057cb68a"
-        },
-        {
-          "label": "32295417",
-          "id": "PMID 32295417",
-          "ai": 34,
-          "n1i": 366,
-          "ci": 11,
-          "n2i": 348,
-          "provenance": "fulltext_verified_arms",
-          "document_ref": "cache/colchicine-secondary-cv-prevention/ft_32295417.txt",
-          "source_span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>",
-          "source_level": 1,
-          "kind": "extracted_counts",
-          "verification": "Table 4 (adverse events, colchicine n=366, placebo n=348): gastrointestinal symptoms 34 (9.3%) vs 11 (3.2%). The safety assessment uses the entire randomized cohort (366 and 348 randomized).",
-          "handed_abstract": "BACKGROUND: Vascular injury and inflammation during percutaneous coronary intervention (PCI) are associated with increased risk of post-PCI adverse outcomes. Colchicine decreases neutrophil recruitment to sites of vascular injury. The anti-inflammatory effects of acute colchicine administration before PCI on subsequent myocardial injury are unknown. METHODS: In a prospective, single-site trial, subjects referred for possible PCI (n=714) were randomized to acute preprocedural oral administration of colchicine 1.8 mg or placebo. RESULTS: Among the 400 subjects who underwent PCI, the primary outcome of PCI-related myocardial injury did not differ between colchicine (n=206) and placebo (n=194) groups (57.3% versus 64.2%, P=0.19). The composite outcome of death, nonfatal myocardial infarction, and target vessel revascularization at 30 days (11.7% versus 12.9%, P=0.82), and the outcome of PCI-related myocardial infarction defined by the Society for Cardiovascular Angiography and Interventions (2.9% versus 4.7%, P=0.49) did not differ between colchicine and placebo groups. Among 280 PCI subjects in a nested inflammatory biomarker substudy, the primary biomarker end point, change in interleukin-6 concentrations did not differ between groups 1-hour post-PCI but increased less 24 hours post-PCI in the colchicine (n=141) versus placebo group (n=139; 76% [-6 to 898] versus 338% [27 to 1264], P=0.02). High-sensitivity C-reactive protein concentration also increased less after 24 hours in the colchicine versus placebo groups (11% [-14 to 80] versus 66% [1 to 172], P=0.001). CONCLUSIONS: Acute preprocedural administration of colchicine attenuated the increase in interleukin-6 and high-sensitivity C-reactive protein concentrations after PCI when compared with placebo but did not lower the risk of PCI-related myocardial injury. Registration: URL: https://www.clinicaltrials.gov; Unique Identifiers: NCT02594111, NCT01709981.",
-          "document_candidates": [
-            "cache/colchicine-secondary-cv-prevention/ft_32295417.txt",
-            "cache/colchicine-secondary-cv-prevention/records.json#PMID-32295417"
-          ],
-          "source": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>",
-          "target_endpoint_class": "EXACT_TARGET",
-          "target_components": [],
-          "extra_components": [],
-          "missing_components": [],
-          "component_distance": 0,
-          "endpoint_binding": "result_span_enumerates_components",
-          "endpoint_result_span": "Gastrointestinal symptoms, % | 34 (9.3) | 11 (3.2) | 0.001",
-          "endpoint_definition_span": "Gastrointestinal symptoms, % ; Adverse events",
-          "endpoint_binding_reason": "span names the outcome family",
-          "hand_binding_state": "BOUND",
-          "spans": [
-            {
-              "role": "result",
-              "text": "Gastrointestinal symptoms, % | 34 (9.3) | 11 (3.2) | 0.001"
-            },
-            {
-              "role": "row_label",
-              "text": "Gastrointestinal symptoms, %"
-            },
-            {
-              "role": "column_header",
-              "text": "Colchicine (n=366) | Placebo (n=348) | p-value"
-            },
-            {
-              "role": "caption",
-              "text": "Adverse events"
-            }
-          ],
-          "held_document": {
-            "ref": "cache/colchicine-secondary-cv-prevention/ft_32295417.txt",
-            "sha256": "0a6217c28bca8df0262bce8a95c1fa776dd12d0a00d67daf755b0e4caa464fbd",
-            "representation": "xml"
-          },
-          "endpoint_admissibility": "EXACT_TARGET",
-          "derivation": "reconstructed",
-          "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
-          "selected_estimator": "reconstructed",
-          "alternatives": [],
-          "verified": "verified",
-          "verify_basis": "arm counts present in committed source",
-          "design": {
-            "unit_of_randomisation": "INDIVIDUAL",
-            "design": "PARALLEL",
-            "estimator_source": "RECONSTRUCTED",
-            "adjustment_status": "UNRESOLVED",
-            "adjustment_axis": {
-              "status": "UNRESOLVED"
-            },
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "se_provenance": "synth.Study.yi_vi:2x2:RR",
-            "basis": [
-              {
-                "source": "AACT designs.intervention_model",
-                "span": "PARALLEL"
-              }
-            ],
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "study_effect": {
-            "effect_estimate": 2.938897168405365,
-            "standard_error": 0.3386961056159695,
-            "estimand": "RR",
-            "analysis_population": "UNKNOWN",
-            "randomisation_unit": "INDIVIDUAL",
-            "study_design": "PARALLEL",
-            "estimator_method": "RECONSTRUCTED",
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "source_provenance": {
-              "source": "fulltext_verified_arms",
-              "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "effect_object": {
-            "reported_label": "RR",
-            "statistical_model": null,
-            "canonical_estimand": "RISK_RATIO"
-          },
-          "trial_family_id": "NCT02594111",
-          "publication_role": "primary",
-          "analysis_set": null,
-          "follow_up_window": null,
-          "endpoint_definition": "Gastrointestinal adverse effects",
-          "population_age": "not_stated",
-          "intervention_ontology": {
-            "intervention_class": null
-          },
-          "compat_dimensions": {
-            "trial_id": "32295417",
-            "trial_label": "32295417",
-            "analysis_set": {
-              "value": null,
-              "source": "underivable",
-              "span": ""
-            },
-            "follow_up_window": {
-              "value": null,
-              "source": "underivable",
-              "span": ""
-            },
-            "endpoint_definition": {
-              "value": "Gastrointestinal adverse effects",
-              "source": "outcome.name",
-              "span": "Gastrointestinal adverse effects"
-            },
-            "population_age": {
-              "value": "not_stated",
-              "source": "committed source text",
-              "span": ""
-            },
-            "intervention_ontology": {
-              "intervention_class": null
-            }
-          },
-          "trial_id": "PMID 32295417",
-          "report_id": "PMID 32295417",
-          "outcome_effect_id": "colchicine-secondary-cv-prevention::Gastrointestinal adverse effects::PMID 32295417::PMID 32295417",
-          "harm_absence_state": "EXTRACTED",
-          "harm_source_reported": true,
-          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "family_id": "SYN-3e026ec3103a"
         }
       ],
       "declared_absent_trials": [
@@ -4035,10 +3872,10 @@
           "harm_source_signal": "numeric_signal",
           "family_id": "NCT02551094",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4070,10 +3907,10 @@
           "harm_source_reported": false,
           "family_id": "NCT06342609",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4103,10 +3940,10 @@
           "harm_source_reported": false,
           "family_id": "SYN-bdab6343885d",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4145,10 +3982,10 @@
           "harm_source_signal": "numeric_signal",
           "family_id": "SYN-a3fae9fec429",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4178,10 +4015,10 @@
           "harm_source_reported": false,
           "family_id": "ACTRN12618000809235",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4213,10 +4050,10 @@
           "harm_source_reported": false,
           "family_id": "NCT04848857",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4246,10 +4083,10 @@
           "harm_source_reported": false,
           "family_id": "SYN-5b1a3de06657",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4290,10 +4127,10 @@
           "harm_source_signal": "numeric_signal",
           "family_id": "NCT03156816",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4324,10 +4161,10 @@
           "harm_source_reported": false,
           "family_id": "ACTRN12614000093684",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4364,10 +4201,55 @@
           "harm_source_signal": "numeric_signal",
           "family_id": "ACTRN12615000861550",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
+          "label": "32295417",
+          "id": "PMID 32295417",
+          "absent_kind": "adjudicated_absent",
+          "state": "TIMEPOINT_MISMATCH",
+          "reason_code": "TIMEPOINT_MISMATCH",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "TIMEPOINT_MISMATCH",
+          "source_span": "Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study cohort are shown in",
+          "verbatim_span": "Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study cohort are shown in",
+          "source": "Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study cohort are shown in",
+          "document_ref": "cache/colchicine-secondary-cv-prevention/ft_32295417.txt",
+          "source_level": 1,
+          "reason": "Gastrointestinal symptoms (34/366 vs 11/348, Table 4) are peri-procedural events after a single pre-PCI loading dose, counted only through hospital discharge; this is not the long-term exposure of secondary cardiovascular prevention, and the topic already refuses COLCHICINE-PCI on this scope (docs/refusals.json: a 30-day peri-PCI composite, wrong timepoint/scope).",
+          "trial_family_id": "NCT02594111",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2020-07-10",
+          "completion_date": "2021-12-31",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "state_basis": "TIMEPOINT_MISMATCH: source span: \"Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study cohort are shown in\"; Gastrointestinal symptoms (34/366 vs 11/348, Table 4) are peri-procedural events after a single pre-PCI loading dose, counted only through hospital discharge; this is not the long-term exposure of secondary cardiovascular prevention, and the topic already refuses COLCHICINE-PCI on this scope (docs/refusals.json: a 30-day peri-PCI composite, wrong timepoint/scope).",
+          "trial_id": "PMID 32295417",
+          "report_id": "PMID 32295417",
+          "outcome_effect_id": "colchicine-secondary-cv-prevention::Gastrointestinal adverse effects::PMID 32295417::PMID 32295417",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "TIMEPOINT_MISMATCH"
+          },
+          "harm_absence_state": "RETRIEVED_INCOMPATIBLE_STRUCTURE",
+          "harm_source_reported": true,
+          "harm_source_span": "The subsequent inflammatory cascade can be detected as early as one hour after PCI. 1 – 6 Elevated levels of inflammatory biomarkers in the setting of PCI are associated with endothelial dysfunction and microvascular obstruction and remains an independent predictor of subsequent major adverse cardio",
+          "harm_source_signal": "term_signal",
+          "family_id": "SYN-3e026ec3103a",
+          "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
+          "depends_on": {
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4397,10 +4279,10 @@
           "harm_source_reported": false,
           "family_id": "SYN-0f3c5be6ea20",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4432,10 +4314,10 @@
           "harm_source_reported": false,
           "family_id": "NCT01936285",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4474,10 +4356,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "SYN-c342236445a3",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4516,10 +4398,10 @@
           "harm_source_signal": "term_signal",
           "family_id": "SYN-d85a0bbde567",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4560,10 +4442,10 @@
           "harm_source_signal": "numeric_signal",
           "family_id": "NCT03048825",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4597,10 +4479,10 @@
           "harm_source_reported": false,
           "family_id": "NCT05739929",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4634,10 +4516,10 @@
           "harm_source_reported": false,
           "family_id": "NCT06215989",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4671,10 +4553,10 @@
           "harm_source_reported": false,
           "family_id": "NCT05850091",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4708,10 +4590,10 @@
           "harm_source_reported": false,
           "family_id": "NCT07704164",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4745,10 +4627,10 @@
           "harm_source_reported": false,
           "family_id": "NCT01709981",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4782,10 +4664,10 @@
           "harm_source_reported": false,
           "family_id": "NCT00754819",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4819,10 +4701,10 @@
           "harm_source_reported": false,
           "family_id": "NCT02095522",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         },
@@ -4856,10 +4738,10 @@
           "harm_source_reported": false,
           "family_id": "NCT07143136",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-          "claim_id": "d80b80371058e15a",
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+          "claim_id": "f73cd7da364a22a8",
           "depends_on": {
-            "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+            "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
           },
           "claim_kind": "membership_state"
         }
@@ -4869,11 +4751,9 @@
         "pooled_family_ids": [],
         "pooled_family_count": 0,
         "pooled": [
-          "PMID 34876021",
-          "PMID 32295417"
+          "PMID 34876021"
         ],
         "unresolved_pooled_candidate_ids": [
-          "SYN-3e026ec3103a",
           "SYN-981b057cb68a"
         ],
         "declared_absent": [
@@ -4887,6 +4767,7 @@
           "PMID 34420373",
           "PMID 32865380",
           "PMID 32862667",
+          "PMID 32295417",
           "PMID 31284074",
           "PMID 26265659",
           "PMID 23500260",
@@ -4903,23 +4784,17 @@
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "2faf3cf39754ffdc089b9a1eb219886dd06e111d74ba80b4cb2b760db34cfce9"
+        "input_set_version": "afad268e446a3f6b1241fc03c4e62eadcce9b5130ad5eb118f97fb0b36040fce"
       },
       "result": {
-        "k": 2,
-        "estimate": 3.3768,
+        "k": 1,
+        "estimate": 5.375,
         "scale": "RR",
-        "ci_low": null,
-        "ci_high": null,
-        "tau2": 0.0,
-        "Q": 0.73097,
-        "i2": 0.0,
+        "ci_low": 1.5958,
+        "ci_high": 18.1047,
+        "Q": 0.0,
         "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
-        "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
-        "ci_low_fixed": 1.886,
-        "ci_high_fixed": 6.0461,
-        "estimate_fixed": 3.3768,
-        "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval.",
+        "pi_note": "prediction interval undefined for k=1",
         "estmeasure": {
           "status": "homogeneous",
           "classes": [
@@ -4932,40 +4807,8 @@
             "RR"
           ]
         },
-        "k2_trial_diagnostics": {
-          "conflict": false,
-          "reasons": [],
-          "trials": [
-            {
-              "label": "34876021",
-              "id": "PMID 34876021",
-              "effect": 5.375,
-              "ci_low": 1.5958,
-              "ci_high": 18.1047,
-              "scale": "RR"
-            },
-            {
-              "label": "32295417",
-              "id": "PMID 32295417",
-              "effect": 2.9389,
-              "ci_low": 1.5132,
-              "ci_high": 5.708,
-              "scale": "RR"
-            }
-          ]
-        },
-        "pooled_ci_refused": {
-          "code": "K2_SINGLE_DF",
-          "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
-        },
-        "ci_hksj_unserved": {
-          "ci_low": 0.0774,
-          "ci_high": 147.3959,
-          "method": "PM tau^2 + HKSJ on t(1)",
-          "note": "computed for auditability only; not served as the registered interval at k=2"
-        },
         "leave_one_out": {
-          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
+          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         },
         "claim": {
           "present": false,
@@ -4998,33 +4841,6 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
-              }
-            ]
-          },
-          {
-            "id": "32295417",
-            "label": "32295417",
-            "state": "EXTRACTED",
-            "extracted": true,
-            "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>",
-            "source_ladder": [
-              {
-                "rung": "abstract",
-                "state": "CHECKED"
-              },
-              {
-                "rung": "held full text",
-                "state": "CHECKED"
-              },
-              {
-                "rung": "supplement / registry results / regulatory source",
-                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
-                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
-              },
-              {
-                "rung": "located adjudication source: cache/colchicine-secondary-cv-prevention/ft_32295417.txt",
-                "state": "CHECKED_LOCATED_SPAN",
-                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -5111,6 +4927,35 @@
               {
                 "rung": "located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-34420373",
                 "state": "SPAN_NOT_VERIFIED",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
+          },
+          {
+            "id": "32295417",
+            "label": "32295417",
+            "state": "RETRIEVED_INCOMPATIBLE_STRUCTURE",
+            "span": "Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study cohort are shown in",
+            "extracted": false,
+            "reason_code": "TIMEPOINT_MISMATCH",
+            "reason": "Gastrointestinal symptoms (34/366 vs 11/348, Table 4) are peri-procedural events after a single pre-PCI loading dose, counted only through hospital discharge; this is not the long-term exposure of secondary cardiovascular prevention, and the topic already refuses COLCHICINE-PCI on this scope (docs/refusals.json: a 30-day peri-PCI composite, wrong timepoint/scope).",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/colchicine-secondary-cv-prevention/ft_32295417.txt",
+                "state": "CHECKED_LOCATED_SPAN",
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
@@ -5228,13 +5073,13 @@
           }
         ],
         "harm_reporting_trials_n": 9,
-        "harm_extracted_trials_n": 2,
+        "harm_extracted_trials_n": 1,
         "harm_registered_trials_n": 25,
         "harms_synthesis_suppressed": true,
-        "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88",
-        "claim_id": "e72028a5e96c72eb",
+        "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a",
+        "claim_id": "dbac6ca903f45cbf",
         "depends_on": {
-          "input_set_version": "d413acb388efc251bdb72aeb4d9498ca8b8130a828d796e72cc85d000c203b88"
+          "input_set_version": "d2666fa704766273849e777f5e9876c4b21a137f08f34ac4e025e2419a27ac5a"
         },
         "claim_kind": "outcome_result"
       },
@@ -5258,7 +5103,7 @@
         "analysis_set_declared": null,
         "randomised_contrast": {
           "verified": 0,
-          "total": 2
+          "total": 1
         },
         "matched": true,
         "mismatches": [],
@@ -5282,10 +5127,9 @@
         "effect_measure_labels": [
           "RR"
         ],
-        "k": 2,
+        "k": 1,
         "reconstructed_members": [
-          "34876021",
-          "32295417"
+          "34876021"
         ],
         "label_mix_small_k": false
       },
@@ -5299,13 +5143,6 @@
             {
               "trial_id": "34876021",
               "trial_label": "34876021",
-              "value": "Gastrointestinal adverse effects",
-              "source": "outcome.name",
-              "span": "Gastrointestinal adverse effects"
-            },
-            {
-              "trial_id": "32295417",
-              "trial_label": "32295417",
               "value": "Gastrointestinal adverse effects",
               "source": "outcome.name",
               "span": "Gastrointestinal adverse effects"
@@ -7320,7 +7157,7 @@
   "integrity": {
     "checked_utc": "2026-09-13T08:44:12Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
-    "n_pooled": 5,
+    "n_pooled": 4,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
@@ -7374,7 +7211,7 @@
     },
     "n_pubmed_checked": 4,
     "n_not_checkable": 0,
-    "n_not_assessed": 1,
+    "n_not_assessed": 0,
     "per_trial": {
       "PMID 31733140": {
         "trial_key": "PMID 31733140",
@@ -7411,21 +7248,13 @@
         "retracted": false,
         "concern": false,
         "evidence": "no retraction/concern notice in PubMed"
-      },
-      "PMID 32295417": {
-        "trial_key": "PMID 32295417",
-        "pubmed_key": "32295417",
-        "pubmed_checked": false,
-        "state": "NOT_ASSESSED",
-        "evidence": "NOT_ASSESSED (offline lane): no held integrity result for this PMID"
       }
     },
     "membership_pooled": [
       "PMID 31733140",
       "PMID 32865380",
       "PMID 39555823",
-      "PMID 34876021",
-      "PMID 32295417"
+      "PMID 34876021"
     ]
   },
   "unit_of_analysis": [
@@ -7469,14 +7298,6 @@
       "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     },
     {
-      "id": "PMID 32295417",
-      "type": "not stated (full text scanned)",
-      "span": "",
-      "source": "full text",
-      "scanned": "full text",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
-    },
-    {
       "id": "PMID 1593057",
       "type": "not stated (abstract only - full text not retrieved)",
       "span": "",
@@ -7506,6 +7327,14 @@
       "span": "",
       "source": "abstract",
       "scanned": "abstract",
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+    },
+    {
+      "id": "PMID 32295417",
+      "type": "not stated (full text scanned)",
+      "span": "",
+      "source": "full text",
+      "scanned": "full text",
       "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     },
     {
@@ -7735,7 +7564,7 @@
       },
       {
         "code": "eligible_declared_absent",
-        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT06342609, PMID:41605493, PMID:40263680, PMID:39189611, NCT04848857, PMID:39115262, and 14 more; the completeness claim cannot be current"
+        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT06342609, PMID:41605493, PMID:40263680, PMID:39189611, NCT04848857, PMID:39115262, and 15 more; the completeness claim cannot be current"
       }
     ]
   },
@@ -7816,13 +7645,6 @@
             "value": "Gastrointestinal adverse effects",
             "source": "outcome.name",
             "span": "Gastrointestinal adverse effects"
-          },
-          {
-            "trial_id": "32295417",
-            "trial_label": "32295417",
-            "value": "Gastrointestinal adverse effects",
-            "source": "outcome.name",
-            "span": "Gastrointestinal adverse effects"
           }
         ],
         "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
@@ -7848,9 +7670,9 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 69,
+    "N": 70,
     "counts": {
-      "REASON_TRUE": 36,
+      "REASON_TRUE": 37,
       "REASON_FALSE_VALUE_HELD": 2,
       "REASON_WRONG_KIND": 7,
       "NOT_VERIFIABLE": 24
@@ -7881,6 +7703,12 @@
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 24
+      },
+      "TIMEPOINT_MISMATCH": {
+        "REASON_TRUE": 1,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
       }
     },
     "rows": [
@@ -8243,6 +8071,17 @@
         "label": "32862667",
         "id": "PMID 32862667",
         "stated_reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "colchicine-secondary-cv-prevention",
+        "outcome": "Gastrointestinal adverse effects",
+        "outcome_kind": "harm",
+        "trial_key": "32295417",
+        "label": "32295417",
+        "id": "PMID 32295417",
+        "stated_reason_code": "TIMEPOINT_MISMATCH",
         "verdict": "REASON_TRUE",
         "detail": "value absent from every held source inspected; code is consistent"
       },
@@ -8659,10 +8498,10 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 75,
     "counts": {
-      "EXTRACTED": 6,
+      "EXTRACTED": 5,
       "HELD_NOT_EXTRACTED": 2,
       "NOT_IN_HELD_SOURCES": 61,
-      "ABSENT_BY_DESIGN": 6
+      "ABSENT_BY_DESIGN": 7
     },
     "n_held_not_extracted": 2,
     "by_outcome_kind": {
@@ -8673,10 +8512,10 @@
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
-        "EXTRACTED": 3,
+        "EXTRACTED": 2,
         "HELD_NOT_EXTRACTED": 0,
         "NOT_IN_HELD_SOURCES": 41,
-        "ABSENT_BY_DESIGN": 6
+        "ABSENT_BY_DESIGN": 7
       }
     },
     "rows": [
@@ -8985,7 +8824,8 @@
         "trial_label": "32295417",
         "outcome": "Gastrointestinal adverse effects",
         "outcome_kind": "harm",
-        "status": "EXTRACTED"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "TIMEPOINT_MISMATCH"
       },
       {
         "slug": "colchicine-secondary-cv-prevention",
@@ -92737,16 +92577,16 @@
             "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
           },
           "measured": {
-            "state": "YES",
-            "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "reported": {
-            "state": "YES",
-            "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "extractable": {
-            "state": "YES",
-            "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "in_primary_pool": {
             "state": "NO",
@@ -92890,33 +92730,28 @@
         },
         {
           "outcome": "Gastrointestinal adverse effects",
-          "state": "POOLED",
+          "state": "UNKNOWN",
           "span": {
             "measured": {
-              "state": "YES",
-              "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             },
             "reported": {
-              "state": "YES",
-              "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             },
             "extractable": {
-              "state": "YES",
-              "span": "<thead><tr><th align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Colchicine<break/>(n=366)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Placebo<break/>(n=348)</th><th align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">p-value</th></tr></thead><tbody><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Chest pain, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">33 (9.0)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">25 (7.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.45</td></tr><tr><td align=\"left\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">Gastrointestinal symptoms, %</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">34 (9.3)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">11 (3.2)</td><td align=\"center\" valign=\"middle\" rowspan=\"1\" colspan=\"1\">0.001</td></tr>"
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             }
           },
-          "analysis_input": true,
+          "analysis_input": false,
           "pool_refusal": null,
           "pooled": {
-            "state": "YES",
-            "span": {
-              "source": "review.outcomes.trials",
-              "report_ids": [
-                "PMID 32295417"
-              ]
-            }
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
           },
-          "poolable_value": true
+          "poolable_value": false
         },
         {
           "outcome": "Non-cardiovascular death",
@@ -111213,8 +111048,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT06342609, PMID:41605493, PMID:40263680, PMID:39189611, NCT04848857, PMID:39115262, and 14 more; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "722ba6c13cdb5d1e244be0c617b3b3b57757c3477e7520ebac49579f03d12c14",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT06342609, PMID:41605493, PMID:40263680, PMID:39189611, NCT04848857, PMID:39115262, and 15 more; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "9cd679d6458706b0a870a6e42b55b2dc0be8721e9085669af26cbf65dd03507b",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -111392,8 +111227,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>34876021</td><td>EXTRACTED / : </td><td>abstract arm-level counts (percentage-corroborated): Evaluating adverse effects, gastrointestinal symptom was the most with the rate of 15 (12.5%) in the colchicine group and 3 (2.5%) in the controls.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>32295417</td><td>EXTRACTED / : </td><td>&lt;thead&gt;&lt;tr&gt;&lt;th align=&quot;left&quot; valign=&quot;top&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;/&gt;&lt;th align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;Colchicine&lt;break/&gt;(n=366)&lt;/th&gt;&lt;th align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;Placebo&lt;break/&gt;(n=348)&lt;/th&gt;&lt;th align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;p-value&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td align=&quot;left&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;Chest pain, %&lt;/td&gt;&lt;td align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;33 (9.0)&lt;/td&gt;&lt;td align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;25 (7.2)&lt;/td&gt;&lt;td align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;0.45&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td align=&quot;left&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;Gastrointestinal symptoms, %&lt;/td&gt;&lt;td align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;34 (9.3)&lt;/td&gt;&lt;td align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;11 (3.2)&lt;/td&gt;&lt;td align=&quot;center&quot; valign=&quot;middle&quot; rowspan=&quot;1&quot; colspan=&quot;1&quot;&gt;0.001&lt;/td&gt;&lt;/tr&gt;</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/ft_32295417.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>31733140</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports diarrhea percentages only; local AACT contains separate diarrhea AE/SAE rows rather than a unique-patient total for all gastrointestinal adverse effects, so those component counts cannot stand for the registered outcome.</td><td>BACKGROUND: Experimental and clinical evidence supports the role of inflammation in atherosclerosis and its complications. Colchicine is an orally administered, potent antiinflammatory medication that is indicated for the treatment of gout and pericarditis. METHODS: We performed a randomized, double-blind trial involving patients recruited within 30 days after a myocardial infarction. The patients were randomly assigned to receive either low-dose colchicine (0.5 mg once daily) or placebo. The primary efficacy end point was a composite of death from cardiovascular causes, resuscitated cardiac arrest, myocardial infarction, stroke, or urgent hospitalization for angina leading to coronary revascularization. The components of the primary end point and safety were also assessed. RESULTS: A total of 4745 patients were enrolled; 2366 patients were assigned to the colchicine group, and 2379 to the placebo group. Patients were followed for a median of 22.6 months. The primary end point occurred in 5.5% of the patients in the colchicine group, as compared with 7.1% of those in the placebo group (hazard ratio, 0.77; 95% confidence interval [CI], 0.61 to 0.96; P = 0.02). The hazard ratios were 0.84 (95% CI, 0.46 to 1.52) for death from cardiovascular causes, 0.83 (95% CI, 0.25 to 2.73) for resuscitated cardiac arrest, 0.91 (95% CI, 0.68 to 1.21) for myocardial infarction, 0.26 (95% CI, 0.10 to 0.70) for stroke, and 0.50 (95% CI, 0.31 to 0.81) for urgent hospitalization for angina leading to coronary revascularization. Diarrhea was reported in 9.7% of the patients in the colchicine group and in 8.9% of those in the placebo group (P = 0.35). Pneumonia was reported as a serious adverse event in 0.9% of the patients in the colchicine group and in 0.4% of those in the placebo group (P = 0.03). CONCLUSIONS: Among patients with a recent myocardial infarction, colchicine at a dose of 0.5 mg daily led to a significantly lower risk of ischemic cardiovascular events than placebo. (Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-31733140: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>40263680</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports overall side effects as 21.6% versus 15%, not gastrointestinal-specific counts or an effect with confidence interval; counts are not reconstructed from percentages.</td><td>BACKGROUND: Inflammation plays a role in ST-segment elevation myocardial infarction (STEMI), especially in reperfusion injury (RI). Colchicine, an anti-inflammatory drug, can suppress inflammation during RI. We assessed the effectiveness of administering colchicine to STEMI patients undergoing primary percutaneous coronary intervention (PPCI) in suppressing RI events. METHODS: This study was a randomized, double-blind, placebo-controlled clinical trial conducted in a multicenter manner at two hospitals in Jakarta with IKPP facilities from December 2022 to April 2023. STEMI patients that underwent PPCI received 2 mg of colchicine as a loading dose and a maintenance dose of 0.5 mg every 12 hours for two days or amylum at a similar dose. Patients were observed for RI events (low-flow thrombolysis in myocardial infarction (0-2) during angiography procedure, reperfusion arrhythmia, cardiogenic shock, or persistent chest pain). RESULTS: Seventy-seven STEMI patients with a mean age of 55.2 ± 9.9 years underwent PPCI. Of these patients, 37 received colchicine, and 40 received a placebo. Most subjects were male (77.5%), suffered three-vessel disease (44.15%), and occlusion in left anterior descending coronary artery (53.24%). Colchicine was found to fail to reduce the incidence of ischemia-RI (51.5% vs. 42.4%; p = 0.437). Analysis of comorbidities (hypertension, chronic kidney disease, diabetes mellitus, and obesity) and angiography results (vessel disease, lesion diameter, and culprit artery) failed to demonstrate a statistical difference in RI. Side effects were similar in the colchicine and placebo groups (21.6% vs. 15%). CONCLUSION: Colchicine administration in STEMI patients undergoing PPCI failed to reduce RI.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-40263680: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>34420373</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports gastrointestinal adverse events as 34% versus 11% without explicit event counts or a harm effect with confidence interval; no linked local AACT results are held and counts cannot be inferred from rounded percentages.</td><td>BACKGROUND: Inflammation is a key factor of myocardial damage in reperfused ST-segment-elevation myocardial infarction. We hypothesized that colchicine, a potent anti-inflammatory agent, may reduce infarct size (IS) and left ventricular (LV) remodeling at the acute phase of ST-segment-elevation myocardial infarction. METHODS: In this double-blind multicenter trial, we randomly assigned patients admitted for a first episode of ST-segment-elevation myocardial infarction referred for primary percutaneous coronary intervention to receive oral colchicine (2-mg loading dose followed by 0.5 mg twice a day) or matching placebo from admission to day 5. The primary efficacy outcome was IS determined by cardiac magnetic resonance imaging at 5 days. The relative LV end-diastolic volume change at 3 months and IS at 3 months assessed by cardiac magnetic resonance imaging were among the secondary outcomes. RESULTS: We enrolled 192 patients, 101 in the colchicine group and 91 in the control group. At 5 days, the gadolinium enhancement-defined IS did not differ between the colchicine and placebo groups with a mean of 26 interquartile range (IQR) [16-44] versus 28.4 IQR [14-40] g of LV mass, respectively (P=0.87). At 3 months follow-up, there was no significant difference in LV remodeling between the colchicine and placebo groups with a +2.4% (IQR, -8.3% to 11.1%) versus -1.1% (IQR, -8.0% to 9.9%) change in LV end-diastolic volume (P=0.49). Infarct size at 3 months was also not significantly different between the colchicine and placebo groups (17 IQR [10-28] versus 18 IQR [10-27] g of LV mass, respectively; P=0.92). The incidence of gastrointestinal adverse events during the treatment period was greater with colchicine than with placebo (34% versus 11%, respectively; P=0.0002). CONCLUSIONS: In this randomized, placebo-controlled trial, oral administration of high-dose colchicine at the time of reperfusion and for 5 days did not reduce IS assessed by cardiac magnetic resonance imaging. Registration: URL: https://www.clinicaltrials.gov; Unique identifier: NCT03156816.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-34420373: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23500260</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract says treatment-related adverse events were largely gastrointestinal but gives no gastrointestinal count or effect with confidence interval.</td><td>OBJECTIVES: This study sought to test the hypothesis that colchicine treatment after percutaneous coronary intervention (PCI) can lead to a decrease in in-stent restenosis (ISR). BACKGROUND: ISR rates are particularly high in certain patient subsets, including diabetic patients, especially when a bare-metal stent (BMS) is used. Pharmacological interventions to decrease ISR could be of clinical relevance. METHODS: Diabetic patients with contraindication to a drug-eluting stent, undergoing PCI with a BMS, were randomized to receive colchicine 0.5 mg twice daily or placebo for 6 months. Restenosis and neointima formation were studied with angiography and intravascular ultrasound 6 months after the index PCI. RESULTS: A total of 196 patients (63.6 ± 7.0 years of age, 128 male) were available for analysis. The angiographic ISR rate was 16% in the colchicine group and 33% in the control group (p = 0.007; odds ratio: 0.38, 95% confidence interval: 0.18 to 0.79). The number needed to treat to avoid 1 case of angiographic ISR was 6 (95% confidence interval: 3.4 to 18.7). The results were similar for IVUS-defined ISR (odds ratio: 0.42; 95% confidence interval: 0.22 to 0.81; number needed to treat = 5). Lumen area loss was 1.6 mm(2) (interquartile range: 1.0 to 2.9 mm(2)) in colchicine-treated patients and 2.9 mm(2) (interquartile range: 1.4 to 4.8 mm(2)) in the control group (p = 0.002). Treatment-related adverse events were largely limited to gastrointestinal symptoms. CONCLUSIONS: Colchicine is associated with less neointimal hyperplasia and a decreased ISR rate when administered to diabetic patients after PCI with a BMS. This observation may prove useful in patients undergoing PCI in whom implantation of a drug-eluting stent is contraindicated or undesirable.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-23500260: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>1593057</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports a 6.9% dropout rate due to unspecified side effects in the colchicine arm only, not per-arm gastrointestinal adverse events.</td><td>Colchicine, an antimitogenic agent, has shown promise in preventing restenosis after coronary angioplasty in experimental animal models. A prospective trial was conducted involving 197 patients randomized in a 2:1 fashion to treatment with oral colchicine, 0.6 mg twice daily (130 patients), or placebo (67 patients) for 6 months after elective coronary angioplasty. Treatment in all patients began between 12 h before angioplasty and 24 h after angioplasty. Compliance monitoring revealed that 96% of all prescribed pills were ingested. Demographic characteristics were similar in colchicine- and placebo-treated groups. A mean of 2.7 lesions/patient were dilated. Side effects resulted in a 6.9% dropout rate in the colchicine-treated patients. Complete quantitative angiographic follow-up was obtained in 145 patients (74%) with 393 dilated lesions. Quantitative angiographic measurements were obtained in two orthogonal views at baseline before angioplasty and immediately and at 6 months after angioplasty. The quantitative mean lumen diameter stenosis before angioplasty was 67% both in the 152 lesions in the placebo-treated group and in the 241 lesions in the colchicine-treated group; this value was reduced to 24% immediately after angioplasty in the lesions in both treatment groups. At the 6-month angiogram, lesions had restenosed to 47% lumen diameter narrowing in the placebo-treated group compared with 46% in the colchicine-treated group (p = NS). Forty-one percent of colchicine-treated patients developed restenosis in at least one lesion compared with 45% of the placebo-treated group (p = NS). In conclusion, colchicine was ineffective for preventing restenosis after coronary angioplasty.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-1593057: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>CLEAR SYNERGY</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports diarrhea percentages, not the overall gastrointestinal adverse-effect outcome or explicit harm counts; no linked local AACT results are held and percentages cannot supply an assumed count.</td><td>BACKGROUND: Inflammation is associated with adverse cardiovascular events. Data from recent trials suggest that colchicine reduces the risk of cardiovascular events. METHODS: In this multicenter trial with a 2-by-2 factorial design, we randomly assigned patients who had myocardial infarction to receive either colchicine or placebo and either spironolactone or placebo. The results of the colchicine trial are reported here. The primary efficacy outcome was a composite of death from cardiovascular causes, recurrent myocardial infarction, stroke, or unplanned ischemia-driven coronary revascularization, evaluated in a time-to-event analysis. C-reactive protein was measured at 3 months in a subgroup of patients, and safety was also assessed. RESULTS: A total of 7062 patients at 104 centers in 14 countries underwent randomization; at the time of analysis, the vital status was unknown for 45 patients (0.6%), and this information was most likely missing at random. A primary-outcome event occurred in 322 of 3528 patients (9.1%) in the colchicine group and 327 of 3534 patients (9.3%) in the placebo group over a median follow-up period of 3 years (hazard ratio, 0.99; 95% confidence interval [CI], 0.85 to 1.16; P = 0.93). The incidence of individual components of the primary outcome appeared to be similar in the two groups. The least-squares mean difference in C-reactive protein levels between the colchicine group and the placebo group at 3 months, adjusted according to the baseline values, was -1.28 mg per liter (95% CI, -1.81 to -0.75). Diarrhea occurred in a higher percentage of patients with colchicine than with placebo (10.2% vs. 6.6%; P&lt;0.001), but the incidence of serious infections did not differ between groups. CONCLUSIONS: Among patients who had myocardial infarction, treatment with colchicine, when started soon after myocardial infarction and continued for a median of 3 years, did not reduce the incidence of the composite primary outcome (death from cardiovascular causes, recurrent myocardial infarction, stroke, or unplanned ischemia-driven coronary revascularization). (Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-39555823: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32862667</td><td>RETRIEVED_OUTCOME_NOT_REPORTED / KNOWN_REPORTED_NOT_YET_EXTRACTED: source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence</td><td>December 2015 and September 2018 (mean age, 59.8±10.3 years; 21% female), with 396 assigned to the colchicine group and 399 to the placebo group. Over the 12-month follow-up, there were 24 events in the colchicine group compared with 38 events in the placebo group (P=0.09, log-rank). There was a higher rate of total death (8 versus 1; P=0.017, log-rank) and, in particular, no</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr></table>",
-      "text_sha256": "0cbb1073365cdfa92f1af277f1219202efa6b8057849ea85566310e2d020b3de",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>34876021</td><td>EXTRACTED / : </td><td>abstract arm-level counts (percentage-corroborated): Evaluating adverse effects, gastrointestinal symptom was the most with the rate of 15 (12.5%) in the colchicine group and 3 (2.5%) in the controls.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>31733140</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports diarrhea percentages only; local AACT contains separate diarrhea AE/SAE rows rather than a unique-patient total for all gastrointestinal adverse effects, so those component counts cannot stand for the registered outcome.</td><td>BACKGROUND: Experimental and clinical evidence supports the role of inflammation in atherosclerosis and its complications. Colchicine is an orally administered, potent antiinflammatory medication that is indicated for the treatment of gout and pericarditis. METHODS: We performed a randomized, double-blind trial involving patients recruited within 30 days after a myocardial infarction. The patients were randomly assigned to receive either low-dose colchicine (0.5 mg once daily) or placebo. The primary efficacy end point was a composite of death from cardiovascular causes, resuscitated cardiac arrest, myocardial infarction, stroke, or urgent hospitalization for angina leading to coronary revascularization. The components of the primary end point and safety were also assessed. RESULTS: A total of 4745 patients were enrolled; 2366 patients were assigned to the colchicine group, and 2379 to the placebo group. Patients were followed for a median of 22.6 months. The primary end point occurred in 5.5% of the patients in the colchicine group, as compared with 7.1% of those in the placebo group (hazard ratio, 0.77; 95% confidence interval [CI], 0.61 to 0.96; P = 0.02). The hazard ratios were 0.84 (95% CI, 0.46 to 1.52) for death from cardiovascular causes, 0.83 (95% CI, 0.25 to 2.73) for resuscitated cardiac arrest, 0.91 (95% CI, 0.68 to 1.21) for myocardial infarction, 0.26 (95% CI, 0.10 to 0.70) for stroke, and 0.50 (95% CI, 0.31 to 0.81) for urgent hospitalization for angina leading to coronary revascularization. Diarrhea was reported in 9.7% of the patients in the colchicine group and in 8.9% of those in the placebo group (P = 0.35). Pneumonia was reported as a serious adverse event in 0.9% of the patients in the colchicine group and in 0.4% of those in the placebo group (P = 0.03). CONCLUSIONS: Among patients with a recent myocardial infarction, colchicine at a dose of 0.5 mg daily led to a significantly lower risk of ischemic cardiovascular events than placebo. (Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-31733140: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>40263680</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports overall side effects as 21.6% versus 15%, not gastrointestinal-specific counts or an effect with confidence interval; counts are not reconstructed from percentages.</td><td>BACKGROUND: Inflammation plays a role in ST-segment elevation myocardial infarction (STEMI), especially in reperfusion injury (RI). Colchicine, an anti-inflammatory drug, can suppress inflammation during RI. We assessed the effectiveness of administering colchicine to STEMI patients undergoing primary percutaneous coronary intervention (PPCI) in suppressing RI events. METHODS: This study was a randomized, double-blind, placebo-controlled clinical trial conducted in a multicenter manner at two hospitals in Jakarta with IKPP facilities from December 2022 to April 2023. STEMI patients that underwent PPCI received 2 mg of colchicine as a loading dose and a maintenance dose of 0.5 mg every 12 hours for two days or amylum at a similar dose. Patients were observed for RI events (low-flow thrombolysis in myocardial infarction (0-2) during angiography procedure, reperfusion arrhythmia, cardiogenic shock, or persistent chest pain). RESULTS: Seventy-seven STEMI patients with a mean age of 55.2 ± 9.9 years underwent PPCI. Of these patients, 37 received colchicine, and 40 received a placebo. Most subjects were male (77.5%), suffered three-vessel disease (44.15%), and occlusion in left anterior descending coronary artery (53.24%). Colchicine was found to fail to reduce the incidence of ischemia-RI (51.5% vs. 42.4%; p = 0.437). Analysis of comorbidities (hypertension, chronic kidney disease, diabetes mellitus, and obesity) and angiography results (vessel disease, lesion diameter, and culprit artery) failed to demonstrate a statistical difference in RI. Side effects were similar in the colchicine and placebo groups (21.6% vs. 15%). CONCLUSION: Colchicine administration in STEMI patients undergoing PPCI failed to reduce RI.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-40263680: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>34420373</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports gastrointestinal adverse events as 34% versus 11% without explicit event counts or a harm effect with confidence interval; no linked local AACT results are held and counts cannot be inferred from rounded percentages.</td><td>BACKGROUND: Inflammation is a key factor of myocardial damage in reperfused ST-segment-elevation myocardial infarction. We hypothesized that colchicine, a potent anti-inflammatory agent, may reduce infarct size (IS) and left ventricular (LV) remodeling at the acute phase of ST-segment-elevation myocardial infarction. METHODS: In this double-blind multicenter trial, we randomly assigned patients admitted for a first episode of ST-segment-elevation myocardial infarction referred for primary percutaneous coronary intervention to receive oral colchicine (2-mg loading dose followed by 0.5 mg twice a day) or matching placebo from admission to day 5. The primary efficacy outcome was IS determined by cardiac magnetic resonance imaging at 5 days. The relative LV end-diastolic volume change at 3 months and IS at 3 months assessed by cardiac magnetic resonance imaging were among the secondary outcomes. RESULTS: We enrolled 192 patients, 101 in the colchicine group and 91 in the control group. At 5 days, the gadolinium enhancement-defined IS did not differ between the colchicine and placebo groups with a mean of 26 interquartile range (IQR) [16-44] versus 28.4 IQR [14-40] g of LV mass, respectively (P=0.87). At 3 months follow-up, there was no significant difference in LV remodeling between the colchicine and placebo groups with a +2.4% (IQR, -8.3% to 11.1%) versus -1.1% (IQR, -8.0% to 9.9%) change in LV end-diastolic volume (P=0.49). Infarct size at 3 months was also not significantly different between the colchicine and placebo groups (17 IQR [10-28] versus 18 IQR [10-27] g of LV mass, respectively; P=0.92). The incidence of gastrointestinal adverse events during the treatment period was greater with colchicine than with placebo (34% versus 11%, respectively; P=0.0002). CONCLUSIONS: In this randomized, placebo-controlled trial, oral administration of high-dose colchicine at the time of reperfusion and for 5 days did not reduce IS assessed by cardiac magnetic resonance imaging. Registration: URL: https://www.clinicaltrials.gov; Unique identifier: NCT03156816.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-34420373: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32295417</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / TIMEPOINT_MISMATCH: Gastrointestinal symptoms (34/366 vs 11/348, Table 4) are peri-procedural events after a single pre-PCI loading dose, counted only through hospital discharge; this is not the long-term exposure of secondary cardiovascular prevention, and the topic already refuses COLCHICINE-PCI on this scope (docs/refusals.json: a 30-day peri-PCI composite, wrong timepoint/scope).</td><td>Peri-procedural adverse events from baseline assessment through hospital discharge in the entire study cohort are shown in</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/ft_32295417.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23500260</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract says treatment-related adverse events were largely gastrointestinal but gives no gastrointestinal count or effect with confidence interval.</td><td>OBJECTIVES: This study sought to test the hypothesis that colchicine treatment after percutaneous coronary intervention (PCI) can lead to a decrease in in-stent restenosis (ISR). BACKGROUND: ISR rates are particularly high in certain patient subsets, including diabetic patients, especially when a bare-metal stent (BMS) is used. Pharmacological interventions to decrease ISR could be of clinical relevance. METHODS: Diabetic patients with contraindication to a drug-eluting stent, undergoing PCI with a BMS, were randomized to receive colchicine 0.5 mg twice daily or placebo for 6 months. Restenosis and neointima formation were studied with angiography and intravascular ultrasound 6 months after the index PCI. RESULTS: A total of 196 patients (63.6 ± 7.0 years of age, 128 male) were available for analysis. The angiographic ISR rate was 16% in the colchicine group and 33% in the control group (p = 0.007; odds ratio: 0.38, 95% confidence interval: 0.18 to 0.79). The number needed to treat to avoid 1 case of angiographic ISR was 6 (95% confidence interval: 3.4 to 18.7). The results were similar for IVUS-defined ISR (odds ratio: 0.42; 95% confidence interval: 0.22 to 0.81; number needed to treat = 5). Lumen area loss was 1.6 mm(2) (interquartile range: 1.0 to 2.9 mm(2)) in colchicine-treated patients and 2.9 mm(2) (interquartile range: 1.4 to 4.8 mm(2)) in the control group (p = 0.002). Treatment-related adverse events were largely limited to gastrointestinal symptoms. CONCLUSIONS: Colchicine is associated with less neointimal hyperplasia and a decreased ISR rate when administered to diabetic patients after PCI with a BMS. This observation may prove useful in patients undergoing PCI in whom implantation of a drug-eluting stent is contraindicated or undesirable.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-23500260: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>1593057</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports a 6.9% dropout rate due to unspecified side effects in the colchicine arm only, not per-arm gastrointestinal adverse events.</td><td>Colchicine, an antimitogenic agent, has shown promise in preventing restenosis after coronary angioplasty in experimental animal models. A prospective trial was conducted involving 197 patients randomized in a 2:1 fashion to treatment with oral colchicine, 0.6 mg twice daily (130 patients), or placebo (67 patients) for 6 months after elective coronary angioplasty. Treatment in all patients began between 12 h before angioplasty and 24 h after angioplasty. Compliance monitoring revealed that 96% of all prescribed pills were ingested. Demographic characteristics were similar in colchicine- and placebo-treated groups. A mean of 2.7 lesions/patient were dilated. Side effects resulted in a 6.9% dropout rate in the colchicine-treated patients. Complete quantitative angiographic follow-up was obtained in 145 patients (74%) with 393 dilated lesions. Quantitative angiographic measurements were obtained in two orthogonal views at baseline before angioplasty and immediately and at 6 months after angioplasty. The quantitative mean lumen diameter stenosis before angioplasty was 67% both in the 152 lesions in the placebo-treated group and in the 241 lesions in the colchicine-treated group; this value was reduced to 24% immediately after angioplasty in the lesions in both treatment groups. At the 6-month angiogram, lesions had restenosed to 47% lumen diameter narrowing in the placebo-treated group compared with 46% in the colchicine-treated group (p = NS). Forty-one percent of colchicine-treated patients developed restenosis in at least one lesion compared with 45% of the placebo-treated group (p = NS). In conclusion, colchicine was ineffective for preventing restenosis after coronary angioplasty.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-1593057: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>CLEAR SYNERGY</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The abstract reports diarrhea percentages, not the overall gastrointestinal adverse-effect outcome or explicit harm counts; no linked local AACT results are held and percentages cannot supply an assumed count.</td><td>BACKGROUND: Inflammation is associated with adverse cardiovascular events. Data from recent trials suggest that colchicine reduces the risk of cardiovascular events. METHODS: In this multicenter trial with a 2-by-2 factorial design, we randomly assigned patients who had myocardial infarction to receive either colchicine or placebo and either spironolactone or placebo. The results of the colchicine trial are reported here. The primary efficacy outcome was a composite of death from cardiovascular causes, recurrent myocardial infarction, stroke, or unplanned ischemia-driven coronary revascularization, evaluated in a time-to-event analysis. C-reactive protein was measured at 3 months in a subgroup of patients, and safety was also assessed. RESULTS: A total of 7062 patients at 104 centers in 14 countries underwent randomization; at the time of analysis, the vital status was unknown for 45 patients (0.6%), and this information was most likely missing at random. A primary-outcome event occurred in 322 of 3528 patients (9.1%) in the colchicine group and 327 of 3534 patients (9.3%) in the placebo group over a median follow-up period of 3 years (hazard ratio, 0.99; 95% confidence interval [CI], 0.85 to 1.16; P = 0.93). The incidence of individual components of the primary outcome appeared to be similar in the two groups. The least-squares mean difference in C-reactive protein levels between the colchicine group and the placebo group at 3 months, adjusted according to the baseline values, was -1.28 mg per liter (95% CI, -1.81 to -0.75). Diarrhea occurred in a higher percentage of patients with colchicine than with placebo (10.2% vs. 6.6%; P&lt;0.001), but the incidence of serious infections did not differ between groups. CONCLUSIONS: Among patients who had myocardial infarction, treatment with colchicine, when started soon after myocardial infarction and continued for a median of 3 years, did not reduce the incidence of the composite primary outcome (death from cardiovascular causes, recurrent myocardial infarction, stroke, or unplanned ischemia-driven coronary revascularization). (Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/colchicine-secondary-cv-prevention/records.json#PMID-39555823: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32862667</td><td>RETRIEVED_OUTCOME_NOT_REPORTED / KNOWN_REPORTED_NOT_YET_EXTRACTED: source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence</td><td>December 2015 and September 2018 (mean age, 59.8±10.3 years; 21% female), with 396 assigned to the colchicine group and 399 to the placebo group. Over the 12-month follow-up, there were 24 events in the colchicine group compared with 38 events in the placebo group (P=0.09, log-rank). There was a higher rate of total death (8 versus 1; P=0.017, log-rank) and, in particular, no</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr></table>",
+      "text_sha256": "d7c688fc43bf98a9c7070ae413713b8eb0e033c9b48e9283e25d69d02217486d",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -111502,7 +111337,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Trial-defined major coronary/cardiovascular composite: verified 2/3; Gastrointestinal adverse effects: verified 0/2; Non-cardiovascular death: verified 0/1"
+        "gate_verdict_at_build": "Trial-defined major coronary/cardiovascular composite: verified 2/3; Gastrointestinal adverse effects: verified 0/1; Non-cardiovascular death: verified 0/1"
       }
     },
     {
@@ -111525,7 +111360,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Trial-defined major coronary/cardiovascular composite: verified 2/3; Gastrointestinal adverse effects: verified 0/2; Non-cardiovascular death: verified 0/1"
+        "gate_verdict_at_build": "Trial-defined major coronary/cardiovascular composite: verified 2/3; Gastrointestinal adverse effects: verified 0/1; Non-cardiovascular death: verified 0/1"
       }
     },
     {
@@ -111538,8 +111373,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 3 known</strong> (22 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 31733140</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).</td></tr><tr><td>PMID 32865380</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health Medical Research Council of Australia and others; LoDoCo2 Australian New Zealand Clinical Trials Registry number, ACTRN12614000093684.).</td></tr><tr><td>PMID 39555823</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).</td></tr><tr><td>PMID 34876021</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32295417</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 1593057</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23500260</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26265659</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 31284074</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32862667</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 34420373</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39115262</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39166327</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39189611</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 40263680</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41605493</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41670023</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT00754819</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT01709981</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>linked full text PMID 32295417</td><td><strong>linked full text PMID 32295417</strong>: </td></tr><tr><td>NCT02095522</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05739929</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05850091</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06215989</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07143136</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07704164</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
-      "text_sha256": "a0127c778da8638a9fdcbfe6cd0f35d37f5f3c79233b3745a3650b900440a4fd",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 3 known</strong> (22 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 31733140</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Government of Quebec and others; COLCOT ClinicalTrials.gov number, NCT02551094.).</td></tr><tr><td>PMID 32865380</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the National Health Medical Research Council of Australia and others; LoDoCo2 Australian New Zealand Clinical Trials Registry number, ACTRN12614000093684.).</td></tr><tr><td>PMID 39555823</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by the Canadian Institutes of Health Research and others; CLEAR ClinicalTrials.gov number, NCT03048825.).</td></tr><tr><td>PMID 34876021</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 1593057</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 23500260</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 26265659</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 31284074</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 32295417</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 32862667</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 34420373</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39115262</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39166327</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 39189611</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 40263680</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41605493</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 41670023</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT00754819</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT01709981</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>linked full text PMID 32295417</td><td><strong>linked full text PMID 32295417</strong>: </td></tr><tr><td>NCT02095522</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05739929</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT05850091</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06215989</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07143136</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT07704164</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "b0a377669b2f02623c4f0bd231c2c0114476ae6cc4eac9da8930261dae8a9898",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -111725,7 +111560,7 @@
         "kind": "retracted_count",
         "surface": "riskofbias/integrity",
         "source_path": "/integrity",
-        "pooled": 5,
+        "pooled": 4,
         "retracted": 0,
         "claim_id": "03bfa63d09bd1b11"
       }
@@ -111767,7 +111602,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "5d7f2fc3715763e74a7720e3f2ccfedf31176dc6c0be52a922bdfdacf1ba3611",
+    "review_sha256": "442ddb15cd7de3f54b8d8dd12a5c11ec16cda64a4c008cddde7bfa035617e03e",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -111808,37 +111643,6 @@
           "input_set_version": "7a3d92ad922f5120404d843ace4389bc53c4f3fbc1558d672a33353b147a720b"
         },
         "claim_kind": "refusal"
-      }
-    ],
-    "result_changes": [
-      {
-        "slug": "colchicine-secondary-cv-prevention",
-        "outcome": "Gastrointestinal adverse effects",
-        "before": {
-          "k": 1,
-          "estimate": 5.375,
-          "ci_low": 1.5958,
-          "ci_high": 18.1047
-        },
-        "after": {
-          "k": 2,
-          "estimate": 3.3768,
-          "ci_low": null,
-          "ci_high": null
-        },
-        "left_pool": [],
-        "entered_pool": [
-          "PMID 32295417"
-        ],
-        "after_note": "refused at k = 2, K2_SINGLE_DF",
-        "reason": "PMID 32295417 entered the pool contributing RR 2.939, reconstructed from 34/366 vs 11/348 (source fulltext_verified_arms). Entering trials are new evidence, not a correction: the previously served number is not asserted wrong; it was computed without the held document(s) this topic now admits to pool construction.",
-        "by": "Claude Opus 5.5 (captain lane, captain/table-role-guard); reviewer countersignature owed: Mahmood",
-        "when_utc": "2026-10-01T22:58:05Z",
-        "reviewer_countersignature": {
-          "state": "OPEN",
-          "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
-        },
-        "conclusion_changed": null
       }
     ],
     "dual": {
@@ -111924,7 +111728,7 @@
       "records_file_sha256": "55b6233afecd0d4449c4997e2b803fab331a8ecd75869ba14fee9291090fd96d",
       "retrieval_ledger_sha256": "8cdf4abea0d375d03d34257ff578d5a2ccf087e03dc31aa3db1fb69ffde64c4b",
       "screening_ledger_sha256": "4b5941889ec3121b9e64219205e22d456866ff9ca425d5be62a3e676086bc566",
-      "extraction_objects_sha256": "cfeab856dd7139085129b8867a04588791d9287f88d3a7c33680849f73146589",
+      "extraction_objects_sha256": "b9fe05cf82e1dc2ec0a84d66ae64c30126ee1d6d797bc967476ef741c9ace0bf",
       "trial_family_map_sha256": "0e5e32c775789462864416ff7116eefbcb608fd532bc67acb41a0628e1fe125b",
       "rob_object_sha256": "ff7d50f6c297b3fff5eb8278a9500d2e6b63bfde78926545b91536056b7c9b92",
       "held_documents": [
@@ -112076,7 +111880,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "cc22ff49f35f4d57d8c8a530d94ac6978bd8c38888ff58341e9ec9c9040be647",
-      "review_sha256": "5d7f2fc3715763e74a7720e3f2ccfedf31176dc6c0be52a922bdfdacf1ba3611",
+      "review_sha256": "442ddb15cd7de3f54b8d8dd12a5c11ec16cda64a4c008cddde7bfa035617e03e",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-secondary-cv-prevention.md UTF-8 text, universal newlines",
@@ -112085,7 +111889,7 @@
         "records_file_sha256": "canonical entire cache/<slug>/records.json",
         "retrieval_ledger_sha256": "canonical entire retrieval_ledger.json (including any raw-index digest)",
         "screening_ledger_sha256": "canonical review.json['screening']",
-        "extraction_objects_sha256": "canonical ref-to-JSON map: cache/colchicine-secondary-cv-prevention/verified_arms.json, cache/colchicine-secondary-cv-prevention/verified_effects.json",
+        "extraction_objects_sha256": "canonical ref-to-JSON map: cache/colchicine-secondary-cv-prevention/verified_effects.json",
         "trial_family_map_sha256": "cache/colchicine-secondary-cv-prevention/families.json canonical JSON, else NOT_PRESENT",
         "rob_object_sha256": "cache/colchicine-secondary-cv-prevention/rob2.json canonical JSON",
         "held_documents": "SHA-256 of exact file bytes at each bundle-relative ref; all topic ft_*.txt/aact_*.json plus referenced held documents and source-manifest PDF/text pairs",
@@ -112096,7 +111900,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "30e9eae2b06d605a3311df1cd0bfa04388173cfa90d415fc517e242b2ad12497"
+      "release_sha256": "672426b25d55eaadbbeb80219b034955c1cd02c64bc7754d9997f50674d2291f"
     }
   }
 }

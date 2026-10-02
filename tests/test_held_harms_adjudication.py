@@ -69,3 +69,20 @@ def test_a_tampered_span_is_refused_by_the_loader(tmp_path):
     (d / "verified_effects.json").write_text(json.dumps({pid: entry}), encoding="utf-8")
     with pytest.raises(ValueError, match="source_span absent"):
         verified_inputs.load(slug, cache_root=tmp_path)
+
+
+def test_PLANT_colchicine_pci_peri_procedural_harm_is_not_pooled():
+    """2026-10-02, dropped from packet v3: COLCHICINE-PCI's Table 4 GI symptoms (34/366 vs 11/348) are real
+    randomized-cohort counts, but peri-procedural after one pre-PCI loading dose and only through discharge. The topic
+    refuses this trial on scope (docs/refusals.json), so its harm must not pool either. Before this decision it was
+    pooled (k 1 -> 2); the decided row is a TIMEPOINT_MISMATCH that cites the peri-procedural sentence."""
+    decision = next(d for d in adj.DECISIONS if d[1] == "32295417")
+    assert decision[3] == "TIMEPOINT_MISMATCH" and decision[6] is None
+    assert "through hospital discharge" in decision[4]
+    review = json.loads((ROOT / "docs/reviews/colchicine-secondary-cv-prevention/review.json").read_text(encoding="utf-8"))
+    gi = next(o for o in review["outcomes"] if o["name"] == "Gastrointestinal adverse effects")
+    assert "PMID 32295417" not in [t["id"] for t in gi["trials"]]
+    row = next(t for t in gi["declared_absent_trials"] if t["id"] == "PMID 32295417")
+    assert row["reason_code"] == "TIMEPOINT_MISMATCH"
+    refusals = json.loads((ROOT / "docs/refusals.json").read_text(encoding="utf-8"))
+    assert any("32295417" in json.dumps(r) for r in refusals["colchicine-secondary-cv-prevention"])
