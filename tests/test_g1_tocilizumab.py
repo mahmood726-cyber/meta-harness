@@ -1,0 +1,48 @@
+"""G1 tocilizumab vs WHO REACT 2021 (g1/tocilizumab.py): the positive control, the anti-circularity and two-source
+rules, denominator kinds, and the plants (each must fire with its guard removed and not as built)."""
+import json
+import os
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from g1 import tocilizumab as g  # noqa: E402
+
+R = g.run()
+
+
+def test_react_rows_reproduce_reacts_printed_pool():
+    pc, pr = R["positive_control"], R["comparator"]["printed"]
+    assert (round(pc["or"], 2), round(pc["lo"], 2), round(pc["hi"], 2)) == (pr["estimate"], pr["ci_low"], pr["ci_high"])
+    assert pr["k"] == 19 and len(R["trials"]) == 19
+
+
+def test_a_react_row_is_never_a_source_and_k_matched_counts_established_primary_rows_only():
+    assert not any("REACT" in s.get("source", "") for t in R["trials"] for x in t["readings"] for s in x["sources"])
+    est_agree = [t for t in R["trials"] if t["state"] == g.ESTABLISHED and t["vs_react"]["verdict"] == "AGREE"]
+    assert R["k_matched"] == len(est_agree)
+    one = [t["label"] for t in R["trials"] if t["state"] == g.ONE_SOURCE]
+    assert one and not set(one) & {t["label"] for t in est_agree}   # one-source rows never counted
+
+
+def test_established_means_two_independent_sources_one_primary():
+    for t in R["trials"]:
+        if t["state"] == g.ESTABLISHED:
+            kinds = next(x["independent_sources"] for x in t["readings"] if x["values"] == {k: t["row"][k] for k in g._KEY})
+            assert len(kinds) >= 2 and set(kinds) & {"AACT", "TEXT"}, t["label"]
+
+
+def test_the_pool_on_established_rows_equals_reacts_on_the_same_trials():
+    assert R["pool_ours_established"] == R["pool_react_same_trials"]
+
+
+def test_unique_count_refuses_an_undetermined_percentage():
+    assert g.unique_count("19.7", 294) == 58 and g.unique_count("31", 2022) is None
+
+
+def test_plants_fire_only_with_their_guard_removed():
+    out = json.loads(subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "plants_g1_tocilizumab.py")],
+                                    capture_output=True, text=True, encoding="utf-8", check=True).stdout)
+    assert not any(v["fired_as_built"] for v in out.values())
+    assert all(v["fires_with_guard_removed"] for k, v in out.items() if "fires_with_guard_removed" in v)
