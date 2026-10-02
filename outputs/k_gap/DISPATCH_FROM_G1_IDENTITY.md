@@ -55,3 +55,58 @@ stopped two `g1_tracker.py` processes belonging to ANOTHER session:
 - `statins-primary-prevention-elderly --no-table` (both run with `-B`)
 
 Please re-run them if they were yours. Since then I stop only processes whose PIDs I recorded.
+
+## 4. Overnight round (2 Oct, commits 824865ccd, 8a7944bf4): an audit of the class fix's own identities
+
+**What was audited.** I compared the 60 identities that the class fix added or changed (relative to acq/k-gap
+435236c1a) against each registration's AACT acronym and title and each paper's PubMed title.
+
+**One wrong identity.** It was wrong on base and made worse by consolidation.
+- Row: `semaglutide-obesity-mace` "STEP 1 29".
+- It was resolved to NCT03574597 (SELECT), and consolidation then merged STEP 1 into SELECT, so it read POOLED.
+- Why: AACT lists STEP 1's NEJM paper (PMID 33567185) as a RESULT reference of SELECT as well as of NCT03548935
+  (STEP 1). The resolver's "exactly one candidate is in our family" tiebreak chose SELECT.
+
+**Fix (scripts/k_gap_table.py resolve_unit).** Before any family tiebreak, the AACT candidates are intersected with
+the paper's OWN full accession list: PubMed DataBankList plus the NCTs in the abstract.
+- The list comes from the new `scripts/pubmed_databank_lookup.py`, with its cache in
+  `outputs/k_gap/pubmed_databank_ncts.json` (181 PMIDs that AACT links to two or more NCTs).
+- Exactly one candidate in the paper's list: that registration is taken.
+- Two or more: the paper reports several trials, and every tiebreak is refused, including the family tiebreak.
+
+**For the k-gap lane: `outputs/k_gap/pubmed_ncts.json` / `harness.fetch._select_nct` keeps only the FIRST
+DataBank NCT.** That is wrong evidence for a multi-trial paper:
+- Shah 2020 lists NCT01709981 and NCT02594111;
+- the CANVAS program paper lists CANVAS and CANVAS-R;
+- the pooled dabigatran bleeding paper lists 5 registrations.
+
+I did not change the shared module.
+
+**Table diff vs fcc2cd53e.** 0 added, 4 moved, each checked against the paper's own record:
+
+| Topic | Row | Before | After |
+|---|---|---|---|
+| semaglutide-obesity-mace | STEP 1 29 | SELECT; POOLED | NCT03548935; NOT_IDENTIFIED (a weight trial, not held) |
+| colchicine-secondary-cv-prevention | Shah et al. (16) | NCT01709981 (family-tiebreak guess) | no NCT; `pmid_nct_paper_lists_several` |
+| semaglutide-obesity-mace | SCALE Obesity and Prediabetes | ambiguous | NCT01272219 |
+| sglt2-ckd-progression | DELIVER | ambiguous | NCT03619213 |
+
+UNRESOLVED_IDENTITY stays at 0.
+
+**NOTICE FOR MAHMOOD (served number; queued for signature, not landed).** In semaglutide-obesity-mace, the STEP 1
+row no longer counts as POOLED; its earlier POOLED status came only from the false merge with SELECT. Tracker
+re-runs for the three affected topics are reported in G1_TRACKER.md when they finish.
+
+**The Codex audit lane was not used as evidence.** IDAUDIT (gpt-5.5) returned 60/60 CORRECT, STEP 1 included.
+- Its "STEP" evidence was the substring of "stepped algorithm" in an unrelated review.
+- It never compared the registration's acronym.
+- Its verdicts are archived (`/f/codex-lanes/_archive/IDAUDIT.tgz`) and not relied on.
+
+**The replacement is a permanent gate** (`tests/test_idaudit_findings.py`):
+- Rule: a short label's acronym must prefix, or be prefixed by, the registration's AACT acronym, or appear in its
+  title.
+- On the pre-fix table it flags exactly STEP 1; on the committed table it flags nothing.
+
+**Pre-existing failure, not from this branch.** `tests/test_aact_cache.py::test_replay_with_snapshot_access_forbidden`
+fails with a tocilizumab CERTIFICATE release_sha256 mismatch. It fails identically on g1/noac (f974f249b, which
+contains base 435236c1a), and this branch touches no release or page path.
