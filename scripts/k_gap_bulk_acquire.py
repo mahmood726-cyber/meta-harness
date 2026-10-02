@@ -31,7 +31,6 @@ import k_gap_counterfactual as cfm  # noqa: E402
 from kgap import k_gap  # noqa: E402
 
 OUT = os.path.join(ROOT, "outputs", "k_gap")
-AACT_IDX = os.path.join(OUT, "_aact_results.json")
 csv.field_size_limit(10 ** 8)
 # set by the NCBI lane once the abstracts (which carry the DOIs) are written; the Unpaywall lane waits on it. Waiting on the
 # cache FILE was wrong: it existed from earlier runs, so the lane read stale records (257 NO_DOI instead of 13).
@@ -102,85 +101,21 @@ def unpaywall_lane(pmids):
     return {"lane": "UNPAYWALL", "secs": round(time.time() - t0, 1), **st}
 
 
-SNAP = "F:/AACT-storage/AACT/2026-08-30"
-SNAP_FILES = ("outcomes.txt", "outcome_analyses.txt", "outcome_measurements.txt", "outcome_counts.txt", "result_groups.txt")
-
-
-def snapshot_digest():
-    """The AACT snapshot as a PRIMARY source is identified by its version AND a digest of the exact files read (sha256
-    per file, cached against size+mtime so the 3 GB pass runs once)."""
-    cp = os.path.join(OUT, "aact_snapshot_digest.json")
-    old = _j(cp) if os.path.exists(cp) else {}
-    files = {}
-    for f in SNAP_FILES:
-        st = os.stat(os.path.join(SNAP, f))
-        prev = (old.get("files") or {}).get(f) or {}
-        if prev.get("size") == st.st_size and prev.get("mtime") == int(st.st_mtime):
-            files[f] = prev
-            continue
-        h = hashlib.sha256()
-        with open(os.path.join(SNAP, f), "rb") as fh:
-            for blk in iter(lambda: fh.read(1 << 22), b""):
-                h.update(blk)
-        files[f] = {"size": st.st_size, "mtime": int(st.st_mtime), "sha256": h.hexdigest()}
-    combined = hashlib.sha256("".join(f + files[f]["sha256"] for f in SNAP_FILES).encode()).hexdigest()
-    out = {"id": "AACT " + os.path.basename(SNAP), "digest": combined, "files": files}
-    with open(cp, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(out, fh, indent=1)
-    return out
-
-
-def _rows(name, want, key="nct_id"):
-    snap = SNAP
-    with open(os.path.join(snap, name), encoding="utf-8", errors="replace", newline="") as fh:
-        rd = csv.DictReader(fh, delimiter="|", quoting=csv.QUOTE_NONE)
-        for r in rd:
-            if r.get(key) in want:
-                yield r
-
-
 def aact_lane(ncts):
+    """Posted CT.gov results from the local AACT snapshot via the SHARED adapter (kgap.aact_adapter): incremental,
+    snapshot-tagged, fail-closed on a missing snapshot."""
+    import hashlib as _h
+    from kgap import aact_adapter
     t0 = time.time()
-    want = set(ncts)
-    snap = snapshot_digest()
-    tag = {"id": snap["id"], "digest": snap["digest"]}
-    idx = {n: {"_snapshot": tag, "outcomes": {}, "analyses": [], "groups": {}, "group_titles": {}} for n in want}
-    for r in _rows("outcomes.txt", want):
-        idx[r["nct_id"]]["outcomes"][r["id"]] = {"title": r.get("title"), "time_frame": r.get("time_frame"),
-                                                 "type": r.get("outcome_type"), "population": r.get("population"),
-                                                 "units_analyzed": r.get("units_analyzed")}
-    for r in _rows("result_groups.txt", want):
-        if (r.get("result_type") or "").lower() == "outcome":
-            idx[r["nct_id"]]["group_titles"][r["id"]] = r.get("title")
-    for r in _rows("outcome_analyses.txt", want):
-        idx[r["nct_id"]]["analyses"].append({"outcome_id": r["outcome_id"], "param_type": r.get("param_type"),
-                                             "param_value": r.get("param_value"), "ci_lower": r.get("ci_lower_limit"),
-                                             "ci_upper": r.get("ci_upper_limit")})
-    counts, ns = {}, {}
-    for r in _rows("outcome_measurements.txt", want):
-        if (r.get("param_type") or "").upper() in ("COUNT_OF_PARTICIPANTS", "NUMBER", "COUNT_OF_UNITS") and \
-                not (r.get("category") or r.get("classification")):
-            try:
-                counts[(r["nct_id"], r["outcome_id"], r["result_group_id"])] = int(float(r["param_value_num"]))
-            except (TypeError, ValueError):
-                pass
-    for r in _rows("outcome_counts.txt", want):
-        if (r.get("scope") or "").lower() == "measure":
-            try:
-                ns[(r["nct_id"], r["outcome_id"], r["result_group_id"])] = int(r["count"])
-            except (TypeError, ValueError):
-                pass
-    for (n, oid, gid), c in counts.items():
-        if (n, oid, gid) in ns:
-            idx[n]["groups"].setdefault(oid, []).append({"group": gid, "count": c, "n": ns[(n, oid, gid)]})
-    with open(AACT_IDX, "w", encoding="utf-8") as fh:
-        json.dump(idx, fh)
-    b = open(AACT_IDX, "rb").read()
-    return {"lane": "AACT", "secs": round(time.time() - t0, 1), "ncts": len(want),
-            "with_posted_outcomes": sum(1 for v in idx.values() if v["outcomes"]),
-            "with_analyses": sum(1 for v in idx.values() if v["analyses"]),
-            "with_group_counts": sum(1 for v in idx.values() if v["groups"]),
-            "snapshot": tag, "index_sha256": hashlib.sha256(b).hexdigest(), "index_bytes": len(b)}
+    st = aact_adapter.ensure(ncts)
+    held = {n: aact_adapter.registry_for(n) for n in ncts}
+    b = open(aact_adapter.index_path(), "rb").read()
+    return {"lane": "AACT", "secs": round(time.time() - t0, 1), "ncts": len(set(ncts)),
+            "with_posted_outcomes": sum(1 for v in held.values() if v),
+            "with_analyses": sum(1 for v in held.values() if v and v["analyses"]),
+            "with_group_counts": sum(1 for v in held.values() if v and v["groups"]),
+            "added_this_run": st["added"], "snapshot": st["snapshot"],
+            "index_sha256": _h.sha256(b).hexdigest(), "index_bytes": len(b)}
 
 
 def main():
