@@ -58,7 +58,8 @@ IDENTITY = {
 # a registration that holds more than one REACT row: the posted group titles that are THIS row's population
 SUBPOP = {"CORIMUNO-TOCI-1": r"Severe COVID", "CORIMUNO-TOCI-ICU": r"Critical COVID", "COVIDOSE2-SS-A": r"Sub-study A"}
 
-_DEATH_WORDS = re.compile(r"\b(?:died|deaths?|dead|mortality|death from any cause|all-cause mortality)\b", re.I)
+_DEATH_WORDS = re.compile(r"\b(?:died|deaths?|dead|fatal(?: events?)?|mortality|death from any cause|all-cause mortality)\b",
+                          re.I)
 _DAY28 = re.compile(r"\b(?:day\s*28|28\s*days?|28-day|by day 28|week\s*4|within 28)\b", re.I)
 _OTHER_DAY = re.compile(r"\b(?:day\s*(?:14|21|30|60|90)|(?:14|21|30|60|90)\s*days?|(?:30|60|90)-day)\b", re.I)
 _TOCI = re.compile(r"toci|tcz|actemra|il-6|interleukin", re.I)
