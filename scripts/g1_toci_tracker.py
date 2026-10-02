@@ -78,6 +78,10 @@ def build():
                  if t["readings"] and all(x["denominator_kind"] == g.SAFETY for x in t["readings"]) else
                  "no held primary source states 28-day deaths per arm (" + "; ".join(t["texts_held"]) + ")"
                  if t["texts_held"] else "no primary report held after the full cascade")
+        if t["state"] == g.ONE_SOURCE and best and not best.get("counts_stated_by"):
+            basis = ("one primary source, and it does not STATE the counts: " + " + ".join(best["independent_sources"])
+                     + " gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source "
+                       "states the per-arm deaths")
         if t["state"] == g.SECONDARY_COUNT:
             basis = ("counts printed only by a meta (" + "; ".join(best["counts_stated_by"]) + "); every primary gives a "
                      "percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- "
