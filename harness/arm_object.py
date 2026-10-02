@@ -157,12 +157,27 @@ def _contrast(drug: str, comparator: str, span: str, *, dose: str | None = None,
     }
 
 
+_MIDDOT_DECIMAL = re.compile(r"(?<=\d)[·∙](?=\d)")
+_DOSE_NUM = re.compile(r"(\d+(?:\.\d+)?)\s*mg", re.I)
+_SEMA_DOSE_LIST = re.compile(r"\bsemaglutide\s*[\[(]?\s*(?P<list>\d+(?:\.\d+)?\s*mg(?:\s*,?\s*(?:or\s+|and\s+)?\d+(?:\.\d+)?\s*mg)*)",
+                             re.I)
+
+
 def _generic_contrasts(raw: str) -> list[dict[str, Any]]:
     low = _lc(raw)
     out: list[dict[str, Any]] = []
     if "semaglutide" in low and "placebo" in low:
-        dm = re.search(r"semaglutide[^.;]{0,80}?(2[\.,]4|1[\.,]0|1[\.,]7|25|50)\s*mg", raw, re.I)
+        # a middle-dot decimal ('0·4 mg', Lancet style) is a decimal point
+        norm = _MIDDOT_DECIMAL.sub(".", raw)
+        dm = re.search(r"semaglutide[^.;]{0,80}?(2[\.,]4|1[\.,]0|1[\.,]7|25|50)\s*mg", norm, re.I)
         dose = (dm.group(1).replace(",", ".") + " mg") if dm else None
+        if dose is None:
+            # no listed reference dose: the dose LIST that immediately follows 'semaglutide' is the randomised dose(s)
+            # (O'Neil 2018: 'semaglutide [0·05 mg, 0·1 mg, 0·2 mg, 0·3 mg, or 0·4 mg; ...] ... once-daily'). Read
+            # whole, so the registered dose rule can see that no arm is the required dose; else stays NOT_DERIVABLE.
+            lm = _SEMA_DOSE_LIST.search(norm)
+            if lm:
+                dose = ", ".join(n + " mg" for n in _DOSE_NUM.findall(lm.group("list")))
         out.append(_contrast("semaglutide", "placebo", raw, dose=dose, background=_background_of(raw)))
     for drug in ("dapagliflozin", "empagliflozin", "canagliflozin", "finerenone"):
         if drug in low and "placebo" in low:
