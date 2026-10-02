@@ -24,20 +24,24 @@ TRIAL = ("METHODS: In this randomized, double-blind study, we compared apixaban 
          "with acute venous thromboembolism.")
 
 
+KW = dict(unit_pubtypes=["Journal Article", "Meta-Analysis"], unit_title="Management and outcomes of major bleeding",
+          unit_pmid="24081972", matched_pmids=["19966341", "24344086", "23991658", "23808982", "21128814", "22449293"])
+
+
 def test_named_only_when_every_condition_holds():
-    d = cm.not_an_included_trial(COMP, 6, UNIT, "REFERENCE_SEED")
+    d = cm.not_an_included_trial(COMP, 6, UNIT, "REFERENCE_SEED", **KW)
     assert d["kind"] == "NOT_AN_INCLUDED_TRIAL" and d["comparator_stated_k"] == 6
     assert d["comparator_stated_patients"] == 27023
-    assert d["span"]["match"] == "enrolled in 5 phase III trials"
+    assert d["span"]["match"].endswith("enrolled in 5 phase III trials")
 
 
 def test_never_named_when_any_condition_fails():
-    assert cm.not_an_included_trial(COMP, 5, UNIT, "REFERENCE_SEED") is None          # matched != stated k
-    assert cm.not_an_included_trial(COMP, 6, UNIT, "COMPARATOR_TABLE") is None        # not a reference seed
-    assert cm.not_an_included_trial(COMP, 6, TRIAL, "REFERENCE_SEED") is None         # a single trial: stays eligible
-    assert cm.not_an_included_trial("We pooled the randomised trials.", 6, UNIT, "REFERENCE_SEED") is None  # no count
+    assert cm.not_an_included_trial(COMP, 5, UNIT, "REFERENCE_SEED", **KW) is None          # matched != stated k
+    assert cm.not_an_included_trial(COMP, 6, UNIT, "COMPARATOR_TABLE", **KW) is None        # not a reference seed
+    assert cm.not_an_included_trial(COMP, 6, TRIAL, "REFERENCE_SEED", **KW) is None         # a single trial: stays eligible
+    assert cm.not_an_included_trial("We pooled the randomised trials.", 6, UNIT, "REFERENCE_SEED", **KW) is None  # no count
     two = COMP + " Of these, 4 trials including 12,000 patients reported bleeding."
-    assert cm.not_an_included_trial(two, 6, UNIT, "REFERENCE_SEED") is None           # two different stated counts
+    assert cm.not_an_included_trial(two, 6, UNIT, "REFERENCE_SEED", **KW) is None           # two different stated counts
 
 
 def test_the_tracker_names_majeed_with_both_spans_and_keeps_the_denominator_honest():

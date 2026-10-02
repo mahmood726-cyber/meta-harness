@@ -19,7 +19,7 @@ COMP = ("Recurrent VTE occurred in 2.0% of DOAC recipients compared with 2.2% in
 
 def test_the_trials_report_more_events_than_the_comparators_rates_can_hold():
     r = rc.reconcile("doac-vte-recurrence")["comparator_conclusion"]["whole_pool"]["event_total_check"]
-    assert r["state"] == "OUTCOME_EVENTS_EXCEED_COMPARATOR_RATES"
+    assert r["state"] == "EVENTS_INCOMPATIBLE_WITH_COMPARATOR_RATES"
     assert r["trial_events_total"] == 702 and r["comparator_max_events"] == 608.0
     assert {p: v["events"] for p, v in r["per_trial"].items()} == {
         "19966341": [30, 27], "24344086": [30, 28], "23991658": [130, 146], "23808982": [59, 71],
