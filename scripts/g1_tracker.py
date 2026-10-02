@@ -568,8 +568,22 @@ def table():
                   f"{r.get('TWO_SOURCE', 0)} | {r.get('UNVERIFIED', 0)} | {r.get('NO_ROW', 0)} | "
                   f"{o['per_trial_agreement']} | {same} | {_fmt(o['ours'])} k={o['ours'].get('k')} | {_fmt(o['comparator'])} | "
                   f"{o.get('top_blocker') or '-'} | " + (f"lane {src['branch']}@{src['commit'][:9]}" if src else "acq/k-gap") + " |")
+    # the dual-model forest reader's verdict on the comparator's own figure (scripts/g1_forest_reader.py): why a
+    # comparator row exists, or the typed reason it cannot (e.g. a one-stage IPD comparator prints no trial rows)
+    frp = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader.json")
+    fr = _j(frp) if os.path.exists(frp) else {}
     for o in out:
         md += ["", f"## {o['slug']} (comparator PMID {o['comparator_pmid']})", ""]
+        v, sk = (fr.get("results") or {}).get(o["slug"]), (fr.get("skipped") or {}).get(o["slug"])
+        if v:
+            a = v.get("acceptance") or {}
+            md.append(f"- DUAL FOREST READER (codex + agy) {v['figure']['fig_id']}: **{v['state']}** -- "
+                      + (f"{len(v.get('secondary_rows') or [])} comparator rows; printed pool reproduced by "
+                         f"{a.get('methods_reproducing')}" if v["state"] == "ACCEPTED" else
+                         f"{', '.join(v.get('problems') or [])}"))
+        elif sk:
+            md.append(f"- DUAL FOREST READER: not read -- {sk.get('why') if isinstance(sk, dict) else sk}"
+                      + (f"; {(sk.get('open_access') or {}).get('state')}" if isinstance(sk, dict) and sk.get("open_access") else ""))
         for x in o["trials"]:
             md.append(f"- {x['label']}: **{x['route']}** - {x['basis']}; vs comparator row: "
                       f"{x['agreement_with_comparator_row']}"

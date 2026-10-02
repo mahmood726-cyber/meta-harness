@@ -74,6 +74,8 @@ TARGETS: dict = {
     "iv-iron-hfref-hosp": {
         "fig_id": "diseases-12-00339-f003",
         "caption_has": "forest plot comparing FCM versus placebo on HF and non-HF hospitalization rates",
+        # the block's title as the figure prints it (the rows' outcome definition; not used in the prompt)
+        "panel_title": "Forest plot for total heart failure hospitalizations",
         "instruction": "The figure stacks several outcomes. Transcribe ONLY the block for heart-failure (HF) "
                        "hospitalization: its study rows and its own pooled row. Ignore non-HF hospitalization, the "
                        "composite, all-cause mortality and any overall row."},
