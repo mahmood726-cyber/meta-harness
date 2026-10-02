@@ -130,13 +130,30 @@ def test_every_committed_topic_cites_rule_and_span_for_every_non_eligible_trial(
 
 
 def test_every_protocol_scope_span_is_verbatim_in_the_held_record():
-    miss, n = [], 0
+    import pytest
+    miss, n, unheld = [], 0, []
     for p in _files():
         o = json.load(open(p, encoding="utf-8"))
         for d in o.get("named_differences") or []:
+            if d.get("kind") == "NOT_AN_INCLUDED_TRIAL":
+                # both spans: the unit's own record, and the comparator's statement of its membership (lane G1 doac)
+                n += 1
+                if not (gt.span_is_verbatim(o["slug"], d.get("pmid"), d.get("span"))
+                        and gt.span_is_verbatim(o["slug"], o.get("comparator_pmid"), d.get("comparator_span"))):
+                    miss.append(f"{o['slug']}::{d.get('trial')}")
+                continue
             if d.get("kind") != "PROTOCOL_SCOPE_DIFFERENCE":
                 continue
             n += 1
-            if not gt.span_is_verbatim(o["slug"], d.get("pmid"), d.get("span")):
+            sp = d.get("span") or {}
+            if sp.get("field") == "fulltext" and gt.held_fulltext(d.get("pmid"), sp.get("fulltext_sha256"),
+                                                                  sp.get("fulltext_source"), o["slug"]) is None:
+                # the gitignored full-text body is not in this clone: it cannot be verified HERE -- never a pass
+                unheld.append(f"{o['slug']}::{d.get('trial')}")
+                continue
+            if not gt.span_is_verbatim(o["slug"], d.get("pmid"), sp):
                 miss.append(f"{o['slug']}::{d.get('trial')}")
     assert not miss, f"{len(miss)} of {n} spans not verbatim: {miss}"
+    if unheld:
+        pytest.skip(f"{n - len(unheld)} of {n} spans verified; {len(unheld)} full-text span(s) unverifiable in this clone "
+                    f"(body not held; sha256 recorded): {unheld}")

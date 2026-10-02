@@ -490,6 +490,13 @@ def cite_or_demote(o, slug):
         elif d.get("kind") == "ESTIMAND_DIFFERENCE" and d.get("span") and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
             keep.append(d)
             continue
+        elif d.get("kind") == "NOT_AN_INCLUDED_TRIAL" and d.get("rule_id") and d.get("span_source") \
+                and span_is_verbatim(slug, d.get("pmid"), d.get("span")) \
+                and span_is_verbatim(slug, o.get("comparator_pmid"), d.get("comparator_span")) \
+                and d.get("comparator_stated_k") == sum(1 for x in o.get("trials") or [] if is_matched(x)):
+            # both spans re-verified here, and the stated count still equals the matched count (harness/comparator_membership.py)
+            keep.append(d)
+            continue
         else:
             why = f"SCOPE_UNCITED:{d.get('kind')}"
         demoted.append(d.get("trial"))
@@ -724,15 +731,44 @@ def report_pmid(t, shown=None):
     return str(p) if p else None
 
 
+def name_reference_seeds_outside_membership(slug, comp, trials, T):
+    """A REFERENCE-SEEDED comparator unit that the comparator's OWN abstract places outside its stated membership is
+    named NOT_AN_INCLUDED_TRIAL (harness/comparator_membership.py: stated k == matched k, and the unit's record says it
+    pools several trials; both spans verbatim in held records). Every other unmatched trial is left as it was."""
+    from harness import comparator_membership as cmb
+    k_matched = sum(1 for x in trials if is_matched(x))
+    crec = held_record(slug, comp) or {}
+    for x in trials:
+        if is_matched(x) or x.get("scope_difference"):
+            continue
+        pmid = str(x.get("family") or "").replace("PMID ", "").strip()
+        if not pmid.isdigit():
+            continue
+        row = next((t for t in T["trials"] if t["slug"] == slug and pmid in (t.get("pmids") or [])), None)
+        d = cmb.not_an_included_trial(crec.get("abstract") or "", k_matched,
+                                      (held_record(slug, pmid) or {}).get("abstract") or "", (row or {}).get("unit_source"))
+        if not d:
+            continue
+        x["scope_difference"] = dict(d, pmid=pmid, span_source=span_source_of(slug, pmid, d["span"]),
+                                     comparator_span_source=span_source_of(slug, comp, d["comparator_span"]))
+        x["blocker"] = None
+
+
 def whole_pool_comparison(o):
     """When EVERY comparator trial is matched and the comparator prints no per-trial rows (an IPD / network meta), the
     'same trials' ARE both whole pools: compare our pooled result with the comparator's printed one, labelled as such,
     with both methods recorded (they may differ: e.g. our PM+HKSJ vs an IPD model). Otherwise None."""
     st = o.get("same_trials") or {}
     ours, comp = o.get("ours") or {}, o.get("comparator") or {}
-    if st.get("state") == "POOLED" or o["k_matched"] != o["N_comparator_trials"] or o["named_differences"]:
+    # a reference seed outside the comparator's OWN stated membership (NOT_AN_INCLUDED_TRIAL) is not one of its trials:
+    # the comparator's pool is then exactly the matched set; any other named difference still disqualifies
+    nd = o.get("named_differences") or []
+    if any(d.get("kind") != "NOT_AN_INCLUDED_TRIAL" for d in nd):
         return None
-    if ours.get("k") != o["N_comparator_trials"] or None in (ours.get("estimate"), ours.get("ci_low"),
+    n_set = o["N_comparator_trials"] - len(nd)
+    if st.get("state") == "POOLED" or o["k_matched"] != n_set:
+        return None
+    if ours.get("k") != n_set or None in (ours.get("estimate"), ours.get("ci_low"),
                                                                ours.get("ci_high"), comp.get("estimate"),
                                                                comp.get("ci_low"), comp.get("ci_high")):
         return None
@@ -918,6 +954,7 @@ def topic(slug, T):
         if x.get("in_our_pool") and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
             x["analysis_set_attribution"] = analysis_set_attribution(slug, cfg, x)
     sweep_merge(slug, trials, routes, pairs)
+    name_reference_seeds_outside_membership(slug, comp, trials, T)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))
@@ -1051,6 +1088,9 @@ def table():
                 md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['screen_reason']}); protocol "
                           f"rule {d['protocol_rule']}; SPAN [{d['span_source']}]: \"{d['span']['text']}\"; "
                           f"registered eligibility: {d['registered_eligibility']}")
+            elif d["kind"] == "NOT_AN_INCLUDED_TRIAL":
+                md.append(f"- NAMED {d['kind']}: {d['trial']} -- {d['gate']}. COMPARATOR SPAN [{d['comparator_span_source']}]: "
+                          f"\"{d['comparator_span']['text']}\"; UNIT SPAN [{d['span_source']}]: \"{d['span']['text']}\"")
             else:
                 an = d.get("registry_analysis") or {}
                 md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d.get('rule_id')}; {d['gate']}: {d['reason']}. "
