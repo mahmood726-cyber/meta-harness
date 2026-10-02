@@ -289,7 +289,11 @@ def identity_tokens(label: str) -> dict:
         m2 = re.match(r"^([A-Z][A-Za-z'À-ſ-]+)(?:\s+[A-Z]{1,3}\.?)?(?P<etal>\s+et\s+al\.?)?$", lab)
         # an author alone is read only with a reference marker, or in the 'Surname [I] et al' form ('Finkelstein Y et al')
         author = m2.group(1) if m2 and (marker or m2.group("etal")) else ""
-    return {"acronyms": acr[:3], "author": m.group(1) if m else author, "year": m.group(2) if m else "",
+    # a trial NAME with a year ('Risk & Prevention 2013'): the year stands on its own -- one 4-digit publication year,
+    # never part of an '(n = ...)' count (already removed) or of a longer number
+    yrs = re.findall(r"(?<![\d.])((?:19|20)\d\d)(?![\d.])", lab) if not m else []
+    year = m.group(2) if m else (yrs[0] if len(set(yrs)) == 1 else "")
+    return {"acronyms": acr[:3], "author": m.group(1) if m else author, "year": year,
             "ncts": sorted(set(NCT_RE.findall(lab))), "marker": marker}
 
 

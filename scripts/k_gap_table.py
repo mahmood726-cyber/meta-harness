@@ -442,7 +442,8 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
         # reference N+offset, admitted per row only when that reference agrees with the row's OWN label and year
         n = str(int(u["marker"]) + u["marker_offset"])
         hits = [r for r in parsed["refs"].values() if r.get("label") == n]
-        ok = len(hits) == 1 and k_gap.label_ref_conflict(u, hits[0], []) is None and positive_ref_evidence(u, hits[0])
+        ok = len(hits) == 1 and (name_words_match(u.get("label"), hits[0]) or
+                                 (k_gap.label_ref_conflict(u, hits[0], []) is None and positive_ref_evidence(u, hits[0])))
         if ok:
             kept.append(dict(hits[0], basis=None))
             basis.append(f"label_marker_ref_shifted:{u['marker_offset']:+d}:{u['marker']}->{n}:{u['marker_offset_evidence']}")
@@ -709,6 +710,24 @@ def distrust_shifted_tables(units, idx):
     return {t: (sum(v), len(v)) for t, v in by_table.items()}
 
 
+_NAME_STOP = {"and", "of", "the", "for", "in", "with", "study", "trial", "group", "et", "al"}
+
+
+def name_words_match(label, ref):
+    """A trial NAME ('Risk & Prevention 2013 [42]') positively matches a reference whose own text or PubMed
+    collective-author name ('Risk and Prevention Study Collaborative Group') contains EVERY capitalised content word of
+    the name (at least two). This is the evidence for a named trial; label_ref_conflict's first-word-as-surname guess
+    ('Risk' vs 'Roncaglioni') does not apply to it."""
+    core = re.sub(r"\[\d+\]|\(\s*n\s*=.*$|(?:19|20)\d\d", " ", label or "")
+    words = [w for w in re.findall(r"[A-Z][A-Za-z]+", core) if w.lower() not in _NAME_STOP]
+    if len(words) < 2:
+        return False
+    hay = " ".join([ref.get("text") or "", ref.get("title") or ""] +
+                   list((COLLECTIVE.get(ref.get("pmid") or "") or {}).get("collective") or [])).lower()
+    hay_words = set(re.findall(r"[a-z]+", hay))
+    return all(w.lower() in hay_words for w in words)
+
+
 def positive_ref_evidence(t, ref):
     """The row and the reference POSITIVELY agree -- absence of a contradiction is not agreement (IDREVIEW P1: an
     acronym-only row passed against an unrelated shifted reference that simply carried no acronym). Evidence: the
@@ -744,12 +763,13 @@ def learn_marker_offsets(units, parsed, offsets=(1, -1, 2, -2)):
         if u.get("distrust_links") and u.get("layout") in ("row", "column"):
             t = k_gap.identity_tokens(u["label"])
             if t["marker"]:
-                tables.setdefault(u["table"], []).append((u, t))
+                tables.setdefault(u["table"], []).append((u, dict(t, label=u["label"])))
 
     def agree(t, k):
         r = refs.get(str(int(t["marker"]) + k))
         v = {"label": "", "acronyms": t["acronyms"], "author": t["author"], "year": t["year"]}
-        return bool(r) and k_gap.label_ref_conflict(v, r, []) is None and positive_ref_evidence(t, r)
+        return bool(r) and (name_words_match(t.get("label"), r) or
+                            (k_gap.label_ref_conflict(v, r, []) is None and positive_ref_evidence(t, r)))
     for table, rows in tables.items():
         score = {k: sum(agree(t, k) for _u, t in rows) for k in (0,) + tuple(offsets)}
         best = max(offsets, key=lambda k: score[k])
