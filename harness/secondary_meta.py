@@ -289,6 +289,8 @@ def row_yi_vi(row: SecondaryRow, z=1.959963984540054):
         f = math.log if ratio else (lambda x: x)
         return f(e), ((f(hi) - f(lo)) / (2 * z)) ** 2
     a, n1, c, n2 = row.events_t, row.n_t, row.events_c, row.n_c
+    if None in (a, n1, c, n2) or min(n1, n2) <= 0:
+        return None            # neither an effect with its CI nor a full 2x2: not poolable (was a TypeError)
     if 0 in (a, c) or a >= n1 or c >= n2:
         a, n1, c, n2 = a + 0.5, n1 + 1, c + 0.5, n2 + 1          # 0.5 only when a cell is zero (Cochrane convention)
     if row.measure.upper() == "OR":
