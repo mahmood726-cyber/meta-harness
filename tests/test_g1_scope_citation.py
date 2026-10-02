@@ -140,3 +140,18 @@ def test_every_protocol_scope_span_is_verbatim_in_the_held_record():
             if not gt.span_is_verbatim(o["slug"], d.get("pmid"), d.get("span")):
                 miss.append(f"{o['slug']}::{d.get('trial')}")
     assert not miss, f"{len(miss)} of {n} spans not verbatim: {miss}"
+
+
+def test_a_background_sentence_is_never_a_scope_span():
+    # CORE (pericarditis) was first spanned by 'BACKGROUND: Colchicine seems to be a good drug ...' -- a sentence about the
+    # field, not about the trial. Spans inside BACKGROUND / INTRODUCTION sections are skipped.
+    rec = {"abstract": "BACKGROUND: Conventional treatment is used. METHODS: Patients were randomly assigned to usual care "
+                       "or colchicine."}
+    sp = au.span_of(rec, au.OTHER_COMP, ("abstract",))
+    assert sp["text"].startswith("METHODS:") and "randomly assigned to usual care" in sp["text"]
+
+
+def test_a_secondary_analysis_needs_a_counted_set_of_trials():
+    # doac-vte 24081972: 'enrolled in 5 phase III trials' -> stated; DELIVER's 'were enrolled in the trials' -> not
+    assert au.SECONDARY_ANALYSIS.search("bleeds enrolled in 5 phase III trials comparing dabigatran")
+    assert not au.SECONDARY_ANALYSIS.search("patients with established HF were enrolled in the SGLT2 trials")

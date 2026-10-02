@@ -5,13 +5,32 @@
  "N_comparator_trials": 6,
  "k_matched": 2,
  "k_in_our_pool": 2,
- "N_eligible": 6,
- "named_differences": [],
+ "N_eligible": 5,
+ "named_differences": [
+  {
+   "trial": "Trial F (2019) (22)",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'relapse prevention'.",
+   "span": {
+    "field": "title",
+    "text": "Efficacy of Esketamine Nasal Spray Plus Oral Antidepressant Treatment for Relapse Prevention in Patients With Treatment-Resistant Depression: A Randomized Clinical Trial.",
+    "match": "Relapse Prevention"
+   },
+   "span_source": "PMID 31166571 record title (held: cache/esketamine-trd-madrs/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'relapse prevention'"
+   },
+   "protocol_rule": "include.population_none[15] = 'relapse prevention'",
+   "registered_eligibility": "Double-blind placebo-controlled RCTs in adults with treatment-resistant depression where intranasal esketamine plus an oral antidepressant is compared with intranasal placebo plus an oral antidepressant. Eligibility is on P/I/C/design only; outcome reporting is extraction status. Fixed-dose multi-arm trials without a pre-specified dose comparison are refused by the multi-arm guard.",
+   "pmid": "31166571"
+  }
+ ],
  "open_gaps": [
   "Trial B (2019) (20)",
   "Trial D (2020) (21)",
-  "Trial E (2020) (25)",
-  "Trial F (2019) (22)"
+  "Trial E (2020) (25)"
  ],
  "k_matched_of_comparator_N": "2 of 6",
  "comparator_set": {
@@ -30,18 +49,18 @@
   ]
  },
  "blockers": {
-  "EXTRACTION:KNOWN_REPORTED_NOT_YET_EXTRACTED": 1,
+  "EXTRACTION_FROM_TABLE": 1,
   "SCREENED_OUT_UNAUDITED:X-DEDUP": 1,
-  "SCREENED_OUT_UNAUDITED:X1": 1,
-  "SCREENED_OUT_UNAUDITED:X2": 1
+  "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 1
  },
- "top_blocker": "EXTRACTION:KNOWN_REPORTED_NOT_YET_EXTRACTED",
+ "top_blocker": "EXTRACTION_FROM_TABLE",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 3,
  "routes": {
   "PRIMARY": 2,
-  "NO_ROW": 4
+  "UNVERIFIED": 1,
+  "NO_ROW": 3
  },
  "trials": [
   {
@@ -68,12 +87,21 @@
    "label": "Trial B (2019) (20)",
    "family": "PMID 31290965",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "EXTRACTION_FROM_TABLE",
-   "our_refusal": "SEEDED PMID 31290965: DECLARED_ABSENT KNOWN_REPORTED_NOT_YET_EXTRACTED",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": null,
    "gap_class": "EXTRACTION_FROM_TABLE",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "-5.00",
+    "lower": "-8.10",
+    "upper": "-1.90",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "MD"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
@@ -228,14 +256,9 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
-   "seeded_funnel": {
-    "stage": "DECLARED_ABSENT",
-    "reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-    "pmid": "31290965"
-   },
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
-   "blocker": "EXTRACTION:KNOWN_REPORTED_NOT_YET_EXTRACTED"
+   "blocker": "EXTRACTION_FROM_TABLE"
   },
   {
    "label": "Trial C (2023) (23)",
@@ -566,7 +589,7 @@
     "pmid": "32316080"
    },
    "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X1"
+   "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD"
   },
   {
    "label": "Trial F (2019) (22)",
@@ -661,8 +684,25 @@
     "reason": "wrong population: title/conditions mention 'relapse prevention'.",
     "pmid": "31166571"
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'relapse prevention'.",
+    "span": {
+     "field": "title",
+     "text": "Efficacy of Esketamine Nasal Spray Plus Oral Antidepressant Treatment for Relapse Prevention in Patients With Treatment-Resistant Depression: A Randomized Clinical Trial.",
+     "match": "Relapse Prevention"
+    },
+    "span_source": "PMID 31166571 record title (held: cache/esketamine-trd-madrs/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'relapse prevention'"
+    },
+    "protocol_rule": "include.population_none[15] = 'relapse prevention'",
+    "registered_eligibility": "Double-blind placebo-controlled RCTs in adults with treatment-resistant depression where intranasal esketamine plus an oral antidepressant is compared with intranasal placebo plus an oral antidepressant. Eligibility is on P/I/C/design only; outcome reporting is extraction status. Fixed-dose multi-arm trials without a pre-specified dose comparison are refused by the multi-arm guard.",
+    "pmid": "31166571"
+   },
+   "blocker": null
   }
  ],
  "per_trial_agreement": {
@@ -688,7 +728,16 @@
   "scale": null
  },
  "comparator_basis": null,
- "comparator_rows_source": [],
+ "comparator_rows_source": [
+  {
+   "branch": "g1/forest-reader",
+   "commit": "56e503b7024ea4706e5bf020871bb4d6852968a9",
+   "path": "registry/model_proposals/g1_forest_reader.json",
+   "sha256": "18a113b952337445f15a55dcbe3b6e500724813d556a2badf4ea4536f3a2ae13",
+   "rows": 4,
+   "joined": 1
+  }
+ ],
  "ours_not_in_comparator": [
   "NCT02422186"
  ],
@@ -733,10 +782,14 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 6,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "Trial F (2019) (22) [X2]"
+   ]
   }
  }
 }
