@@ -4,6 +4,7 @@
  "comparator_pmid": "39727669",
  "N_comparator_trials": 5,
  "k_matched": 1,
+ "k_in_our_pool": 1,
  "N_eligible": 5,
  "named_differences": [],
  "open_gaps": [
@@ -38,7 +39,7 @@
  "comparator_findings": [],
  "k_ours_total": 2,
  "routes": {
-  "NO_ROW": 4,
+  "UNVERIFIED": 4,
   "PRIMARY": 1
  },
  "trials": [
@@ -46,8 +47,8 @@
    "label": "HEART-FID [11]",
    "family": "PMID 37632463",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "EXTRACTION_FROM_TABLE (secondary refused: ['OUTCOME_NOT_THE_TOPICS'])",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "EXTRACTION_FROM_TABLE",
    "absent_code": "COUNTS_PRESENT_NOT_CORROBORATED",
@@ -145,7 +146,7 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": "EXTRACTION:COUNTS_PRESENT_NOT_CORROBORATED"
   },
@@ -153,8 +154,8 @@
    "label": "AFFIRM-AHF [10]",
    "family": "PMID 33197395",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "MEASURE_MISMATCH (secondary refused: ['OUTCOME_NOT_THE_TOPICS'])",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "MEASURE_MISMATCH",
    "absent_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
@@ -206,7 +207,7 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": "EXTRACTION:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH"
   },
@@ -214,8 +215,8 @@
    "label": "FAIR-HF [20]",
    "family": "PMID 19920054",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "ACQUISITION (secondary refused: ['OUTCOME_NOT_THE_TOPICS'])",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "ACQUISITION",
    "absent_code": "OUTCOME_NOT_IN_SOURCE",
@@ -238,7 +239,7 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE"
   },
@@ -276,7 +277,7 @@
    "registry_binding": null,
    "g1_countable": true,
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_OR",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": null
   },
@@ -284,8 +285,8 @@
    "label": "EFFECT-HF [21]",
    "family": "PMID 28701470",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "ACQUISITION (secondary refused: ['OUTCOME_NOT_THE_TOPICS'])",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "ACQUISITION",
    "absent_code": "OUTCOME_NOT_IN_SOURCE",
@@ -308,7 +309,7 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE"
   }
@@ -336,7 +337,16 @@
   "scale": "OR"
  },
  "comparator_basis": "served review comparator.reported",
- "comparator_rows_source": [],
+ "comparator_rows_source": [
+  {
+   "branch": "g1/forest-reader",
+   "commit": "56e503b7024ea4706e5bf020871bb4d6852968a9",
+   "path": "registry/model_proposals/g1_forest_reader.json",
+   "sha256": "18a113b952337445f15a55dcbe3b6e500724813d556a2badf4ea4536f3a2ae13",
+   "rows": 5,
+   "joined": 5
+  }
+ ],
  "ours_not_in_comparator": [
   "PMID 40159390"
  ],
@@ -348,16 +358,16 @@
    "why_not_in_comparator": "PUBLISHED_AFTER_COMPARATOR"
   }
  ],
- "secondary_tally": {
-  "REFUSED": 5
+ "secondary_tally": {},
+ "secondary_skipped": {
+  "39727669": "NO_OUTCOME_FOREST_FIGURE"
  },
- "secondary_skipped": {},
  "registry": {
   "state": "READY",
   "snapshot": {
    "id": "AACT 2026-08-30",
-   "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-   "rules": 2
+   "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+   "rules": 3
   }
  },
  "pool_basis": {
@@ -379,6 +389,12 @@
   "unmet": [
    "ALL_ELIGIBLE_MATCHED",
    "RESULT_AGREES"
-  ]
+  ],
+  "excluded_by_scope": {
+   "n": 0,
+   "of_comparator_N": 5,
+   "by_kind": {},
+   "trials": []
+  }
  }
 }
