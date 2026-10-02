@@ -51,7 +51,40 @@
   }
  ],
  "open_gaps": [],
+ "blockers": {},
+ "top_blocker": null,
+ "other_agent_units": [],
  "comparator_findings": [
+  {
+   "finding": "COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND",
+   "trial": "ELIXA",
+   "comparator": "34526024",
+   "comparator_row": {
+    "effect": "1.02",
+    "lower": "0.89",
+    "upper": "1.17",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "HR"
+   },
+   "registry_outcome": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina",
+   "registry_analysis": {
+    "outcome_id": "258588414",
+    "param_type": "Hazard Ratio (HR)",
+    "param_value": "1.017",
+    "ci_lower": "0.886",
+    "ci_upper": "1.168"
+   },
+   "snapshot": {
+    "id": "AACT 2026-08-30",
+    "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+    "rules": 2
+   },
+   "gate_reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+   "basis": "the comparator's printed row equals, at its printed precision, the registry result of the composite our gate refuses for this topic"
+  },
   {
    "finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT",
    "trial": "PIONEER 6",
@@ -81,16 +114,19 @@
  ],
  "k_ours_total": 8,
  "routes": {
-  "PRIMARY": 8
+  "UNVERIFIED": 1,
+  "PRIMARY": 7
  },
  "trials": [
   {
    "label": "ELIXA",
    "family": "PMID 26630143",
    "in_our_pool": false,
-   "route": "PRIMARY",
-   "basis": "meta 34526024 PRIMARY_VERIFIED PRIMARY_TEXT",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+   "gap_class": "ACQUISITION",
+   "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": {
     "effect": "1.02",
     "lower": "0.89",
@@ -140,7 +176,10 @@
       },
       "gate": "ESTIMAND",
       "verdict": "REFUSED",
-      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label"
+      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+      "named_by": [
+       "non-fatal stroke"
+      ]
      },
      {
       "nct": "NCT01147250",
@@ -169,7 +208,10 @@
       },
       "gate": "ESTIMAND",
       "verdict": "REFUSED",
-      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label"
+      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+      "named_by": [
+       "non-fatal stroke"
+      ]
      },
      {
       "nct": "NCT01147250",
@@ -198,11 +240,14 @@
       },
       "gate": "ESTIMAND",
       "verdict": "REFUSED",
-      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label"
+      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+      "named_by": [
+       "non-fatal stroke"
+      ]
      }
     ]
    },
-   "g1_countable": true,
+   "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "PRIMARY_VERIFIED",
    "scope_difference": {
@@ -246,7 +291,8 @@
      "n_c": null,
      "measure": "HR"
     }
-   }
+   },
+   "blocker": null
   },
   {
    "label": "LEADER",
@@ -255,6 +301,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 27295427 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.87",
     "lower": "0.78",
@@ -281,7 +329,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   },
   {
    "label": "SUSTAIN-6",
@@ -290,6 +339,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 27633186 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.74",
     "lower": "0.58",
@@ -316,7 +367,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   },
   {
    "label": "EXSCEL",
@@ -325,6 +377,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 28910237 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.91",
     "lower": "0.83",
@@ -351,7 +405,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   },
   {
    "label": "HARMONY",
@@ -360,6 +415,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 30291013 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.78",
     "lower": "0.68",
@@ -386,7 +443,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   },
   {
    "label": "REWIND",
@@ -395,6 +453,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 31189511 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.88",
     "lower": "0.79",
@@ -421,7 +481,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   },
   {
    "label": "PIONEER 6",
@@ -430,6 +491,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 31185157 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.79",
     "lower": "0.57",
@@ -456,7 +519,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "DISAGREE",
    "comparator_row_state": "MISMATCH",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   },
   {
    "label": "AMPLITUDE-O",
@@ -465,6 +529,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 34215025 (abstract)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.73",
     "lower": "0.58",
@@ -491,7 +557,8 @@
    "g1_countable": true,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
-   "scope_difference": null
+   "scope_difference": null,
+   "blocker": null
   }
  ],
  "per_trial_agreement": {
@@ -516,7 +583,7 @@
   "verdict": {
    "verdict": "AGREE",
    "conclusion": "BENEFIT",
-   "estimate_gap_over_ci_halfwidth": 0.002
+   "estimate_gap_over_ci_halfwidth": 0.0014
   },
   "method_basis": "comparator positive control reproduced DL"
  },
@@ -564,5 +631,15 @@
    "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
    "rules": 2
   }
+ },
+ "g1_status": {
+  "state": "G1_MATCHED",
+  "criteria": {
+   "ALL_ELIGIBLE_MATCHED": true,
+   "MATCHED_ARE_VERIFIED": true,
+   "RESULT_AGREES": true,
+   "DIVERGENCES_NAMED": true
+  },
+  "unmet": []
  }
 }

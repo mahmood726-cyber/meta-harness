@@ -30,6 +30,8 @@ UNRESOLVED_SUBPROCESS = {
     ("reproducible_ai/model_call_live.py", "[_codex_exe(), '--version']"): "codex --version (client version for the record)",
     ("reproducible_ai/model_call_live.py", "argv"): "codex exec -- THE recorded model call",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
+    ("scripts/g1_batch.py", "args"): "python scripts/secondary_meta_build.py SLUG (replay: no --run, no model) / "
+                                     "python scripts/g1_tracker.py SLUG --no-table (the `steps` list)",
     ("scripts/m2_battery.py", "cmd"): "python build_topic.py / python -m harness.gate (run([PY, ...]) callers)",
     ("scripts/verify_all.py", "cmd"): "python -m pytest / python scripts/... (_run([sys.executable, ...]) callers)",
     ("tests/test_certificate_code_closure.py", "args"): "python scripts/audit_certificate_stdlib.py",
