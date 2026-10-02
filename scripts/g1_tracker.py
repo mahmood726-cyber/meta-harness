@@ -394,6 +394,28 @@ def cite_or_demote(o, slug):
     Used for every topic, including a lane's imported file (the lane's naming is not taken on its word)."""
     keep, demoted = [], []
     by_label = {x.get("label"): x for x in o.get("trials") or []}
+    # SYMMETRY: the same rule that names a difference in this lane's topics names it in a lane's file -- a trial
+    # screened out under a rule, audited TRUE_SCOPE_DIFFERENCE with a verbatim span, is named (SOLOIST-WHF, 3 Oct: the
+    # lane stopped naming it; the audit, now reading allocation sentences, establishes it)
+    named0 = {d.get("trial") for d in o.get("named_differences") or []}
+    cfg_p = os.path.join(ROOT, "topics", slug + ".json")
+    cfg = _j(cfg_p) if os.path.exists(cfg_p) else {}
+    for x in o.get("trials") or []:
+        f = x.get("seeded_funnel") or {}
+        if is_matched(x) or x.get("label") in named0 or f.get("stage") != "SCREENED_OUT" or not f.get("rule_id"):
+            continue
+        sp = exclusion_audit_span(slug, f.get("pmid"))
+        if sp and span_is_verbatim(slug, f.get("pmid"), sp):
+            cls, sub = exclusion_audit_class(slug, f.get("pmid"))
+            o.setdefault("named_differences", []).append(
+                {"trial": x["label"], "kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f["rule_id"],
+                 "screen_reason": f.get("reason"), "audit": {"class": cls, "subclass": sub},
+                 "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")) if cfg else None,
+                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid"), "span": sp,
+                 "named_by": "acq/k-gap tracker (audit span), not the lane"})
+            x["scope_difference"], x["blocker"] = o["named_differences"][-1], None
+            o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g != x["label"]]
+            o["N_eligible"] = len(o.get("trials") or []) - len(o["named_differences"])
     for d in o.get("named_differences") or []:
         if d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
             sp = d.get("span") or exclusion_audit_span(slug, d.get("pmid"))
@@ -665,11 +687,15 @@ def g1_status(o):
                        f"({cs.get('state')}; tried {cs.get('sources_tried')})"}
     v = ((o.get("same_trials") or {}).get("verdict") or {}).get("verdict")
     dis = [x for x in tr if str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE")]
+    readers_differ = [x["label"] for x in tr if is_matched(x)
+                      and (x.get("comparator_row_readings") or {}).get("state") == "READERS_DIFFER"]
     crit = {
         "ALL_ELIGIBLE_MATCHED": o["N_eligible"] > 0 and o["k_matched"] == o["N_eligible"] and not o["open_gaps"],
         "MATCHED_ARE_VERIFIED": all((x["route"] in ("PRIMARY", "TWO_SOURCE") or str(x["route"]).startswith("SWEEP_"))
                                     and x.get("g1_countable", True) for x in tr if is_matched(x)),
-        "RESULT_AGREES": v == "AGREE",
+        # a READERS_DIFFER comparator row is never resolved by a pick: the result agrees only if the verdict is the
+        # SAME under every reading (same_trials.readers_agree_on_verdict), else it is unmet until the readers resolve
+        "RESULT_AGREES": v == "AGREE" and (not readers_differ or (o.get("same_trials") or {}).get("readers_agree_on_verdict") is True),
         "DIVERGENCES_NAMED": all((d.get("protocol_rule") or d.get("gate")) and (d.get("span") or {}).get("text")
                                  for d in nd)
                              and all(x.get("disagreement_side") for x in dis),
@@ -951,7 +977,52 @@ def table():
                       f"{e['comparator_year']}): {e['why_not_in_comparator']}")
     with open(os.path.join(OUT, "G1_TRACKER.md"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(md) + "\n")
+    canon = canonical(out)
+    tmp = os.path.join(OUT, f"G1_TRACKER.json.{os.getpid()}.tmp")
+    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(canon, fh, indent=1, ensure_ascii=False, sort_keys=True)
+    os.replace(tmp, os.path.join(OUT, "G1_TRACKER.json"))
     return md
+
+
+CANONICAL_SCHEMA = "g1_tracker_canonical_v1"
+TOPIC_KEYS = ("slug", "g1_status", "unmet", "k_matched", "N_comparator_trials", "N_eligible", "excluded_by_scope",
+              "open_gaps", "matched_by_route", "named_differences", "same_trials_verdict", "readers_agree_on_verdict",
+              "top_blocker", "blockers", "comparator_pmid", "source")
+
+
+def canonical(out):
+    """THE machine-readable tracker (Mahmood 3 Oct: the markdown's column order changed; no consumer may parse by
+    position). Keys, never positions; every topic carries exactly TOPIC_KEYS (pinned by tests/test_g1_interfaces.py);
+    add keys by bumping CANONICAL_SCHEMA, never rename them."""
+    topics = {}
+    for o in out:
+        gs = o.get("g1_status") or {}
+        src = o.get("lane_source")
+        topics[o["slug"]] = {
+            "slug": o["slug"], "g1_status": gs.get("state"), "unmet": list(gs.get("unmet") or []),
+            "k_matched": o["k_matched"], "N_comparator_trials": o["N_comparator_trials"],
+            "N_eligible": o.get("N_eligible", o["N_comparator_trials"]),
+            "excluded_by_scope": len(o.get("named_differences") or []),
+            "open_gaps": list(o.get("open_gaps") or []),
+            "matched_by_route": dict(Counter(x["route"] for x in o["trials"] if is_matched(x))),
+            "named_differences": [{"trial": d.get("trial"), "kind": d.get("kind"), "rule_id": d.get("rule_id") or d.get("gate"),
+                                   "span": (d.get("span") or {}).get("text"), "span_source": d.get("span_source"),
+                                   "pmid": d.get("pmid")} for d in o.get("named_differences") or []],
+            "same_trials_verdict": ((o.get("same_trials") or {}).get("verdict") or {}).get("verdict")
+                                   or (o.get("same_trials") or {}).get("state"),
+            "readers_agree_on_verdict": (o.get("same_trials") or {}).get("readers_agree_on_verdict"),
+            "top_blocker": o.get("top_blocker"), "blockers": dict(o.get("blockers") or {}),
+            "comparator_pmid": o.get("comparator_pmid"),
+            "source": {"branch": src["branch"], "commit": src["commit"]} if src else {"branch": "acq/k-gap", "commit": None}}
+    k = sum(t["k_matched"] for t in topics.values())
+    N = sum(t["N_comparator_trials"] for t in topics.values())
+    E = sum(t["N_eligible"] for t in topics.values())
+    return {"schema": CANONICAL_SCHEMA, "topic_keys": list(TOPIC_KEYS),
+            "totals": {"k_matched": k, "N_comparator_trials": N, "N_eligible": E, "excluded_by_scope": N - E,
+                       "matched_by_route": dict(sum((Counter(t["matched_by_route"]) for t in topics.values()), Counter())),
+                       "topics_by_status": dict(Counter(t["g1_status"] for t in topics.values()))},
+            "topics": topics}
 
 
 def main(argv):
