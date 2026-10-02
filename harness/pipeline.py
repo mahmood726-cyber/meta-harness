@@ -403,6 +403,12 @@ def _ctgov_rung_admissible(cg, spec):
         return None
     if extract.declared_is_composite(spec.get("name", "")) and not _registry_title_is_composite(cg.get("registry_title", "")):
         return None
+    # (3) THE composite, not just A composite: ELIXA posts 'CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization
+    # for Unstable Angina' as a participant count -- a 4-point estimate under a 3-point MACE label. A registry title IS
+    # the outcome's definition, so the component gate reads it as a definition clause.
+    if extract.composite_component_mismatch(spec.get("name", ""),
+                                            "composite outcome definition: " + (cg.get("registry_title") or "")):
+        return None
     return cg
 
 
