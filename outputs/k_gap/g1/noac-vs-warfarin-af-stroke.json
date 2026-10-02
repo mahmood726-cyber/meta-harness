@@ -13,16 +13,15 @@
  "comparator_findings": [],
  "k_ours_total": 4,
  "routes": {
-  "UNVERIFIED": 1,
-  "PRIMARY": 3
+  "PRIMARY": 4
  },
  "trials": [
   {
    "label": "RE-LY",
    "family": "PMID 19717844",
    "in_our_pool": true,
-   "route": "UNVERIFIED",
-   "basis": "g1/noac SINGLE_SOURCE: MEASURE_DIFFERS, POPULATION_NOT_ESTABLISHED, TIMEPOINT_NOT_ESTABLISHED | kgap: HR 0.65 (0.52-0.81) TWO_SOURCE_VERIFIED (AACT + regulator); pooled input differs",
+   "route": "PRIMARY",
+   "basis": "g1/noac TWO_SOURCE_VERIFIED (two independent primary sources agree)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
@@ -40,7 +39,7 @@
     "n_c": null
    },
    "registry_binding": null,
-   "g1_countable": false,
+   "g1_countable": true,
    "agreement_with_comparator_row": "NOT_COMPARABLE:NO_COMPARATOR_ROW",
    "comparator_row_state": null,
    "scope_difference": null,
@@ -53,81 +52,33 @@
    "lane_row": {
     "item": "RE-LY/stroke_se",
     "route": {
-     "state": "SINGLE_SOURCE",
-     "reasons": [
-      "MEASURE_DIFFERS",
-      "POPULATION_NOT_ESTABLISHED",
-      "TIMEPOINT_NOT_ESTABLISHED"
+     "state": "TWO_SOURCE_VERIFIED",
+     "reasons": [],
+     "verified_facts": [
+      [
+       "F002",
+       "F039"
+      ]
+     ],
+     "silent_axes": [
+      "population",
+      "timepoint"
      ]
     },
     "effect_route": {
-     "state": "SINGLE_SOURCE",
-     "reasons": [
-      "MEASURE_DIFFERS",
-      "POPULATION_NOT_ESTABLISHED",
-      "TIMEPOINT_NOT_ESTABLISHED"
+     "state": "TWO_SOURCE_VERIFIED",
+     "reasons": [],
+     "verified_facts": [
+      [
+       "F002",
+       "F039"
+      ]
+     ],
+     "silent_axes": [
+      "population",
+      "timepoint"
      ]
     }
-   },
-   "kgap_two_primary": {
-    "state": "TWO_SOURCE_VERIFIED",
-    "measure": "HR",
-    "registry": {
-     "effect": "0.65",
-     "lower": "0.52",
-     "upper": "0.81",
-     "analysis_id": "128857123",
-     "groups": [
-      "Dabigatran 150 mg",
-      "Warfarin"
-     ],
-     "outcome": "Yearly Event Rate for Composite Endpoint of Stroke/SEE",
-     "time_frame": "36 months",
-     "population": "Randomized set - The randomized set includes all randomized subjects in the treatment groups to which they were randomized, regardless of whether the subjects took randomized study medication or not.",
-     "population_class": "ITT",
-     "snapshot": {
-      "id": "AACT 2026-08-30",
-      "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-      "rules": 3
-     }
-    },
-    "regulator": {
-     "effect": "0.65",
-     "lower": "0.52",
-     "upper": "0.81",
-     "columns": [
-      "150 mg",
-      "110 mg",
-      "Warfarin"
-     ],
-     "row": "Hazard ratio vs. warfarin (95% CI) 0.65 (0.52, 0.81) 0.90 (0.74,1.10)",
-     "population": "ALL_RANDOMIZED (table row 'Patients randomized 6076 6015 6022')",
-     "source": {
-      "what": "FDA PRADAXA label, NDA 022512, October 2010 (US government work, public domain)",
-      "git": "origin/evid/v1.0.1-acquisition-cascade",
-      "path": "evidence/acquisition_cascade/held/RE-LY-regulatory/fda_label_2010-10.txt",
-      "sha256": "53d25c29cc7dcf90a18f05188cf5fd3e38efd13740c5b29d20e16d48a7289197",
-      "table": "Table 4"
-     }
-    },
-    "silent_axes": [
-     "timepoint"
-    ]
-   },
-   "pending_input_swap": {
-    "from": {
-     "measure": "RR",
-     "effect": "0.66",
-     "lower": "0.53",
-     "upper": "0.82"
-    },
-    "to": {
-     "measure": "HR",
-     "effect": "0.65",
-     "lower": "0.52",
-     "upper": "0.81"
-    },
-    "why": "the pooled input is not the two-source-verified tuple"
    }
   },
   {
@@ -137,7 +88,7 @@
    "route": "PRIMARY",
    "basis": "g1/noac TWO_SOURCE_VERIFIED (two independent primary sources agree)",
    "our_refusal": null,
-   "gap_class": "UNRESOLVED_IDENTITY",
+   "gap_class": "POOLED",
    "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
@@ -382,25 +333,15 @@
    "rules": 2
   }
  },
- "pool_basis": {
-  "build": "k_gap_counterfactual.build_with_held_sources",
-  "held_records": 0,
-  "held_fulltext": 0,
-  "held_unpaywall": 0,
-  "held_registry": 3
- },
- "served_pool_lags": [],
  "g1_status": {
-  "state": "NOT_YET",
+  "state": "G1_MATCHED",
   "criteria": {
    "ALL_ELIGIBLE_MATCHED": true,
-   "MATCHED_ARE_VERIFIED": false,
+   "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
-  "unmet": [
-   "MATCHED_ARE_VERIFIED"
-  ]
+  "unmet": []
  },
  "lane_result_comparison": {
   "point_agrees_at_comparator_precision": true,
@@ -410,9 +351,9 @@
  "lane_source": {
   "lane": "Evidence binding (g1/noac)",
   "branch": "g1/noac",
-  "commit": "bac6a9c2c98a561deac2011d0bdeb3b89e073780",
-  "path": "outputs/g1_noac/g1_noac.json",
-  "sha256": "275ceaf7a8d8c76a8c22b2619faf577502b9ca9857ecb3f95af8c2a738bf050c",
-  "format": "g1_noac_v1"
+  "commit": "f974f249bd4777b27706f1346d86e32ef577315e",
+  "path": "outputs/k_gap/g1/noac-vs-warfarin-af-stroke.json",
+  "sha256": "9a7263659c95fba5e14960fc2021320376fa304303f232cae1be49a86171646a",
+  "format": "tracker_v1"
  }
 }

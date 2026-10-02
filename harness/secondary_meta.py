@@ -905,3 +905,41 @@ def g1_countable(rows: list, comparator_meta_ids: set) -> list:
         groups = v.get("independent_pair_ids") or v.get("independent_pairs") or []
         return r.state == TWO_SOURCE and any(not ({str(m).lower() for m in p} & ids) for p in groups)
     return [r for r in rows if ok(r)]
+
+
+# ------------------------------------------------------------------ TABLE LOCATION gate (recorded proposals -> pool)
+
+def gate_table_location(claim: dict, text: str, outcome_keywords: list, spec_name: str,
+                        prefer: Optional[str] = None) -> tuple:
+    """A recorded table-location proposal is admitted only when (1) gate_locator_claim accepts it (the quote is verbatim
+    in the held text and every number it copies is printed in that quote), (2) the quote NAMES the topic's outcome by a
+    non-generic keyword, and (3) for a declared SINGLE outcome the quote is not a composite: SMART's primary
+    'major adverse kidney event (the composite of death, new renal-replacement therapy, or persistent renal
+    dysfunction)' would otherwise bind as mortality. Returns (value | None, reason)."""
+    from harness import extract
+    val, why = gate_locator_claim(claim, text, prefer=prefer)
+    if not val:
+        return None, why
+    q = claim.get("quote") or ""
+    ql = q.lower()
+    named = [k for k in outcome_keywords if k and k.lower() not in extract.GENERIC_ANCHORS
+             and extract._kw_in_sentence(k, ql)]
+    if not named:
+        return None, "OUTCOME_NOT_NAMED_IN_QUOTE"
+    # the harness never takes a subgroup / post-hoc / per-protocol result as the trial's (abstract rule, same detector)
+    if extract._is_subgroup_sentence(q):
+        return None, "SUBGROUP_OR_POST_HOC_QUOTED"
+    # a ratio and the arm events copied from ONE quote must point the same way: 'Total MACE | 8 (6.7) | 28 (21.7) |
+    # 3.52 (1.60-7.74)' carries the INVERSE comparison (control vs colchicine)
+    e = _num(claim.get("point"))
+    et, ec, nt, nc = (_num(claim.get(k)) for k in ("events_t", "events_c", "n_t", "n_c"))
+    if e and e > 0 and et is not None and ec is not None and et != ec:
+        rt, rc = (et / nt, ec / nc) if (nt and nc) else (et, ec)
+        if rt > 0 and rc > 0 and (e - 1) * (rt - rc) < 0 and abs(math.log(e)) > 0.05 and                 abs(math.log(rt / rc)) > (0.05 if (nt and nc) else 0.25):
+            return None, "RATIO_DIRECTION_CONTRADICTS_ARM_EVENTS"
+    if not extract.declared_is_composite(spec_name):
+        if extract._names_composite(q) or re.search(r"\bcomposite\b|\bmajor adverse\b", q, re.I):
+            return None, "COMPOSITE_QUOTED_FOR_SINGLE_OUTCOME"
+    elif extract.composite_component_mismatch(spec_name, "composite outcome definition: " + q):
+        return None, "COMPOSITE_COMPONENTS_DIFFER"
+    return dict(val, named_by=named), "ACCEPTED"

@@ -374,6 +374,38 @@ def with_identity_chain(T):
     return T
 
 
+def lane_comparator_rows(slug, comp, ours):
+    """The COMPARATOR's own per-trial rows read by another lane (outputs/k_gap/g1_comparator_rows.json lists the
+    sources: g1/forest-reader's dual-model figure reads), taken only where that lane ACCEPTED the figure for THIS
+    comparator, pinned by branch commit + blob sha256, and joined to our trials by the build's family join. They are
+    comparator rows: they feed per-trial agreement and the same-trials comparison, and never count toward G1."""
+    import hashlib
+    import subprocess
+    import secondary_meta_build as smb
+    sp = os.path.join(OUT, "g1_comparator_rows.json")
+    out, used = [], []
+    for src in (_j(sp) if os.path.exists(sp) else []):
+        try:
+            commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
+                                    text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
+            b = subprocess.run(["git", "show", f"{commit}:{src['path']}"], cwd=ROOT, capture_output=True,
+                               stdin=subprocess.DEVNULL, check=True).stdout
+        except subprocess.CalledProcessError:
+            continue
+        res = (json.loads(b.decode("utf-8")).get("results") or {}).get(slug) or {}
+        if res.get("state") != "ACCEPTED" or str(res.get("pmid")) != str(comp):
+            continue
+        fam = smb.family_of_factory(ours)
+        for d in res.get("secondary_rows") or []:
+            r = _row(d)
+            r.family_id = fam(r)
+            out.append(r)
+        used.append({"branch": src["branch"], "commit": commit, "path": src["path"],
+                     "sha256": hashlib.sha256(b).hexdigest(), "rows": len(res.get("secondary_rows") or []),
+                     "joined": sum(1 for r in out if r.family_id)})
+    return out, used
+
+
 def is_pooled(mine, pooled_ids):
     """Pool MEMBERSHIP, independent of how our value is stored (effect+CI, 2x2, or arm means for an MD)."""
     return bool(mine and str(mine.get("id")) in pooled_ids)
@@ -415,6 +447,13 @@ def whole_pool_comparison(o):
             "ours": {k: round(v, 4) for k, v in o_.items()}, "theirs": t_, "verdict": result_verdict(o_, t_, m)}
 
 
+def served_topics():
+    """Every SERVED topic (docs/reviews/<slug>/review.json): the tracker's denominator. A topic must never be missing
+    from the tracker silently (denosumab-vertebral-fracture was, 3 Oct: its comparator lists no enumerable trial)."""
+    d = os.path.join(ROOT, "docs", "reviews")
+    return sorted(s_ for s_ in os.listdir(d) if os.path.exists(os.path.join(d, s_, "review.json")))
+
+
 def g1_status(o):
     """G1 MATCHED, by the goal's definition, as typed criteria (all must hold):
       ALL_ELIGIBLE_MATCHED   every eligible comparator trial is in our pool (k_matched == N_eligible, no open gap)
@@ -423,6 +462,11 @@ def g1_status(o):
       DIVERGENCES_NAMED      every non-match is a named difference citing its rule/gate, and every per-trial
                              disagreement carries the side it falls on"""
     tr = o["trials"]
+    if not o.get("N_comparator_trials", len(tr)):
+        cs = o.get("comparator_set") or {}
+        return {"state": "COMPARATOR_NOT_ENUMERATED", "criteria": {}, "unmet": ["COMPARATOR_TRIAL_LIST"],
+                "why": f"the comparator's trial list could not be enumerated from open sources "
+                       f"({cs.get('state')}; tried {cs.get('sources_tried')})"}
     v = ((o.get("same_trials") or {}).get("verdict") or {}).get("verdict")
     dis = [x for x in tr if str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE")]
     crit = {
@@ -460,6 +504,10 @@ def topic(slug, T):
     absent_code = {str(a.get("id")): a.get("reason_code") or a.get("absent_kind")
                    for a in prim.get("declared_absent_trials", [])}
     rows = [_row(d) for d in S["rows"]]
+    comparator_rows_source = None
+    if not any(r.meta_pmid == comp for r in rows):
+        lane_rows, comparator_rows_source = lane_comparator_rows(slug, comp, ours)
+        rows += lane_rows
     by_fam = {}
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
@@ -582,6 +630,9 @@ def topic(slug, T):
     out = {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if x["in_our_pool"]),
             "N_eligible": len(trials) - len(named), "named_differences": named, "open_gaps": open_gaps,
+            "k_matched_of_comparator_N": f"{sum(1 for x in trials if x['in_our_pool'])} of {len(trials)}",
+            "comparator_set": next(({"state": tp.get("comparator_set_state"), "sources_tried": tp.get("sources_tried")}
+                                    for tp in T["topics"] if tp["slug"] == slug), None),
             "blockers": dict(blockers), "top_blocker": (blockers.most_common(1)[0][0] if blockers else None),
             "other_agent_units": other_agent,
             "comparator_findings": comparator_findings(trials, comp),
@@ -592,7 +643,7 @@ def topic(slug, T):
                                 else "comparator positive control not reproduced: PM default"),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
-            "comparator_basis": comp_basis,
+            "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
     wp = whole_pool_comparison(out)
@@ -618,14 +669,17 @@ def _fmt(r):
 
 def table():
     out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and ".tmp" not in f]
+    missing = sorted(set(served_topics()) - {o["slug"] for o in out})
+    if missing:
+        raise SystemExit(f"G1 TRACKER REFUSED: served topic(s) with no tracker row: {missing}")
     focus = ["glp1-ra-mace-t2d", "semaglutide-obesity-weight", "noac-vs-warfarin-af-stroke", "tocilizumab-covid19-mortality"]
     out.sort(key=lambda o: (focus.index(o["slug"]) if o["slug"] in focus else len(focus), o["slug"]))
     md = ["# G1 tracker (derived: scripts/g1_tracker.py; one source file per topic in outputs/k_gap/g1/)", "",
           "G1 MATCHED = every eligible comparator trial matched AND every matched trial verified (PRIMARY / TWO_SOURCE, never "
           "comparator-only) AND the result agrees on the same trials AND every divergence is named (rule / gate / side cited).",
           "",
-          "| topic | G1 status | k matched | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |",
-          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+          "| topic | G1 status | matched / eligible | matched / comparator N | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for o in out:
         r, st = o["routes"], o["same_trials"]
         same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}: "
@@ -635,8 +689,8 @@ def table():
         src = o.get("lane_source")
         md.append(f"| {o['slug']} | **{gs.get('state')}**" + (f" (unmet: {', '.join(gs.get('unmet') or [])})"
                                                               if gs.get("unmet") else "") +
-                  f" | {o['k_matched']} of {o.get('N_eligible', o['N_comparator_trials'])} eligible "
-                  f"(comparator N={o['N_comparator_trials']}) | "
+                  f" | {o['k_matched']} / {o.get('N_eligible', o['N_comparator_trials'])} | "
+                  f"{o['k_matched']} / {o['N_comparator_trials']} | "
                   f"{len(nd)}: " + ", ".join(f"{d['trial']} ({d['kind']})" for d in nd) + f" | {len(o.get('open_gaps') or [])} | "
                   f"{r.get('PRIMARY', 0)} | "
                   f"{r.get('TWO_SOURCE', 0)} | {r.get('UNVERIFIED', 0)} | {r.get('NO_ROW', 0)} | "
