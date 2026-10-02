@@ -157,6 +157,9 @@ def is_primary_report(m):
 def rung_pmc(pmid):
     st, b, u = get(IDCONV, {"ids": pmid, "format": "json", "tool": "meta-harness-g1"})
     log = {"rung": "R1 PMC", "idconv": u, "idconv_http": st}
+    if st != 200:          # an error body (even valid JSON) is a FAILED rung, never 'not in PMC' (codex cascade#7)
+        log["outcome"] = f"RUNG_FAILED: idconv http {st}"
+        return log, None
     try:
         rec = (json.loads(b).get("records") or [{}])[0]
     except Exception:  # noqa: BLE001
@@ -189,6 +192,9 @@ def rung_pmc(pmid):
 def rung_epmc(pmid):
     st, b, u = get(f"{EPMC}/search", {"query": f"EXT_ID:{pmid} AND SRC:MED", "resultType": "core", "format": "json"})
     log = {"rung": "R2 Europe PMC", "request": u, "http": st}
+    if st != 200:
+        log["outcome"] = f"RUNG_FAILED: http {st}"
+        return log, None
     try:
         h = ((json.loads(b).get("resultList") or {}).get("result") or [{}])[0]
     except Exception:  # noqa: BLE001
@@ -232,7 +238,7 @@ def licence_audit():
     metadata licence). One that does not is stripped to VERIFIED_NOT_HELD (PMCID + body sha256) and never committed."""
     out = []
     for f in sorted(os.listdir(ACQ)):
-        if not re.match(r"\d+\.json$", f):
+        if not re.match(r"(?:\d+|PPR\d+)\.json$", f):       # PubMed ids and Europe PMC preprint ids (cascade#6)
             continue
         fp = os.path.join(ACQ, f)
         a = json.load(open(fp, encoding="utf-8"))
@@ -372,9 +378,11 @@ def run_trial(label, A):
     return {"label": label, "nct": nct, "run_utc": now(), "discovery": disc, "candidates": reports, "trial_rungs": per_trial}
 
 
-# two REACT rows share NCT04331808 (CORIMUNO-TOCI-1 severe, CORIMUNO-TOCI-ICU critical): the title's population picks one
-TITLE_LABEL = {"CORIMUNO-TOCI-ICU": r"CORIMUNO.*(?:critically ill|intensive care|\bICU\b)|(?:critically ill|intensive care|\bICU\b).*CORIMUNO",
-               "CORIMUNO-TOCI-1": r"CORIMUNO.*(?:moderate|severe) (?:COVID|pneumonia)"}
+# two REACT rows share NCT04331808 (CORIMUNO-TOCI-1 severe, CORIMUNO-TOCI-ICU critical): a paper bound to that registration
+# is bound to ONE of them only when its title states the population ('...Moderate or Severe Pneumonia' / 'critically
+# ill'); otherwise to neither (codex review cascade#3: a unique winning registration had bound a report to both)
+TITLE_LABEL = {"CORIMUNO-TOCI-ICU": r"critically ill|intensive care|\bICU\b",
+               "CORIMUNO-TOCI-1": r"(?:moderate|severe)[^.]{0,30}(?:COVID|pneumonia)"}
 
 
 def binding(a):
@@ -393,6 +401,11 @@ def binding(a):
         return [], "UNBOUND: names no registration"
     top = max(set(names), key=names.count)
     tied = sorted(n for n in set(names) if names.count(n) == names.count(top))
+    # the paper's STATED registration ('Trial registration: NCT...') decides before frequency: a references list can
+    # outvote it (codex review toci_match#10 -- the same rule as g1.tocilizumab.own_registration)
+    stated = set(g._REG_STATED.findall(text))
+    if len(stated) == 1:
+        top, tied = stated.pop(), []
     if len(tied) > 1:
         # a paper reporting TWO trials names both registrations equally (CORIMUNO-19's ICU paper, 35115337: TOCI-ICU
         # NCT04331808 and SARI-ICU NCT04324073). The tie is resolved only when the TITLE names the trial family AND the
@@ -404,6 +417,11 @@ def binding(a):
     labels = [l for l, (n, _) in g.IDENTITY.items() if n == top]
     if not labels:
         return [], f"UNBOUND: names {top} most, not a REACT trial"
+    if len(labels) > 1:
+        pick = [l for l in labels if l in TITLE_LABEL and re.search(TITLE_LABEL[l], a.get("title") or "", re.I)]
+        if len(pick) != 1:
+            return [], f"UNBOUND: {top} is shared by {labels}; the title states no single population ({pick})"
+        labels = pick
     # ... AND it is a TRIAL report: PubMed types it a randomised/clinical trial, or its title/abstract names the trial.
     # A case report, a mechanism paper or a cohort that cites the registration once is not the trial's report (a
     # cohort's own day-28 deaths would otherwise read as a conflicting trial row).
@@ -420,7 +438,7 @@ def rebind():
     keeps which trial's search found it. Returns {pmid: (found_for, bound_labels, reason)}."""
     out = {}
     for f in sorted(os.listdir(ACQ)):
-        if not re.match(r"\d+\.json$", f):
+        if not re.match(r"(?:\d+|PPR\d+)\.json$", f):       # PubMed ids and Europe PMC preprint ids (cascade#6)
             continue
         fp = os.path.join(ACQ, f)
         a = json.load(open(fp, encoding="utf-8"))
@@ -493,6 +511,9 @@ def rung_preprints(label, nct):
     q = f'"{nct}" AND SRC:PPR' if nct else f'({label}) AND tocilizumab AND SRC:PPR'
     st, b, u = get(f"{EPMC}/search", {"query": q, "format": "json", "pageSize": 25, "resultType": "core"})
     log = {"rung": "R6 Europe PMC preprints", "request": u, "http": st}
+    if st != 200:
+        log["outcome"] = f"RUNG_FAILED: http {st}"
+        return log
     try:
         d = json.loads(b)
     except Exception:  # noqa: BLE001

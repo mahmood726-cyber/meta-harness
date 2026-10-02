@@ -498,7 +498,7 @@ def meta2_rows() -> dict:
                    os.listdir(os.path.join(ROOT, "cache", "comparators", mp)) if f.startswith("g1_meta2_")), None)
         x = open(jp, encoding="utf-8").read() if jp else ""
         refs = []
-        for r in re.findall(r"<ref[ >].*?</ref>", x, re.S):
+        for r in re.findall(r"<ref(?=[\s>]).*?</ref>", x, re.S):
             lab = re.search(r"<label>\s*(\d+)", r)
             pm = re.search(r'pub-id-type="pmid">(\d+)', r)
             doi = re.search(r'pub-id-type="doi">([^<]+)', r) or re.search(r"(10\.\d{4,9}/[^\s<\"]+)", r)
@@ -603,7 +603,7 @@ def held_texts(label: str) -> list:
     acq = os.path.join(ROOT, "g1", "data", "acquired")
     have = {r.split()[1] for r, _ in out}
     for f in sorted(os.listdir(acq)) if os.path.isdir(acq) else []:
-        if not re.match(r"\d+\.json$", f):
+        if not re.match(r"(?:\d+|PPR\d+)\.json$", f):       # PubMed ids and Europe PMC preprint ids
             continue
         a = json.load(open(os.path.join(acq, f), encoding="utf-8"))
         if not _ACQ_KEEP(a):
