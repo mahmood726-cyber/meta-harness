@@ -123,6 +123,15 @@ TARGETS: dict = {
     "denosumab-vertebral-fracture": {"fig_id": "fig4", "caption_has": "direct and indirect results of vertebral fractures",
                                      "refuse": "NETWORK_META_ANALYSIS_FIGURE: direct and indirect head-to-head estimates "
                                                "(treatments), not trial rows"},
+    # OTHER metas from the two-source sweep (keyed '<slug>::<pmid>'): their captions name the outcome in their own words
+    "colchicine-secondary-cv-prevention::40314333": {
+        "fig_id": "ehaf174-F1", "caption_has": "Forest plot of clinical efficacy endpoints (hazard ratios)",
+        "instruction": "The figure has several efficacy endpoints. Transcribe ONLY the block for the PRIMARY composite "
+                       "(major adverse cardiovascular events): its study rows and its own pooled row."},
+    "melatonin-primary-insomnia-sol::32580450": {"fig_id": "jcm-09-01949-f008",
+                                                 "caption_has": "Sleep onset latency measured through physiological"},
+    "ticagrelor-vs-clopidogrel-acs::35155618": {"fig_id": "F2", "caption_has": "Comparison of the primary efficacy "
+                                                "outcomes (MACE) between ticagrelor and clopidogrel treatment in clinical"},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
