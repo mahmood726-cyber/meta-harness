@@ -94,3 +94,15 @@ def test_a_lane_file_without_pool_membership_counts_its_verified_routes():
     assert o["open_gaps"] == ["RECOVERY"] and gt.scope_citation_violations(o) == []
     o["k_matched"] = 3
     assert gt.scope_citation_violations(o) == ["k_matched 3 != matched trials 2"]
+
+
+def test_a_reader_disagreement_is_never_a_silent_pick():
+    # sglt2-hfref EMPEROR-Reduced: the forest reader's two readings of the comparator row are 0.75 (0.65-0.87) and
+    # 0.75 (0.65-0.86). RESULT_AGREES holds only if the same-trials verdict is the same under BOTH readings.
+    o = {"N_eligible": 1, "k_matched": 1, "open_gaps": [], "named_differences": [],
+         "same_trials": {"verdict": {"verdict": "AGREE"}},
+         "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "agreement_with_comparator_row": "READERS_DIFFER",
+                     "comparator_row_readings": {"state": "READERS_DIFFER"}}]}
+    assert "RESULT_AGREES" in gt.g1_status(o)["unmet"]
+    o["same_trials"]["readers_agree_on_verdict"] = True
+    assert gt.g1_status(o)["state"] == "G1_MATCHED"

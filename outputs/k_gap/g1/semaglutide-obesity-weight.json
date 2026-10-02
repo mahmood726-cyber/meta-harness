@@ -4,27 +4,9 @@
  "comparator_pmid": "42536519",
  "N_comparator_trials": 4,
  "k_matched": 2,
- "N_eligible": 2,
+ "k_in_our_pool": 2,
+ "N_eligible": 3,
  "named_differences": [
-  {
-   "trial": "O’Neil, 2018",
-   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-   "rule_id": "X2",
-   "screen_reason": "wrong population: title/conditions mention 'liraglutide'.",
-   "span": {
-    "field": "title",
-    "text": "Efficacy and safety of semaglutide compared with liraglutide and placebo for weight loss in patients with obesity: a randomised, double-blind, placebo and active controlled, dose-ranging, phase 2 trial.",
-    "match": "liraglutide"
-   },
-   "span_source": "PMID 30122305 record title (held: cache/semaglutide-obesity-weight/records.json or outputs/k_gap/member_records.json)",
-   "audit": {
-    "class": "TRUE_SCOPE_DIFFERENCE",
-    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'liraglutide'"
-   },
-   "protocol_rule": "include.population_none[20] = 'liraglutide'",
-   "registered_eligibility": "Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.",
-   "pmid": "30122305"
-  },
   {
    "trial": "Rubino, 2021",
    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
@@ -45,7 +27,9 @@
    "pmid": "33755728"
   }
  ],
- "open_gaps": [],
+ "open_gaps": [
+  "O’Neil, 2018"
+ ],
  "k_matched_of_comparator_N": "2 of 4",
  "comparator_set": {
   "state": "TABLE_ENUMERATED",
@@ -62,8 +46,10 @@
    }
   ]
  },
- "blockers": {},
- "top_blocker": null,
+ "blockers": {
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1
+ },
+ "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
  "comparator_findings": [
   {
@@ -104,9 +90,9 @@
    "in_our_pool": false,
    "route": "NO_ROW",
    "basis": "IDENTIFICATION (secondary refused: ['OUTCOME_NOT_THE_TOPICS', 'TIMEPOINT_NOT_STATED_BY_META'])",
-   "our_refusal": "IN SCREEN PMID 30122305: SCREENED_OUT X2: wrong population: title/conditions mention 'liraglutide'.",
+   "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "IDENTIFICATION",
-   "absent_code": null,
+   "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": {
     "effect": "-11.50",
     "lower": "-13.68",
@@ -124,32 +110,8 @@
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "REFUSED",
-   "seeded_funnel": {
-    "stage": "SCREENED_OUT",
-    "rule_id": "X2",
-    "reason": "wrong population: title/conditions mention 'liraglutide'.",
-    "pmid": "30122305",
-    "already_in_screen": true
-   },
-   "scope_difference": {
-    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-    "rule_id": "X2",
-    "screen_reason": "wrong population: title/conditions mention 'liraglutide'.",
-    "span": {
-     "field": "title",
-     "text": "Efficacy and safety of semaglutide compared with liraglutide and placebo for weight loss in patients with obesity: a randomised, double-blind, placebo and active controlled, dose-ranging, phase 2 trial.",
-     "match": "liraglutide"
-    },
-    "span_source": "PMID 30122305 record title (held: cache/semaglutide-obesity-weight/records.json or outputs/k_gap/member_records.json)",
-    "audit": {
-     "class": "TRUE_SCOPE_DIFFERENCE",
-     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'liraglutide'"
-    },
-    "protocol_rule": "include.population_none[20] = 'liraglutide'",
-    "registered_eligibility": "Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.",
-    "pmid": "30122305"
-   },
-   "blocker": null
+   "scope_difference": null,
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE"
   },
   {
    "label": "Rubino, 2021",
@@ -519,22 +481,23 @@
  },
  "served_pool_lags": [],
  "g1_status": {
-  "state": "G1_MATCHED",
+  "state": "NOT_YET",
   "criteria": {
-   "ALL_ELIGIBLE_MATCHED": true,
+   "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
-  "unmet": [],
+  "unmet": [
+   "ALL_ELIGIBLE_MATCHED"
+  ],
   "excluded_by_scope": {
-   "n": 2,
+   "n": 1,
    "of_comparator_N": 4,
    "by_kind": {
-    "PROTOCOL_SCOPE_DIFFERENCE": 2
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
    },
    "trials": [
-    "O’Neil, 2018 [X2]",
     "Rubino, 2021 [X2]"
    ]
   }
