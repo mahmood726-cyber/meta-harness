@@ -505,6 +505,9 @@ def agree(ra, rb):
             continue
         vals, why = {}, []
         for k in ("effect", "lower", "upper"):
+            if r.get(k) is None and s.get(k) is None:
+                vals[k] = None              # both readers: nothing printed there (REACT's 'NA' rows print no CI)
+                continue
             v = agree_value(r.get(k), s.get(k))
             if v is None:
                 why.append(f"{k.upper()}_DISAGREES")
@@ -796,6 +799,17 @@ def reconstruct(rows, ratio, measure, methods, z=1.959963984540054):
     return out
 
 
+def printed_matches(x, printed):
+    """A computed value against what the figure prints: a number within its printed rounding, or a printed BOUND
+    ('<0.01', '>100': REACT prints COVIDOSE2-SS-A's lower limit as '<0.01') that the value satisfies."""
+    p = _nfkc(printed).strip() if printed is not None else ""
+    m = re.fullmatch(r"([<>])\s*(\d+(?:\.\d+)?)", p)
+    if m:
+        lim = float(m.group(2))
+        return x < lim + 1e-12 if m.group(1) == "<" else x > lim - 1e-12
+    return _num(printed) is not None and fp._close(x, re.sub(r"^\s*\+", "", p), 1e-4)
+
+
 def row_problems(r, ratio, measure=None):
     """A proposed row must be internally consistent. With printed counts (RR/OR): the effect and CI recomputed from the
     counts must round to the printed ones (a lower limit printed 0.00 is checked this way too). Otherwise (gate G3 of
@@ -805,12 +819,15 @@ def row_problems(r, ratio, measure=None):
     if ratio and m in ("RR", "OR") and has_counts([r]):
         yv = counts_yv(r, m)
         if yv is None:
-            return [] if str(r.get("effect") or "").strip().lower() in ("", "not estimable", "none") else ["ROW_NOT_ESTIMABLE_BUT_PRINTED"]
+            # no events in either arm: not estimable by the counts; the figure must say so ('Not estimable', 'NA'),
+            # never print a number for it
+            return [] if (_num(r.get("effect")) is None and
+                          (not str(r.get("effect") or "").strip() or
+                           _NOT_ESTIMABLE.match(_nfkc(r.get("effect")).strip()))) else ["ROW_NOT_ESTIMABLE_BUT_PRINTED"]
         y, v = yv
         z = 1.959963984540054
         calc = (math.exp(y), math.exp(y - z * math.sqrt(v)), math.exp(y + z * math.sqrt(v)))
-        bad = [k for k, x in zip(("effect", "lower", "upper"), calc)
-               if _num(r.get(k)) is None or not fp._close(x, r[k], 1e-4)]
+        bad = [k for k, x in zip(("effect", "lower", "upper"), calc) if not printed_matches(x, r.get(k))]
         return [f"ROW_COUNTS_DO_NOT_GIVE_PRINTED_{'_'.join(k.upper() for k in bad)}"] if bad else []
     e, lo, hi = _num(r["effect"]), _num(r["lower"]), _num(r["upper"])
     if None in (e, lo, hi) or (ratio and min(e, lo, hi) <= 0):
@@ -972,7 +989,7 @@ def unmatched_trial_ids(slug):
             for t in T["trials"] if t["slug"] == slug and t["label"][:60] in open_labels}
 
 
-def sweep(slugs, run):
+def sweep(slugs, run, wide=False):
     """The k-gap lane's two-source sweep (secondary_meta_build.metas_for: the topic's recorded Europe PMC search of
     open-access full-text metas), restricted DETERMINISTICALLY to the metas worth a dual read: not the comparator (read
     separately), not already usable by another route (typed table / single read that passed), and CITING -- in its own
@@ -984,6 +1001,10 @@ def sweep(slugs, run):
     for slug in slugs:
         try:
             metas, comp = smb.metas_for(slug, offline=not run)
+            if wide:
+                # every hit of the topic's RECORDED search (up to 25), not only the k-gap list's top N
+                metas = list(dict.fromkeys(metas + [h["pmid"] for h in smb.candidates(slug, not run)["hits"]
+                                                    if h.get("pmid")]))
         except Exception as exc:  # noqa: BLE001 - recorded, never fatal
             table[slug] = {"error": f"{type(exc).__name__}:{str(exc)[:120]}"}
             continue
@@ -1168,7 +1189,7 @@ def main(argv):
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
     if "--metas" in argv:
-        its, skipped = items([], run, pairs=sweep(slugs, run))
+        its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv))
     else:
         its, skipped = items(slugs, run)
     if "--verify-replay" in argv:
