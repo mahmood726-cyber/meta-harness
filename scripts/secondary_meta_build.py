@@ -504,7 +504,9 @@ def refs_of(pmid):
 
 
 def family_of_factory(ours):
-    toks = lambda x: re.findall(r"[a-z0-9]+", k_gap.fold_dashes(str(x or "")).lower())   # noqa: E731
+    # a year glued to its acronym ('RALES2000', 'EPHESUS2003') is split before tokenising, or the acronym never leads
+    toks = lambda x: re.findall(r"[a-z0-9]+", re.sub(r"(?<=[a-z])(?=(?:19|20)\d\d\b)", " ",   # noqa: E731
+                                                       k_gap.fold_dashes(str(x or "")).lower()))
 
     def prefix(a, b):
         """a and b name the same trial when one's tokens lead the other's ('HARMONY' / 'Harmony Outcomes'), with a
