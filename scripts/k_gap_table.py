@@ -590,7 +590,11 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             mapped = ours
     if not mapped:
         own = sorted({PUBNCT.get(p) for p in pmids if PUBNCT.get(p)})
-        if len(own) == 1:
+        # PUBNCT is the FIRST accession only; when the full list is held and names several, the paper is multi-trial
+        several = sorted({n for p in pmids if p in DATABANK for n in DATABANK[p]["databank"] + DATABANK[p]["abstract"]})
+        if len(own) == 1 and len(several) > 1:
+            basis.append(f"pmid_nct_paper_lists_several:{','.join(several[:4])}")
+        elif len(own) == 1:
             mapped = own
             basis.append(f"pmid_nct_from_pubmed_record:{own[0]}")
     if len(mapped) == 1:
