@@ -34,6 +34,8 @@ sys.path.insert(0, ROOT)
 sys.path.append(os.path.join(ROOT, "scripts"))
 from harness import secondary_meta as sm  # noqa: E402
 from kgap import k_gap  # noqa: E402
+from kgap import aact_adapter  # noqa: E402
+from kgap import runs_store  # noqa: E402
 import k_gap_forest_plot as fp  # noqa: E402
 from reproducible_ai import model_call_live as mcl  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
@@ -156,18 +158,35 @@ def typed_table(slug, pmid, spec, run):
     if not jp:
         return None
     with open(jp, "rb") as fh:
-        tables = sm.typed_rows_from_jats(fh.read(), pmid)
+        jb = fh.read()
+    tables = sm.typed_rows_from_jats(jb, pmid)
+    # the meta's own words (abstract + body, markup stripped) for identity by its pooled sentence
+    text = re.sub(r"<[^>]+>", " ", jb.decode("utf-8", "replace"))
+    terms = list(spec["keywords"]) + (comparator_terms(slug) if pmid == comparator_pmid(slug) else [])
     ok = []
     for t in tables:
         probe = sm.SecondaryRow(meta_pmid=pmid, meta_doi="", location={"kind": "table", "id": t["table_id"]},
                                 source_digest=t["digest"], provenance="TYPED_TABLE", trial_label="",
                                 measure=t["measure"] or "", outcome_definition=t["caption"])
-        if not t["pooled"] or sm.outcome_identity(probe, spec["keywords"], (), tuple(spec.get("core") or ())):
+        if not t["pooled"]:
             continue
+        if not sm.outcome_identity(probe, spec["keywords"], (), tuple(spec.get("core") or ())):
+            basis = "CAPTION"
+        else:
+            sent = sm.pooled_sentence(text, t["pooled"], terms)
+            if not sent:
+                continue
+            basis = "POOLED_SENTENCE: " + sent
         pc = sm.positive_control(t["rows"], t["pooled"], t["measure"] or "")
         if pc["reproduced"]:
-            ok.append({**t, "positive_control": pc})
+            ok.append({**t, "positive_control": pc, "identity_basis": basis})
     return ok[0] if len(ok) == 1 else None
+
+
+def comparator_terms(slug):
+    """The topic's REGISTERED wording of the comparator's efficacy outcome (topics/<slug>.json comparator_outcomes)."""
+    cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
+    return [k for co in cfg.get("comparator_outcomes") or [] if co.get("kind") == "efficacy" for k in co.get("keywords") or []]
 
 
 LOCATE_SCHEMA = {"type": "object", "additionalProperties": False,
@@ -406,7 +425,18 @@ def report_text(slug, pmid):
     return ((rec or {}).get("title") or "") + " " + ((rec or {}).get("abstract") or "")
 
 
-_AACT = None
+_AACT = {"state": "NOT_ENSURED"}
+
+
+def ensure_registry(ncts):
+    """Index the topic's NCTs from the AACT snapshot (shared adapter). A missing snapshot is RECORDED on the topic
+    output (registry route unavailable for this run), never a silent empty registry."""
+    try:
+        st = aact_adapter.ensure(ncts)
+        _AACT.update(state="READY", snapshot=st["snapshot"])
+    except FileNotFoundError as exc:
+        _AACT.update(state="SNAPSHOT_UNAVAILABLE", why=str(exc)[:200])
+    return dict(_AACT)
 
 
 def primary_sources(slug, pmid, nct=None):
@@ -414,7 +444,6 @@ def primary_sources(slug, pmid, nct=None):
     cache/<slug>/ft_<pmid>.txt (markup stripped), the Unpaywall copy. Registry: posted CT.gov results for its NCT(s) from
     the local AACT index (scripts/k_gap_bulk_acquire.py)."""
     import hashlib as _h
-    global _AACT
     out = []
     mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
     rec = None
@@ -435,13 +464,43 @@ def primary_sources(slug, pmid, nct=None):
         if os.path.exists(up) and os.path.getsize(up) > 0:
             with open(up, encoding="utf-8", errors="replace") as fh:
                 out.append(("text", f"PMID {pmid} Unpaywall OA (doi {doi})", fh.read()))
-    if _AACT is None:
-        ap = os.path.join(ROOT, "outputs", "k_gap", "_aact_results.json")
-        _AACT = _j(ap) if os.path.exists(ap) else {}
-    for n in {x for x in (nct, (rec or {}).get("nct")) if x}:
-        if _AACT.get(n, {}).get("outcomes"):
-            out.append(("registry", f"{n} CT.gov posted results (AACT 2026-08-30)", _AACT[n]))
+    if _AACT.get("state") == "READY":           # build() ran aact_adapter.ensure for this topic's NCTs
+        for n in sorted({x for x in (nct, (rec or {}).get("nct")) if x}):
+            reg = aact_adapter.registry_for(n)
+            if reg:
+                out.append(("registry", f"{n} CT.gov posted results ({reg['_snapshot']['id']})", reg))
     return out
+
+
+_REFS = {}
+
+
+def meta_aliases(pmid):
+    """One candidate meta under every id it can be cited by: its PMID and the DOI its own JATS front declares."""
+    d = os.path.join(k_gap.COMP_DIR, str(pmid))
+    ids = {str(pmid)}
+    jp = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None)         if os.path.isdir(d) else None
+    if jp:
+        with open(jp, "rb") as fh:
+            front = fh.read().split(b"<body", 1)[0]
+        m = re.search(rb"<article-id[^>]*pub-id-type=[\"']doi[\"'][^>]*>\s*([^<\s]+)", front)
+        if m:
+            ids.add(m.group(1).decode("utf-8", "replace").strip().lower())
+    return ids
+
+
+def refs_of(pmid):
+    """The PMIDs/DOIs a meta cites (its held JATS reference list), or None when no JATS / no reference list is held."""
+    if pmid not in _REFS:
+        d = os.path.join(k_gap.COMP_DIR, str(pmid))
+        jp = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None) \
+            if os.path.isdir(d) else None
+        if jp:
+            with open(jp, "rb") as fh:
+                _REFS[pmid] = sm.cited_ids_from_jats(fh.read())
+        else:
+            _REFS[pmid] = None
+    return _REFS[pmid]
 
 
 def family_of_factory(ours):
@@ -525,10 +584,13 @@ def build(slug, run, runs):
                 runs[r["key"]] = r
                 print(r["key"], r["state"], r["record_id"], flush=True)
     ours = our_trials(slug)
+    registry_state = ensure_registry([t["nct"] for t in ours if t.get("nct")])
     fam = family_of_factory(ours)
     rows, metas_out = [], {}
     for pmid, t in typed.items():
         metas_out[pmid] = {"table": t["table_id"], "measure": t["measure"], "provenance": "TYPED_TABLE",
+                           "identity_basis": t.get("identity_basis"), "pooled": t.get("pooled"),
+                           "row_findings": {r.trial_label: r.findings for r in t["rows"] if r.findings},
                            "positive_control": t["positive_control"], "rows_read": len(t["rows"]), "usable": True,
                            "is_comparator": pmid == comp}
         for r in t["rows"]:
@@ -626,6 +688,9 @@ def build(slug, run, runs):
                         sm.verify_against_primary(r, prim2, queue_reason=f"NO_PRIMARY:{how2}")
                     else:
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
+    # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
+    # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
+    sm.two_source(rows, refs_of, [meta_aliases(m) for m in metas])
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "
@@ -635,7 +700,7 @@ def build(slug, run, runs):
     g1 = sm.g1_countable(rows, {comp})
     out = {"slug": slug, "comparator_pmid": comp, "metas_considered": metas, "skipped": skipped, "metas": metas_out,
            "tally": dict(Counter(r.state for r in rows)),
-           "typed_verification": {"verified": typed_n, "secs": typed_secs},
+           "typed_verification": {"verified": typed_n, "secs": typed_secs}, "registry": registry_state,
            "verification_queue": queue, "verification_queue_reasons": dict(Counter(q["reason"] for q in queue)),
            "g1_countable_vs_comparator": sorted({r.family_id for r in g1}),
            "refusal_reasons": dict(Counter(x.split(":")[0] for r in rows for x in r.reasons)),
@@ -672,15 +737,17 @@ def verify_replay(slugs, runs):
 def main(argv):
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")] or (list(QUERY) + MORE)
-    rp = os.path.join(OUTD, "runs.json")
-    runs = _j(rp) if os.path.exists(rp) else {}
+    runs = runs_store.load()          # per-topic ledger: registry/secondary_meta/runs/<slug>.json
     if "--verify-replay" in argv:
         probs = verify_replay(slugs, runs)
         print("REPLAY_OK" if not probs else "REPLAY_PROBLEMS", json.dumps(probs, indent=1))
         return
     for s in slugs:
-        o = build(s, run, runs)
-        _save(rp, runs)
+        try:
+            o = build(s, run, runs)
+        finally:
+            # a build that fails AFTER recorded calls completed must still ledger them, or they are paid for twice
+            runs_store.save(runs, slugs={s})
         print(s, "metas", len(o["metas_considered"]), "usable", sum(1 for v in o["metas"].values() if v.get("usable")),
               "tally", o["tally"], "g1_countable", len(o["g1_countable_vs_comparator"]), "skipped", o["skipped"], flush=True)
 

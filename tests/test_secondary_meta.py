@@ -266,3 +266,111 @@ def test_typed_registry_match_analysis_and_group_counts():
     assert sm.typed_match_registry(c, reg, ["MACE"], "AACT")["result"] == "TYPED_MATCH"
     sm.verify_typed(c, [("registry", "AACT", reg)], ["MACE"])
     assert c.state == sm.VERIFIED
+
+
+# ------------------------------------------------------------------ 2 Oct decisions: registry as PRIMARY, TWO-SOURCE rule
+
+def test_registry_verification_records_snapshot_fields_and_differences_without_reconciling():
+    reg = {"_snapshot": {"id": "AACT 2026-08-30", "digest": "abc"},
+           "outcomes": {"o1": {"title": "All-cause mortality", "time_frame": "Day 60",
+                               "population": "Safety population: all participants who received study drug"}},
+           "analyses": [], "group_titles": {"g1": "Tocilizumab", "g2": "Placebo"},
+           "groups": {"o1": [{"group": "g1", "count": 49, "n": 294}, {"group": "g2", "count": 25, "n": 144}]}}
+    r = _row(label="COVACTA", measure="RR", eff=(None, None, None), events_t=49, n_t=294, events_c=25, n_c=144,
+             timepoint="28 days", population="intention-to-treat")
+    sm.verify_typed(r, [("registry", "NCT04320615 AACT", reg)], ["mortality"])
+    v = r.verification
+    assert r.state == sm.VERIFIED and v["route"] == "PRIMARY_REGISTRY"     # the numbers match: verified, not refused
+    assert v["registry_fields"]["snapshot"] == {"id": "AACT 2026-08-30", "digest": "abc"}
+    assert [a["title"] for a in v["registry_fields"]["arm_counts"]] == ["Tocilizumab", "Placebo"]
+    diffs = {d["field"]: d for d in v["registry_vs_publication"]}
+    assert diffs["timepoint"]["registry"] == "Day 60" and diffs["timepoint"]["publication"] == "28 days"
+    assert (diffs["analysis_population"]["registry"], diffs["analysis_population"]["publication"]) == ("SAFETY", "ITT")
+    same = _row(label="COVACTA", measure="RR", eff=(None, None, None), events_t=49, n_t=294, events_c=25, n_c=144)
+    sm.verify_typed(same, [("registry", "AACT", reg)], ["mortality"])
+    assert same.verification["registry_vs_publication"] == []              # unstated is not a difference
+
+
+def test_population_class_reads_modified_itt_before_itt():
+    assert sm.population_class("modified intention-to-treat population") == "MITT"
+    assert sm.population_class("Intention-to-treat") == "ITT"
+    assert sm.population_class("participants who received at least one dose") == "SAFETY"
+    assert sm.population_class(None) == "NOT_STATED"
+
+
+def test_cited_ids_from_jats_and_unknown_when_no_reference_list():
+    j = (b'<article><body/><back><ref-list><ref><pub-id pub-id-type="pmid">34526024</pub-id></ref>'
+         b'<ref><pub-id pub-id-type="doi">10.1/ABC</pub-id></ref></ref-list></back></article>')
+    assert sm.cited_ids_from_jats(j) == {"34526024", "10.1/abc"}
+    assert sm.cited_ids_from_jats(b"<article><body/></article>") is None
+
+
+def _pair(ma, mb, eb=("0.87", "0.78", "0.97")):
+    a = _row(meta=ma, family_id="LEADER", source_digest="da")
+    b = _row(meta=mb, family_id="LEADER", eff=eb, source_digest="db")
+    for r in (a, b):
+        r.verification = {"result": "QUEUED", "queue_reason": "NO_PRIMARY:NOT_FOUND"}
+    return a, b
+
+
+def test_two_source_needs_agreement_and_independence():
+    refs = {"111": {"9"}, "222": {"8"}, "333": {"111"}, "444": {"777"}, "555": {"777"}}
+    a, b = _pair("111", "222")
+    sm.two_source([a, b], refs.get, {"777"})
+    assert a.state == b.state == sm.TWO_SOURCE and a.verification["independent_pairs"] == [["111", "222"]]
+    a, b = _pair("111", "333")                                    # 333 cites 111: may have copied its extraction
+    sm.two_source([a, b], refs.get, {"777"})
+    assert a.state == sm.UNVERIFIED and "CITES_OTHER:333->111" in a.verification["queue_reason"]
+    a, b = _pair("444", "555")                                    # both cite meta 777 of this topic
+    sm.two_source([a, b], refs.get, {"777"})
+    assert b.state == sm.UNVERIFIED and "COMMON_CITED_META:777" in b.verification["queue_reason"]
+    a, b = _pair("111", "999")                                    # no reference list for 999: fail closed
+    sm.two_source([a, b], refs.get, set())
+    assert a.state == sm.UNVERIFIED and "CITATIONS_UNKNOWN:999" in a.verification["queue_reason"]
+    a, b = _pair("111", "222", eb=("0.88", "0.79", "0.98"))       # independent but different numbers
+    sm.two_source([a, b], refs.get, set())
+    assert a.state == b.state == sm.UNVERIFIED
+    assert not sm.queue_complete([a, b])                          # still queued, with reasons
+
+
+def test_two_source_row_counts_for_g1_only_if_an_independent_pair_survives_removing_the_comparator():
+    refs = {"111": set(), "222": set(), "333": set()}
+    a, b = _pair("111", "222")
+    sm.two_source([a, b], refs.get, set())
+    assert sm.g1_countable([a, b], {"111"}) == []                 # the only pair includes the comparator
+    a, b = _pair("222", "333")
+    sm.two_source([a, b], refs.get, set())
+    assert sm.g1_countable([a, b], {"111"}) == [a, b]
+    assert sm.route_of(a) == "TWO_SOURCE"
+
+
+def test_typed_table_reads_unicode_minus_signs_and_pools_md_from_the_arms():
+    # Medicine (Baltimore) 2026 (PMID 42536519) prints its mean-difference forest table with U+2212 MINUS SIGN; the
+    # typed reader saw no row and no pooled row, so the table was dropped and the meta fell to a refused figure read.
+    # Its total follows from the ARM columns (RevMan), not from the printed row CIs: Rubino's printed CI is a typo.
+    m = "−"
+    rows = [("O'Neil 2018", f"{m}13.8 (8.38)", 102, f"{m}2.3 (8.63)", 136, f"{m}11.50 ({m}13.68, {m}9.32)"),
+            ("Rubino 2021", f"{m}17.4 (9.2)", 535, f"{m}5 (9.2)", 268, f"{m}12.40 ({m}14.75, {m}10.05)"),
+            ("Wadden 2021", f"{m}16 (10.11)", 407, f"{m}5.7 (10.11)", 204, f"{m}10.30 ({m}12.00, {m}8.60)"),
+            ("Wilding 2021", f"{m}14.85 (9.91)", 1306, f"{m}2.41 (9.91)", 655, f"{m}12.44 ({m}13.37, {m}11.51)")]
+    body = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td><td>{d}</td><td>{e}</td><td>x%</td><td>{f}</td></tr>"
+                   for a, b, c, d, e, f in rows)
+    body += f"<tr><td>Total (95% CI)</td><td/><td>2350</td><td/><td>1263</td><td>100%</td><td>{m}11.85 ({m}12.81, {m}10.90)</td></tr>"
+    jats = (f"<article><body><table-wrap id='T3'><caption><p>Effect of semaglutide on mean weight difference versus "
+            f"placebo.</p></caption><table><thead><tr><th>Study</th><th>Semaglutide mean (SD)</th><th>Semaglutide total</th>"
+            f"<th>Placebo mean (SD)</th><th>Placebo total</th><th>Weight</th>"
+            f"<th>Mean difference (IV, random, 95% CI)</th></tr></thead><tbody>{body}</tbody></table></table-wrap>"
+            f"</body></article>").encode("utf-8")
+    t = sm.typed_rows_from_jats(jats, "42536519")
+    assert len(t) == 1 and t[0]["measure"] == "MD" and len(t[0]["rows"]) == 4
+    w = t[0]["rows"][3]
+    assert (w.effect, w.lower, w.upper) == ("-12.44", "-13.37", "-11.51")
+    assert (w.mean_t, w.sd_t, w.n_t, w.mean_c, w.sd_c, w.n_c) == ("-14.85", "9.91", 1306, "-2.41", "9.91", 655)
+    assert t[0]["pooled"]["effect"] == "-11.85"
+    pc = sm.positive_control(t[0]["rows"], t[0]["pooled"], "MD")
+    assert pc["reproduced"] and "DL" in pc["methods"]
+    assert [r.findings[0]["finding"] for r in t[0]["rows"] if r.findings] == ["ROW_CI_NOT_FROM_ARMS"]
+    assert t[0]["rows"][1].findings[0]["printed_vs_arm_derived"]["lower"] == ("-14.75", -13.75)
+    # no aligned header naming the control -> arm-level data are NOT taken (arm order unknown)
+    bad = jats.replace(b"<th>Placebo mean (SD)</th>", b"<th>Mean (SD)</th>")
+    assert sm.typed_rows_from_jats(bad, "x")[0]["rows"][3].mean_t is None

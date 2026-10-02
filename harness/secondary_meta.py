@@ -58,6 +58,13 @@ class SecondaryRow:
     state: str = UNVERIFIED
     reasons: list = field(default_factory=list)
     verification: Optional[dict] = None
+    # ARM-LEVEL continuous data as printed (a RevMan-style table: 'mean (SD)' and N per arm). A meta that prints these
+    # pooled FROM them, so the positive control uses them; its printed per-trial CI is checked against them.
+    mean_t: Optional[str] = None
+    sd_t: Optional[str] = None
+    mean_c: Optional[str] = None
+    sd_c: Optional[str] = None
+    findings: list = field(default_factory=list)     # typed findings ABOUT the meta's row (never a refusal reason)
 
     def to_dict(self):
         return asdict(self)
@@ -94,13 +101,96 @@ _MEASURE = {"HR": re.compile(r"\bHR\b|hazard ratio", re.I), "RR": re.compile(r"\
             "OR": re.compile(r"\bOR\b|odds ratio"), "MD": re.compile(r"\bW?MD\b|mean difference", re.I)}
 
 
+_SIGNS = str.maketrans({"−": "-", "‒": "-", "–": "-", "—": "-", "‐": "-", "‑": "-",
+                        "·": "."})
+
+
 def _cell_text(el):
-    return re.sub(r"\s+", " ", "".join(el.itertext())).strip()
+    """A cell's text with typographic signs folded to ASCII: a table printing '−11.50 (−13.68, −9.32)' (U+2212
+    MINUS SIGN; Medicine 2026, PMID 42536519) otherwise yields no row and no pooled row, and the table silently drops.
+    A minus glued to the next digit after a space ('− 10.90') is rejoined."""
+    t = re.sub(r"\s+", " ", "".join(el.itertext())).strip().translate(_SIGNS)
+    return re.sub(r"(?<![\d)])-\s+(?=\d)", "-", t)
 
 
 def _measure_of(text):
     hits = [m for m, rx in _MEASURE.items() if rx.search(text or "")]
     return hits[0] if len(hits) == 1 else None
+
+
+_MEAN_SD_CELL = re.compile(r"^(-?\d+(?:\.\d+)?)\s*\(\s*(\d+(?:\.\d+)?)\s*\)$")
+_INT_CELL = re.compile(r"^\d+$")
+_CONTROL_HEAD = re.compile(r"placebo|control|comparator|usual care|standard", re.I)
+
+
+def _arm_level(row: SecondaryRow, cells: list, header: Optional[list]) -> None:
+    """Fill mean/SD/N per arm from a RevMan-style row: exactly two 'mean (SD)' cells, each followed by an integer N
+    cell. The arms are told apart by the HEADER (the second must name the control, the first must not); with no aligned
+    header the arm-level data are not taken (the row keeps its printed MD + CI only)."""
+    pairs = [(i, m) for i, c in enumerate(cells[1:-1], 1) for m in [_MEAN_SD_CELL.match(c)]
+             if m and _INT_CELL.match(cells[i + 1])]
+    if len(pairs) != 2 or not header:
+        return
+    (i1, a), (i2, b) = pairs
+    if _CONTROL_HEAD.search(header[i1]) or not _CONTROL_HEAD.search(header[i2]):
+        return
+    row.mean_t, row.sd_t, row.n_t = a.group(1), a.group(2), int(cells[i1 + 1])
+    row.mean_c, row.sd_c, row.n_c = b.group(1), b.group(2), int(cells[i2 + 1])
+    d = arm_ci_discrepancy(row)
+    if d:
+        row.findings = row.findings + [d]
+
+
+def _has_arms(row) -> bool:
+    return None not in (row.mean_t, row.sd_t, row.n_t, row.mean_c, row.sd_c, row.n_c) and row.n_t > 0 and row.n_c > 0
+
+
+def arm_ci_discrepancy(row: SecondaryRow, z=1.959963984540054) -> Optional[dict]:
+    """A meta row whose PRINTED MD + CI does not follow from its OWN printed arms (mean, SD, N) is a typed finding about
+    the meta (Medicine 2026, Rubino 2021: printed -12.40 (-14.75, -10.05); its arms give -12.40 (-13.75, -11.05)).
+    Tolerance: half a printed unit plus 0.05 for the rounding of the printed means/SDs."""
+    if not _has_arms(row) or None in (row.effect, row.lower, row.upper):
+        return None
+    md = _num(row.mean_t) - _num(row.mean_c)
+    se = math.sqrt(_num(row.sd_t) ** 2 / row.n_t + _num(row.sd_c) ** 2 / row.n_c)
+    derived = {"effect": md, "lower": md - z * se, "upper": md + z * se}
+    off = {k: (getattr(row, k), round(v, 2)) for k, v in derived.items()
+           if abs(_num(getattr(row, k)) - v) > _half(getattr(row, k)) + 0.05}
+    return {"finding": "ROW_CI_NOT_FROM_ARMS", "printed_vs_arm_derived": off} if off else None
+
+
+_GENERIC_TERMS = re.compile(r"^(?:(?:weighted |standardi[sz]ed )?mean differences?|percent(?:age)?|w?md|smd|"
+                            r"hazard ratio|risk ratio|odds ratio|relative risk|primary (?:outcome|end ?point))$", re.I)
+
+
+_CLAUSE_BREAK = re.compile(r"[,;]|\b(?:but|while|whereas|although)\b|\band (?:the|a|an)\b", re.I)
+
+
+def pooled_sentence(text: str, pooled: dict, outcome_terms: list) -> Optional[str]:
+    """TABLE OUTCOME IDENTITY BY THE META'S OWN WORDS: the sentence of the meta's text that prints the table's pooled
+    row (the same effect + CI, typed, rounding-aware) AND names a registered outcome term. Generic measure words
+    ('mean difference', 'percent', 'primary outcome') never identify an outcome. None when no such sentence exists.
+    Medicine 2026 captions its weight table 'mean weight difference'; its abstract says 'greater weight loss than
+    placebo (mean difference: -11.85%; 95% CI: -12.81 to -10.90)' -- the identity is the meta's, not ours."""
+    terms = [t.lower() for t in outcome_terms if t and not _GENERIC_TERMS.match(t.strip())]
+    t = _fold_text(text or "")
+    t = re.sub(r"(?<![\d)])-\s+(?=\d)", "-", t)
+    for s in re.split(r"(?<=[.;])\s+(?=[A-Z])", t):
+        if not any(k in s.lower() for k in terms):
+            continue
+        for m in _TEXT_TRIPLE.finditer(s):
+            if not all(_eq_printed(a, pooled.get(k)) for a, k in ((m.group(1), "effect"), (m.group(2), "lower"),
+                                                                  (m.group(3), "upper"))):
+                continue
+            # the term must GOVERN the numbers: it ends within 60 characters before them with no clause break between
+            # ('Weight loss was assessed, but systolic blood pressure decreased (MD -5.00 ...)' names another endpoint)
+            before = s[:m.start()].lower()
+            for k in terms:
+                j = before.rfind(k)
+                gap = before[j + len(k):] if j >= 0 else None
+                if gap is not None and len(gap) <= 60 and not _CLAUSE_BREAK.search(gap):
+                    return s.strip()[:400]
+    return None
 
 
 def typed_rows_from_jats(jats: bytes, meta_pmid: str, meta_doi: str = "") -> list:
@@ -120,6 +210,11 @@ def typed_rows_from_jats(jats: bytes, meta_pmid: str, meta_doi: str = "") -> lis
         head = [_cell_text(c) for tr in tw.iter("thead") for r in tr.iter("tr") for c in r if c.tag in ("th", "td")]
         body = [[_cell_text(c) for c in tr if c.tag in ("td", "th")] for tb in tw.iter("tbody") for tr in tb.iter("tr")]
         measure = _measure_of(" ".join(head)) or _measure_of(caption)
+        head_rows = [[_cell_text(c) for c in r if c.tag in ("th", "td")] for th in tw.iter("thead") for r in th.iter("tr")]
+
+        def header_for(n, _rows=head_rows):
+            """The header row aligned with an n-cell body row (the last thead row of that width), or None."""
+            return next((h for h in reversed(_rows) if len(h) == n), None)
         rows, pooled = [], None
         for cells in body:
             if len(cells) < 2 or not cells[0]:
@@ -135,16 +230,27 @@ def typed_rows_from_jats(jats: bytes, meta_pmid: str, meta_doi: str = "") -> lis
             loc = {"kind": "table", "id": tid, "row_label": cells[0]}
             if len(triples) == 1 and measure:
                 m = triples[0][1]
-                rows.append(SecondaryRow(meta_pmid=meta_pmid, meta_doi=meta_doi, location=loc, source_digest=digest,
-                                         provenance="TYPED_TABLE", trial_label=cells[0], measure=measure,
-                                         outcome_definition=caption[:300], effect=m.group(1).replace("·", "."),
-                                         lower=m.group(2).replace("·", "."), upper=m.group(3).replace("·", ".")))
+                r = SecondaryRow(meta_pmid=meta_pmid, meta_doi=meta_doi, location=loc, source_digest=digest,
+                                 provenance="TYPED_TABLE", trial_label=cells[0], measure=measure,
+                                 outcome_definition=caption[:300], effect=m.group(1).replace("·", "."),
+                                 lower=m.group(2).replace("·", "."), upper=m.group(3).replace("·", "."))
+                if measure == "MD":
+                    _arm_level(r, cells, header_for(len(cells)))
+                rows.append(r)
             elif len(counts) == 2 and not triples and measure in ("RR", "OR"):
-                (_, a), (_, b) = counts
+                (ia, a), (ib, b) = counts
+                # ARM ORDER from the header, not the column order: a 'Placebo | Drug' table read in column order
+                # inverts every ratio. Control named first -> swap; no aligned header -> column order, recorded.
+                hdr = header_for(len(cells))
+                note = []
+                if hdr and _CONTROL_HEAD.search(hdr[ia]) and not _CONTROL_HEAD.search(hdr[ib]):
+                    a, b = b, a
+                elif not (hdr and _CONTROL_HEAD.search(hdr[ib]) and not _CONTROL_HEAD.search(hdr[ia])):
+                    note = [{"finding": "ARM_ORDER_FROM_COLUMN_ORDER"}]
                 rows.append(SecondaryRow(meta_pmid=meta_pmid, meta_doi=meta_doi, location=loc, source_digest=digest,
                                          provenance="TYPED_TABLE", trial_label=cells[0], measure=measure,
                                          outcome_definition=caption[:300], events_t=int(a.group(1)), n_t=int(a.group(2)),
-                                         events_c=int(b.group(1)), n_c=int(b.group(2))))
+                                         events_c=int(b.group(1)), n_c=int(b.group(2)), findings=note))
         if rows:
             out.append({"table_id": tid, "caption": caption, "digest": digest, "measure": measure, "rows": rows,
                         "pooled": pooled})
@@ -170,12 +276,16 @@ def _half(s):
 
 
 def row_yi_vi(row: SecondaryRow, z=1.959963984540054):
-    """(yi, vi) on the analysis scale: log for ratios, raw for differences; from counts (log RR/OR) or the CI."""
+    """(yi, vi) on the analysis scale: log for ratios, raw for differences; from counts (log RR/OR) or the CI. An MD row
+    carrying its arms (mean, SD, N) is taken FROM THE ARMS, which is what a RevMan-style meta pooled."""
     ratio = row.measure.upper() in RATIO
+    if row.measure.upper() == "MD" and _has_arms(row):
+        return (_num(row.mean_t) - _num(row.mean_c),
+                _num(row.sd_t) ** 2 / row.n_t + _num(row.sd_c) ** 2 / row.n_c)
     if row.effect is not None:
         e, lo, hi = _num(row.effect), _num(row.lower), _num(row.upper)
-        if None in (e, lo, hi) or (ratio and min(e, lo, hi) <= 0):
-            return None
+        if None in (e, lo, hi) or (ratio and min(e, lo, hi) <= 0) or not (lo < hi and lo <= e <= hi):
+            return None        # reversed / zero-width / point-outside-CI: not a usable row (zero variance would divide)
         f = math.log if ratio else (lambda x: x)
         return f(e), ((f(hi) - f(lo)) / (2 * z)) ** 2
     a, n1, c, n2 = row.events_t, row.n_t, row.events_c, row.n_c
@@ -274,15 +384,17 @@ def outcome_identity(row: SecondaryRow, outcome_keywords: list, component_words:
 def _days(t):
     """A stated follow-up as days ('28 days', '28-day', 'day 28', '6 months'); None when no length is stated."""
     t = (t or "").lower()
-    m = re.search(r"(\d+)\s*[- ]?\s*(day|week|month|year)s?\b", t)
+    # a fractional length ('0.5 years') is read whole: '\d+' alone read '0.5 years' as 5 years
+    m = re.search(r"(?<![\d.])(\d+(?:\.\d+)?)\s*[- ]?\s*(day|week|month|year)s?\b", t)
     if m:
-        n, unit = int(m.group(1)), m.group(2)
+        n, unit = float(m.group(1)), m.group(2)
     else:
-        m = re.search(r"\b(day|week|month|year)\s*(\d+)", t)
+        m = re.search(r"\b(day|week|month|year)\s*(\d+(?:\.\d+)?)", t)
         if not m:
             return None
-        n, unit = int(m.group(2)), m.group(1)
-    return n * {"day": 1, "week": 7, "month": 30, "year": 365}[unit]
+        n, unit = float(m.group(2)), m.group(1)
+    d = n * {"day": 1, "week": 7, "month": 30, "year": 365}[unit]
+    return int(d) if d == int(d) else d
 
 
 def timepoint_identity(row: SecondaryRow, timepoint: Optional[str]) -> Optional[str]:
@@ -415,6 +527,7 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict], queue_rea
     if same_value(row, p):
         row.state = VERIFIED
         row.verification = {"result": "MATCH" + ("_FROM_PRIMARY_COUNTS" if derived else ""),
+                            "route": "PRIMARY_EXTRACTION",
                             "primary_source": primary.get("source"), "primary_span": primary.get("span")}
         return row
     span = primary.get("span") or ""
@@ -567,18 +680,195 @@ def typed_match_registry(row: SecondaryRow, registry: dict, outcome_terms: list,
                     _eq_printed(a.get("param_value"), row.effect) and _eq_printed(a.get("ci_lower"), row.lower) and \
                     _eq_printed(a.get("ci_upper"), row.upper):
                 o = registry["outcomes"][a["outcome_id"]]
-                return {"result": "TYPED_MATCH", "source": source_ref,
+                return {"result": "TYPED_MATCH", "source": source_ref, "route": "PRIMARY_REGISTRY",
                         "span": f"{o.get('title')} [{o.get('time_frame')}]: {a.get('param_type')} {a.get('param_value')} "
-                                f"({a.get('ci_lower')}, {a.get('ci_upper')})"}
+                                f"({a.get('ci_lower')}, {a.get('ci_upper')})",
+                        "registry_fields": registry_fields(registry, a["outcome_id"], analysis=a),
+                        "registry_vs_publication": registry_vs_publication(row, o)}
     if None not in (row.events_t, row.n_t, row.events_c, row.n_c):
         for oid in named:
             g = registry.get("groups", {}).get(oid) or []
-            pairs = {(x.get("count"), x.get("n")) for x in g}
-            if (row.events_t, row.n_t) in pairs and (row.events_c, row.n_c) in pairs:
+            # two DISTINCT result groups must carry the two arms: one group of 10/100 cannot be both arms of 10/100
+            gl = [(x.get("count"), x.get("n")) for x in g if x.get("count") is not None and x.get("n") is not None]
+            pairs = set(gl)
+            ti = [i for i, p_ in enumerate(gl) if p_ == (row.events_t, row.n_t)]
+            ci = [i for i, p_ in enumerate(gl) if p_ == (row.events_c, row.n_c)]
+            if ti and ci and any(x != y for x in ti for y in ci):
                 o = registry["outcomes"][oid]
-                return {"result": "TYPED_MATCH", "source": source_ref,
-                        "span": f"{o.get('title')}: groups {sorted(pairs)}"}
+                return {"result": "TYPED_MATCH", "source": source_ref, "route": "PRIMARY_REGISTRY",
+                        "span": f"{o.get('title')}: groups {sorted(pairs)}",
+                        "registry_fields": registry_fields(registry, oid),
+                        "registry_vs_publication": registry_vs_publication(row, o)}
     return None
+
+
+# ------------------------------------------------------------------ CT.gov / AACT as a PRIMARY source (2 Oct decision)
+
+_POP_CLASS = (("SAFETY", re.compile(r"safety (?:analysis |population|set)|as[- ]treated|received (?:at least one|any) dose", re.I)),
+              ("PER_PROTOCOL", re.compile(r"per[- ]protocol", re.I)),
+              ("MITT", re.compile(r"modified intent|\bm-?ITT\b|full analysis set", re.I)),
+              ("ITT", re.compile(r"intent(?:ion)?[- ]to[- ]treat|\bITT\b|all randomi[sz]ed|randomi[sz]ed participants", re.I)))
+
+
+def population_class(text: Optional[str]) -> str:
+    """The analysis population a registry/publication STATES, typed: SAFETY / PER_PROTOCOL / MITT / ITT / NOT_STATED.
+    Order matters: 'modified intention-to-treat' is MITT, not ITT."""
+    for name, rx in _POP_CLASS:
+        if rx.search(text or ""):
+            return name
+    return "NOT_STATED"
+
+
+def registry_fields(registry: dict, outcome_id: str, analysis: Optional[dict] = None) -> dict:
+    """The typed fields a registry verification rests on, recorded beside the verdict: snapshot id + digest, outcome
+    measure title, time frame, stated analysis population, arm counts per result group, and the analysis if one."""
+    o = (registry.get("outcomes") or {}).get(outcome_id) or {}
+    titles = registry.get("group_titles") or {}
+    return {"snapshot": registry.get("_snapshot"), "outcome_id": outcome_id, "measure_title": o.get("title"),
+            "time_frame": o.get("time_frame"), "population": o.get("population"),
+            "population_class": population_class(o.get("population")), "units_analyzed": o.get("units_analyzed"),
+            "arm_counts": [dict(x, title=titles.get(str(x.get("group")))) for x in
+                           (registry.get("groups") or {}).get(outcome_id) or []],
+            "analysis": analysis}
+
+
+def registry_vs_publication(row: SecondaryRow, outcome: dict) -> list:
+    """Registry-vs-publication DIFFERENCES, recorded and never reconciled: a stated follow-up of a different length, or
+    a stated analysis population of a different class. Unstated on either side is not a difference (nothing to
+    compare) -- the registry's own values are kept in registry_fields regardless."""
+    out = []
+    a, b = _days(outcome.get("time_frame")), _days(row.timepoint)
+    if a is not None and b is not None and a != b:
+        out.append({"field": "timepoint", "registry": outcome.get("time_frame"), "publication": row.timepoint})
+    pr, pp = population_class(outcome.get("population")), population_class(row.population)
+    if "NOT_STATED" not in (pr, pp) and pr != pp:
+        out.append({"field": "analysis_population", "registry": pr, "publication": pp,
+                    "registry_text": (outcome.get("population") or "")[:200]})
+    return out
+
+
+# ------------------------------------------------------------------ TWO-SOURCE RULE (2 Oct decision)
+
+TWO_SOURCE = "TWO_SOURCE_VERIFIED"
+_REF_LIST = re.compile(rb"<ref-list\b.*?</ref-list>", re.S)
+# either quote style: pub-id-type='pmid' is valid XML and was silently missed (an empty set reads as "cites nothing")
+_PUB_ID = re.compile(rb"<pub-id[^>]*pub-id-type=[\"'](pmid|doi)[\"'][^>]*>\s*([^<\s]+)\s*</pub-id>", re.I)
+
+
+def cited_ids_from_jats(jats: bytes) -> Optional[set]:
+    """Every PMID and DOI (lower-cased) in a meta's reference list, by regex over its JATS. None when the JATS carries
+    no reference list at all -- an unknown citation set, which the independence check treats as NOT independent."""
+    lists = _REF_LIST.findall(jats or b"")
+    if not lists:
+        return None
+    return {v.decode("utf-8", "replace").strip().lower() for blk in lists for _, v in _PUB_ID.findall(blk)}
+
+
+def meta_ids(row: SecondaryRow) -> set:
+    """Every identifier of the meta a row came from (PMID and DOI, lower-cased): one meta, however it is named."""
+    return {str(row.meta_pmid or "").strip().lower(), str(row.meta_doi or "").strip().lower()} - {""}
+
+
+def _alias_groups(known_metas) -> list:
+    """known_metas as alias groups: each item a string (one id) or an iterable of the SAME meta's ids (PMID + DOI), so a
+    meta cited by PMID in one reference list and by DOI in another is still recognised as one meta."""
+    out = []
+    for k in known_metas or ():
+        g = {str(k).strip().lower()} if isinstance(k, (str, int)) else {str(x).strip().lower() for x in k if x}
+        if g - {""}:
+            out.append(g - {""})
+    return out
+
+
+def independence(a: SecondaryRow, b: SecondaryRow, refs_of, known_metas: set) -> Optional[str]:
+    """None when two metas' extractions are INDEPENDENT; otherwise the typed reason they may not be. Fail-closed:
+      SAME_META / SAME_BYTES             -- one extraction, not two (same PMID or same DOI)
+      CITATIONS_UNKNOWN:<meta>           -- no reference list to check
+      CITES_OTHER:<a>-><b>               -- one meta cites the other (may have copied its extraction)
+      COMMON_CITED_META:<ids>            -- both cite a third meta of this topic, under any of its ids (may both have
+                                            copied it)"""
+    ia, ib = meta_ids(a), meta_ids(b)
+    if ia & ib:
+        return "SAME_META"
+    if a.source_digest and a.source_digest == b.source_digest:
+        return "SAME_BYTES"
+    ra, rb = refs_of(a.meta_pmid), refs_of(b.meta_pmid)
+    for m, r in ((a.meta_pmid, ra), (b.meta_pmid, rb)):
+        if r is None:
+            return f"CITATIONS_UNKNOWN:{m}"
+    if ib & ra:
+        return f"CITES_OTHER:{a.meta_pmid}->{b.meta_pmid}"
+    if ia & rb:
+        return f"CITES_OTHER:{b.meta_pmid}->{a.meta_pmid}"
+    common = [g for g in _alias_groups(known_metas) if not (g & (ia | ib)) and (g & ra) and (g & rb)]
+    if common:
+        return f"COMMON_CITED_META:{','.join(sorted(min(g) for g in common))}"
+    return None
+
+
+def same_tuple(a: SecondaryRow, b: SecondaryRow) -> Optional[str]:
+    """Two rows print the same TYPED TUPLE: the same value (same_value) AND no stated difference in timepoint length,
+    analysis-population class or arm dose. Returns None when the same, else the differing field. Unstated on either
+    side is not a difference (admit() already held both rows to the topic's registered outcome/timepoint)."""
+    if not same_value(a, b):
+        return "VALUE"
+    da, db = _days(a.timepoint), _days(b.timepoint)
+    if da is not None and db is not None and da != db:
+        return "TIMEPOINT"
+    pa, pb = population_class(a.population), population_class(b.population)
+    if "NOT_STATED" not in (pa, pb) and pa != pb:
+        return "POPULATION"
+    if a.arm_dose and b.arm_dose and _fold_text(a.arm_dose).lower() != _fold_text(b.arm_dose).lower():
+        return "ARM_DOSE"
+    return None
+
+
+def two_source(rows: list, refs_of, known_metas: set) -> list:
+    """A row with no primary match is TWO_SOURCE_VERIFIED when two INDEPENDENT metas print the same typed tuple for the
+    same trial family (same_tuple: value, and no stated difference in timepoint / population / dose). Only still-queued
+    rows are considered (a disagreement was already BLOCKED by cross_check). A row whose agreeing partners are all
+    dependent stays queued, with the dependence reason appended to its queue reason. Each independent pair is recorded
+    by PMID (independent_pairs) and by every id of both metas (independent_pair_ids), so the G1 comparator can be
+    removed whichever id it is named by."""
+    by = {}
+    for r in rows:
+        if r.state == UNVERIFIED:
+            by.setdefault(r.family_id, []).append(r)
+    for fam, group in by.items():
+        pairs, pair_ids, dep = [], [], {}
+        for i, x in enumerate(group):
+            for y in group[i + 1:]:
+                if (meta_ids(x) & meta_ids(y)) or same_tuple(x, y):
+                    continue
+                why = independence(x, y, refs_of, known_metas)
+                if why is None:
+                    pairs.append(sorted([x.meta_pmid, y.meta_pmid]))
+                    pair_ids.append(sorted(meta_ids(x) | meta_ids(y)))
+                else:
+                    dep.setdefault(id(x), []).append(why)
+                    dep.setdefault(id(y), []).append(why)
+        sup = {m for p in pairs for m in p}
+        for r in group:
+            prior = (r.verification or {}).get("queue_reason")
+            if r.meta_pmid in sup:
+                r.state = TWO_SOURCE
+                r.verification = {"result": "TWO_SOURCE_MATCH", "route": "TWO_SOURCE", "supports": sorted(sup),
+                                  "independent_pairs": pairs, "independent_pair_ids": pair_ids,
+                                  "prior_queue_reason": prior}
+            elif id(r) in dep:
+                r.verification = dict(r.verification or {}, queue_reason=(prior or "NO_PRIMARY") +
+                                      " | TWO_SOURCE_NOT_INDEPENDENT:" + ";".join(sorted(set(dep[id(r)]))))
+    return rows
+
+
+def route_of(row: SecondaryRow) -> str:
+    """The verification ROUTE a row reached, for per-topic reporting: PRIMARY (text, registry or our extraction),
+    TWO_SOURCE, or UNVERIFIED (queued / mismatch / blocked)."""
+    if row.state == VERIFIED:
+        return "PRIMARY"
+    if row.state == TWO_SOURCE:
+        return "TWO_SOURCE"
+    return "UNVERIFIED"
 
 
 def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> SecondaryRow:
@@ -591,13 +881,25 @@ def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> Secon
         hit = (typed_match_text(row, payload, outcome_terms, ref) if kind == "text"
                else typed_match_registry(row, payload, outcome_terms, ref))
         if hit:
+            hit.setdefault("route", "PRIMARY_TEXT")
             row.state, row.verification = VERIFIED, hit
             return row
     return row
 
 
 def g1_countable(rows: list, comparator_meta_ids: set) -> list:
-    """G1 'k matched' against a comparator: only PRIMARY_VERIFIED rows, and never a row sourced FROM that comparator
-    (it would be the comparator agreeing with itself)."""
-    ids = {str(x) for x in comparator_meta_ids}
-    return [r for r in rows if r.state == VERIFIED and str(r.meta_pmid) not in ids and str(r.meta_doi) not in ids]
+    """G1 'k matched' against a comparator: PRIMARY_VERIFIED rows, and TWO_SOURCE_VERIFIED rows whose support survives
+    removing the comparator (an independent pair with neither meta being the comparator, under any of its ids). Never a
+    row sourced FROM the comparator: it would be the comparator agreeing with itself. Ids compare case-insensitively
+    (DOIs are case-insensitive)."""
+    ids = {str(x).strip().lower() for x in comparator_meta_ids} - {""}
+
+    def ok(r):
+        if meta_ids(r) & ids:
+            return False
+        if r.state == VERIFIED:
+            return True
+        v = r.verification or {}
+        groups = v.get("independent_pair_ids") or v.get("independent_pairs") or []
+        return r.state == TWO_SOURCE and any(not ({str(m).lower() for m in p} & ids) for p in groups)
+    return [r for r in rows if ok(r)]
