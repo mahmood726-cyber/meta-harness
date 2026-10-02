@@ -59,7 +59,9 @@ def test_a_safety_population_count_is_shown_never_established_and_react_bacc_row
 def test_every_trial_has_a_logged_cascade_with_every_rung():
     for label in g.IDENTITY:
         c = json.load(open(os.path.join(ROOT, "g1", "data", "cascade", f"{label}.json"), encoding="utf-8"))
-        assert [r["rung"] for r in c["trial_rungs"]] == ["R4 AACT", "R5 ISRCTN"]
+        # every per-trial rung was RUN and logged (R6 preprints added 2026-10-02): a rung may be added, never dropped
+        assert {"R4 AACT", "R5 ISRCTN", "R6 Europe PMC preprints"} <= {r["rung"] for r in c["trial_rungs"]}
+        assert all(r.get("outcome") for r in c["trial_rungs"])
         assert any(d["rung"].startswith("D") or "esearch" in d["rung"] or "Europe PMC" in d["rung"] for d in c["discovery"]) \
             or label == "PreToVid" or c["discovery"]
         for r in c["candidates"]:
