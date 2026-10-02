@@ -62,3 +62,51 @@ def test_the_committed_audit_names_woman2_and_never_select():
 def test_pre_fix_woman2_was_an_open_gap_without_a_span():
     base = json.loads(subprocess.check_output(["git", "show", "17fb03ab:outputs/k_gap/g1/tranexamic-acid-pph.json"], cwd=ROOT))
     assert "WOMAN-210" in base["open_gaps"]
+
+
+# --- plants from cross-vendor review NR-C25 (Codex; artefact F:/mh-nr101-codex/c25-g1-aim-negation/last_message.txt):
+# every one of these named an IN-SCOPE trial out of the denominator before the fix
+SEMA = ["type 2 diabetes", "diabetes", "heart failure"]
+EMPA = ["type 2 diabetes", "myocardial infarction"]
+
+
+def _named(text, none, anyp=("obesity",)):
+    return au.stated_excluded_population({"abstract": text}, {"population_none": none, "population_any": list(anyp)})
+
+
+def test_c25_negation_exclusion_and_option_never_name():
+    for s in ["Adults with obesity and cardiovascular disease, excluding those with type 2 diabetes, were randomized to semaglutide or placebo.",
+              "We assessed semaglutide in adults with obesity and cardiovascular disease other than those with type 2 diabetes.",
+              "Adults with obesity and cardiovascular disease were randomized unless they had type 2 diabetes.",
+              "We evaluated semaglutide in adults with obesity and cardiovascular disease who did not have type 2 diabetes.",
+              "We evaluated semaglutide in patients without prior type 2 diabetes who had obesity and cardiovascular disease.",
+              "Adults with obesity and cardiovascular disease, excluding anyone with a documented or clinically confirmed previous diagnosis of type 2 diabetes, were randomly assigned.",
+              "We evaluated semaglutide in adults with obesity and cardiovascular disease; type 2 diabetes was an exclusion criterion."]:
+        assert _named(s, SEMA) is None, s
+
+
+def test_c25_subgroups_outcomes_and_secondary_aims_never_name():
+    assert _named("Patients with HFpEF, including a subgroup with type 2 diabetes, were randomized to empagliflozin or placebo.",
+                  EMPA, ("HFpEF",)) is None
+    assert _named("We also examined whether empagliflozin prevents myocardial infarction in patients with HFpEF.", EMPA,
+                  ("HFpEF",)) is None
+    assert _named("We examined whether semaglutide reduces hospitalisation for heart failure in adults with obesity and "
+                  "cardiovascular disease without diabetes.", SEMA) is None
+
+
+def test_c25_prevention_binds_to_the_protocols_condition_not_another_object():
+    txa = (["prevent", "prevention", "prophylactic", "prophylaxis"], ("postpartum haemorrhage", "postpartum hemorrhage"))
+    assert _named("We examined whether tranexamic acid could prevent death due to bleeding in women with established "
+                  "postpartum haemorrhage.", *txa) is None
+    assert _named("BACKGROUND: We examined whether giving tranexamic acid shortly after birth can prevent postpartum "
+                  "haemorrhage in women with anaemia.", *txa) is not None
+
+
+def test_c25_other_studies_aims_and_contradicted_abstracts_never_name():
+    txa = (["prevent", "prevention"], ("postpartum haemorrhage",))
+    assert _named("BACKGROUND: The authors of an earlier trial reported: We examined whether tranexamic acid could prevent "
+                  "postpartum haemorrhage. METHODS: Women with established postpartum haemorrhage received treatment.", *txa) is None
+    assert _named("Previous trials examined cardiovascular outcomes in adults with type 2 diabetes who were randomized to "
+                  "semaglutide or placebo.", SEMA) is None
+    assert _named("BACKGROUND: We enrolled patients with type 2 diabetes. METHODS: All participants had obesity and established "
+                  "cardiovascular disease and none had diabetes; they were randomized to semaglutide or placebo.", SEMA) is None
