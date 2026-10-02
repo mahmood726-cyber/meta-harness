@@ -98,14 +98,21 @@ def population(slugs=None):
 
 
 # ------------------------------------------------------------------ lane refinements (after the shared classifier)
-AXES = {}            # pmid -> {axis: verdict} from VERIFIER_PASS second readings (all three proposal files)
-QUOTES = {}          # pmid -> {axis: the verified verbatim quote}
+AXES = {}            # (slug, pmid) -> {axis: verdict} from VERIFIER_PASS second readings (all three proposal files)
+QUOTES = {}          # (slug, pmid) -> {axis: the verified verbatim quote}
+# keyed by TOPIC and record: eligibility is protocol-relative, and one PMID is read under several topics (34449189,
+# 27223641, 31535829) -- a pmid-only key let a later topic's verdict overwrite an earlier one's (codex review
+# exclusion_audit_and_screen#9)
 
 
-def quote_span(rec, pmid, axis):
+def _key(slug, pmid):
+    return (str(slug), str(pmid))
+
+
+def quote_span(rec, key, axis):
     """The shared span contract ({field, text, match}, verbatim in the held record's field) from the reader's verified
     quote on `axis`; None when the quote is not verbatim in title / conditions / abstract."""
-    q = (QUOTES.get(str(pmid)) or {}).get(axis)
+    q = (QUOTES.get(key) or {}).get(axis)
     if not q or not q.strip():
         return None
     for field in ("title", "conditions", "abstract"):
@@ -119,6 +126,22 @@ def quote_span(rec, pmid, axis):
 FT_DIR = os.path.join(ROOT, "g1", "data", "audit_ft")
 NO_PLACEBO_FT = re.compile(r"not receiving the study medication|did not receive (?:any )?(?:study )?(?:medication|drug|"
                            r"placebo)|no placebo was|without placebo|open[- ]label|unblinded|not blinded", re.I)
+# a sentence about OTHER studies ('Earlier trials were open-label', 'previous studies used placebo') states nothing about
+# this trial: full-text design facts are read from the current study's sentences only (codex review
+# exclusion_audit_and_screen#8)
+OTHER_STUDY = re.compile(r"\b(?:earlier|previous|prior|past|other|published|existing|former|preceding)\s+(?:[a-z-]+\s+){0,2}"
+                         r"(?:trials?|stud(?:y|ies)|reports?|investigations?)\b|\b(?:previous|prior|earlier)ly\b", re.I)
+RANDOM_FT = re.compile(r"\brandomly\s+(?:assigned|allocated)|\brandomi[sz](?:ed|ation)\b", re.I)
+# negated / non-random allocation in the current study (alternation is not randomisation)
+NONRANDOM_FT = re.compile(r"\bnon-?randomi[sz]|\bwithout\s+randomi[sz]|\bnot\s+randomi[sz]|\bquasi-?randomi[sz]|"
+                          r"\balternate(?:ly)?\b[^.]{0,40}(?:assign|allocat)|\b(?:assign|allocat)\w*\s+alternate", re.I)
+
+
+def _current_study(ft):
+    """The full text without sentences that describe other studies."""
+    return " ".join(x for x in re.split(r"(?<=[.!?])\s+", ft or "") if not OTHER_STUDY.search(x))
+
+
 BLIND_PLACEBO_FT = re.compile(r"double[- ]blind\w*[^.]{0,80}placebo|placebo[- ]controlled[^.]{0,40}double[- ]blind", re.I)
 
 
@@ -130,9 +153,9 @@ def load_axes():
         for r in xa._j(p).get("rows", []):
             v = r.get("verification") or {}
             if v.get("state") == "VERIFIER_PASS" and r.get("pmid"):
-                AXES[str(r["pmid"])] = {k: (x or {}).get("verdict") for k, x in (v.get("axes") or {}).items()}
+                AXES[_key(r.get("slug"), r["pmid"])] = {k: (x or {}).get("verdict") for k, x in (v.get("axes") or {}).items()}
                 # the quote each verified axis rests on (verify_screening located it VERBATIM in the held record)
-                QUOTES[str(r["pmid"])] = {k: ((r.get("claim") or {}).get("axes") or {}).get(k, {}).get("quote")
+                QUOTES[_key(r.get("slug"), r["pmid"])] = {k: ((r.get("claim") or {}).get("axes") or {}).get(k, {}).get("quote")
                                           for k, x in (v.get("axes") or {}).items()
                                           if ((x or {}).get("located") or {}).get("match") == "VERBATIM"}
 
@@ -146,13 +169,13 @@ def load_axes2():
         for r in xa._j(p).get("rows", []):
             v = r.get("verification") or {}
             if v.get("state") == "VERIFIER_PASS" and r.get("pmid"):
-                AXES2[str(r["pmid"])] = {k: (x or {}).get("verdict") for k, x in (v.get("axes") or {}).items()}
+                AXES2[_key(r.get("slug"), r["pmid"])] = {k: (x or {}).get("verdict") for k, x in (v.get("axes") or {}).items()}
 
 
-def consensus(pmid):
+def consensus(key):
     """({axis: verdict} both readers verified identically, {axis: [v1, v2]} where they differ). Where the second reader
     has no verified reading of this record, the first reader's verdicts stand (recorded as single-reader)."""
-    a1, a2 = AXES.get(str(pmid)) or {}, AXES2.get(str(pmid))
+    a1, a2 = AXES.get(key) or {}, AXES2.get(key)
     if a2 is None:
         return a1, {}
     agree = {k: v for k, v in a1.items() if a2.get(k) == v}
@@ -192,7 +215,8 @@ def refine(it, cls, sc, base, require_reader=True):
     rec, rule = it["rec"] or {}, base.get("rule_id") or it["recorded_rule"]
     # TWO READERS (gpt-6-astra, gpt-5.5; same instrument, each verified on its own): an axis counts only when both
     # verified readings give the same verdict; an axis they disagree on is NOT decided (and is reported)
-    ax, split = consensus(it["pmid"])
+    key = _key(it["slug"], it["pmid"])
+    ax, split = consensus(key)
     if split:
         it["readers_disagree"] = split
     if cls == "SCREENER_ERROR" and sc.startswith(("CONDITION_AS_OUTCOME", "POPULATION_ONLY_IN_ABSTRACT")):
@@ -210,7 +234,7 @@ def refine(it, cls, sc, base, require_reader=True):
         bad = sorted(k for k, v in ax.items() if v == "NOT_MET")
         unk = sorted(k for k, v in ax.items() if v == "NOT_STATED")
         if bad:
-            base["span"] = quote_span(rec, it["pmid"], bad[0])
+            base["span"] = quote_span(rec, key, bad[0])
             return ("TRUE_SCOPE_DIFFERENCE", f"{bad[0].upper()}_OUTSIDE_PROTOCOL (rule {rule} misfired: {sc}; recorded "
                     f"reader NOT_MET on {bad}, quoted)", "R0")
         if unk:
@@ -225,9 +249,11 @@ def refine(it, cls, sc, base, require_reader=True):
         ("comparator" if "comparator" in (base.get("reason") or "") else "intervention") if rule == "X3" else None)
     v = ax.get(axis) if axis else None
     ft = _full_text(it["pmid"])
+    ft = _current_study(ft) if ft else ft            # never a sentence about earlier / other trials (#8)
+    double_blind = bool((cfg.get("include") or {}).get("design_double_blind"))
     # a fact STATED in the open full text outranks a reader's MET from the abstract: Wu 2020 (probiotics) reads as a
     # randomised trial in its abstract, and its full text says 'open-label' under a double-blind protocol
-    if v == "MET" and ft and (cfg.get("include") or {}).get("design_double_blind"):
+    if v == "MET" and ft and double_blind:
         m = NO_PLACEBO_FT.search(ft)
         if m:
             return ("TRUE_SCOPE_DIFFERENCE", f"NO_PLACEBO_OR_OPEN_LABEL_STATED_IN_FULL_TEXT (recorded rule {rule} misfired; "
@@ -236,14 +262,48 @@ def refine(it, cls, sc, base, require_reader=True):
     if v is None and axis and axis in (it.get("readers_disagree") or {}):
         return cls, sc + f" | readers disagree on {axis}: {it['readers_disagree'][axis]}", None
     if v == "NOT_MET":
-        base["span"] = quote_span(rec, it["pmid"], axis)
+        base["span"] = quote_span(rec, key, axis)
         return "TRUE_SCOPE_DIFFERENCE", f"{axis.upper()}_OUTSIDE_PROTOCOL (recorded reader NOT_MET, quoted)", "R2"
     if v == "MET":
+        # the rule's axis being MET proves only that THIS rule misfired: like R0, another verified axis NOT_MET is a
+        # scope difference on that axis, and NOT_STATED leaves the record insufficient (codex review #6)
+        bad = sorted(k for k, x in ax.items() if x == "NOT_MET" and k != axis)
+        unk = sorted(k for k, x in ax.items() if x == "NOT_STATED" and k != axis)
+        if bad:
+            base["span"] = quote_span(rec, key, bad[0])
+            return ("TRUE_SCOPE_DIFFERENCE", f"{bad[0].upper()}_OUTSIDE_PROTOCOL (rule {rule} misfired: recorded reader "
+                    f"MET on {axis}, NOT_MET on {bad}, quoted)", "R2")
+        if unk:
+            return (cls, f"RULE_{rule}_MISFIRED_BUT_{'_'.join(unk).upper()}_NOT_STATED (recorded reader MET on {axis}, "
+                    f"NOT_STATED on {unk})", "R2")
         sub = f"{rule}_BUT_RECORD_MEETS_{axis.upper()} (recorded reader MET, quoted)"
         if rule == "X1" and re.search(r"\bsub-?study\b", rec.get("title") or "", re.I):
             sub = "RANDOMISED_SUBSTUDY_VETOED_BY_TITLE (pubtype RCT + abstract 'randomized'; recorded reader MET)"
         return "SCREENER_ERROR", sub, "R2"
-    if ft and (rule == "X1" or blind_rule):
+    ftspan = lambda m: {"field": "fulltext", "text": ft[max(0, m.start() - 60):m.end() + 20], "match": m.group(0),  # noqa: E731
+                        "source": f"open full text g1/data/audit_ft/{it['pmid']}.json (licence stated in the bytes)"}
+    # X1 is 'not a randomised trial': the full text answers it with ALLOCATION, never masking -- an open-label RCT
+    # meets X1, an alternately-allocated double-blind study does not (codex review #7). Blinding decides only where the
+    # protocol itself requires it.
+    if ft and rule == "X1":
+        m = NONRANDOM_FT.search(ft)
+        if m:
+            base["span"] = ftspan(m)
+            return "TRUE_SCOPE_DIFFERENCE", "NOT_RANDOMISED_STATED_IN_FULL_TEXT: '" + base["span"]["text"] + "'", "R3"
+        m = RANDOM_FT.search(ft)
+        if m:
+            n = NO_PLACEBO_FT.search(ft) if double_blind else None
+            if n:
+                base["span"] = ftspan(n)
+                return ("TRUE_SCOPE_DIFFERENCE", "RANDOMISED_BUT_OPEN_LABEL_STATED_IN_FULL_TEXT (protocol requires "
+                        "double-blind): '" + base["span"]["text"] + "'", "R3")
+            bad = sorted(k for k, x in ax.items() if x == "NOT_MET")
+            if bad:
+                base["span"] = quote_span(rec, key, bad[0])
+                return ("TRUE_SCOPE_DIFFERENCE", f"{bad[0].upper()}_OUTSIDE_PROTOCOL (X1 misfired: randomised in the "
+                        f"full text; recorded reader NOT_MET on {bad}, quoted)", "R3")
+            return ("SCREENER_ERROR", "RANDOMISED_STATED_IN_FULL_TEXT: '" + ftspan(m)["text"] + "'", "R3")
+    if ft and blind_rule:
         m = NO_PLACEBO_FT.search(ft)
         if m:
             base["span"] = {"field": "fulltext", "text": ft[max(0, m.start() - 60):m.end() + 20], "match": m.group(0),
@@ -362,7 +422,7 @@ def main(argv):
                      "class": cls, "subclass": sc, "title": ((it["rec"] or {}).get("title") or "")[:140],
                      "has_abstract": bool((it["rec"] or {}).get("abstract")),
                      "shared_classifier": {"class": shared[0], "subclass": shared[1]}, "refined_by": refined_by,
-                     "reader_axes": AXES.get(str(it["pmid"])), "reader2_axes": AXES2.get(str(it["pmid"])),
+                     "reader_axes": AXES.get(_key(it["slug"], it["pmid"])), "reader2_axes": AXES2.get(_key(it["slug"], it["pmid"])),
                      "readers_disagree": it.get("readers_disagree"), "span": span if cls == "TRUE_SCOPE_DIFFERENCE" else None})
     out = {"n": len(rows), "population": "every tracker trial blocked SCREENED_OUT_UNAUDITED or SCREENED_VIA_OTHER_REPORT",
            "by_class": dict(tally), "by_subclass": {f"{a}/{b}": v for (a, b), v in sorted(sub.items())}, "rows": rows}
