@@ -342,3 +342,35 @@ def test_two_source_row_counts_for_g1_only_if_an_independent_pair_survives_remov
     sm.two_source([a, b], refs.get, set())
     assert sm.g1_countable([a, b], {"111"}) == [a, b]
     assert sm.route_of(a) == "TWO_SOURCE"
+
+
+def test_typed_table_reads_unicode_minus_signs_and_pools_md_from_the_arms():
+    # Medicine (Baltimore) 2026 (PMID 42536519) prints its mean-difference forest table with U+2212 MINUS SIGN; the
+    # typed reader saw no row and no pooled row, so the table was dropped and the meta fell to a refused figure read.
+    # Its total follows from the ARM columns (RevMan), not from the printed row CIs: Rubino's printed CI is a typo.
+    m = "−"
+    rows = [("O'Neil 2018", f"{m}13.8 (8.38)", 102, f"{m}2.3 (8.63)", 136, f"{m}11.50 ({m}13.68, {m}9.32)"),
+            ("Rubino 2021", f"{m}17.4 (9.2)", 535, f"{m}5 (9.2)", 268, f"{m}12.40 ({m}14.75, {m}10.05)"),
+            ("Wadden 2021", f"{m}16 (10.11)", 407, f"{m}5.7 (10.11)", 204, f"{m}10.30 ({m}12.00, {m}8.60)"),
+            ("Wilding 2021", f"{m}14.85 (9.91)", 1306, f"{m}2.41 (9.91)", 655, f"{m}12.44 ({m}13.37, {m}11.51)")]
+    body = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td><td>{d}</td><td>{e}</td><td>x%</td><td>{f}</td></tr>"
+                   for a, b, c, d, e, f in rows)
+    body += f"<tr><td>Total (95% CI)</td><td/><td>2350</td><td/><td>1263</td><td>100%</td><td>{m}11.85 ({m}12.81, {m}10.90)</td></tr>"
+    jats = (f"<article><body><table-wrap id='T3'><caption><p>Effect of semaglutide on mean weight difference versus "
+            f"placebo.</p></caption><table><thead><tr><th>Study</th><th>Semaglutide mean (SD)</th><th>Semaglutide total</th>"
+            f"<th>Placebo mean (SD)</th><th>Placebo total</th><th>Weight</th>"
+            f"<th>Mean difference (IV, random, 95% CI)</th></tr></thead><tbody>{body}</tbody></table></table-wrap>"
+            f"</body></article>").encode("utf-8")
+    t = sm.typed_rows_from_jats(jats, "42536519")
+    assert len(t) == 1 and t[0]["measure"] == "MD" and len(t[0]["rows"]) == 4
+    w = t[0]["rows"][3]
+    assert (w.effect, w.lower, w.upper) == ("-12.44", "-13.37", "-11.51")
+    assert (w.mean_t, w.sd_t, w.n_t, w.mean_c, w.sd_c, w.n_c) == ("-14.85", "9.91", 1306, "-2.41", "9.91", 655)
+    assert t[0]["pooled"]["effect"] == "-11.85"
+    pc = sm.positive_control(t[0]["rows"], t[0]["pooled"], "MD")
+    assert pc["reproduced"] and "DL" in pc["methods"]
+    assert [r.findings[0]["finding"] for r in t[0]["rows"] if r.findings] == ["ROW_CI_NOT_FROM_ARMS"]
+    assert t[0]["rows"][1].findings[0]["printed_vs_arm_derived"]["lower"] == ("-14.75", -13.75)
+    # no aligned header naming the control -> arm-level data are NOT taken (arm order unknown)
+    bad = jats.replace(b"<th>Placebo mean (SD)</th>", b"<th>Mean (SD)</th>")
+    assert sm.typed_rows_from_jats(bad, "x")[0]["rows"][3].mean_t is None

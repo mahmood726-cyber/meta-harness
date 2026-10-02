@@ -100,3 +100,48 @@ Order per topic:
 
 Writes `registry/secondary_meta/<slug>.json`, which also carries `"registry": {state, snapshot}`. If the snapshot was
 unavailable it records `SNAPSHOT_UNAVAILABLE`. It is never a silent empty registry.
+
+## 6. Changes since first publication (additive except where marked)
+
+**Typed tuples and independence**
+- `two_source` requires the **same typed tuple** (`same_tuple`). That means the same value, and no *stated* difference
+  in timepoint length, population class or arm dose. Unstated on one side is not a difference.
+- `independence` treats the same PMID **or the same DOI** as `SAME_META`.
+- `known_metas` may be alias groups (`[{pmid, doi}, ...]`); the build passes `meta_aliases(pmid)`. A meta cited by PMID
+  in one reference list and by DOI in another is one meta.
+- `verification["independent_pair_ids"]` carries every id of both metas. `g1_countable` removes the comparator by any
+  id, case-insensitively.
+
+**Registry matching**
+- `typed_match_registry` needs two **distinct** result groups for the two arms, and ignores `None` counts.
+- `_days` reads fractional lengths ("0.5 years").
+
+**Pooling and typed tables**
+- `row_yi_vi` refuses reversed, zero-width or point-outside-CI rows.
+- **Arm-level MD rows:** `SecondaryRow` gains `mean_t, sd_t, mean_c, sd_c, findings`. A RevMan-style table's mean (SD)
+  and N per arm are read when the header names the control column, and the MD is pooled **from the arms**.
+  `arm_ci_discrepancy` records a printed CI that contradicts the row's own arms as a `ROW_CI_NOT_FROM_ARMS` finding.
+- Count tables take arm order from the header. An unknown order is recorded as `ARM_ORDER_FROM_COLUMN_ORDER`.
+- Table cells fold U+2212 and other typographic dashes to ASCII.
+- **Table outcome identity by the meta's own words:** `pooled_sentence` finds the sentence that prints the table's
+  pooled row and names a registered outcome term. The term must end within 60 characters before the numbers, with no
+  clause break between them. The build records `identity_basis` (`CAPTION` or `POOLED_SENTENCE: ...`) and `pooled` on
+  the meta.
+
+**AACT adapter** (`INDEX_RULES = 2`; entries built under older rules are rebuilt)
+- An arm count is an **integral** value in **people** units (participants / subjects / patients). Its N is a "measure"
+  count in people units. A percentage, proportion, rate, eyes, or patient-months is never a count or an N.
+- The tag is `{id, digest, rules}`.
+- The digest cache is keyed by a hash of the snapshot directory (`dir_sha256`), never a local path.
+
+**Run ledger**
+- `save()` **merges** with what is on disk: a stale caller cannot delete entries saved in between. Writes are atomic.
+- The build saves the ledger even when a topic's build raises.
+
+**Tracker**
+- It compares against the comparator's own printed row **whatever its admission state**.
+- It records `our_refusal`, `comparator_row`, `comparator_row_findings` and `comparator_basis`.
+- If the served review typed no comparator result, it uses the comparator's typed, positive-controlled table pooled row.
+
+**Refuted review finding:** "agreement should use the comparator's printed precision." When a trial prints 0.8, a
+comparator's 0.84 is consistent with it. Agreement is judged at the coarser printed precision on purpose.

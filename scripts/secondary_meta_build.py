@@ -158,18 +158,35 @@ def typed_table(slug, pmid, spec, run):
     if not jp:
         return None
     with open(jp, "rb") as fh:
-        tables = sm.typed_rows_from_jats(fh.read(), pmid)
+        jb = fh.read()
+    tables = sm.typed_rows_from_jats(jb, pmid)
+    # the meta's own words (abstract + body, markup stripped) for identity by its pooled sentence
+    text = re.sub(r"<[^>]+>", " ", jb.decode("utf-8", "replace"))
+    terms = list(spec["keywords"]) + (comparator_terms(slug) if pmid == comparator_pmid(slug) else [])
     ok = []
     for t in tables:
         probe = sm.SecondaryRow(meta_pmid=pmid, meta_doi="", location={"kind": "table", "id": t["table_id"]},
                                 source_digest=t["digest"], provenance="TYPED_TABLE", trial_label="",
                                 measure=t["measure"] or "", outcome_definition=t["caption"])
-        if not t["pooled"] or sm.outcome_identity(probe, spec["keywords"], (), tuple(spec.get("core") or ())):
+        if not t["pooled"]:
             continue
+        if not sm.outcome_identity(probe, spec["keywords"], (), tuple(spec.get("core") or ())):
+            basis = "CAPTION"
+        else:
+            sent = sm.pooled_sentence(text, t["pooled"], terms)
+            if not sent:
+                continue
+            basis = "POOLED_SENTENCE: " + sent
         pc = sm.positive_control(t["rows"], t["pooled"], t["measure"] or "")
         if pc["reproduced"]:
-            ok.append({**t, "positive_control": pc})
+            ok.append({**t, "positive_control": pc, "identity_basis": basis})
     return ok[0] if len(ok) == 1 else None
+
+
+def comparator_terms(slug):
+    """The topic's REGISTERED wording of the comparator's efficacy outcome (topics/<slug>.json comparator_outcomes)."""
+    cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
+    return [k for co in cfg.get("comparator_outcomes") or [] if co.get("kind") == "efficacy" for k in co.get("keywords") or []]
 
 
 LOCATE_SCHEMA = {"type": "object", "additionalProperties": False,
@@ -458,6 +475,20 @@ def primary_sources(slug, pmid, nct=None):
 _REFS = {}
 
 
+def meta_aliases(pmid):
+    """One candidate meta under every id it can be cited by: its PMID and the DOI its own JATS front declares."""
+    d = os.path.join(k_gap.COMP_DIR, str(pmid))
+    ids = {str(pmid)}
+    jp = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None)         if os.path.isdir(d) else None
+    if jp:
+        with open(jp, "rb") as fh:
+            front = fh.read().split(b"<body", 1)[0]
+        m = re.search(rb"<article-id[^>]*pub-id-type=[\"']doi[\"'][^>]*>\s*([^<\s]+)", front)
+        if m:
+            ids.add(m.group(1).decode("utf-8", "replace").strip().lower())
+    return ids
+
+
 def refs_of(pmid):
     """The PMIDs/DOIs a meta cites (its held JATS reference list), or None when no JATS / no reference list is held."""
     if pmid not in _REFS:
@@ -558,6 +589,8 @@ def build(slug, run, runs):
     rows, metas_out = [], {}
     for pmid, t in typed.items():
         metas_out[pmid] = {"table": t["table_id"], "measure": t["measure"], "provenance": "TYPED_TABLE",
+                           "identity_basis": t.get("identity_basis"), "pooled": t.get("pooled"),
+                           "row_findings": {r.trial_label: r.findings for r in t["rows"] if r.findings},
                            "positive_control": t["positive_control"], "rows_read": len(t["rows"]), "usable": True,
                            "is_comparator": pmid == comp}
         for r in t["rows"]:
@@ -657,7 +690,7 @@ def build(slug, run, runs):
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
-    sm.two_source(rows, refs_of, set(metas))
+    sm.two_source(rows, refs_of, [meta_aliases(m) for m in metas])
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "
@@ -710,8 +743,11 @@ def main(argv):
         print("REPLAY_OK" if not probs else "REPLAY_PROBLEMS", json.dumps(probs, indent=1))
         return
     for s in slugs:
-        o = build(s, run, runs)
-        runs_store.save(runs, slugs={s})
+        try:
+            o = build(s, run, runs)
+        finally:
+            # a build that fails AFTER recorded calls completed must still ledger them, or they are paid for twice
+            runs_store.save(runs, slugs={s})
         print(s, "metas", len(o["metas_considered"]), "usable", sum(1 for v in o["metas"].values() if v.get("usable")),
               "tally", o["tally"], "g1_countable", len(o["g1_countable_vs_comparator"]), "skipped", o["skipped"], flush=True)
 
