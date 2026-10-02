@@ -54,8 +54,13 @@ def run_topic(slug, t0, tracker_only=False):
              ("tracker", [sys.executable, "scripts/g1_tracker.py", slug, "--no-table"])]
     for name, args in (steps[1:] if tracker_only else steps):
         s0 = time.time()
-        p = subprocess.run(args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", timeout=3600)
+        try:
+            p = subprocess.run(args, cwd=ROOT, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=3600)
+        except subprocess.TimeoutExpired:
+            # one slow topic is recorded as failed; it never aborts the batch (codex review 3 Oct)
+            rec["steps"].append({"step": name, "secs": round(time.time() - s0, 1), "rc": "TIMEOUT", "stderr_tail": ""})
+            break
         rec["steps"].append({"step": name, "secs": round(time.time() - s0, 1), "rc": p.returncode,
                              "stderr_tail": _scrub((p.stderr or "").strip().splitlines()[-1:]) if p.returncode else ""})
         if p.returncode:

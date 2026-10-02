@@ -471,7 +471,8 @@ def g1_status(o):
     dis = [x for x in tr if str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE")]
     crit = {
         "ALL_ELIGIBLE_MATCHED": o["N_eligible"] > 0 and o["k_matched"] == o["N_eligible"] and not o["open_gaps"],
-        "MATCHED_ARE_VERIFIED": all(x["route"] in ("PRIMARY", "TWO_SOURCE") for x in tr if x["in_our_pool"]),
+        "MATCHED_ARE_VERIFIED": all(x["route"] in ("PRIMARY", "TWO_SOURCE") and x.get("g1_countable", True)
+                                    for x in tr if x["in_our_pool"]),
         "RESULT_AGREES": v == "AGREE",
         "DIVERGENCES_NAMED": all((d.get("protocol_rule") or d.get("gate")) for d in o["named_differences"])
                              and all(x.get("disagreement_side") for x in dis),
@@ -522,9 +523,10 @@ def topic(slug, T):
                      or o["pmid"] in (t.get("pmids") or [])), None)
         fam = mine["id"] if mine else None
         in_pool = is_pooled(mine, pooled_ids)
-        if in_pool and not mine.get("primary"):
-            # a trial the held-source build admitted: our value is its pool row (effect + CI, or the 2x2)
-            mine = dict(mine, primary=our_value_from_row(row_by_id.get(str(mine["id"])) or {}))
+        if in_pool and row_by_id.get(str(mine["id"])):
+            # OUR value is the row the held-source POOL uses, never the bare build's (a stale baseline value could make
+            # the same-trials comparison agree with numbers the pool no longer uses -- codex review 3 Oct)
+            mine = dict(mine, primary=our_value_from_row(row_by_id[str(mine["id"])]) or mine.get("primary"))
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data

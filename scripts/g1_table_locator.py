@@ -4,7 +4,8 @@ are flattened, where the full-text rung admits only a prose effect+CI by design.
 
 One RECORDED, replayable model call per trial (reproducible_ai.model_call_live.call; Mahmood 2 Oct: model calls only
 for forest plots and TABLE LOCATION). The model only LOCATES: it quotes the passage/table row with the topic outcome's
-between-arm result and copies its numbers. A number is admitted only through harness.secondary_meta.gate_table_location:
+between-arm result and copies its numbers. A number is ACCEPTED only through harness.secondary_meta.gate_table_location (accepted = a gated PROPOSAL; there is no
+admission path into a pool yet -- one must bind it to a held document first, codex review 3 Oct):
 the quote is verbatim in the held text, every copied number is printed in the quote, the quote names the topic outcome
 (non-generic keyword), and a single declared outcome is never bound to a composite. Calls run 3 at a time; each record is
 written to evidence/model_calls/table_locator/ and ledgered in registry/secondary_meta/runs/<slug>.json under
@@ -69,6 +70,7 @@ def item(r):
          f"INTERVENTION: {', '.join(cfg.get('intervention_terms') or [])}\n"
          f"CONTROL: {', '.join(cfg.get('comparator_terms') or [])}\n<<<TEXT\n{body}\nTEXT>>>\n").encode("utf-8")
     return {"slug": r["slug"], "pmid": r["pmid"], "label": r["label"], "outcome": po["name"], "spec": po,
+            "interv": cfg.get("intervention_terms") or [], "comp": cfg.get("comparator_terms") or [],
             "prefer": "counts" if want_counts else None, "prompt": p, "text": body,
             "key": f"locate::{r['slug']}::{r['pmid']}::table", "sources": [ref for ref, _ in texts]}
 
@@ -108,7 +110,7 @@ def main(argv):
             rid = r["record_id"]
             claim = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, rid + ".json"))).decode("utf-8"))
             val, why = sm.gate_table_location(claim, it["text"], it["spec"].get("keywords") or [], it["outcome"],
-                                              prefer=it["prefer"])
+                                              prefer=it["prefer"], interv=it["interv"], comp=it["comp"])
             verdict = "ACCEPTED" if val else "REFUSED"
         tally[verdict if verdict != "REFUSED" else f"REFUSED:{why}"] += 1
         rows.append({"slug": it["slug"], "pmid": it["pmid"], "label": it["label"], "outcome": it["outcome"],

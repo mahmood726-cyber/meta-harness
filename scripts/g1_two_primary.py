@@ -51,14 +51,16 @@ def held_text(reg):
     return b.decode("utf-8", "replace")
 
 
-def regulator_tuple(text, table, arm_t, arm_c):
+def regulator_tuple(text, table, arm_t, arm_c, outcome_re=None):
     """(est, lo, hi, evidence) for arm_t vs arm_c from `table`'s 'Hazard ratio vs. <arm_c> (95% CI)' row, binding each
     triple to its column by the header's arm order. None when the table, the header or the row is not found."""
     # the table's own TITLE line (start of a line), not an in-text reference ('see Table 4 and Figure 1')
-    m = re.search(rf"(?m)^\s*{re.escape(table)}\b(.*?)(?=\n\s*(?:Table|Figure)\s+\d)", text, re.S)
+    m = re.search(rf"(?m)^\s*{re.escape(table)}\b(.*?)(?=\n\s*(?:Table|Figure)\s+\d|\Z)", text, re.S)
     if not m:
         return None
     blk = m.group(1)
+    if outcome_re and not re.search(outcome_re, blk.split("\n", 1)[0], re.I):
+        return None                      # the table is about another outcome: its numbers verify nothing here
     head = blk.split("Patients randomized")[0]
     cols = [x.group(0) for x in re.finditer(rf"\d+\s*mg|{arm_c}", head, re.I)]
     row = re.search(rf"Hazard ratio vs\.?\s*{arm_c}\s*\(95% CI\)\s*(.+)", blk, re.I)
@@ -72,8 +74,8 @@ def regulator_tuple(text, table, arm_t, arm_c):
         return None
     e, lo, hi = trip[idx]
     return e, lo, hi, {"columns": cols, "row": row.group(0).strip()[:160],
-                       "population": ("ALL_RANDOMIZED (table row 'Patients randomized " +
-                                      " ".join(rnd.group(1).split()) + "')") if rnd else None}
+                       "population_class": sm.population_class(blk),
+                       "randomized_counts": " ".join(rnd.group(1).split()) if rnd else None}
 
 
 def registry_tuple(nct, outcome_re, measure, arm_t, arm_c):
@@ -88,7 +90,11 @@ def registry_tuple(nct, outcome_re, measure, arm_t, arm_c):
         if not re.search(outcome_re, o.get("title") or "", re.I) or not re.search(want, a.get("param_type") or "", re.I):
             continue
         gt = [titles.get(g, "") for g in a.get("groups") or []]
-        if len(gt) == 2 and any(re.search(arm_t, x, re.I) for x in gt) and any(re.search(arm_c, x, re.I) for x in gt):
+        def only(x, want, other):
+            return bool(re.search(want, x, re.I)) and not re.search(other, x, re.I)
+        # 'Dabigatran 150 mg plus Warfarin' matches BOTH patterns: one group may not stand for both arms
+        if len(gt) == 2 and ((only(gt[0], arm_t, arm_c) and only(gt[1], arm_c, arm_t)) or
+                             (only(gt[1], arm_t, arm_c) and only(gt[0], arm_c, arm_t))):
             return (a["param_value"], a["ci_lower"], a["ci_upper"],
                     {"analysis_id": a.get("analysis_id"), "groups": gt, "outcome": o.get("title"),
                      "time_frame": o.get("time_frame"), "population": o.get("population"),
@@ -98,7 +104,8 @@ def registry_tuple(nct, outcome_re, measure, arm_t, arm_c):
 
 def verify(spec):
     r = registry_tuple(spec["nct"], spec["outcome_re"], spec["measure"], spec["arm_t"], spec["arm_c"])
-    g = regulator_tuple(held_text(spec["regulator"]), spec["regulator"]["table"], spec["arm_t"], spec["arm_c"])
+    g = regulator_tuple(held_text(spec["regulator"]), spec["regulator"]["table"], spec["arm_t"], spec["arm_c"],
+                        outcome_re=spec["outcome_re"])
     out = {"slug": spec["slug"], "trial": spec["trial"], "nct": spec["nct"], "measure": spec["measure"],
            "registry": r and {"effect": r[0], "lower": r[1], "upper": r[2], **r[3]},
            "regulator": g and {"effect": g[0], "lower": g[1], "upper": g[2], **g[3],
@@ -109,7 +116,9 @@ def verify(spec):
     same = all(sm._eq_printed(a, b) for a, b in zip(r[:3], g[:3]))
     silent = [ax for ax, have in (("timepoint", (bool(r[3].get("time_frame")), False)),) if have[0] != have[1]]
     pop_r = r[3].get("population_class")
-    pop_g = "ITT" if (g[3].get("population") or "").startswith("ALL_RANDOMIZED") else "NOT_STATED"
+    pop_g = g[3].get("population_class") or "NOT_STATED"
+    if "NOT_STATED" in (pop_r, pop_g):
+        silent.append("population")       # stated by one source only: listed, never assumed to agree
     if "NOT_STATED" not in (pop_r, pop_g) and pop_r != pop_g:
         out.update(state="INCOMPARABLE", reasons=[f"POPULATION_{pop_r}_VS_{pop_g}"])
     else:
