@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `36c127c40287cd84437255c6ed4b844ad127f9127f60c83ec146c0d213a7e9ec` |
-| html_sha256 (served page bytes) | `9997f9bb3083e6551b1f1c9281bea22516e77fe1e1881d02e4cad2b2b7d4c7c0` |
-| release_sha256 (certificate) | `23e899f334e1ece31a4d5bf15be916b36d3cc7c787a01a0824a2a1aaa896c833` |
+| review_sha256 (canonical review core) | `245e194b58bcf83a310361b8f601f24c0b14a41fb2120f3994298155e0862828` |
+| html_sha256 (served page bytes) | `e4ac20ba569e70cf25df1fcb479ba19e4de380cc2e7572f8c1f93cd73ea6f30d` |
+| release_sha256 (certificate) | `ffc71aa187ad3d0be49188a57d96457fd89d19d12b61f9dbc61772dbf0a82370` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `146edbf724354bd40134ccaeae7719aebdf9f5f8` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `9eacfe09d41136a615e9fb3331b5b7b3968d124d` |
+| recorded generating commit | `c6741bce0304d448f749a29695d224c445f81000` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -44,6 +44,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/melatonin-primary-insomnia-sol/ft_27559258.txt` | `60ef9e782ac3e476a81916f3d7b74ed223d6d4d3f2bb07f279e6fa0278ed7119` |
 
 Recorded judgments live under `cache/melatonin-primary-insomnia-sol/`; their object digest is
-`f6e469ce155a1134968dcab1f85eb50a93663aa7f53bc9424ca64473feeda349`. Acquisitions live under `docs/acquisitions/melatonin-primary-insomnia-sol/`.
+`0edffcddfa26178a6df35e359273282deb288b3f8085afe497fccaa228f40b29`. Acquisitions live under `docs/acquisitions/melatonin-primary-insomnia-sol/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

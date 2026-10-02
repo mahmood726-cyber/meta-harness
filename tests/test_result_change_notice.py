@@ -211,12 +211,100 @@ def test_PLANT_page_renders_the_basis_and_the_basis_is_outside_the_signed_bytes(
     assert _block(relay) == _block(WITHDRAWN)          # the basis line sits under the block; the signed hash does not move
 
 
-def test_PLANT_every_committed_notice_keeps_the_not_asserted_wrong_sentence():
-    """'the numbers are not asserted wrong' is the difference between 'we cannot verify this' and 'this is wrong';
-    it must survive every edit of every notice in docs/result_changes.json."""
+def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
+    """A notice must say whether it is challenging the old number or only unable to bind it. Both, per kind.
+
+    'the numbers are not asserted wrong' is the difference between 'we cannot verify this' and 'this is wrong'.
+    Originally this test required that sentence on EVERY notice, which was right while every notice was a
+    SET-ASIDE: a trial left the pool because its number could not be bound to held bytes, so the number was
+    genuinely not challenged.
+
+    It is false on a SUBSTITUTION. When a trial stays in the pool and contributes a different number because the
+    previous one was the wrong quantity for the outcome -- J-EMPHASIS's CV-death/HHF composite HR served as
+    all-cause mortality -- the old number IS asserted wrong, and writing 'not asserted wrong' beside it would put
+    a false sentence on a served page. Satisfying the old assertion would have required exactly that.
+
+    So the requirement is per kind, and each kind must carry its own claim AND NOT the other one. A notice that
+    makes neither claim fails: silence about which claim is being made is the thing this plant exists to stop."""
+    NOT_WRONG = "the numbers are not asserted wrong"
+    AWAITING = "eligible evidence awaiting adjudication"
+    IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
+    ENTERED = "Entering trials are new evidence, not a correction"
+    LIFTED = "a new claim on the page, not a correction of a served number"
     for n in result_changes.load():
-        assert "the numbers are not asserted wrong" in n["reason"], (n["slug"], n["outcome"])
-        assert "eligible evidence awaiting adjudication" in n["reason"], (n["slug"], n["outcome"])
+        where = (n["slug"], n["outcome"])
+        reason = n["reason"]
+        # Three kinds, each with its own claim: a trial LEFT (set-aside: not asserted wrong, awaiting
+        # adjudication); a trial ENTERED (new evidence: the old number is not asserted wrong); a row's number was
+        # SUBSTITUTED with nobody leaving or entering (the old number was the wrong quantity: asserted wrong).
+        if n.get("left_pool"):
+            assert NOT_WRONG in reason, where
+            assert AWAITING in reason, where
+            assert IS_WRONG not in reason, (where, "a set-aside must not assert the number wrong")
+        elif n.get("entered_pool"):
+            assert ENTERED in reason, (where, "an entering trial must be described as new evidence")
+            assert IS_WRONG not in reason, (where, "new evidence must not assert the old number wrong")
+            for tid in n["entered_pool"]:
+                assert f"{tid} entered the pool contributing" in reason, (where, tid)
+        elif "was withheld on the served page" in reason:
+            # A LIFTED SUPPRESSION (omega3 AF, 2026-10-01): the estimate existed and was withheld; serving it is a new
+            # claim, and asserts nothing about any served number.
+            assert LIFTED in reason, (where, "a lifted suppression must say it is a new claim, not a correction")
+            assert IS_WRONG not in reason and NOT_WRONG not in reason, where
+            assert n["before"].get("estimate") is None, (where, "only a withheld (absent) estimate can be lifted")
+        else:
+            assert IS_WRONG in reason, (where, "a substitution must say the served number was wrong")
+            assert NOT_WRONG not in reason, (where, "a substitution must not claim the number is unchallenged")
+        assert "no trial leaving or entering" not in reason or not (n.get("left_pool") or n.get("entered_pool")),             (where, "the notice says nothing left or entered while its own pool lists say otherwise")
+
+
+def _refresh_in(tmp, monkeypatch, notices, before, after):
+    """Run scripts/refresh_result_change_notices.refresh against synthetic before/after review objects."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("rrcn", str(Path(__file__).resolve().parents[1] / "scripts" / "refresh_result_change_notices.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    (tmp / "docs" / "reviews" / "t").mkdir(parents=True)
+    path = tmp / "docs" / "result_changes.json"
+    path.write_text(json.dumps({"_doc": "", "notices": notices}), encoding="utf-8")
+    monkeypatch.setattr(mod, "ROOT", tmp)
+    monkeypatch.setattr(mod, "PATH", path)
+    monkeypatch.setattr(mod, "_before", lambda commit, slug: before)
+    monkeypatch.setattr(mod, "_after", lambda slug: after)
+    mod.refresh("BASE", "tester", "2026-10-01T00:00:00Z")
+    return json.loads(path.read_text(encoding="utf-8"))["notices"]
+
+
+def _rv(k, est, trial_ids, entered_row=None):
+    trials = [{"id": t, "effect": 0.9, "ci_low": 0.8, "ci_high": 1.0, "scale": "RR", "provenance": "abstract"}
+              for t in trial_ids]
+    if entered_row:
+        trials.append(entered_row)
+    return {"outcomes": [{"name": "O", "result": {"k": k, "estimate": est, "ci_low": est - 0.1, "ci_high": est + 0.1},
+                          "trials": trials, "declared_absent_trials": []}]}
+
+
+def test_PLANT_a_signed_notice_is_never_rewritten_by_a_later_change(tmp_path, monkeypatch):
+    """2026-10-01: the held-full-text enables changed two outcomes (omega3 MACE, probiotics AAD) whose notices
+    Mahmood had countersigned on 2026-09-29. Notices were keyed one per outcome, so the refresher REBUILT the
+    signed notices and reset their signatures to OPEN -- deleting a signature by overwriting it. A later change
+    must get a NEW notice; the signed one must survive byte-identical."""
+    signed = {"slug": "t", "outcome": "O", "before": {"k": 6, "estimate": 0.95, "ci_low": 0.85, "ci_high": 1.05},
+              "after": {"k": 5, "estimate": 0.937, "ci_low": 0.837, "ci_high": 1.037}, "left_pool": ["PMID 1"],
+              "entered_pool": [], "reason": "earlier change", "by": "x", "when_utc": "2026-09-21T00:00:00Z",
+              "reviewer_countersignature": {"state": "BATCH_SEEN_AND_SIGNED", "by": "Mahmood",
+                                            "when_utc": "2026-09-29T09:09:04Z", "rendered_sha256": "ab" * 32}}
+    before = _rv(5, 0.937, ["PMID 2", "PMID 3"])
+    entering = {"id": "PMID 9", "effect": 1.0, "ci_low": 0.64, "ci_high": 1.56, "scale": "HR",
+                "provenance": "pmc_fulltext"}
+    after = _rv(6, 0.9386, ["PMID 2", "PMID 3"], entering)
+    out = _refresh_in(tmp_path, monkeypatch, [json.loads(json.dumps(signed))], before, after)
+    assert signed in out, "the countersigned notice was rewritten or dropped"
+    fresh = [n for n in out if n is not None and n != signed]
+    assert len(fresh) == 1 and fresh[0]["reviewer_countersignature"]["state"] == "OPEN"
+    assert fresh[0]["entered_pool"] == ["PMID 9"]
+    assert "PMID 9 entered the pool contributing HR 1.0 (0.64 to 1.56)" in fresh[0]["reason"]
+    assert "no trial leaving or entering" not in fresh[0]["reason"]
 
 
 def test_PLANT_a_page_carrying_a_notice_the_file_no_longer_has_is_held(tmp_path, monkeypatch):
@@ -235,3 +323,31 @@ def test_PLANT_a_page_carrying_a_notice_the_file_no_longer_has_is_held(tmp_path,
     assert reasons and "differ from docs/result_changes.json" in reasons[0]
     (root / "docs" / "result_changes.json").write_text(json.dumps({"_doc": "t", "notices": [_signed(WITHDRAWN, "SEEN_AND_SIGNED")]}) + chr(10), encoding="utf-8")
     assert gate.check_result_change_countersigned(str(d)) == []
+
+
+def test_PLANT_a_lifted_suppression_is_derived_not_left_unexplained(tmp_path, monkeypatch):
+    """2026-10-01, omega3 Atrial fibrillation: the k=1 estimate was WITHHELD on the served page (compat_check: an
+    isolated harm estimate is suppressed while a primary-pool trial's source-reported harm is unresolved -- VITAL's
+    sentence about future ancillary studies). A held-source decision typed that hit SIGNAL_SPURIOUS, the suppression
+    lifted, and the same estimate is now served. Nothing entered or left and no row moved, so the refresher said
+    'the cause is not derivable'. It is derivable from the objects: the withheld state and the row that resolved it."""
+    before = _rv(1, 1.2296, ["PMID 1"])
+    res = before["outcomes"][0]["result"]
+    res.update({"k": None, "estimate": None, "ci_low": None, "ci_high": None, "present": False,
+                "state": "HARMS_INCOMPLETE",
+                "known_eligible_outcome_reports_unresolved": [{"trial_id": "30415637", "terms": ["atrial fibrillation"]}]})
+    before["outcomes"][0]["declared_absent_trials"] = [{"id": "PMID 30415637", "state": "OUTCOME_NOT_IN_SOURCE",
+                                                         "absent_kind": "machine_absent"}]
+    after = _rv(1, 1.2296, ["PMID 1"])
+    after["outcomes"][0]["declared_absent_trials"] = [{"id": "PMID 30415637", "state": "SIGNAL_SPURIOUS",
+                                                        "reason_code": "SIGNAL_SPURIOUS", "typed_refusal": True,
+                                                        "absent_kind": "adjudicated_absent",
+                                                        "reason": "The hit names future ancillary studies."}]
+    out = _refresh_in(tmp_path, monkeypatch, [], before, after)
+    assert len(out) == 1
+    reason = out[0]["reason"]
+    assert "not derivable" not in reason
+    assert "was withheld on the served page (HARMS_INCOMPLETE" in reason
+    assert "PMID 30415637 is now resolved as SIGNAL_SPURIOUS: The hit names future ancillary studies." in reason
+    assert "a new claim on the page, not a correction" in reason
+    assert "asserted wrong" not in reason

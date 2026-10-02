@@ -8,11 +8,7 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure']; and none of ['preserved ejection fraction', 'HFpEF', 'chronic obstructive pulmonary disease', 'COPD', 'pulmonary hypertension', 'dialysis', 'haemodialysis', 'hemodialysis', 'postpartum', 'pregnancy', 'inflammatory bowel disease', 'restless legs']; randomised intervention is one of ['ferric carboxymaltose', 'ferric derisomaltose', 'iron sucrose'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'standard care', 'standard of care', 'control', 'no treatment']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - intravenous iron for heart-failure hospitalization in HFrEF with iron deficiency\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. The protocol is committed before the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced or mildly reduced ejection fraction and iron deficiency.\n- **I** - intravenous iron, including ferric carboxymaltose, ferric derisomaltose, or iron sucrose.\n- **C** - placebo, usual care, standard care, or no-treatment control.\n- **O (primary)** - heart-failure hospitalization at trial end / longest reported follow-up.\n- **O (harms)** - injection-site/administration-site reactions; hypersensitivity reactions.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), intravenous iron vs placebo/standard care.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest reported follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - population is heart failure with reduced or mildly reduced ejection fraction and iron deficiency;\n- **I3** - intravenous iron vs placebo, usual care, standard care, or no-treatment control;\n- **design** - placebo-controlled or standard-care-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (for example HFpEF, COPD, pulmonary hypertension, dialysis, pregnancy/postpartum, inflammatory bowel disease, or restless legs);\n- **X3** - wrong intervention/comparison (no intravenous iron vs eligible control contrast);\n- **X5** - off-topic: a primary trial of another disease area in this set (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether a trial reports heart-failure\n> hospitalization, or gives a 2x2 vs only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + 95% CI is a\n> poolable input. Composite cardiovascular-death/heart-failure-hospitalization effects\n> are not treated as standalone heart-failure hospitalization for the primary outcome.\n\n## Search (fetch-once; raw results committed under cache/iv-iron-hfref-hosp/records.json; screening replays offline)\n- PubMed: targeted primary-report searches for FAIR-HF2, AFFIRM-AHF, and IRONMAN.\n- PubMed comparator-reference seeding: trials cited by the resolved comparator are fetched and screened by the same rules.\n- ClinicalTrials.gov: condition \"heart failure reduced ejection fraction iron deficiency\", intervention \"intravenous iron\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nParmananda et al., *Diseases* 2024, \"The Efficacy and Safety of Ferric\nCarboxymaltose in Heart Failure with Reduced Ejection Fraction and Iron Deficiency:\nAn Updated Systematic Review and Meta-Analysis of Randomized Controlled Trials\"\n(PMID 39727669, PMC11727542, DOI 10.3390/diseases12120339; Unpaywall is_oa=true).\nIt reports total HF hospitalizations OR 0.59 (95% CI 0.40 to 0.88) over six RCTs,\nplus serious adverse events and qualitative angioedema/hypersensitivity detail.\n\n## Controls\n- **Positive** - the search must recover FAIR-HF2 (PMID 40159390), AFFIRM-AHF\n  (PMID 33197395), and IRONMAN (PMID 36347265).\n- **Negative** - the COPD intravenous-iron RCT (PMID 32565444) must be recovered\n  and EXCLUDED as wrong population.\n",
-    "target_endpoint_selection": {
-      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
-      "results_known_at_rule_time": true
-    }
+    "text": "# Protocol - intravenous iron for heart-failure hospitalization in HFrEF with iron deficiency\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. The protocol is committed before the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced or mildly reduced ejection fraction and iron deficiency.\n- **I** - intravenous iron, including ferric carboxymaltose, ferric derisomaltose, or iron sucrose.\n- **C** - placebo, usual care, standard care, or no-treatment control.\n- **O (primary)** - heart-failure hospitalization at trial end / longest reported follow-up.\n- **O (harms)** - injection-site/administration-site reactions; hypersensitivity reactions.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), intravenous iron vs placebo/standard care.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest reported follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - population is heart failure with reduced or mildly reduced ejection fraction and iron deficiency;\n- **I3** - intravenous iron vs placebo, usual care, standard care, or no-treatment control;\n- **design** - placebo-controlled or standard-care-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (for example HFpEF, COPD, pulmonary hypertension, dialysis, pregnancy/postpartum, inflammatory bowel disease, or restless legs);\n- **X3** - wrong intervention/comparison (no intravenous iron vs eligible control contrast);\n- **X5** - off-topic: a primary trial of another disease area in this set (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether a trial reports heart-failure\n> hospitalization, or gives a 2x2 vs only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + 95% CI is a\n> poolable input. Composite cardiovascular-death/heart-failure-hospitalization effects\n> are not treated as standalone heart-failure hospitalization for the primary outcome.\n\n## Search (fetch-once; raw results committed under cache/iv-iron-hfref-hosp/records.json; screening replays offline)\n- PubMed: targeted primary-report searches for FAIR-HF2, AFFIRM-AHF, and IRONMAN.\n- PubMed comparator-reference seeding: trials cited by the resolved comparator are fetched and screened by the same rules.\n- ClinicalTrials.gov: condition \"heart failure reduced ejection fraction iron deficiency\", intervention \"intravenous iron\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nParmananda et al., *Diseases* 2024, \"The Efficacy and Safety of Ferric\nCarboxymaltose in Heart Failure with Reduced Ejection Fraction and Iron Deficiency:\nAn Updated Systematic Review and Meta-Analysis of Randomized Controlled Trials\"\n(PMID 39727669, PMC11727542, DOI 10.3390/diseases12120339; Unpaywall is_oa=true).\nIt reports total HF hospitalizations OR 0.59 (95% CI 0.40 to 0.88) over six RCTs,\nplus serious adverse events and qualitative angioedema/hypersensitivity detail.\n\n## Controls\n- **Positive** - the search must recover FAIR-HF2 (PMID 40159390), AFFIRM-AHF\n  (PMID 33197395), and IRONMAN (PMID 36347265).\n- **Negative** - the COPD intravenous-iron RCT (PMID 32565444) must be recovered\n  and EXCLUDED as wrong population.\n"
   },
   "search": {
     "n_records": 39,
@@ -917,29 +913,12 @@
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
-          "alternatives": [
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) o...",
-              "effect": 0.79,
-              "ci_low": 0.63,
-              "ci_high": 0.99,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            },
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): The third primary outcome (cardiovascular death or first heart failure hospitalization in patients with a transferrin saturation <20%) occurred in 103 patients in the ferri...",
-              "effect": 0.79,
-              "ci_low": 0.61,
-              "ci_high": 1.02,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            }
+          "alternatives": [],
+          "endpoint_eligibility_refusals": [
+            "the sentence names its endpoint only as 'primary outcome', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'Heart-failure hospitalization' is a single component, so this is a different quantity",
+            "the sentence names its endpoint only as 'primary outcome', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'Heart-failure hospitalization' is a single component, so this is a different quantity",
+            "the sentence names its endpoint only as 'primary outcome', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'Heart-failure hospitalization' is a single component, so this is a different quantity",
+            "the sentence names its endpoint only as 'primary outcome', which this document defines as a composite of cardiovascular death, heart failure hospitalization; the declared outcome 'Heart-failure hospitalization' is a single component, so this is a different quantity"
           ],
           "endpoint_admissibility": "UNBOUND_LEGACY",
           "endpoint_binding": "unbound_legacy",
@@ -1069,45 +1048,14 @@
           "ci_low": 0.19,
           "ci_high": 0.82,
           "scale": "HR",
-          "provenance": "fulltext_verified",
-          "kind": "extracted_effect",
-          "verification": "Verified against PMC4359359 Table 2 and Results text: HR 0.39 (0.19-0.82) reported directly. Crude RR from patient counts (10/~132 FCM vs 25/~129 placebo, denominators = analysis population per the 7.6%/19.4% rates) = 0.40, corroborating the HR. Abstract omits this isolated HF-hospitalisation effect (reports composite only), so it is a full-text recovery.",
-          "handed_abstract": "AIM: The aim of this study was to evaluate the benefits and safety of long-term i.v. iron therapy in iron-deficient patients with heart failure (HF). METHODS AND RESULTS: CONFIRM-HF was a multi-centre, double-blind, placebo-controlled trial that enrolled 304 ambulatory symptomatic HF patients with left ventricular ejection fraction ≤45%, elevated natriuretic peptides, and iron deficiency (ferritin <100 ng/mL or 100-300 ng/mL if transferrin saturation <20%). Patients were randomized 1 : 1 to treatment with i.v. iron, as ferric carboxymaltose (FCM, n = 152) or placebo (saline, n = 152) for 52 weeks. The primary end-point was the change in 6-min-walk-test (6MWT) distance from baseline to Week 24. Secondary end-points included changes in New York Heart Association (NYHA) class, Patient Global Assessment (PGA), 6MWT distance, health-related quality of life (QoL), Fatigue Score at Weeks 6, 12, 24, 36, and 52 and the effect of FCM on the rate of hospitalization for worsening HF. Treatment with FCM significantly prolonged 6MWT distance at Week 24 (difference FCM vs. placebo: 33 ± 11 m, P = 0.002). The treatment effect of FCM was consistent in all subgroups and was sustained to Week 52 (difference FCM vs. placebo: 36 ± 11 m, P < 0.001). Throughout the study, an improvement in NYHA class, PGA, QoL, and Fatigue Score in patients treated with FCM was detected with statistical significance observed from Week 24 onwards. Treatment with FCM was associated with a significant reduction in the risk of hospitalizations for worsening HF [hazard ratio (95% confidence interval): 0.39 (0.19-0.82), P = 0.009]. The number of deaths (FCM: 12, placebo: 14 deaths) and the incidence of adverse events were comparable between both groups. CONCLUSION: Treatment of symptomatic, iron-deficient HF patients with FCM over a 1-year period resulted in sustainable improvement in functional capacity, symptoms, and QoL and may be associated with risk reduction of hospitalization for worsening HF (ClinicalTrials.gov number NCT01453608).",
-          "document_candidates": [
-            "cache/iv-iron-hfref-hosp/ft_25176939.txt",
-            "cache/iv-iron-hfref-hosp/records.json#PMID-25176939"
-          ],
-          "source": "CONFIRM-HF full text (PMC4359359, Table 2 + Results): 'Hospitalizations due to worsening HF ... 10 10 (7.6) ... 32 25 (19.4) ... 0.39 (0.19-0.82) ... 0.009' and 'Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19-0.82) (P = 0.009)'. First-event (time-to-event) HR: 10 vs 25 patients with >=1 HF hospitalization.",
-          "verified_passage_location": "not_in_abstract",
-          "target_endpoint_class": "EXACT_TARGET",
-          "target_components": [
-            "heart failure hospitalization"
-          ],
-          "extra_components": [],
-          "missing_components": [],
-          "component_distance": 0,
-          "endpoint_binding": "result_span_enumerates_components",
-          "endpoint_result_span": "Treatment with FCM was associated with a significant reduction in the risk of hospitalizations for worsening HF [hazard ratio (95% confidence interval): 0.39 (0.19–0.82),  P  = 0.009].",
-          "endpoint_definition_span": "Treatment with FCM was associated with a significant reduction in the risk of hospitalizations for worsening HF [hazard ratio (95% confidence interval): 0.39 (0.19–0.82),  P  = 0.009].",
-          "endpoint_binding_reason": "span names its own component set: heart failure hospitalization",
-          "hand_binding_state": "BOUND",
-          "spans": [
-            {
-              "role": "result",
-              "text": "Treatment with FCM was associated with a significant reduction in the risk of hospitalizations for worsening HF [hazard ratio (95% confidence interval): 0.39 (0.19–0.82),  P  = 0.009]."
-            }
-          ],
-          "duplicate_locations": 2,
-          "held_document": {
-            "ref": "cache/iv-iron-hfref-hosp/ft_25176939.txt",
-            "sha256": "d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc",
-            "representation": "xml"
-          },
-          "endpoint_admissibility": "EXACT_TARGET",
+          "source": "abstract effect+CI (HR): Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19–0.82) ( P",
+          "provenance": "pmc_fulltext",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "design": {
@@ -1150,8 +1098,8 @@
               "evidence": []
             },
             "source_provenance": {
-              "source": "fulltext_verified",
-              "span": "CONFIRM-HF full text (PMC4359359, Table 2 + Results): 'Hospitalizations due to worsening HF ... 10 10 (7.6) ... 32 25 (19.4) ... 0.39 (0.19-0.82) ... 0.009' and 'Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19-0.82) (P = 0.009)'. First-event (time-to-event) HR: 10 vs 25 patients with >=1 HF hospitalization."
+              "source": "pmc_fulltext",
+              "span": "abstract effect+CI (HR): Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19–0.82) ( P"
             },
             "design_action": {
               "action": "ALLOW",
@@ -1943,7 +1891,18 @@
           "label": "25176939",
           "id": "PMID 25176939",
           "absent_kind": "pooled_in_strand",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "two patients experienced injection site discolouration",
+          "verbatim_span": "two patients experienced injection site discolouration",
+          "source": "two patients experienced injection site discolouration",
+          "document_ref": "cache/iv-iron-hfref-hosp/ft_25176939.txt",
+          "source_level": 1,
+          "reason": "Injection-site events are narrated only among treatment-related adverse events in the ferric carboxymaltose arm; no placebo-arm count is reported.",
           "trial_family_id": "NCT01453608",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -1954,21 +1913,19 @@
             "A",
             "D"
           ],
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Table 3 List of adverse events (safety amalysis set) Safety end-point or event FCM ( n = 152) n (%) events Placebo ( n = 152) n (%) events Subjects with at least one AE 121 (79.6) 555 115 (75.7) 547...\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "source_span": "Table 3 List of adverse events (safety amalysis set) Safety end-point or event FCM ( n = 152) n (%) events Placebo ( n = 152) n (%) events Subjects with at least one AE 121 (79.6) 555 115 (75.7) 547...",
-          "verbatim_span": "Table 3 List of adverse events (safety amalysis set) Safety end-point or event FCM ( n = 152) n (%) events Placebo ( n = 152) n (%) events Subjects with at least one AE 121 (79.6) 555 115 (75.7) 547...",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"two patients experienced injection site discolouration\"; Injection-site events are narrated only among treatment-related adverse events in the ferric carboxymaltose arm; no placebo-arm count is reported.",
           "trial_id": "PMID 25176939",
           "report_id": "PMID 25176939",
           "outcome_effect_id": "iv-iron-hfref-hosp::Injection-site reactions::PMID 25176939::PMID 25176939",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
+          "harm_source_reported": true,
+          "harm_source_span": "Table 3 List of adverse events (safety amalysis set) Safety end-point or event FCM ( n = 152) n (%) events Placebo ( n = 152) n (%) events Subjects with at least one AE 121 (79.6) 555 115 (75.7) 547 Subject with at least one severe AE 21 (13.8) 31 27 (17.8) 54 Subject with at least one serious AE 43",
+          "harm_source_signal": "numeric_signal",
           "family_id": "NCT01453608",
           "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -2072,20 +2029,53 @@
       },
       "result": {
         "present": false,
-        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
+          "pooled_claim": false,
+          "state": "HARMS_INCOMPLETE",
           "significant": false,
           "crosses_null": null,
           "touches_null": null,
           "null": null,
-          "direction": null
+          "direction": null,
+          "basis": "No quantitative safety conclusion while source-reporting trials remain unresolved"
         },
-        "harm_reporting_trials": [],
-        "harm_reporting_trials_n": 0,
+        "harm_reporting_trials": [
+          {
+            "id": "25176939",
+            "label": "25176939",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
+            "span": "two patients experienced injection site discolouration",
+            "extracted": false,
+            "reason_code": "REFUSED_ON_EVIDENCE",
+            "reason": "Injection-site events are narrated only among treatment-related adverse events in the ferric carboxymaltose arm; no placebo-arm count is reported.",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/iv-iron-hfref-hosp/ft_25176939.txt",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
+          }
+        ],
+        "harm_reporting_trials_n": 1,
         "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 9,
-        "harm_absence_certified": true,
+        "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "f987b0c75aaf37e9",
         "depends_on": {
@@ -2303,29 +2293,38 @@
         {
           "label": "28701470",
           "id": "PMID 28701470",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "No hypersensitivity reactions to the drug occurred",
+          "verbatim_span": "No hypersensitivity reactions to the drug occurred",
+          "source": "No hypersensitivity reactions to the drug occurred",
+          "document_ref": "cache/iv-iron-hfref-hosp/ft_28701470.txt",
+          "source_level": 1,
+          "reason": "A narrative zero attributed to the study drug (active arm only); no control-arm count or safety denominator is stated.",
           "trial_family_id": "NCT01394562",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "registry_status": "COMPLETED",
           "completion_date": "2016-05-31",
           "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"No hypersensitivity reactions to the drug occurred, and no cases of hypophosphatemia were reported.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "No hypersensitivity reactions to the drug occurred, and no cases of hypophosphatemia were reported.",
-          "verbatim_span": "No hypersensitivity reactions to the drug occurred, and no cases of hypophosphatemia were reported.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"No hypersensitivity reactions to the drug occurred\"; A narrative zero attributed to the study drug (active arm only); no control-arm count or safety denominator is stated.",
           "trial_id": "PMID 28701470",
           "report_id": "PMID 28701470",
           "outcome_effect_id": "iv-iron-hfref-hosp::Hypersensitivity reactions::PMID 28701470::PMID 28701470",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
+          "harm_source_reported": true,
+          "harm_source_span": "No hypersensitivity reactions to the drug occurred, and no cases of hypophosphatemia were reported.",
+          "harm_source_signal": "term_signal",
           "family_id": "NCT01394562",
           "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -2339,7 +2338,18 @@
           "label": "25176939",
           "id": "PMID 25176939",
           "absent_kind": "pooled_in_strand",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "No severe allergic reactions related to the study treatment were reported.",
+          "verbatim_span": "No severe allergic reactions related to the study treatment were reported.",
+          "source": "No severe allergic reactions related to the study treatment were reported.",
+          "document_ref": "cache/iv-iron-hfref-hosp/ft_25176939.txt",
+          "source_level": 1,
+          "reason": "A narrative zero restricted to severe, treatment-related allergic reactions; it does not count participants with any hypersensitivity reaction in either arm.",
           "trial_family_id": "NCT01453608",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
@@ -2350,21 +2360,19 @@
             "A",
             "D"
           ],
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"No severe allergic reactions related to the study treatment were reported.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "source_span": "No severe allergic reactions related to the study treatment were reported.",
-          "verbatim_span": "No severe allergic reactions related to the study treatment were reported.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"No severe allergic reactions related to the study treatment were reported.\"; A narrative zero restricted to severe, treatment-related allergic reactions; it does not count participants with any hypersensitivity reaction in either arm.",
           "trial_id": "PMID 25176939",
           "report_id": "PMID 25176939",
           "outcome_effect_id": "iv-iron-hfref-hosp::Hypersensitivity reactions::PMID 25176939::PMID 25176939",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
-          "harm_source_reported": false,
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
+          "harm_source_reported": true,
+          "harm_source_span": "No severe allergic reactions related to the study treatment were reported.",
+          "harm_source_signal": "term_signal",
           "family_id": "NCT01453608",
           "family_identity_state": "REGISTRY_ANCHORED",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -2468,20 +2476,82 @@
       },
       "result": {
         "present": false,
-        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_OUTCOME_NOT_REPORTED, RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
+          "pooled_claim": false,
+          "state": "HARMS_INCOMPLETE",
           "significant": false,
           "crosses_null": null,
           "touches_null": null,
           "null": null,
-          "direction": null
+          "direction": null,
+          "basis": "No quantitative safety conclusion while source-reporting trials remain unresolved"
         },
-        "harm_reporting_trials": [],
-        "harm_reporting_trials_n": 0,
+        "harm_reporting_trials": [
+          {
+            "id": "28701470",
+            "label": "28701470",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
+            "span": "No hypersensitivity reactions to the drug occurred",
+            "extracted": false,
+            "reason_code": "REFUSED_ON_EVIDENCE",
+            "reason": "A narrative zero attributed to the study drug (active arm only); no control-arm count or safety denominator is stated.",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/iv-iron-hfref-hosp/ft_28701470.txt",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
+          },
+          {
+            "id": "25176939",
+            "label": "25176939",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
+            "span": "No severe allergic reactions related to the study treatment were reported.",
+            "extracted": false,
+            "reason_code": "REFUSED_ON_EVIDENCE",
+            "reason": "A narrative zero restricted to severe, treatment-related allergic reactions; it does not count participants with any hypersensitivity reaction in either arm.",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/iv-iron-hfref-hosp/ft_25176939.txt",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
+          }
+        ],
+        "harm_reporting_trials_n": 2,
         "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 9,
-        "harm_absence_certified": true,
+        "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "107be10574168dfa",
         "depends_on": {
@@ -3430,9 +3500,9 @@
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
     "N": 25,
     "counts": {
-      "REASON_TRUE": 21,
+      "REASON_TRUE": 18,
       "REASON_FALSE_VALUE_HELD": 4,
-      "REASON_WRONG_KIND": 0,
+      "REASON_WRONG_KIND": 3,
       "NOT_VERIFIABLE": 0
     },
     "n_false_value_held": 4,
@@ -3451,9 +3521,15 @@
         "NOT_VERIFIABLE": 0
       },
       "OUTCOME_NOT_IN_SOURCE": {
-        "REASON_TRUE": 21,
+        "REASON_TRUE": 18,
         "REASON_FALSE_VALUE_HELD": 1,
         "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "REFUSED_ON_EVIDENCE": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 3,
         "NOT_VERIFIABLE": 0
       }
     },
@@ -3625,9 +3701,9 @@
         "trial_key": "25176939",
         "label": "25176939",
         "id": "PMID 25176939",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3713,9 +3789,9 @@
         "trial_key": "28701470",
         "label": "28701470",
         "id": "PMID 28701470",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3724,9 +3800,9 @@
         "trial_key": "25176939",
         "label": "25176939",
         "id": "PMID 25176939",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3758,8 +3834,8 @@
     "counts": {
       "EXTRACTED": 2,
       "HELD_NOT_EXTRACTED": 4,
-      "NOT_IN_HELD_SOURCES": 21,
-      "ABSENT_BY_DESIGN": 0
+      "NOT_IN_HELD_SOURCES": 18,
+      "ABSENT_BY_DESIGN": 3
     },
     "n_held_not_extracted": 4,
     "by_outcome_kind": {
@@ -3772,8 +3848,8 @@
       "harm": {
         "EXTRACTED": 0,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 18,
-        "ABSENT_BY_DESIGN": 0
+        "NOT_IN_HELD_SOURCES": 15,
+        "ABSENT_BY_DESIGN": 3
       }
     },
     "rows": [
@@ -3916,7 +3992,8 @@
         "trial_label": "25176939",
         "outcome": "Injection-site reactions",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3980,7 +4057,8 @@
         "trial_label": "28701470",
         "outcome": "Hypersensitivity reactions",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3988,7 +4066,8 @@
         "trial_label": "25176939",
         "outcome": "Hypersensitivity reactions",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -33742,61 +33821,49 @@
       }
     },
     {
-      "limitation_id": "topic:iv-iron-hfref-hosp:harms:0:injection-site-reactions:result-absent",
-      "kind": "DECLARED_ABSENT_SECTION",
-      "limitation_class": "INFORMATIONAL",
+      "limitation_id": "topic:iv-iron-hfref-hosp:harms:0:injection-site-reactions:harms-incomplete",
+      "kind": "HARMS_INCOMPLETE",
+      "limitation_class": "VALIDITY_THREATENING",
       "severity": "BLOCKS_CLAIM",
       "claim_affected": "outcome result: Injection-site reactions",
-      "evidence_state": "DECLARED_ABSENT",
+      "evidence_state": "PARTIAL",
       "source_fields": [
-        "/outcomes/*/result/present",
-        "/outcomes/*/result/reason"
+        "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract</div>",
-      "text_sha256": "ac306896832cb32dd0d825cb48fa137d0d85bc1ce16ef161385de9a4c51d768e",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>25176939</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Injection-site events are narrated only among treatment-related adverse events in the ferric carboxymaltose arm; no placebo-arm count is reported.</td><td>two patients experienced injection site discolouration</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/iv-iron-hfref-hosp/ft_25176939.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "84aabd4ab8b59f4cc8bf32399111e6310ca503ffaa22e89290ab227ea5a77de3",
       "linked_decision": {
-        "action": "ALLOW_WITH_LABEL",
-        "gate_id": "limitation:labelled-validity-threat",
-        "decision_state": "validity threat is explicitly labelled on the affected claim"
+        "action": "REFUSE",
+        "gate_id": "compat-check:harms-incomplete",
+        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
       },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      "consumer": {
+        "gate_id": "compat_check.harms_incomplete",
+        "gate_input_path": "/harms/*/result/state",
+        "gate_verdict_at_build": "NO_HARMS_INCOMPLETE"
       }
     },
     {
-      "limitation_id": "topic:iv-iron-hfref-hosp:harms:1:hypersensitivity-reactions:result-absent",
-      "kind": "DECLARED_ABSENT_SECTION",
-      "limitation_class": "INFORMATIONAL",
+      "limitation_id": "topic:iv-iron-hfref-hosp:harms:1:hypersensitivity-reactions:harms-incomplete",
+      "kind": "HARMS_INCOMPLETE",
+      "limitation_class": "VALIDITY_THREATENING",
       "severity": "BLOCKS_CLAIM",
       "claim_affected": "outcome result: Hypersensitivity reactions",
-      "evidence_state": "DECLARED_ABSENT",
+      "evidence_state": "PARTIAL",
       "source_fields": [
-        "/outcomes/*/result/present",
-        "/outcomes/*/result/reason"
+        "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract</div>",
-      "text_sha256": "ac306896832cb32dd0d825cb48fa137d0d85bc1ce16ef161385de9a4c51d768e",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>28701470</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: A narrative zero attributed to the study drug (active arm only); no control-arm count or safety denominator is stated.</td><td>No hypersensitivity reactions to the drug occurred</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/iv-iron-hfref-hosp/ft_28701470.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>25176939</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: A narrative zero restricted to severe, treatment-related allergic reactions; it does not count participants with any hypersensitivity reaction in either arm.</td><td>No severe allergic reactions related to the study treatment were reported.</td><td>abstract: CHECKED ; held full text: CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/iv-iron-hfref-hosp/ft_25176939.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "18108d4bf4e0162e6b20b701553e5575e4276d50aba0ad30064b475c5c296224",
       "linked_decision": {
-        "action": "ALLOW_WITH_LABEL",
-        "gate_id": "limitation:labelled-validity-threat",
-        "decision_state": "validity threat is explicitly labelled on the affected claim"
+        "action": "REFUSE",
+        "gate_id": "compat-check:harms-incomplete",
+        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
       },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      "consumer": {
+        "gate_id": "compat_check.harms_incomplete",
+        "gate_input_path": "/harms/*/result/state",
+        "gate_verdict_at_build": "NO_HARMS_INCOMPLETE"
       }
     },
     {
@@ -34102,7 +34169,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "37a544ea54c955a0c71f8fb09528c5e3f4ef749d287e055f4142f6fcc348b2d6",
+    "review_sha256": "576c22aa29bf6abd56f35668d3e95265ba3d171f0c47d0d86ecc1b7b8dd09255",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -34249,7 +34316,7 @@
       "records_file_sha256": "d147cd17fecfdc75a99f6518acf682444108f1901274afdb28cb7789f5b9cc1f",
       "retrieval_ledger_sha256": "ad0e01ca49f119e15f4611b66042558f16d62fc866dc7f2e89ecb0f047fc949c",
       "screening_ledger_sha256": "278f07fedbd77ce7ae94ba9332ba09f08395ad741205fa2a07bcf47493aa86c7",
-      "extraction_objects_sha256": "0ff977d0db2510dfb4ec6db72fe981055f7c39b5a46ea4ce160b7e2141ebbf98",
+      "extraction_objects_sha256": "cbdaf860d5b4de2179678ccc96cab3e6835897273673e662d0903e3734b2edda",
       "trial_family_map_sha256": "a8ad60051b4dbf50636fd8a0ecc50ca77c7c4ed473acfb7f3b1147e928dcb916",
       "rob_object_sha256": "02a961fd0b5297a2f2a19b2756be2dd1d11d61118c016a466542b70cf8d556e8",
       "held_documents": [
@@ -34278,8 +34345,8 @@
           "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661"
         }
       ],
-      "config_sha256": "f09cda80d6a994f59d417d8384380d846eab17f9fa1828dad1ae2c37d17272c2",
-      "analysis_code_sha256": "a813a7bcb3224f1805f58fc1076cdf917d19d7c157edad8d3c67e9c16481fb5c",
+      "config_sha256": "85a1a97849790c15138bda81f00f0216f18137edaa1e7465f2b34db5e7a96d35",
+      "analysis_code_sha256": "ef953307da4c76d521d9b2b47efa786a1fd73cfff9ae9bd29d2fdacceb2cd325",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -34311,7 +34378,7 @@
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
-        "harness/extract.py": "0a96557a1516dac96e4cd15267f7a76fcb1c0c70",
+        "harness/extract.py": "70d24a9a1e26b528cad1a64af7ebfc8c9fc4df44",
         "harness/extract_values.py": "2268896de2c1569cf6bcc8fe70f6e225dbb82552",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
@@ -34331,14 +34398,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "43e5d49f25a9e6adeee1b2ca0ee1b148f057a0fb",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "3e1e7e7206535b0ed03eb851060653137c9ad85c",
+        "harness/page.py": "df6b0f2defd324443a9c7c615729775b27e6212b",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/pipeline.py": "a94fe123ca991826deca04681a741fda41b90d5c",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -34355,7 +34422,7 @@
         "harness/screen.py": "18a65903f0dd9426f139ba8da95625dc3157c5e2",
         "harness/screen_entry.py": "7e358caef534e500eef6f5d463ba12ceb8170658",
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
-        "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
+        "harness/source_hierarchy.py": "17ffff1b0e9f7c7e74a59b1be6fe4f7a9afa5e2b",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "1b309c5bd5c49592f50d29f38515aaa9ab6b55dc",
@@ -34409,7 +34476,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "d4cb21fc24566444c0c8c921c4228f7b0a729c93c9db18626233e60d8cf84fad",
-      "review_sha256": "37a544ea54c955a0c71f8fb09528c5e3f4ef749d287e055f4142f6fcc348b2d6",
+      "review_sha256": "576c22aa29bf6abd56f35668d3e95265ba3d171f0c47d0d86ecc1b7b8dd09255",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -34429,7 +34496,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "8299453d736360745d1dc16d19a0dbced646c90db4be5a51dc032b41806e2bf5"
+      "release_sha256": "2a793bf077db6a1794b6081b4fe2f626d3ee691f0e364088d7e25742e2245b64"
     }
   }
 }

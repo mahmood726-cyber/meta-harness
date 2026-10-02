@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `7e0ae184ca69cfef9038895fbc2eb0ea80c9d0366d34b22adc55455496223655` |
-| html_sha256 (served page bytes) | `5e9e4a6a8198ccf6d0caef0bea718a49339af307c6c3c6ef9a216d478e09f6e7` |
-| release_sha256 (certificate) | `763e33ca26159fbe093088e0b9506215fda84f0c27ae874b7128bfecda919ec5` |
+| review_sha256 (canonical review core) | `d07781053f22cac2ffb46ee8514db9b9bc53c904e0a7ae0b2086a686b44cf7cb` |
+| html_sha256 (served page bytes) | `495d4993968901c6b9eea93f624e52c804ea323614b595a4e7ee0c7af8a5206f` |
+| release_sha256 (certificate) | `d41ea3cd214e2b52e926f750222cbd27e992a53c8330325ce7e02e694f4ab614` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `13c0136f93aa1d9c52aabf01cc34ef2cc27a677d` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `91f057a4c0e531a6a7e845ea2074371d151cacb6` |
+| recorded generating commit | `f4c2a87af184a52783620039ed631a48cbb617a1` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -44,6 +44,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/omega3-cardiovascular-events/ft_38199870.txt` | `3d685d1e10b105a0cc4b6a523d0e31a8c7848ad9ff37258096263ae41cdf6a91` |
 
 Recorded judgments live under `cache/omega3-cardiovascular-events/`; their object digest is
-`8f8df1e4458bfdc769cd5dda7b5a29e8698852deee4bf898bf7278eebf43958b`. Acquisitions live under `docs/acquisitions/omega3-cardiovascular-events/`.
+`207ad9c57e81a5e3c4cba7ec4a88abba6aed49b76f10ff409199af7a6a235a55`. Acquisitions live under `docs/acquisitions/omega3-cardiovascular-events/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.
