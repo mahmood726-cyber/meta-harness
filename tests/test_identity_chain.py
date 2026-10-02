@@ -344,3 +344,31 @@ def test_author_only_et_al_needs_exactly_one_first_author(monkeypatch):
     two = dict(ref, rid='REF:11', label='11')
     r = kt.resolve_unit(unit('Finkelstein Y et al', layout='text'), parsed(ref, two), IDX, None)
     assert r['pmids'] == [] and 'author_only_ref_ambiguous:2' in r['basis']
+
+
+def test_two_references_that_are_reports_of_one_registered_trial_are_one_trial(monkeypatch):
+    monkeypatch.setattr(kt, 'COLLECTIVE', {'32966714': {'collective': ['VERTIS CV Investigators']}})
+    primary = {'rid': 'bib20', 'pmid': '32966714', 'year': '2020', 'text': 'Cannon CP. Cardiovascular outcomes with ertugliflozin.'}
+    secondary = {'rid': 'bib8', 'pmid': '33026243', 'year': '2020', 'text': 'Cosentino F. Heart failure events: the VERTIS CV trial.'}
+    idx = dict(IDX, pmid_nct={'32966714': [('NCT01986881', 'RESULT')], '33026243': [('NCT01986881', 'DERIVED')]})
+    r = kt.resolve_unit(unit('VERTIS-CV', layout='text'), parsed(primary, secondary), idx, None)
+    assert r['ncts'] == ['NCT01986881'] and r['pmids'] == ['32966714', '33026243']
+    assert any(b.startswith('acronym_in_comparator_refs_one_trial:VERTIS-CV:NCT01986881') for b in r['basis'])
+    # two references registered to DIFFERENT trials stay ambiguous
+    idx2 = dict(IDX, pmid_nct={'32966714': [('NCT01986881', 'RESULT')], '33026243': [('NCT09999999', 'RESULT')]})
+    r = kt.resolve_unit(unit('VERTIS-CV', layout='text'), parsed(primary, secondary), idx2, None)
+    assert r['ncts'] == [] and 'acronym_in_comparator_refs_ambiguous:VERTIS-CV:2' in r['basis']
+
+
+def test_a_two_word_trial_name_never_resolves_to_its_sibling(monkeypatch):
+    """'EMPEROR Preserved, 2020' resolved to EMPEROR-Reduced (NCT03057977) when only 'EMPEROR' was read. The name is
+    read whole, its bare head is dropped, and the sibling's reference can never match it."""
+    assert k_gap.identity_tokens('EMPEROR Preserved, 2020')['acronyms'] == ['EMPEROR Preserved']
+    assert k_gap.identity_tokens('DELIVER Trial, 2022')['acronyms'] == ['DELIVER']          # generic word: not a name
+    reduced = {'rid': 'R15', 'pmid': '32865377', 'year': '2020', 'text': 'Packer M. EMPEROR-Reduced Trial Investigators.'}
+    r = kt.resolve_unit(unit('EMPEROR Preserved, 2020', layout='row'), parsed(reduced), IDX, None)
+    assert r['pmids'] == [] and r['ncts'] == []
+    preserved = {'rid': 'R11', 'pmid': '34449189', 'year': '2020', 'text': 'Anker SD. Empagliflozin in HFpEF.'}
+    monkeypatch.setattr(kt, 'COLLECTIVE', {'34449189': {'collective': ['EMPEROR-Preserved Trial Investigators']}})
+    r = kt.resolve_unit(unit('EMPEROR Preserved, 2020', layout='row'), parsed(reduced, preserved), IDX, None)
+    assert r['pmids'] == ['34449189']
