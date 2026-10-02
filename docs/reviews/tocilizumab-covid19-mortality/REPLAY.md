@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `28e2013e162b019fe1442019f0f542fd2ed6264966c71b349996f43e1379ebd0` |
-| html_sha256 (served page bytes) | `67a7f736913e35af2bd9f3c5d5f695e0684f518625af9c9304996d8eba23312b` |
-| release_sha256 (certificate) | `536c9f96fe3c9fc840d8589ae0fa8cc578b8de1f1f1e410a9f8f7e232ee87d9a` |
+| review_sha256 (canonical review core) | `77b77c3a999f892f4618ba7563d3a730080afbd9cbb0c18087c024451bfd4122` |
+| html_sha256 (served page bytes) | `9fd7126bfe92dd217ceb741cfff28a598c1cffdd2cb373eed42257591ef50318` |
+| release_sha256 (certificate) | `6df1044528a71f49b0057c8a2463b67b27599549de26f065ebf7b406601323d0` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `38478f5e060a9d63bcb073cb652d0e6f70d27c58` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `91f057a4c0e531a6a7e845ea2074371d151cacb6` |
+| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -49,6 +49,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/tocilizumab-covid19-mortality/ft_40232661.txt` | `b144ad15007e34e55a4b25a521c9573721a74dc17dd3fa9ebe2972b6cfeddb0d` |
 
 Recorded judgments live under `cache/tocilizumab-covid19-mortality/`; their object digest is
-`1f44f240c248bca9dad587ab928ee8d2de9f5db2f91c81a7eb49ff249a204a5c`. Acquisitions live under `docs/acquisitions/tocilizumab-covid19-mortality/`.
+`bb5d11c7c601f14463430a8e33884193d759f8984f794f77e6d2ae1e268635e3`. Acquisitions live under `docs/acquisitions/tocilizumab-covid19-mortality/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

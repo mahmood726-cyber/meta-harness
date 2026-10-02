@@ -160,3 +160,22 @@ def test_real_registry_loads_and_self_test_passes_when_key_available():
         pytest.skip("held-out key not available; real-registry self_test skipped")
     ok, detail = heldout.self_test(key, registry)
     assert ok is True, detail
+
+
+def test_matcher_equals_the_per_line_scan():
+    """The cached whole-scan matcher must return exactly what the per-line _matching_hmacs returns (2026-10-02:
+    the held-out limb took 7-10 min in CI rebuilding the keyed HMAC for every identifier on every line)."""
+    import hashlib as _h
+    import hmac as _hm
+    from harness import heldout as H
+    key = "matcher-equivalence-key"
+    lines = ["the dapagliflozin-hfpef-hosp page cites PMID 12345678 and nct01035255",
+             "a-b-c-d-e-f-g-h hyphen windows; Mixed-CASE-Slug repeated: mixed-case-slug",
+             "", "no identifiers ??? ..", "x" * 2, "dapagliflozin-hfpef-hosp again on another line"]
+    planted = ["hfpef-hosp", "12345678", "c-d-e-f-g-h", "mixed-case-slug"]
+    reg = {"tokens": [_hm.new(key.encode(), p.encode(), _h.sha256).hexdigest() for p in planted] + ["0" * 64]}
+    m = H._Matcher(key, reg)
+    for line in lines:
+        assert m(line) == H._matching_hmacs(line, key, reg), line
+    assert any(m(line) for line in lines), "plant did not fire: no planted identifier was found"
+    assert H._Matcher(key, {"tokens": []})(lines[0]) == []
