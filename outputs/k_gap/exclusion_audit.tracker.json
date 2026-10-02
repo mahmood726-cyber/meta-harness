@@ -2,20 +2,21 @@
  "n": 27,
  "population": "every tracker trial blocked SCREENED_OUT_UNAUDITED or SCREENED_VIA_OTHER_REPORT",
  "by_class": {
-  "TRUE_SCOPE_DIFFERENCE": 14,
+  "TRUE_SCOPE_DIFFERENCE": 15,
   "INSUFFICIENT_RECORD": 8,
-  "INCONSISTENT": 3,
-  "NOT_AN_EXCLUSION": 2
+  "NOT_AN_EXCLUSION": 3,
+  "SCREENER_ERROR": 1
  },
  "by_subclass": {
-  "INCONSISTENT/RULESET_INCLUDES": 2,
-  "INCONSISTENT/RULE_X2_NE_RECORDED_X3": 1,
   "INSUFFICIENT_RECORD/DESIGN_NOT_ESTABLISHED_BY_RECORD | no open full text": 1,
   "INSUFFICIENT_RECORD/DESIGN_NOT_ESTABLISHED_BY_RECORD | readers disagree on design": 1,
   "INSUFFICIENT_RECORD/DESIGN_OUTSIDE_PROTOCOL_NO_SPAN": 1,
   "INSUFFICIENT_RECORD/POPULATION_NOT_STATED_IN_RECORD | no open full text": 3,
   "INSUFFICIENT_RECORD/POPULATION_NOT_STATED_IN_RECORD | readers disagree on population": 2,
+  "NOT_AN_EXCLUSION/COMPANION_REPORT_OF_A_POOLED_TRIAL": 1,
   "NOT_AN_EXCLUSION/SCREENED_VIA_AN_INCLUDED_REPORT": 2,
+  "SCREENER_ERROR/RECORDED_X3_NOW_X2": 1,
+  "TRUE_SCOPE_DIFFERENCE/CONTRAST_NOT_THE_PROTOCOLS": 1,
   "TRUE_SCOPE_DIFFERENCE/DESIGN_OUTSIDE_PROTOCOL": 3,
   "TRUE_SCOPE_DIFFERENCE/NON_PROTOCOL_COMPARATOR_STATED": 2,
   "TRUE_SCOPE_DIFFERENCE/PROTOCOL_EXCLUDES_POPULATION": 9
@@ -228,15 +229,15 @@
    "pmid": "31734084",
    "found_as": "31734084",
    "stage": "SCREENED_OUT",
-   "rule_id": "INCLUDE",
+   "rule_id": "X-DEDUP",
    "reason": "eligible double-blind/placebo-controlled RCT: intervention esketamine, comparator placebo, population treatment-resistant depression — P/I/C/design met.",
-   "class": "INCONSISTENT",
-   "subclass": "RULESET_INCLUDES",
+   "class": "NOT_AN_EXCLUSION",
+   "subclass": "COMPANION_REPORT_OF_A_POOLED_TRIAL (recorded X-DEDUP: the trial is pooled through another report -- an identity binding for the tracker, not a scope difference)",
    "title": "Efficacy and Safety of Esketamine Nasal Spray Plus an Oral Antidepressant in Elderly Patients With Treatment-Resistant Depression-TRANSFORM-",
    "has_abstract": true,
    "shared_classifier": {
-    "class": "INCONSISTENT",
-    "subclass": "RULESET_INCLUDES"
+    "class": "NOT_AN_EXCLUSION",
+    "subclass": "COMPANION_REPORT_OF_A_POOLED_TRIAL (recorded X-DEDUP: the trial is pooled through another report -- an identity binding for the tracker, not a scope difference)"
    },
    "refined_by": null,
    "reader_axes": {
@@ -374,15 +375,15 @@
    "pmid": "15472166",
    "found_as": "15472166",
    "stage": "SCREENED_OUT",
-   "rule_id": "INCLUDE",
+   "rule_id": "X-CONTRAST",
    "reason": "eligible randomised controlled trial: intervention metformin, comparator placebo-controlled, population polycystic ovary syndrome — P/I/C/design met.",
-   "class": "INCONSISTENT",
-   "subclass": "RULESET_INCLUDES",
+   "class": "TRUE_SCOPE_DIFFERENCE",
+   "subclass": "CONTRAST_NOT_THE_PROTOCOLS (recorded X-CONTRAST; the record states its contrast)",
    "title": "Metformin administration versus laparoscopic ovarian diathermy in clomiphene citrate-resistant women with polycystic ovary syndrome: a prosp",
    "has_abstract": true,
    "shared_classifier": {
-    "class": "INCONSISTENT",
-    "subclass": "RULESET_INCLUDES"
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "CONTRAST_NOT_THE_PROTOCOLS (recorded X-CONTRAST; the record states its contrast)"
    },
    "refined_by": null,
    "reader_axes": {
@@ -397,8 +398,17 @@
     "intervention": "MET",
     "population": "MET"
    },
-   "readers_disagree": null,
-   "span": null
+   "readers_disagree": {
+    "comparator": [
+     "NOT_MET",
+     "MET"
+    ]
+   },
+   "span": {
+    "field": "title",
+    "text": "Metformin administration versus laparoscopic ovarian diathermy in clomiphene citrate-resistant women with polycystic ovary syndrome: a prospective parallel randomized double-blind placebo-controlled trial.",
+    "match": "versus"
+   }
   },
   {
    "slug": "pcsk9-mace",
@@ -503,13 +513,13 @@
    "stage": "SCREENED_OUT",
    "rule_id": "X2",
    "reason": "population not on-topic: title/conditions do not mention any of ['antibiotic-associated diarr*', 'antibiotic associated diarr*', 'antibiotics-associated diarr*'",
-   "class": "INCONSISTENT",
-   "subclass": "RULE_X2_NE_RECORDED_X3",
+   "class": "SCREENER_ERROR",
+   "subclass": "RECORDED_X3_NOW_X2: POPULATION_VOCABULARY (recorded reader: population MET, quoted)",
    "title": "Efficacy of Clostridium butyricum preparation concomitantly with Helicobacter pylori eradication therapy in relation to changes in the intes",
    "has_abstract": true,
    "shared_classifier": {
-    "class": "INCONSISTENT",
-    "subclass": "RULE_X2_NE_RECORDED_X3"
+    "class": "SCREENER_ERROR",
+    "subclass": "RECORDED_X3_NOW_X2: POPULATION_VOCABULARY (recorded reader: population MET, quoted)"
    },
    "refined_by": null,
    "reader_axes": {
