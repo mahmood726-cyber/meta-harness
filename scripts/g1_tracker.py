@@ -264,9 +264,14 @@ def scope_difference(x, cfg, slug=None):
         if cls != "TRUE_SCOPE_DIFFERENCE":
             return None
         m = _re.search(r"mention '([^']+)'", f.get("reason") or "")
+        rule = protocol_rule(cfg, m.group(1)) if m else None
+        if rule is None and f.get("rule_id") == "X-DESIGN" and (cfg.get("include") or {}).get("design_double_blind"):
+            # a DESIGN exclusion cites the registered design field, not a population term (colchicine-postop-af:
+            # Tabbalat 2016 and Zarpelon, open-label, under a protocol requiring double-blind or placebo-controlled)
+            rule = "include.design_double_blind = True"
         return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f["rule_id"], "screen_reason": f.get("reason"),
                 "audit": {"class": cls, "subclass": sub},
-                "protocol_rule": protocol_rule(cfg, m.group(1)) if m else None,
+                "protocol_rule": rule,
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
     rb = x.get("registry_binding") or {}
     cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
@@ -596,7 +601,8 @@ def _fmt(r):
 
 
 def table():
-    out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and ".tmp" not in f]
+    # one source file per topic is <slug>.json; sidecars such as <slug>.reconcile.json (scripts/g1_reconcile.py) are not rows
+    out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and f.count(".") == 1]
     focus = ["glp1-ra-mace-t2d", "semaglutide-obesity-weight", "noac-vs-warfarin-af-stroke", "tocilizumab-covid19-mortality"]
     out.sort(key=lambda o: (focus.index(o["slug"]) if o["slug"] in focus else len(focus), o["slug"]))
     md = ["# G1 tracker (derived: scripts/g1_tracker.py; one source file per topic in outputs/k_gap/g1/)", "",
