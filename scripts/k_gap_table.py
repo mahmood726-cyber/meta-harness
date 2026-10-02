@@ -198,6 +198,9 @@ def subgroup_row(u):
     t = k_gap.identity_tokens(lab)
     if t["author"] or t["marker"] or t["ncts"]:
         return None
+    core = re.sub(r"\(\s*n\s*=.*$", "", lab).strip()
+    if re.fullmatch(r"[A-Z0-9][A-Z0-9\- ]{2,}", core):
+        return None
     if re.search(r"\b(?:sub)?groups?\b|\barms?\b|\bcohorts?\b|\b(?:non-?)?users?\b", lab, re.I) and \
             re.search(r"\(\s*n\s*=\s*[\d,]+", lab, re.I):
         return "SUBGROUP_ROW_GROUP_DESCRIPTION_WITH_SIZE_NO_STUDY_IDENTITY"
@@ -353,8 +356,7 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
         # reference N+offset, admitted per row only when that reference agrees with the row's OWN label and year
         n = str(int(u["marker"]) + u["marker_offset"])
         hits = [r for r in parsed["refs"].values() if r.get("label") == n]
-        ok = len(hits) == 1 and k_gap.label_ref_conflict(u, hits[0], []) is None and \
-            (not u.get("year") or hits[0].get("year") == u["year"])
+        ok = len(hits) == 1 and k_gap.label_ref_conflict(u, hits[0], []) is None and positive_ref_evidence(u, hits[0])
         if ok:
             kept.append(dict(hits[0], basis=None))
             basis.append(f"label_marker_ref_shifted:{u['marker_offset']:+d}:{u['marker']}->{n}:{u['marker_offset_evidence']}")
@@ -499,6 +501,10 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 continue
             for src, m in (("acronym", idx.get("acr_nct") or {}), ("title", idx.get("acr_title_nct") or {})):
                 cand = sorted({n for n in m.get(key, []) if registered_before(n, u.get("year"), idx)})
+                if len(cand) == 1 and not served_agent_in(cand[0], idx):
+                    # unique, but nothing ties it to this corpus's drugs: a candidate, never an identity
+                    basis.append(f"uncorroborated_any_agent_acronym_{src}:{a}:{cand[0]}")
+                    break
                 if len(cand) == 1:
                     ncts.add(cand[0])
                     basis.append(f"acronym_aact_any_agent_{src}:{a}")
@@ -556,6 +562,28 @@ def distrust_shifted_tables(units, idx):
     return {t: (sum(v), len(v)) for t, v in by_table.items()}
 
 
+def positive_ref_evidence(t, ref):
+    """The row and the reference POSITIVELY agree -- absence of a contradiction is not agreement (IDREVIEW P1: an
+    acronym-only row passed against an unrelated shifted reference that simply carried no acronym). Evidence: the
+    label's year equals the reference's year (and no stated year disagrees), or the label's author IS the reference's
+    first author, or a label acronym appears in the reference's own text."""
+    import unicodedata
+
+    def fold(x):
+        return re.sub(r"\s+", "", "".join(c for c in unicodedata.normalize("NFKD", x or "")
+                                            if not unicodedata.combining(c)).lower())
+    year = t.get("year")
+    if year and ref.get("year") and ref["year"] != year:
+        return False
+    if year and ref.get("year") == year:
+        return True
+    if t.get("author") and fold(t["author"]) == fold(ref.get("first_author")):
+        return True
+    text = k_gap.fold_dashes((ref.get("text") or "") + " " + (ref.get("title") or ""))
+    return any(re.search(r"(?<![A-Za-z0-9])" + re.escape(k_gap.fold_dashes(a)) + r"(?![A-Za-z0-9])", text, re.I)
+               for a in t.get("acronyms") or [])
+
+
 def learn_marker_offsets(units, parsed, offsets=(1, -1, 2, -2)):
     """For a DISTRUSTED table, the numbering shift its own labels prove: the single non-zero offset k for which >= 90%
     (and >= 5) of the table's marker rows agree with reference N+k by label and year -- and offset 0 does not. Sets
@@ -574,7 +602,7 @@ def learn_marker_offsets(units, parsed, offsets=(1, -1, 2, -2)):
     def agree(t, k):
         r = refs.get(str(int(t["marker"]) + k))
         v = {"label": "", "acronyms": t["acronyms"], "author": t["author"], "year": t["year"]}
-        return bool(r) and k_gap.label_ref_conflict(v, r, []) is None and (not t["year"] or r.get("year") == t["year"])
+        return bool(r) and k_gap.label_ref_conflict(v, r, []) is None and positive_ref_evidence(t, r)
     for table, rows in tables.items():
         score = {k: sum(agree(t, k) for _u, t in rows) for k in (0,) + tuple(offsets)}
         best = max(offsets, key=lambda k: score[k])
@@ -835,6 +863,16 @@ def load_ref_pmid() -> dict:
 # acronym -> NCTs, read from a trial's OWN registration sentence in a held PubMed abstract
 # ("... ROCKET AF ClinicalTrials.gov number, NCT00403767."). Used only after both AACT acronym steps fail.
 SELF_REG: dict = {}
+# every molecule any served topic names (set in main): the corroborator for an other-agent registration
+SERVED_AGENTS: list = []
+
+
+def served_agent_in(nct, idx):
+    """True when the registration's AACT interventions name a molecule some served topic names (finerenone,
+    empagliflozin...): the corroboration an any-agent acronym identity needs (IDREVIEW P1)."""
+    ivs = (idx.get("interventions") or {}).get(nct) or []
+    return bool(SERVED_AGENTS) and any(re.search(r"(?<![A-Za-z])" + re.escape(a) + r"(?![A-Za-z])", x, re.I)
+                                       for x in ivs for a in SERVED_AGENTS)
 _SELF_REG_RE = re.compile(r"\b([A-Z][A-Za-z0-9-]*(?: [A-Z0-9][A-Za-z0-9-]*){0,3}) ClinicalTrials\.gov (?:number|identifier),? (NCT\d{8})\b")
 
 
@@ -1053,6 +1091,7 @@ def main(argv=None):
     per = {}
     other_all = sorted({a for t in topics for a in molecule_names(_j(os.path.join(ROOT, "topics", t[0] + ".json")))},
                        key=str.lower)
+    SERVED_AGENTS[:] = other_all
     for slug, cpmid, cit in topics:
         topic = _j(os.path.join(ROOT, "topics", slug + ".json"))
         agents = topic_agents(topic)
