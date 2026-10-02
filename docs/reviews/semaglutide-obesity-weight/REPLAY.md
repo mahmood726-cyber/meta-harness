@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `3e7bd37a7a882d8dad43937a23a0006fa21aa6ba79923f33673d242aaa22752d` |
-| html_sha256 (served page bytes) | `707f16b378ae069b76eacb940921f50164100c8cb66d1595405509b35ac99643` |
-| release_sha256 (certificate) | `720b4708ce62d9d5a6bdb5b1673b704e6fd592f3bae13bd8ad4b89db3641b531` |
+| review_sha256 (canonical review core) | `35ebf1222af8f729481d3987693ff3f2c4c7a1a34ffa06869df2aa0cb3a4b21f` |
+| html_sha256 (served page bytes) | `317b55db2ded05e6d8d5f199527ac20a28b724ac8c557659cc11e09ddd4a66c5` |
+| release_sha256 (certificate) | `8af10764915995a94757771f01f2cc23724c0e8741abc21654d70b57bfb43df9` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `fe53c76aad18c0fd8369e3c1fe171406c0f85e7f` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `435236c1a712f7860172fde386d830160b063c77` |
+| recorded generating commit | `ebfac830dfcea8d84f411b0153035a8c38165969` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -42,6 +42,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/semaglutide-obesity-weight/ft_41778920.txt` | `a8ac65d4c462c5b3bd08456704e0fa02feacbab468123784257d201b5bba8b97` |
 
 Recorded judgments live under `cache/semaglutide-obesity-weight/`; their object digest is
-`d709f2ea8fd95784ae57040f2dbb4d8c765ad9e9f22d09818f01db1d9f752ab7`. Acquisitions live under `docs/acquisitions/semaglutide-obesity-weight/`.
+`8cc2649ba9b5ae4000ee8283c3fe445808bf04749942128f7b88720bc7f69912`. Acquisitions live under `docs/acquisitions/semaglutide-obesity-weight/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

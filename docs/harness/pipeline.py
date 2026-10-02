@@ -390,6 +390,23 @@ def _registry_title_is_composite(title: str) -> bool:
     return bool(extract._names_composite(t)) or sum(1 for p in _COMPOSITE_COMPONENTS if p.search(t)) >= 2
 
 
+def _other_agent_terms(slug):
+    """The protocol's arm-name terms for OTHER agents (topics/<slug>.json population_none classified ARM_NAME by
+    harness/data/population_term_classes.json), minus our own intervention and its misfiled form terms."""
+    if not slug:
+        return []
+    p = os.path.join(ROOT, "topics", slug + ".json")
+    if not os.path.exists(p):
+        return []
+    with open(p, encoding="utf-8") as f:
+        inc = (json.load(f).get("include") or {})
+    arms = screen_entry.arm_name_terms()
+    ours = {str(t).strip().lower() for t in inc.get("intervention_any") or []}
+    form = {str(t).strip().lower() for t in screen_entry.misfiled_form_terms(inc)}
+    return [t for t in inc.get("population_none") or []
+            if str(t).strip().lower() in arms and str(t).strip().lower() not in ours | form]
+
+
 def _ctgov_rung_admissible(cg, spec):
     """The CT.gov structured-results rung takes a 2x2 only when (1) the registry types the measure as a PARTICIPANT
     COUNT -- EXAMINE (PMID 23992602) posts MACE as a PERCENTAGE, 11.3 vs 11.8, and the rung read 11.3 as 11 events of
@@ -1204,8 +1221,11 @@ def _apply_trial_annotations(spec, trials):
         ann = anns.get(pid) or anns.get(str(t.get("label") or "")) or anns.get(str(t.get("id") or ""))
         if not isinstance(ann, dict):
             continue
-        for k in allowed:
-            if k in ann:
+        # Iterate the ANNOTATION's own (source-defined) key order, never the `allowed` set: set order follows
+        # PYTHONHASHSEED, so the served review.json bytes moved between identical builds (2026-10-02,
+        # tests/test_build_determinism.py).
+        for k in ann:
+            if k in allowed:
                 if k == "components" and t.get("components"):
                     continue
                 t[k] = ann[k]
@@ -1611,6 +1631,26 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                           f"Week {tp}, but this trial's source reports the outcome at "
                                           f"Week {tw:g} ({t.get('timeframe','')}) — declared absent rather "
                                           f"than pooled across follow-up durations")})
+            else:
+                kept.append(t)
+        trials = kept
+    # CONTRAST GUARD (arm names left the population rule, 3 Oct): a multi-arm trial now passes the screen when its
+    # population is in scope (O'Neil 2018: semaglutide / liraglutide / placebo). The pooled row must then be OUR
+    # contrast: a row whose source span names ANOTHER active agent the protocol lists (population_none arm names --
+    # 'cagrilintide-semaglutide as compared with placebo', '[Semaglutide 2.4 mg] vs [Liraglutide 3.0 mg]') is refused
+    # on evidence, never pooled as intervention-vs-comparator. Refuse on evidence only: a span naming no other agent
+    # passes.
+    others = _other_agent_terms(slug)
+    if others:
+        kept = []
+        for t in trials:
+            hit = next((o for o in others if re.search(rf"(?<![A-Za-z]){re.escape(o)}(?![A-Za-z])", str(t.get("source") or ""), re.I)), None)
+            if hit:
+                absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
+                               "reason_code": "WRONG_CONTRAST_OTHER_AGENT",
+                               "reason": (f"contrast mismatch: the pooled row's source names another active agent "
+                                          f"'{hit}' (a protocol arm-name term) -- not the registered "
+                                          f"intervention-vs-comparator contrast; declared absent, never pooled")})
             else:
                 kept.append(t)
         trials = kept
