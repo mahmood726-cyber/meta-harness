@@ -42,6 +42,9 @@ import xml.etree.ElementTree as ET
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 import k_gap_forest_plot as fp  # noqa: E402
+# bound HERE, with the repo root first on sys.path: scripts/kgap.py (a CLI) shadows the kgap PACKAGE whenever another
+# importer has put scripts/ first, and a later lazy 'from kgap import k_gap' then fails (seen under pytest collection)
+from kgap import k_gap  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
 
 OUT = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader.json")
@@ -262,7 +265,6 @@ def held_text(pmid):
     jp = jats_path(pmid)
     if not jp:
         return ""
-    from kgap import k_gap
     with open(jp, "rb") as fh:
         return k_gap.jats_body_text(fh.read())
 
@@ -926,7 +928,6 @@ def items(slugs, run, pairs=None):
         key = key_of(slug, pmid)
         role = "comparator" if key == slug else "meta"
         if run and not jats_path(pmid):
-            from kgap import k_gap
             k_gap.fetch_comparator_jats(pmid, FETCH_DATE)
             if not jats_path(pmid) and pmcid_of(pmid):
                 pmc_page_jats(pmid, pmcid_of(pmid))
@@ -978,7 +979,6 @@ def sweep(slugs, run):
     JATS reference list -- at least one comparator trial we have not matched. Returns [(slug, pmid)] and records why
     every candidate was or was not selected (registry/model_proposals/g1_forest_reader_sweep.json)."""
     import secondary_meta_build as smb
-    from kgap import k_gap
     table = _j(SWEEP) if os.path.exists(SWEEP) else {}
     pairs = []
     for slug in slugs:
