@@ -68,7 +68,7 @@ def _save(p, obj):
 
 
 # ------------------------------------------------------------------ targets
-def targets(slugs=None):
+def targets(slugs=None, routes=None):
     """{slug: [trial dict]} for every unmatched, un-named comparator trial, with its identity (PMIDs, NCTs, acronyms)."""
     T = _j(os.path.join(OUT, "k_gap_table.json"))
     by = {}
@@ -84,7 +84,7 @@ def targets(slugs=None):
             continue
         named = {d.get("trial") for d in o.get("named_differences") or []}
         for x in o.get("trials") or []:
-            if x.get("in_our_pool") or x["label"] in named:
+            if x.get("in_our_pool") or x["label"] in named or (routes and x.get("route") not in routes):
                 continue
             t = by.get((o["slug"], x["label"])) or {}
             acr = sorted({v["acronym"] for v in (t.get("study") or {}).values() if (v or {}).get("acronym")})
@@ -399,7 +399,9 @@ def main(argv):
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")] or None
     t0 = time.time()
-    tg = targets(slugs)
+    # --routes=UNVERIFIED: the trials that already HAVE one row (cheapest second-source wins) first (Mahmood 3 Oct)
+    routes = next((set(a.split("=", 1)[1].split(",")) for a in argv if a.startswith("--routes=")), None)
+    tg = targets(slugs, routes)
     n_nct = add_registry_ncts(tg)
     # discovery: per trial, in parallel (network bound; Europe PMC returns 503 above ~2 concurrent)
     metas_by = {}
@@ -438,6 +440,7 @@ def main(argv):
         with cf.ThreadPoolExecutor(max_workers=3) as ex:              # codex concurrency 3
             for r in ex.map(smb.read_one, todo):
                 runs[r["key"]] = r
+                runs_store.save(runs, slugs={r["key"].split("::")[0]})   # ledgered per read: a kill never re-pays
                 print("READ", r["key"], r["state"], r["record_id"], flush=True)
         runs_store.save(runs, slugs={it["slug"] for it in todo})
     summary = {"started": time.strftime("%Y-%m-%dT%H:%M:%S"), "run": run, "ncts_added_from_aact_references": n_nct,
@@ -451,7 +454,15 @@ def main(argv):
         o["metas"].update({m: v for m, v in fig_state[s].items() if m not in o["metas"]})
         for r in o["trials"]:
             r["searches"] = disc.get((s, r["label"]))
-        _save(os.path.join(SWEEP, f"{s}.json"), o)
+        sp = os.path.join(SWEEP, f"{s}.json")
+        if routes and os.path.exists(sp):
+            # a route-filtered run (--routes=) re-sweeps a SUBSET: merge it into the topic's file, never truncate it
+            prev = _j(sp)
+            mine = {r["label"] for r in o["trials"]}
+            o["trials"] = [r for r in prev.get("trials") or [] if r["label"] not in mine] + o["trials"]
+            o["metas"] = dict(prev.get("metas") or {}, **o["metas"])
+            o["tally"] = dict(Counter(r["verdict"] for r in o["trials"]))
+        _save(sp, o)
         summary["topics"][s] = o["tally"]
         print(s, o["tally"], flush=True)
     tot = Counter()
