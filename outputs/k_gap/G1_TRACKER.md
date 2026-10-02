@@ -2,8 +2,8 @@
 
 | topic | k matched | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator |
 |---|---|---|---|---|---|---|---|---|---|
-| glp1-ra-mace-t2d | 7 of 8 | 8 | 0 | 0 | 0 | {'AGREE': 6, 'DISAGREE': 1} | HR 0.85 (0.80 to 0.90) vs 0.85 (0.80 to 0.90), k=7, DL | HR 0.86 (0.81 to 0.91) k=8 | HR 0.86 (0.79 to 0.94) |
-| semaglutide-obesity-weight | 2 of 4 | 2 | 0 | 0 | 2 | {'AGREE': 2} | MD -11.47 (-13.52 to -9.43) vs -11.49 (-13.58 to -9.41), k=2, DL | MD -11.47 (no CI) k=2 | MD -11.85 (-12.81 to -10.90) |
+| glp1-ra-mace-t2d | 7 of 8 | 8 | 0 | 0 | 0 | {'AGREE': 6, 'DISAGREE': 1} | HR 0.85 (0.80 to 0.90) vs 0.85 (0.80 to 0.90), k=7, DL: **AGREE** | HR 0.86 (0.81 to 0.91) k=8 | HR 0.86 (0.79 to 0.94) |
+| semaglutide-obesity-weight | 2 of 4 | 2 | 0 | 0 | 2 | {'AGREE': 2} | MD -11.47 (-13.52 to -9.43) vs -11.49 (-13.58 to -9.41), k=2, DL: **AGREE** | MD -11.47 (no CI) k=2 | MD -11.85 (-12.81 to -10.90) |
 
 ## glp1-ra-mace-t2d (comparator PMID 34526024)
 
@@ -13,9 +13,9 @@
 - EXSCEL: **PRIMARY** - our branch extraction PMID 28910237 (abstract); vs comparator row: AGREE
 - HARMONY: **PRIMARY** - our branch extraction PMID 30291013 (abstract); vs comparator row: AGREE
 - REWIND: **PRIMARY** - our branch extraction PMID 31189511 (abstract); vs comparator row: AGREE
-- PIONEER 6: **PRIMARY** - our branch extraction PMID 31185157 (abstract); vs comparator row: DISAGREE
+- PIONEER 6: **PRIMARY** - our branch extraction PMID 31185157 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
 - AMPLITUDE-O: **PRIMARY** - our branch extraction PMID 34215025 (abstract); vs comparator row: AGREE
-- pooled by us, not listed by the comparator: PMID 40162642
+- pooled by us, not listed by the comparator: PMID 40162642 (2025; comparator 2021): PUBLISHED_AFTER_COMPARATOR
 
 ## semaglutide-obesity-weight (comparator PMID 42536519)
 
