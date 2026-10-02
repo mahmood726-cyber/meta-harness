@@ -533,7 +533,10 @@ _COMPOSITE_ENDPOINT = re.compile(
     r"\bcomposite\b|\bmajor adverse cardiovascular\b|\bMACE\b|"
     r"\bdeath or\b|\bor death\b|\bor first (?:heart failure |hf )?hospitali|"
     r"\bor (?:heart failure|hf) hospitali|\bor worsening (?:heart failure|hf)\b|"
-    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b", re.I)
+    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b|"
+    # VERB FORM of a death composite: 'had been intubated or had died' (BACC Bay), 'died or required mechanical
+    # ventilation'. 'died or were lost to follow-up' is a disposition, not an endpoint, and stays unmatched.
+    r"\bor (?:who )?(?:had )?died\b|\bdied or (?:required|needed|received|were intubated|was intubated)\b", re.I)
 
 
 def _names_composite(sentence):
