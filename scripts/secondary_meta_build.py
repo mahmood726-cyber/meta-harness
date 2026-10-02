@@ -558,6 +558,50 @@ def meta_timepoint(held):
 
 # ------------------------------------------------------------------ driver
 
+def figure_rows(slug, it, run_r, spec, comp):
+    """The rows of ONE recorded forest-plot read of a meta (secondary tier), through its deterministic gates: rows
+    consistent, the pool printed in the meta's text (or, failing that, in the figure), and the rows reproducing it
+    (positive control). Returns (rows or [], meta entry). Shared by build() and scripts/g1_two_source_sweep.py so both
+    use exactly one gate."""
+    resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, run_r["record_id"] + ".json"))).decode("utf-8"))
+    g = fp.gate(resp, None, it["held"])                       # rows consistent + pool printed in THIS meta's text
+    control_basis = "POOL_PRINTED_IN_META_TEXT"
+    _fp_ok = all(re.fullmatch(r"-?\d+(?:\.\d+)?", str((resp.get("pooled") or {}).get(k) or "").strip())
+                 for k in ("effect", "lower", "upper"))
+    if g["state"] != "PASS" and g["problems"] == ["PLOT_POOLED_NOT_PRINTED_IN_TEXT"] and _fp_ok:
+        # The meta does not repeat its pooled result in the text: the control target is the pooled row PRINTED in
+        # the figure. Recomputation from the rows is still required (a misread row still fails it); what this
+        # weaker basis cannot catch -- a wrong-analysis figure -- is left to primary verification, which every row
+        # must pass before it counts. The basis is recorded on the meta.
+        fig_pool = resp.get("pooled") or {}
+        g = fp.gate(resp, {"effect": fig_pool.get("effect"), "lower": fig_pool.get("lower"),
+                           "upper": fig_pool.get("upper"), "k": None, "quote": None, "method": None}, it["held"])
+        control_basis = "POOL_PRINTED_IN_FIGURE"
+    measure = (resp.get("measure") or "").upper().strip()
+    measure = "HR" if "HAZARD" in measure else "RR" if ("RISK R" in measure or measure == "RR") else \
+              "OR" if ("ODDS" in measure or measure == "OR") else "MD" if ("MEAN" in measure or measure in ("MD", "WMD")) else measure
+    mrows = []
+    for x in (g.get("rows") or []):
+        pr = x.get("printed") or {}
+        mrows.append(sm.SecondaryRow(
+            meta_pmid=it["pmid"], meta_doi="", source_digest=it["image_sha256"],
+            location={"kind": "figure", "id": it["figure"]["fig_id"], "panel": it["figure"].get("panel"),
+                      "row_label": x["label"]},
+            provenance=f"MODEL_PROPOSAL:{run_r['record_id']}", trial_label=x["label"], measure=measure,
+            outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
+            timepoint=meta_timepoint(it["held"]) if spec.get("core") else None,   # mortality/death outcomes only
+            effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
+    pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
+        {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}
+    usable = g["state"] == "PASS" and pc["reproduced"]
+    entry = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
+                             "gate": g["state"], "gate_problems": g["problems"][:6], "positive_control": pc,
+                             "control_basis": control_basis,
+                             "rows_read": len(mrows), "usable": usable, "record_id": run_r["record_id"],
+                             "is_comparator": it["pmid"] == comp}
+    return (mrows if usable else []), entry
+
+
 def build(slug, run, runs):
     metas, comp = metas_for(slug, offline=not run)
     spec = spec_of(slug)
@@ -602,44 +646,7 @@ def build(slug, run, runs):
         if not run_r or run_r["state"] != "RAN_OK" or run_r["image_sha256"] != it["image_sha256"]:
             metas_out[it["pmid"]] = {"state": "NO_RECORDED_READ"}
             continue
-        resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, run_r["record_id"] + ".json"))).decode("utf-8"))
-        g = fp.gate(resp, None, it["held"])                       # rows consistent + pool printed in THIS meta's text
-        control_basis = "POOL_PRINTED_IN_META_TEXT"
-        _fp_ok = all(re.fullmatch(r"-?\d+(?:\.\d+)?", str((resp.get("pooled") or {}).get(k) or "").strip())
-                     for k in ("effect", "lower", "upper"))
-        if g["state"] != "PASS" and g["problems"] == ["PLOT_POOLED_NOT_PRINTED_IN_TEXT"] and _fp_ok:
-            # The meta does not repeat its pooled result in the text: the control target is the pooled row PRINTED in
-            # the figure. Recomputation from the rows is still required (a misread row still fails it); what this
-            # weaker basis cannot catch -- a wrong-analysis figure -- is left to primary verification, which every row
-            # must pass before it counts. The basis is recorded on the meta.
-            fig_pool = resp.get("pooled") or {}
-            g = fp.gate(resp, {"effect": fig_pool.get("effect"), "lower": fig_pool.get("lower"),
-                               "upper": fig_pool.get("upper"), "k": None, "quote": None, "method": None}, it["held"])
-            control_basis = "POOL_PRINTED_IN_FIGURE"
-        measure = (resp.get("measure") or "").upper().strip()
-        measure = "HR" if "HAZARD" in measure else "RR" if ("RISK R" in measure or measure == "RR") else \
-                  "OR" if ("ODDS" in measure or measure == "OR") else "MD" if ("MEAN" in measure or measure in ("MD", "WMD")) else measure
-        mrows = []
-        for x in (g.get("rows") or []):
-            pr = x.get("printed") or {}
-            mrows.append(sm.SecondaryRow(
-                meta_pmid=it["pmid"], meta_doi="", source_digest=it["image_sha256"],
-                location={"kind": "figure", "id": it["figure"]["fig_id"], "panel": it["figure"].get("panel"),
-                          "row_label": x["label"]},
-                provenance=f"MODEL_PROPOSAL:{run_r['record_id']}", trial_label=x["label"], measure=measure,
-                outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
-                timepoint=meta_timepoint(it["held"]) if spec.get("core") else None,   # mortality/death outcomes only
-                effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
-        pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
-            {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}
-        usable = g["state"] == "PASS" and pc["reproduced"]
-        metas_out[it["pmid"]] = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
-                                 "gate": g["state"], "gate_problems": g["problems"][:6], "positive_control": pc,
-                                 "control_basis": control_basis,
-                                 "rows_read": len(mrows), "usable": usable, "record_id": run_r["record_id"],
-                                 "is_comparator": it["pmid"] == comp}
-        if not usable:
-            continue
+        mrows, metas_out[it["pmid"]] = figure_rows(slug, it, run_r, spec, comp)
         for r in mrows:
             rows.append(sm.admit(r, spec, fam))
     sm.consolidate(rows)
