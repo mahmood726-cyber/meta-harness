@@ -83,11 +83,11 @@ def held_jats(pmcid):
 
 
 def independence(x):
-    refs = " ".join(re.findall(r"<ref[ >].*?</ref>", x, re.S))
+    refs = " ".join(re.findall(r"<ref(?=[\s>]).*?</ref>", x, re.S))
     lic = re.search(r"creativecommons\.org/[a-z/]+[0-9.]*", x)
     cites = [i for i in REACT_IDS if i in refs.lower()] + (
         ["title"] if re.search(r"Association Between Administration of IL-6 Antagonists", refs, re.I) else [])
-    n = len(re.findall(r"<ref[ >]", x))
+    n = len(re.findall(r"<ref(?=[\s>])", x))          # '<ref' + any whitespace, never '<ref-list' (codex cascade_and_meta2#4)
     return {"licence": lic.group(0) if lic else None, "n_refs": n,
             "state": ("CITATIONS_UNKNOWN" if n == 0 else "CITES_COMPARATOR:" + ",".join(cites) if cites else "INDEPENDENT")}
 
@@ -124,7 +124,12 @@ def gate(resp, text):
             continue
         e = kfp._num(r.get("effect"))
         rec = row_effect(r, resp.get("measure"))
-        g2 = None if rec is None or e is None else abs(rec - e) <= kfp._half_unit(r["effect"]) + 0.006
+        # a row whose counts cannot be checked against its OWN printed effect is not admitted: no printed effect = G2
+        # unverifiable (codex review cascade_and_meta2#1); a zero-cell row (rec None) is checked by G4 only
+        if e is None:
+            probs.append(f"G2_NO_PRINTED_EFFECT:{r.get('label')}")
+            continue
+        g2 = None if rec is None else abs(rec - e) <= kfp._half_unit(r["effect"]) + 0.006
         if g2 is False:
             probs.append(f"G2_ROW_EFFECT_NOT_FROM_COUNTS:{r.get('label')} ({rec:.3f} vs {e})")
             continue
@@ -146,9 +151,34 @@ def gate(resp, text):
                    and kfp._close(lo, p["lower"], extra) and kfp._close(hi, p["upper"], extra)]
         if not matched:
             probs.append(f"G4_RECOMPUTATION_FAILS (rows {len(eff)}; printed {pp})")
+    elif anchor:
+        # fewer than two usable effects: the pooled triple cannot be recomputed, so nothing is admitted on G4's word
+        probs.append(f"G4_TOO_FEW_EFFECTS ({len(eff)})")
     return {"state": "PASS" if not probs else "REFUSED", "problems": probs, "rows": rows, "anchor": anchor,
             "methods_reproducing": matched, "subgroup_read": resp.get("subgroup_read"), "measure": resp.get("measure"),
             "pooled_read": p}
+
+
+def _surname(lab):
+    """A forest-plot label's identifying words (first author / acronym and anything else printed), without 'et al.',
+    group words, years and reference superscripts: 'Salama et al.18' -> ('salama',), 'Trial A' -> ('trial', 'a').
+    The FIRST word alone is not an identity: 'Trial A' and 'Trial B' share it."""
+    return tuple(w for w in re.findall(r"[A-Za-z][A-Za-z'-]*", (lab or "").lower())
+                 if w not in ("et", "al", "investigators", "collaborative", "group", "writing", "committee"))
+
+
+def admit(gates, ind):
+    """(state, admitted_rows, refused_because). A row is admitted only when BOTH readers' gates PASS and both give the
+    same four counts to the SAME trial (first word of its label): the counts alone let two readers assign one tuple to
+    opposite trials (codex cascade_and_meta2#2). Independence decides ADMISSION, not only whether new calls are made: a
+    REACT-citing meta's replayed rows are never admitted (codex cascade_and_meta2#5)."""
+    key = lambda r: (str(r["events_t"]), str(r["total_t"]), str(r["events_c"]), str(r["total_c"]), _surname(r["label"]))  # noqa: E731
+    if ind.get("state") != "INDEPENDENT":
+        return "REFUSED", [], ind.get("state")
+    if not all(x["state"] == "PASS" for x in gates):
+        return "REFUSED", [], "A_READER_DID_NOT_PASS"
+    r2 = {key(r): r for r in gates[1]["rows"]}
+    return "PASS", [dict(r, label_reader2=r2[key(r)]["label"]) for r in gates[0]["rows"] if key(r) in r2], None
 
 
 def main(argv):
@@ -191,14 +221,8 @@ def main(argv):
                 continue
             resp = json.loads(ms.replay(ms.load_record(os.path.join(kfp.REC_DIR, r0["record_id"] + ".json"))).decode("utf-8"))
             res["readers"][rk] = {"run": r0, "gate": gate(resp, text_of(x))}
-        g = [res["readers"][k]["gate"] for k in READERS]
-        both = all(x["state"] == "PASS" for x in g)
-        key = lambda r: (r["events_t"], r["total_t"], r["events_c"], r["total_c"])  # noqa: E731
-        agreed = []
-        if both:
-            r2 = {key(r): r for r in g[1]["rows"]}
-            agreed = [dict(r, label_reader2=r2[key(r)]["label"]) for r in g[0]["rows"] if key(r) in r2]
-        res.update(state="PASS" if both else "REFUSED", admitted_rows=agreed)
+        st, rows, why = admit([res["readers"][k]["gate"] for k in READERS], ind)
+        res.update(state=st, admitted_rows=rows, refused_because=why)
         out[pmid] = res
     json.dump(out, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     for pmid, r in out.items():
