@@ -504,7 +504,9 @@ def refs_of(pmid):
 
 
 def family_of_factory(ours):
-    toks = lambda x: re.findall(r"[a-z0-9]+", k_gap.fold_dashes(str(x or "")).lower())   # noqa: E731
+    # a year glued to its acronym ('RALES2000', 'EPHESUS2003') is split before tokenising, or the acronym never leads
+    toks = lambda x: re.findall(r"[a-z0-9]+", re.sub(r"(?<=[a-z])(?=(?:19|20)\d\d\b)", " ",   # noqa: E731
+                                                       k_gap.fold_dashes(str(x or "")).lower()))
 
     def prefix(a, b):
         """a and b name the same trial when one's tokens lead the other's ('HARMONY' / 'Harmony Outcomes'), with a
@@ -517,9 +519,7 @@ def family_of_factory(ours):
         return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
 
     def family_of(row):
-        # a year glued to the label ('RALES2000', 'EMPHASIS-HF2011' as a forest plot prints them) is its own token
-        lab = re.sub(r"(?<=[A-Za-z])((?:19|20)\d{2})\s*$", r" \1", re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
-        lt = toks(lab)
+        lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
         hits = {}
         for t in ours:
             names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])

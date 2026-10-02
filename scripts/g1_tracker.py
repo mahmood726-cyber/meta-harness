@@ -210,6 +210,35 @@ def protocol_rule(cfg, term):
     return None
 
 
+def protocol_rule_for(cfg, rule_id, reason):
+    """The REGISTERED protocol field a screen exclusion applied (harness/screen.py), cited as 'include.<field>[i] = ...'.
+      X1        the protocol's randomised-controlled-trial requirement
+      X2        include.population_none[i] (a named excluded population) / include.population_any (none met)
+      X3        include.intervention_none[i] (wrong form) / include.intervention_any / include.comparator_any
+      X-DESIGN  include.design_none[i] / include.design_double_blind / include.design_any"""
+    import re as _re
+    inc = cfg.get("include") or {}
+    m = _re.search(r"(?:mention|mentions|matches excluded) '([^']+)'", reason or "")
+    term = m.group(1) if m else None
+    if rule_id == "X1":
+        return "protocol design: randomised controlled trials only (harness/screen.py X1)"
+    if rule_id == "X2":
+        return protocol_rule(cfg, term) if term else f"include.population_any = {inc.get('population_any')!r} (none met)"
+    if rule_id == "X3":
+        if "wrong form" in (reason or "") and term:
+            return protocol_rule(cfg, term)
+        if "comparator" in (reason or ""):
+            return f"include.comparator_any = {inc.get('comparator_any')!r} (none met)"
+        return f"include.intervention_any = {inc.get('intervention_any')!r} (none met)"
+    if rule_id == "X-DESIGN":
+        if term:
+            return protocol_rule(cfg, term)
+        if "double-blind" in (reason or ""):
+            return f"include.design_double_blind = {inc.get('design_double_blind')!r}"
+        return f"include.design_any = {inc.get('design_any')!r} (none met)"
+    return None
+
+
 _AUDIT = None
 
 
@@ -240,10 +269,9 @@ def scope_difference(x, cfg, slug=None):
         cls, sub = exclusion_audit_class(slug, f.get("pmid"))
         if cls != "TRUE_SCOPE_DIFFERENCE":
             return None
-        m = _re.search(r"mention '([^']+)'", f.get("reason") or "")
         return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f["rule_id"], "screen_reason": f.get("reason"),
                 "audit": {"class": cls, "subclass": sub},
-                "protocol_rule": protocol_rule(cfg, m.group(1)) if m else None,
+                "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")),
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
     rb = x.get("registry_binding") or {}
     cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
@@ -312,6 +340,72 @@ def comparator_findings(trials, comp):
     return out
 
 
+def our_value_from_row(t):
+    """Our value for one pooled trial, from its pool row: effect + CI, or the 2x2; None when neither is there."""
+    if t.get("effect") is not None and t.get("ci_low") is not None:
+        return {"measure": (t.get("scale") or "").upper(), "effect": str(t["effect"]), "lower": str(t["ci_low"]),
+                "upper": str(t["ci_high"]), "source": f"our held-source pool {t.get('id')} ({t.get('provenance')})"}
+    if t.get("ai") is not None:
+        return {"measure": "RR", "events_t": t["ai"], "n_t": t["n1i"], "events_c": t["ci"], "n_c": t["n2i"],
+                "source": f"our held-source pool {t.get('id')} ({t.get('provenance')})"}
+    return None
+
+
+def with_identity_chain(T):
+    """k-gap rows with NO identity take the identity chain's RESOLVED identity (outputs/k_gap/identity_chain.json:
+    label -> PMID -> NCT through AACT study_references, own publications only), basis recorded. A resolved trial of
+    ANOTHER agent becomes drug OTHER_AGENT (reported in other_agent_units, out of a drug-specific topic's N)."""
+    import copy
+    ip = os.path.join(OUT, "identity_chain.json")
+    if not os.path.exists(ip):
+        return T
+    res = _j(ip).get("results") or {}
+    T = copy.deepcopy(T)
+    for t in T["trials"]:
+        v = res.get(f"{t['slug']}::{t['label']}")
+        if not v or v.get("state") != "RESOLVED" or t.get("ncts") or t.get("pmids"):
+            continue
+        t["ncts"] = [v["nct"]] if v.get("nct") else []
+        t["pmids"] = [v["pmid"]] if v.get("pmid") else []
+        t["identity_basis"] = [f"IDENTITY_CHAIN:{v.get('basis')}"]
+        t["status"] = "RESOLVED_BY_CHAIN"
+        if str(v.get("scope") or "").startswith("OTHER_AGENT"):
+            t["drug"] = "OTHER_AGENT"
+    return T
+
+
+def lane_comparator_rows(slug, comp, ours):
+    """The COMPARATOR's own per-trial rows read by another lane (outputs/k_gap/g1_comparator_rows.json lists the
+    sources: g1/forest-reader's dual-model figure reads), taken only where that lane ACCEPTED the figure for THIS
+    comparator, pinned by branch commit + blob sha256, and joined to our trials by the build's family join. They are
+    comparator rows: they feed per-trial agreement and the same-trials comparison, and never count toward G1."""
+    import hashlib
+    import subprocess
+    import secondary_meta_build as smb
+    sp = os.path.join(OUT, "g1_comparator_rows.json")
+    out, used = [], []
+    for src in (_j(sp) if os.path.exists(sp) else []):
+        try:
+            commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
+                                    text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
+            b = subprocess.run(["git", "show", f"{commit}:{src['path']}"], cwd=ROOT, capture_output=True,
+                               stdin=subprocess.DEVNULL, check=True).stdout
+        except subprocess.CalledProcessError:
+            continue
+        res = (json.loads(b.decode("utf-8")).get("results") or {}).get(slug) or {}
+        if res.get("state") != "ACCEPTED" or str(res.get("pmid")) != str(comp):
+            continue
+        fam = smb.family_of_factory(ours)
+        for d in res.get("secondary_rows") or []:
+            r = _row(d)
+            r.family_id = fam(r)
+            out.append(r)
+        used.append({"branch": src["branch"], "commit": commit, "path": src["path"],
+                     "sha256": hashlib.sha256(b).hexdigest(), "rows": len(res.get("secondary_rows") or []),
+                     "joined": sum(1 for r in out if r.family_id)})
+    return out, used
+
+
 def is_pooled(mine, pooled_ids):
     """Pool MEMBERSHIP, independent of how our value is stored (effect+CI, 2x2, or arm means for an MD)."""
     return bool(mine and str(mine.get("id")) in pooled_ids)
@@ -353,6 +447,13 @@ def whole_pool_comparison(o):
             "ours": {k: round(v, 4) for k, v in o_.items()}, "theirs": t_, "verdict": result_verdict(o_, t_, m)}
 
 
+def served_topics():
+    """Every SERVED topic (docs/reviews/<slug>/review.json): the tracker's denominator. A topic must never be missing
+    from the tracker silently (denosumab-vertebral-fracture was, 3 Oct: its comparator lists no enumerable trial)."""
+    d = os.path.join(ROOT, "docs", "reviews")
+    return sorted(s_ for s_ in os.listdir(d) if os.path.exists(os.path.join(d, s_, "review.json")))
+
+
 def g1_status(o):
     """G1 MATCHED, by the goal's definition, as typed criteria (all must hold):
       ALL_ELIGIBLE_MATCHED   every eligible comparator trial is in our pool (k_matched == N_eligible, no open gap)
@@ -361,11 +462,17 @@ def g1_status(o):
       DIVERGENCES_NAMED      every non-match is a named difference citing its rule/gate, and every per-trial
                              disagreement carries the side it falls on"""
     tr = o["trials"]
+    if not o.get("N_comparator_trials", len(tr)):
+        cs = o.get("comparator_set") or {}
+        return {"state": "COMPARATOR_NOT_ENUMERATED", "criteria": {}, "unmet": ["COMPARATOR_TRIAL_LIST"],
+                "why": f"the comparator's trial list could not be enumerated from open sources "
+                       f"({cs.get('state')}; tried {cs.get('sources_tried')})"}
     v = ((o.get("same_trials") or {}).get("verdict") or {}).get("verdict")
     dis = [x for x in tr if str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE")]
     crit = {
         "ALL_ELIGIBLE_MATCHED": o["N_eligible"] > 0 and o["k_matched"] == o["N_eligible"] and not o["open_gaps"],
-        "MATCHED_ARE_VERIFIED": all(x["route"] in ("PRIMARY", "TWO_SOURCE") for x in tr if x["in_our_pool"]),
+        "MATCHED_ARE_VERIFIED": all(x["route"] in ("PRIMARY", "TWO_SOURCE") and x.get("g1_countable", True)
+                                    for x in tr if x["in_our_pool"]),
         "RESULT_AGREES": v == "AGREE",
         "DIVERGENCES_NAMED": all((d.get("protocol_rule") or d.get("gate")) for d in o["named_differences"])
                              and all(x.get("disagreement_side") for x in dis),
@@ -386,14 +493,22 @@ def topic(slug, T):
     rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     comp = S["comparator_pmid"]
     ours = smb.our_trials(slug)
-    core = cfm.build(slug)
+    # POOL BASIS: this harness's own build of the topic WITH every open primary source it holds (PMC / Unpaywall full
+    # text, posted CT.gov results, member records) -- k_gap_counterfactual.build_with_held_sources. The served page
+    # may lag it; the trials it pools that the served page does not are listed (served_pool_lags).
+    core, src = cfm.build_with_held_sources(slug)
     prim = next((o for o in core["outcomes"] if o.get("primary")), {})
+    row_by_id = {str(t.get("id")): t for t in prim.get("trials", [])}
     pooled_ids = {str(t.get("id")) for t in prim.get("trials", [])}
     absent_by_id = {str(a.get("id")): str(a.get("reason") or a.get("reason_code") or "")[:240]
                     for a in prim.get("declared_absent_trials", [])}
     absent_code = {str(a.get("id")): a.get("reason_code") or a.get("absent_kind")
                    for a in prim.get("declared_absent_trials", [])}
     rows = [_row(d) for d in S["rows"]]
+    comparator_rows_source = None
+    if not any(r.meta_pmid == comp for r in rows):
+        lane_rows, comparator_rows_source = lane_comparator_rows(slug, comp, ours)
+        rows += lane_rows
     by_fam = {}
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
@@ -408,6 +523,10 @@ def topic(slug, T):
                      or o["pmid"] in (t.get("pmids") or [])), None)
         fam = mine["id"] if mine else None
         in_pool = is_pooled(mine, pooled_ids)
+        if in_pool and row_by_id.get(str(mine["id"])):
+            # OUR value is the row the held-source POOL uses, never the bare build's (a stale baseline value could make
+            # the same-trials comparison agree with numbers the pool no longer uses -- codex review 3 Oct)
+            mine = dict(mine, primary=our_value_from_row(row_by_id[str(mine["id"])]) or mine.get("primary"))
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
@@ -513,6 +632,9 @@ def topic(slug, T):
     out = {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if x["in_our_pool"]),
             "N_eligible": len(trials) - len(named), "named_differences": named, "open_gaps": open_gaps,
+            "k_matched_of_comparator_N": f"{sum(1 for x in trials if x['in_our_pool'])} of {len(trials)}",
+            "comparator_set": next(({"state": tp.get("comparator_set_state"), "sources_tried": tp.get("sources_tried")}
+                                    for tp in T["topics"] if tp["slug"] == slug), None),
             "blockers": dict(blockers), "top_blocker": (blockers.most_common(1)[0][0] if blockers else None),
             "other_agent_units": other_agent,
             "comparator_findings": comparator_findings(trials, comp),
@@ -523,13 +645,18 @@ def topic(slug, T):
                                 else "comparator positive control not reproduced: PM default"),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
-            "comparator_basis": comp_basis,
+            "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
     wp = whole_pool_comparison(out)
     if wp:
         out["same_trials_per_trial"] = out["same_trials"]
         out["same_trials"] = wp
+    served_ids = {str(t.get("id")) for o_ in rev.get("outcomes", []) if o_.get("primary") for t in o_.get("trials", [])}
+    out["pool_basis"] = {"build": "k_gap_counterfactual.build_with_held_sources",
+                         "held_records": len(src[0]), "held_fulltext": len(src[1]), "held_unpaywall": src[3],
+                         "held_registry": len(src[2])}
+    out["served_pool_lags"] = sorted(pooled_ids - served_ids)
     out["g1_status"] = g1_status(out)
     return out
 
@@ -544,14 +671,17 @@ def _fmt(r):
 
 def table():
     out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and ".tmp" not in f]
+    missing = sorted(set(served_topics()) - {o["slug"] for o in out})
+    if missing:
+        raise SystemExit(f"G1 TRACKER REFUSED: served topic(s) with no tracker row: {missing}")
     focus = ["glp1-ra-mace-t2d", "semaglutide-obesity-weight", "noac-vs-warfarin-af-stroke", "tocilizumab-covid19-mortality"]
     out.sort(key=lambda o: (focus.index(o["slug"]) if o["slug"] in focus else len(focus), o["slug"]))
     md = ["# G1 tracker (derived: scripts/g1_tracker.py; one source file per topic in outputs/k_gap/g1/)", "",
           "G1 MATCHED = every eligible comparator trial matched AND every matched trial verified (PRIMARY / TWO_SOURCE, never "
           "comparator-only) AND the result agrees on the same trials AND every divergence is named (rule / gate / side cited).",
           "",
-          "| topic | G1 status | k matched | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |",
-          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+          "| topic | G1 status | matched / eligible | matched / comparator N | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for o in out:
         r, st = o["routes"], o["same_trials"]
         same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}: "
@@ -561,8 +691,8 @@ def table():
         src = o.get("lane_source")
         md.append(f"| {o['slug']} | **{gs.get('state')}**" + (f" (unmet: {', '.join(gs.get('unmet') or [])})"
                                                               if gs.get("unmet") else "") +
-                  f" | {o['k_matched']} of {o.get('N_eligible', o['N_comparator_trials'])} eligible "
-                  f"(comparator N={o['N_comparator_trials']}) | "
+                  f" | {o['k_matched']} / {o.get('N_eligible', o['N_comparator_trials'])} | "
+                  f"{o['k_matched']} / {o['N_comparator_trials']} | "
                   f"{len(nd)}: " + ", ".join(f"{d['trial']} ({d['kind']})" for d in nd) + f" | {len(o.get('open_gaps') or [])} | "
                   f"{r.get('PRIMARY', 0)} | "
                   f"{r.get('TWO_SOURCE', 0)} | {r.get('UNVERIFIED', 0)} | {r.get('NO_ROW', 0)} | "
@@ -617,6 +747,7 @@ def main(argv):
     if argv and argv != ["--table"]:
         T = _j(os.path.join(OUT, "k_gap_table.json"))
         os.makedirs(G1_DIR, exist_ok=True)
+        T = with_identity_chain(T)
         for s in [a for a in argv if not a.startswith("--")]:
             o = topic(s, T)
             # ATOMIC: a concurrent reader (another process building the table) must never see a truncated file

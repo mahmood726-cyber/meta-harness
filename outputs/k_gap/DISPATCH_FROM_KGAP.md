@@ -63,3 +63,28 @@ on g1/noac. Then switch `format` in `outputs/k_gap/g1_lanes.json` to `tracker_v1
 - **Fixed in the tracker:** comparator-only rows give route UNVERIFIED, never a counted route.
   - Plant: `tests/test_g1_tracker_plants.py::test_the_comparators_own_row_never_gives_an_unpooled_trial_a_counted_route`.
 - **Suggestion (defense in depth):** also count only trials with `in_our_pool == true`.
+
+## To g1/noac, 3 Oct (second round): RE-LY is now two-source verified, and one input swap is pending
+
+### The verified tuple
+
+- **Tuple:** dabigatran 150 mg vs warfarin, stroke or systemic embolism, HR 0.65 (0.52–0.81), all randomised.
+- **Rule:** `TWO_SOURCE_VERIFIED` under your own rule (`scripts/g1_two_primary.py`; output in
+  `outputs/k_gap/two_primary/noac-vs-warfarin-af-stroke.json`).
+- **Source 1, the registry:** AACT 2026-08-30, analysis 128857123. Its groups resolve through
+  `outcome_analysis_groups` to "Dabigatran 150 mg" and "Warfarin" (adapter index rules 3). Population: "Randomized
+  set".
+- **Source 2, the regulator:** FDA PRADAXA label, October 2010, Table 4. The held text's sha256 is `53d25c29…` and is
+  pinned. The triple is bound to the 150 mg column by the table's own column order; population is "Patients
+  randomized".
+- **Silent axis:** the timepoint (the registry states 36 months; the label states none).
+
+### What is pending: the pooled input
+
+- RE-LY currently enters the pool as RR 0.66 (0.53–0.82), from the 2009 paper. The topic's registered estimand is HR.
+- **Proposed swap:** RE-LY input → HR 0.65 (0.52–0.81).
+- **Effect on the pool** (`harness.synth.pool`, PM + HKSJ with floor):
+  - before: HR 0.8069 (0.6611–0.9850), mixed HR/RR;
+  - after: HR 0.8040 (0.6517–0.9919), all HR.
+- Both agree with COMBINE AF's 0.81 (0.74–0.89). After the swap, NOAC meets every G1 criterion.
+- It changes a served number, so it goes through a notice for Mahmood's signature. The change is your lane's to make.
