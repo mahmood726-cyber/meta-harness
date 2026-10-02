@@ -919,9 +919,21 @@ def topic(slug, T):
     # SAME TRIAL, OTHER REPORT: the comparator cites a secondary report (Radholm 2018, CANVAS heart-failure outcomes) whose
     # registered trial (the funnel's NCT link) we pool under its main report (Neal 2017, same NCT). The comparator trial
     # IS matched -- to that pool row -- once, and never to a pool row another comparator trial already matched.
+    # The screen's own X-DEDUP verdict is the same link stated the other way round: 'companion/duplicate report of
+    # TRANSFORM-3 (NCT02422186, already pooled)' -- esketamine Trial D is TRANSFORM-3's publication; we pool its
+    # registry row NCT02422186.
+    import re as _re
+    nct_pool = {str(o.get("nct")): str(o.get("id")) for o in ours if o.get("nct") and str(o.get("id")) in pooled_ids}
+    nct_pool.update({i: i for i in pooled_ids if str(i).startswith("NCT")})
     for x in trials:
         f = x.get("seeded_funnel") or {}
-        via = f"PMID {f.get('via')}" if f.get("via") else None
+        if f.get("stage") == "SCREENED_OUT" and f.get("rule_id") == "X-DEDUP" and not f.get("via"):
+            m = _re.search(r"\((NCT\d{8}), already pooled\)", f.get("reason") or "") or \
+                _re.search(r"(NCT\d{8}), already pooled", x.get("our_refusal") or "")
+            if m and nct_pool.get(m.group(1)):
+                f = dict(f, stage="SCREENED_VIA_OTHER_REPORT", via=nct_pool[m.group(1)].replace("PMID ", ""),
+                         via_decision="include", nct=m.group(1))
+        via = (f.get("via") if str(f.get("via") or "").startswith("NCT") else f"PMID {f.get('via')}") if f.get("via") else None
         if (x["in_our_pool"] or f.get("stage") != "SCREENED_VIA_OTHER_REPORT" or f.get("via_decision") != "include"
                 or not via or via not in pooled_ids or via in matched_ids or not f.get("nct")):
             continue
