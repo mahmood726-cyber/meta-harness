@@ -102,8 +102,36 @@ def unpaywall_lane(pmids):
     return {"lane": "UNPAYWALL", "secs": round(time.time() - t0, 1), **st}
 
 
+SNAP = "F:/AACT-storage/AACT/2026-08-30"
+SNAP_FILES = ("outcomes.txt", "outcome_analyses.txt", "outcome_measurements.txt", "outcome_counts.txt", "result_groups.txt")
+
+
+def snapshot_digest():
+    """The AACT snapshot as a PRIMARY source is identified by its version AND a digest of the exact files read (sha256
+    per file, cached against size+mtime so the 3 GB pass runs once)."""
+    cp = os.path.join(OUT, "aact_snapshot_digest.json")
+    old = _j(cp) if os.path.exists(cp) else {}
+    files = {}
+    for f in SNAP_FILES:
+        st = os.stat(os.path.join(SNAP, f))
+        prev = (old.get("files") or {}).get(f) or {}
+        if prev.get("size") == st.st_size and prev.get("mtime") == int(st.st_mtime):
+            files[f] = prev
+            continue
+        h = hashlib.sha256()
+        with open(os.path.join(SNAP, f), "rb") as fh:
+            for blk in iter(lambda: fh.read(1 << 22), b""):
+                h.update(blk)
+        files[f] = {"size": st.st_size, "mtime": int(st.st_mtime), "sha256": h.hexdigest()}
+    combined = hashlib.sha256("".join(f + files[f]["sha256"] for f in SNAP_FILES).encode()).hexdigest()
+    out = {"id": "AACT " + os.path.basename(SNAP), "digest": combined, "files": files}
+    with open(cp, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(out, fh, indent=1)
+    return out
+
+
 def _rows(name, want, key="nct_id"):
-    snap = "F:/AACT-storage/AACT/2026-08-30"
+    snap = SNAP
     with open(os.path.join(snap, name), encoding="utf-8", errors="replace", newline="") as fh:
         rd = csv.DictReader(fh, delimiter="|", quoting=csv.QUOTE_NONE)
         for r in rd:
@@ -114,10 +142,16 @@ def _rows(name, want, key="nct_id"):
 def aact_lane(ncts):
     t0 = time.time()
     want = set(ncts)
-    idx = {n: {"outcomes": {}, "analyses": [], "groups": {}} for n in want}
+    snap = snapshot_digest()
+    tag = {"id": snap["id"], "digest": snap["digest"]}
+    idx = {n: {"_snapshot": tag, "outcomes": {}, "analyses": [], "groups": {}, "group_titles": {}} for n in want}
     for r in _rows("outcomes.txt", want):
         idx[r["nct_id"]]["outcomes"][r["id"]] = {"title": r.get("title"), "time_frame": r.get("time_frame"),
-                                                 "type": r.get("outcome_type")}
+                                                 "type": r.get("outcome_type"), "population": r.get("population"),
+                                                 "units_analyzed": r.get("units_analyzed")}
+    for r in _rows("result_groups.txt", want):
+        if (r.get("result_type") or "").lower() == "outcome":
+            idx[r["nct_id"]]["group_titles"][r["id"]] = r.get("title")
     for r in _rows("outcome_analyses.txt", want):
         idx[r["nct_id"]]["analyses"].append({"outcome_id": r["outcome_id"], "param_type": r.get("param_type"),
                                              "param_value": r.get("param_value"), "ci_lower": r.get("ci_lower_limit"),
@@ -146,12 +180,16 @@ def aact_lane(ncts):
             "with_posted_outcomes": sum(1 for v in idx.values() if v["outcomes"]),
             "with_analyses": sum(1 for v in idx.values() if v["analyses"]),
             "with_group_counts": sum(1 for v in idx.values() if v["groups"]),
-            "index_sha256": hashlib.sha256(b).hexdigest(), "index_bytes": len(b)}
+            "snapshot": tag, "index_sha256": hashlib.sha256(b).hexdigest(), "index_bytes": len(b)}
 
 
 def main():
     pmids, ncts = trial_set()
     t0 = time.time()
+    if "--aact-only" in sys.argv:
+        out = aact_lane(ncts)
+        print(json.dumps(out, indent=1))
+        return
     with cf.ThreadPoolExecutor(max_workers=3) as ex:
         futs = [ex.submit(ncbi_lane, pmids), ex.submit(unpaywall_lane, pmids), ex.submit(aact_lane, ncts)]
         lanes = [f.result() for f in futs]

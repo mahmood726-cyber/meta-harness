@@ -444,6 +444,23 @@ def primary_sources(slug, pmid, nct=None):
     return out
 
 
+_REFS = {}
+
+
+def refs_of(pmid):
+    """The PMIDs/DOIs a meta cites (its held JATS reference list), or None when no JATS / no reference list is held."""
+    if pmid not in _REFS:
+        d = os.path.join(k_gap.COMP_DIR, str(pmid))
+        jp = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None) \
+            if os.path.isdir(d) else None
+        if jp:
+            with open(jp, "rb") as fh:
+                _REFS[pmid] = sm.cited_ids_from_jats(fh.read())
+        else:
+            _REFS[pmid] = None
+    return _REFS[pmid]
+
+
 def family_of_factory(ours):
     toks = lambda x: re.findall(r"[a-z0-9]+", k_gap.fold_dashes(str(x or "")).lower())   # noqa: E731
 
@@ -626,6 +643,9 @@ def build(slug, run, runs):
                         sm.verify_against_primary(r, prim2, queue_reason=f"NO_PRIMARY:{how2}")
                     else:
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
+    # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
+    # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
+    sm.two_source(rows, refs_of, set(metas))
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "
