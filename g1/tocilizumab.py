@@ -155,8 +155,9 @@ def aact_28d(label: str, extract: dict) -> list:
                 continue
             cls = m["classification"]
             when = cls if cls else (o.get("time_frame") or "")
-            if not _DAY28.search(when) or (cls and _OTHER_DAY.search(cls)) or (not cls and _OTHER_DAY.search(when)
-                                                                               and not _DAY28.search(when)):
+            # a time frame naming ANY other day ('Day 28 through day 60') is not the day-28 count unless a classification
+            # pins the row to day 28 (codex review toci_match#2)
+            if not _DAY28.search(when) or (cls and _OTHER_DAY.search(cls)) or (not cls and _OTHER_DAY.search(when)):
                 continue
             arm = "t" if _TOCI.search(g) and not re.search(r"free|placebo", g, re.I) else "c" if _CONTROL.search(g) else None
             if not arm:
@@ -167,9 +168,18 @@ def aact_28d(label: str, extract: dict) -> list:
             except (TypeError, ValueError):
                 continue
             pt = (m["param_type"] or "").upper()
+            # a categorical survival outcome ('Day 28: alive' / 'Day 28: dead') posts BOTH categories for one arm: each
+            # category is read as what it is, never complemented and summed (codex review toci_match#3)
+            cat = ("dead" if cls and _DEATH_WORDS.search(cls) else "alive" if cls and re.search(r"alive|surviv", cls, re.I)
+                   else None)
             if pt == "COUNT_OF_PARTICIPANTS":
                 k = int(float(m["value"]))
-                deaths, how = (n - k, "survivors counted") if surv else (k, "count posted")
+                if cat == "dead":
+                    deaths, how = k, "dead category counted"
+                elif cat == "alive":
+                    deaths, how = n - k, "alive category counted"
+                else:
+                    deaths, how = (n - k, "survivors counted") if surv else (k, "count posted")
             elif pt == "NUMBER" and "percent" in (o.get("units") or "").lower():
                 k = unique_count(m["value"], n)
                 if k is None:
@@ -177,10 +187,25 @@ def aact_28d(label: str, extract: dict) -> list:
                 deaths, how = (n - k, f"survival {m['value']}% of {n}") if surv else (k, f"{m['value']}% of {n}")
             else:
                 continue
-            rows[arm].setdefault("parts", []).append((deaths, n, how, m["row_id"], g))
+            rows[arm].setdefault("parts", []).append((deaths, n, how, m["row_id"], g, cat))
         if "t" in rows and "c" in rows:
-            t = rows["t"]["parts"]
-            c = rows["c"]["parts"]
+            # one reading per GROUP: where a group posts a 'dead' row it is that row; a group with two rows of one kind
+            # is ambiguous and refuses the outcome. Different groups of one arm (dose groups) are summed.
+            def per_group(parts):
+                by = defaultdict(list)
+                for q in parts:
+                    by[q[4]].append(q)
+                outp = []
+                for gname, qs in by.items():
+                    dead = [q for q in qs if q[5] == "dead"]
+                    pick = dead if dead else qs
+                    if len(pick) != 1:
+                        return None
+                    outp.append(pick[0])
+                return outp
+            t, c = per_group(rows["t"]["parts"]), per_group(rows["c"]["parts"])
+            if t is None or c is None:
+                continue
             out.append({"source": "AACT", "outcome_id": oid, "title": o.get("title"), "time_frame": o.get("time_frame"),
                         "deaths_t": sum(p[0] for p in t), "n_t": sum(p[1] for p in t),
                         "deaths_c": sum(p[0] for p in c), "n_c": sum(p[1] for p in c),
@@ -226,16 +251,52 @@ def text_locates_how(row: dict, text: str) -> Optional[tuple]:
         return re.compile(rf"(?<![\d.]){d}\s*(?:patients?\s*|participants?\s*)?(?:\((?P<p>\d+(?:\.\d+)?)\s*%\)\s*)?"
                           rf"(?:(?:/|of|out of)\s*(?:the\s+)?(?P<n>{nn})(?![\d]))?", re.I)
 
-    def hits(d, n, win):
-        for m in arm(d, n).finditer(win):
-            if m.group("n") or (m.group("p") and _pct_ok(m.group("p"), d, n)):
-                return True
-        return False
+    def ok(m, d, n, src):
+        """The count is stated over THIS n: its own denominator matches, or its percentage does AND no other
+        denominator is printed right after it ('10 (10%) of 101' is over 101, not 100 -- codex review toci_match#5)."""
+        if m.group("n"):
+            return True
+        nxt = re.match(r"\s*(?:/|of|out of)\s*(?:the\s+)?(\d[\d,]*)", src[m.end():m.end() + 30])
+        if nxt and int(nxt.group(1).replace(",", "")) != n:
+            return False
+        return bool(m.group("p") and _pct_ok(m.group("p"), d, n))
+
+    def arm_of(src, a, b):
+        """The arm word nearest a located count: after it (within 60 chars), else the last one before it."""
+        low = src.lower()
+        rx = re.compile(r"tocilizumab|\btcz\b|usual care|placebo|standard (?:of )?care|control")
+        after = rx.search(low, b, b + 60)
+        before = list(rx.finditer(low, max(0, a - 120), a))
+        w = after.group(0) if after else (before[-1].group(0) if before else None)
+        return None if w is None else "t" if w in ("tocilizumab", "tcz") else "c"
+
+    def governs(src, a, b):
+        """A death word and a day-28 word in the statement holding both counts, the death word not negated ('had fever;
+        no deaths occurred' -- codex review toci_match#6)."""
+        lo = max(src.rfind(". ", 0, a), src.rfind("; ", 0, a)) + 1
+        hi_c = [i for i in (src.find(". ", b), src.find("; ", b)) if i >= 0]
+        seg = src[lo: min(hi_c) if hi_c else len(src)]
+        dw = [x for x in _DEATH_WORDS.finditer(seg) if not re.search(r"\b(?:no|without|zero|none)\s+(?:\w+\s+)?$",
+                                                                        seg[max(0, x.start() - 15):x.start()], re.I)]
+        return bool(dw and _DAY28.search(seg))
     for m in arm(row["deaths_t"], row["n_t"]).finditer(t):
-        if not (m.group("n") or (m.group("p") and _pct_ok(m.group("p"), row["deaths_t"], row["n_t"]))):
+        if not ok(m, row["deaths_t"], row["n_t"], t):
             continue
-        win = t[max(0, m.start() - 300): m.end() + 300]
-        if hits(row["deaths_c"], row["n_c"], win) and _DEATH_WORDS.search(win) and _DAY28.search(win):
+        win_lo = max(0, m.start() - 300)
+        win = t[win_lo: m.end() + 300]
+        for mc in arm(row["deaths_c"], row["n_c"]).finditer(win):
+            if not ok(mc, row["deaths_c"], row["n_c"], win):
+                continue
+            a, b = sorted((m.start(), win_lo + mc.start()))
+            e = max(m.end(), win_lo + mc.end())
+            if not governs(t, a, e):
+                continue
+            # ARM ASSIGNMENT: an identifiable arm word that puts the counts the other way round refutes the location
+            # ('20 of 100 died in the tocilizumab group and 10 of 100 in the placebo group' is NOT 10 vs 20 -- codex
+            # review toci_match#4)
+            at, ac = arm_of(t, m.start(), m.end()), arm_of(t, win_lo + mc.start(), win_lo + mc.end())
+            if at == "c" or ac == "t":
+                continue
             # the span is centred on the located count (a 300-char lead-in made COVACTA's record cite a sentence about
             # median clinical status); a count printed in the text is a STATED count
             return t[max(0, m.start() - 120): m.end() + 220], "STATED_COUNT"
@@ -276,8 +337,17 @@ def table_candidates(text: str) -> list:
     t = _fold(text)
     out = []
     for m in _TABLE_ROW.finditer(t):
+        # the row's own label must be death, not a composite ('Ventilation or death at day 28 30 (30) 40 (40)' -- codex
+        # review toci_match#7): the text just before the death word, back to the previous cell value
+        lead = re.split(r"\(\s*\d+(?:\.\d+)?\s*\)|\d+\s*$", t[max(0, m.start() - 80):m.start()])[-1]
+        if _OTHER_EVENT.search(lead + " " + m.group(1)):
+            continue
         heads = list(_TABLE_HEAD.finditer(t, max(0, m.start() - 4000), m.start()))
         if len(heads) < 2:
+            continue
+        # a death row under an ADVERSE-EVENT / SAFETY caption is the safety population's (safety_candidates reads it,
+        # labelled SAFETY); it is never an efficacy row (codex review toci_match#8)
+        if _SAFETY_CAPTION.search(t, heads[-2].start() - 300 if heads[-2].start() > 300 else 0, m.start()):
             continue
         h1, h2 = heads[-2], heads[-1]
         a1 = "t" if h1.group(1).lower() in ("tocilizumab", "tcz") else "c"
@@ -322,7 +392,15 @@ def text_candidates(text: str) -> list:
             before = list(arm_rx.finditer(low, lo, p.start()))              # 'in the tocilizumab group, 58 of 294'
             w = after.group(0) if after else (before[-1].group(0) if before else None)
             arms.append(None if w is None else "t" if w in ("tocilizumab", "tcz") else "c")
-        if sorted(arms) != ["c", "t"]:
+        # an unidentified arm is no row (it crashed sorted() with None -- codex review toci_match#11)
+        if None in arms or sorted(arms) != ["c", "t"]:
+            continue
+        # the death word must GOVERN the pairs and not be negated: 'had fever; no deaths occurred' names deaths only to
+        # say there were none (codex review toci_match#6)
+        clause = s[:pairs[1].end() + 80].split(";")[0] if ";" in s[pairs[1].end():pairs[1].end() + 80] else s
+        dws = [x for x in _DEATH_WORDS.finditer(clause)
+               if not re.search(r"\b(?:no|without|zero|none)\s+(?:\w+\s+)?$", clause[max(0, x.start() - 15):x.start()], re.I)]
+        if not dws:
             continue
         v = {a: (int(p.group(1)), int(p.group(2).replace(",", ""))) for a, p in zip(arms, pairs)}
         if v["t"][0] > v["t"][1] or v["c"][0] > v["c"][1]:
@@ -482,6 +560,25 @@ def _held_papers() -> dict:
 
 
 _HELD = None
+
+_REG_STATED = re.compile(r"(?:trial registration|registration(?: number)?|registered (?:at|with|on|in)|identifier|"
+                         r"ClinicalTrials\.gov(?: number| identifier| registration)?)[^.]{0,60}?(NCT\d{8})", re.I)
+
+
+def own_registration(text: str) -> Optional[str]:
+    """The paper's OWN registration: the NCT its text STATES as its registration ('Trial registration: NCT04320615',
+    'ClinicalTrials.gov number, NCT...'); only when it states none, the registration it names most often (strictly).
+    Frequency alone let a references list outvote the paper's own statement (codex review toci_match#10)."""
+    t = _fold(text)
+    stated = _REG_STATED.findall(t)
+    if stated:
+        return max(set(stated), key=stated.count) if len(set(stated)) == 1 or \
+            sorted(map(stated.count, set(stated)))[-1] > sorted(map(stated.count, set(stated)))[-2] else None
+    names = re.findall(r"NCT\d{8}", t)
+    if not names:
+        return None
+    top = max(set(names), key=names.count)
+    return top if sum(1 for n in set(names) if names.count(n) == names.count(top)) == 1 else None
 _STATED_REQUIRED = True    # plant Q13 switches the stated-count requirement off
 _PRIMARY_MUST_STATE = True  # plant Q15 lets a secondary (meta) statement of the counts suffice
 # which acquired papers are read (plants switch these guards off): every acquired paper, and only for the trial(s) its
@@ -499,8 +596,7 @@ def held_texts(label: str) -> list:
     nct = IDENTITY[label][0]
     out = []
     for pmid, text in sorted(_HELD.items()) if nct else []:
-        names = re.findall(r"NCT\d{8}", text)
-        if names and max(set(names), key=names.count) == nct:
+        if own_registration(text) == nct:
             out.append((f"PMID {pmid}", text))
     # papers acquired for THIS trial (scripts/g1_toci_acquire.py): found by its registration in PubMed's secondary-id
     # field (or, for a trial with none, by its name in title/abstract), never a protocol, review or meta-analysis
@@ -553,9 +649,17 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
     by_value = {}
     for c in cands:
         # a SAFETY reading never merges with an efficacy reading of the same numbers: they are different quantities
-        key = tuple(c[k] for k in _KEY) + ((SAFETY,) if c.get("denominator_kind") == SAFETY else ())
+        # ...and two KNOWN, different denominator kinds (ANALYSED vs RANDOMISED) never merge either: equal numbers over
+        # different populations are not agreement (codex review toci_match#9). UNSTATED joins a known kind.
+        dk = c.get("denominator_kind") or UNSTATED
+        vals = tuple(c[k] for k in _KEY)
+        key = next((k for k, gg in by_value.items() if k[:4] == vals and (dk == SAFETY) == (gg["denominator_kind"] == SAFETY)
+                    and (UNSTATED in (dk, gg["denominator_kind"]) or dk == gg["denominator_kind"])), None) \
+            or vals + (dk,)
         g = by_value.setdefault(key, {"row": {k: c[k] for k in _KEY}, "kinds": set(), "sources": [], "stated": [],
-                                      "denominator_kind": c.get("denominator_kind")})
+                                      "denominator_kind": dk})
+        if g["denominator_kind"] == UNSTATED and dk != UNSTATED:
+            g["denominator_kind"] = dk                 # the group takes the KNOWN kind its member states
         g["kinds"].add(c["source"].split()[0])
         # does this source STATE the four counts? A registry count field or a count printed in the text does; a count
         # DERIVED from a posted percentage ('19.5% of 210 -> 41') does not
@@ -567,6 +671,11 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
         if c["source"] == "AACT":                       # the registry row located in the trial's own text
             for ref, txt in texts:
                 got = text_locates_how(c, txt)
+                # the located statement may name ITS population: a randomised denominator does not confirm a registry
+                # row over the analysed population (the same numbers over different kinds are not agreement)
+                if got and c.get("denominator_kind") not in (None, UNSTATED) and \
+                        re.search(r"randomi[sz]ed|intention[- ]to[- ]treat", got[0], re.I) and c["denominator_kind"] != RANDOMISED:
+                    got = None
                 if got:
                     span, how = got
                     g["kinds"].add("TEXT")
