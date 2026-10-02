@@ -43,7 +43,8 @@ IDENTITY = {
     "COVACTA": ("NCT04320615", "AACT studies.acronym = COVACTA"),
     "COVIDOSE2-SS-A": ("NCT04479358", "AACT acronym COVIDOSE-2; its 'Sub-study A' groups"),
     "COVIDSTORM": ("NCT04577534", "AACT studies.acronym = COVIDSTORM"),
-    "COVINTOC": (None, "registered with CTRI (India), not in AACT; our family SYN-4c3d1a3d4825 holds Soin 2021 (PMID 34609549)"),
+    "COVINTOC": (None, "registered with CTRI (India), not in AACT; its own abstract (PMID 33676589, acquired by its name) "
+                       "names COVINTOC"),
     "COVITOZ": ("NCT04435717", "AACT studies.acronym = COVITOZ-01"),
     "EMPACTA": ("NCT04372186", "AACT studies.acronym = EMPACTA"),
     "HMO-020-0224": ("NCT04377750", "AACT id_information secondary id '0224-20-HMO-CTIL'"),
@@ -316,6 +317,37 @@ def text_candidates(text: str) -> list:
     return out
 
 
+_SAFETY_CAPTION = re.compile(r"adverse events? in the safety population|safety population|adverse events?\b[^.]{0,40}table|"
+                             r"table \d+\s*adverse events", re.I)
+_SAFETY_ROW = re.compile(r"\b(?:death|died|fatal(?: events?)?)\s+(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)\s*(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)",
+                         re.I)
+
+
+def safety_candidates(text: str) -> list:
+    """A death row of an ADVERSE-EVENT / SAFETY-population table ('Table 4 Adverse Events in the Safety Population ...
+    Tocilizumab (N=161) Placebo (N=82) ... Death 9 (5.6) 4 (4.9)'). Read and SHOWN, labelled SAFETY: the treated
+    population's adverse-event deaths are never the efficacy 28-day row (denominator kinds are not interchanged)."""
+    t = _fold(text)
+    out = []
+    for cap in _SAFETY_CAPTION.finditer(t):
+        seg = t[cap.start(): cap.start() + 2500]
+        heads = list(_TABLE_HEAD.finditer(seg))
+        row = _SAFETY_ROW.search(seg)
+        if len(heads) < 2 or not row:
+            continue
+        h1, h2 = heads[0], heads[1]
+        a1 = "t" if h1.group(1).lower() in ("tocilizumab", "tcz") else "c"
+        a2 = "t" if h2.group(1).lower() in ("tocilizumab", "tcz") else "c"
+        if {a1, a2} != {"t", "c"}:
+            continue
+        cells = {a1: (int(row.group(1)), row.group(2), int(h1.group(2))), a2: (int(row.group(3)), row.group(4), int(h2.group(2)))}
+        if all(_pct_ok(p, d, n) for d, p, n in cells.values()):
+            out.append({"deaths_t": cells["t"][0], "n_t": cells["t"][2], "deaths_c": cells["c"][0], "n_c": cells["c"][2],
+                        "denominator_kind": SAFETY, "span": (cap.group(0) + " ... " + h1.group(0) + " ... " + h2.group(0)
+                                                             + " ... " + row.group(0))[:400]})
+    return out
+
+
 def second_meta_rows() -> dict:
     """The second meta's rows (OR + CI; a recorded, replayable figure reading on the k-gap lane), bound to REACT labels
     by the acronym its label prints. SECONDARY: it can confirm a primary row's counts, never supply them."""
@@ -374,13 +406,25 @@ def held_texts(label: str) -> list:
     global _HELD
     _HELD = _HELD if _HELD is not None else _held_papers()
     nct = IDENTITY[label][0]
-    if not nct:
-        return []
     out = []
-    for pmid, text in sorted(_HELD.items()):
+    for pmid, text in sorted(_HELD.items()) if nct else []:
         names = re.findall(r"NCT\d{8}", text)
         if names and max(set(names), key=names.count) == nct:
             out.append((f"PMID {pmid}", text))
+    # papers acquired for THIS trial (scripts/g1_toci_acquire.py): found by its registration in PubMed's secondary-id
+    # field (or, for a trial with none, by its name in title/abstract), never a protocol, review or meta-analysis
+    acq = os.path.join(ROOT, "g1", "data", "acquired")
+    have = {r.split()[1] for r, _ in out}
+    for f in sorted(os.listdir(acq)) if os.path.isdir(acq) else []:
+        if not re.match(r"\d+\.json$", f):
+            continue
+        a = json.load(open(os.path.join(acq, f), encoding="utf-8"))
+        kinds = " ".join(a.get("pub_types") or []) + " " + (a.get("title") or "")
+        if a.get("label_query") != label or a["pmid"] in have or re.search(r"protocol|review|meta-analysis", kinds, re.I):
+            continue
+        body = (a.get("fulltext") or "") + "\n" + (a.get("abstract") or "")
+        if body.strip():
+            out.append((f"PMID {a['pmid']} (acquired: {a.get('query')})", body))
     return out
 
 
@@ -397,6 +441,8 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
     metas = second_meta_rows() if metas is None else metas
     cands = [dict(c) for c in (aact_28d(label, extract) if nct else [])]
     for ref, txt in texts:
+        for c in safety_candidates(txt):
+            cands.append(dict(c, source=f"TEXT {ref} (safety-population table)"))
         for c in text_candidates(txt) + table_candidates(txt):
             if re.search(r"intention[- ]to[- ]treat|all randomi[sz]ed", _fold(txt), re.I) and c["denominator_kind"] == UNSTATED \
                     and re.search(r"randomi[sz]ed", c["span"], re.I):
@@ -404,7 +450,8 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
             cands.append(dict(c, source=f"TEXT {ref}"))
     by_value = {}
     for c in cands:
-        key = tuple(c[k] for k in _KEY)
+        # a SAFETY reading never merges with an efficacy reading of the same numbers: they are different quantities
+        key = tuple(c[k] for k in _KEY) + ((SAFETY,) if c.get("denominator_kind") == SAFETY else ())
         g = by_value.setdefault(key, {"row": {k: c[k] for k in _KEY}, "kinds": set(), "sources": [],
                                       "denominator_kind": c.get("denominator_kind")})
         g["kinds"].add(c["source"].split()[0])
@@ -423,7 +470,8 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
             g["kinds"].add("META")
             g["sources"].append({"source": f"SECONDARY meta {SECOND_META}: {m['trial_label']} OR {m['effect']} "
                                            f"({m['lower']}-{m['upper']}) reproduced from these counts"})
-    groups = list(by_value.values())
+    every = list(by_value.values())
+    groups = [g for g in every if g["denominator_kind"] != SAFETY]          # only efficacy readings can be the row
     est = [g for g in groups if len(g["kinds"]) >= 2 and g["kinds"] & {"AACT", "TEXT"}]
     if len(est) == 1 and len(groups) == 1:
         state, chosen = ESTABLISHED, est[0]
@@ -436,8 +484,8 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
         state, chosen = NO_SOURCE, None
     row = dict(chosen["row"], denominator_kind=chosen["denominator_kind"]) if chosen else None
     return {"label": label, "registration": nct, "identity": why, "state": state, "row": row,
-            "readings": [{"values": g["row"], "independent_sources": sorted(g["kinds"]), "sources": g["sources"]}
-                         for g in groups],
+            "readings": [{"values": g["row"], "independent_sources": sorted(g["kinds"]), "sources": g["sources"],
+                          "denominator_kind": g["denominator_kind"]} for g in every],
             "second_meta": m, "texts_held": [r for r, _ in texts]}
 
 
@@ -487,6 +535,12 @@ def run(extract: Optional[dict] = None) -> dict:
     for label in sorted(rrows):
         a = assess(label, extract, metas)
         a["vs_react"] = compare(a["row"], rrows[label])
+        rv = {k: rrows[label][k] for k in _KEY}
+        safety = [x for x in a["readings"] if x["denominator_kind"] == SAFETY and x["values"] == rv]
+        if safety and a["vs_react"]["verdict"] != "AGREE":
+            # REACT's row IS the paper's safety-population adverse-event count, not its efficacy 28-day row
+            a["vs_react"] = dict(a["vs_react"], verdict="REACT_ROW_IS_SAFETY_POPULATION",
+                                 safety_source=safety[0]["sources"][0].get("source"))
         a["react_row"] = rrows[label]
         trials.append(a)
     established = [t for t in trials if t["state"] == ESTABLISHED]
@@ -497,7 +551,9 @@ def run(extract: Optional[dict] = None) -> dict:
         "trials": trials,
         "tally": {s: sum(1 for t in trials if t["state"] == s) for s in (ESTABLISHED, ONE_SOURCE, CONFLICT, NO_SOURCE)},
         "vs_react": {v: sum(1 for t in established if t["vs_react"]["verdict"] == v)
-                     for v in ("AGREE", "DENOMINATOR_KIND_DIFFERS", "DIFFER")},
+                     for v in ("AGREE", "DENOMINATOR_KIND_DIFFERS", "DIFFER", "REACT_ROW_IS_SAFETY_POPULATION")},
+        "react_rows_that_are_safety_counts": [t["label"] for t in trials
+                                               if t["vs_react"]["verdict"] == "REACT_ROW_IS_SAFETY_POPULATION"],
         # G1 'k matched': ESTABLISHED primary rows only, never a REACT row (anti-circularity)
         "k_matched": sum(1 for t in established if t["vs_react"]["verdict"] == "AGREE"),
         "pool_ours_established": pool_fe([t["row"] for t in established]),

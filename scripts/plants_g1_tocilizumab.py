@@ -112,6 +112,13 @@ def run() -> dict:
     ks = [k for k in range(2023) if round(100.0 * k / 2022) == 31]
     out["Q6_ambiguous_percentage_forced_to_a_count"]["fires_with_guard_removed"] = len(ks) > 1
     out["Q5_one_source_or_comparator_rows_counted_as_matched"] = {"fired_as_built": q5_anti_circularity(r)}
+    # Q8: a SAFETY-population death count established as the efficacy 28-day row (BACC-Bay: REACT's 9/161 vs 4/82 is the
+    # paper's 'Adverse Events in the Safety Population' table; the mITT efficacy count is 9/161 vs 3/81)
+    bacc = next(t for t in r["trials"] if t["label"] == "BACC-Bay")
+    out["Q8_safety_count_established_as_efficacy_row"] = {
+        "fired_as_built": bacc["state"] == g.ESTABLISHED and bacc["row"].get("denominator_kind") == g.SAFETY,
+        "fires_with_guard_removed": any(x["denominator_kind"] == g.SAFETY and len(x["independent_sources"]) >= 2
+                                        and set(x["independent_sources"]) & {"AACT", "TEXT"} for x in bacc["readings"])}
     out["C1_COVACTA_established_and_agrees"] = {
         "fired_as_built": not any(t["label"] == "COVACTA" and t["state"] == g.ESTABLISHED and t["vs_react"]["verdict"] == "AGREE"
                                   for t in r["trials"])}
