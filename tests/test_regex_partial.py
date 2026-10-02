@@ -50,7 +50,9 @@ def test_every_extractor_is_covered_by_the_scan():
     from regex_layer import partial
     src = open(partial.__file__, encoding="utf-8").read()
     assert 'SPECS.items() if s["kind"] == "extractor"' in src
-    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 14
+    # 15: _MD_EFFECT (extractor fix 3, acq/k-gap b54d122) -- scanned by partial.scan like every other extractor; on
+    # its plants and on thousands-separated / percentage-point differences it yields no fragment (checked 3 Oct)
+    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 15
 
 
 @pytest.mark.parametrize("name,s", [
