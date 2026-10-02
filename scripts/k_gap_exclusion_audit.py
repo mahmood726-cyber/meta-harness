@@ -115,7 +115,7 @@ def _background_ranges(ab):
     return out
 
 
-def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None):
+def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None, keep_in_bg=None):
     """Every verbatim span of `rec`: the sentence around each match of `rx` (at most SPAN_CAP chars either side of the
     match) in which `avoid` does not occur, as {field, text, match}, in record order."""
     out = []
@@ -123,24 +123,44 @@ def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None):
         ends = [e.start() for e in _SENT_END.finditer(s)]
         bg = _background_ranges(s) if f == "abstract" else []
         for m in rx.finditer(s):
-            if any(a0 <= m.start() < b0 for a0, b0 in bg):
-                continue                 # a BACKGROUND sentence says nothing about what THIS trial did (CORE, DELIVER)
+            in_bg = any(a0 <= m.start() < b0 for a0, b0 in bg)
             i = max((e for e in ends if e < m.start()), default=-1)
             a = max(0 if i < 0 else i + 2, m.start() - SPAN_CAP)
             b = min((e for e in ends if e >= m.end()), default=-1)
             b = len(s) if b < 0 else b + 1
             b = min(b, m.end() + SPAN_CAP)
             txt = s[a:b].strip()
+            if in_bg and not (keep_in_bg is not None and keep_in_bg.search(txt)):
+                continue                 # a BACKGROUND sentence says nothing about what THIS trial did (CORE, DELIVER)
             if avoid is not None and avoid.search(txt):
                 continue
             out.append({"field": f, "text": txt, "match": m.group(0)})
     return out
 
 
-def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None):
+def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None, keep_in_bg=None):
     """The first verbatim span (see _all_spans), or None when the record never states it."""
-    sp = _all_spans(rec, rx, fields, avoid)
+    sp = _all_spans(rec, rx, fields, avoid, keep_in_bg)
     return sp[0] if sp else None
+
+
+# a population term NEGATED or made optional where it occurs ('adults without diabetes', 'with or without type 2
+# diabetes', 'no history of', 'free of', 'excluding') states the OPPOSITE of membership -- never an excluding span
+_NEGATION_BEFORE = re.compile(r"\b(?:without|with or without|no(?:\s+\w+){0,2}|not|free of|excluding|excluded|absence of|"
+                              r"non|never)\W*$", re.I)
+
+
+def _negated(text, match):
+    i = text.find(match)
+    return i >= 0 and bool(_NEGATION_BEFORE.search(text[max(0, i - 40):i]))
+
+
+# THIS study's question, in the first person: an aim sentence states what this trial did even when a structured abstract
+# files it under BACKGROUND (WOMAN-2 39461792: 'We examined whether giving tranexamic acid shortly after birth can
+# prevent postpartum haemorrhage ...') -- never a statement about the field
+AIM_THIS_STUDY = re.compile(r"\b(?:we|this (?:trial|study)|the (?:aim|objective|purpose) of this (?:trial|study))\s+"
+                            r"(?:\w+\s+){0,2}?(?:examined|assessed|investigated|evaluated|tested|aimed|sought|compared|"
+                            r"determined|was to)\b", re.I)
 
 
 def _terms_rx(terms):
@@ -481,6 +501,16 @@ def _classify(rec, cfg):
         # tie-break is the RECORDED second reader's population axis on this same record (scripts/k_gap_screen_recheck.py,
         # quote-verified by model_source.verify_screening): MET -> our wording missed it; NOT_MET -> the record states
         # another population; NOT_STATED / no verified reading -> the record does not say.
+        # deterministic first: a population the protocol EXCLUDES, named in a sentence about THIS study (its first-person
+        # aim, or its allocation) -- the record states the excluding fact in its own words
+        pn = _terms_rx(inc.get("population_none"))
+        if pn:
+            sp = next((x for x in _all_spans(rec, pn, ("abstract",), keep_in_bg=AIM_THIS_STUDY)
+                       if (AIM_THIS_STUDY.search(x["text"]) or THIS_STUDY_RANDOMISED.search(x["text"]))
+                       and not _negated(x["text"], x["match"])), None)
+            if sp:
+                return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION_STATED_FOR_THIS_STUDY:'{sp['match']}'",
+                        _with_span(base, sp))
         pv, pq = READER.get(str(rec.get("id"))) or (None, None)
         if pv == "MET":
             return "SCREENER_ERROR", "POPULATION_VOCABULARY (recorded reader: population MET, quoted)", base
