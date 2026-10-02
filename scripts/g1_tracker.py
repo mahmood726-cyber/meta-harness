@@ -745,8 +745,12 @@ def name_reference_seeds_outside_membership(slug, comp, trials, T):
         if not pmid.isdigit():
             continue
         row = next((t for t in T["trials"] if t["slug"] == slug and pmid in (t.get("pmids") or [])), None)
-        d = cmb.not_an_included_trial(crec.get("abstract") or "", k_matched,
-                                      (held_record(slug, pmid) or {}).get("abstract") or "", (row or {}).get("unit_source"))
+        urec = held_record(slug, pmid) or {}
+        d = cmb.not_an_included_trial(crec.get("abstract") or "", k_matched, urec.get("abstract") or "",
+                                      (row or {}).get("unit_source"), unit_pubtypes=urec.get("pubtypes") or [],
+                                      unit_title=urec.get("title") or "", unit_pmid=pmid,
+                                      matched_pmids=[str(m.get("family") or "").replace("PMID ", "").strip()
+                                                     for m in trials if is_matched(m)])
         if not d:
             continue
         x["scope_difference"] = dict(d, pmid=pmid, span_source=span_source_of(slug, pmid, d["span"]),

@@ -10,7 +10,7 @@ Every number is a comparator printed row, a served row, or counts read from a qu
 | Oral apixaban for the treatment of acute venous thromboembol (PMID 23808982) | MATCHED_NO_COMPARATOR_ROW | matched; the comparator prints no per-trial row |   (-) | None/None vs None/None |  |
 | Oral rivaroxaban for symptomatic venous thromboembolism. (PMID 21128814) | MATCHED_NO_COMPARATOR_ROW | matched; the comparator prints no per-trial row |   (-) | None/None vs None/None |  |
 | Oral rivaroxaban for the treatment of symptomatic pulmonary  (PMID 22449293) | MATCHED_NO_COMPARATOR_ROW | matched; the comparator prints no per-trial row |   (-) | None/None vs None/None |  |
-| Management and outcomes of major bleeding during treatment w (PMID 24081972) | NOT_AN_INCLUDED_TRIAL | a reference of the comparator, not one of its trials: the comparator states 6 trials; 6 are matched; this reference seed is itself a pooled analysis of several trials, not one of them |   (-) | / vs / | METHODS AND RESULTS: Two independent investigators reviewed bleeding reports from 1034 individuals with 1121 major bleeds enrolled in 5 phase III trials compari |
+| Management and outcomes of major bleeding during treatment w (PMID 24081972) | NOT_AN_INCLUDED_TRIAL | a reference of the comparator, not one of its trials: the comparator states 6 trials; 6 distinct trials are matched; this reference seed is itself a pooled analysis of several trials, not one of them |   (-) | / vs / | METHODS AND RESULTS: Two independent investigators reviewed bleeding reports from 1034 individuals with 1121 major bleeds enrolled in 5 phase III trials compari |
 
 ## Does the comparator's conclusion survive?
 
@@ -32,7 +32,7 @@ Method: FE (the tracker reproduced the comparator with it).
 - ours: {'k': 6, 'estimate': 0.9091, 'ci_low': 0.7479, 'ci_high': 1.105, 'scale': 'HR'}
 - comparator: {'outcome': 'Recurrent VTE', 'estimate': 0.9, 'ci_low': 0.77, 'ci_high': 1.06, 'scale': 'RR'}
 - WHOLE_POOL_MEASURE_DIFFERS
-- event-total check: **OUTCOME_EVENTS_EXCEED_COMPARATOR_RATES** -- the trials report 702 primary-outcome events; the comparator's printed rates (2.0% / 2.2%) over its 27023 patients hold at most 608
+- event-total check: **EVENTS_INCOMPATIBLE_WITH_COMPARATOR_RATES** -- the trials' held abstracts report 702 primary-outcome events; the comparator's printed rates (2.0% / 2.2%) over its stated 27023 patients hold at most 608.0 -- numerically incompatible: a different outcome definition, window, population or rate construction, not resolved here
   - comparator: "Recurrent VTE occurred in 2.0% of DOAC recipients compared with 2.2% in VKA recipients (relative risk [RR] 0.90, 95% confidence interval [CI] 0.77-1.06)."
   - PMID 19966341: [30, 27] -- "RESULTS: A total of 30 of the 1274 patients randomly assigned to receive dabigatran (2.4%), as compared with 27 of the 1265 patients randomly assigned to warfarin (2.1%), had recurrent venous thromboembolism; the differe"
   - PMID 24344086: [30, 28] -- "The primary outcome, recurrent symptomatic, objectively confirmed VTE and related deaths during 6 months of treatment occurred in 30 of the 1279 dabigatran patients (2.3%) compared with 28 of the 1289 warfarin patients ("
