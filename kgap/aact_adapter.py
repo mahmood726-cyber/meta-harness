@@ -166,8 +166,16 @@ def ensure(ncts):
         idx.update(build_entries(need, tag))
         p = index_path()
         os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p, "w", encoding="utf-8") as fh:
+        # MERGE with what another process wrote since we loaded, then replace atomically: parallel batch workers
+        # must never read a half-written index nor drop each other's entries
+        if os.path.exists(p):
+            for k, v in _j(p).items():
+                if k not in idx and (v or {}).get("_snapshot") == tag:
+                    idx[k] = v
+        tmp = f"{p}.{os.getpid()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
             json.dump(idx, fh)
+        os.replace(tmp, p)
     return {"added": len(need), "rebuilt_stale": len(stale), "held": len(idx), "snapshot": tag}
 
 

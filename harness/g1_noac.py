@@ -405,6 +405,9 @@ def fda_facts(root, identities):
             continue
         # Only table body, excluding explanatory header comments.
         body = text.split('=== TABLES (excerpt) ===')[-1]
+        if re.search(r'^TABLE .*Stroke or Systemic Embolism', body, re.M):
+            facts += fda_stroke_facts(root, path, text, body, ident)
+            continue
         m = re.search(r'^Major [^|]+\|\s*(\d+)\s*\([\d.]+\)\s*\|\s*(\d+)\s*\([\d.]+\)\s*\|\s*([\d.]+)\s*\(([\d.]+),\s*([\d.]+)\)', body, re.M)
         if not m:
             raise ValueError('FDA_MAJOR_ROW_NOT_PARSED:' + path.name)
@@ -425,6 +428,40 @@ def fda_facts(root, identities):
                  values={'events_t': int(m[1]), 'n_t': int(n[1]), 'events_c': int(m[2]), 'n_c': int(n[2])})
         facts.append(c)
     return facts
+
+
+def fda_stroke_facts(root, path, text, body, ident, standard='150 mg'):
+    """FDA label efficacy table (PRADAXA Table 4): the STANDARD-dose column is located by its header text, never by
+    position, so the 110 mg column can never fill the slot. Population is left UNKNOWN: the label says 'Patients
+    randomized', not intention-to-treat, and a silent axis is never assumed."""
+    rows = [[c.strip() for c in line.split('|')] for line in body.splitlines() if '|' in line]
+    header = next((r for r in rows if r[0] == 'Row'), None)
+    if header is None:
+        raise ValueError('FDA_STROKE_HEADER_NOT_PARSED:' + path.name)
+    cols = [i for i, h in enumerate(header) if standard in h]
+    ctrl = [i for i, h in enumerate(header) if h.lower().startswith('warfarin')]
+    if len(cols) != 1 or len(ctrl) != 1:
+        raise ValueError('FDA_STROKE_ARM_COLUMNS_NOT_UNIQUE:' + path.name)
+    t, c = cols[0], ctrl[0]
+    by = {r[0]: r for r in rows}
+    n, ev, hr = by.get('Patients randomized'), by.get('Patients (%) with events'), \
+        next((r for k, r in by.items() if k.startswith('Hazard ratio vs. warfarin')), None)
+    if not (n and ev and hr):
+        raise ValueError('FDA_STROKE_ROWS_NOT_PARSED:' + path.name)
+    m = re.fullmatch(r'([\d.]+) \(([\d.]+), ?([\d.]+)\)', hr[t])
+    level = re.search(r'\((\d+)% CI\)', hr[0])
+    if not (m and level):
+        raise ValueError('FDA_STROKE_HR_NOT_PARSED:' + path.name)
+    common = dict(source_ref=str(path.relative_to(root)).replace('\\', '/'),
+                  sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                  source_held_text_sha256=re.search(r'sha256 ([a-f0-9]{64})', text)[1],
+                  definition='STROKE_OR_SYSTEMIC_EMBOLISM', population='UNKNOWN', arm_column=header[t])
+    f = fact(ident['nct'], 'stroke_se', 'EFFECT', 'FDA:' + path.name, text)
+    f.update(measure='HR', ci_percent=level[1], values=dict(zip(('effect', 'lower', 'upper'), m.groups())), **common)
+    e = [int(re.match(r'\d+', x)[0]) for x in (ev[t], ev[c])]
+    k = dict(f, kind='COUNTS', measure='NA', ci_percent='NA',
+             values={'events_t': e[0], 'n_t': int(n[t]), 'events_c': e[1], 'n_c': int(n[c])})
+    return [f, k]
 
 
 def count_census(items, selected):

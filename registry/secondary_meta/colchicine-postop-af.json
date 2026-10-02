@@ -87,13 +87,22 @@
  "tally": {
   "PRIMARY_VERIFIED": 5,
   "BLOCKED_CROSSCHECK": 5,
-  "SECONDARY_UNVERIFIED": 3,
+  "SECONDARY_UNVERIFIED": 1,
   "MISMATCH": 1,
-  "REFUSED": 7
+  "REFUSED": 7,
+  "TWO_SOURCE_VERIFIED": 2
  },
  "typed_verification": {
   "verified": 0,
   "secs": 0.07
+ },
+ "registry": {
+  "state": "READY",
+  "snapshot": {
+   "id": "AACT 2026-08-30",
+   "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+   "rules": 2
+  }
  },
  "verification_queue": [
   {
@@ -101,23 +110,10 @@
    "family": "PMID 24508207",
    "meta": "36050741",
    "reason": "NO_PRIMARY:LOCATOR_NOT_REPORTED | RR:LOCATOR_NOT_REPORTED"
-  },
-  {
-   "trial": "Tabbalat 2016",
-   "family": "PMID 27502857",
-   "meta": "36050741",
-   "reason": "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE"
-  },
-  {
-   "trial": "Tabbalat 2016",
-   "family": "PMID 27502857",
-   "meta": "37341446",
-   "reason": "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE"
   }
  ],
  "verification_queue_reasons": {
-  "NO_PRIMARY:LOCATOR_NOT_REPORTED | RR:LOCATOR_NOT_REPORTED": 1,
-  "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE": 2
+  "NO_PRIMARY:LOCATOR_NOT_REPORTED | RR:LOCATOR_NOT_REPORTED": 1
  },
  "g1_countable_vs_comparator": [
   "PMID 27223641",
@@ -157,9 +153,15 @@
    "reasons": [],
    "verification": {
     "result": "MATCH_FROM_PRIMARY_COUNTS",
+    "route": "PRIMARY_EXTRACTION",
     "primary_source": "PMID 29237033 REGEX_ABSTRACT",
     "primary_span": "abstract arm-level counts (percentage-corroborated): New POAF occurred in 5 (10.2%) patients in the colchicine group and 7 (13.7%) patients in the placebo group (adjusted hazard ratio 0.69, 95% confidence interval 0.20-2.34)."
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -190,7 +192,12 @@
    "reasons": [
     "CROSSCHECK_DISAGREES:['26318871', '36050741']"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -222,7 +229,12 @@
    "verification": {
     "result": "QUEUED",
     "queue_reason": "NO_PRIMARY:LOCATOR_NOT_REPORTED | RR:LOCATOR_NOT_REPORTED"
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -253,7 +265,12 @@
    "reasons": [
     "CROSSCHECK_DISAGREES:['26318871', '36050741', '37341446']"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -314,7 +331,12 @@
     "primary_source": "our branch extraction PMID 25172965 (abstract)",
     "primary_span": "abstract arm-level counts (percentage-corroborated): There were no significant differences between the colchicine and placebo groups for the secondary end points of postoperative AF (colchicine, 61 patients [33.9%]; placebo, 75 patients [41.7%]; absolut",
     "which_side": "SECONDARY_WRONG (primary numbers are in the primary's own span)"
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -345,7 +367,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -372,12 +399,34 @@
    "lower": "0.45",
    "upper": "1.12",
    "family_id": "PMID 27502857",
-   "state": "SECONDARY_UNVERIFIED",
+   "state": "TWO_SOURCE_VERIFIED",
    "reasons": [],
    "verification": {
-    "result": "QUEUED",
-    "queue_reason": "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE"
-   }
+    "result": "TWO_SOURCE_MATCH",
+    "route": "TWO_SOURCE",
+    "supports": [
+     "36050741",
+     "37341446"
+    ],
+    "independent_pairs": [
+     [
+      "36050741",
+      "37341446"
+     ]
+    ],
+    "independent_pair_ids": [
+     [
+      "36050741",
+      "37341446"
+     ]
+    ],
+    "prior_queue_reason": "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE"
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -408,9 +457,15 @@
    "reasons": [],
    "verification": {
     "result": "MATCH_FROM_PRIMARY_COUNTS",
+    "route": "PRIMARY_EXTRACTION",
     "primary_source": "our branch extraction PMID 32720823 (abstract)",
     "primary_span": "abstract arm-level counts (percentage-corroborated): POAF occurred in 13 patients (16.1%) in the colchicine group and 13 patients (18.3%) in the placebo group (odds ratio 0.85 [95% Confidence Interval = 0.37-1.99])."
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "36050741",
@@ -441,9 +496,15 @@
    "reasons": [],
    "verification": {
     "result": "MATCH_FROM_PRIMARY_COUNTS",
+    "route": "PRIMARY_EXTRACTION",
     "primary_source": "PMID 27223641 LOCATOR:mc-3490e5a356b56350b15f9e1ca879cdb0",
     "primary_span": "the numbers of AF-POMR events in the colchicine and control groups were 5 of 71 versus 9 of 69, respectively"
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "26318871",
@@ -474,7 +535,12 @@
    "reasons": [
     "CROSSCHECK_DISAGREES:['26318871', '36050741', '37341446']"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "26318871",
@@ -505,7 +571,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "26318871",
@@ -536,7 +607,12 @@
    "reasons": [
     "CROSSCHECK_DISAGREES:['26318871', '36050741']"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "26318871",
@@ -567,7 +643,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -598,7 +679,12 @@
    "reasons": [
     "CROSSCHECK_DISAGREES:['26318871', '36050741', '37341446']"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -629,7 +715,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -660,7 +751,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -691,7 +787,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -722,7 +823,12 @@
    "reasons": [
     "FAMILY_NOT_RESOLVED"
    ],
-   "verification": null
+   "verification": null,
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -749,12 +855,34 @@
    "lower": "0.45",
    "upper": "1.12",
    "family_id": "PMID 27502857",
-   "state": "SECONDARY_UNVERIFIED",
+   "state": "TWO_SOURCE_VERIFIED",
    "reasons": [],
    "verification": {
-    "result": "QUEUED",
-    "queue_reason": "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE"
-   }
+    "result": "TWO_SOURCE_MATCH",
+    "route": "TWO_SOURCE",
+    "supports": [
+     "36050741",
+     "37341446"
+    ],
+    "independent_pairs": [
+     [
+      "36050741",
+      "37341446"
+     ]
+    ],
+    "independent_pair_ids": [
+     [
+      "36050741",
+      "37341446"
+     ]
+    ],
+    "prior_queue_reason": "NO_PRIMARY:LOCATOR_NON_NUMERIC | RR:LOCATOR_INCOMPLETE"
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -785,9 +913,15 @@
    "reasons": [],
    "verification": {
     "result": "MATCH_FROM_PRIMARY_COUNTS",
+    "route": "PRIMARY_EXTRACTION",
     "primary_source": "our branch extraction PMID 32720823 (abstract)",
     "primary_span": "abstract arm-level counts (percentage-corroborated): POAF occurred in 13 patients (16.1%) in the colchicine group and 13 patients (18.3%) in the placebo group (odds ratio 0.85 [95% Confidence Interval = 0.37-1.99])."
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   },
   {
    "meta_pmid": "37341446",
@@ -818,9 +952,15 @@
    "reasons": [],
    "verification": {
     "result": "MATCH_FROM_PRIMARY_COUNTS",
+    "route": "PRIMARY_EXTRACTION",
     "primary_source": "PMID 27223641 LOCATOR:mc-3490e5a356b56350b15f9e1ca879cdb0",
     "primary_span": "the numbers of AF-POMR events in the colchicine and control groups were 5 of 71 versus 9 of 69, respectively"
-   }
+   },
+   "mean_t": null,
+   "sd_t": null,
+   "mean_c": null,
+   "sd_c": null,
+   "findings": []
   }
  ]
 }
