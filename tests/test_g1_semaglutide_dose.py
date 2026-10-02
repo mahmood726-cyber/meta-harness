@@ -58,3 +58,28 @@ def test_with_a_stale_recorded_rule_the_row_stays_inconsistent_never_named():
     rows = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "exclusion_audit.json"), encoding="utf-8"))["rows"]
     r = next(r for r in rows if r["slug"] == "semaglutide-obesity-weight" and r["pmid"] == "30122305")
     assert r["class"] == "INCONSISTENT" and r["subclass"].startswith("RULE_X-DOSE_NE_RECORDED_")
+
+
+# --- plants from cross-vendor review NR-C23 (Codex; artefact F:/mh-nr101-codex/c23-g1-dose-parser/last_message.txt) ---
+def _refused(abstract, title="Semaglutide in adults with obesity"):
+    _, ref = arm_object.screen_refusal(_rec(title, "METHODS: Adults with obesity without diabetes were randomly assigned to "
+                                                   + abstract + " RESULTS: x."), CFG)
+    return bool(ref and ref["rule_id"] == "X-DOSE")
+
+
+def test_c23_titration_and_run_in_text_never_refuses_a_2_4_mg_trial():
+    assert not _refused("once-weekly semaglutide 0.25 mg escalated to 2.4 mg once weekly or placebo.")
+    assert not _refused("semaglutide 0.25 mg during run-in. Participants were then randomly assigned to 2.4 mg once "
+                        "weekly or placebo.")
+
+
+def test_c23_arm_order_is_a_recorded_protocol_question_not_changed_here():
+    # NR-C23: 'semaglutide 1.7 mg or 2.4 mg' is refused (first dose read) -- a known defect, KEPT deliberately: reading
+    # every arm would also admit the 9-arm bimagrumab trial 41772149 to the served screen (population_none lists
+    # 'bimagrumab'), a protocol decision for the registered owner. This plant pins the served behaviour until then.
+    assert not _refused("semaglutide 2.4 mg or 1.7 mg once weekly, or placebo.")
+    assert _refused("semaglutide 1.7 mg or 2.4 mg once weekly, or placebo.")
+
+
+def test_c23_a_dose_is_a_whole_number():
+    assert _refused("semaglutide 12.4 mg or 14 mg once weekly, or placebo.")       # 12.4 is not 2.4
