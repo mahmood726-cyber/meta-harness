@@ -117,6 +117,122 @@ def comparator_units(slug, pmid, agents, others=None):
     return inc, parsed
 
 
+_STUDY_ID = re.compile(r"([A-Z][A-Za-z'’‐\- ]{1,40}? (?:19|20)\d\d[a-z]?) \{(?:published|unpublished)[^}]{0,60}\}")
+_AUTHORS_END = re.compile(r"^(?P<authors>(?:[^.]{1,40}? [A-Z]{1,4}(?:, |\. ))+?)(?=[A-Z0-9])")
+
+
+def _first_citation(chunk):
+    """'Baillargeon JP, Jakubowicz DJ, Nestler JE. Effects of ... sensitivity. Fertility and Sterility 2004;82:893-902.'
+    -> (first author surname, title, year). Authors are 'Surname INITIALS' items ending at the first '. '."""
+    first = re.split(r"\[ ?(?:DOI|PubMed|Google Scholar|PMC free article|CrossRef|Ref list) ?\]", chunk)[0].strip()
+    # authors end at initials, 'et al .' or '...; COPPS Investigators.'
+    a = re.match(r"(?P<authors>.+?(?:\bet al\s*|\bInvestigators|\b[A-Z]{1,4}))\s?\. (?P<after>.*)$", first, re.S)
+    if not a:
+        return "", "", "", first
+    # the first author item ('Ben Ayed B', 'Morin-Papunen L') minus its trailing initials
+    item = a.group("authors").split(",")[0].strip()
+    surname = re.match(r"(.+?)(?:\s+[A-Z]{1,4})?$", item)
+    after = a.group("after")
+    t = re.match(r"(?P<title>.{12,400}?[.?!])\s+(?P<rest>.*)$", after, re.S)
+    year = re.search(r"\b((?:19|20)\d\d)\b", t.group("rest") if t else after)
+    return (surname.group(1) if surname else "", (t.group("title").rstrip(".?!").strip() if t else ""),
+            year.group(1) if year else "", first)
+
+
+def study_id_citations(text):
+    """A review's 'References to studies included in this review' section (Cochrane layout) as reference records:
+    one per STUDY ID ('Baillargeon 2004'), carrying its FIRST citation's first author, title and year. No PMID is
+    invented -- the identity chain looks the title up and admits only a CONFIRMED PubMed record."""
+    m = re.search(r"References to studies included in this review(.*?)(?:References to studies excluded|"
+                  r"References to studies awaiting|References to ongoing studies|Additional references|$)", text, re.S)
+    if not m:
+        return {}
+    body, out, dup = m.group(1), {}, set()
+    ids = list(_STUDY_ID.finditer(body))
+    for i, sid in enumerate(ids):
+        chunk = body[sid.end(): ids[i + 1].start() if i + 1 < len(ids) else len(body)]
+        surname, title, year, first = _first_citation(chunk)
+        label = sid.group(1).replace("’", "'").replace("‐", "-").strip()
+        if label in out:                               # a study ID listed twice is not an identity
+            dup.add(label)
+            continue
+        out[label] = {"rid": "SID:" + label, "label": label, "ordinal": len(out) + 1, "pmid": None, "doi": None,
+                      "first_author": surname, "title": title, "year": year, "text": first[:400],
+                      "ncts": sorted(set(re.findall(r"NCT\d{8}", chunk)))}
+    return {k: v for k, v in out.items() if k not in dup}
+
+
+def numbered_citations(text):
+    """A held TEXT copy's numbered reference list ('REFERENCES 1. Imazio M, Bobbio M, et al . Colchicine ... (COPE)
+    trial. Circulation 2005;112:...') as reference records keyed by number. Numbers must run 1, 2, 3, ... in order;
+    a list that does not is not trusted. No PMID is invented."""
+    m = re.search(r"\bREFERENCES\b(.*)$", text, re.S) or re.search(r"\bReferences\b(.*)$", text, re.S)
+    if not m:
+        return {}
+    body = m.group(1)
+    marks, want = [], 1
+    for x in re.finditer(r"(?:(?<=\s)|^)(\d{1,3})\. (?=[A-Z])", body):
+        if int(x.group(1)) == want:
+            marks.append(x)
+            want += 1
+    if len(marks) < 3:
+        return {}
+    out = {}
+    for i, x in enumerate(marks):
+        chunk = body[x.end(): marks[i + 1].start() if i + 1 < len(marks) else len(body)]
+        chunk = re.split(r"\bTable \d+\b|\bFigure \d+\b", chunk)[0]
+        surname, title, year, first = _first_citation(chunk)
+        out[x.group(1)] = {"rid": "REF:" + x.group(1), "label": x.group(1), "ordinal": int(x.group(1)), "pmid": None,
+                           "doi": None, "first_author": surname, "title": title, "year": year, "text": first[:400],
+                           "ncts": sorted(set(re.findall(r"NCT\d{8}", chunk)))}
+    return out
+
+
+def subgroup_row(u):
+    """A GROUP DESCRIPTION with a group size and no study identity -- 'Statin used group in QRISK 10-19% (n = 6438)'
+    under the Gitsels 2016 study row -- is a sub-row of the study above it, not a trial. Requires a group word AND an
+    '(n = N)' size AND no author-year, reference marker, NCT or citation link. Returns the reason, or None."""
+    lab = u.get("label") or ""
+    if u.get("layout") != "row" or u.get("cited") or u.get("ncts"):
+        return None
+    t = k_gap.identity_tokens(lab)
+    if t["author"] or t["marker"] or t["ncts"]:
+        return None
+    if re.search(r"\b(?:sub)?groups?\b|\barms?\b|\bcohorts?\b|\b(?:non-?)?users?\b", lab, re.I) and \
+            re.search(r"\(\s*n\s*=\s*[\d,]+", lab, re.I):
+        return "SUBGROUP_ROW_GROUP_DESCRIPTION_WITH_SIZE_NO_STUDY_IDENTITY"
+    return None
+
+
+def identity_refs(pmid):
+    """The comparator's REFERENCE LIST for the identity chain when no kgap JATS is held: its open full text already
+    held under the comparator's PMCID (Europe PMC fullTextXML / PMC OAI, both JATS). Refs only -- the tables of this
+    copy are never used to enumerate units, so no topic's trial set moves. None when nothing parseable is held."""
+    d = os.path.join(ROOT, "cache", "comparators", pmid)
+    for pat in ("*_europepmc_fulltext.xml", "*_pmc_oai.xml"):
+        for p in sorted(glob.glob(os.path.join(d, pat)), reverse=True):
+            with open(p, "rb") as fh:
+                body = fh.read()
+            try:
+                refs = k_gap.parse_refs(k_gap.ET.fromstring(body)) if hasattr(k_gap, "ET") else k_gap.parse_jats(body)["refs"]
+            except Exception:  # noqa: BLE001 -- a copy that does not parse is not a reference list
+                continue
+            if refs:
+                return {"refs": refs, "source": os.path.relpath(p, ROOT).replace(os.sep, "/"), "sha256": k_gap.sha256(body)}
+    # no JATS copy (metformin: the Europe PMC fetch was a 404 recorded as a 0-byte file): a held TEXT copy's
+    # included-studies citation list, keyed by study ID
+    for p in sorted(glob.glob(os.path.join(d, "*_legacy_comparator_fulltext.txt")), reverse=True):
+        with open(p, "rb") as fh:
+            body = fh.read()
+        txt = body.decode("utf-8", errors="replace")
+        for layout, refs in (("STUDY_ID_CITATIONS", study_id_citations(txt)),
+                             ("NUMBERED_REFERENCES", numbered_citations(txt))):
+            if refs:
+                return {"refs": refs, "source": os.path.relpath(p, ROOT).replace(os.sep, "/"),
+                        "sha256": k_gap.sha256(body), "layout": layout}
+    return None
+
+
 def pub_years(pmids, offline=False) -> dict:
     """PMID -> publication year (NCBI esummary pubdate; cached outputs/k_gap/pubmed_years.json)."""
     cp = os.path.join(OUT, "pubmed_years.json")
@@ -201,6 +317,14 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     ref-list > acronym against AACT studies.acronym restricted to NCTs whose interventions name a topic
     agent. Each step records its basis; an acronym hitting >1 agent NCT is AMBIGUOUS, not guessed."""
     basis = []
+    # identity fields from the label itself (marker / glued year / '(n = N)' separated); the unit's own tokens are kept
+    # wherever the identity reading finds nothing, so a unit the old reading resolved keeps its inputs
+    # ...only for a trial LABEL (table row/column, review text). A reference-seed unit's 'label' is a paper title and it
+    # carries its own PMID: reading 'COVID-19' out of a title as an acronym dropped five correct cited identities.
+    if u.get("layout") in ("row", "column", "text"):
+        t = k_gap.identity_tokens(u.get("label") or "")
+        u = dict(u, marker=t["marker"], acronyms=t["acronyms"] or list(u.get("acronyms") or []),
+                 author=u.get("author") or t["author"], year=u.get("year") or t["year"])
     # A citation link is trusted only when the row's own label does not contradict the reference it points to:
     # the omega-3 comparator's table is numbered one off from its reference list (28/28 links), so following the
     # link faithfully resolved every row to the trial in the row above.
@@ -214,6 +338,62 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             basis.append(f"xref_label_conflict:{why}")
         else:
             kept.append(c)
+    # (chain 1) the label's own reference marker -> the comparator's numbered reference, when the row has no usable
+    # citation link and the table's links are NOT distrusted (a shifted table's numbering is exactly what we distrust)
+    if not kept and u.get("marker") and parsed and not u.get("distrust_links"):
+        hits = [r for r in parsed["refs"].values() if r.get("label") == u["marker"]] or \
+               [r for r in parsed["refs"].values() if not r.get("label") and str(r.get("ordinal")) == u["marker"]]
+        if len(hits) == 1:
+            kept.append(dict(hits[0], basis=None))
+            basis.append(f"label_marker_ref:{u['marker']}")
+        else:
+            basis.append(f"label_marker_ref_not_unique:{u['marker']}:{len(hits)}")
+    elif u.get("marker") and u.get("distrust_links") and u.get("marker_offset") and parsed:
+        # a SYSTEMATIC numbering shift measured on this table (omega-3: +1 on 27 of 28 labelled rows): marker N -> the
+        # reference N+offset, admitted per row only when that reference agrees with the row's OWN label and year
+        n = str(int(u["marker"]) + u["marker_offset"])
+        hits = [r for r in parsed["refs"].values() if r.get("label") == n]
+        ok = len(hits) == 1 and k_gap.label_ref_conflict(u, hits[0], []) is None and \
+            (not u.get("year") or hits[0].get("year") == u["year"])
+        if ok:
+            kept.append(dict(hits[0], basis=None))
+            basis.append(f"label_marker_ref_shifted:{u['marker_offset']:+d}:{u['marker']}->{n}:{u['marker_offset_evidence']}")
+        else:
+            basis.append(f"label_marker_shifted_ref_disagrees_with_row:{u['marker']}->{n}")
+    elif u.get("marker") and u.get("distrust_links"):
+        basis.append(f"label_marker_not_used:table_links_distrusted:{u['marker']}")
+    # (chain 1b) the label IS a study ID in the comparator's reference list ('Palomba 2005a'), else Author + Year names
+    # exactly one reference -- with or without a PMID (chain 2 below confirms one, or the row says it could not)
+    if not kept and parsed and not u.get("distrust_links") and (u.get("author") and u.get("year")):
+        lab = k_gap.fold_dashes(re.sub(r"\s+", " ", u.get("label") or "")).replace("’", "'").strip()
+        hits = [r for r in parsed["refs"].values() if r.get("label") and r["label"] == lab]
+        how = "study_id"
+        if not hits:
+            def fold(x):
+                import unicodedata
+                return "".join(c for c in unicodedata.normalize("NFKD", x or "") if not unicodedata.combining(c)).lower()
+            hits = [r for r in parsed["refs"].values() if fold(r.get("first_author")) == fold(u["author"])
+                    and r.get("year") == u["year"]]
+            how = "author_year"
+        if len(hits) == 1:
+            kept.append(dict(hits[0], basis=None))
+            basis.append(f"{how}_ref:{hits[0]['rid']}")
+        elif len(hits) > 1:
+            basis.append(f"{how}_ref_ambiguous:{len(hits)}")
+    # (chain 2) a cited reference with NO PMID: its DOI or its exact title, CONFIRMED in PubMed by title + first author
+    # + year (scripts/ref_title_pmid_lookup.py, cached with retrieval time); never a guess
+    for i, c in enumerate(kept):
+        if c.get("pmid"):
+            continue
+        hit = REF_PMID.get(_ref_key(c))
+        if hit and hit.get("state") == "CONFIRMED":
+            kept[i] = dict(c, pmid=hit["pmid"])
+            basis.append(f"ref_title_pubmed_confirmed:{hit['pmid']}")
+        elif hit:
+            basis.append(f"ref_not_in_pubmed:{hit['state']}" if hit["state"].startswith("NOT_IN_PUBMED")
+                         else f"ref_pubmed_lookup:{hit['state']}")
+        else:
+            basis.append("ref_has_no_pmid:" + ("doi_unmapped" if c.get("doi") else "no_doi") + ":not_looked_up")
     pmids = {c["pmid"] for c in kept if c.get("pmid")}
     ncts = set(u["ncts"])
     if pmids:
@@ -253,7 +433,10 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
         basis.append(f"pmid_nct_ambiguous:{','.join(mapped[:4])}")
     if not ncts:
         for a in u["acronyms"]:
-            cands = [n for n in idx["acr_nct"].get(k_gap.norm_acronym(a), []) if idx["agent_nct"].get(n)]
+            # an acronym names a trial only if that registration EXISTED by the label's year: 'ASCEND 2018' is not the
+            # 2020 HARPOON device study NCT04382612 that reuses the name
+            cands = [n for n in idx["acr_nct"].get(k_gap.norm_acronym(a), [])
+                     if idx["agent_nct"].get(n) and registered_before(n, u.get("year"), idx)]
             cands = sorted(set(cands))
             if len(cands) == 1:
                 ncts.add(cands[0])
@@ -262,13 +445,81 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             if len(cands) > 1:
                 basis.append(f"acronym_ambiguous:{a}:{','.join(cands[:4])}")
                 continue
-            tc = sorted({n for n in idx.get("acr_title_nct", {}).get(k_gap.norm_acronym(a), []) if idx["agent_nct"].get(n)})
+            tc = sorted({n for n in idx.get("acr_title_nct", {}).get(k_gap.norm_acronym(a), [])
+                     if idx["agent_nct"].get(n) and registered_before(n, u.get("year"), idx)})
             if len(tc) == 1:
                 ncts.add(tc[0])
                 basis.append(f"acronym_aact_title:{a}")
                 break
             if len(tc) > 1:
                 basis.append(f"acronym_title_ambiguous:{a}:{','.join(tc[:4])}")
+                continue
+            sr = sorted({n for n in SELF_REG.get(k_gap.norm_acronym(a), [])
+                     if idx["agent_nct"].get(n) and registered_before(n, u.get("year"), idx)})
+            if len(sr) == 1:
+                ncts.add(sr[0])
+                basis.append(f"acronym_self_registration_sentence:{a}")
+                break
+            if len(sr) > 1:
+                basis.append(f"acronym_self_registration_ambiguous:{a}:{','.join(sr[:4])}")
+    # (chain 3) an acronym the comparator's OWN reference list names, in exactly one reference (and that reference's
+    # year equals the label's year when the label has one): 'Aldo-DHF2013' -> Edelmann 2013 (PMID 23443441)
+    if not ncts and not pmids and parsed and u["acronyms"]:
+        for a in u["acronyms"]:
+            pat = re.compile(r"(?<![A-Za-z0-9])" + re.escape(k_gap.fold_dashes(a)) + r"(?![A-Za-z0-9])", re.I)
+            refs = [r for r in parsed["refs"].values() if pat.search(k_gap.fold_dashes(r.get("text") or ""))
+                    and (not u.get("year") or r.get("year") == u["year"])]
+            if len(refs) == 1 and not refs[0].get("pmid"):
+                hit = REF_PMID.get(_ref_key(refs[0]))
+                if hit and hit.get("state") == "CONFIRMED":
+                    refs = [dict(refs[0], pmid=hit["pmid"])]
+                    basis.append(f"ref_title_pubmed_confirmed:{hit['pmid']}")
+                else:
+                    basis.append(f"acronym_ref_without_confirmed_pmid:{a}:{refs[0]['rid']}:"
+                                 + (hit["state"] if hit else "not_looked_up"))
+            if len(refs) == 1 and refs[0].get("pmid"):
+                pmids.add(refs[0]["pmid"])
+                pmid_resolved = True
+                basis.append(f"acronym_named_in_comparator_ref:{a}:{refs[0]['rid']}")
+                only = sorted({n for n, _t in idx["pmid_nct"].get(refs[0]["pmid"], [])
+                               if registered_before(n, years.get(refs[0]["pmid"]), idx)})
+                if len(only) == 1:
+                    ncts.add(only[0])
+                break
+            if len(refs) > 1:
+                basis.append(f"acronym_in_comparator_refs_ambiguous:{a}:{len(refs)}")
+    # (chain 4, last resort) a trial of ANOTHER agent: the agent-restricted acronym steps refuse it by design (a
+    # finerenone trial in a spironolactone review), so nothing typed it. An acronym of >= 5 characters that names
+    # exactly ONE registration in ALL of AACT (by acronym, else by brief title), registered by the label's year,
+    # resolves; the REGISTRY then decides the drug (OTHER_AGENT). Two or more registrations: ambiguous, recorded.
+    if not ncts and not pmids and u["acronyms"]:
+        for a in u["acronyms"]:
+            key = k_gap.norm_acronym(a)
+            if len(key) < 5:
+                continue
+            for src, m in (("acronym", idx.get("acr_nct") or {}), ("title", idx.get("acr_title_nct") or {})):
+                cand = sorted({n for n in m.get(key, []) if registered_before(n, u.get("year"), idx)})
+                if len(cand) == 1:
+                    ncts.add(cand[0])
+                    basis.append(f"acronym_aact_any_agent_{src}:{a}")
+                    break
+                if len(cand) > 1:
+                    basis.append(f"acronym_aact_any_agent_ambiguous_{src}:{a}:{len(cand)}")
+                    break
+            if ncts:
+                break
+    # never an EMPTY basis: an unresolved row says which link of the chain it stopped at
+    if not ncts and not pmids:
+        why = []
+        if not parsed:
+            why.append("no_comparator_reference_list")
+        if not (u.get("cited") or u.get("marker")):
+            why.append("no_citation_link_or_marker")
+        if not (u.get("author") and u.get("year")):
+            why.append("no_author_year_in_label")
+        if not u["acronyms"]:
+            why.append("no_acronym_in_label")
+        basis.append("unresolved_at:" + (",".join(why) or "every_step_ran_without_a_unique_hit"))
     # NCT -> its PMIDs only when the NCT IS the identity (printed in the table, or an acronym match). When the identity is
     # a cited PMID, adding every other paper registered to its NCT is association, not identity.
     if not pmid_resolved:
@@ -305,11 +556,73 @@ def distrust_shifted_tables(units, idx):
     return {t: (sum(v), len(v)) for t, v in by_table.items()}
 
 
+def learn_marker_offsets(units, parsed, offsets=(1, -1, 2, -2)):
+    """For a DISTRUSTED table, the numbering shift its own labels prove: the single non-zero offset k for which >= 90%
+    (and >= 5) of the table's marker rows agree with reference N+k by label and year -- and offset 0 does not. Sets
+    u['marker_offset'] / ['marker_offset_evidence']; each row is still checked individually when it is used."""
+    out = {}
+    if not parsed:
+        return out
+    refs = {r.get("label"): r for r in parsed["refs"].values() if r.get("label")}
+    tables = {}
+    for u in units:
+        if u.get("distrust_links") and u.get("layout") in ("row", "column"):
+            t = k_gap.identity_tokens(u["label"])
+            if t["marker"]:
+                tables.setdefault(u["table"], []).append((u, t))
+
+    def agree(t, k):
+        r = refs.get(str(int(t["marker"]) + k))
+        v = {"label": "", "acronyms": t["acronyms"], "author": t["author"], "year": t["year"]}
+        return bool(r) and k_gap.label_ref_conflict(v, r, []) is None and (not t["year"] or r.get("year") == t["year"])
+    for table, rows in tables.items():
+        score = {k: sum(agree(t, k) for _u, t in rows) for k in (0,) + tuple(offsets)}
+        best = max(offsets, key=lambda k: score[k])
+        n = len(rows)
+        if n >= 5 and score[best] >= 0.9 * n and score[0] < 0.5 * n and \
+                sum(1 for k in offsets if score[k] == score[best]) == 1:
+            ev = f"{score[best]}/{n} rows agree at {best:+d}, {score[0]}/{n} at 0"
+            for u, _t in rows:
+                u["marker_offset"], u["marker_offset_evidence"] = best, ev
+            out[table] = {"offset": best, "evidence": ev}
+        else:
+            out[table] = {"offset": None, "scores": score}
+    return out
+
+
 def registry_agent(ncts, idx):
     """True/False when AACT interventions for the resolved NCTs do / do not name a topic agent; None when
     no NCT resolved or AACT holds no intervention rows."""
     vals = [idx["agent_nct"][n] for n in ncts if n in idx["agent_nct"]]
     return any(vals) if vals else None
+
+
+def consolidate_report_family(ident, families):
+    """REPORT-FAMILY CONSOLIDATION: an identity is a TRIAL, not a paper. When the chain lands on one report of a trial we
+    hold as a family (PCOSMIC: the review cites Johnson 2011, a secondary report; we hold the 2010 primary) the identity
+    carries the whole family -- its NCT and every report -- so two reports of one trial never read as two identities.
+    Exactly one family must claim the identity; two families claiming it is recorded, never merged."""
+    # An identity that HAS a registration consolidates only into THAT registration's family. Its PMID list may be the
+    # NCT's associated papers (pooled analyses, reviews), which overlap OTHER trials' families: PACMAN-AMI's list shares
+    # a paper with ODYSSEY LONG TERM's family, and matching on PMIDs merged two trials.
+    if ident["ncts"]:
+        hits = [f for f in families if set(ident["ncts"]) & ({f["family_id"]} | set(f["reports"]))]
+    else:
+        hits = [f for f in families if set(ident["pmids"]) & ({f["family_id"]} | set(f["reports"]))]
+    if len(hits) > 1:
+        ident["basis"].append("report_family_ambiguous:" + ",".join(sorted(f["family_id"] for f in hits))[:80])
+        return ident
+    if not hits:
+        return ident
+    f = hits[0]
+    reports = {r for r in f["reports"] if str(r).isdigit()}
+    new_p, new_n = reports - set(ident["pmids"]), ({f["family_id"]} - set(ident["ncts"])
+                                                   if f["family_id"].startswith("NCT") else set())
+    if new_p or new_n:
+        ident["pmids"] = sorted(set(ident["pmids"]) | reports)
+        ident["ncts"] = sorted(set(ident["ncts"]) | new_n)
+        ident["basis"].append(f"report_family_consolidated:{f['family_id']}:+{len(new_p)}pmid+{len(new_n)}nct")
+    return ident
 
 
 def match_ours(ident, acronyms, o):
@@ -353,6 +666,8 @@ def classify(status, absent, reg_agent, aact_src, oa):
         return "POOLED"
     if status == "UNRESOLVED":
         return "UNRESOLVED_IDENTITY"
+    if status == "IDENTIFIED_NOT_INDEXED":
+        return "IDENTIFIED_NOT_INDEXED"
     if status == "SCOPE_MISMATCH":
         return "SCOPE_MISMATCH"
     if status == "DECLARED_ABSENT":
@@ -505,6 +820,36 @@ def oa_probe(pmids: list[str], offline: bool) -> dict:
 PROP = os.path.join(ROOT, "registry", "model_proposals", "comparator_members.json")
 YEARS: dict = {}
 PUBNCT: dict = {}
+# comparator references with no PMID, looked up by exact title + first author + year (outputs/k_gap/ref_title_pmid.json)
+REF_PMID: dict = {}
+
+
+def _ref_key(ref) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (ref.get("title") or "").lower()).strip() + "|" + (ref.get("first_author") or "").lower()
+
+
+def load_ref_pmid() -> dict:
+    p = os.path.join(OUT, "ref_title_pmid.json")
+    return {_ref_key(v["ref"]): v for v in (_j(p).values() if os.path.exists(p) else []) if v.get("ref", {}).get("title")}
+# PROPOSED on g1/noac for the k-gap lane to adopt or reject (the session channel to that lane was unavailable):
+# acronym -> NCTs, read from a trial's OWN registration sentence in a held PubMed abstract
+# ("... ROCKET AF ClinicalTrials.gov number, NCT00403767."). Used only after both AACT acronym steps fail.
+SELF_REG: dict = {}
+_SELF_REG_RE = re.compile(r"\b([A-Z][A-Za-z0-9-]*(?: [A-Z0-9][A-Za-z0-9-]*){0,3}) ClinicalTrials\.gov (?:number|identifier),? (NCT\d{8})\b")
+
+
+def self_registration_sentences(paths) -> dict:
+    """{normalised acronym: sorted NCTs} from every held records.json given. Deterministic, offline, no model."""
+    out = defaultdict(set)
+    for path in sorted(paths):
+        try:
+            recs = _j(path)
+        except (OSError, ValueError):
+            continue
+        for r in (recs.get("records") if isinstance(recs, dict) else recs) or []:
+            for m in _SELF_REG_RE.finditer(str(r.get("abstract") or "")):
+                out[k_gap.norm_acronym(m.group(1))].add(m.group(2))
+    return {a: sorted(v) for a, v in out.items()}
 TITLES: dict = {}
 STORE = os.environ.get("K_GAP_AACT_STORE") or os.path.join(OUT, "_aact_store.json")
 _AUTH_YR = re.compile(r"^([A-Z][A-Za-z'À-ſ‐-]+)[^0-9]{0,14}((?:19|20)\d\d)[a-z]?$")
@@ -724,20 +1069,24 @@ def main(argv=None):
             if pu:
                 cands.append(("MODEL_PROPOSAL_GATED", {"state": "PROPOSAL_GATED", "units": pu,
                                                        "tables_used": [pu[0]["table"]]}))
-        per[slug] = {"topic": topic, "agents": agents, "others": others, "parsed": parsed, "ours": ours(slug),
+        # identity reads the reference list from the PMCID copy when the kgap JATS is absent (metformin: PMC6915832
+        # held since 2026-09-15, yet every row resolved against NO reference list)
+        id_parsed = parsed or identity_refs(cpmid)
+        per[slug] = {"topic": topic, "agents": agents, "others": others, "parsed": parsed, "id_parsed": id_parsed,
+                     "ours": ours(slug),
                      "comparator_pmid": cpmid, "citation": cit, "held": held, "cands": cands, "tried": []}
 
     def prep(P, units):
         need = set()
         for u in units:
-            if not u["cited"] and P["parsed"] and u["layout"] == "text":
-                rs = k_gap.refs_by_number(u["label"], P["parsed"]["refs"])
+            if not u["cited"] and P["id_parsed"] and u["layout"] == "text":
+                rs = k_gap.refs_by_number(u["label"], P["id_parsed"]["refs"])
                 if rs and all(r.get("pmid") for r in rs):
                     u["cited"] = [{"pmid": r["pmid"], "doi": r.get("doi"), "basis": "label_ref_number"} for r in rs]
             if not u["cited"] and not u["ncts"] and u["author"] and u["year"]:
                 refhit = None
-                if P["parsed"]:
-                    hits = [r for r in P["parsed"]["refs"].values() if r.get("pmid") and
+                if P["id_parsed"]:
+                    hits = [r for r in P["id_parsed"]["refs"].values() if r.get("pmid") and
                             r.get("first_author", "").lower() == u["author"].lower() and r.get("year") == u["year"]]
                     refhit = hits[0]["pmid"] if len(hits) == 1 else None
                 if refhit:
@@ -750,19 +1099,33 @@ def main(argv=None):
             for c in u["cited"]:
                 need |= {n for n, _t in store.d["pmid"].get(c.get("pmid") or "", [])}
             need |= set(u["ncts"])
-            for a in u["acronyms"]:
+            # index the registrations the identity chain may name: the unit's tokens AND its identity tokens
+            # ('FIGARO-DKD2022' -> 'FIGARO-DKD'), by acronym and by brief title
+            id_acr = k_gap.identity_tokens(u["label"])["acronyms"] if u.get("layout") in ("row", "column", "text") else []
+            for a in list(u["acronyms"]) + id_acr:
                 need |= set(store.d["acr"].get(k_gap.norm_acronym(a), [])[:25])
+                need |= set((store.d.get("acr_title") or {}).get(k_gap.norm_acronym(a), [])[:25])
         return need
 
     def resolve_rows(slug, P, units, source):
         tidx = store.index(P["agents"])
         P.setdefault("link_audit", {})[source] = distrust_shifted_tables(units, tidx)
+        P.setdefault("marker_offsets", {})[source] = learn_marker_offsets(units, P["id_parsed"])
         agents_re = re.compile("|".join(re.escape(a) for a in P["agents"]), re.I)
         out = []
+        # a SUB-ROW of a study (statins: 'Statin used group in QRISK 10-19% (n = 6438)' under Gitsels 2016) is not a
+        # trial unit: no identity token at all + a group size, in a table that has real trial rows. Listed, never dropped
+        # silently (topic 'not_a_trial_units').
+        trial_rows_in = Counter(x["table"] for x in units if subgroup_row(x) is None)
         for u in units:
-            ident = resolve_unit(u, P["parsed"], tidx, agents_re, years=YEARS,
+            why = subgroup_row(u)
+            if why and trial_rows_in[u["table"]]:
+                P.setdefault("not_a_trial_units", []).append({"table": u["table"], "label": u["label"], "why": why})
+                continue
+            ident = resolve_unit(u, P["id_parsed"], tidx, agents_re, years=YEARS,
                                  our_fams={f["family_id"] for f in P["ours"]["families"]})
             ident["basis"] += [c["basis"] for c in u["cited"] if c.get("basis")]
+            ident = consolidate_report_family(ident, P["ours"]["families"])
             if ident["pmids"] and not ident["ncts"]:
                 # the cited PMID is a second record of a paper we HOLD (same title): EMPA-REG's NEJM article has two
                 # PubMed records (26378978, 26981940); the comparator cites the other one. Exact normalised title only.
@@ -824,7 +1187,11 @@ def main(argv=None):
             else:
                 drug = "AGENT_UNCONFIRMED"
             if not ident["pmids"] and not ident["ncts"]:
-                status, fam, absent = "UNRESOLVED", None, None
+                # identified BY CITATION (marker/link -> one reference) but that reference is not in PubMed: the trial
+                # is known, it is just not findable by a PubMed/registry search -- a different gap from "who is this?"
+                status = ("IDENTIFIED_NOT_INDEXED" if any(b.startswith("ref_not_in_pubmed") for b in ident["basis"])
+                          else "UNRESOLVED")
+                fam, absent = None, None
             else:
                 status, fam, absent = match_ours(ident, u["acronyms"], P["ours"])
                 if status in ("NOT_IDENTIFIED", "IDENTIFIED_NOT_POOLED") and \
@@ -860,6 +1227,9 @@ def main(argv=None):
     YEARS.update(pub_years(cited, offline))
     PUBNCT.update(pubmed_ncts(cited, offline))
     TITLES.update(pubmed_titles_of(cited, offline))
+    SELF_REG.update(self_registration_sentences(glob.glob(os.path.join(ROOT, "cache", "*", "records.json"))))
+    REF_PMID.update(load_ref_pmid())
+    store.ensure_ncts({n for v in SELF_REG.values() for n in v}, log=log)
     store.ensure_ncts({n for n in PUBNCT.values() if n}, log=log)
     store.ensure_registration_dates({n for p in cited for n, _t in store.d["pmid"].get(p, [])}, log=log)
     for slug, P in per.items():
@@ -941,6 +1311,7 @@ def main(argv=None):
             "our_k": P["ours"]["k"], "comparator_units": len(tr), "drug_specific_resolved": len(elig),
             "other_agent": sum(r["drug"] == "OTHER_AGENT" for r in tr),
             "unresolved_labels": sum(r["status"] == "UNRESOLVED" for r in tr),
+            "not_a_trial_units": P.get("not_a_trial_units", []),
             "pooled_of_theirs": sum(r["gap_class"] == "POOLED" for r in elig),
             "missing": sum(r["gap_class"] != "POOLED" for r in elig),
             "by_class": dict(Counter(r["gap_class"] for r in elig if r["gap_class"] != "POOLED")),
