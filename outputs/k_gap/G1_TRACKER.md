@@ -74,21 +74,21 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 ## tocilizumab-covid19-mortality (comparator PMID 34228774)
 
 - ARCHITECTS: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW
-- BACC-Bay: **NO_ROW** - only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; vs comparator row: NO_PRIMARY_ROW; comparator row finding: [{'finding': 'COMPARATOR_ROW_IS_SAFETY_POPULATION', 'source': 'TEXT PMID 33085857 (safety-population table)'}]
-- CORIMUNO-TOCI-1: **UNVERIFIED** - no held primary source states 28-day deaths per arm (PMID 33080017); vs comparator row: AGREE
+- BACC-Bay: **NO_ROW** - only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; its open report states deaths only at: adverse-event table (SAFETY population; no timepoint stated) (PMID 33085857). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources; vs comparator row: NO_PRIMARY_ROW; comparator row finding: [{'finding': 'COMPARATOR_ROW_IS_SAFETY_POPULATION', 'source': 'TEXT PMID 33085857 (safety-population table)'}]
+- CORIMUNO-TOCI-1: **UNVERIFIED** - counts printed only by a meta (META 35657993 (prints events/total); META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15); vs comparator row: AGREE
 - CORIMUNO-TOCI-ICU: **UNVERIFIED** - one primary source: AACT; no independent second source held; vs comparator row: AGREE
 - COV-AID: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 34756178 (acquired: NCT04330638[si])); vs comparator row: NO_PRIMARY_ROW
 - COVACTA: **PRIMARY** - two independent sources: AACT + META + TEXT; vs comparator row: AGREE
 - COVIDOSE2-SS-A: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW
 - COVIDSTORM: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW
-- COVINTOC: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 33676589 (acquired: COVINTOC[tiab])); vs comparator row: NO_PRIMARY_ROW
+- COVINTOC: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 33676589 (acquired: COVINTOC[tiab])); its open report states deaths only at: during the study (PMID 33676589). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources; vs comparator row: NO_PRIMARY_ROW
 - COVITOZ: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW
-- EMPACTA: **UNVERIFIED** - no held primary source states 28-day deaths per arm (PMID 33332779); vs comparator row: AGREE
+- EMPACTA: **UNVERIFIED** - counts printed only by a meta (META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15); vs comparator row: AGREE
 - HMO-020-0224: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW
-- ImmCoVA: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 38157348 + acquired full text); vs comparator row: NO_PRIMARY_ROW
+- ImmCoVA: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 38157348 + acquired full text); its open report states deaths only at: day 29 (PMID 38157348 + acquired full text). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources; vs comparator row: NO_PRIMARY_ROW
 - PreToVid: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW
 - RECOVERY: **UNVERIFIED** - one primary source: TEXT; no independent second source held; vs comparator row: AGREE
-- REMAP-CAP: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: cascade:D1+D2+D3)); vs comparator row: NO_PRIMARY_ROW
+- REMAP-CAP: **NO_ROW** - no held primary source states 28-day deaths per arm (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: cascade:D1+D2+D3)); its open report states deaths only at: In-hospital (PMID 40360262); 90 days (PMID 40360262). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources; vs comparator row: NO_PRIMARY_ROW
 - REMDACTA: **UNVERIFIED** - one primary source: AACT; no independent second source held; vs comparator row: AGREE
 - TOCIBRAS: **TWO_SOURCE** - two independent sources: META + TEXT; vs comparator row: AGREE
 - TOCOVID: **NO_ROW** - no primary report held after the full cascade; vs comparator row: NO_PRIMARY_ROW

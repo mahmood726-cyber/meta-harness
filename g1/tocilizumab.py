@@ -617,7 +617,40 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
             "readings": [{"values": g["row"], "independent_sources": sorted(g["kinds"]), "sources": g["sources"],
                           "counts_stated_by": g["stated"], "counts_stated_by_a_primary": g.get("stated_primary") or [],
                           "denominator_kind": g["denominator_kind"]} for g in every],
-            "second_meta": m, "meta2_rows": m2, "texts_held": [r for r, _ in texts]}
+            "second_meta": m, "meta2_rows": m2, "texts_held": [r for r, _ in texts],
+            "other_timepoint_statements": other_timepoint_statements(texts) if state == NO_SOURCE else []}
+
+
+_ANY_DAY = re.compile(r"\b(?:day\s*(?:\d{1,3})|(?:\d{1,3})[- ]days?|in-hospital|hospital discharge)\b", re.I)
+
+
+def other_timepoint_statements(texts) -> list:
+    """For a trial with NO day-28 row: what its OWN open report does state about deaths, with the timepoint (day 29, 60,
+    90, in-hospital). Shown, never matched as day 28. REACT's rows are trialist-supplied day-28 data ('All trials
+    supplied data until 28 days after randomization' -- REACT, VERIFIED_NOT_HELD), so where a trial published no
+    day-28 count, its REACT row cannot be matched from open sources: that is the ceiling, stated per trial."""
+    out = []
+    count = re.compile(r"\d+\s*\(\d+(?:\.\d+)?\s*%?\)|\d+ of \d+|\d+/\d+|\d+(?:,\s*\d+)*(?:,? and \d+)?\s+deaths|"
+                       r"\d+\s+(?:patients?|participants?)\s+died", re.I)
+    for ref, txt in texts:
+        sents = re.split(r"(?<=[.;])\s+(?=[A-Z(])", _fold(txt))
+        for i, snt in enumerate(sents):
+            for w in _DEATH_WORDS.finditer(snt):
+                win = snt[max(0, w.start() - 200): w.end() + 200]       # a flattened table row is one long 'sentence'
+                if _DAY28.search(win) or _OTHER_EVENT.search(win) or not count.search(win):
+                    continue
+                # the timepoint: in the window, else in the preceding sentence ('survival up to 90 days. There were
+                # 323, 161, 160 and 151 deaths ...'), else 'during the study'
+                d = _ANY_DAY.search(win) or (_ANY_DAY.search(sents[i - 1]) if i else None)
+                tp = d.group(0) if d else ("during the study" if re.search(r"during the (?:study|trial)", win, re.I) else None)
+                if _SAFETY_CAPTION.search(snt[:w.start()]):
+                    tp = "adverse-event table (SAFETY population; no timepoint stated)"
+                if tp and not any(o["span"] == win[:400] for o in out):
+                    out.append({"source": ref, "timepoint": tp, "span": win[:400]})
+                    break
+            if len(out) >= 3:
+                return out
+    return out
 
 
 # ------------------------------------------------------------------------------------------------- comparison, pooling
