@@ -315,7 +315,10 @@ def _classify(rec, cfg):
         rep = dict(inc, comparator_any=list(inc.get("comparator_any") or []) + heads)
         if decide(rec, rep)["decision"] == "include":
             return "SCREENER_ERROR", "COMPARATOR_WORDING", base
-    if rule == "X2" and not inc.get("prevention"):
+    # the 'prevention' repair turns the protocol into a prevention protocol: never for a protocol that EXCLUDES prevention
+    # (tranexamic-acid-pph lists 'prevent' / 'prophylaxis' in population_none; WOMAN-2 is a prophylaxis trial)
+    excludes_prevention = any(re.match(r"prevent|prophyla", str(t).strip(), re.I) for t in inc.get("population_none") or [])
+    if rule == "X2" and not inc.get("prevention") and not excludes_prevention:
         if decide(rec, dict(inc, prevention=True))["decision"] == "include":
             return ("SCREENER_ERROR", "CONDITION_AS_OUTCOME (population term shared with the outcome)" if condition_is_outcome(cfg)
                     else "POPULATION_ONLY_IN_ABSTRACT",
