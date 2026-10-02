@@ -68,10 +68,18 @@ def agreement(ours, theirs):
     """Our pooled value vs the comparator's printed row for the same trial: AGREE / DISAGREE / NOT_COMPARABLE[:why]."""
     if not ours or not theirs:
         return "NOT_COMPARABLE:NO_COMPARATOR_ROW" if ours else "NOT_COMPARABLE"
+    if (ours.get("measure") or "").upper() and theirs.measure and (ours.get("measure") or "").upper() != theirs.measure.upper():
+        return f"NOT_COMPARABLE:{ours.get('measure')}_VS_{theirs.measure}"
     if ours.get("events_t") is not None and theirs.events_t is not None:
         same = (ours["events_t"], ours["n_t"], ours["events_c"], ours["n_c"]) == \
                (theirs.events_t, theirs.n_t, theirs.events_c, theirs.n_c)
         return "AGREE" if same else "DISAGREE"
+    if ours.get("effect") is None and ours.get("events_t") is not None and theirs.effect is not None             and theirs.measure.upper() in ("RR", "OR"):
+        # our 2x2 vs their printed ratio: the ratio our counts imply, compared with their POINT at their precision
+        a, n1, c, n2 = ours["events_t"], ours["n_t"], ours["events_c"], ours["n_c"]
+        if min(n1, n2) > 0 and a > 0 and c > 0 and a < n1 and c < n2:
+            r = (a / n1) / (c / n2) if theirs.measure.upper() == "RR" else (a / (n1 - a)) / (c / (n2 - c))
+            return "AGREE_ON_POINT" if sm._eq_printed(f"{r:.6f}", theirs.effect) else                 f"DISAGREE:our_counts_imply_{r:.2f}_vs_printed_{theirs.effect}"
     if ours.get("effect") is None or theirs.effect is None:
         return "NOT_COMPARABLE:COUNTS_VS_EFFECT"
     if (ours.get("measure") or "").upper() != theirs.measure.upper():
@@ -92,13 +100,15 @@ def same_trials_pool(pairs, method_label):
     method, hk = method_label.replace("+HK", ""), method_label.endswith("+HK")
     g = math.exp if measure in sm.RATIO else (lambda x: x)
     out = {"state": "POOLED", "k": len(pairs), "measure": measure, "method": method_label}
+    raw = {}
     for side, idx in (("ours", 0), ("theirs", 1)):
         yv = [sm.row_yi_vi(p[idx]) for p in pairs]
         if any(v is None for v in yv):
             return {"state": f"{side.upper()}_ROW_NOT_POOLABLE", "k": len(pairs)}
         mu, lo, hi = (g(x) for x in sm.pool([v[0] for v in yv], [v[1] for v in yv], method, hk))
-        out[side] = {"estimate": round(mu, 4), "ci_low": round(lo, 4), "ci_high": round(hi, 4)}
-    out["verdict"] = result_verdict(out["ours"], out["theirs"], measure)
+        raw[side] = {"estimate": float(mu), "ci_low": float(lo), "ci_high": float(hi)}
+        out[side] = {k: round(v, 4) for k, v in raw[side].items()}
+    out["verdict"] = result_verdict(raw["ours"], raw["theirs"], measure)     # decided UNROUNDED; displayed rounded
     return out
 
 
@@ -131,6 +141,31 @@ def definition_gate(spec_name, registry_title):
     return extract.composite_component_mismatch(spec_name, "composite outcome definition: " + (registry_title or ""))
 
 
+def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
+    """One registry outcome through the binding gates, in order:
+      OUTCOME_NOT_NAMED  the title names no topic keyword (generic anchors like 'primary outcome' do not count): being
+                         the trial's PRIMARY outcome is not identity with OUR outcome
+      ESTIMAND           a different composite: extract.composite_component_mismatch on the title as a definition, or a
+                         composite title for a declared SINGLE outcome ('Death or Mechanical Ventilation' is not mortality)
+      ARMS               fewer than two result groups with people-unit counts"""
+    from harness import extract
+    t = (title or "").lower()
+    named = [k for k in keywords if k and k.lower() not in extract.GENERIC_ANCHORS and k.lower() in t]
+    if not named:
+        return {"gate": "OUTCOME_NOT_NAMED", "verdict": "REFUSED",
+                "reason": "registry title names none of the topic's outcome keywords" + (" (it is the trial's PRIMARY "
+                                                                                       "outcome)" if is_primary else "")}
+    mm = definition_gate(spec_name, title)
+    if not mm and not extract.declared_is_composite(spec_name) and extract._names_composite(title):
+        mm = f"declared single outcome '{spec_name}' but the registry outcome is a composite: '{title}'"
+    if mm:
+        return {"gate": "ESTIMAND", "verdict": "REFUSED", "reason": mm, "named_by": named}
+    if n_groups < 2:
+        return {"gate": "ARMS", "verdict": "REFUSED", "reason": "fewer than two result groups with people-unit counts",
+                "named_by": named}
+    return {"gate": None, "verdict": "BINDABLE", "reason": None, "named_by": named}
+
+
 def registry_binding(nct, spec_name, keywords):
     """BIND A COMPARATOR TRIAL WE DO NOT POOL VIA THE AACT SNAPSHOT (source hierarchy 2a), through the same gates.
     Candidates: the trial's PRIMARY posted outcomes and any outcome whose title names a topic keyword. Gates, in order:
@@ -157,13 +192,8 @@ def registry_binding(nct, spec_name, keywords):
         c = {"nct": nct, "outcome_id": oid, "title": t, "time_frame": o.get("time_frame"),
              "arms": [dict(g, title=reg["group_titles"].get(str(g["group"]))) for g in groups], "analysis": an,
              "snapshot": reg["_snapshot"]}
-        mm = definition_gate(spec_name, t)
-        if mm:
-            c.update(gate="ESTIMAND", verdict="REFUSED", reason=mm)
-        elif len({g["group"] for g in groups}) < 2:
-            c.update(gate="ARMS", verdict="REFUSED", reason="fewer than two result groups with people-unit counts")
-        else:
-            c.update(gate=None, verdict="BINDABLE", reason=None)
+        c.update(binding_verdict(spec_name, keywords, t, len({g["group"] for g in groups}),
+                                 is_primary=(o.get("type") or "").upper() == "PRIMARY"))
         cands.append(c)
     if not cands:
         return {"state": "NO_CANDIDATE_OUTCOME", "nct": nct}
@@ -180,26 +210,80 @@ def protocol_rule(cfg, term):
     return None
 
 
-def scope_difference(x, cfg):
+_AUDIT = None
+
+
+def exclusion_audit_class(slug, pmid):
+    """The deterministic exclusion audit's class for a seeded exclusion (scripts/k_gap_exclusion_audit.py):
+    TRUE_SCOPE_DIFFERENCE / SCREENER_ERROR / INSUFFICIENT_RECORD / INCONSISTENT, or None when not audited."""
+    global _AUDIT
+    if _AUDIT is None:
+        ap = os.path.join(OUT, "exclusion_audit.json")
+        _AUDIT = {}
+        for r in (_j(ap).get("rows") or []) if os.path.exists(ap) else []:
+            _AUDIT.setdefault((r.get("slug"), str(r.get("pmid"))), r)
+    r = _AUDIT.get((slug, str(pmid)))
+    return (r.get("class"), r.get("subclass")) if r else (None, None)
+
+
+def scope_difference(x, cfg, slug=None):
     """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
     cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
     trial is an open gap (it must then stay visible as NO_ROW, never be dropped)."""
     import re as _re
     f = x.get("seeded_funnel") or {}
-    if f.get("stage") == "SCREENED_OUT" and f.get("rule_id"):
+    if f.get("stage") == "SCREENED_OUT":
+        if not f.get("rule_id"):
+            return None                     # a screen-out with no rule cited is a blocker, never a named difference
+        # NAMED only when the deterministic exclusion audit says the record STATES the excluding fact; a screener error
+        # or a thin record is a BLOCKER to fix, never a scope difference (6 of the first audit's 57 were screener errors)
+        cls, sub = exclusion_audit_class(slug, f.get("pmid"))
+        if cls != "TRUE_SCOPE_DIFFERENCE":
+            return None
         m = _re.search(r"mention '([^']+)'", f.get("reason") or "")
         return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f["rule_id"], "screen_reason": f.get("reason"),
+                "audit": {"class": cls, "subclass": sub},
                 "protocol_rule": protocol_rule(cfg, m.group(1)) if m else None,
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
     rb = x.get("registry_binding") or {}
-    ref = [c for c in rb.get("candidates") or [] if c.get("gate") == "ESTIMAND"]
-    if rb.get("state") == "REFUSED" and ref:
+    cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
+    ref = [c for c in cands if c.get("gate") == "ESTIMAND"]
+    # ESTIMAND_DIFFERENCE only when EVERY registry outcome that names ours is a different estimand: an outcome that
+    # names ours and failed another gate (ARMS) is an open gap, not a named difference
+    if rb.get("state") == "REFUSED" and ref and len(ref) == len(cands):
         c = ref[0]
         return {"kind": "ESTIMAND_DIFFERENCE", "gate": "harness.extract.composite_component_mismatch",
                 "reason": c["reason"], "registry_outcome": c["title"], "registry_arms": c["arms"],
                 "registry_analysis": c["analysis"], "snapshot": c["snapshot"],
                 "comparator_pooled_it_as": x.get("comparator_row")}
     return None
+
+
+def blocker_class(x, slug):
+    """WHY a comparator trial is an OPEN gap, as a class that can be fixed once for every topic it blocks:
+      SCREENER_ERROR:<sub> / INSUFFICIENT_RECORD:<sub>   seeded record screened out; audit says our screen is wrong / thin
+      SCREENED_OUT_UNAUDITED:<rule>                       seeded record screened out, audit has not classified it
+      EXTRACTION:<reason_code>                             in our screen, no admissible number (the code says why)
+      NOT_IN_SCREEN / NO_RECORD_HELD                       seeding never reached screening / no record fetched
+      ESTIMAND_REGISTRY_ONLY                               only a different-estimand registry result exists
+      IDENTITY_UNRESOLVED / <k-gap class>                  the comparator's label is not yet a trial identity"""
+    f = x.get("seeded_funnel") or {}
+    if f.get("stage") == "SCREENED_OUT":
+        cls, sub = exclusion_audit_class(slug, f.get("pmid"))
+        if cls in ("SCREENER_ERROR", "INSUFFICIENT_RECORD"):
+            return f"{cls}:{sub}"
+        return f"SCREENED_OUT_UNAUDITED:{f.get('rule_id')}"
+    if f.get("stage") == "DECLARED_ABSENT":
+        return f"EXTRACTION:{f.get('reason_code')}"
+    if f.get("stage") in ("NOT_IN_SCREEN", "INCLUDED_NOT_IN_PRIMARY", "SCREENED_VIA_OTHER_REPORT"):
+        return f["stage"]
+    if x.get("our_refusal") == "NO_RECORD_HELD":
+        return "NO_RECORD_HELD"
+    if x.get("absent_code"):
+        return f"EXTRACTION:{x['absent_code']}"
+    if x["family"] is None:
+        return "IDENTITY_UNRESOLVED" if (x.get("gap_class") or "").startswith("UNRESOLVED") else (x.get("gap_class") or "UNKNOWN")
+    return x.get("gap_class") or "UNKNOWN"
 
 
 def comparator_findings(trials, comp):
@@ -216,10 +300,34 @@ def comparator_findings(trials, comp):
     return out
 
 
+def is_pooled(mine, pooled_ids):
+    """Pool MEMBERSHIP, independent of how our value is stored (effect+CI, 2x2, or arm means for an MD)."""
+    return bool(mine and str(mine.get("id")) in pooled_ids)
+
+
+def report_pmid(t, shown=None):
+    """The trial's RESULT-typed report (k_gap_identity_reader2.shown_pmid), never blindly pmids[0]: a trial's first
+    linked PMID can be a design paper or an animal study (ELIXA's is a rat study)."""
+    if shown is None:
+        import k_gap_identity_reader2 as r2
+        shown = r2.shown_pmid
+    try:
+        p = shown(t)
+    except Exception:  # noqa: BLE001 - a resolver failure falls back to the first id, recorded by the caller
+        p = None
+    p = p or next((q for q in (t.get("pmids") or []) if str(q).isdigit()), None)
+    return str(p) if p else None
+
+
 def topic(slug, T):
     import secondary_meta_build as smb
     import k_gap_counterfactual as cfm
-    S = _j(os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json"))
+    sp = os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json")
+    S = _j(sp) if os.path.exists(sp) else {"comparator_pmid": None, "rows": [], "metas": {}, "tally": {},
+                                           "skipped": {}, "registry": None, "_missing": True}
+    if S.get("_missing"):
+        import secondary_meta_build as _smb
+        S["comparator_pmid"] = _smb.comparator_pmid(slug)
     rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     comp = S["comparator_pmid"]
     ours = smb.our_trials(slug)
@@ -228,11 +336,14 @@ def topic(slug, T):
     pooled_ids = {str(t.get("id")) for t in prim.get("trials", [])}
     absent_by_id = {str(a.get("id")): str(a.get("reason") or a.get("reason_code") or "")[:240]
                     for a in prim.get("declared_absent_trials", [])}
+    absent_code = {str(a.get("id")): a.get("reason_code") or a.get("absent_kind")
+                   for a in prim.get("declared_absent_trials", [])}
     rows = [_row(d) for d in S["rows"]]
     by_fam = {}
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
     comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"]
+    other_agent = [t["label"][:60] for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
     kw_all = list((cfg.get("primary_outcome") or {}).get("keywords") or [])
@@ -241,15 +352,15 @@ def topic(slug, T):
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
                      or o["pmid"] in (t.get("pmids") or [])), None)
         fam = mine["id"] if mine else None
-        in_pool = bool(mine and str(mine["id"]) in pooled_ids and mine.get("primary"))
+        in_pool = is_pooled(mine, pooled_ids)
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
         theirs = next((r for r in sec if r.meta_pmid == comp), None)
         if in_pool:
             matched_ids.add(str(mine["id"]))
-            route, basis = "PRIMARY", mine["primary"]["source"]
-            if theirs:
+            route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
+            if theirs and mine.get("primary"):
                 pairs.append((as_row(mine["primary"], t["label"], theirs.measure), theirs))
         else:
             refusal = absent_by_id.get(str(mine["id"])) if mine else None
@@ -264,6 +375,8 @@ def topic(slug, T):
         routes[route] += 1
         trials.append({"label": t["label"][:60], "family": fam, "in_our_pool": in_pool, "route": route, "basis": basis,
                        "our_refusal": None if in_pool else (refusal or (t.get("gap_class") if not mine else None)),
+                       "gap_class": t.get("gap_class"),
+                       "absent_code": None if in_pool or not mine else absent_code.get(str(mine["id"])),
                        "comparator_row": ({k: getattr(theirs, k) for k in ("effect", "lower", "upper", "events_t", "n_t",
                                                                            "events_c", "n_c", "measure")}
                                           if theirs else None),
@@ -272,7 +385,7 @@ def topic(slug, T):
                                              if theirs and theirs.state == sm.MISMATCH else None),
                        "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
                                                                           "events_t", "n_t", "events_c", "n_c")}
-                                     if in_pool else None),
+                                     if in_pool and mine.get("primary") else None),
                        "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all)
                                             if not in_pool and (t.get("ncts") or []) else None),
                        "g1_countable": route == "PRIMARY" or bool(sm.g1_countable(sec, {comp})),
@@ -280,28 +393,39 @@ def topic(slug, T):
                        else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
-    screened = {str(r["id"]) for r in core["screening"]["records"]}
-    unseen = {p for x, t in zip(trials, comp_rows) if x["route"] == "NO_ROW"
-              for p in (t.get("pmids") or [])[:1] if str(p).isdigit() and str(p) not in screened}
+    screened = {str(r["id"]): r for r in core["screening"]["records"]}
+    rp = {id(t): report_pmid(t) for t in comp_rows}
+    for x, t in zip(trials, comp_rows):
+        p = rp[id(t)]
+        r = screened.get(p) if p else None
+        if not x["in_our_pool"] and r is not None and r.get("decision") != "include":
+            # ALREADY in our screen and excluded: the same funnel record a seeded one gets, so the audit gates it too
+            x["seeded_funnel"] = {"stage": "SCREENED_OUT", "rule_id": r.get("rule_id"),
+                                  "reason": (r.get("reason") or "")[:140], "pmid": p, "already_in_screen": True}
+            x["our_refusal"] = f"IN SCREEN PMID {p}: SCREENED_OUT {r.get('rule_id')}: {(r.get('reason') or '')[:140]}"
+    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if x["route"] == "NO_ROW" and not x.get("seeded_funnel")
+              and rp[id(t)] and rp[id(t)] not in screened}
     if unseen:
         mp = os.path.join(OUT, "member_records.json")
         held = _j(mp) if os.path.exists(mp) else {}
         recs = [held[p] for p in sorted(unseen) if p in held]
         fun = cfm.funnel(cfm.build(slug, extra_records=recs), [r["id"] for r in recs], recs) if recs else {}
         for x, t in zip(trials, comp_rows):
-            p = next((q for q in (t.get("pmids") or [])[:1] if q in fun), None)
-            if p and x["route"] == "NO_ROW":
+            p = rp[id(t)] if rp[id(t)] in fun else None
+            if p and x["route"] == "NO_ROW" and not x.get("seeded_funnel"):
                 f = fun[p]
                 x["seeded_funnel"] = dict(f, pmid=p)
                 x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (
                     f" {f.get('rule_id')}: {f.get('reason')}" if f.get("rule_id") else
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
-            elif x["route"] == "NO_ROW" and (t.get("pmids") or [None])[0] in unseen:
+            elif x["route"] == "NO_ROW" and not x.get("seeded_funnel") and rp[id(t)] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
     for x in trials:
-        x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg)
+        x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
+        x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not x["in_our_pool"] and not x.get("scope_difference")]
+    blockers = Counter(x["blocker"] for x in trials if x.get("blocker"))
     pc = ((S.get("metas") or {}).get(comp) or {}).get("positive_control") or {}
     method = (pc.get("methods") or ["PM"])[0]
     res = prim.get("result") or {}
@@ -328,6 +452,8 @@ def topic(slug, T):
     return {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if x["in_our_pool"]),
             "N_eligible": len(trials) - len(named), "named_differences": named, "open_gaps": open_gaps,
+            "blockers": dict(blockers), "top_blocker": (blockers.most_common(1)[0][0] if blockers else None),
+            "other_agent_units": other_agent,
             "comparator_findings": comparator_findings(trials, comp),
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if x["in_our_pool"])),
@@ -350,7 +476,7 @@ def _fmt(r):
 
 
 def table():
-    out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json")]
+    out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and ".tmp" not in f]
     md = ["# G1 tracker (derived: scripts/g1_tracker.py; one source file per topic in outputs/k_gap/g1/)", "",
           "| topic | k matched | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator |",
           "|---|---|---|---|---|---|---|---|---|---|---|---|"]
@@ -401,8 +527,15 @@ def main(argv):
         T = _j(os.path.join(OUT, "k_gap_table.json"))
         os.makedirs(G1_DIR, exist_ok=True)
         for s in [a for a in argv if not a.startswith("--")]:
-            with open(os.path.join(G1_DIR, f"{s}.json"), "w", encoding="utf-8", newline="\n") as fh:
-                json.dump(topic(s, T), fh, indent=1, ensure_ascii=False)
+            o = topic(s, T)
+            # ATOMIC: a concurrent reader (another process building the table) must never see a truncated file
+            p = os.path.join(G1_DIR, f"{s}.json")
+            tmp = f"{p}.{os.getpid()}.tmp"
+            with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(o, fh, indent=1, ensure_ascii=False)
+            os.replace(tmp, p)
+    if "--no-table" in argv:
+        return
     print("\n".join(table()[:4 + len(os.listdir(G1_DIR))]))
 
 
