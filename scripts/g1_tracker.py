@@ -309,7 +309,35 @@ def comparator_findings(trials, comp):
         for f in x.get("comparator_row_findings") or []:
             out.append({"finding": f.get("finding"), "trial": x["label"], "comparator": comp,
                         "comparator_row": x.get("comparator_row"), "detail": f.get("printed_vs_arm_derived")})
+        at = x.get("analysis_set_attribution") or {}
+        if at.get("state") in ("REPRODUCED", "NOT_REPRODUCED") and at.get("ours") != (at.get("reproduced_by") or at.get("nearest")):
+            # the comparator's row is (or is nearest to) a DIFFERENT analysis set of the same trial report than the one our
+            # registered estimand pools (harness/analysis_set.py): a scope difference on the analysis-set axis, typed
+            out.append({"finding": ("COMPARATOR_ROW_IS_A_DIFFERENT_ANALYSIS_SET" if at["state"] == "REPRODUCED"
+                                    else "COMPARATOR_ROW_NEAREST_TO_A_DIFFERENT_ANALYSIS_SET"),
+                        "trial": x["label"], "comparator": comp, "comparator_row": x.get("comparator_row"),
+                        "ours": at.get("ours"), "theirs": at.get("reproduced_by") or at.get("nearest"),
+                        "reproduced": at["state"] == "REPRODUCED", "per_set": at.get("per_set")})
     return out
+
+
+def analysis_set_attribution(slug, cfg, x):
+    """Which analysis set of the trial's held report each side's number comes from (harness/analysis_set.py)."""
+    from harness import analysis_set
+    pmid = str((x.get("family") or "")).replace("PMID ", "").strip()
+    rp = os.path.join(ROOT, "cache", slug, "records.json")
+    recs = {str(r.get("id")): r for r in (_j(rp).get("records") or [])} if os.path.exists(rp) else {}
+    rec = recs.get(pmid) or {}
+    inc = cfg.get("include") or {}
+    sets = analysis_set.labelled_counts(rec.get("abstract") or "", inc.get("intervention_any") or [],
+                                        list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or []),
+                                        (cfg.get("primary_outcome") or {}).get("keywords") or [])
+    res = analysis_set.attribute(x.get("comparator_row") or {}, sets)
+    ov = x.get("our_value") or {}
+    ours = next((s["analysis_set"] for s in sets if (s["treatment"]["events"], s["treatment"]["n"], s["control"]["events"],
+                                                     s["control"]["n"]) == (ov.get("events_t"), ov.get("n_t"),
+                                                                            ov.get("events_c"), ov.get("n_c"))), None)
+    return dict(res, ours=ours, report_pmid=pmid or None)
 
 
 def is_pooled(mine, pooled_ids):
@@ -484,6 +512,8 @@ def topic(slug, T):
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
+        if x.get("in_our_pool") and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
+            x["analysis_set_attribution"] = analysis_set_attribution(slug, cfg, x)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not x["in_our_pool"] and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker"))
