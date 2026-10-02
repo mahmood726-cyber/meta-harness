@@ -34,7 +34,7 @@ def test_every_comparator_trial_has_a_class_and_a_reason():
         # COPPS-2: no held analysis set reproduces the comparator's 0.66 (0.45-0.96); on-treatment is only NEAREST (NR-C20)
         "Imazio [18]": "COMPARATOR_ROW_UNREPRODUCED:NEAREST_HELD_SET_NAMED",
         "Tabbalat [21]": "SAME_NUMBER",                                                  # END-AF low dose
-        "Sarzaeem [23]": "IDENTITY_UNRESOLVED"}
+        "Sarzaeem [23]": "NOT_IN_REGISTERED_SOURCES"}                                  # Tehran Univ Med J 2014
     assert all(t.get("verdict") for t in r["trials"])
 
 
@@ -78,3 +78,17 @@ def test_reconcile_output_never_lands_among_the_tracker_rows():
     assert os.path.dirname(rc.RECON_DIR) == os.path.dirname(gt.G1_DIR) and rc.RECON_DIR != gt.G1_DIR
     assert not [f for f in os.listdir(gt.G1_DIR) if "reconcile" in f]
     assert os.path.exists(os.path.join(rc.RECON_DIR, SLUG + ".json"))
+
+
+def test_sarzaeem_is_identified_by_the_comparators_own_reference_and_stays_eligible():
+    r = _res()
+    t = next(t for t in r["trials"] if t["trial"] == "Sarzaeem [23]")
+    assert "Tehran Univ Med J 2014;72:147-154" in t["cited_reference"]["citation"]
+    assert "stays ELIGIBLE" in t["verdict"]
+    assert {q["source"] for q in t["searches"]} >= {"PubMed", "Europe PMC REST search"}
+    # the identity is taken only when the pinned reference entry holds every required string (fails on one it lacks)
+    c = rc.CITED_OUTSIDE_SOURCES[(SLUG, "Sarzaeem [23]")]
+    assert rc.cited_reference_holds(c) and not rc.cited_reference_holds(dict(c, must_contain=c["must_contain"] + ["Lancet"]))
+    import g1_tracker as gt
+    g = json.load(open(os.path.join(gt.G1_DIR, SLUG + ".json"), encoding="utf-8"))
+    assert "Sarzaeem [23]" in g["open_gaps"]                        # never named out of the denominator

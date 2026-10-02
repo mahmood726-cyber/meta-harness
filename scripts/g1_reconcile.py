@@ -168,8 +168,18 @@ def reconcile(slug):
                     row["comparator_row_reproduced_from_counts"] = all(
                         analysis_set._same_at_printed(v, cr[k]) for v, k in zip(rr, ("effect", "lower", "upper")))
         elif x.get("blocker") == "IDENTITY_UNRESOLVED":
-            row.update(cls="IDENTITY_UNRESOLVED", verdict="the comparator's label resolves to no held record",
-                       searches=IDENTITY_SEARCHES.get((slug, x["label"])))
+            cited = CITED_OUTSIDE_SOURCES.get((slug, x["label"]))
+            if cited and cited_reference_holds(cited):
+                # identity resolved by the COMPARATOR'S OWN reference, verbatim in its held JATS; the trial is in a
+                # journal none of the registered sources indexes -- an eligible open gap with a precise blocker, never
+                # a scope difference (being unfindable is not an eligibility criterion)
+                row.update(cls="NOT_IN_REGISTERED_SOURCES", cited_reference=cited,
+                           verdict=("identified by the comparator's own reference list; not indexed in PubMed or Europe "
+                                    "PMC, so outside the registered search sources: stays ELIGIBLE and open"),
+                           searches=IDENTITY_SEARCHES.get((slug, x["label"])))
+            else:
+                row.update(cls="IDENTITY_UNRESOLVED", verdict="the comparator's label resolves to no held record",
+                           searches=IDENTITY_SEARCHES.get((slug, x["label"])))
         else:
             row.update(cls=x.get("blocker") or "UNCLASSIFIED")
         rows.append(row)
@@ -236,8 +246,39 @@ IDENTITY_SEARCHES = {
         {"source": "PubMed (NCBI E-utilities via the session's PubMed tool)", "when": "2026-10-02",
          "query": "Sarzaeem[Author] AND colchicine", "hits": 0},
         {"source": "PubMed", "when": "2026-10-02",
-         "query": "colchicine atrial fibrillation coronary artery bypass Iran randomized 2014", "hits": 0}],
+         "query": "colchicine atrial fibrillation coronary artery bypass Iran randomized 2014", "hits": 0},
+        {"source": "Europe PMC REST search", "when": "2026-10-03",
+         "query": 'TITLE:"Low dose Colchicine in prevention of atrial fibrillation after coronary artery bypass graft"',
+         "hits": 0},
+        {"source": "Europe PMC REST search", "when": "2026-10-03", "query": 'AUTH:"Sarzaeem M" AND colchicine', "hits": 0},
+        {"source": "Europe PMC REST search", "when": "2026-10-03", "query": 'JOURNAL:"Tehran Univ Med J" AND colchicine',
+         "hits": 0}],
 }
+
+# a comparator label resolved by the comparator's OWN reference entry (its JATS, committed on acq/k-gap), when the cited
+# journal is outside the registered sources; the entry is re-read and must hold verbatim (cited_reference_holds)
+CITED_OUTSIDE_SOURCES = {
+    ("colchicine-postop-af", "Sarzaeem [23]"): {
+        "jats": "cache/comparators/36050741/2026-09-30_kgap_jats.xml", "git_blob": "d2ba96473500b49a9276767d18a59fcb3c93ca51",
+        "ref_id": "CR23", "must_contain": ["Sarzaeem", "Low dose Colchicine in prevention of atrial fibrillation after "
+                                            "coronary artery bypass graft", "Tehran Univ Med J", "2014"],
+        "citation": ("Sarzaeem M, Shayan N, Bagheri J, Jebelli M, Mandegar M. Low dose Colchicine in prevention of atrial "
+                     "fibrillation after coronary artery bypass graft: a double blind clinical trial. Tehran Univ Med J "
+                     "2014;72:147-154")},
+}
+
+
+def cited_reference_holds(c):
+    """The comparator's reference entry, read from the pinned JATS blob, contains every required string."""
+    import subprocess
+    try:
+        x = subprocess.run(["git", "cat-file", "-p", c["git_blob"]], cwd=ROOT, capture_output=True, check=True,
+                           stdin=subprocess.DEVNULL).stdout.decode("utf-8")
+    except subprocess.CalledProcessError:
+        return False
+    m = re.search(r'<ref id="' + re.escape(c["ref_id"]) + r'">.*?</ref>', x, re.S)
+    entry = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", m.group(0))) if m else ""
+    return bool(entry) and all(t in entry for t in c["must_contain"])
 
 
 def to_md(r):
