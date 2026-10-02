@@ -293,6 +293,31 @@ def fixed_since(it):
             else f"PRE_FIX_{pre.rule_id}_NOW_DIFFERS")
 
 
+def resolve_inconsistent(it, now):
+    """A recorded exclusion the single-record screen cannot reproduce, because the rule that made it is NOT a
+    single-record rule, or the ruleset has since changed. Each case resolved by what it is:
+      X-DEDUP     a companion report of a trial already pooled through another report: NOT_AN_EXCLUSION -- the trial is
+                  in our pool; the tracker needs the identity binding (esketamine Trial D -> TRANSFORM-3)
+      X-CONTRAST  the record STATES a contrast that is not the protocol's (metformin vs laparoscopic ovarian diathermy):
+                  TRUE_SCOPE_DIFFERENCE, span = the record's comparison words
+      other       the CURRENT ruleset's class for the record, the recorded/current rule drift stated"""
+    rule, rec = it["recorded_rule"], it["rec"]
+    cls0, sc0, base0 = now
+    if rule == "X-DEDUP":
+        return "NOT_AN_EXCLUSION", ("COMPANION_REPORT_OF_A_POOLED_TRIAL (recorded X-DEDUP: the trial is pooled through "
+                                    "another report -- an identity binding for the tracker, not a scope difference)"), \
+            dict(base0, rule_id=rule)
+    if rule == "X-CONTRAST":
+        sp = xa.span_of(rec, xa.COMPARISON_STATED, ("title", "abstract")) or xa.span_of(rec, xa.OTHER_COMP, ("title", "abstract"))
+        if sp:
+            return ("TRUE_SCOPE_DIFFERENCE", "CONTRAST_NOT_THE_PROTOCOLS (recorded X-CONTRAST; the record states its contrast)",
+                    dict(base0, rule_id=rule, span=sp))
+        return "INSUFFICIENT_RECORD", "CONTRAST_NOT_STATED_NO_SPAN (recorded X-CONTRAST)", dict(base0, rule_id=rule)
+    if cls0 != "INCONSISTENT":
+        return cls0, f"RECORDED_{rule}_NOW_{base0.get('rule_id')}: {sc0}", base0
+    return "INCONSISTENT", sc0, base0
+
+
 def main(argv):
     xa.load_reader()
     load_axes()
@@ -317,6 +342,8 @@ def main(argv):
                     rem = "now INCLUDED" if now[2].get("decision") == "include" or now[0] == "INCONSISTENT" and \
                         now[1] == "RULESET_INCLUDES" else f"now excluded by {now[2].get('rule_id')}: {now[0]}/{now[1][:90]}"
                     cls, sc, base = "SCREENER_ERROR", f"FIXED_IN_HARNESS ({fx}); {rem}", dict(base, rule_id=it["recorded_rule"])
+                else:
+                    cls, sc, base = resolve_inconsistent(it, now)
         shared = (cls, sc)
         refined_by = None
         if it["rec"] and cls not in ("INCONSISTENT", "NOT_AN_EXCLUSION"):
