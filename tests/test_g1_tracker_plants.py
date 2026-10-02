@@ -93,3 +93,38 @@ def test_our_counts_are_compared_with_the_comparators_printed_ratio():
     assert gt.agreement(ours, theirs) == "DISAGREE:our_counts_imply_0.81_vs_printed_0.66"
     theirs.effect = "0.81"
     assert gt.agreement(ours, theirs) == "AGREE_ON_POINT"
+
+
+def _o(**kw):
+    o = {"N_eligible": 2, "k_matched": 2, "open_gaps": [], "named_differences": [],
+         "same_trials": {"verdict": {"verdict": "AGREE"}},
+         "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "agreement_with_comparator_row": "AGREE"},
+                    {"label": "B", "in_our_pool": True, "route": "PRIMARY", "agreement_with_comparator_row": "AGREE"}]}
+    o.update(kw)
+    return o
+
+
+def test_g1_matched_needs_every_criterion():
+    assert gt.g1_status(_o())["state"] == "G1_MATCHED"
+    assert gt.g1_status(_o(k_matched=1, open_gaps=["B"]))["unmet"] == ["ALL_ELIGIBLE_MATCHED"]
+    assert gt.g1_status(_o(same_trials={"state": "FEWER_THAN_2_SHARED_TRIALS"}))["unmet"] == ["RESULT_AGREES"]
+    o = _o()
+    o["trials"][1]["route"] = "UNVERIFIED"
+    assert gt.g1_status(o)["unmet"] == ["MATCHED_ARE_VERIFIED"]
+    o = _o(named_differences=[{"trial": "C", "kind": "PROTOCOL_SCOPE_DIFFERENCE", "protocol_rule": None}])
+    assert gt.g1_status(o)["unmet"] == ["DIVERGENCES_NAMED"]          # a named difference must cite its rule or gate
+    o = _o()
+    o["trials"][0]["agreement_with_comparator_row"] = "DISAGREE:our_counts_imply_0.81_vs_printed_0.66"
+    assert gt.g1_status(o)["unmet"] == ["DIVERGENCES_NAMED"]          # a disagreement needs its side established
+    o["trials"][0]["disagreement_side"] = "SECONDARY_WRONG"
+    assert gt.g1_status(o)["state"] == "G1_MATCHED"
+
+
+def test_the_comparators_own_row_never_gives_an_unpooled_trial_a_counted_route():
+    # ELIXA: the comparator's 4-point row, verified against ELIXA's own text, made the trial route PRIMARY -> counted
+    import json
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "glp1-ra-mace-t2d.json"), encoding="utf-8"))
+    elixa = next(x for x in o["trials"] if x["label"] == "ELIXA")
+    assert not elixa["in_our_pool"] and elixa["route"] not in ("PRIMARY", "TWO_SOURCE") and not elixa["g1_countable"]
+    assert any(f["finding"] == "COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND" and f["trial"] == "ELIXA"
+               for f in o["comparator_findings"])
