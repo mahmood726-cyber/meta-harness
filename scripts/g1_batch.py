@@ -81,6 +81,10 @@ def run_topic(slug, t0, tracker_only=False):
 def main(argv):
     jobs = int(argv[argv.index("--jobs") + 1]) if "--jobs" in argv else 3
     slugs = [a for a in argv if not a.startswith("--") and not a.isdigit()] or topics()
+    # topics another lane OWNS are never computed here: they are imported from that lane's pinned artefact
+    lp = os.path.join(OUT, "g1_lanes.json")
+    owned = set(_j(lp)) if os.path.exists(lp) else set()
+    slugs = [s for s in slugs if s not in owned]
     t0 = time.time()
     res = []
     with cf.ThreadPoolExecutor(max_workers=jobs) as ex:
@@ -94,6 +98,13 @@ def main(argv):
     res.sort(key=lambda r: order[r["slug"]])
     out = {"started": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t0)), "wall_secs": round(time.time() - t0, 1),
            "jobs": jobs, "topics": len(slugs), "done": sum(1 for r in res if r.get("done")), "results": res}
+    with open(os.path.join(OUT, "g1_batch.json"), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(out, fh, indent=1)
+    imp = subprocess.run([sys.executable, "scripts/g1_import_lanes.py"], cwd=ROOT, stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True, encoding="utf-8", errors="replace",
+                         env=dict(os.environ, PYTHONUTF8="1"))
+    out["lanes_imported"] = {"rc": imp.returncode, "lines": (imp.stdout or "").strip().splitlines()[-10:],
+                             "stderr_tail": _scrub((imp.stderr or "").strip().splitlines()[-1:]) if imp.returncode else ""}
     with open(os.path.join(OUT, "g1_batch.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
     subprocess.run([sys.executable, "scripts/g1_tracker.py", "--table"], cwd=ROOT, stdin=subprocess.DEVNULL,

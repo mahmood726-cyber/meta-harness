@@ -56,6 +56,36 @@
  "other_agent_units": [],
  "comparator_findings": [
   {
+   "finding": "COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND",
+   "trial": "ELIXA",
+   "comparator": "34526024",
+   "comparator_row": {
+    "effect": "1.02",
+    "lower": "0.89",
+    "upper": "1.17",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "HR"
+   },
+   "registry_outcome": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina",
+   "registry_analysis": {
+    "outcome_id": "258588414",
+    "param_type": "Hazard Ratio (HR)",
+    "param_value": "1.017",
+    "ci_lower": "0.886",
+    "ci_upper": "1.168"
+   },
+   "snapshot": {
+    "id": "AACT 2026-08-30",
+    "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+    "rules": 2
+   },
+   "gate_reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+   "basis": "the comparator's printed row equals, at its printed precision, the registry result of the composite our gate refuses for this topic"
+  },
+  {
    "finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT",
    "trial": "PIONEER 6",
    "comparator": "34526024",
@@ -84,15 +114,16 @@
  ],
  "k_ours_total": 8,
  "routes": {
-  "PRIMARY": 8
+  "UNVERIFIED": 1,
+  "PRIMARY": 7
  },
  "trials": [
   {
    "label": "ELIXA",
    "family": "PMID 26630143",
    "in_our_pool": false,
-   "route": "PRIMARY",
-   "basis": "meta 34526024 PRIMARY_VERIFIED PRIMARY_TEXT",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "ACQUISITION",
    "absent_code": "OUTCOME_NOT_IN_SOURCE",
@@ -216,7 +247,7 @@
      }
     ]
    },
-   "g1_countable": true,
+   "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "PRIMARY_VERIFIED",
    "scope_difference": {
@@ -600,5 +631,15 @@
    "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
    "rules": 2
   }
+ },
+ "g1_status": {
+  "state": "G1_MATCHED",
+  "criteria": {
+   "ALL_ELIGIBLE_MATCHED": true,
+   "MATCHED_ARE_VERIFIED": true,
+   "RESULT_AGREES": true,
+   "DIVERGENCES_NAMED": true
+  },
+  "unmet": []
  }
 }
