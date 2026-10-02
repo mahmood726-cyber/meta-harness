@@ -33,11 +33,12 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SNAPSHOT = "F:/AACT-storage/AACT/2026-08-30"
-FILES = ("outcomes.txt", "outcome_analyses.txt", "outcome_measurements.txt", "outcome_counts.txt", "result_groups.txt")
+FILES = ("outcomes.txt", "outcome_analyses.txt", "outcome_measurements.txt", "outcome_counts.txt", "result_groups.txt",
+         "outcome_analysis_groups.txt")
 DIGEST_CACHE = os.path.join(ROOT, "outputs", "k_gap", "aact_snapshot_digest.json")
 # The INDEX RULES version is part of every entry's tag: changing how an entry is derived (rules 2: counts only in people
 # units, integral; N only in people units) makes every older entry stale, exactly as a new snapshot does.
-INDEX_RULES = 2
+INDEX_RULES = 3        # 3: every analysis carries the result groups it compares (outcome_analysis_groups)
 COUNT_PARAMS = ("COUNT_OF_PARTICIPANTS", "NUMBER", "COUNT_OF_UNITS")
 # An arm's EVENT COUNT is an integral value in PEOPLE units. 'NUMBER 63.6 percentage of patients' (NCT03794349) is a
 # rate, not 63 events; a Kaplan-Meier percentage is never a count. The N is the 'measure' scope count in people units
@@ -115,10 +116,17 @@ def build_entries(ncts, tag):
     for r in _rows("result_groups.txt", want):
         if (r.get("result_type") or "").lower() == "outcome":
             idx[r["nct_id"]]["group_titles"][r["id"]] = r.get("title")
+    # which result groups each analysis compares: RE-LY posts two Cox HRs for stroke/SE (0.65 and 0.90) and only this
+    # table says which is dabigatran 150 mg vs warfarin
+    agroups = {}
+    for r in _rows("outcome_analysis_groups.txt", want):
+        agroups.setdefault(r["outcome_analysis_id"], []).append(r["result_group_id"])
     for r in _rows("outcome_analyses.txt", want):
         idx[r["nct_id"]]["analyses"].append({"outcome_id": r["outcome_id"], "param_type": r.get("param_type"),
                                              "param_value": r.get("param_value"), "ci_lower": r.get("ci_lower_limit"),
-                                             "ci_upper": r.get("ci_upper_limit")})
+                                             "ci_upper": r.get("ci_upper_limit"), "analysis_id": r["id"],
+                                             "groups": sorted(agroups.get(r["id"], [])),
+                                             "groups_description": (r.get("groups_description") or "")[:200]})
     counts, ns = {}, {}
     for r in _rows("outcome_measurements.txt", want):
         # a categorised/classified measurement is one cell of a breakdown, never the arm's event count; the value must
