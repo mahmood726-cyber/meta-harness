@@ -4,7 +4,7 @@
  "comparator_pmid": "34228774",
  "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials whose 28-day deaths per arm are ESTABLISHED by two independent sources (at least one primary: posted AACT results or the trial's own open text; a second meta, 34019122, may confirm counts but never supply them) and equal REACT's row. REACT's rows are the comparator only (anti-circularity).",
  "N_comparator_trials": 19,
- "k_matched": 4,
+ "k_matched": 5,
  "N_eligible": 19,
  "named_differences": [],
  "open_gaps": [
@@ -19,7 +19,6 @@
   "HMO-020-0224",
   "ImmCoVA",
   "PreToVid",
-  "RECOVERY",
   "REMAP-CAP",
   "REMDACTA",
   "TOCOVID"
@@ -52,8 +51,8 @@
  "routes": {
   "NO_ROW": 12,
   "TWO_SOURCE": 2,
-  "UNVERIFIED": 3,
-  "PRIMARY": 2
+  "UNVERIFIED": 2,
+  "PRIMARY": 3
  },
  "trials": [
   {
@@ -592,7 +591,11 @@
     "R4_AACT": "POSTED_NO_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "primary_single_source": {
+    "admitted": false,
+    "why": "AACT_COUNTS_DERIVED_FROM_PERCENTAGE"
+   }
   },
   {
    "label": "COV-AID",
@@ -1433,8 +1436,8 @@
    "label": "RECOVERY",
    "family": "NCT04381936",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "one primary source: TEXT; no independent second source held",
+   "route": "PRIMARY",
+   "basis": "single PRIMARY source: trial's own text, counts verbatim in span (TEXT PMID 33933206 + acquired full text)",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT studies.acronym = RECOVERY",
    "comparator_row": {
@@ -1485,7 +1488,7 @@
      "denominator_kind": "UNSTATED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:07:45Z",
     "discovery": {
@@ -1571,7 +1574,12 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "RECORD_FOUND"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "primary_single_source": {
+    "admitted": true,
+    "why": "single PRIMARY source: trial's own text, counts verbatim in span (TEXT PMID 33933206 + acquired full text)"
+   },
+   "reclassified_by": "acq/k-gap single_primary_source"
   },
   {
    "label": "REMAP-CAP",
@@ -1721,7 +1729,11 @@
     "R4_AACT": "POSTED_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "primary_single_source": {
+    "admitted": false,
+    "why": "AACT_COUNTS_DERIVED_FROM_PERCENTAGE"
+   }
   },
   {
    "label": "TOCIBRAS",
@@ -1986,14 +1998,24 @@
   },
   "unmet": [
    "ALL_ELIGIBLE_MATCHED"
-  ]
+  ],
+  "excluded_by_scope": {
+   "n": 0,
+   "of_comparator_N": 19,
+   "by_kind": {},
+   "trials": []
+  }
  },
  "lane_source": {
   "lane": "Evidence lane two (g1/tocilizumab)",
   "branch": "g1/tocilizumab",
-  "commit": "b1c971d17a10245f234096372f2df97005b0ec89",
+  "commit": "0e19b5235f2faa7199a04e87550c53fdd7694490",
   "path": "outputs/k_gap/g1/tocilizumab-covid19-mortality.json",
   "sha256": "05e1a79aebd3dcd580daa35206460d26d4737f71bd73cb2783b8182412c89ba8",
   "format": "tracker_v1"
- }
+ },
+ "k_matched_of_comparator_N": "5 of 19",
+ "single_primary_reclassified": [
+  "RECOVERY"
+ ]
 }

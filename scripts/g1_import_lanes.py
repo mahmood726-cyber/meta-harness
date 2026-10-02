@@ -201,6 +201,15 @@ def main(argv):
         else:
             raise ValueError(f"{slug}: unknown lane format {spec['format']}")
         o["lane_source"] = src
+        # the lane's named scope differences must carry rule + span like ours; unspanned ones go back to eligible
+        gt.cite_or_demote(o, slug)
+        gt.apply_sweep(o, slug)           # trials the two-source sweep verified count as matched, by route
+        gt.apply_single_primary(o)        # ONE_SOURCE rows bound to a single PRIMARY source, typed (2 Oct decision)
+        bad = gt.scope_citation_violations(o)
+        if bad:
+            raise SystemExit(f"{slug}: lane artefact non-eligible without rule + span: {bad}")
+        if "g1_status" in o and o["g1_status"].get("state") != "SCHEMA_INCOMPLETE":
+            o["g1_status"] = gt.g1_status(o)
         p = os.path.join(gt.G1_DIR, f"{slug}.json")
         tmp = f"{p}.{os.getpid()}.tmp"
         with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
