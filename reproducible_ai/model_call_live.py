@@ -286,6 +286,27 @@ AGY_SETTINGS = Path(os.path.expanduser("~")) / ".gemini" / "antigravity-cli" / "
 _AGY_MODEL_LOG = re.compile(r'Propagating selected model override to backend: label="([^"]+)"')
 
 
+# the agy client log is mostly the user's session (sign-in identity, token refresh, settings): only the lines that say
+# what the CALL did are kept -- the model it propagated, print mode, the sandbox, every tool step and its confirmation
+_AGY_KEEP = re.compile(r"model_config_manager|Propagating selected model|printmode\.go|Print mode|sandbox|"
+                       r"tool_confirmation|Tool confirmation|run_command|denied|read_file|view_file|write_file", re.I)
+_AGY_DROP = re.compile(r"permissions=|trustedWorkspaces|Allow:\[|oauth|auth|token|email|cookie|credential", re.I)
+
+
+def agy_redact(log_text: str) -> str:
+    """The client log as it may be published: an ALLOW-list of call lines (above), with the work dir -> <workdir>,
+    other local paths -> <path>, e-mail addresses -> <email>; every other line is dropped and counted."""
+    kept, dropped = [], 0
+    for ln in log_text.splitlines():
+        if not _AGY_KEEP.search(ln) or _AGY_DROP.search(ln):
+            dropped += 1
+            continue
+        ln = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", ln)
+        ln = re.sub(r"[A-Za-z]:[\\/][^\s'\"\]\)]*", "<path>", ln)
+        kept.append(re.sub(r"[\w.+-]+@[\w-]+\.[\w.-]+", "<email>", ln))
+    return "\n".join(kept + [f"<{dropped} client-session log lines not published (sign-in, settings, transport)>"])
+
+
 def _agy_exe() -> str:
     exe = shutil.which("agy")
     if not exe:
@@ -386,7 +407,7 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
     elif rep != requested:
         err = f"client log reported model {rep!r} but settings request {requested!r}: the pin does not hold"
     state = "RAN_ERROR" if err else "RAN_OK"
-    lg_red = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", lg.decode("utf-8", "replace"))
+    lg_red = agy_redact(lg.decode("utf-8", "replace"))
     denied = out.get("denied_actions") or []
     rec = model_source.build_record(
         prompt_bytes=prompt, response_bytes=resp if state == "RAN_OK" else b"",

@@ -113,6 +113,7 @@ def test_control_a_negated_IPD_mention_is_not_a_one_stage_model():
 def test_PLANT_outcome_rows_are_not_trial_rows():
     v = g.judge(ITEM, reading(kind="outcome"), reading(kind="outcome"), "mc-a", "mc-b", HELD_DL)
     assert v["state"] == "REFUSED" and any(p.startswith("ROWS_ARE_NOT_STUDIES") for p in v["problems"])
+    assert v["proposed_rows"] == [] and len(v["agreed_rows_not_trials"]) == 4     # agreed, but never per-trial proposals
 
 
 def test_agreement_is_within_the_printed_rounding():
@@ -194,3 +195,17 @@ def test_replay_path_reaches_no_model(monkeypatch):
     monkeypatch.setattr(mcl, "agy_call", boom)
     g.evaluate([], {})
     g.judge(ITEM, reading(), reading(), "mc-a", "mc-b", HELD_DL)
+
+
+def test_agy_log_redaction_keeps_only_call_lines_without_paths_identity_or_settings():
+    raw = "\n".join([
+        r"I1 common.go:175] CLI app data directory: C:\Users\someone\.gemini\antigravity-cli",
+        r"I1 cli_setting_manager.go:92] CLI settings initialized: permissions=&{Allow:[command(*)]}",
+        r"I1 server_oauth.go:198] applyAuthResult: email=someone@example.org, authMethod=consumer",
+        r"I1 session.go:86] Print mode: enabling terminal sandbox for this session in F:\tmp\mcall-ab12cd",
+        r"I1 tool_confirmation_manager.go:211] Print mode: soft-denying tool confirmation \"Bash\" at step 2",
+        r'I1 model_config_manager.go:327] Propagating selected model override to backend: label="Gemini 3.1 Pro (High)"'])
+    red = mcl.agy_redact(raw)
+    assert "someone" not in red and "permissions=" not in red and "mcall-ab12cd" not in red and "@" not in red
+    assert "<workdir>" in red and "soft-denying" in red and 'label="Gemini 3.1 Pro (High)"' in red
+    assert "<3 client-session log lines not published" in red
