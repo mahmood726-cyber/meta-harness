@@ -48,9 +48,14 @@ def test_the_tracker_names_majeed_with_both_spans_and_keeps_the_denominator_hone
     import g1_tracker as gt
     o = json.load(open(os.path.join(gt.G1_DIR, SLUG + ".json"), encoding="utf-8"))
     d = next(d for d in o["named_differences"] if d["pmid"] == "24081972")
-    assert d["kind"] == "NOT_AN_INCLUDED_TRIAL" and d["rule_id"] == "COMPARATOR_STATED_K"
+    # since acq 2bf32a5 the protocol route names it first (X1: an analysis across several trials is no trial's report);
+    # this lane's comparator-membership gate is the second line, used only when nothing else names the unit
+    assert (d["kind"], d["rule_id"]) in {("PROTOCOL_SCOPE_DIFFERENCE", "X1"), ("NOT_AN_INCLUDED_TRIAL", "COMPARATOR_STATED_K")}
     assert gt.span_is_verbatim(SLUG, "24081972", d["span"])
-    assert gt.span_is_verbatim(SLUG, "24963045", d["comparator_span"])
+    if d["kind"] == "NOT_AN_INCLUDED_TRIAL":
+        assert gt.span_is_verbatim(SLUG, "24963045", d["comparator_span"])
+    # the whole pools ARE comparable: the comparator states 6 trials == 6 matched, so the measure question is reached
+    assert o["same_trials"]["state"] == "WHOLE_POOL_MEASURE_DIFFERS"
     assert o["N_eligible"] == 6 and o["k_matched"] == 6 and o["open_gaps"] == []
     assert gt.scope_citation_violations(o) == []
 

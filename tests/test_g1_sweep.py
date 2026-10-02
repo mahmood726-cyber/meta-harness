@@ -106,3 +106,24 @@ def test_a_reader_disagreement_is_never_a_silent_pick():
     assert "RESULT_AGREES" in gt.g1_status(o)["unmet"]
     o["same_trials"]["readers_agree_on_verdict"] = True
     assert gt.g1_status(o)["state"] == "G1_MATCHED"
+
+
+def _one_source(source, **kw):
+    return {"label": "T", "route": "UNVERIFIED", "g1_state": "ONE_SOURCE", "in_our_pool": None,
+            "readings": [{"values": {"deaths_t": 621, "n_t": 2022, "deaths_c": 729, "n_c": 2094},
+                          "sources": [dict(source=source, **kw)]}]}
+
+
+def test_one_primary_source_is_primary_when_typed_and_never_when_reconstructed():
+    # 2 Oct decision: ONE bound PRIMARY source verifies a row; the two-source rule is for metas. RECOVERY's own text
+    # prints all four counts verbatim -> PRIMARY. Posted percentages turned into counts are a reconstruction -> no.
+    span = ("Overall, 621 (31%) of the 2022 patients allocated tocilizumab and 729 (35%) of the 2094 patients "
+            "allocated to usual care died within 28 days")
+    assert gt.single_primary_source(_one_source("TEXT PMID 33933206", span=span))[0] is True
+    assert gt.single_primary_source(_one_source("TEXT PMID 33933206", span=span.replace("729", "7290")))[1] == "COUNTS_NOT_IN_SPAN"
+    pct = _one_source("AACT", derivation="survival 84% of 49 -> 8 deaths", time_frame="28 days")
+    assert gt.single_primary_source(pct) == (False, "AACT_COUNTS_DERIVED_FROM_PERCENTAGE")
+    multi = _one_source("AACT", derivation="posted participant counts", time_frame="Days 14, 28, and 60")
+    assert gt.single_primary_source(multi) == (False, "AACT_MULTIPLE_TIME_FRAMES")
+    o = {"trials": [_one_source("TEXT PMID 33933206", span=span)], "open_gaps": ["T"]}
+    assert gt.apply_single_primary(o) == ["T"] and o["k_matched"] == 1 and o["open_gaps"] == []

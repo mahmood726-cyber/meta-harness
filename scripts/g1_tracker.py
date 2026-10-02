@@ -362,6 +362,39 @@ def is_matched(x):
 SWEEP_DIR = os.path.join(OUT, "sweep")
 
 
+def outcome_set_differences(trials, comp_meta, comp, rows):
+    """NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: G1 matches the comparator's RESULT for this outcome. When the comparator's own
+    per-trial analysis of the outcome is COMPLETE and CONTROLLED -- a typed table or a gated figure read for THIS
+    outcome, its rows reproducing its printed pooled result (positive control), and EVERY one of its rows joined to a
+    comparator trial -- a comparator trial with NO row in it contributed nothing to that result: it is named, with the
+    comparator's row list and control as the span, never silently dropped (finerenone 3 Oct: the kidney composite pool
+    is FIDELIO + FIGARO; ARTS-DN (Bakris 2015, Katayama 2017) report UACR and have no row). Refused (nothing named)
+    when the control did not reproduce, the read is not usable, or any comparator row is unjoined."""
+    pc = comp_meta.get("positive_control") or {}
+    if not (comp_meta.get("usable") and pc.get("reproduced")):
+        return []
+    crow = [r for r in rows if r.meta_pmid == comp]
+    joined = [x for x in trials if x.get("comparator_row")]
+    if not crow or len(joined) != len(crow):
+        return []
+    where = (f"table {comp_meta.get('table')}" if comp_meta.get("provenance") == "TYPED_TABLE" else
+             f"figure {comp_meta.get('figure')}{(' panel ' + comp_meta['panel']) if comp_meta.get('panel') else ''} "
+             f"(recorded read {comp_meta.get('record_id')})")
+    span = (f"comparator PMID {comp} {where}: rows {[r.trial_label for r in crow]}; positive control reproduced "
+            f"({pc.get('methods')}) against its printed pooled result ({comp_meta.get('control_basis') or 'TYPED_TABLE'})")
+    named = []
+    for x in trials:
+        if x.get("in_our_pool") or x.get("scope_difference") or x.get("comparator_row"):
+            continue
+        x["scope_difference"] = {"kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS", "rule_id": "G1-OUTCOME-SET",
+                                 "protocol_rule": "G1 matches the comparator's result for this outcome",
+                                 "span": {"field": "comparator outcome analysis", "text": span},
+                                 "span_source": f"comparator PMID {comp} {where}", "pmid": None}
+        x["blocker"] = None
+        named.append(x["label"])
+    return named
+
+
 def sweep_results(slug):
     p = os.path.join(SWEEP_DIR, f"{slug}.json")
     return {r["label"]: r for r in (_j(p).get("trials") or [])} if os.path.exists(p) else {}
@@ -396,6 +429,65 @@ def sweep_merge(slug, trials, routes=None, pairs=None):
         for k in [k for k, n in routes.items() if n <= 0]:
             del routes[k]
     return got
+
+
+_COUNT_KEYS = ("deaths_t", "n_t", "deaths_c", "n_c")
+
+
+def single_primary_source(x):
+    """2 Oct decision (restated 3 Oct): a typed tuple bound to ONE PRIMARY source (the trial's own open text, or its
+    posted CT.gov results) is PRIMARY-verified; the two-source rule is for SECONDARY sources (metas) only. A lane row
+    held at g1_state ONE_SOURCE with a single primary source qualifies only through the SAME typed requirements:
+      TEXT  every count is printed verbatim (as a whole number) in the quoted span of the trial's own report
+      AACT  counts are posted participant counts, never derived from a posted percentage ('84% of 49 -> 8 deaths' is a
+            reconstruction: refused, as the registry rung refuses EXAMINE's 11.3%) and from ONE time frame
+    Returns (True, basis) or (False, why)."""
+    rd = x.get("readings") or []
+    if x.get("g1_state") != "ONE_SOURCE" or len(rd) != 1:
+        return False, "NOT_A_SINGLE_SOURCE_ROW"
+    r = rd[0]
+    vals = r.get("values") or {}
+    if not all(isinstance(vals.get(k), int) for k in _COUNT_KEYS):
+        return False, "COUNTS_NOT_TYPED"
+    srcs = r.get("sources") or []
+    kinds = {str(s.get("source") or "").split()[0] for s in srcs}
+    if kinds == {"TEXT"}:
+        import re as _re
+        for s in srcs:
+            span = s.get("span") or ""
+            if not all(_re.search(rf"(?<![\d.,]){v:,}(?![\d])|(?<![\d.,]){v}(?![\d])", span) for v in (vals[k] for k in _COUNT_KEYS)):
+                return False, "COUNTS_NOT_IN_SPAN"
+        return True, f"single PRIMARY source: trial's own text, counts verbatim in span ({srcs[0].get('source')})"
+    if kinds == {"AACT"}:
+        for s in srcs:
+            if "%" in str(s.get("derivation") or ""):
+                return False, "AACT_COUNTS_DERIVED_FROM_PERCENTAGE"
+            if "," in str(s.get("time_frame") or "") or " and " in str(s.get("time_frame") or ""):
+                return False, "AACT_MULTIPLE_TIME_FRAMES"
+        return True, "single PRIMARY source: posted CT.gov participant counts (AACT)"
+    return False, f"SOURCE_KINDS_{sorted(kinds)}"
+
+
+def apply_single_primary(o):
+    """Reclassify a lane's ONE_SOURCE rows whose single source is PRIMARY and typed (single_primary_source): route
+    PRIMARY, countable. Every row examined records the decision (primary_single_source)."""
+    flipped = []
+    for x in o.get("trials") or []:
+        if x.get("route") != "UNVERIFIED" or x.get("g1_state") != "ONE_SOURCE":
+            continue
+        ok, why = single_primary_source(x)
+        x["primary_single_source"] = {"admitted": ok, "why": why}
+        if ok:
+            x.update(route="PRIMARY", g1_countable=True, basis=why, reclassified_by="acq/k-gap single_primary_source")
+            flipped.append(x["label"])
+    if flipped:
+        tr = o["trials"]
+        o["routes"] = dict(Counter(x["route"] for x in tr))
+        o["k_matched"] = sum(1 for x in tr if is_matched(x))
+        o["k_matched_of_comparator_N"] = f"{o['k_matched']} of {len(tr)}"
+        o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g not in flipped]
+        o["single_primary_reclassified"] = flipped
+    return flipped
 
 
 def apply_sweep(o, slug):
@@ -487,7 +579,8 @@ def cite_or_demote(o, slug):
                 continue
             cls, sub = exclusion_audit_class(slug, d.get("pmid"))
             why = f"SCOPE_UNCITED:{d.get('rule_id')}" + (f" (audit {cls}:{sub})" if cls else " (not audited)")
-        elif d.get("kind") == "ESTIMAND_DIFFERENCE" and d.get("span") and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
+        elif d.get("kind") in ("ESTIMAND_DIFFERENCE", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS") and d.get("span") \
+                and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
             keep.append(d)
             continue
         elif d.get("kind") == "NOT_AN_INCLUDED_TRIAL" and d.get("rule_id") and d.get("span_source") \
@@ -765,11 +858,17 @@ def whole_pool_comparison(o):
     st = o.get("same_trials") or {}
     ours, comp = o.get("ours") or {}, o.get("comparator") or {}
     # a reference seed outside the comparator's OWN stated membership (NOT_AN_INCLUDED_TRIAL) is not one of its trials:
-    # the comparator's pool is then exactly the matched set; any other named difference still disqualifies
+    # the comparator's pool is then exactly the matched set
     nd = o.get("named_differences") or []
-    if any(d.get("kind") != "NOT_AN_INCLUDED_TRIAL" for d in nd):
-        return None
     n_set = o["N_comparator_trials"] - len(nd)
+    if any(d.get("kind") != "NOT_AN_INCLUDED_TRIAL" for d in nd):
+        # with any other named difference, the comparator's pool is the matched set only when the comparator ITSELF
+        # states that many trials (harness/comparator_membership.py; doac-vte: acq names Majeed 2013 X1, and van Es
+        # states "6 phase 3 trials" == 6 matched)
+        from harness import comparator_membership as cmb
+        st = cmb.stated_trial_count((held_record(o.get("slug"), o.get("comparator_pmid")) or {}).get("abstract") or "")
+        if not st or st["k"] != n_set:
+            return None
     if st.get("state") == "POOLED" or o["k_matched"] != n_set:
         return None
     if ours.get("k") != n_set or None in (ours.get("estimate"), ours.get("ci_low"),
@@ -952,11 +1051,51 @@ def topic(slug, T):
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
             elif x["route"] == "NO_ROW" and not x.get("seeded_funnel") and rp[id(t)] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
+    # SAME TRIAL, OTHER REPORT: the comparator cites a secondary report (Radholm 2018, CANVAS heart-failure outcomes) whose
+    # registered trial (the funnel's NCT link) we pool under its main report (Neal 2017, same NCT). The comparator trial
+    # IS matched -- to that pool row -- once, and never to a pool row another comparator trial already matched.
+    # The screen's own X-DEDUP verdict is the same link stated the other way round: 'companion/duplicate report of
+    # TRANSFORM-3 (NCT02422186, already pooled)' -- esketamine Trial D is TRANSFORM-3's publication; we pool its
+    # registry row NCT02422186.
+    import re as _re
+    nct_pool = {str(o.get("nct")): str(o.get("id")) for o in ours if o.get("nct") and str(o.get("id")) in pooled_ids}
+    nct_pool.update({i: i for i in pooled_ids if str(i).startswith("NCT")})
+    for x in trials:
+        f = x.get("seeded_funnel") or {}
+        if f.get("stage") == "SCREENED_OUT" and f.get("rule_id") == "X-DEDUP" and not f.get("via"):
+            m = _re.search(r"\((NCT\d{8}), already pooled\)", f.get("reason") or "") or \
+                _re.search(r"(NCT\d{8}), already pooled", x.get("our_refusal") or "")
+            if m and nct_pool.get(m.group(1)):
+                f = dict(f, stage="SCREENED_VIA_OTHER_REPORT", via=nct_pool[m.group(1)].replace("PMID ", ""),
+                         via_decision="include", nct=m.group(1))
+        via = (f.get("via") if str(f.get("via") or "").startswith("NCT") else f"PMID {f.get('via')}") if f.get("via") else None
+        if (x["in_our_pool"] or f.get("stage") != "SCREENED_VIA_OTHER_REPORT" or f.get("via_decision") != "include"
+                or not via or via not in pooled_ids or via in matched_ids or not f.get("nct")):
+            continue
+        matched_ids.add(via)
+        routes[x["route"]] -= 1
+        routes["PRIMARY"] += 1
+        x.update(in_our_pool=True, route="PRIMARY", family=via, g1_countable=True, our_refusal=None,
+                 basis=f"same registered trial {f['nct']}: pooled under its report {via} (the comparator cites {f.get('pmid')})",
+                 our_value=our_value_from_row(row_by_id[via]) if row_by_id.get(via) else None,
+                 matched_via_other_report={"nct": f["nct"], "pool_row": via, "comparator_cites": f.get("pmid")})
+        cr = x.get("comparator_row")
+        if cr and x["our_value"]:
+            theirs = sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="COMPARATOR_ROW",
+                                     trial_label=x["label"], measure=cr.get("measure") or "", outcome_definition="",
+                                     **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
+            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+        else:
+            x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
+    for k in [k for k, n in routes.items() if n <= 0]:
+        del routes[k]
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
         if x.get("in_our_pool") and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
             x["analysis_set_attribution"] = analysis_set_attribution(slug, cfg, x)
+    outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or {}, comp, rows)
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
@@ -1095,6 +1234,9 @@ def table():
             elif d["kind"] == "NOT_AN_INCLUDED_TRIAL":
                 md.append(f"- NAMED {d['kind']}: {d['trial']} -- {d['gate']}. COMPARATOR SPAN [{d['comparator_span_source']}]: "
                           f"\"{d['comparator_span']['text']}\"; UNIT SPAN [{d['span_source']}]: \"{d['span']['text']}\"")
+            elif d["kind"] == "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS":
+                md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['protocol_rule']}); "
+                          f"SPAN [{d['span_source']}]: \"{d['span']['text']}\"")
             else:
                 an = d.get("registry_analysis") or {}
                 md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d.get('rule_id')}; {d['gate']}: {d['reason']}. "

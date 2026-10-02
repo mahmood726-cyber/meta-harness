@@ -157,3 +157,41 @@ def test_every_protocol_scope_span_is_verbatim_in_the_held_record():
     if unheld:
         pytest.skip(f"{n - len(unheld)} of {n} spans verified; {len(unheld)} full-text span(s) unverifiable in this clone "
                     f"(body not held; sha256 recorded): {unheld}")
+
+
+def test_a_background_sentence_is_never_a_scope_span():
+    # CORE (pericarditis) was first spanned by 'BACKGROUND: Colchicine seems to be a good drug ...' -- a sentence about the
+    # field, not about the trial. Spans inside BACKGROUND / INTRODUCTION sections are skipped.
+    rec = {"abstract": "BACKGROUND: Conventional treatment is used. METHODS: Patients were randomly assigned to usual care "
+                       "or colchicine."}
+    sp = au.span_of(rec, au.OTHER_COMP, ("abstract",))
+    assert sp["text"].startswith("METHODS:") and "randomly assigned to usual care" in sp["text"]
+
+
+def test_a_secondary_analysis_needs_a_counted_set_of_trials():
+    # doac-vte 24081972: 'enrolled in 5 phase III trials' -> stated; DELIVER's 'were enrolled in the trials' -> not
+    assert au.SECONDARY_ANALYSIS.search("bleeds enrolled in 5 phase III trials comparing dabigatran")
+    assert not au.SECONDARY_ANALYSIS.search("patients with established HF were enrolled in the SGLT2 trials")
+
+
+def _crow(label, meta="C"):
+    from harness import secondary_meta as _sm
+    return _sm.SecondaryRow(meta_pmid=meta, meta_doi="", location={}, source_digest="", provenance="T",
+                            trial_label=label, measure="HR", outcome_definition="", effect="0.8", lower="0.7", upper="0.9")
+
+
+def test_outcome_set_names_only_when_the_comparators_analysis_is_complete_and_controlled():
+    # finerenone: the comparator's kidney-composite figure has FIDELIO + FIGARO rows reproducing its printed pool;
+    # ARTS-DN trials (no row) contributed nothing to that result -> named, with the row list + control as span
+    def trials():
+        return [{"label": "A", "in_our_pool": True, "comparator_row": {"effect": "0.8"}},
+                {"label": "B", "in_our_pool": True, "comparator_row": {"effect": "0.9"}},
+                {"label": "C", "in_our_pool": False, "comparator_row": None, "scope_difference": None}]
+    meta = {"usable": True, "positive_control": {"reproduced": True, "methods": ["FE"]}, "figure": "f2", "record_id": "mc-x"}
+    t = trials()
+    assert gt.outcome_set_differences(t, meta, "C", [_crow("A"), _crow("B")]) == ["C"]
+    assert t[2]["scope_difference"]["rule_id"] == "G1-OUTCOME-SET" and "rows ['A', 'B']" in t[2]["scope_difference"]["span"]["text"]
+    # refused: control not reproduced; or a comparator row that joins no comparator trial (incomplete join)
+    assert gt.outcome_set_differences(trials(), dict(meta, positive_control={"reproduced": False}), "C",
+                                      [_crow("A"), _crow("B")]) == []
+    assert gt.outcome_set_differences(trials(), meta, "C", [_crow("A"), _crow("B"), _crow("Z")]) == []

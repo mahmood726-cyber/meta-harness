@@ -37,7 +37,8 @@ def test_event_check_is_consistent_or_not_decidable_otherwise():
 def test_reconcile_classes_on_a_whole_pool_topic():
     r = rc.reconcile("doac-vte-recurrence")
     cls = sorted({t["cls"] for t in r["trials"]})
-    assert cls == ["MATCHED_NO_COMPARATOR_ROW", "NOT_AN_INCLUDED_TRIAL"]                # never DISAGREE / UNCLASSIFIED
+    assert cls[0] == "MATCHED_NO_COMPARATOR_ROW" and len(cls) == 2                      # never DISAGREE / UNCLASSIFIED
+    assert cls[1] in ("NOT_AN_INCLUDED_TRIAL", "TRUE_SCOPE_DIFFERENCE:SECONDARY_ANALYSIS_OF_TRIALS_STATED")
     assert r["comparator_conclusion"]["on_shared_trials"] == "NOT_TESTABLE_ON_SHARED_ROWS"   # never SURVIVES on None==None
 
 
