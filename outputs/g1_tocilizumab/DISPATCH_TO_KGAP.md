@@ -142,3 +142,37 @@ Plants are in `tests/test_g1_exclusion_audit.py`.
 - My rows carry these as `span.field = "fulltext"`. `span_is_verbatim` reads only the held record, so the tracker
   cannot name on them.
 - **Proposal:** accept `fulltext` spans verified against `g1/data/audit_ft/<pmid>.json`, whose sha256 is recorded.
+
+## 13. Cross-vendor review of harness/screen.py: four fixed, two for you (NEEDS RE-CERTIFICATION)
+A recorded codex review (`registry/model_proposals/g1_codex_review.json`, group `exclusion_audit_and_screen`) raised six
+findings against `harness/screen.py`. All six reproduced on the pre-fix code.
+
+Four are fixed in this branch. Each has a test in `tests/test_codex_review_screen.py` that fails before the fix and passes
+after it. The corpus diff covers every held record under every topic, through both screeners (16,668 decisions):
+
+| # | defect | fix | decisions changed |
+|---|---|---|---|
+| 1 | `_is_rct` accepted any INTERVENTIONAL registration | stated allocation decides; NA / NON_RANDOMIZED are not RCTs | 66, all exclude → exclude (rule X2/X3 → X1) |
+| 2 | "nonrandomized" matched "randomized" | `_NOT_NON` guard on title, body and `_RANDOM_TEXT` | 0 |
+| 3 | "unmasked" matched "masked" | `_MASKED` whole word, not negated | 0 |
+| 4 | substring intervention match ("chloroquine" ⊂ "hydroxychloroquine") | whole token, plural allowed, `*` stem kept | 2 (below) |
+
+The first cut of #4 used a strict whole-token match. It dropped 19 inclusions, all of them plurals ("probiotics",
+"n-3 polyunsaturated fatty acids") and none from the defect class. Allowing a plural ending brought the effect down to:
+
+- `sglt2-primary-prevention-hf` 31984646 (LIRA-ADD2SGLT2i): exclude → exclude, rule X-DESIGN → X3.
+- **`probiotics-aad-prevention` NCT03516409 ("Bio-Kult Infantis in AAD Prevention in Infants"): include → exclude.**
+  The only term that matched it was "BIO-K" (the Bio-K+ brand) inside "Bio-Kult", so its agent mapping was also wrong.
+  It is a probiotic RCT, but it has no posted results and is in no pool. **Proposal for the topic owner:** add "Bio-Kult"
+  as its own agent in `intervention_any`, `intervention_terms` and `intervention_agents` (the protocol compiler checks the
+  I-line). I have not edited another lane's topic.
+
+The `docs/harness/screen.py` mirror and page rebuild are left for the release captain, as with 0e19b523.
+
+Two findings are for you rather than this lane:
+- **#5: `screen_record_2` omits `intervention_none`, `design_any` and `design_none`, and accepts every non-PMID record
+  as an RCT.** This is by design: it is the broader second screener. Whether its disagreements are reported as such is
+  your call.
+- **#10: `run()` replaces an arm-index build failure with an empty index**, and the report does not say so. Proposal:
+  record `arm_index_state: FAILED (<exception>)` in the run output, and refuse X-DEDUP / contrast evictions that depend
+  on it.

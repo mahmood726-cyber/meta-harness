@@ -87,21 +87,26 @@ def _all_occurrences_qualified(text: str, term: str, qualifiers) -> bool:
     return found
 
 
+_INTERVENTION_CACHE: dict = {}
+
+
 def _has_intervention(text: str, terms) -> str | None:
     """Like _has, but a mention that is only 'X-resistant/resistance/refractory/intolerant'
     is a POPULATION descriptor, not the randomised intervention, and does not count."""
     t = lexicon.fold(text)
     for term in terms or []:
-        tl = lexicon.fold(term)
-        start = 0
-        while True:
-            i = t.find(tl, start)
-            if i < 0:
-                break
-            after = t[i + len(tl): i + len(tl) + 12]
+        tl = lexicon.fold(term or "").strip()
+        if not tl:
+            continue
+        # a whole token: an unbounded substring let 'chloroquine' match 'hydroxychloroquine' (codex review
+        # exclusion_audit_and_screen#4). Its plural still matches ('probiotics', 'n-3 polyunsaturated fatty acids':
+        # the first whole-token cut lost 19 inclusions to plurals, 0 to the defect class); a trailing '*' is a stem
+        rx = _boundary_re(tl) if tl.endswith("*") else _INTERVENTION_CACHE.get(tl) or _INTERVENTION_CACHE.setdefault(
+            tl, _re.compile(r"(?<![a-z0-9])" + _re.escape(tl) + r"(?:e?s)?(?![a-z0-9])"))
+        for m in rx.finditer(t):
+            after = t[m.end(): m.end() + 12]
             if not any(w in after for w in ("resist", "refractory", "intoler", "-depend", " depend")):
                 return term
-            start = i + len(tl)
     return None
 
 
@@ -148,7 +153,10 @@ import re as _re
 # Trial", "A Randomised Controlled Trial of ..."). PubMed sometimes omits the "Randomized Controlled
 # Trial" PublicationType even for definitive RCTs (BaSICS 34375394 was tagged only "Journal Article"
 # and wrongly excluded X1). Guarded: NOT a protocol / secondary analysis / substudy / design paper.
-_TITLE_RCT = _re.compile(r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
+# Every self-description below starts at a WORD: 'nonrandomized', 'non-randomised' and 'not randomized' contain
+# 'randomized' and describe the opposite design (codex review exclusion_audit_and_screen#2)
+_NOT_NON = r"(?<![a-z])(?<!non-)(?<!non )(?<!not )"
+_TITLE_RCT = _re.compile(_NOT_NON + r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
 _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
                              r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
 
@@ -167,9 +175,9 @@ _QUASI = _re.compile(r"quasi[-\s]?random|pseudo[-\s]?random|alternat(?:e|ely|ing
 # The ABSTRACT BODY describing the paper itself as a randomised trial (a self-description, not a review
 # citing trials): 'randomized, double-blind', 'randomly assigned to', '1:1 randomisation', etc.
 _BODY_RCT = _re.compile(
-    r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
+    _NOT_NON + r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
     r"controlled trial|clinical trial|controlled study|assigned|allocated|two groups|three groups)"
-    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)", _re.I)
+    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?" + _NOT_NON + r"random(?:i[sz]ed|ly)", _re.I)
 
 
 def _body_says_rct(rec) -> bool:
@@ -225,14 +233,23 @@ def _is_rct(rec) -> bool:
         # A missing RCT pubtype is UNKNOWN, not NOT-AN-RCT: accept an explicit self-declaration in the
         # TITLE or in the ABSTRACT BODY (full text/abstract overrules incomplete metadata).
         return _title_says_rct(rec) or _body_says_rct(rec)
-    return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
+    # A registry record states its allocation: RANDOMIZED is an RCT; NON_RANDOMIZED and NA (single group) are not,
+    # whatever the study type. Only an UNSTATED allocation falls back to the study type (codex review
+    # exclusion_audit_and_screen#1: 'INTERVENTIONAL' alone admitted 66 non-randomised / single-group registrations)
+    alloc = (rec.get("allocation", "") or "").upper()
+    return alloc == "RANDOMIZED" or (not alloc and rec.get("study_type", "") == "INTERVENTIONAL")
+
+
+_MASKED = _re.compile(r"(?<![a-z])(?<!un-)(?<!non-)(?<!not )masked\b", _re.I)
 
 
 def _double_blind(rec, text) -> bool:
     m = (rec.get("masking", "") or "").upper()
     if any(w in m for w in ("DOUBLE", "TRIPLE", "QUADRUPLE")):
         return True
-    if ("double-blind" in text) or ("double blind" in text) or ("masked" in text):
+    # whole words, never inside a negation: 'unmasked' contains 'masked' and states the opposite (codex review
+    # exclusion_audit_and_screen#3)
+    if ("double-blind" in text) or ("double blind" in text) or _MASKED.search(text):
         return True
     # A placebo-controlled RCT is inherently blinded (open-label trials do not use a placebo);
     # abstracts frequently omit the literal "double-blind". Accept placebo-controlled as evidence.
@@ -506,7 +523,7 @@ def screen_record(rec, inc, neg_pmids):
             ev or _quote(raw_pop))
 
 
-_RANDOM_TEXT = _re.compile(r"randomi[sz]ed|randomly (?:assigned|allocated)", _re.I)
+_RANDOM_TEXT = _re.compile(_NOT_NON + r"(?:randomi[sz]ed|randomly (?:assigned|allocated))", _re.I)
 
 
 def screen_record_2(rec, inc):
