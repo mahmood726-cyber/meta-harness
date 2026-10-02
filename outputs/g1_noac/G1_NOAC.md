@@ -6,7 +6,7 @@ Identity matching is separate from verified value matching. Nothing here changes
 
 | Trial/outcome | Route | Served estimate comparison |
 |---|---|---|
-| RE-LY/stroke_se | SINGLE_SOURCE | MATCH |
+| RE-LY/stroke_se | TWO_SOURCE_VERIFIED | MATCH |
 | RE-LY/major_bleeding | CONFLICT | NOT_SERVED |
 | ROCKET AF/stroke_se | TWO_SOURCE_VERIFIED | DIFFERS |
 | ROCKET AF/major_bleeding | SINGLE_SOURCE | NOT_SERVED |
@@ -79,8 +79,10 @@ Full AACT records, row hashes, excerpts and abstract spans are in g1_noac.json.
 | F036 | NCT00781391 / major_bleeding | PUBMED:24251359 | EFFECT / UNKNOWN / UNKNOWN | {"effect": "0.80", "lower": "0.71", "upper": "0.91"} |
 | F037 | NCT00262600 / major_bleeding | FDA:RELY_FDA2010_Table2_major_bleeding.tables.txt | EFFECT / UNKNOWN / UNKNOWN | {"effect": "0.93", "lower": "0.81", "upper": "1.07"} |
 | F038 | NCT00262600 / major_bleeding | FDA:RELY_FDA2010_Table2_major_bleeding.tables.txt | COUNTS / UNKNOWN / UNKNOWN | {"events_t": 399, "n_t": 6076, "events_c": 421, "n_c": 6022} |
-| F039 | NCT00403767 / major_bleeding | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | EFFECT / ON_TREATMENT / UNKNOWN | {"effect": "1.04", "lower": "0.90", "upper": "1.20"} |
-| F040 | NCT00403767 / major_bleeding | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | COUNTS / ON_TREATMENT / UNKNOWN | {"events_t": 395, "n_t": 7111, "events_c": 386, "n_c": 7125} |
+| F039 | NCT00262600 / stroke_se | FDA:RELY_FDA2010_Table4_stroke_SE.tables.txt | EFFECT / UNKNOWN / STROKE_OR_SYSTEMIC_EMBOLISM | {"effect": "0.65", "lower": "0.52", "upper": "0.81"} |
+| F040 | NCT00262600 / stroke_se | FDA:RELY_FDA2010_Table4_stroke_SE.tables.txt | COUNTS / UNKNOWN / STROKE_OR_SYSTEMIC_EMBOLISM | {"events_t": 134, "n_t": 6076, "events_c": 202, "n_c": 6022} |
+| F041 | NCT00403767 / major_bleeding | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | EFFECT / ON_TREATMENT / UNKNOWN | {"effect": "1.04", "lower": "0.90", "upper": "1.20"} |
+| F042 | NCT00403767 / major_bleeding | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | COUNTS / ON_TREATMENT / UNKNOWN | {"events_t": 395, "n_t": 7111, "events_c": 386, "n_c": 7125} |
 
 ## Same-trials result vs COMBINE AF (AACT-first inputs, two-source rule)
 
@@ -88,17 +90,17 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
 
 | outcome | k | ours, random effects | verdict | ours, fixed effect | verdict | comparator | inputs two-source | population matches comparator |
 |---|---|---|---|---|---|---|---|---|
-| stroke_se | 4 | 0.804 (0.652-0.992) | AGREE | 0.815 (0.746-0.890) | AGREE | 0.81 (0.74-0.89) | 1 of 4 | 4 of 4 |
+| stroke_se | 4 | 0.804 (0.652-0.992) | AGREE | 0.815 (0.746-0.890) | AGREE | 0.81 (0.74-0.89) | 2 of 4 | 4 of 4 |
 | major_bleeding | 4 | 0.854 (0.644-1.134) | AGREE | 0.853 (0.796-0.914) | DIFFERENT_CONCLUSION | 0.86 (0.74-1.01) | 3 of 4 | 3 of 4 |
 
 | outcome | trial | fact | source | population | CI level (95% used) | values | route |
 |---|---|---|---|---|---|---|---|
-| stroke_se | RE-LY | F002 | AACT | ITT | 95 | {"effect": "0.65", "lower": "0.52", "upper": "0.81"} | SINGLE_SOURCE |
+| stroke_se | RE-LY | F002 | AACT | ITT | 95 | {"effect": "0.65", "lower": "0.52", "upper": "0.81"} | TWO_SOURCE_VERIFIED |
 | stroke_se | ROCKET AF | F029 | PUBMED:21830957 | ITT | 95 | {"effect": "0.88", "lower": "0.74", "upper": "1.03"} | SINGLE_SOURCE |
 | stroke_se | ARISTOTLE | F006 | AACT | ITT | 95 | {"effect": "0.79", "lower": "0.66", "upper": "0.95"} | TWO_SOURCE_VERIFIED |
 | stroke_se | ENGAGE AF-TIMI 48 | F019 | AACT | ITT | 99 -> 0.744-1.017 | {"effect": "0.87", "lower": "0.709", "upper": "1.068"} | SINGLE_SOURCE |
 | major_bleeding | RE-LY | F004 | AACT | ITT | 95 | {"effect": "0.93", "lower": "0.81", "upper": "1.07"} | TWO_SOURCE_VERIFIED |
-| major_bleeding | ROCKET AF | F039 | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | ON_TREATMENT | 95 | {"effect": "1.04", "lower": "0.90", "upper": "1.20"} | SINGLE_SOURCE |
+| major_bleeding | ROCKET AF | F041 | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | ON_TREATMENT | 95 | {"effect": "1.04", "lower": "0.90", "upper": "1.20"} | SINGLE_SOURCE |
 | major_bleeding | ARISTOTLE | F009 | AACT | ON_TREATMENT | 95 | {"effect": "0.69", "lower": "0.6", "upper": "0.8"} | TWO_SOURCE_VERIFIED |
 | major_bleeding | ENGAGE AF-TIMI 48 | F021 | AACT | ON_TREATMENT | 95 | {"effect": "0.8", "lower": "0.707", "upper": "0.914"} | TWO_SOURCE_VERIFIED |
 
@@ -110,7 +112,7 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
   "admissible_to_verified_pool": false,
   "inputs": [
     "F037",
-    "F039",
+    "F041",
     "F033",
     "F036"
   ],
@@ -226,23 +228,23 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
   },
   "routes": {
     "TWO_SOURCE_VERIFIED": {
-      "n": 5,
+      "n": 6,
       "N": 8,
-      "n_of_N": "5 of 8",
+      "n_of_N": "6 of 8",
       "items": [
         "ARISTOTLE/major_bleeding",
         "ARISTOTLE/stroke_se",
         "ENGAGE AF-TIMI 48/major_bleeding",
         "ENGAGE AF-TIMI 48/stroke_se",
+        "RE-LY/stroke_se",
         "ROCKET AF/stroke_se"
       ]
     },
     "SINGLE_SOURCE": {
-      "n": 2,
+      "n": 1,
       "N": 8,
-      "n_of_N": "2 of 8",
+      "n_of_N": "1 of 8",
       "items": [
-        "RE-LY/stroke_se",
         "ROCKET AF/major_bleeding"
       ]
     },
@@ -433,9 +435,9 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
     ]
   },
   "population_refusals": {
-    "n": 16,
-    "N": 19,
-    "n_of_N": "16 of 19",
+    "n": 18,
+    "N": 21,
+    "n_of_N": "18 of 21",
     "items": [
       "ARISTOTLE/major_bleeding:F009/F033",
       "ARISTOTLE/stroke_se:F006/F032",
@@ -450,15 +452,17 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
       "ENGAGE AF-TIMI 48/stroke_se:F019/F034",
       "RE-LY/major_bleeding:F004/F037",
       "RE-LY/stroke_se:F002/F026",
+      "RE-LY/stroke_se:F002/F039",
+      "RE-LY/stroke_se:F026/F039",
       "ROCKET AF/stroke_se:F023/F029",
       "ROCKET AF/stroke_se:F025/F028",
       "ROCKET AF/stroke_se:F025/F029"
     ]
   },
   "timepoint_refusals": {
-    "n": 19,
-    "N": 19,
-    "n_of_N": "19 of 19",
+    "n": 21,
+    "N": 21,
+    "n_of_N": "21 of 21",
     "items": [
       "ARISTOTLE/major_bleeding:F009/F033",
       "ARISTOTLE/stroke_se:F006/F032",
@@ -475,6 +479,8 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
       "ENGAGE AF-TIMI 48/stroke_se:F019/F035",
       "RE-LY/major_bleeding:F004/F037",
       "RE-LY/stroke_se:F002/F026",
+      "RE-LY/stroke_se:F002/F039",
+      "RE-LY/stroke_se:F026/F039",
       "ROCKET AF/stroke_se:F023/F028",
       "ROCKET AF/stroke_se:F023/F029",
       "ROCKET AF/stroke_se:F025/F028",
@@ -483,8 +489,8 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
   },
   "definition_refusals": {
     "n": 3,
-    "N": 19,
-    "n_of_N": "3 of 19",
+    "N": 21,
+    "n_of_N": "3 of 21",
     "items": [
       "ARISTOTLE/major_bleeding:F009/F033",
       "ENGAGE AF-TIMI 48/major_bleeding:F021/F036",
@@ -493,19 +499,20 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
   },
   "ci_percent_refusals": {
     "n": 2,
-    "N": 19,
-    "n_of_N": "2 of 19",
+    "N": 21,
+    "n_of_N": "2 of 21",
     "items": [
       "ENGAGE AF-TIMI 48/stroke_se:F019/F034",
       "ENGAGE AF-TIMI 48/stroke_se:F019/F035"
     ]
   },
   "measure_refusals": {
-    "n": 1,
-    "N": 19,
-    "n_of_N": "1 of 19",
+    "n": 2,
+    "N": 21,
+    "n_of_N": "2 of 21",
     "items": [
-      "RE-LY/stroke_se:F002/F026"
+      "RE-LY/stroke_se:F002/F026",
+      "RE-LY/stroke_se:F026/F039"
     ]
   },
   "outcome_binding_refusals": {
@@ -655,8 +662,8 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
   },
   "comparator_only_excluded_from_primary_verification": {
     "n": 2,
-    "N": 24,
-    "n_of_N": "2 of 24",
+    "N": 25,
+    "n_of_N": "2 of 25",
     "items": [
       "COMBINE_AF/major_bleeding",
       "COMBINE_AF/stroke_se"
@@ -800,7 +807,6 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
       "tier": "SINGLE_SOURCE_DIAGNOSTIC_NOT_VERIFIED",
       "state": "INCOMPLETE",
       "missing": [
-        "RE-LY",
         "ARISTOTLE"
       ],
       "combinations": []
@@ -814,7 +820,7 @@ COMBINE AF prints no per-trial rows; its trial set is these four trials, so the 
         {
           "facts": [
             "F038",
-            "F040",
+            "F042",
             "F007",
             "F020"
           ],

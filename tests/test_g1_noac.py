@@ -363,24 +363,40 @@ def test_same_trials_verdict_is_the_trackers_rule():
         assert r['verdict_random_effects'] == want
 
 
-def test_tracker_no_trial_rows_branch_plants():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location('g1_tracker_for_test2', ROOT / 'scripts' / 'g1_tracker.py')
-    trk = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(trk)
-    trials = [{'in_our_pool': True, 'comparator_row': None} for _ in range(4)]
-    ours = {'k': 4, 'estimate': 0.8069, 'ci_low': 0.6611, 'ci_high': 0.985, 'scale': 'HR'}
-    theirs = {'estimate': 0.81, 'ci_low': 0.74, 'ci_high': 0.89, 'scale': 'HR'}
-    r = trk.no_trial_rows_result(trials, ours, theirs)
-    assert r['state'] == 'COMPARATOR_PRINTS_NO_TRIAL_ROWS' and r['verdict']['verdict'] == 'AGREE'
-    # plants: a missing trial, a printed row, a k mismatch or a measure mismatch never yields this comparison
-    assert trk.no_trial_rows_result([dict(trials[0], in_our_pool=False)] + trials[1:], ours, theirs) is None
-    assert trk.no_trial_rows_result([dict(trials[0], comparator_row={'effect': '0.8'})] + trials[1:], ours, theirs) is None
-    assert trk.no_trial_rows_result(trials, dict(ours, k=3), theirs) is None
-    assert trk.no_trial_rows_result(trials, ours, dict(theirs, scale='RR'))['state'] == 'MEASURE_DIFFERS'
+def test_tracker_file_is_g1_matched_by_the_kgap_converter():
+    """The committed tracker file is written by the k-gap lane's own converter (from_g1_noac): every comparator trial's
+    route comes from this lane's two-source verdict; nothing comparator-only counts."""
     d = lane.read_json(ROOT / 'outputs/k_gap/g1/noac-vs-warfarin-af-stroke.json')
     assert d['k_matched'] == d['N_comparator_trials'] == 4
-    assert d['same_trials_no_trial_rows']['verdict']['verdict'] == 'AGREE'
+    assert d['routes'] == {'PRIMARY': 4}
+    assert all('TWO_SOURCE_VERIFIED' in t['basis'] for t in d['trials'])
+    assert d['g1_status']['state'] == 'G1_MATCHED' and d['g1_status']['unmet'] == []
+    src = lane.read_json(ROOT / 'outputs/g1_noac/g1_noac.json')
+    import hashlib
+    assert d['lane_source']['sha256'] == hashlib.sha256((ROOT / 'outputs/g1_noac/g1_noac.json').read_bytes()).hexdigest()
+    rows = {r['nct']: r for r in src['rows'] if r['outcome'] == 'stroke_se'}
+    assert all(r['route']['state'] == 'TWO_SOURCE_VERIFIED' for r in rows.values())
+
+
+def test_rely_two_source_is_aact_plus_fda_label_and_standard_dose_only():
+    d = lane.read_json(ROOT / 'outputs/g1_noac/g1_noac.json')
+    fid = {f['fact_id']: f for f in d['facts']}
+    row = next(r for r in d['rows'] if r['item'] == 'RE-LY/stroke_se')
+    pair = row['effect_route']['verified_facts'][0]
+    assert sorted(fid[x]['source_id'].split(':')[0] for x in pair) == ['AACT', 'FDA']
+    fda = next(fid[x] for x in pair if fid[x]['source_id'].startswith('FDA'))
+    assert fda['values'] == {'effect': '0.65', 'lower': '0.52', 'upper': '0.81'} and fda['arm_column'].startswith('PRADAXA 150 mg')
+    assert fda['population'] == 'UNKNOWN'   # the label says 'Patients randomized', never ITT: silent, not assumed
+    # plant: the 110 mg column (HR 0.90) can never fill the standard-dose slot
+    path = ROOT / 'evidence/acquisition_cascade/excerpts/RELY_FDA2010_Table4_stroke_SE.tables.txt'
+    text = path.read_text(encoding='utf-8')
+    body = text.split('=== TABLES (excerpt) ===')[-1]
+    ident = {'nct': 'NCT00262600', 'label': 'RE-LY'}
+    swapped = body.replace('PRADAXA 150 mg twice daily | PRADAXA 110 mg', 'PRADAXA 110 mg twice daily | PRADAXA 150 mg')
+    f = lane.fda_stroke_facts(ROOT, path, text, swapped, ident)[0]
+    assert f['values']['effect'] == '0.90' and '150 mg' in f['arm_column']   # follows the HEADER, not the position
+    with pytest.raises(ValueError, match='ARM_COLUMNS_NOT_UNIQUE'):
+        lane.fda_stroke_facts(ROOT, path, text, body.replace('110 mg', '150 mg'), ident)
 
 
 def test_rocket_identity_from_its_own_registration_sentence():
