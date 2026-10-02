@@ -35,6 +35,10 @@ REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "exclusion_audit")
 RUNS = os.path.join(OUT, "exclusion_fulltext_runs.json")
 MODEL, EFFORT = "gpt-6-astra", "medium"
 FT_CAP = 60000          # the held text is this prefix of the full text; the reader and the verifier see the SAME bytes
+# the fact each abstract-only exclusion lacked, as the full text states it (a verbatim span of THIS study's design)
+_MISSING_FACT = {"X-DESIGN": ea.re.compile(r"\b(?:this|the)\s+(?:study|trial)\s+was\s+an?\s+(?:[\w-]+,?\s+){0,4}?"
+                                           r"double[- ]blind", ea.re.I),
+                 "X1": ea.re.compile(r"\b(?:this|the)\s+(?:study|trial)\s+was\s+an?\s+(?:[\w-]+,?\s+){0,4}?randomi[sz]ed", ea.re.I)}
 
 
 def _j(p):
@@ -127,6 +131,15 @@ def main(argv):
             # abstract the record pass already read): no full-text evidence, so the item stays insufficient and goes on
             # to the reader -- never a scope class without its span (NR-C21)
             cls = "INSUFFICIENT_RECORD"
+        if cls == "INCONSISTENT" and sub.startswith("RULESET_INCLUDES") and it["rule_id"] in _MISSING_FACT:
+            # with the full text our OWN ruleset includes the record: the abstract lacked a fact the rule needed and the
+            # full text states it -- a screener error of an abstract-only screen, with the full text's words as span
+            # (sacubitril PARALLEL-HF 33731544: 'the study was a multicenter, randomized, double-blind study ...')
+            fsp = ea.span_of({"abstract": it["fulltext"]}, _MISSING_FACT[it["rule_id"]], ("abstract",))
+            if fsp and fsp["text"] in it["fulltext"]:
+                cls, sub, det = ("SCREENER_ERROR", f"ELIGIBLE_ON_FULL_TEXT ({it['rule_id']}: the fact the abstract lacked "
+                                 f"is stated in the held full text)", dict(det or {}, span=fsp))
+                sp = fsp
         if cls != "INSUFFICIENT_RECORD":
             # the span must be the FULL TEXT's own words (verbatim in the held body), not a line of the abstract
             # the full text was appended to -- else it is a record span and the record pass would have found it
