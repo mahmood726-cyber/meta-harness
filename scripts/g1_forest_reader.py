@@ -858,6 +858,8 @@ def items(slugs, run):
         fig, why = figure_for(slug, pmid)
         if not fig:
             skipped[slug] = {"pmid": pmid, "why": why}
+            if why == "NO_JATS" and not pmcid_of(pmid):
+                skipped[slug]["open_access"] = oa_probe(slug, pmid, run)
             continue
         pmcid = pmcid_of(pmid)
         if not pmcid:
@@ -875,6 +877,39 @@ def items(slugs, run):
                     "image_sha256": hashlib.sha256(b).hexdigest(), "image_url": (meta or {}).get("url"),
                     "image_via": (meta or {}).get("via") or "PMC OA bucket (pmc-oa-opendata)"})
     return out, skipped
+
+
+def oa_probe(slug, pmid, run):
+    """A comparator with no PMC full text: is it open anywhere? Unpaywall's best OA location, and ONE plain request for
+    its PDF. A bot challenge (403 HTML) is recorded as such and never worked around. Cached; offline reads the cache."""
+    p = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_oa_probe.json")
+    if os.path.exists(p):
+        return _j(p)
+    if not run:
+        return None
+    from harness import http
+    c = _j(os.path.join(ROOT, "cache", slug, "comparators.json"))[0]
+    m = re.search(r"DOI (\S+?);", (c.get("citation") or "") + ";")
+    if not m:
+        return None
+    try:
+        st, b = http.get_raw(f"https://api.unpaywall.org/v2/{m.group(1)}", {"email": "meta-harness@example.org"}, tries=2)
+        d = json.loads(b.decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        return {"doi": m.group(1), "state": f"UNPAYWALL_FAILED:{type(exc).__name__}"}
+    best = d.get("best_oa_location") or {}
+    out = {"doi": m.group(1), "is_oa": d.get("is_oa"), "oa_status": d.get("oa_status"), "license": best.get("license"),
+           "host_type": best.get("host_type"), "url": best.get("url_for_pdf") or best.get("url_for_landing_page")}
+    if out["url"]:
+        try:
+            st2, b2 = http.get_raw(out["url"], tries=1, timeout=60)
+            out["fetch"] = "PDF" if b2[:4] == b"%PDF" else f"NOT_A_PDF (HTTP {st2})"
+        except Exception as exc:  # noqa: BLE001 - a 403 bot challenge lands here
+            out["fetch"] = f"REFUSED_BY_HOST ({str(exc)[:60]}): a bot challenge is not solved"
+    out["state"] = ("OPEN_BUT_NOT_SCRIPT_READABLE" if out.get("is_oa") and out.get("fetch") != "PDF" else
+                    "OPEN_PDF" if out.get("fetch") == "PDF" else "NOT_OPEN")
+    _save(p, out)
+    return out
 
 
 def _key(it, reader):
@@ -956,7 +991,10 @@ def report(out):
     md += ["", "## Not read (typed reason)", ""]
     for s in sorted(sk):
         x = sk[s]
-        md.append(f"- {s}: " + (f"PMID {x.get('pmid')}: {x.get('why')}" if isinstance(x, dict) else str(x)))
+        oa = (x.get("open_access") or {}) if isinstance(x, dict) else {}
+        md.append(f"- {s}: " + (f"PMID {x.get('pmid')}: {x.get('why')}" if isinstance(x, dict) else str(x)) +
+                  (f" -- no PMC full text; {oa.get('state')} ({oa.get('oa_status')}, {oa.get('url')}: {oa.get('fetch')})"
+                   if oa else ""))
     md += ["", "## Disagreements (both readings shown)", ""]
     for s in sorted(res):
         for r in res[s].get("refused_rows") or []:

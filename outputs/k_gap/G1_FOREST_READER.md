@@ -21,14 +21,14 @@ Two model families read each comparator forest figure (codex `gpt-6-astra`; agy 
 
 ## Not read (typed reason)
 
-- colchicine-recurrent-pericarditis: PMID 22442198: NO_JATS
-- corticosteroids-cap-mortality: PMID 38128217: NO_JATS
-- doac-vte-recurrence: PMID 24963045: NO_JATS
+- colchicine-recurrent-pericarditis: PMID 22442198: NO_JATS -- no PMC full text; OPEN_BUT_NOT_SCRIPT_READABLE (bronze, https://heart.bmj.com/content/heartjnl/98/14/1078.full.pdf: REFUSED_BY_HOST (GET failed after 1 tries: https://heart.bmj.com/content/hear): a bot challenge is not solved)
+- corticosteroids-cap-mortality: PMID 38128217: NO_JATS -- no PMC full text; OPEN_BUT_NOT_SCRIPT_READABLE (hybrid, https://doi.org/10.1016/j.jcrc.2023.154507: NOT_A_PDF (HTTP 200))
+- doac-vte-recurrence: PMID 24963045: NO_JATS -- no PMC full text; OPEN_BUT_NOT_SCRIPT_READABLE (bronze, https://ashpublications.org/blood/article-pdf/124/12/1968/1379490/1968.pdf: REFUSED_BY_HOST (GET failed after 1 tries: https://ashpublications.org/blood/): a bot challenge is not solved)
 - dpp4-mace-t2d: PMID 34754403: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel
 - sacubitril-valsartan-hfref: PMID 36722326: REFUSED_BEFORE_READING:NETWORK_META_ANALYSIS_FIGURE: rows are treatments (network estimates), not trials
 - sglt2-ckd-progression: PMID 41203232: REFUSED_BEFORE_READING:NO_PER_TRIAL_TOPIC_FIGURE: the comparator's figures are CKD-progression / eGFR outcomes by baseline eGFR or UACR SUBGROUP, not per-trial rows of the trial-defined cardiorenal composite
 
 ## Disagreements (both readings shown)
 
-- colchicine-secondary-cv-prevention / Newton N–2019 / Mewton N-2019: LABEL_DISAGREES; codex {"label": "Newton N–2019", "effect": "0.90", "lower": "0.27", "upper": "3.01", "weight_pct": "6.5%", "events_t": "5", "n_t": "101", "events_c": "5", "n_c": "91"}; agy {"label": "Mewton N-2019", "effect": "0.90", "lower": "0.27", "upper": "3.01", "weight_pct": "6.5%", "events_t": "5", "n_t": "101", "events_c": "5", "n_c": "91"}
-- metformin-pcos-ovulation / Hemmings? / Heathcote 2013: LABEL_DISAGREES; codex {"label": "Hemmings?", "effect": "1.33", "lower": "0.24", "upper": "7.56", "weight_pct": "1.6", "events_t": "10", "n_t": "13", "events_c": "10", "n_c": "14"}; agy {"label": "Heathcote 2013", "effect": "1.33", "lower": "0.24", "upper": "7.56", "weight_pct": "1.6 %", "events_t": "10", "n_t": "13", "events_c": "10", "n_c": "14"}
+- colchicine-secondary-cv-prevention / Newton N–2019 / Mewton N-2019: LABEL_DISAGREES; codex {"effect": "0.90", "events_c": "5", "events_t": "5", "label": "Newton N–2019", "lower": "0.27", "n_c": "91", "n_t": "101", "upper": "3.01", "weight_pct": "6.5%"}; agy {"effect": "0.90", "events_c": "5", "events_t": "5", "label": "Mewton N-2019", "lower": "0.27", "n_c": "91", "n_t": "101", "upper": "3.01", "weight_pct": "6.5%"}
+- metformin-pcos-ovulation / Hemmings? / Heathcote 2013: LABEL_DISAGREES; codex {"effect": "1.33", "events_c": "10", "events_t": "10", "label": "Hemmings?", "lower": "0.24", "n_c": "14", "n_t": "13", "upper": "7.56", "weight_pct": "1.6"}; agy {"effect": "1.33", "events_c": "10", "events_t": "10", "label": "Heathcote 2013", "lower": "0.24", "n_c": "14", "n_t": "13", "upper": "7.56", "weight_pct": "1.6 %"}
