@@ -50,6 +50,8 @@ OTHER_COMP = re.compile(r"\b(?:usual care|standard (?:of )?care|standard therapy
 OBSERVATIONAL = re.compile(r"\bassociation of\b|\bcohort\b|\bobservational\b|\bretrospective\b|\bregistry\b|"
                            r"\bcase series\b|\bcross-sectional\b|population-based|case-control|nationwide", re.I)
 ORDER = ("SCREENER_ERROR", "INSUFFICIENT_RECORD", "TRUE_SCOPE_DIFFERENCE", "INCONSISTENT")
+# a title marker naming a RESULTS report of a randomised trial (not a design / protocol paper)
+RESULTS_REPORT_MARKER = re.compile(r"sub-?study|secondary analysis|post[-\s]?hoc", re.I)
 
 
 def _j(p):
@@ -66,7 +68,29 @@ def population():
              "NOT_IN_SCREEN"]
     pinned = {}
     out = []
+    served_screen = {}
     for r in T["trials"]:
+        if r["gap_class"] == "SCREEN_OR_ELIGIBILITY" and r["drug"] != "OTHER_AGENT":
+            # a comparator trial OUR OWN screen saw and excluded (not seeded): the same claim -- 'a published comparator
+            # included something our protocol should not' -- so the same audit gates it (g1_tracker gives it the same
+            # funnel record; until 2026-10-02 the audit never saw these: colchicine-postop-af's 6 exclusions all sat
+            # SCREENED_OUT_UNAUDITED). Record = the topic's held record; rule = the served screening ledger's.
+            if r["slug"] not in served_screen:
+                rv = os.path.join(ROOT, "docs", "reviews", r["slug"], "review.json")
+                served_screen[r["slug"]] = ({str(x.get("id")): x for x in (_j(rv).get("screening") or {}).get("records", [])}
+                                            if os.path.exists(rv) else {})
+            if r["slug"] not in pinned:
+                rp = os.path.join(ROOT, "cache", r["slug"], "records.json")
+                rj = _j(rp) if os.path.exists(rp) else {}
+                pinned[r["slug"]] = {str(x.get("id")): x for x in rj.get("records", []) + rj.get("ctgov", [])}
+            for p in (r.get("cited_pmids") or r.get("pmids") or []):
+                s = served_screen[r["slug"]].get(str(p))
+                if s and s.get("decision") == "exclude":
+                    out.append({"slug": r["slug"], "label": r["label"], "pmid": str(p),
+                                "rec": pinned[r["slug"]].get(str(p)) or mrec.get(str(p)), "stage": "SCREENED_OUT",
+                                "recorded_rule": s.get("rule_id"), "origin": "OUR_SCREEN"})
+                    break
+            continue
         if r["gap_class"] != "IDENTIFICATION" or r["unit_source"] == "REFERENCE_SEED" or r["drug"] == "OTHER_AGENT":
             continue
         seeds = r["cited_pmids"] if set(r.get("cited_pmids") or []) & set(r["pmids"]) else r["pmids"]
@@ -172,6 +196,18 @@ def classify(rec, cfg):
     if OBSERVATIONAL.search((rec.get("title") or "") + " " + ab) and not RANDOMISED_HERE.search((rec.get("title") or "") + " " + ab):
         return "TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)", base
     if rule == "X1":
+        from harness import screen as _screen
+        mark = _screen._TITLE_RCT_NOT.search(rec.get("title") or "")
+        pts = [p.lower() for p in rec.get("pubtypes") or []]
+        if mark and any("randomized controlled trial" in p for p in pts) and (RANDOMISED_HERE.search(ab)
+                                                                              or _screen._body_says_rct(rec)):
+            # the X1 came from a TITLE marker on a record PubMed types as an RCT and whose abstract says THIS study was
+            # randomised. A design / protocol paper is legitimately not a results report; a substudy / secondary /
+            # post-hoc report IS a randomised report of a trial -- 'not a randomized controlled trial' misstates it
+            # (colchicine-postop-af 22090167, the COPPS POAF substudy; the recorded adjudicator already disagreed).
+            if RESULTS_REPORT_MARKER.search(mark.group(0)):
+                return "SCREENER_ERROR", f"SECONDARY_REPORT_OF_RCT:'{mark.group(0)}' (route to its trial family)", base
+            return "TRUE_SCOPE_DIFFERENCE", f"DESIGN_OR_PROTOCOL_PAPER_STATED:'{mark.group(0)}'", base
         return (("TRUE_SCOPE_DIFFERENCE", "NOT_RANDOMISED_STATED", base) if re.search(r"non-?randomi[sz]ed", ab, re.I)
                 else ("INSUFFICIENT_RECORD", "DESIGN_NOT_ESTABLISHED_BY_RECORD", base))
     if rule == "X-DESIGN":
