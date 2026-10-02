@@ -335,6 +335,65 @@ def sweep_merge(slug, trials, routes=None, pairs=None):
     return got
 
 
+_COUNT_KEYS = ("deaths_t", "n_t", "deaths_c", "n_c")
+
+
+def single_primary_source(x):
+    """2 Oct decision (restated 3 Oct): a typed tuple bound to ONE PRIMARY source (the trial's own open text, or its
+    posted CT.gov results) is PRIMARY-verified; the two-source rule is for SECONDARY sources (metas) only. A lane row
+    held at g1_state ONE_SOURCE with a single primary source qualifies only through the SAME typed requirements:
+      TEXT  every count is printed verbatim (as a whole number) in the quoted span of the trial's own report
+      AACT  counts are posted participant counts, never derived from a posted percentage ('84% of 49 -> 8 deaths' is a
+            reconstruction: refused, as the registry rung refuses EXAMINE's 11.3%) and from ONE time frame
+    Returns (True, basis) or (False, why)."""
+    rd = x.get("readings") or []
+    if x.get("g1_state") != "ONE_SOURCE" or len(rd) != 1:
+        return False, "NOT_A_SINGLE_SOURCE_ROW"
+    r = rd[0]
+    vals = r.get("values") or {}
+    if not all(isinstance(vals.get(k), int) for k in _COUNT_KEYS):
+        return False, "COUNTS_NOT_TYPED"
+    srcs = r.get("sources") or []
+    kinds = {str(s.get("source") or "").split()[0] for s in srcs}
+    if kinds == {"TEXT"}:
+        import re as _re
+        for s in srcs:
+            span = s.get("span") or ""
+            if not all(_re.search(rf"(?<![\d.,]){v:,}(?![\d])|(?<![\d.,]){v}(?![\d])", span) for v in (vals[k] for k in _COUNT_KEYS)):
+                return False, "COUNTS_NOT_IN_SPAN"
+        return True, f"single PRIMARY source: trial's own text, counts verbatim in span ({srcs[0].get('source')})"
+    if kinds == {"AACT"}:
+        for s in srcs:
+            if "%" in str(s.get("derivation") or ""):
+                return False, "AACT_COUNTS_DERIVED_FROM_PERCENTAGE"
+            if "," in str(s.get("time_frame") or "") or " and " in str(s.get("time_frame") or ""):
+                return False, "AACT_MULTIPLE_TIME_FRAMES"
+        return True, "single PRIMARY source: posted CT.gov participant counts (AACT)"
+    return False, f"SOURCE_KINDS_{sorted(kinds)}"
+
+
+def apply_single_primary(o):
+    """Reclassify a lane's ONE_SOURCE rows whose single source is PRIMARY and typed (single_primary_source): route
+    PRIMARY, countable. Every row examined records the decision (primary_single_source)."""
+    flipped = []
+    for x in o.get("trials") or []:
+        if x.get("route") != "UNVERIFIED" or x.get("g1_state") != "ONE_SOURCE":
+            continue
+        ok, why = single_primary_source(x)
+        x["primary_single_source"] = {"admitted": ok, "why": why}
+        if ok:
+            x.update(route="PRIMARY", g1_countable=True, basis=why, reclassified_by="acq/k-gap single_primary_source")
+            flipped.append(x["label"])
+    if flipped:
+        tr = o["trials"]
+        o["routes"] = dict(Counter(x["route"] for x in tr))
+        o["k_matched"] = sum(1 for x in tr if is_matched(x))
+        o["k_matched_of_comparator_N"] = f"{o['k_matched']} of {len(tr)}"
+        o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g not in flipped]
+        o["single_primary_reclassified"] = flipped
+    return flipped
+
+
 def apply_sweep(o, slug):
     """sweep_merge for an already-built tracker object (a lane's imported file): counts, gaps and blockers recomputed;
     its same-trials result is NOT recomputed here (recorded as such)."""
