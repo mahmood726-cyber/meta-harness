@@ -101,6 +101,28 @@ TARGETS: dict = {
                               "refuse": "NO_PER_TRIAL_TOPIC_FIGURE: the comparator's figures are CKD-progression / eGFR "
                                         "outcomes by baseline eGFR or UACR SUBGROUP, not per-trial rows of the "
                                         "trial-defined cardiorenal composite"},
+    "dapagliflozin-hfpef-hosp": {"fig_id": "fig1", "caption_has": "Risk of composite cardiovascular outcomes of "
+                                                                  "CVD/HHF in patients with HFpEF"},
+    "empagliflozin-hfpef-hosp": {"fig_id": "F2", "caption_has": "Primary composite outcome (composite of first HFH or "
+                                                                "cardiovascular death)"},
+    "esketamine-trd-madrs": {"fig_id": "f4", "caption_has": "Acute induction: MADRS change from baseline to day 28"},
+    "statins-primary-prevention-elderly": {
+        "fig_id": "S3.F2", "caption_has": "Forrest plots for the primary outcomes",
+        "instruction": "The figure has several primary outcomes. Transcribe ONLY the block for the composite of major "
+                       "cardiovascular / vascular events (MACE / major vascular events): its study rows and its own "
+                       "pooled row. If there is no such composite block, set legible=false and say so in notes."},
+    # the topic population is LVEF <= 40%: the comparator prints that pool ONLY as panel (A)'s subgroup (its own text:
+    # 'LVEF <=40% (n = 9199, HR: 0.74, 95% CI: 0.68, 0.81)'); figure 1 is all patients, mixed LVEF
+    "sglt2-hfref-hosp-cvdeath": {
+        "fig_id": "ehf213805-fig-0002", "caption_has": "stratified by (A) LVEF at baseline", "panel": "A",
+        "panel_title": "LVEF <= 40% subgroup of panel (A)",
+        "instruction": "Transcribe ONLY panel (A) (stratified by LVEF at baseline), and within it ONLY the subgroup of "
+                       "patients with LVEF <= 40% (reduced ejection fraction): its study rows, and its SUBTOTAL row as the "
+                       "pooled row. effect/lower/upper come only from the 'Hazard Ratio ... 95% CI' column, never from "
+                       "log[Hazard Ratio] or SE. Ignore the LVEF > 40% subgroup, any overall row, and panel (B)."},
+    "denosumab-vertebral-fracture": {"fig_id": "fig4", "caption_has": "direct and indirect results of vertebral fractures",
+                                     "refuse": "NETWORK_META_ANALYSIS_FIGURE: direct and indirect head-to-head estimates "
+                                               "(treatments), not trial rows"},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
@@ -241,7 +263,8 @@ def figure_for(slug, pmid):
     jp = jats_path(pmid)
     if not jp:
         return None, "NO_JATS"
-    t = TARGETS.get(slug)
+    # a TARGETS entry keyed by the slug names the COMPARATOR's figure; another meta's is keyed '<slug>::<pmid>'
+    t = TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if pmid == comparator_of(slug) else None)
     if t:
         for f in ET.parse(jp).getroot().iter("fig"):
             if f.get("id") != t["fig_id"]:
@@ -844,14 +867,24 @@ def comparator_of(slug):
     return m.group(1) if m else str(c.get("id"))
 
 
-def items(slugs, run):
+def key_of(slug, pmid):
+    """Results key: the slug for the topic's COMPARATOR (unchanged interface, read by g1_tracker), '<slug>::<pmid>' for
+    any other meta of the topic."""
+    return slug if pmid == comparator_of(slug) else f"{slug}::{pmid}"
+
+
+def items(slugs, run, pairs=None):
+    """slugs -> each topic's comparator; pairs [(slug, pmid)] -> those metas (the two-source sweep's selection)."""
     out, skipped = [], {}
+    todo = list(pairs or [])
     for slug in slugs:
         try:
-            pmid = comparator_of(slug)
+            todo.append((slug, comparator_of(slug)))
         except Exception as exc:  # noqa: BLE001
             skipped[slug] = f"NO_COMPARATOR:{type(exc).__name__}"
-            continue
+    for slug, pmid in todo:
+        key = key_of(slug, pmid)
+        role = "comparator" if key == slug else "meta"
         if run and not jats_path(pmid):
             from kgap import k_gap
             k_gap.fetch_comparator_jats(pmid, FETCH_DATE)
@@ -859,26 +892,87 @@ def items(slugs, run):
                 pmc_page_jats(pmid, pmcid_of(pmid))
         fig, why = figure_for(slug, pmid)
         if not fig:
-            skipped[slug] = {"pmid": pmid, "why": why}
-            if why == "NO_JATS" and not pmcid_of(pmid):
-                skipped[slug]["open_access"] = oa_probe(slug, pmid, run)
+            skipped[key] = {"pmid": pmid, "why": why, "role": role, "slug": slug}
+            if why == "NO_JATS" and not pmcid_of(pmid) and role == "comparator":
+                skipped[key]["open_access"] = oa_probe(slug, pmid, run)
             continue
         pmcid = pmcid_of(pmid)
         if not pmcid:
-            skipped[slug] = {"pmid": pmid, "why": "NO_PMCID", "figure": fig["fig_id"]}
+            skipped[key] = {"pmid": pmid, "why": "NO_PMCID", "figure": fig["fig_id"], "role": role, "slug": slug}
             continue
         ip, meta = acquire_image(pmid, pmcid, fig["href"]) if run else cached_image(pmid, fig["href"])
         if not ip:
-            skipped[slug] = {"pmid": pmid, "why": (meta or {}).get("why", "IMAGE_NOT_HELD"), "figure": fig["fig_id"]}
+            skipped[key] = {"pmid": pmid, "why": (meta or {}).get("why", "IMAGE_NOT_HELD"), "figure": fig["fig_id"],
+                            "role": role, "slug": slug}
             continue
         with open(ip, "rb") as fh:
             b = fh.read()
         fig = dict(fig, image_name=os.path.basename(ip))
-        out.append({"slug": slug, "pmid": pmid, "pmcid": pmcid, "figure": fig, "image_path": ip,
-                    "image_ref": os.path.relpath(ip, ROOT).replace(os.sep, "/"),
+        out.append({"slug": slug, "pmid": pmid, "pmcid": pmcid, "key": key, "role": role, "figure": fig,
+                    "image_path": ip, "image_ref": os.path.relpath(ip, ROOT).replace(os.sep, "/"),
                     "image_sha256": hashlib.sha256(b).hexdigest(), "image_url": (meta or {}).get("url"),
                     "image_via": (meta or {}).get("via") or "PMC OA bucket (pmc-oa-opendata)"})
     return out, skipped
+
+
+SWEEP = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader_sweep.json")
+
+
+def unmatched_trial_ids(slug):
+    """The comparator trials of a topic that are NOT matched (route neither PRIMARY nor TWO_SOURCE in the tracker), as
+    the PMIDs/NCTs the k-gap table holds for them -- the trials a second meta could supply a two-source row for."""
+    tp = os.path.join(ROOT, "outputs", "k_gap", "g1", f"{slug}.json")
+    if not os.path.exists(tp):
+        return {}
+    tr = _j(tp)
+    open_labels = {x["label"][:60] for x in tr.get("trials") or [] if x.get("route") not in ("PRIMARY", "TWO_SOURCE")}
+    T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
+    return {t["label"][:60]: {str(p) for p in (t.get("pmids") or [])} | {str(n).lower() for n in (t.get("ncts") or [])}
+            for t in T["trials"] if t["slug"] == slug and t["label"][:60] in open_labels}
+
+
+def sweep(slugs, run):
+    """The k-gap lane's two-source sweep (secondary_meta_build.metas_for: the topic's recorded Europe PMC search of
+    open-access full-text metas), restricted DETERMINISTICALLY to the metas worth a dual read: not the comparator (read
+    separately), not already usable by another route (typed table / single read that passed), and CITING -- in its own
+    JATS reference list -- at least one comparator trial we have not matched. Returns [(slug, pmid)] and records why
+    every candidate was or was not selected (registry/model_proposals/g1_forest_reader_sweep.json)."""
+    import secondary_meta_build as smb
+    from kgap import k_gap
+    table = _j(SWEEP) if os.path.exists(SWEEP) else {}
+    pairs = []
+    for slug in slugs:
+        try:
+            metas, comp = smb.metas_for(slug, offline=not run)
+        except Exception as exc:  # noqa: BLE001 - recorded, never fatal
+            table[slug] = {"error": f"{type(exc).__name__}:{str(exc)[:120]}"}
+            continue
+        sp = os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json")
+        usable = {m for m, v in ((_j(sp).get("metas") or {}) if os.path.exists(sp) else {}).items()
+                  if v.get("usable") and v.get("provenance") != "MODEL_PROPOSAL_DUAL"}
+        want = unmatched_trial_ids(slug)
+        rows = {}
+        for pm in metas:
+            if pm == comp:
+                continue
+            if pm in usable:
+                rows[pm] = {"selected": False, "why": "ALREADY_USABLE_BY_ANOTHER_ROUTE"}
+                continue
+            if run and not jats_path(pm):
+                k_gap.fetch_comparator_jats(pm, FETCH_DATE)
+            refs = smb.refs_of(pm)
+            if refs is None:
+                rows[pm] = {"selected": False, "why": "NO_OPEN_JATS_REFERENCE_LIST"}
+                continue
+            refs = {str(r).lower() for r in refs}
+            cites = sorted(lab for lab, ids in want.items() if ids & refs)
+            rows[pm] = {"selected": bool(cites), "cites_unmatched": cites,
+                        "why": "CITES_UNMATCHED_COMPARATOR_TRIALS" if cites else "CITES_NO_UNMATCHED_TRIAL"}
+            if cites:
+                pairs.append((slug, pm))
+        table[slug] = {"comparator": comp, "n_unmatched": len(want), "candidates": rows}
+    _save(SWEEP, table)
+    return pairs
 
 
 def oa_probe(slug, pmid, run):
@@ -928,21 +1022,21 @@ def evaluate(its, runs):
     res = {}
     for it in its:
         ra, rb = runs.get(_key(it, "codex")), runs.get(_key(it, "agy"))
-        base = {"pmid": it["pmid"], "figure": {k: it["figure"].get(k) for k in ("fig_id", "caption", "panel", "selected_by")},
+        base = {"pmid": it["pmid"], "slug": it["slug"], "role": it.get("role", "comparator"), "figure": {k: it["figure"].get(k) for k in ("fig_id", "caption", "panel", "selected_by")},
                 "image": {"ref": it["image_ref"], "sha256": it["image_sha256"], "url": it["image_url"], "via": it["image_via"]}}
         ok = [r for r in (ra, rb) if r and r["state"] == "RAN_OK" and r["image_sha256"] == it["image_sha256"]]
         if len(ok) < 2:
-            res[it["slug"]] = dict(base, state="NO_TWO_RECORDED_READINGS",
+            res[it.get("key", it["slug"])] = dict(base, state="NO_TWO_RECORDED_READINGS",
                                    readings={"codex": ra and {k: ra.get(k) for k in ("record_id", "state", "error")},
                                              "agy": rb and {k: rb.get(k) for k in ("record_id", "state", "error")}})
             continue
         (_, (da, wa)), (_, (db, wb)) = replay_reading(ra), replay_reading(rb)
         if da is None or db is None:
-            res[it["slug"]] = dict(base, state="REFUSED", problems=[f"READING_UNPARSEABLE:codex={wa},agy={wb}"],
+            res[it.get("key", it["slug"])] = dict(base, state="REFUSED", problems=[f"READING_UNPARSEABLE:codex={wa},agy={wb}"],
                                    readings={"codex": ra["record_id"], "agy": rb["record_id"]})
             continue
         v = judge(it, da, db, ra["record_id"], rb["record_id"], held_text(it["pmid"]), model_text(it["pmid"]))
-        res[it["slug"]] = dict(base, readings={"codex": {"record_id": ra["record_id"], "model": ra.get("model"),
+        res[it.get("key", it["slug"])] = dict(base, readings={"codex": {"record_id": ra["record_id"], "model": ra.get("model"),
                                                          "rows": len(da["rows"]), "row_kind": da["row_kind"],
                                                          "pooled": da["pooled"], "measure": da["measure"]},
                                                "agy": {"record_id": rb["record_id"], "model": rb.get("model"),
@@ -952,11 +1046,14 @@ def evaluate(its, runs):
 
 
 def accepted_rows(slug):
-    """The ACCEPTED secondary rows for a topic's comparator (replay output, no model): for secondary_meta_build."""
+    """The ACCEPTED secondary rows of a topic -- its comparator's and every other meta's (replay output, no model): for
+    secondary_meta_build, where each meta's rows count toward the two-source rule but never against that meta."""
     if not os.path.exists(OUT):
         return []
-    r = (_j(OUT).get("results") or {}).get(slug) or {}
-    return list(r.get("secondary_rows") or []) if r.get("state") == "ACCEPTED" else []
+    d = _j(OUT)
+    rs = [(d.get("results") or {}).get(slug) or {}] + \
+         [v for v in (d.get("meta_results") or {}).values() if v.get("slug") == slug]
+    return [row for r in rs if r.get("state") == "ACCEPTED" for row in (r.get("secondary_rows") or [])]
 
 
 REPORT = os.path.join(ROOT, "outputs", "k_gap", "G1_FOREST_READER.md")
@@ -964,32 +1061,47 @@ REPORT = os.path.join(ROOT, "outputs", "k_gap", "G1_FOREST_READER.md")
 
 def report(out):
     """outputs/k_gap/G1_FOREST_READER.md, derived from the proposals file only (nothing typed by hand)."""
-    res, sk = out["results"], out["skipped"]
-    n_read = sum(1 for v in res.values() if v.get("readings"))
-    acc = [s for s, v in res.items() if v["state"] == "ACCEPTED"]
+    allres = {**out["results"], **(out.get("meta_results") or {})}
+    sk = {**out["skipped"], **(out.get("meta_skipped") or {})}
+
+    def summary(res, label):
+        n_read = sum(1 for v in res.values() if v.get("readings"))
+        acc = sum(1 for v in res.values() if v["state"] == "ACCEPTED")
+        rows = {k: sum(len(v.get(f) or []) for v in res.values())
+                for k, f in (("p", "proposed_rows"), ("r", "refused_rows"), ("a", "secondary_rows"))}
+        return (f"- {label}: figures read by both models {n_read}; ACCEPTED {acc}, REFUSED "
+                f"{sum(1 for v in res.values() if v['state'] == 'REFUSED')} (pooled-reconstruction pass rate {acc} of "
+                f"{n_read}); rows proposed {rows['p']}, refused (readings disagree) {rows['r']}, accepted as secondary "
+                f"{rows['a']}")
+
+    def table_of(res, head):
+        t = [f"| {head} | meta | figure | state | rows proposed / refused | stated model | printed pool | reconstructed | why |",
+             "|---|---|---|---|---|---|---|---|---|"]
+        for s in sorted(res):
+            v = res[s]
+            a = v.get("acceptance") or {}
+            rec = "; ".join(f"{k} {x[0]:.4f} ({x[1]:.4f}-{x[2]:.4f})" for k, x in (a.get("recomputed") or {}).items())
+            pp = v.get("pooled_agreed") or {}
+            t.append(f"| {v.get('slug', s)} | PMID {v['pmid']} | {v['figure']['fig_id']} | **{v['state']}** | "
+                     f"{len(v.get('proposed_rows') or [])} / {len(v.get('refused_rows') or [])} | "
+                     f"{(v.get('stated_model') or {}).get('state', '')} {(v.get('stated_model') or {}).get('methods', '')} | "
+                     f"{pp.get('effect', '')} ({pp.get('lower', '')}-{pp.get('upper', '')}) | {rec} | "
+                     f"{', '.join(v.get('problems') or []) or '-'} |")
+        return t
     md = ["# G1 dual-model forest-plot reader (derived: scripts/g1_forest_reader.py)", "",
-          "Two model families read each comparator forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every "
-          "call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both "
+          "Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every call "
+          "recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both "
           "readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the "
-          "meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY comparator rows: never pool "
-          "inputs, never counted toward agreement with their own meta.", "",
-          f"- topics: {len(res) + len(sk)}; figures read by both models: {n_read}; ACCEPTED {len(acc)}, REFUSED "
-          f"{sum(1 for v in res.values() if v['state'] == 'REFUSED')}, not read {len(sk)}",
-          f"- rows: proposed {out['rows']['proposed']}, refused (readings disagree) {out['rows']['refused']}, accepted as "
-          f"secondary comparator rows {out['rows']['accepted_as_secondary']}",
-          f"- pooled-reconstruction pass rate: {len(acc)} of {n_read} figures read", "",
-          "| topic | comparator | figure | state | rows proposed / refused | stated model | printed pool | reconstructed | why |",
-          "|---|---|---|---|---|---|---|---|---|"]
-    for s in sorted(res):
-        v = res[s]
-        a = v.get("acceptance") or {}
-        rec = "; ".join(f"{k} {x[0]:.4f} ({x[1]:.4f}-{x[2]:.4f})" for k, x in (a.get("recomputed") or {}).items())
-        pp = v.get("pooled_agreed") or {}
-        md.append(f"| {s} | PMID {v['pmid']} | {v['figure']['fig_id']} | **{v['state']}** | "
-                  f"{len(v.get('proposed_rows') or [])} / {len(v.get('refused_rows') or [])} | "
-                  f"{(v.get('stated_model') or {}).get('state', '')} {(v.get('stated_model') or {}).get('methods', '')} | "
-                  f"{pp.get('effect', '')} ({pp.get('lower', '')}-{pp.get('upper', '')}) | {rec} | "
-                  f"{', '.join(v.get('problems') or []) or '-'} |")
+          "meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY rows: never pool inputs, "
+          "never counted toward agreement with their own meta; another meta's rows feed the two-source rule.", "",
+          f"- comparators of {len(out['results']) + len(out['skipped'])} tracker topics; other metas selected by the "
+          f"two-source sweep: {len(out.get('meta_results') or {}) + len(out.get('meta_skipped') or {})}",
+          summary(allres, "ALL"), summary(out["results"], "comparators"),
+          summary(out.get("meta_results") or {}, "other metas (two-source sweep)"), "",
+          "## Comparators", ""] + table_of(out["results"], "topic") + \
+         ["", "## Other open-access metas citing unmatched comparator trials (two-source sweep)", ""] + \
+         table_of(out.get("meta_results") or {}, "topic")
+    res = allres
     md += ["", "## Not read (typed reason)", ""]
     for s in sorted(sk):
         x = sk[s]
@@ -1007,10 +1119,18 @@ def report(out):
 
 
 def main(argv):
+    """SLUG ... reads each topic's comparator; --metas reads instead the OTHER metas the two-source sweep selects for
+    those topics (--all: every topic in the tracker)."""
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")]
+    if "--all" in argv:
+        slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1"))
+                       if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    its, skipped = items(slugs, run)
+    if "--metas" in argv:
+        its, skipped = items([], run, pairs=sweep(slugs, run))
+    else:
+        its, skipped = items(slugs, run)
     if "--verify-replay" in argv:
         probs = []
         for k, r in sorted(runs.items()):
@@ -1040,21 +1160,33 @@ def main(argv):
                 print(_key(it, rd), r["state"], r["record_id"], r.get("error") or "", flush=True)
     res = evaluate(its, runs)
     prev = _j(OUT) if os.path.exists(OUT) else {}
-    results = dict(prev.get("results") or {}, **res)
-    skipped_all = dict(prev.get("skipped") or {}, **skipped)
-    for s in res:
-        skipped_all.pop(s, None)
-    for s in skipped:
-        results.pop(s, None)
+    # comparators under 'results'/'skipped' (keyed by slug: the interface g1_tracker reads); other metas under
+    # 'meta_results'/'meta_skipped' (keyed '<slug>::<pmid>')
+    sec = {"results": dict(prev.get("results") or {}), "skipped": dict(prev.get("skipped") or {}),
+           "meta_results": dict(prev.get("meta_results") or {}), "meta_skipped": dict(prev.get("meta_skipped") or {})}
+    for k, v in res.items():
+        r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
+        sec[r][k] = v
+        sec[s].pop(k, None)
+    for k, v in skipped.items():
+        r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
+        sec[s][k] = v
+        sec[r].pop(k, None)
+    results = sec["results"]
     from collections import Counter
-    out = {"lane": LANE, "results": results, "skipped": skipped_all,
-           "tally": dict(Counter(v["state"] for v in results.values())),
-           "rows": {"proposed": sum(len(v.get("proposed_rows") or []) for v in results.values()),
-                    "refused": sum(len(v.get("refused_rows") or []) for v in results.values()),
-                    "accepted_as_secondary": sum(len(v.get("secondary_rows") or []) for v in results.values())}}
+
+    def rows_of(d):
+        return {"proposed": sum(len(v.get("proposed_rows") or []) for v in d.values()),
+                "refused": sum(len(v.get("refused_rows") or []) for v in d.values()),
+                "accepted_as_secondary": sum(len(v.get("secondary_rows") or []) for v in d.values())}
+    out = {"lane": LANE, **sec,
+           "tally": dict(Counter(v["state"] for v in results.values())), "rows": rows_of(results),
+           "meta_tally": dict(Counter(v["state"] for v in sec["meta_results"].values())),
+           "meta_rows": rows_of(sec["meta_results"])}
     _save(OUT, out)
     report(out)
-    print(json.dumps({"tally": out["tally"], "rows": out["rows"], "skipped": skipped}, indent=1, ensure_ascii=False))
+    print(json.dumps({"tally": out["tally"], "rows": out["rows"], "meta_tally": out["meta_tally"],
+                      "meta_rows": out["meta_rows"], "skipped_this_run": skipped}, indent=1, ensure_ascii=False))
     return 0
 
 
