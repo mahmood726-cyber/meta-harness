@@ -58,7 +58,15 @@ def test_primary_trial_values_and_membership_are_unchanged():
         assert snap['pinned_commit'] == BASE
         before = snap['pages'][slug]
         after = json.loads((ROOT/rel).read_text(encoding='utf-8'))
-        assert before['screening_records'] == after['screening']['records'], slug
+        ssup = (snap.get('screening_superseded') or {}).get(slug)
+        if ssup:
+            # a LATER landing may change screening records only by a declared, named supersession that records the
+            # records it moved to (acq/k-gap exclusion audit, 2026-10-03); the pinned HM3 records are never rewritten
+            assert ssup.get('landing') and ssup.get('reason'), slug
+            assert ssup['screening_records_after'] == after['screening']['records'], slug
+            assert before['screening_records'] != after['screening']['records'], (slug, 'declared but nothing moved')
+        else:
+            assert before['screening_records'] == after['screening']['records'], slug
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
         sup = (snap.get('superseded') or {}).get(slug)

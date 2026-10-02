@@ -243,7 +243,11 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
             assert IS_WRONG not in reason, (where, "a set-aside must not assert the number wrong")
         elif n.get("entered_pool"):
             assert ENTERED in reason, (where, "an entering trial must be described as new evidence")
-            assert IS_WRONG not in reason, (where, "new evidence must not assert the old number wrong")
+            # A notice can carry two kinds at once (probiotics AAD, acq/k-gap integration 2026-10-03: 17604300 enters
+            # AND McFarland's adjusted RR is substituted by its randomised counts). The wrong-quantity claim is then
+            # allowed, but only beside the substitution it belongs to -- never on a notice that only adds evidence.
+            substituted = "stayed in the pool but now contributes a different number" in reason
+            assert IS_WRONG not in reason or substituted, (where, "new evidence must not assert the old number wrong")
             for tid in n["entered_pool"]:
                 assert f"{tid} entered the pool contributing" in reason, (where, tid)
         elif "was withheld on the served page" in reason:
