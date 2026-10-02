@@ -132,7 +132,7 @@ def _real_readings():
     runs = json.load(open(g.RUNS, encoding="utf-8"))
     out = {}
     for rd in ("codex", "agy"):
-        k = next(k for k in runs if k.startswith(REAL + "::") and k.endswith("::" + rd))
+        k = next(k for k in runs if k.startswith(REAL + "::40959489::") and k.endswith("::" + rd))   # the comparator's
         raw, (d, why) = g.replay_reading(runs[k])
         rec = ms.load_record(os.path.join(g.REC_DIR, runs[k]["record_id"] + ".json"))
         assert why is None and ms.sha256_bytes(raw) == rec["response"]["sha256"]       # byte-identical replay
