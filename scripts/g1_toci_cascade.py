@@ -12,6 +12,10 @@ Per trial (REACT's 19 labels):
              R3 Unpaywall     DOI -> is_oa, best OA location (host, licence, version); LOCATED, never fetched here
   per trial  R4 AACT          posted results (local snapshot 2026-08-30): outcomes naming death/mortality + time frame
              R5 ISRCTN        registry record by ISRCTN id (from AACT id_information): results / publication links
+             R6 preprints     Europe PMC SRC:PPR by registration; a candidate (the drug in its title, and the trial named or
+                              a randomised comparison) is read through api.biorxiv.org: SUPERSEDED when the server records
+                              its published version, else its JATS under the licence the bytes state, held only when it
+                              states day-28 deaths (python scripts/g1_toci_cascade.py --preprints)
 A full text is HELD (committed, g1/data/acquired/<pmid>.json) only under an open licence; otherwise it is recorded
 VERIFIED_NOT_HELD with its PMCID and body sha256. Every rung's request and outcome go to g1/data/cascade/<label>.json.
 
@@ -433,13 +437,97 @@ def rebind():
     return out
 
 
+REACT_PREPRINT_TITLE = re.compile(r"Association between tocilizumab, sarilumab and all-cause mortality at 28 days", re.I)
+
+
+def read_preprint(ppr, label):
+    """A candidate preprint, through the server's own API (api.biorxiv.org): SUPERSEDED when the server records its
+    published version (RECOVERY's tocilizumab preprint -> the Lancet paper we hold; reading both would add an earlier
+    data cut as a second report). Otherwise its JATS (the API's jatsxml link) is read under the licence the bytes state,
+    and held only when it states deaths at day 28."""
+    st, b, u = get(f"{EPMC}/search", {"query": f"EXT_ID:{ppr} AND SRC:PPR", "format": "json", "resultType": "core"})
+    try:
+        r = ((json.loads(b).get("resultList") or {}).get("result") or [{}])[0]
+    except Exception:  # noqa: BLE001
+        return {"outcome": f"RUNG_FAILED: EPMC http {st}"}
+    doi = r.get("doi") or ""
+    if not doi.startswith("10.1101/"):
+        return {"outcome": "NOT_A_BIORXIV_MEDRXIV_PREPRINT (no API to read it)", "doi": doi}
+    st, b, u = get(f"https://api.biorxiv.org/details/medrxiv/{doi}")
+    try:
+        c = ((json.loads(b).get("collection")) or [{}])[-1]
+    except Exception:  # noqa: BLE001
+        return {"outcome": f"RUNG_FAILED: biorxiv api http {st}", "doi": doi}
+    out = {"doi": doi, "version": c.get("version"), "licence": c.get("license"), "published": c.get("published")}
+    if c.get("published") and c["published"] != "NA":
+        out["outcome"] = f"SUPERSEDED_BY_PUBLISHED_VERSION {c['published']} (the published report is the source)"
+        return out
+    st, b, u = get(c.get("jatsxml") or "")
+    x = b.decode("utf-8", "replace") if st == 200 else ""
+    if "<article" not in x:
+        out["outcome"] = f"JATS_NOT_FETCHED http={st}"
+        return out
+    own = bytes_licence(x)
+    out.update(jats_sha256=hashlib.sha256(b).hexdigest(), licence_in_bytes=own)
+    t = g._fold(re.sub(r"<[^>]+>", " ", x))
+    d28 = [m.start() for m in g._DAY28.finditer(t) if g._DEATH_WORDS.search(t[max(0, m.start() - 200): m.end() + 200])]
+    if not d28:
+        out["outcome"] = "READ: no day-28 death statement (held: no)"
+        return out
+    if not (own and OPEN.search(own)):
+        out["outcome"] = "READ: states day-28 deaths, licence in bytes not open -> VERIFIED_NOT_HELD"
+        return out
+    fp = os.path.join(ACQ, f"{ppr}.json")
+    open(fp, "w", encoding="utf-8", newline="\n").write(json.dumps(
+        {"pmid": ppr, "found_for": label, "query": f"cascade:R6 preprint {doi}", "title": r.get("title"),
+         "abstract": r.get("abstractText") or "", "license": own, "pub_types": ["Preprint"], "fulltext": x,
+         "fulltext_sha256": out["jats_sha256"], "retrieved_utc": now()}, indent=1, ensure_ascii=False) + "\n")
+    out["outcome"] = "HELD: states day-28 deaths (open licence in bytes)"
+    return out
+
+
+def rung_preprints(label, nct):
+    """R6 Europe PMC PREPRINTS (SRC:PPR: medRxiv, Research Square, ...) for the trial's registration, or its name when it
+    has none. A hit is the trial's own report only if it is not a review/meta-analysis by title; REACT's own preprint is
+    the comparator (anti-circularity) and is named as such."""
+    q = f'"{nct}" AND SRC:PPR' if nct else f'({label}) AND tocilizumab AND SRC:PPR'
+    st, b, u = get(f"{EPMC}/search", {"query": q, "format": "json", "pageSize": 25, "resultType": "core"})
+    log = {"rung": "R6 Europe PMC preprints", "request": u, "http": st}
+    try:
+        d = json.loads(b)
+    except Exception:  # noqa: BLE001
+        log["outcome"] = f"RUNG_FAILED: http {st}"
+        return log
+    hits = []
+    for r in (d.get("resultList") or {}).get("result") or []:
+        t = r.get("title") or ""
+        stem = label.split("-TOCI")[0].split("-SS")[0]
+        # the trial's tocilizumab / IL-6 report: the drug in the title AND (the trial named or a randomised comparison) --
+        # RECOVERY's preprints for its other arms (sotrovimab, aspirin, ...) name RECOVERY but not tocilizumab
+        names_trial = DRUG.search(t) and (re.search(re.escape(stem), t, re.I) or re.search(r"randomi[sz]", t, re.I))
+        kind = ("COMPARATOR_PREPRINT (REACT)" if REACT_PREPRINT_TITLE.search(t) else
+                "NOT_A_TRIAL_REPORT (review / meta-analysis)" if re.search(r"review|meta-analys", t, re.I) else
+                "CANDIDATE_TRIAL_REPORT" if names_trial else
+                "NOT_THIS_TRIAL (title names neither the trial nor a randomised tocilizumab / IL-6 comparison)")
+        hits.append({"id": r.get("id"), "year": r.get("pubYear"), "licence": r.get("license"), "title": t[:160], "kind": kind})
+    log.update(hit_count=d.get("hitCount"), hits=hits)
+    cands = [h for h in hits if h["kind"] == "CANDIDATE_TRIAL_REPORT"]
+    for h in cands:
+        h["read"] = read_preprint(h["id"], label)
+    log["outcome"] = (f"CANDIDATE_TRIAL_PREPRINTS: {[h['id'] for h in cands]}" if cands else
+                      f"NO_TRIAL_PREPRINT ({len(hits)} hits: reviews / meta-analyses / the comparator's own preprint)"
+                      if hits else "NO_PREPRINT_HIT")
+    return log
+
+
 def summarise():
     rows = ["# Acquisition cascade per REACT trial (generated by scripts/g1_toci_cascade.py)", "",
             "Rungs: D1 AACT study_references | D2 PubMed [si] by registration | D3 Europe PMC full-text search | "
             "D4 name search; per primary-report candidate R1 PMC, R2 Europe PMC, R3 Unpaywall; per trial R4 AACT posted "
             "results, R5 ISRCTN.", "",
             "| trial | discovered (D1/D2/D3/D4) | primary-report candidates | R1 PMC | R2 Europe PMC | R3 Unpaywall | "
-            "held open text (read for this trial unless UNBOUND) | R4 AACT | R5 ISRCTN |", "|---|---|---|---|---|---|---|---|---|"]
+            "held open text (read for this trial unless UNBOUND) | R4 AACT | R5 ISRCTN | R6 preprints |",
+            "|---|---|---|---|---|---|---|---|---|---|"]
     for label in g.IDENTITY:
         fp = os.path.join(CAS, f"{label}.json")
         if not os.path.exists(fp):
@@ -456,10 +544,11 @@ def summarise():
             f = os.path.join(ACQ, f"{p}.json")
             return label in (json.load(open(f, encoding="utf-8")).get("bound_labels") or []) if os.path.exists(f) else False
         held = ", ".join(r["pmid"] + ("" if _b(r["pmid"]) else " (UNBOUND: not read)") for r in pc if r.get("held")) or "none"
-        a, s = c["trial_rungs"]
+        a, s = c["trial_rungs"][0], c["trial_rungs"][1]
+        pp = next((r for r in c["trial_rungs"] if r["rung"] == "R6 Europe PMC preprints"), {"outcome": "not run"})
         rows.append(f"| {label} | {n['D1']}/{n['D2']}/{n['D3']}/{n['D4']} ({len(c['candidates'])}) | "
                     f"{', '.join(r['pmid'] for r in pc) or 'none'} | {cell(0)} | {cell(1)} | {cell(2)} | {held} | "
-                    f"{a['outcome']} | {s['outcome']} |")
+                    f"{a['outcome']} | {s['outcome']} | {pp['outcome'][:120]} |")
     open(os.path.join(CAS, "CASCADE.md"), "w", encoding="utf-8", newline="\n").write("\n".join(rows) + "\n")
 
 
@@ -479,6 +568,15 @@ def main(argv):
             pc = [r for r in c["candidates"] if r["screen"] == "PRIMARY_REPORT_CANDIDATE"]
             print(label, "candidates", len(c["candidates"]), "primary", [(r["pmid"], r.get("held")) for r in pc],
                   c["trial_rungs"][0]["outcome"], c["trial_rungs"][1]["outcome"], flush=True)
+    if "--preprints" in argv:
+        for label in [a for a in argv if not a.startswith("--")] or list(g.IDENTITY):
+            fp = os.path.join(CAS, f"{label}.json")
+            if os.path.exists(fp):
+                c = json.load(open(fp, encoding="utf-8"))
+                c["trial_rungs"] = [r for r in c["trial_rungs"] if r["rung"] != "R6 Europe PMC preprints"] + \
+                    [rung_preprints(label, c["nct"])]
+                open(fp, "w", encoding="utf-8", newline="\n").write(json.dumps(c, indent=1, ensure_ascii=False) + "\n")
+                print(label, c["trial_rungs"][-1]["outcome"], flush=True)
     # R4 reads only the local AACT extract: recomputed offline for every log, so a rule change never needs the network
     A = json.load(open(AACT_REFS, encoding="utf-8"))
     for label in g.IDENTITY:
