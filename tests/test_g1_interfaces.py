@@ -116,3 +116,18 @@ def test_committed_tracker_files_carry_the_pinned_schema():
         assert keys <= set(o), (f, keys - set(o))
         assert set(o["routes"]) <= {"PRIMARY", "TWO_SOURCE", "UNVERIFIED", "NO_ROW"}
         assert sum(o["routes"].values()) == o["N_comparator_trials"] == len(o["trials"])
+
+
+def test_same_trials_result_verdict_is_typed():
+    import sys
+    sys.path.append(os.path.join(ROOT, "scripts"))
+    import g1_tracker as gt
+    v = gt.result_verdict({"estimate": 0.85, "ci_low": 0.80, "ci_high": 0.90},
+                          {"estimate": 0.85, "ci_low": 0.80, "ci_high": 0.90}, "HR")
+    assert v["verdict"] == "AGREE" and v["conclusion"] == "BENEFIT"
+    v = gt.result_verdict({"estimate": 0.85, "ci_low": 0.70, "ci_high": 1.02},
+                          {"estimate": 0.85, "ci_low": 0.80, "ci_high": 0.90}, "HR")
+    assert v["verdict"] == "DIFFERENT_CONCLUSION"                       # one crosses the null, the other does not
+    v = gt.result_verdict({"estimate": -10.0, "ci_low": -12.0, "ci_high": -8.0},
+                          {"estimate": -11.5, "ci_low": -13.5, "ci_high": -9.5}, "MD")
+    assert v["verdict"] == "SAME_CONCLUSION_DIFFERENT_ESTIMATE" and v["estimate_gap_over_ci_halfwidth"] == 0.75
