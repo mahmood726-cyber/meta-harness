@@ -1,6 +1,6 @@
 """Diagnose every recorded verification-locator answer the quote gate refused: WHY was it refused?
 
-For each locator run in registry/secondary_meta/runs.json the record's own PROMPT bytes (what the model saw) and RESPONSE
+For each locator run in registry/secondary_meta/runs/<slug>.json the record's own PROMPT bytes (what the model saw) and RESPONSE
 bytes (what it answered) are read back, and each refusal is classified -- deterministic, no network, no model:
 
   TEXT_HELD_BUT_NOT_SHOWN   a held full text existed (cache/<slug>/ft_<pmid>.txt, or a PMC/Unpaywall cache) but the
@@ -75,7 +75,8 @@ def held_fulltext(slug, pmid):
 
 
 def main():
-    runs = _j(os.path.join(ROOT, "registry", "secondary_meta", "runs.json"))
+    from kgap import runs_store
+    runs = runs_store.load()
     rows, tally = [], Counter()
     for key, r in sorted(runs.items()):
         if not key.startswith("locate::") or r.get("state") != "RAN_OK":

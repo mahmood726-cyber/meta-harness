@@ -118,8 +118,15 @@ SPECS = {
                             "spec": "the outcome named is a COMPOSITE of several events (e.g. MACE, 'death or "
                                     "hospitalisation for heart failure')",
                             "trigger": r"composite|MACE|\bor\b", "plants": {
-                                "accept": ["death or hospitalization for heart failure"],
-                                "refuse": ["all-cause death"]}},
+                                "accept": ["death or hospitalization for heart failure",
+                                           # VERB FORM (BACC Bay, PMID 33085857): the composite 'intubated or had
+                                           # died' was read as 28-day mortality when the noun-only pattern missed it
+                                           "17 patients in the tocilizumab group had been intubated or had died",
+                                           "patients who died or required mechanical ventilation",
+                                           # EMPACTA (PMID 33332779) states its composite this way
+                                           "patients who had received mechanical ventilation or who had died"],
+                                "refuse": ["all-cause death", "7 patients had died in the TCZ group",
+                                           "patients died or were lost to follow-up"]}},
 }
 
 
