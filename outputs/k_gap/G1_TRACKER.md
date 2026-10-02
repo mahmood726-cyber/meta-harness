@@ -4,6 +4,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | glp1-ra-mace-t2d | 7 of 7 eligible (comparator N=8) | 1: ELIXA (ESTIMAND_DIFFERENCE) | 0 | 8 | 0 | 0 | 0 | {'AGREE': 6, 'DISAGREE': 1} | HR 0.85 (0.80 to 0.90) vs 0.85 (0.80 to 0.90), k=7, DL: **AGREE** | HR 0.86 (0.81 to 0.91) k=8 | HR 0.86 (0.79 to 0.94) |
 | semaglutide-obesity-weight | 2 of 2 eligible (comparator N=4) | 2: O’Neil, 2018 (PROTOCOL_SCOPE_DIFFERENCE), Rubino, 2021 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 2 | 0 | 0 | 2 | {'AGREE': 2} | MD -11.47 (-13.52 to -9.43) vs -11.49 (-13.58 to -9.41), k=2, DL: **AGREE** | MD -11.47 (no CI) k=2 | MD -11.85 (-12.81 to -10.90) |
+| tocilizumab-covid19-mortality | 4 of 19 eligible (comparator N=19) | 0:  | 15 | 2 | 2 | 3 | 12 | {'AGREE': 4} | OR 1.19 (0.83 to 1.71) vs 1.19 (0.83 to 1.71), k=4, FE: **AGREE** | OR 1.19 (0.83 to 1.71) k=4 | OR 0.83 (0.74 to 0.92) |
 
 ## glp1-ra-mace-t2d (comparator PMID 34526024)
 
@@ -28,3 +29,26 @@
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: O’Neil, 2018 -- screen X2 (wrong population: title/conditions mention 'liraglutide'.); protocol rule include.population_none[20] = 'liraglutide'; registered eligibility: Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Rubino, 2021 -- screen X2 (wrong population: title/conditions mention 'maintenance'.); protocol rule include.population_none[7] = 'maintenance'; registered eligibility: Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.
 - COMPARATOR FINDING ROW_CI_NOT_FROM_ARMS: Rubino, 2021 -- comparator row {'effect': '-12.40', 'lower': '-14.75', 'upper': '-10.05', 'events_t': None, 'n_t': 535, 'events_c': None, 'n_c': 268, 'measure': 'MD'}; {'lower': ['-14.75', -13.75], 'upper': ['-10.05', -11.05]}
+
+## tocilizumab-covid19-mortality (comparator PMID 34228774)
+
+- ARCHITECTS: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- BACC-Bay: **NO_ROW** - only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; vs comparator row: NO_PRIMARY_ROW; comparator row finding: [{'finding': 'COMPARATOR_ROW_IS_SAFETY_POPULATION', 'source': 'TEXT PMID 33085857 (safety-population table)'}]
+- CORIMUNO-TOCI-1: **TWO_SOURCE** - two independent sources: AACT + META; vs comparator row: AGREE
+- CORIMUNO-TOCI-ICU: **UNVERIFIED** - one primary source: AACT; no independent second source held; vs comparator row: AGREE
+- COV-AID: **NO_ROW** - no open primary source states 28-day deaths (PMID 33935163 (acquired: NCT04330638[si]); PMID 34756178 (acquired: NCT04330638[si])); vs comparator row: NO_PRIMARY_ROW
+- COVACTA: **PRIMARY** - two independent sources: AACT + META + TEXT; vs comparator row: AGREE
+- COVIDOSE2-SS-A: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- COVIDSTORM: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- COVINTOC: **NO_ROW** - no open primary source states 28-day deaths (PMID 33676589 (acquired: COVINTOC[tiab])); vs comparator row: NO_PRIMARY_ROW
+- COVITOZ: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- EMPACTA: **PRIMARY** - two independent sources: AACT + META + TEXT; vs comparator row: AGREE
+- HMO-020-0224: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- ImmCoVA: **NO_ROW** - no open primary source states 28-day deaths (PMID 38157348); vs comparator row: NO_PRIMARY_ROW
+- PreToVid: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- RECOVERY: **UNVERIFIED** - one primary source: TEXT; no independent second source held; vs comparator row: AGREE
+- REMAP-CAP: **NO_ROW** - no open primary source states 28-day deaths (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6))); vs comparator row: NO_PRIMARY_ROW
+- REMDACTA: **UNVERIFIED** - one primary source: AACT; no independent second source held; vs comparator row: AGREE
+- TOCIBRAS: **TWO_SOURCE** - two independent sources: META + TEXT; vs comparator row: AGREE
+- TOCOVID: **NO_ROW** - no open primary source held; vs comparator row: NO_PRIMARY_ROW
+- COMPARATOR FINDING COMPARATOR_ROW_IS_SAFETY_POPULATION: BACC-Bay -- comparator row {'measure': 'OR', 'effect': None, 'lower': None, 'upper': None, 'events_t': 9, 'n_t': 161, 'events_c': 4, 'n_c': 82} vs trial report {'deaths_t': 9, 'n_t': 161, 'deaths_c': 4, 'n_c': 82}; the comparator's row equals the trial report's SAFETY-population death count (TEXT PMID 33085857 (safety-population table))
