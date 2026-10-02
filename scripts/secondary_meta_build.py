@@ -517,7 +517,9 @@ def family_of_factory(ours):
         return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
 
     def family_of(row):
-        lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
+        # a year glued to the label ('RALES2000', 'EMPHASIS-HF2011' as a forest plot prints them) is its own token
+        lab = re.sub(r"(?<=[A-Za-z])((?:19|20)\d{2})\s*$", r" \1", re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
+        lt = toks(lab)
         hits = {}
         for t in ours:
             names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
@@ -640,6 +642,28 @@ def build(slug, run, runs):
             continue
         for r in mrows:
             rows.append(sm.admit(r, spec, fam))
+    # DUAL-MODEL figure rows (scripts/g1_forest_reader.py; its replayed output, no model here): a meta whose own route
+    # above gave no usable row contributes the rows two model families (codex + agy) agreed on, from a figure whose
+    # printed pool the meta's STATED model reproduced from those rows. They are the meta's own numbers -- SECONDARY,
+    # verified like any row below, and never counted toward G1 agreement with that meta (sm.g1_countable).
+    import g1_forest_reader as gfr
+    dual = {}
+    for d in gfr.accepted_rows(slug):
+        dual.setdefault(d["meta_pmid"], []).append(d)
+    for pm, ds in sorted(dual.items()):
+        if (metas_out.get(pm) or {}).get("usable"):
+            continue
+        tp = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
+        for d in ds:
+            r = sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
+            r.timepoint = tp
+            rows.append(sm.admit(r, spec, fam))
+        metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
+                         "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
+                         "rows_read": len(ds), "record_ids": ds[0]["provenance"].split(":", 1)[1].split("+"),
+                         "positive_control": {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"},
+                         "is_comparator": pm == comp, "earlier_route": metas_out.get(pm) or skipped.get(pm)}
+        skipped.pop(pm, None)
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
