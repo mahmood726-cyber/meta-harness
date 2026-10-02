@@ -4,7 +4,7 @@
  "comparator_pmid": "35112512",
  "N_comparator_trials": 4,
  "k_matched": 2,
- "N_eligible": 2,
+ "N_eligible": 3,
  "named_differences": [
   {
    "trial": "EMPEROR‐Preserved (n = 5988)",
@@ -13,19 +13,23 @@
    "screen_reason": "wrong population: title/conditions mention 'preserved ejection fraction'.",
    "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
    "registered_eligibility": null,
-   "pmid": "34449189"
-  },
-  {
-   "trial": "SOLOIST‐WHF (n = 1222)",
-   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-   "rule_id": "X3",
-   "screen_reason": "the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
-   "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin']",
-   "registered_eligibility": null,
-   "pmid": "33200892"
+   "pmid": "34449189",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction'",
+    "source": "outputs/k_gap/exclusion_audit.tracker.json"
+   }
   }
  ],
- "open_gaps": [],
+ "open_gaps": [
+  "SOLOIST‐WHF (n = 1222)"
+ ],
+ "blockers": {
+  "SCREENED_VIA_OTHER_REPORT": 1,
+  "IDENTITY_UNRESOLVED": 1
+ },
+ "top_blocker": "SCREENED_VIA_OTHER_REPORT",
+ "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 2,
  "routes": {
@@ -40,6 +44,8 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 31535829 (ctgov_results)",
    "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.75",
     "lower": "0.65",
@@ -63,6 +69,7 @@
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": null,
    "scope_difference": null,
+   "blocker": null,
    "comparator_row_readings": {
     "readings": {
      "result": {
@@ -94,6 +101,8 @@
    "route": "NO_ROW",
    "basis": "IDENTIFICATION",
    "our_refusal": "SEEDED PMID 34449189: SCREENED_OUT X2: wrong population: title/conditions mention 'preserved ejection fraction'.",
+   "gap_class": "IDENTIFICATION",
+   "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
    "disagreement_side": null,
@@ -119,9 +128,9 @@
        "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
        "rules": 2
       },
-      "gate": "ARMS",
+      "gate": "OUTCOME_NOT_NAMED",
       "verdict": "REFUSED",
-      "reason": "fewer than two result groups with people-unit counts"
+      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
      }
     ]
    },
@@ -140,8 +149,14 @@
     "screen_reason": "wrong population: title/conditions mention 'preserved ejection fraction'.",
     "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
     "registered_eligibility": null,
-    "pmid": "34449189"
+    "pmid": "34449189",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction'",
+     "source": "outputs/k_gap/exclusion_audit.tracker.json"
+    }
    },
+   "blocker": "SCREENED_OUT_UNAUDITED:X2",
    "identity": {
     "nct": "NCT03057951",
     "pmid": "34449189",
@@ -155,9 +170,16 @@
    "route": "PRIMARY",
    "basis": "our branch extraction PMID 32865377 (abstract)",
    "our_refusal": null,
-   "comparator_row": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
+   "comparator_row": {
+    "effect": "0.75",
+    "lower": "0.65",
+    "upper": "0.87",
+    "measure": "HR"
+   },
    "comparator_row_findings": [],
-   "disagreement_side": null,
+   "disagreement_side": "ROUNDING_BOUNDARY: comparator upper 0.87 vs trial report 0.86; the comparator's printed log[HR] -0.2877 / SE 0.073 admit ['0.86', '0.87'] at printed precision -- neither side wrong",
    "our_value": {
     "measure": "HR",
     "effect": "0.75",
@@ -170,9 +192,10 @@
    },
    "registry_binding": null,
    "g1_countable": true,
-   "agreement_with_comparator_row": "READERS_DIFFER:result=DISAGREE/result_reader2=AGREE",
+   "agreement_with_comparator_row": "DISAGREE",
    "comparator_row_state": null,
    "scope_difference": null,
+   "blocker": null,
    "comparator_row_readings": {
     "readings": {
      "result": {
@@ -195,6 +218,22 @@
    "agreement_by_reader": {
     "result": "DISAGREE",
     "result_reader2": "AGREE"
+   },
+   "readers_differ_resolution": {
+    "was": "READERS_DIFFER:result=DISAGREE/result_reader2=AGREE",
+    "state": "RESOLVED_BY_ROW_IDENTITY",
+    "resolved": {
+     "upper": "0.87"
+    },
+    "records": {
+     "agy": "mc-49eafea167c21c7a75667eaadbcc204d",
+     "codex": "mc-0c2ae650bdacb6d7f2354469158cd4da"
+    },
+    "basis": "both new readers (codex + agy) give the disputed row as mark †, weight 39.2%, upper 0.87; reader2 gave mark ‡, weight 30.7% (both contradict that identity: not this row); identity probe (probe illegible): not legible to both; the arithmetic from the row's printed log[HR] -0.2877 / SE 0.073 admits ['0.86', '0.87'], which contains the resolved value",
+    "wrong_row_readers": {
+     "reader2": "mc-02f6f5c4425afd3a6d4ecb17f366fef9"
+    },
+    "source": "outputs/k_gap/g1_readers_differ_resolutions.json"
    }
   },
   {
@@ -202,8 +241,10 @@
    "family": "NCT03521934",
    "in_our_pool": false,
    "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
+   "basis": "identity NCT03521934 (AACT 2026-08-30: the label in the registered title AND enrol...); SEEDED PMID 33200892: SCREENED_OUT X3: the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
    "our_refusal": "SEEDED PMID 33200892: SCREENED_OUT X3: the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
+   "gap_class": "UNRESOLVED_IDENTITY",
+   "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
    "disagreement_side": null,
@@ -212,14 +253,8 @@
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
-   "scope_difference": {
-    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-    "rule_id": "X3",
-    "screen_reason": "the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
-    "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin']",
-    "registered_eligibility": null,
-    "pmid": "33200892"
-   },
+   "scope_difference": null,
+   "blocker": "INSUFFICIENT_RECORD:RULE_X3_MISFIRED_BUT_POPULATION_NOT_STATED (INTERVENTION_ONLY_IN_ABSTRACT; recorded reader NOT_STATED on ['population'])",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X3",
@@ -254,7 +289,7 @@
  ],
  "per_trial_agreement": {
   "AGREE": 1,
-  "READERS_DIFFER:result=DISAGREE/result_reader2=AGREE": 1
+  "DISAGREE": 1
  },
  "same_trials": {
   "state": "POOLED",
@@ -350,7 +385,26 @@
   "30412076": "NO_OUTCOME_FOREST_FIGURE",
   "27902600": "NO_OUTCOME_FOREST_FIGURE"
  },
- "registry": null,
+ "registry": {
+  "state": "READY",
+  "snapshot": {
+   "id": "AACT 2026-08-30",
+   "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+   "rules": 2
+  }
+ },
+ "g1_status": {
+  "state": "NOT_YET",
+  "criteria": {
+   "ALL_ELIGIBLE_MATCHED": false,
+   "MATCHED_ARE_VERIFIED": true,
+   "RESULT_AGREES": true,
+   "DIVERGENCES_NAMED": true
+  },
+  "unmet": [
+   "ALL_ELIGIBLE_MATCHED"
+  ]
+ },
  "lane": {
   "script": "scripts/g1_sglt2_tracker.py",
   "forest": "g1/data/sglt2_hfref_forest.json",
@@ -415,22 +469,12 @@
    }
   }
  },
- "g1_status": {
-  "state": "G1_MATCHED",
-  "criteria": {
-   "ALL_ELIGIBLE_MATCHED": true,
-   "MATCHED_ARE_VERIFIED": true,
-   "RESULT_AGREES": true,
-   "DIVERGENCES_NAMED": true
-  },
-  "unmet": []
- },
  "lane_source": {
   "lane": "Evidence lane two (g1/tocilizumab)",
   "branch": "g1/tocilizumab",
-  "commit": "b1c971d17a10245f234096372f2df97005b0ec89",
+  "commit": "0e19b5235f2faa7199a04e87550c53fdd7694490",
   "path": "outputs/k_gap/g1/sglt2-hfref-hosp-cvdeath.json",
-  "sha256": "deca8615fab93ee8c0846c22a80f7fc51a65ddd264368a0f45834fdc7c96dd7f",
+  "sha256": "8ea47c3f96bd51ffe887af4acbf47cecf99c8877529f586b84a2b273432544bc",
   "format": "tracker_v1"
  }
 }
