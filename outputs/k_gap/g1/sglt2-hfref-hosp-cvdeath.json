@@ -4,7 +4,7 @@
  "comparator_pmid": "35112512",
  "N_comparator_trials": 4,
  "k_matched": 2,
- "N_eligible": 2,
+ "N_eligible": 3,
  "named_differences": [
   {
    "trial": "EMPEROR‐Preserved (n = 5988)",
@@ -13,19 +13,18 @@
    "screen_reason": "wrong population: title/conditions mention 'preserved ejection fraction'.",
    "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
    "registered_eligibility": null,
-   "pmid": "34449189"
-  },
-  {
-   "trial": "SOLOIST‐WHF (n = 1222)",
-   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-   "rule_id": "X3",
-   "screen_reason": "the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
-   "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin']",
-   "registered_eligibility": null,
-   "pmid": "33200892"
+   "pmid": "34449189",
+   "span": {
+    "field": "title",
+    "text": "Empagliflozin in Heart Failure with a Preserved Ejection Fraction.",
+    "match": "Preserved Ejection Fraction"
+   },
+   "span_source": "PMID 34449189 record title (held: cache/sglt2-hfref-hosp-cvdeath/records.json or outputs/k_gap/member_records.json)"
   }
  ],
- "open_gaps": [],
+ "open_gaps": [
+  "SOLOIST‐WHF (n = 1222)"
+ ],
  "comparator_findings": [],
  "k_ours_total": 2,
  "routes": {
@@ -212,14 +211,7 @@
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
-   "scope_difference": {
-    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-    "rule_id": "X3",
-    "screen_reason": "the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
-    "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin']",
-    "registered_eligibility": null,
-    "pmid": "33200892"
-   },
+   "scope_difference": null,
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X3",
@@ -249,6 +241,17 @@
      "result_reader2"
     ],
     "state": "READERS_DIFFER"
+   },
+   "blocker": "SCOPE_UNCITED:X3 (audit SCREENER_ERROR:INTERVENTION_ONLY_IN_ABSTRACT)",
+   "scope_demoted": {
+    "was": {
+     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+     "rule_id": "X3",
+     "gate": null,
+     "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin']",
+     "pmid": "33200892"
+    },
+    "why": "SCOPE_UNCITED:X3 (audit SCREENER_ERROR:INTERVENTION_ONLY_IN_ABSTRACT)"
    }
   }
  ],
@@ -416,21 +419,40 @@
   }
  },
  "g1_status": {
-  "state": "G1_MATCHED",
+  "state": "NOT_YET",
   "criteria": {
-   "ALL_ELIGIBLE_MATCHED": true,
+   "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
-  "unmet": []
+  "unmet": [
+   "ALL_ELIGIBLE_MATCHED"
+  ],
+  "excluded_by_scope": {
+   "n": 1,
+   "of_comparator_N": 4,
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "EMPEROR‐Preserved (n = 5988) [X2]"
+   ]
+  }
  },
  "lane_source": {
   "lane": "Evidence lane two (g1/tocilizumab)",
   "branch": "g1/tocilizumab",
-  "commit": "1273519db446ad83a9b7745e7bb669836c797f2c",
+  "commit": "b1c971d17a10245f234096372f2df97005b0ec89",
   "path": "outputs/k_gap/g1/sglt2-hfref-hosp-cvdeath.json",
   "sha256": "deca8615fab93ee8c0846c22a80f7fc51a65ddd264368a0f45834fdc7c96dd7f",
   "format": "tracker_v1"
- }
+ },
+ "blockers": {
+  "SCOPE_UNCITED:X3 (audit SCREENER_ERROR:INTERVENTION_ONLY_IN_ABSTRACT)": 1
+ },
+ "top_blocker": "SCOPE_UNCITED:X3 (audit SCREENER_ERROR:INTERVENTION_ONLY_IN_ABSTRACT)",
+ "scope_demoted": [
+  "SOLOIST‐WHF (n = 1222)"
+ ]
 }

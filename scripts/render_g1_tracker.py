@@ -135,6 +135,15 @@ def load(root: Path = ROOT) -> dict[str, dict]:
     return {s: recs[s] for s in order}
 
 
+def trial_totals(recs: dict[str, dict]) -> dict:
+    """Both denominators, summed from the topic files: matched / eligible and matched / the comparators' own N."""
+    def n(v):
+        return v if isinstance(v, int) and not isinstance(v, bool) else 0
+    return {"matched": sum(n(r.get("k_matched")) for r in recs.values()),
+            "eligible": sum(n(r.get("N_eligible")) for r in recs.values()),
+            "comparator_n": sum(n(r.get("N_comparator_trials")) for r in recs.values())}
+
+
 def matched_topics(recs: dict[str, dict]) -> list[str]:
     return [s for s, r in recs.items()
             if recompute(r)["matched"] and (r.get("g1_status") or {}).get("state") == "G1_MATCHED"]
@@ -150,6 +159,11 @@ def render(root: Path = ROOT) -> str:
     head = f"<p><strong>G1 MATCHED: {len(both)} of {len(recs)} topics</strong>"
     if both:
         head += " (" + ", ".join(_e(s) for s in both) + ")"
+    tot = trial_totals(recs)
+    head += (f". Trials matched: <strong>{tot['matched']} of {tot['eligible']} eligible</strong> and "
+             f"<strong>{tot['matched']} of {tot['comparator_n']} comparator trials</strong> (the comparators' own N; the "
+             f"difference, {tot['comparator_n'] - tot['eligible']}, is comparator trials outside our registered scope or "
+             f"estimand, each named per topic)")
     parts = [
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>",
         "<meta name='viewport' content='width=device-width,initial-scale=1'><title>G1 scoreboard</title>",
