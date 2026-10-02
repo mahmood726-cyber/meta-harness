@@ -110,3 +110,11 @@ def test_plant_a_single_reader_never_decides_where_two_disagree():
         t.AXES2.update(saved)
     assert built[0] == "INSUFFICIENT_RECORD" and "readers disagree on design" in built[1]
     assert removed[0] == "TRUE_SCOPE_DIFFERENCE"
+
+
+def test_no_exclusion_is_left_inconsistent_and_non_record_rules_are_resolved_by_what_they_are():
+    rows = {(r["slug"], str(r["pmid"])): r for r in A["rows"]}
+    assert not [r for r in A["rows"] if r["class"] == "INCONSISTENT"]
+    assert rows[("esketamine-trd-madrs", "31734084")]["class"] == "NOT_AN_EXCLUSION"       # X-DEDUP: pooled elsewhere
+    pal = rows[("metformin-pcos-ovulation", "15472166")]                                   # X-CONTRAST, stated
+    assert pal["class"] == "TRUE_SCOPE_DIFFERENCE" and "versus laparoscopic ovarian diathermy" in pal["span"]["text"]
