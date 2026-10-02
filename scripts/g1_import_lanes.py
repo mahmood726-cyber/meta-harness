@@ -68,7 +68,7 @@ def with_lane_identities(slug, T, d):
 
 def from_g1_noac(slug, d, spec, T):
     import g1_tracker as gt
-    T = with_lane_identities(slug, T, d)
+    T = gt.with_identity_chain(with_lane_identities(slug, T, d))
     o = gt.topic(slug, T)                                   # our pool / comparator side on the same topic
     rows = {r["nct"]: r for r in d.get("rows") or [] if r.get("outcome") == spec["outcome"]}
     ident = {i.get("nct"): i for i in d.get("identities") or [] if i.get("nct")}
@@ -91,6 +91,29 @@ def from_g1_noac(slug, d, spec, T):
         x["g1_countable"] = x["route"] == "PRIMARY" and x["in_our_pool"]
         x["lane_identity"] = {k: (ident.get(nct) or {}).get(k) for k in ("label", "state", "nct")}
         x["lane_row"] = {"item": r.get("item"), "route": r.get("route"), "effect_route": r.get("effect_route")}
+    # kgap's own two-PRIMARY-source verifications (scripts/g1_two_primary.py) are shown beside the lane's verdict. They
+    # turn a row's route only when the POOLED input is the verified tuple; otherwise the swap is listed as pending.
+    tp_p = os.path.join(OUT, "two_primary", f"{slug}.json")
+    tp = {r["nct"]: r for r in (json.load(open(tp_p, encoding="utf-8")).get("rows") or [])} if os.path.exists(tp_p) else {}
+    for x in o["trials"]:
+        nct = (x.get("lane_identity") or {}).get("nct")
+        v = tp.get(nct)
+        if not v:
+            continue
+        x["kgap_two_primary"] = {k: v.get(k) for k in ("state", "measure", "registry", "regulator", "silent_axes")}
+        ov = x.get("our_value") or {}
+        pooled_is_tuple = v["state"] == "TWO_SOURCE_VERIFIED" and (ov.get("measure") or "").upper() == v["measure"] and \
+            all(gt.sm._eq_printed(ov.get(a), v["registry"][a]) for a in ("effect", "lower", "upper"))
+        if pooled_is_tuple:
+            x["route"], x["g1_countable"] = "PRIMARY", x["in_our_pool"]
+            x["basis"] += f" | kgap TWO_SOURCE_VERIFIED (AACT + regulator) on the pooled tuple"
+        elif v["state"] == "TWO_SOURCE_VERIFIED":
+            x["pending_input_swap"] = {"from": {k: ov.get(k) for k in ("measure", "effect", "lower", "upper")},
+                                       "to": {"measure": v["measure"], **{k: v["registry"][k] for k in
+                                                                          ("effect", "lower", "upper")}},
+                                       "why": "the pooled input is not the two-source-verified tuple"}
+            x["basis"] += (f" | kgap: {v['measure']} {v['registry']['effect']} ({v['registry']['lower']}-"
+                           f"{v['registry']['upper']}) TWO_SOURCE_VERIFIED (AACT + regulator); pooled input differs")
     o["routes"] = dict(Counter(x["route"] for x in o["trials"]))
     co = ((d.get("comparator") or {}).get("outcomes") or {}).get(spec["outcome"]) or {}
     if co.get("effect"):
@@ -128,6 +151,14 @@ def main(argv):
         else:
             raise ValueError(f"{slug}: unknown lane format {spec['format']}")
         o["lane_source"] = src
+        # the lane's named scope differences must carry rule + span like ours; unspanned ones go back to eligible
+        gt.cite_or_demote(o, slug)
+        gt.apply_sweep(o, slug)           # trials the two-source sweep verified count as matched, by route
+        bad = gt.scope_citation_violations(o)
+        if bad:
+            raise SystemExit(f"{slug}: lane artefact non-eligible without rule + span: {bad}")
+        if "g1_status" in o and o["g1_status"].get("state") != "SCHEMA_INCOMPLETE":
+            o["g1_status"] = gt.g1_status(o)
         p = os.path.join(gt.G1_DIR, f"{slug}.json")
         tmp = f"{p}.{os.getpid()}.tmp"
         with open(tmp, "w", encoding="utf-8", newline="\n") as fh:

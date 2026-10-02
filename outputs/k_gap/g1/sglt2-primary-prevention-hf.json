@@ -3,42 +3,80 @@
  "slug": "sglt2-primary-prevention-hf",
  "comparator_pmid": "33519713",
  "N_comparator_trials": 8,
- "k_matched": 3,
- "N_eligible": 7,
+ "k_matched": 4,
+ "N_eligible": 6,
  "named_differences": [
+  {
+   "trial": "McMurray (10)",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'heart failure and reduced ejection fraction'.",
+   "span": {
+    "field": "title",
+    "text": "Dapagliflozin in Patients with Heart Failure and Reduced Ejection Fraction.",
+    "match": "Heart Failure and Reduced Ejection Fraction"
+   },
+   "span_source": "PMID 31535829 record title (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'heart failure and reduced ejection fraction'"
+   },
+   "protocol_rule": "include.population_none[1] = 'heart failure and reduced ejection fraction'",
+   "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
+   "pmid": "31535829"
+  },
   {
    "trial": "Packer (20)",
    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
    "rule_id": "X2",
    "screen_reason": "population not on-topic: title/conditions do not mention any of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiova",
+   "span": {
+    "field": "abstract",
+    "text": "METHODS: In this double-blind trial, we randomly assigned 3730 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive empagliflozin (10 mg once daily) or placebo, in addition to recommended therapy.",
+    "match": "3730 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less"
+   },
+   "span_source": "PMID 32865377 record abstract (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
    "audit": {
     "class": "TRUE_SCOPE_DIFFERENCE",
     "subclass": "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)"
    },
-   "protocol_rule": null,
+   "protocol_rule": "include.population_any = ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiovascular risk', 'cardiovascular disease', 'atherosclerotic cardiovascular disease'] (none met)",
    "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
    "pmid": "32865377"
   }
  ],
  "open_gaps": [
   "Radholm (9)",
-  "McMurray (10)",
-  "Kosiborod (18)",
   "Isreb (19)"
  ],
+ "k_matched_of_comparator_N": "4 of 8",
+ "comparator_set": {
+  "state": "TABLE_ENUMERATED",
+  "sources_tried": [
+   {
+    "source": "JATS_TABLE",
+    "units": 8,
+    "drug_specific_resolved": 8
+   },
+   {
+    "source": "MODEL_PROPOSAL_GATED",
+    "units": 8,
+    "drug_specific_resolved": 8
+   }
+  ]
+ },
  "blockers": {
   "SCREENED_VIA_OTHER_REPORT": 1,
-  "SCREENED_OUT_UNAUDITED:X2": 1,
-  "IDENTIFICATION": 1,
   "INSUFFICIENT_RECORD:NO_ABSTRACT": 1
  },
  "top_blocker": "SCREENED_VIA_OTHER_REPORT",
  "other_agent_units": [],
  "comparator_findings": [],
- "k_ours_total": 4,
+ "k_ours_total": 5,
  "routes": {
-  "PRIMARY": 3,
-  "NO_ROW": 5
+  "PRIMARY": 4,
+  "NO_ROW": 1,
+  "UNVERIFIED": 3
  },
  "trials": [
   {
@@ -46,7 +84,7 @@
    "family": "PMID 26378978",
    "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "our branch extraction PMID 26378978 (fulltext_verified)",
+   "basis": "our held-source pool PMID 26378978 (fulltext_verified)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
@@ -102,12 +140,21 @@
    "label": "McMurray (10)",
    "family": "PMID 31535829",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "SCREEN_OR_ELIGIBILITY",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "IN SCREEN PMID 31535829: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure and reduced ejection fraction'.",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.73",
+    "lower": "0.62",
+    "upper": "0.85",
+    "events_t": 231,
+    "n_t": 2373,
+    "events_c": 318,
+    "n_c": 2371,
+    "measure": "RR"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
@@ -138,12 +185,17 @@
        "param_type": "Hazard Ratio (HR)",
        "param_value": "0.74",
        "ci_lower": "0.65",
-       "ci_upper": "0.85"
+       "ci_upper": "0.85",
+       "analysis_id": "129100811",
+       "groups": [
+        "839363684"
+       ],
+       "groups_description": ""
       },
       "snapshot": {
        "id": "AACT 2026-08-30",
-       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-       "rules": 2
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
       },
       "gate": "OUTCOME_NOT_NAMED",
       "verdict": "REFUSED",
@@ -153,7 +205,7 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X2",
@@ -161,19 +213,45 @@
     "pmid": "31535829",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'heart failure and reduced ejection fraction'.",
+    "span": {
+     "field": "title",
+     "text": "Dapagliflozin in Patients with Heart Failure and Reduced Ejection Fraction.",
+     "match": "Heart Failure and Reduced Ejection Fraction"
+    },
+    "span_source": "PMID 31535829 record title (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'heart failure and reduced ejection fraction'"
+    },
+    "protocol_rule": "include.population_none[1] = 'heart failure and reduced ejection fraction'",
+    "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
+    "pmid": "31535829"
+   },
+   "blocker": null
   },
   {
    "label": "Cannon (11)",
    "family": "PMID 32966714",
    "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "our branch extraction PMID 32966714 (fulltext_verified)",
+   "basis": "our held-source pool PMID 32966714 (fulltext_verified)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.70",
+    "lower": "0.54",
+    "upper": "0.90",
+    "events_t": 139,
+    "n_t": 5499,
+    "events_c": 99,
+    "n_c": 2747,
+    "measure": "RR"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": {
@@ -188,8 +266,8 @@
    },
    "registry_binding": null,
    "g1_countable": true,
-   "agreement_with_comparator_row": "NOT_COMPARABLE:NO_COMPARATOR_ROW",
-   "comparator_row_state": null,
+   "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": null
   },
@@ -198,11 +276,20 @@
    "family": "PMID 30415602",
    "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "our branch extraction PMID 30415602 (fulltext_verified)",
+   "basis": "our held-source pool PMID 30415602 (fulltext_verified)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.74",
+    "lower": "0.62",
+    "upper": "0.88",
+    "events_t": 212,
+    "n_t": 8582,
+    "events_c": 286,
+    "n_c": 8578,
+    "measure": "RR"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": {
@@ -217,57 +304,81 @@
    },
    "registry_binding": null,
    "g1_countable": true,
-   "agreement_with_comparator_row": "NOT_COMPARABLE:NO_COMPARATOR_ROW",
-   "comparator_row_state": null,
+   "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": null
   },
   {
    "label": "Kosiborod (18)",
    "family": "PMID 28284707",
-   "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "SEEDED PMID 28284707: POOLED",
+   "in_our_pool": true,
+   "route": "PRIMARY",
+   "basis": "our held-source pool PMID 28284707 (abstract)",
+   "our_refusal": null,
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.12",
+    "lower": "0.02",
+    "upper": "1.00",
+    "events_t": 1,
+    "n_t": 171,
+    "events_c": 7,
+    "n_c": 149,
+    "measure": "RR"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
-   "our_value": null,
-   "registry_binding": null,
-   "g1_countable": false,
-   "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
-   "seeded_funnel": {
-    "stage": "POOLED",
-    "pmid": "28284707"
+   "our_value": {
+    "measure": "RR",
+    "effect": null,
+    "lower": null,
+    "upper": null,
+    "events_t": 1,
+    "n_t": 171,
+    "events_c": 7,
+    "n_c": 149
    },
+   "registry_binding": null,
+   "g1_countable": true,
+   "agreement_with_comparator_row": "AGREE",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
-   "blocker": "IDENTIFICATION"
+   "blocker": null
   },
   {
    "label": "Isreb (19)",
    "family": "PMID 31509682",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "SEEDED PMID 31509682: SCREENED_OUT X1: not a randomized controlled trial (record: 31509682).",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "IN SCREEN PMID 31509682: SCREENED_OUT X1: not a randomized controlled trial (record: 31509682).",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.63",
+    "lower": "0.49",
+    "upper": "0.82",
+    "events_t": 89,
+    "n_t": 2202,
+    "events_c": 141,
+    "n_c": 2199,
+    "measure": "RR"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": null,
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X1",
     "reason": "not a randomized controlled trial (record: 31509682).",
-    "pmid": "31509682"
+    "pmid": "31509682",
+    "already_in_screen": true
    },
    "scope_difference": null,
    "blocker": "INSUFFICIENT_RECORD:NO_ABSTRACT"
@@ -276,12 +387,21 @@
    "label": "Packer (20)",
    "family": "PMID 32865377",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "SEEDED PMID 32865377: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiova",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "IN SCREEN PMID 32865377: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiova",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.72",
+    "lower": "0.62",
+    "upper": "0.84",
+    "events_t": 246,
+    "n_t": 1863,
+    "events_c": 342,
+    "n_c": 1867,
+    "measure": "RR"
+   },
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
@@ -299,12 +419,18 @@
        "param_type": "Hazard Ratio (HR)",
        "param_value": "0.75",
        "ci_lower": "0.65",
-       "ci_upper": "0.86"
+       "ci_upper": "0.86",
+       "analysis_id": "129110641",
+       "groups": [
+        "839435475",
+        "839435476"
+       ],
+       "groups_description": "\"Model with terms for age, baseline eGFR (CKD-EPK)cr, region, baseline diabetes status, sex, baseline LVEF, and treatment.~alpha = 0.0496 (resulting from interim analysis) eGFR (CKP-EPI)cr: Glomerular"
       },
       "snapshot": {
        "id": "AACT 2026-08-30",
-       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-       "rules": 2
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
       },
       "gate": "ESTIMAND",
       "verdict": "REFUSED",
@@ -326,12 +452,18 @@
        "param_type": "Hazard Ratio (HR)",
        "param_value": "0.7",
        "ci_lower": "0.58",
-       "ci_upper": "0.85"
+       "ci_upper": "0.85",
+       "analysis_id": "129110642",
+       "groups": [
+        "839435477",
+        "839435478"
+       ],
+       "groups_description": "\"Model accounts for dependence between recurrent HHF and cardiovascular death, with terms for age, baseline eGFR (CKD-EPK)cr, region, baseline diabetes status, sex, baseline LVEF, and treatment.~eGFR "
       },
       "snapshot": {
        "id": "AACT 2026-08-30",
-       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-       "rules": 2
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
       },
       "gate": "ARMS",
       "verdict": "REFUSED",
@@ -353,12 +485,18 @@
        "param_type": "Hazard Ratio (HR)",
        "param_value": "0.5",
        "ci_lower": "0.32",
-       "ci_upper": "0.77"
+       "ci_upper": "0.77",
+       "analysis_id": "129110644",
+       "groups": [
+        "839435481",
+        "839435482"
+       ],
+       "groups_description": ""
       },
       "snapshot": {
        "id": "AACT 2026-08-30",
-       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-       "rules": 2
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
       },
       "gate": "ESTIMAND",
       "verdict": "REFUSED",
@@ -378,12 +516,18 @@
        "param_type": "Hazard Ratio (HR)",
        "param_value": "0.69",
        "ci_lower": "0.59",
-       "ci_upper": "0.81"
+       "ci_upper": "0.81",
+       "analysis_id": "129110645",
+       "groups": [
+        "839435483",
+        "839435484"
+       ],
+       "groups_description": ""
       },
       "snapshot": {
        "id": "AACT 2026-08-30",
-       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-       "rules": 2
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
       },
       "gate": "ARMS",
       "verdict": "REFUSED",
@@ -398,22 +542,29 @@
    },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X2",
     "reason": "population not on-topic: title/conditions do not mention any of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiova",
-    "pmid": "32865377"
+    "pmid": "32865377",
+    "already_in_screen": true
    },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
     "rule_id": "X2",
     "screen_reason": "population not on-topic: title/conditions do not mention any of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiova",
+    "span": {
+     "field": "abstract",
+     "text": "METHODS: In this double-blind trial, we randomly assigned 3730 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive empagliflozin (10 mg once daily) or placebo, in addition to recommended therapy.",
+     "match": "3730 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less"
+    },
+    "span_source": "PMID 32865377 record abstract (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
     "audit": {
      "class": "TRUE_SCOPE_DIFFERENCE",
      "subclass": "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)"
     },
-    "protocol_rule": null,
+    "protocol_rule": "include.population_any = ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiovascular risk', 'cardiovascular disease', 'atherosclerotic cardiovascular disease'] (none met)",
     "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
     "pmid": "32865377"
    },
@@ -421,18 +572,24 @@
   }
  ],
  "per_trial_agreement": {
-  "NOT_COMPARABLE:NO_COMPARATOR_ROW": 3
+  "NOT_COMPARABLE:NO_COMPARATOR_ROW": 1,
+  "NOT_COMPARABLE:HR_VS_RR": 2,
+  "AGREE": 1
  },
  "same_trials": {
-  "state": "FEWER_THAN_2_SHARED_TRIALS",
-  "k": 0,
+  "state": "MIXED_MEASURES",
+  "measures": [
+   "HR",
+   "RR"
+  ],
+  "k": 3,
   "method_basis": "comparator positive control not reproduced: PM default"
  },
  "ours": {
-  "k": 4,
-  "estimate": 0.6956,
-  "ci_low": 0.5763,
-  "ci_high": 0.8397,
+  "k": 5,
+  "estimate": 0.692,
+  "ci_low": 0.5873,
+  "ci_high": 0.8152,
   "scale": "HR"
  },
  "comparator": {
@@ -443,6 +600,16 @@
   "scale": "RR"
  },
  "comparator_basis": "served review comparator.reported",
+ "comparator_rows_source": [
+  {
+   "branch": "g1/forest-reader",
+   "commit": "59adc8bd32e247c1550d46fe178b0a7be9e086e7",
+   "path": "registry/model_proposals/g1_forest_reader.json",
+   "sha256": "47ac18270079be96cbdaef53aaae942bd4df2a4c2b962d3693a2c50a968e6d80",
+   "rows": 8,
+   "joined": 6
+  }
+ ],
  "ours_not_in_comparator": [
   "PMID 28605608"
  ],
@@ -462,22 +629,42 @@
   "state": "READY",
   "snapshot": {
    "id": "AACT 2026-08-30",
-   "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-   "rules": 2
+   "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+   "rules": 3
   }
  },
+ "pool_basis": {
+  "build": "k_gap_counterfactual.build_with_held_sources",
+  "held_records": 4,
+  "held_fulltext": 3,
+  "held_unpaywall": 2,
+  "held_registry": 0
+ },
+ "served_pool_lags": [
+  "PMID 28284707"
+ ],
  "g1_status": {
   "state": "NOT_YET",
   "criteria": {
    "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": false,
-   "DIVERGENCES_NAMED": false
+   "DIVERGENCES_NAMED": true
   },
   "unmet": [
    "ALL_ELIGIBLE_MATCHED",
-   "RESULT_AGREES",
-   "DIVERGENCES_NAMED"
-  ]
+   "RESULT_AGREES"
+  ],
+  "excluded_by_scope": {
+   "n": 2,
+   "of_comparator_N": 8,
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 2
+   },
+   "trials": [
+    "McMurray (10) [X2]",
+    "Packer (20) [X2]"
+   ]
+  }
  }
 }

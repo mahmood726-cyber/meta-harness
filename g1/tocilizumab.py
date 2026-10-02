@@ -31,6 +31,9 @@ AACT_FILE = os.path.join(ROOT, "g1", "data", "aact_toci.json")
 
 RANDOMISED, ANALYSED, SAFETY, UNSTATED = "RANDOMISED", "ANALYSED", "SAFETY", "UNSTATED"
 ESTABLISHED, ONE_SOURCE, CONFLICT, NO_SOURCE = "ESTABLISHED", "ONE_SOURCE", "CONFLICT", "NO_PRIMARY_SOURCE"
+# the counts are printed only by a SECONDARY source (a meta); every primary gives only a PERCENTAGE consistent with them
+# (a registry rate or a Kaplan-Meier survival estimate converted to counts; a text percentage). Shown, never counted
+SECONDARY_COUNT = "SECONDARY_COUNT_PRIMARY_CONSISTENT"
 
 # REACT's 19 trial labels -> registration, with the evidence that binds them (every one read from the local AACT
 # snapshot's own record: acronym, title or secondary id). None = no registration in AACT (named, not guessed).
@@ -206,6 +209,12 @@ def _pct_ok(p: str, d: int, n: int) -> bool:
 
 
 def text_locates(row: dict, text: str) -> Optional[str]:
+    """The located span (see text_locates_how), or None."""
+    r = text_locates_how(row, text)
+    return r[0] if r else None
+
+
+def text_locates_how(row: dict, text: str) -> Optional[tuple]:
     """Both arms' deaths, each with its denominator stated ('58 of 294', '58/294') or implied by a printed percentage
     that the row's N reproduces ('58 patients (19.7%)' with N=294), in one window with a death word and a 28-day word.
     A percentage computed on ANOTHER denominator (a safety population: '28 (19.6%)' = 28/143) does not locate the
@@ -227,7 +236,9 @@ def text_locates(row: dict, text: str) -> Optional[str]:
             continue
         win = t[max(0, m.start() - 300): m.end() + 300]
         if hits(row["deaths_c"], row["n_c"], win) and _DEATH_WORDS.search(win) and _DAY28.search(win):
-            return win
+            # the span is centred on the located count (a 300-char lead-in made COVACTA's record cite a sentence about
+            # median clinical status); a count printed in the text is a STATED count
+            return t[max(0, m.start() - 120): m.end() + 220], "STATED_COUNT"
     # percentages only, in one death + day-28 sentence ('Death from any cause by day 28 occurred in 10.4% of the
     # patients in the tocilizumab group and 8.6% of those in the placebo group'): both percentages reproduced by the
     # row's counts at the row's N, in the order of their arm words
@@ -247,7 +258,7 @@ def text_locates(row: dict, text: str) -> Optional[str]:
         first_t = a1 >= 0 and a1 < c1
         pt, pc = (ps[0], ps[1]) if first_t else (ps[1], ps[0])
         if _pct_ok(pt.group(1), row["deaths_t"], row["n_t"]) and _pct_ok(pc.group(1), row["deaths_c"], row["n_c"]):
-            return s
+            return s, "PCT_ONLY"
     return None
 
 
@@ -289,10 +300,14 @@ def text_candidates(text: str) -> list:
     """INDEPENDENT extraction (never guided by REACT): a sentence naming death and day 28 that carries exactly two
     'd of N' pairs, each after an arm word (tocilizumab vs usual care / placebo / standard care)."""
     out = []
-    for s in re.split(r"(?<=[.;])\s+(?=[A-Z(])", _fold(text)):
+    # a table footnote marker († ‡ ⁎ * §) starts a new statement: COVACTA's flattened table ran four footnotes into one
+    # 1,504-char 'sentence', and its day-28 word ('infections occurred after day 28') came from another footnote
+    for s in re.split(r"(?<=[.;])\s+(?=[A-Z(†‡⁎§*])|\s(?=[†‡⁎§]\s)", _fold(text)):
         if not (_DEATH_WORDS.search(s) and _DAY28.search(s)) or _OTHER_EVENT.search(s) or _OTHER_DAY.search(s):
             continue
-        pairs = list(_PAIR.finditer(s))
+        # 'd of N deaths' divides DEATHS (a cause-of-death breakdown: '36 of 72 deaths ... were due to COVID-19
+        # pneumonia'), never patients: such a pair is no arm's deaths over its N (plant Q14)
+        pairs = [p for p in _PAIR.finditer(s) if not re.match(r"\s*(?:deaths?|fatalities|died)\b", s[p.end():p.end() + 12], re.I)]
         if len(pairs) != 2:
             continue
         arms = []
@@ -314,7 +329,7 @@ def text_candidates(text: str) -> list:
             continue
         out.append({"deaths_t": v["t"][0], "n_t": v["t"][1], "deaths_c": v["c"][0], "n_c": v["c"][1],
                     "denominator_kind": RANDOMISED if re.search(r"randomi[sz]ed|intention", s, re.I) else UNSTATED,
-                    "span": s[:400]})
+                    "span": s[max(0, pairs[0].start() - 160): pairs[1].end() + 160][:400]})
     return out
 
 
@@ -467,6 +482,8 @@ def _held_papers() -> dict:
 
 
 _HELD = None
+_STATED_REQUIRED = True    # plant Q13 switches the stated-count requirement off
+_PRIMARY_MUST_STATE = True  # plant Q15 lets a secondary (meta) statement of the counts suffice
 # which acquired papers are read (plants switch these guards off): every acquired paper, and only for the trial(s) its
 # own text binds it to (scripts/g1_toci_cascade.binding)
 _ACQ_KEEP = lambda a: True                                              # noqa: E731
@@ -537,17 +554,26 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
     for c in cands:
         # a SAFETY reading never merges with an efficacy reading of the same numbers: they are different quantities
         key = tuple(c[k] for k in _KEY) + ((SAFETY,) if c.get("denominator_kind") == SAFETY else ())
-        g = by_value.setdefault(key, {"row": {k: c[k] for k in _KEY}, "kinds": set(), "sources": [],
+        g = by_value.setdefault(key, {"row": {k: c[k] for k in _KEY}, "kinds": set(), "sources": [], "stated": [],
                                       "denominator_kind": c.get("denominator_kind")})
         g["kinds"].add(c["source"].split()[0])
+        # does this source STATE the four counts? A registry count field or a count printed in the text does; a count
+        # DERIVED from a posted percentage ('19.5% of 210 -> 41') does not
+        if c["source"] != "AACT" or "%" not in (c.get("derivation") or ""):
+            g["stated"].append(c["source"])
+            g.setdefault("stated_primary", []).append(c["source"])
         g["sources"].append({k: c.get(k) for k in ("source", "title", "time_frame", "derivation", "span", "denominator_kind")
                              if c.get(k)})
         if c["source"] == "AACT":                       # the registry row located in the trial's own text
             for ref, txt in texts:
-                span = text_locates(c, txt)
-                if span:
+                got = text_locates_how(c, txt)
+                if got:
+                    span, how = got
                     g["kinds"].add("TEXT")
-                    g["sources"].append({"source": f"TEXT {ref} (locates the registry numbers)", "span": span[:400]})
+                    g["sources"].append({"source": f"TEXT {ref} (locates the registry numbers: {how})", "span": span[:400]})
+                    if how == "STATED_COUNT":
+                        g["stated"].append(f"TEXT {ref}")
+                        g.setdefault("stated_primary", []).append(f"TEXT {ref}")
                     break
     m = metas.get(label)
     for g in by_value.values():
@@ -562,14 +588,26 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
                 g["kinds"].add("META")
                 g["sources"].append({"source": f"SECONDARY meta {r['meta_pmid']} (independent of the comparator by its reference list; two readers): "
                                                f"'{r['label']}' cites PMID {r['cited_pmid']}; prints these counts"})
+                g["stated"].append(f"META {r['meta_pmid']} (prints events/total)")
     every = list(by_value.values())
     groups = [g for g in every if g["denominator_kind"] != SAFETY]          # only efficacy readings can be the row
-    est = [g for g in groups if len(g["kinds"]) >= 2 and g["kinds"] & {"AACT", "TEXT"}]
+    # ESTABLISHED: two independent kinds, one primary, AND the counts STATED by at least one source. Two percentages
+    # agreeing (a registry percentage converted to counts, 'located' by the paper's percentage) never state a count:
+    # EMPACTA's text gives only '10.4% ... 8.6%' (plant Q13)
+    # ... and a PRIMARY source must state them: a registry percentage (a rate, or a Kaplan-Meier survival estimate --
+    # CORIMUNO-TOCI-ICU's paper prints 'Overall survival (%) Estimate at day 28 84 ... 77', the very values AACT posts)
+    # converted to counts is a derivation, and a count printed only by a meta is secondary (plant Q15)
+    est = [g for g in groups if len(g["kinds"]) >= 2 and g["kinds"] & {"AACT", "TEXT"}
+           and ((g.get("stated_primary") if _PRIMARY_MUST_STATE else g["stated"]) or not _STATED_REQUIRED)]
+    sec = [g for g in groups if g not in est and g["kinds"] & {"AACT", "TEXT"} and "META" in g["kinds"] and g["stated"]
+           and not g.get("stated_primary")]
     if len(est) == 1 and len(groups) == 1:
         state, chosen = ESTABLISHED, est[0]
     elif len(groups) > 1:
         # two primary readings disagree. If exactly one is two-source established it stands, and the other is shown
         state, chosen = (ESTABLISHED, est[0]) if len(est) == 1 else (CONFLICT, None)
+    elif len(sec) == 1 and len(groups) == 1:
+        state, chosen = SECONDARY_COUNT, sec[0]
     elif groups:
         state, chosen = ONE_SOURCE, groups[0]
     else:
@@ -577,6 +615,7 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
     row = dict(chosen["row"], denominator_kind=chosen["denominator_kind"]) if chosen else None
     return {"label": label, "registration": nct, "identity": why, "state": state, "row": row,
             "readings": [{"values": g["row"], "independent_sources": sorted(g["kinds"]), "sources": g["sources"],
+                          "counts_stated_by": g["stated"], "counts_stated_by_a_primary": g.get("stated_primary") or [],
                           "denominator_kind": g["denominator_kind"]} for g in every],
             "second_meta": m, "meta2_rows": m2, "texts_held": [r for r, _ in texts]}
 
@@ -643,7 +682,7 @@ def run(extract: Optional[dict] = None) -> dict:
         "comparator": {"pmid": rx["comparator_pmid"], "printed": {k: rx["governing"][k] for k in ("estimate", "ci_low", "ci_high", "k")}},
         "positive_control": pool_fe(rx["rows"]),            # REACT's own rows must reproduce its printed pool
         "trials": trials,
-        "tally": {s: sum(1 for t in trials if t["state"] == s) for s in (ESTABLISHED, ONE_SOURCE, CONFLICT, NO_SOURCE)},
+        "tally": {s: sum(1 for t in trials if t["state"] == s) for s in (ESTABLISHED, SECONDARY_COUNT, ONE_SOURCE, CONFLICT, NO_SOURCE)},
         "vs_react": {v: sum(1 for t in established if t["vs_react"]["verdict"] == v)
                      for v in ("AGREE", "DENOMINATOR_KIND_DIFFERS", "DIFFER", "REACT_ROW_IS_SAFETY_POPULATION")},
         "react_rows_that_are_safety_counts": [t["label"] for t in trials

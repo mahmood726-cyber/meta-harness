@@ -124,7 +124,8 @@ def _snap(tmp_path, measurements, counts):
              "outcome_measurements.txt": "id|nct_id|outcome_id|result_group_id|units|param_type|param_value_num|category|classification\n"
                                          + measurements,
              "outcome_counts.txt": "id|nct_id|outcome_id|result_group_id|scope|units|count\n" + counts,
-             "result_groups.txt": "id|nct_id|ctgov_group_code|result_type|title|outcome_id\n"}
+             "result_groups.txt": "id|nct_id|ctgov_group_code|result_type|title|outcome_id\n",
+             "outcome_analysis_groups.txt": "id|nct_id|outcome_analysis_id|result_group_id|ctgov_group_code\n"}
     for f, body in files.items():
         (snap / f).write_text(body, encoding="utf-8")
     return snap

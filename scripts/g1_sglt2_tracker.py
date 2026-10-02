@@ -138,7 +138,7 @@ def build():
                 x["family"] = idn["nct"]
             x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (f" {f.get('rule_id')}: {f.get('reason')}"
                                                                    if f.get("rule_id") else "")
-            x["scope_difference"] = gt.scope_difference(x, cfg)
+            x["scope_difference"] = gt.scope_difference(x, cfg, SLUG)
             # the blocker as the shared tracker would compute it for this (now seeded) trial, then the tracker-population
             # exclusion audit (scripts/g1_exclusion_audit_tracker.py): a scope difference is NAMED only when that audit
             # classifies the excluded record TRUE_SCOPE_DIFFERENCE -- the shared gate's rule, applied to the audit that
@@ -146,12 +146,13 @@ def build():
             x["blocker"] = gt.blocker_class(x, SLUG)
             au = AUDIT.get((SLUG, p))
             if au and not x["scope_difference"]:
-                if au["class"] == "TRUE_SCOPE_DIFFERENCE":
+                if au["class"] == "TRUE_SCOPE_DIFFERENCE" and (au.get("span") or {}).get("text"):
                     term = (re.search(r"mention '([^']+)'", f.get("reason") or "") or [None, None])[1]
                     x["scope_difference"] = {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f.get("rule_id"),
                                              "screen_reason": f.get("reason"),
                                              "protocol_rule": gt.protocol_rule(cfg, term) if term else None,
                                              "registered_eligibility": cfg.get("eligibility_summary"), "pmid": p,
+                                             "span": au.get("span"),
                                              "audit": {"class": au["class"], "subclass": au["subclass"],
                                                        "source": "outputs/k_gap/exclusion_audit.tracker.json"}}
                 elif au["class"] in ("SCREENER_ERROR", "INSUFFICIENT_RECORD"):
@@ -189,6 +190,13 @@ def build():
               readers_agree_on_verdict=len({json.dumps(v.get("verdict"), sort_keys=True) for v in by_reader.values()}) == 1)
     o["same_trials"] = st
     o["comparator_basis"] = (o.get("comparator_basis") or "") + "; LVEF <=40% subgroup rows: Figure 2A, two gated readers"
+    # the SAME citation contract as every topic (g1_tracker.cite_or_demote / scope_citation_violations): a named
+    # difference keeps its name only with a rule ID and a span verbatim in the held record; the lane's word is not enough
+    o = gt.cite_or_demote(o, SLUG)
+    o["g1_status"] = gt.g1_status(o)
+    bad = gt.scope_citation_violations(o)
+    if bad:
+        raise SystemExit("REFUSED (scope citation): " + "; ".join(bad))
     o["lane"] = {"script": "scripts/g1_sglt2_tracker.py", "forest": "g1/data/sglt2_hfref_forest.json",
                  "forest_attempts": 1 + len(forest.get("earlier_attempts") or []),
                  "comparator_rows": rows}
