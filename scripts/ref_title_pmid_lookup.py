@@ -43,8 +43,14 @@ def same_title(pubmed_title, cited_title):
         return True
     if len(c.split()) < 8 or not p.startswith(c + " "):
         return False
-    cut = re.match(r"\W*" + r"\W+".join(map(re.escape, c.split())) + r"(?P<next>\W*)", pubmed_title, re.I)
-    return bool(cut and re.match(r"\s*[.:?!]", cut.group("next")))
+    cut = re.match(r"\W*" + r"\W+".join(map(re.escape, c.split())) + r"(?P<next>\W*)(?P<sub>.*)$", pubmed_title,
+                   re.I | re.S)
+    # only a DESIGN DESCRIPTOR after a full stop ('. A randomized, placebo-controlled ... study.'): a colon subtitle
+    # ('...: renal outcomes in the eye disease substudy') names a different, companion paper (IDREVIEW P1)
+    return bool(cut and re.match(r"\s*\.", cut.group("next")) and re.match(
+        r"\s*(?:an?\s+)?(?:(?:prospective|randomi[sz]ed|double[- ]blind|single[- ]blind|open[- ]label|placebo[- ]"
+        r"controlled|controlled|multi-?cent(?:re|er)|parallel[- ]group|crossover|pilot|clinical)[\s,-]*)+"
+        r"(?:study|trial)\.?\s*$", cut.group("sub"), re.I))
 
 
 def get(url):
@@ -105,7 +111,7 @@ def lookup(ref):
         ok = (same_title(title, ref["title"]) and fold(sur) == fold(ref.get("first_author"))
               and (not ref.get("year") or year == ref["year"]))
         (confirmed if ok else out.setdefault("rejected", [])).append(
-            {"pmid": pmid, "title": title[:200], "first_author": sur, "year": year, "databank_ncts": nct})
+            {"pmid": pmid, "title": title, "first_author": sur, "year": year, "databank_ncts": nct})
     if len(confirmed) == 1:
         return dict(out, state="CONFIRMED", **confirmed[0])
     return dict(out, state="AMBIGUOUS" if confirmed else "CANDIDATES_NOT_CONFIRMED", confirmed=confirmed)

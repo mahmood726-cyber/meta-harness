@@ -243,9 +243,16 @@ def test_other_agent_trial_resolves_only_by_a_globally_unique_acronym(monkeypatc
                acr_nct={k_gap.norm_acronym('FIGARO-DKD'): ['NCT02545049'],
                         k_gap.norm_acronym('SCORED'): ['NCT03222193', 'NCT03315143', 'NCT07509203'],
                         k_gap.norm_acronym('CORP'): ['NCT00128414']},
-               study={'NCT02545049': {'study_first_submitted_date': '2015-09-14'}})
+               study={'NCT02545049': {'study_first_submitted_date': '2015-09-14'}},
+               interventions={'NCT02545049': ['Finerenone (BAY94-8862)', 'Placebo']})
+    monkeypatch.setattr(kt, 'SERVED_AGENTS', ['finerenone', 'spironolactone'])
     r = kt.resolve_unit(unit('FIGARO-DKD2022', layout='row'), None, idx, None)
     assert r['ncts'] == ['NCT02545049'] and 'acronym_aact_any_agent_acronym:FIGARO-DKD' in r['basis']
+    # unique but UNCORROBORATED (its interventions name no served topic's drug): a candidate, never an identity
+    monkeypatch.setattr(kt, 'SERVED_AGENTS', ['spironolactone'])
+    r = kt.resolve_unit(unit('FIGARO-DKD2022', layout='row'), None, idx, None)
+    assert r['ncts'] == [] and 'uncorroborated_any_agent_acronym_acronym:FIGARO-DKD:NCT02545049' in r['basis']
+    monkeypatch.setattr(kt, 'SERVED_AGENTS', ['finerenone', 'spironolactone'])
     r = kt.resolve_unit(unit('SCORED', layout='text'), None, idx, None)
     assert r['ncts'] == [] and 'acronym_aact_any_agent_ambiguous_acronym:SCORED:3' in r['basis']
     r = kt.resolve_unit(unit('CORP study', layout='text'), None, idx, None)
