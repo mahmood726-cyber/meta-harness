@@ -824,6 +824,46 @@ def report_pmid(t, shown=None):
     return str(p) if p else None
 
 
+def name_letter_units_by_comment_on(slug, cfg, trials, rev):
+    """A comparator unit that is a LETTER / COMMENT about one article stands for that article (kgap/comment_on.py:
+    PubMed CommentOn, recorded with its XML sha256). It is named a PROTOCOL_SCOPE_DIFFERENCE only when OUR served screen
+    excluded that article under a rule AND the exclusion audit classes the article's exclusion TRUE_SCOPE_DIFFERENCE with
+    a span verbatim in the article's held record -- the span and rule are the ARTICLE's, never the letter's words
+    (sglt2-primary-prevention-hf: 'Isreb (19)', NEJM letter 31509682 on CREDENCE 30990260, screened out X2 'nephropathy')."""
+    from kgap import comment_on as co
+    import k_gap_exclusion_audit as au
+    ledger = {str(r.get("id")): r for r in ((rev or {}).get("screening") or {}).get("records", [])}
+    for x in trials:
+        if is_matched(x) or x.get("scope_difference"):
+            continue
+        pmid = str(x.get("family") or "").replace("PMID ", "").strip()
+        rec = held_record(slug, pmid) or {}
+        pts = [str(p).lower() for p in rec.get("pubtypes") or []]
+        if not any(t in pts for t in ("letter", "comment", "editorial")) or any("randomized controlled trial" in p for p in pts):
+            continue
+        targets = co.comment_on(pmid)
+        if len(targets) != 1:
+            continue
+        art = targets[0]
+        led, arec = ledger.get(art) or {}, held_record(slug, art)
+        if led.get("decision") != "exclude" or not led.get("rule_id") or not arec:
+            continue
+        cls, sub, base = au.classify(arec, cfg)
+        sp = (base or {}).get("span")
+        if cls != "TRUE_SCOPE_DIFFERENCE" or not sp or not span_is_verbatim(slug, art, sp):
+            continue
+        rco = co._load().get(pmid) or {}
+        x["scope_difference"] = {
+            "kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": led["rule_id"], "screen_reason": led.get("reason"),
+            "audit": {"class": cls, "subclass": sub}, "protocol_rule": protocol_rule_for(cfg, led["rule_id"], led.get("reason")),
+            "registered_eligibility": cfg.get("eligibility_summary"), "pmid": art, "span": sp,
+            "span_source": span_source_of(slug, art, sp) + f" -- the comparator unit is PMID {pmid} "
+                           f"({', '.join(rec.get('pubtypes') or [])}), which comments on PMID {art}",
+            "via_comment_on": {"unit_pmid": pmid, "comment_on": art, "source": rco.get("source"),
+                               "xml_sha256": rco.get("xml_sha256"), "record": "outputs/k_gap/comment_on.json"}}
+        x["blocker"] = None
+
+
 def name_reference_seeds_outside_membership(slug, comp, trials, T):
     """A REFERENCE-SEEDED comparator unit that the comparator's OWN abstract places outside its stated membership is
     named NOT_AN_INCLUDED_TRIAL (harness/comparator_membership.py: stated k == matched k, and the unit's record says it
@@ -1098,6 +1138,7 @@ def topic(slug, T):
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or {}, comp, rows)
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)
+    name_letter_units_by_comment_on(slug, cfg, trials, rev)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))
