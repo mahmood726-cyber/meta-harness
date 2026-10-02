@@ -18,6 +18,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from g1 import tocilizumab as g  # noqa: E402
 
 NEVER = re.compile(r"(?!x)x")
@@ -82,6 +83,47 @@ def q7_timepoint():
     return bool(g.aact_28d("COVIDOSE2-SS-A", ex))
 
 
+_OLD_TABLE_HEAD = re.compile(r"(tocilizumab|tcz|usual care|placebo|standard (?:of )?care|control)[^()]{0,30}"
+                             r"\(\s*n\s*=\s*(\d+)\s*\)", re.I)
+_COVIDSTORM_TABLE = ("Table 3 Tocilizumab group ( n = 57) Standard-of-care group ( n = 29) p-value Hospitalization (d), "
+                     "median (interquartile range) 9 (7-12) 12 (9-15) 0.014 Death at day 28, n (%) 1 (1.8) 0 (0) N/A")
+
+
+def q9_hyphenated_arm_header():
+    """COVIDSTORM's 'Standard-of-care group ( n = 29)': the table row is MISSED (fires) when the hyphenated arm is not
+    an arm word."""
+    return g.table_candidates(_COVIDSTORM_TABLE) == []
+
+
+def q10_recovery_full_text_not_acquired():
+    """RECOVERY's own open full text (PMID 33933206, PMC8084355, CC BY) must be HELD. It was not: the topic's build never
+    ran the full-text rung (no 'fulltext' in its config) and only its abstract was held. Guard = the cascade's
+    acquisitions (scripts/g1_toci_cascade.py)."""
+    return not any("33933206" in ref and "<body" in txt for ref, txt in g.held_texts("RECOVERY"))
+
+
+def q11_found_for_is_not_bound_to():
+    """A paper FOUND by a trial's search is not that trial's report: ARCHITECTS' searches return papers that merely cite
+    its registration. Fires if ARCHITECTS reads any paper (no ARCHITECTS report is held)."""
+    return bool(g.held_texts("ARCHITECTS"))
+
+
+def q12_react_citing_meta_confirms():
+    """ANTI-CIRCULARITY through a meta: PMC8584705 (J Clin Med 2021, CC BY) prints RECOVERY's 621/2022 vs 729/2094 but
+    CITES REACT, so its counts may be REACT's own. Fires if it is accepted as an independent second source."""
+    import g1_toci_meta2_forest as m2
+    x = open(os.path.join(ROOT, "cache", "comparators", "34768455", "g1_meta2_PMC8584705.xml"), encoding="utf-8").read()
+    return m2.independence(x)["state"] == "INDEPENDENT"
+
+
+def q12_guard_removed():
+    """Without the independence check: does that meta print a primary reading's tuple, i.e. would it have confirmed?"""
+    import g1_toci_meta2_forest as m2
+    t = g._fold(m2.text_of(open(os.path.join(ROOT, "cache", "comparators", "34768455", "g1_meta2_PMC8584705.xml"),
+                               encoding="utf-8").read()))
+    return bool(re.search(r"(?<!\d)621(?!\d).{0,25}(?<!\d)2022(?!\d)", t) and re.search(r"(?<!\d)729(?!\d).{0,25}(?<!\d)2094(?!\d)", t))
+
+
 def run() -> dict:
     out = {}
     r = g.run()
@@ -93,6 +135,12 @@ def run() -> dict:
         "Q4_paper_bound_to_a_trial_its_text_does_not_name": (q4_paper_binding, None),
         "Q6_ambiguous_percentage_forced_to_a_count": (q6_unique_count, None),
         "Q7_day_30_read_as_day_28": (q7_timepoint, lambda: patched(g, "_DAY28", re.compile(r"\d+\s*days?", re.I))),
+        "Q9_hyphenated_control_arm_header_missed": (q9_hyphenated_arm_header,
+                                                    lambda: patched(g, "_TABLE_HEAD", _OLD_TABLE_HEAD)),
+        "Q10_RECOVERY_open_full_text_not_acquired": (q10_recovery_full_text_not_acquired, lambda: patched(
+            g, "_ACQ_KEEP", lambda a: not str(a.get("query") or "").startswith("cascade:"))),
+        "Q11_paper_found_for_a_trial_read_as_its_report": (q11_found_for_is_not_bound_to, lambda: patched(
+            g, "_ACQ_BOUND", lambda a, label: label in (a.get("found_for"), a.get("label_query")))),
     }
     for name, (fn, guard_off) in plants.items():
         as_built = fn()
@@ -112,6 +160,8 @@ def run() -> dict:
     ks = [k for k in range(2023) if round(100.0 * k / 2022) == 31]
     out["Q6_ambiguous_percentage_forced_to_a_count"]["fires_with_guard_removed"] = len(ks) > 1
     out["Q5_one_source_or_comparator_rows_counted_as_matched"] = {"fired_as_built": q5_anti_circularity(r)}
+    out["Q12_REACT_citing_meta_confirms_RECOVERY"] = {"fired_as_built": q12_react_citing_meta_confirms(),
+                                                      "fires_with_guard_removed": q12_guard_removed()}
     # Q8: a SAFETY-population death count established as the efficacy 28-day row (BACC-Bay: REACT's 9/161 vs 4/82 is the
     # paper's 'Adverse Events in the Safety Population' table; the mITT efficacy count is 9/161 vs 3/81)
     bacc = next(t for t in r["trials"] if t["label"] == "BACC-Bay")
