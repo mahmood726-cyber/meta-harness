@@ -243,6 +243,28 @@ def acronym_long_form(acr, text, max_skips=4):
     return ""
 
 
+def pmc_html_refs(html):
+    """The reference list of a PMC article page ('<li id="bib7"><span class="label">7.</span><cite>Anker S.D., ...
+    Empagliflozin in heart failure ... N Engl J Med. 2021;385:1451-1461.</cite> [PubMed link]'): one record per
+    numbered item, with the PMID / DOI the page itself links. No PMID is invented."""
+    out = {}
+    for m in re.finditer(r'<li id="(?P<rid>[^"]+)">\s*<span class="label">(?P<lab>\d{1,3})\.?</span>\s*<cite>(?P<cite>.*?)</cite>'
+                         r'(?P<tail>.*?)</li>', html, re.S):
+        cite = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", m.group("cite"))).strip()
+        tail = m.group("tail")
+        pmid = re.search(r"pubmed\.ncbi\.nlm\.nih\.gov/(\d+)", tail)
+        doi = re.search(r"doi\.org/([^\"\s<]+)", tail)
+        surname = re.match(r"([^\s,]+(?:\s+[a-z][^\s,]*)*)\s+[A-Z]", cite)
+        year = re.search(r"\b((?:19|20)\d\d)\b", cite)
+        parts = re.split(r"(?<=[a-z0-9\)])\.\s+(?=[A-Z])", cite)
+        out[m.group("lab")] = {"rid": m.group("rid"), "label": m.group("lab"), "ordinal": int(m.group("lab")),
+                               "pmid": pmid.group(1) if pmid else None, "doi": doi.group(1) if doi else None,
+                               "first_author": surname.group(1) if surname else "",
+                               "title": parts[1].strip() if len(parts) > 2 else "", "year": year.group(1) if year else "",
+                               "text": cite[:400], "ncts": sorted(set(re.findall(r"NCT\d{8}", cite)))}
+    return out
+
+
 def subgroup_row(u):
     """A GROUP DESCRIPTION with a group size and no study identity -- 'Statin used group in QRISK 10-19% (n = 6438)'
     under the Gitsels 2016 study row -- is a sub-row of the study above it, not a trial. Requires a group word AND an
@@ -277,6 +299,15 @@ def identity_refs(pmid):
                 continue
             if refs:
                 return {"refs": refs, "source": os.path.relpath(p, ROOT).replace(os.sep, "/"), "sha256": k_gap.sha256(body)}
+    # a held PMC ARTICLE PAGE (dapagliflozin: Europe PMC 500 / PMC OAI 400 for PMC10123444; the page itself is the
+    # open copy) -- its numbered reference list with the PMIDs the page links. Held locally only (licence), never committed.
+    for p in sorted(glob.glob(os.path.join(d, "*_pmc_article.html")), reverse=True):
+        with open(p, "rb") as fh:
+            body = fh.read()
+        refs = pmc_html_refs(body.decode("utf-8", errors="replace"))
+        if refs:
+            return {"refs": refs, "source": os.path.relpath(p, ROOT).replace(os.sep, "/"), "sha256": k_gap.sha256(body),
+                    "layout": "PMC_ARTICLE_HTML"}
     # no JATS copy (metformin: the Europe PMC fetch was a 404 recorded as a 0-byte file): a held TEXT copy's
     # included-studies citation list, keyed by study ID
     for p in sorted(glob.glob(os.path.join(d, "*_legacy_comparator_fulltext.txt")), reverse=True):
@@ -537,8 +568,13 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     # year equals the label's year when the label has one): 'Aldo-DHF2013' -> Edelmann 2013 (PMID 23443441)
     if not ncts and not pmids and parsed and u["acronyms"]:
         for a in u["acronyms"]:
-            pat = re.compile(r"(?<![A-Za-z0-9])" + re.escape(k_gap.fold_dashes(a)) + r"(?![A-Za-z0-9])", re.I)
-            refs = [r for r in parsed["refs"].values() if pat.search(k_gap.fold_dashes(r.get("text") or ""))
+            # the acronym as written, '-' and ' ' interchangeable ('VERTIS-CV' == 'VERTIS CV'), searched in the
+            # reference text AND its PMID's PubMed collective-author name ('SOLOIST-WHF Trial Investigators')
+            pat = re.compile(r"(?<![A-Za-z0-9])" + re.escape(k_gap.fold_dashes(a)).replace(r"\-", r"[-\s]").replace(
+                r"\ ", r"[-\s]") + r"(?![A-Za-z0-9])", re.I)
+            refs = [r for r in parsed["refs"].values()
+                    if pat.search(k_gap.fold_dashes(" ".join([r.get("text") or ""] + list(
+                        (COLLECTIVE.get(r.get("pmid") or "") or {}).get("collective") or []))))
                     and (not u.get("year") or r.get("year") == u["year"])]
             if len(refs) == 1 and not refs[0].get("pmid"):
                 hit = REF_PMID.get(_ref_key(refs[0]))
@@ -558,6 +594,19 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                     ncts.add(only[0])
                 break
             if len(refs) > 1:
+                # REPORT-FAMILY at reference level: several references naming the acronym are ONE trial when every
+                # one of them is a report of the same single registration (AACT study_references, registered before
+                # publication) -- VERTIS-CV's primary paper and its heart-failure secondary report. Else: ambiguous.
+                regs = [{n for n, _t in idx["pmid_nct"].get(r.get("pmid") or "", [])
+                         if registered_before(n, years.get(r.get("pmid")), idx)} for r in refs]
+                common = set.intersection(*regs) if regs and all(regs) else set()
+                if len(common) == 1 and all(len(x) == 1 for x in regs):
+                    ncts.add(next(iter(common)))
+                    pmids |= {r["pmid"] for r in refs if r.get("pmid")}
+                    pmid_resolved = True
+                    basis.append(f"acronym_in_comparator_refs_one_trial:{a}:{next(iter(common))}:"
+                                 + ",".join(r["rid"] for r in refs))
+                    break
                 basis.append(f"acronym_in_comparator_refs_ambiguous:{a}:{len(refs)}")
     # (chain 3b) the acronym's LONG FORM spelled out by exactly one comparator reference -- in its text, or in the
     # PubMed collective-author name of its PMID (outputs/k_gap/pubmed_collective.json): 'RALES' <- 'Randomized

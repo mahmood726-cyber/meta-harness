@@ -277,6 +277,13 @@ def identity_tokens(label: str) -> dict:
     whole = re.match(r"^([A-Z][a-z]+-[A-Z]{2,}[A-Za-z0-9]*)\b", lab)
     if whole and whole.group(1) not in acr:
         acr = [whole.group(1)] + acr
+    # an all-caps name with a Capitalised second word is ONE name ('EMPEROR Preserved'): reading only 'EMPEROR'
+    # resolved the row to EMPEROR-Reduced (NCT03057977), the wrong trial. Generic words are never part of a name.
+    two = re.match(r"^([A-Z]{3,}[-\s](?!(?:Trial|Study|Group|Investigators|Programme|Program)\b)[A-Z][a-z]{3,})\b", lab)
+    if two and two.group(1) not in acr:
+        head = re.split(r"[-\s]", two.group(1))[0]
+        # ...and its bare head is dropped: falling back to 'EMPEROR' alone could resolve uniquely to the WRONG member
+        acr = [two.group(1)] + [a for a in acr if a != head]
     m = _AUTHOR_YEAR.match(lab)
     if not m:
         m2 = re.match(r"^([A-Z][A-Za-z'À-ſ-]+)(?:\s+[A-Z]{1,3}\.?)?(?P<etal>\s+et\s+al\.?)?$", lab)
