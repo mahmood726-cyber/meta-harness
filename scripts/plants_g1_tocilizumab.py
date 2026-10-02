@@ -124,6 +124,53 @@ def q12_guard_removed():
     return bool(re.search(r"(?<!\d)621(?!\d).{0,25}(?<!\d)2022(?!\d)", t) and re.search(r"(?<!\d)729(?!\d).{0,25}(?<!\d)2094(?!\d)", t))
 
 
+def q13_percentages_never_state_a_count():
+    """EMPACTA without the second metas' printed events/total: the registry count is DERIVED from '10.4% of 249', and the
+    paper's text gives only '10.4% ... 8.6%'. Fires if two agreeing percentages ESTABLISH the counts."""
+    extract = json.load(open(g.AACT_FILE, encoding="utf-8"))
+    old = g._META2
+    g._META2 = {}
+    try:
+        return g.assess("EMPACTA", extract, g.second_meta_rows())["state"] == g.ESTABLISHED
+    finally:
+        g._META2 = old
+
+
+_COD = ("The most common reason for death was COVID-19 pneumonia (36 of 72 deaths in the tocilizumab arm and 20 of 36 "
+        "deaths in the placebo arm). ‡ Excluding COVID-19 and COVID-19 pneumonia, eight serious infections occurred "
+        "after day 28.")
+
+
+def q14_cause_of_death_breakdown_read_as_arm_deaths():
+    """COVACTA (PMID 35475258): '36 of 72 DEATHS' is a cause-of-death breakdown; read as 36 deaths of 72 patients it made
+    a false 28-day row (the day-28 word came from the next footnote). Fires if it yields a candidate."""
+    return bool(g.text_candidates(_COD))
+
+
+_COD_ONE_SENTENCE = ("By day 28 the most common reason for death was COVID-19 pneumonia (36 of 72 deaths in the tocilizumab "
+                     "arm and 20 of 36 deaths in the placebo arm).")
+
+
+def q14b_deaths_denominator_alone():
+    """The deaths-denominator guard ON ITS OWN: one sentence (no footnote split can rescue it) with a day-28 word.
+    Fires if '36 of 72 deaths' is read as 36 deaths of 72 patients. (The first cut of this guard compiled to a
+    backspace instead of a word boundary and never filtered anything; Q14 passed on the footnote split alone.)"""
+    return bool(g.text_candidates(_COD_ONE_SENTENCE))
+
+
+def q14_guard_removed():
+    s = g._fold(_COD)
+    return len(list(g._PAIR.finditer(s))) == 2 and bool(g._DEATH_WORDS.search(s) and g._DAY28.search(s))
+
+
+def q15_meta_count_with_primary_percentage_established():
+    """EMPACTA: every primary gives a PERCENTAGE (AACT 'Mortality Rate by Day 28' 10.4/8.6; the abstract '10.4% ... 8.6%');
+    only a meta prints 26/249 vs 11/128. Fires if that is ESTABLISHED (a secondary statement standing in for a primary)."""
+    extract = json.load(open(g.AACT_FILE, encoding="utf-8"))
+    g._META2 = g.meta2_rows()
+    return g.assess("EMPACTA", extract, g.second_meta_rows())["state"] == g.ESTABLISHED
+
+
 def run() -> dict:
     out = {}
     r = g.run()
@@ -160,6 +207,21 @@ def run() -> dict:
     ks = [k for k in range(2023) if round(100.0 * k / 2022) == 31]
     out["Q6_ambiguous_percentage_forced_to_a_count"]["fires_with_guard_removed"] = len(ks) > 1
     out["Q5_one_source_or_comparator_rows_counted_as_matched"] = {"fired_as_built": q5_anti_circularity(r)}
+    stated = q13_percentages_never_state_a_count()
+    with patched(g, "_STATED_REQUIRED", False):
+        stated_off = q13_percentages_never_state_a_count()
+    out["Q13_two_percentages_establish_a_count"] = {"fired_as_built": stated, "fires_with_guard_removed": stated_off}
+    out["Q14_cause_of_death_breakdown_read_as_arm_deaths"] = {"fired_as_built": q14_cause_of_death_breakdown_read_as_arm_deaths(),
+                                                             "fires_with_guard_removed": q14_guard_removed()}
+    # the deaths-denominator guard alone: guard removed = the unfiltered pairs of that sentence
+    s14 = g._fold(_COD_ONE_SENTENCE)
+    out["Q14b_deaths_denominator_guard_alone"] = {
+        "fired_as_built": q14b_deaths_denominator_alone(),
+        "fires_with_guard_removed": len(list(g._PAIR.finditer(s14))) == 2 and bool(g._DAY28.search(s14))}
+    q15 = q15_meta_count_with_primary_percentage_established()
+    with patched(g, "_PRIMARY_MUST_STATE", False):
+        q15_off = q15_meta_count_with_primary_percentage_established()
+    out["Q15_meta_count_plus_primary_percentage_established"] = {"fired_as_built": q15, "fires_with_guard_removed": q15_off}
     out["Q12_REACT_citing_meta_confirms_RECOVERY"] = {"fired_as_built": q12_react_citing_meta_confirms(),
                                                       "fires_with_guard_removed": q12_guard_removed()}
     # Q8: a SAFETY-population death count established as the efficacy 28-day row (BACC-Bay: REACT's 9/161 vs 4/82 is the

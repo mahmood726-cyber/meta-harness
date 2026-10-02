@@ -2,23 +2,23 @@
 
 - **Comparator**: REACT (PMID 34228774), 19 tocilizumab trials, FE OR 0.83 (0.74-0.92). Its rows are the TARGET only: never a source, never in k matched.
 - **Positive control**: REACT's own 19 rows -> FE OR 0.8253 (0.7424-0.9174).
-- **k matched: 4 of 19** (ESTABLISHED by two independent sources, one primary, and equal to REACT's row).
-- **States**: {'ESTABLISHED': 4, 'ONE_SOURCE': 3, 'CONFLICT': 0, 'NO_PRIMARY_SOURCE': 12}. REACT rows that are a paper's SAFETY-population count: ['BACC-Bay'].
-- **Coverage-limited reconciliation, NOT a finding.** On the 4 established trials only, our rows pool to OR 1.1897 (0.8276-1.7103) and REACT's rows for the same trials to OR 1.1897 (0.8276-1.7103): this checks that our rows reproduce REACT's on those trials. It is not an estimate of tocilizumab's effect: the two largest trials (RECOVERY, REMAP-CAP) are not established, so no topic-level result is stated.
+- **k matched: 2 of 19** (ESTABLISHED by two independent sources, one primary, and equal to REACT's row).
+- **States**: {'ESTABLISHED': 2, 'SECONDARY_COUNT_PRIMARY_CONSISTENT': 2, 'ONE_SOURCE': 3, 'CONFLICT': 0, 'NO_PRIMARY_SOURCE': 12}. REACT rows that are a paper's SAFETY-population count: ['BACC-Bay'].
+- **Coverage-limited reconciliation, NOT a finding.** On the 2 established trials only, our rows pool to OR 1.2251 (0.7799-1.9245) and REACT's rows for the same trials to OR 1.2251 (0.7799-1.9245): this checks that our rows reproduce REACT's on those trials. It is not an estimate of tocilizumab's effect: the two largest trials (RECOVERY, REMAP-CAP) are not established, so no topic-level result is stated.
 
 | REACT trial | registration | state | sources (independent) | our row | REACT row | verdict |
 |---|---|---|---|---|---|---|
 | ARCHITECTS | NCT04412772 | NO_PRIMARY_SOURCE | - | - | 0/10 vs 2/11 | NO_PRIMARY_ROW |
 | BACC-Bay | NCT04356937 | NO_PRIMARY_SOURCE | META+TEXT [SAFETY] | - | 9/161 vs 4/82 | REACT_ROW_IS_SAFETY_POPULATION |
-| CORIMUNO-TOCI-1 | NCT04331808 | ESTABLISHED | AACT+META | 7/63 vs 8/67 (ANALYSED) | 7/63 vs 8/67 | AGREE |
-| CORIMUNO-TOCI-ICU | NCT04331808 | ONE_SOURCE | AACT | 8/49 vs 10/43 (ANALYSED) | 8/49 vs 10/43 | AGREE |
+| CORIMUNO-TOCI-1 | NCT04331808 | SECONDARY_COUNT_PRIMARY_CONSISTENT | AACT+META | 7/63 vs 8/67 (ANALYSED) | 7/63 vs 8/67 | AGREE |
+| CORIMUNO-TOCI-ICU | NCT04331808 | ONE_SOURCE | AACT; TEXT [SAFETY] | 8/49 vs 10/43 (ANALYSED) | 8/49 vs 10/43 | AGREE |
 | COV-AID | NCT04330638 | NO_PRIMARY_SOURCE | - | - | 9/81 vs 7/72 | NO_PRIMARY_ROW |
-| COVACTA | NCT04320615 | ESTABLISHED | AACT+META+TEXT; TEXT [SAFETY]; TEXT | 58/294 vs 28/144 (ANALYSED) | 58/294 vs 28/144 | AGREE |
+| COVACTA | NCT04320615 | ESTABLISHED | AACT+META+TEXT; TEXT [SAFETY] | 58/294 vs 28/144 (ANALYSED) | 58/294 vs 28/144 | AGREE |
 | COVIDOSE2-SS-A | NCT04479358 | NO_PRIMARY_SOURCE | - | - | 0/19 vs 2/8 | NO_PRIMARY_ROW |
 | COVIDSTORM | NCT04577534 | NO_PRIMARY_SOURCE | - | - | 0/26 vs 0/13 | NO_PRIMARY_ROW |
 | COVINTOC | - | NO_PRIMARY_SOURCE | - | - | 11/91 vs 15/88 | NO_PRIMARY_ROW |
 | COVITOZ | NCT04435717 | NO_PRIMARY_SOURCE | - | - | 0/17 vs 0/9 | NO_PRIMARY_ROW |
-| EMPACTA | NCT04372186 | ESTABLISHED | AACT+META+TEXT | 26/249 vs 11/128 (ANALYSED) | 26/249 vs 11/128 | AGREE |
+| EMPACTA | NCT04372186 | SECONDARY_COUNT_PRIMARY_CONSISTENT | AACT+META+TEXT | 26/249 vs 11/128 (ANALYSED) | 26/249 vs 11/128 | AGREE |
 | HMO-020-0224 | NCT04377750 | NO_PRIMARY_SOURCE | - | - | 11/37 vs 8/17 | NO_PRIMARY_ROW |
 | ImmCoVA | NCT04412291 | NO_PRIMARY_SOURCE | - | - | 2/22 vs 2/27 | NO_PRIMARY_ROW |
 | PreToVid | - | NO_PRIMARY_SOURCE | - | - | 21/174 vs 34/180 | NO_PRIMARY_ROW |

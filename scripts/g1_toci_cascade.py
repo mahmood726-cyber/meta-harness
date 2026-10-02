@@ -368,6 +368,11 @@ def run_trial(label, A):
     return {"label": label, "nct": nct, "run_utc": now(), "discovery": disc, "candidates": reports, "trial_rungs": per_trial}
 
 
+# two REACT rows share NCT04331808 (CORIMUNO-TOCI-1 severe, CORIMUNO-TOCI-ICU critical): the title's population picks one
+TITLE_LABEL = {"CORIMUNO-TOCI-ICU": r"CORIMUNO.*(?:critically ill|intensive care|\bICU\b)|(?:critically ill|intensive care|\bICU\b).*CORIMUNO",
+               "CORIMUNO-TOCI-1": r"CORIMUNO.*(?:moderate|severe) (?:COVID|pneumonia)"}
+
+
 def binding(a):
     """WHICH trial's report is an acquired paper? Being FOUND for a trial is not enough: the Europe PMC full-text rung
     (D3) and AACT's auto-matched DERIVED references return papers that merely cite a registration (ARCHITECTS and
@@ -385,6 +390,12 @@ def binding(a):
     top = max(set(names), key=names.count)
     tied = sorted(n for n in set(names) if names.count(n) == names.count(top))
     if len(tied) > 1:
+        # a paper reporting TWO trials names both registrations equally (CORIMUNO-19's ICU paper, 35115337: TOCI-ICU
+        # NCT04331808 and SARI-ICU NCT04324073). The tie is resolved only when the TITLE names the trial family AND the
+        # population of exactly one REACT row among the tied registrations
+        by_title = [l for l, rx in TITLE_LABEL.items() if g.IDENTITY[l][0] in tied and re.search(rx, a.get("title") or "", re.I)]
+        if len(by_title) == 1:
+            return by_title, f"BOUND_BY_TITLE_POPULATION (registrations tied at {names.count(top)}x: {', '.join(tied)})"
         return [], f"UNBOUND: registrations tied at {names.count(top)}x: {', '.join(tied)}"
     labels = [l for l, (n, _) in g.IDENTITY.items() if n == top]
     if not labels:

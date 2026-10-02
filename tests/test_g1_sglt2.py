@@ -31,7 +31,10 @@ def test_tracker_verdict_and_named_differences_cite_our_screen():
     assert nd["EMPEROR‐Preserved"]["audit"]["class"] == "TRUE_SCOPE_DIFFERENCE"
     assert [g.split(" ")[0] for g in O["open_gaps"]] == ["SOLOIST‐WHF"]
     sol = next(x for x in O["trials"] if x["label"].startswith("SOLOIST"))
-    assert sol["blocker"].startswith("INSUFFICIENT_RECORD:RULE_X3_MISFIRED")
+    # its blocker is an AUDIT class (shared audit: SCREENER_ERROR; this lane's: INSUFFICIENT_RECORD -- the two disagree
+    # on whether the record states enough, and both keep it ELIGIBLE), never SCREENED_OUT_UNAUDITED
+    assert sol["blocker"].split(":")[0] in ("SCREENER_ERROR", "INSUFFICIENT_RECORD")
+    assert (nd["EMPEROR‐Preserved"].get("span") or {}).get("text")                  # named only with the record's words
 
 
 def test_same_trials_verdict_holds_under_each_reader():

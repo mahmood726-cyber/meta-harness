@@ -128,3 +128,16 @@ def test_the_comparators_own_row_never_gives_an_unpooled_trial_a_counted_route()
     assert not elixa["in_our_pool"] and elixa["route"] not in ("PRIMARY", "TWO_SOURCE") and not elixa["g1_countable"]
     assert any(f["finding"] == "COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND" and f["trial"] == "ELIXA"
                for f in o["comparator_findings"])
+
+
+def test_a_year_glued_to_an_acronym_still_joins_the_family():
+    # the forest reader's spironolactone rows are labelled 'RALES2000', 'EMPHASIS-HF2011': 0 of 3 joined
+    import secondary_meta_build as smb
+    ours = [{"id": "PMID 10471456", "acronyms": ["RALES"], "label": "RALES", "author_year": None},
+            {"id": "PMID 21073363", "acronyms": ["EMPHASIS-HF"], "label": "EMPHASIS-HF", "author_year": None}]
+    fam = smb.family_of_factory(ours)
+    row = sm.SecondaryRow(meta_pmid="m", meta_doi="", location={}, source_digest="", provenance="T",
+                          trial_label="RALES2000", measure="HR", outcome_definition="")
+    assert fam(row) == "PMID 10471456"
+    row.trial_label = "EMPHASIS-HF2011"
+    assert fam(row) == "PMID 21073363"
