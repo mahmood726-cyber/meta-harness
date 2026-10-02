@@ -301,6 +301,8 @@ def agree_value(a, b):
     """Two printed numbers agree within the figure's printed rounding: |a-b| <= half a unit of the finer printing.
     Returns the agreed printed string (the finer one) or None."""
     x, y = _num(a), _num(b)
+    if x is None and y is None and a and b and " ".join(str(a).lower().split()) == " ".join(str(b).lower().split()):
+        return a           # the same printed words ('Not estimable'): agreed as text, never pooled as a number
     if x is None or y is None:
         return None
     if abs(x - y) > 0.5 * 10 ** (-max(fp._dec(a), fp._dec(b))) + 1e-9:
@@ -309,9 +311,10 @@ def agree_value(a, b):
 
 
 def agree_count(a, b):
+    """Integers equal exactly; a thousands separator (comma, space, thin space) is not a digit ('10 637' = '10637')."""
     if a is None and b is None:
         return True, None
-    sa, sb = str(a or "").replace(",", "").strip(), str(b or "").replace(",", "").strip()
+    sa, sb = (re.sub(r"[,\s   ]", "", str(x or "")) for x in (a, b))
     return (sa == sb and sa.isdigit()), (int(sa) if sa.isdigit() else None)
 
 
@@ -406,11 +409,30 @@ _METHOD_WORDS = [
 ]
 
 
+# A RevMan-style model label printed ON the figure ('M-H, Random, 95% CI') states the model for THAT analysis exactly,
+# which the methods text usually does not ('random-effects if I2 > 50%, else fixed'): when both readers agree on such a
+# label, it is the stated model. RevMan's 'IV, Random' is DerSimonian-Laird; 'M-H, Random' is DL about the M-H estimate.
+_REVMAN = {("IV", "FIXED"): ["FE"], ("IV", "RANDOM"): ["DL"], ("M-H", "FIXED"): ["MH-FE"], ("M-H", "RANDOM"): ["MH-RE"]}
+
+
+def revman_label(model_printed):
+    m = re.search(r"\b(IV|M-H|MH|Inverse Variance|Mantel-Haenszel)\b\s*,\s*(Fixed|Random)\b", model_printed or "", re.I)
+    if not m:
+        return None
+    meth = "IV" if m.group(1).upper() in ("IV", "INVERSE VARIANCE") else "M-H"
+    return _REVMAN[(meth, m.group(2).upper())]
+
+
 def stated_model(text, model_printed=None):
     """{methods: [...], quotes: {...}, state}. State NOT_RECONSTRUCTABLE for a one-stage IPD model; NOT_STATED when the
-    text names no pooling model. Methods are the estimators the text (or the figure's own model label) names; a
-    random-effects model with no named estimator is {DL, PM, REML} (each named in the record)."""
+    text names no pooling model. Methods: the figure's own RevMan label when both readers agree on one; else the
+    estimators the text names; a random-effects model with no named estimator is {DL, PM, REML} (each in the record)."""
     t = re.sub(r"\s+", " ", text or "")
+    ipd0 = _ipd_sentence(t)
+    rl = revman_label(model_printed)
+    if rl and not ipd0:
+        return {"state": "STATED", "methods": rl, "quotes": {"FIGURE_LABEL": model_printed},
+                "basis": "the model label printed on the figure (both readings agree)"}
     quotes = {}
     for name, rx in _METHOD_WORDS:
         m = rx.search(t)
@@ -447,6 +469,24 @@ def stated_model(text, model_printed=None):
 
 # ------------------------------------------------------------------ reconstruction under the stated model
 
+def has_counts(rows):
+    return bool(rows) and all(isinstance(r.get(k), int) for r in rows for k in ("events_t", "n_t", "events_c", "n_c"))
+
+
+def counts_yv(r, measure):
+    """Per-study log RR / log OR and its variance from the printed 2x2 counts, as RevMan computes them: 0.5 added to
+    every cell only when a cell is zero; a study with no events in either arm is not estimable (None)."""
+    a, n1, c, n2 = r["events_t"], r["n_t"], r["events_c"], r["n_c"]
+    if not (0 <= a <= n1 and 0 <= c <= n2) or n1 == 0 or n2 == 0 or (a == 0 and c == 0) or (a == n1 and c == n2):
+        return None
+    b, d = n1 - a, n2 - c
+    if 0 in (a, b, c, d):
+        a, b, c, d = a + .5, b + .5, c + .5, d + .5
+    if measure == "OR":
+        return math.log(a * d / (b * c)), 1 / a + 1 / b + 1 / c + 1 / d
+    return math.log((a / (a + b)) / (c / (c + d))), 1 / a - 1 / (a + b) + 1 / c - 1 / (c + d)
+
+
 def _yv(r, ratio, z=1.959963984540054):
     f = math.log if ratio else (lambda x: x)
     e, lo, hi = _num(r["effect"]), _num(r["lower"]), _num(r["upper"])
@@ -476,7 +516,13 @@ def _mh(rows, measure):
     pr = ps = qs = rr_p = rr_q = rr_r = 0.0
     for r in rows:
         a, n1, c, n2 = r["events_t"], r["n_t"], r["events_c"], r["n_c"]
-        b, d, n = n1 - a, n2 - c, n1 + n2
+        b, d = n1 - a, n2 - c
+        if 0 in (a, b, c, d):
+            # RevMan 5 (and R meta's default, MH.exact=FALSE): 0.5 added to the cells of a zero-cell study in the M-H
+            # estimate too (checked against meta::metabin on PMID 34385227's 42 rows)
+            a, b, c, d = a + .5, b + .5, c + .5, d + .5
+            n1, n2 = a + b, c + d
+        n = n1 + n2
         if measure == "OR":
             num += a * d / n
             den += b * c / n
@@ -502,7 +548,13 @@ def reconstruct(rows, ratio, measure, methods, z=1.959963984540054):
     from scipy import stats
     from harness.synth import _paule_mandel_tau2
     g = math.exp if ratio else (lambda x: x)
-    yv = [_yv(r, ratio) for r in rows]
+    if ratio and measure.upper() in ("RR", "OR") and has_counts(rows):
+        # dichotomous data printed per arm: the meta pooled the COUNTS; a not-estimable study (no events in either arm)
+        # carries no weight, exactly as RevMan prints it
+        rows = [r for r in rows if counts_yv(r, measure.upper()) is not None]
+        yv = [counts_yv(r, measure.upper()) for r in rows]
+    else:
+        yv = [_yv(r, ratio) for r in rows]
     if any(x is None for x in yv) or len(rows) < 2:
         return {}
     y, v = [a for a, _ in yv], [b for _, b in yv]
@@ -547,9 +599,22 @@ def reconstruct(rows, ratio, measure, methods, z=1.959963984540054):
     return out
 
 
-def row_problems(r, ratio):
-    """A proposed row must be internally consistent (k_gap_forest_plot gate G3): lower <= point <= upper, and the point
-    is the midpoint of its CI (log scale for a ratio) within the printed rounding of all three."""
+def row_problems(r, ratio, measure=None):
+    """A proposed row must be internally consistent. With printed counts (RR/OR): the effect and CI recomputed from the
+    counts must round to the printed ones (a lower limit printed 0.00 is checked this way too). Otherwise (gate G3 of
+    k_gap_forest_plot): lower <= point <= upper, and the point is the CI's midpoint (log scale for a ratio) within the
+    printed rounding of all three."""
+    m = (measure or "").upper()
+    if ratio and m in ("RR", "OR") and has_counts([r]):
+        yv = counts_yv(r, m)
+        if yv is None:
+            return [] if str(r.get("effect") or "").strip().lower() in ("", "not estimable", "none") else ["ROW_NOT_ESTIMABLE_BUT_PRINTED"]
+        y, v = yv
+        z = 1.959963984540054
+        calc = (math.exp(y), math.exp(y - z * math.sqrt(v)), math.exp(y + z * math.sqrt(v)))
+        bad = [k for k, x in zip(("effect", "lower", "upper"), calc)
+               if _num(r.get(k)) is None or not fp._close(x, r[k], 1e-4)]
+        return [f"ROW_COUNTS_DO_NOT_GIVE_PRINTED_{'_'.join(k.upper() for k in bad)}"] if bad else []
     e, lo, hi = _num(r["effect"]), _num(r["lower"]), _num(r["upper"])
     if None in (e, lo, hi) or (ratio and min(e, lo, hi) <= 0):
         return ["ROW_NOT_NUMERIC"]
@@ -574,7 +639,7 @@ def accept(proposed, pooled, model, measure, held=None):
     ratio = fp.is_ratio(measure)
     probs = []
     for r in proposed:
-        for x in row_problems(r, ratio):
+        for x in row_problems(r, ratio, measure):
             probs.append(f"{x}:{r['label']}")
     if not pooled:
         probs.append("NO_AGREED_POOLED_ROW")
