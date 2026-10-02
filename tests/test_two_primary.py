@@ -27,7 +27,12 @@ def test_the_table_is_its_title_line_and_each_triple_binds_to_its_column():
     assert (e, lo, hi) == ("0.65", "0.52", "0.81")
     assert tp.regulator_tuple(LABEL, "Table 4", r"110\s*mg", "warfarin")[:3] == ("0.90", "0.74", "1.10")
     assert ev["columns"] == ["150 mg", "110 mg", "Warfarin"]
-    assert ev["population"].startswith("ALL_RANDOMIZED")
+    # a 'Patients randomized' COUNT row is not a statement of the analysis population (codex review 3 Oct): reported as
+    # counts, the population stays NOT_STATED (a silent axis in the verdict, never assumed ITT)
+    assert ev["randomized_counts"] == "6076 6015 6022" and ev["population_class"] == "NOT_STATED"
+    assert tp.regulator_tuple(LABEL, "Table 4", r"150\s*mg", "warfarin", outcome_re=r"major bleed") is None
+    assert tp.regulator_tuple(LABEL.replace("Figure 1 Kaplan-Meier curve\n", ""), "Table 4", r"150\s*mg",
+                              "warfarin")[:3] == ("0.65", "0.52", "0.81")      # a final table at the end of the text
     assert tp.regulator_tuple(LABEL, "Table 4", r"75\s*mg", "warfarin") is None      # no such column: refused
 
 

@@ -87,6 +87,12 @@ def main(argv):
         if len(ncts) > 1:
             results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM", "self_naming_pmids": pm, "ncts": ncts}
             continue
+        unlinked = [p for p in pm if not link.get(p)]
+        if ncts and unlinked and len(pm) > 1:
+            # a self-naming paper with NO registry link could be ANOTHER trial of the same acronym (codex review 3 Oct)
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_PARTLY_LINKED", "self_naming_pmids": pm,
+                            "ncts": ncts, "unlinked": unlinked}
+            continue
         nct = ncts[0] if ncts else None
         # the trial's REPORT: its earliest own RESULT-typed reference in AACT; else (no registry link) the self-naming PMID
         # a protocol / design / analysis-plan paper is RESULT-typed in AACT but is not the result report (SMART's

@@ -24,6 +24,9 @@ from . import k_gap
 
 csv.field_size_limit(10 ** 8)
 _YEAR = re.compile(r"\b((?:19|20)\d\d)\b")
+# the PUBLICATION year of an AACT citation sits after a full stop, before the month / ';' / volume ('Ann Surg. 2016
+# May;263(5)'): a year inside the title ('Metformin in 2007 patients') is not it (codex review 3 Oct)
+_PUB_YEAR = re.compile(r"\.\s((?:19|20)\d\d)(?=[\s;:]|$)")
 
 
 def _fold(s):
@@ -74,7 +77,7 @@ def resolve(items, snapshot_dir):
         if (r.get("reference_type") or "").upper() not in ("RESULT", "DERIVED"):
             m = None
         if m and want_ay:
-            ys = set(_YEAR.findall(cit))
+            ys = set(_PUB_YEAR.findall(cit))
             for y in ys:
                 k = (m.group(1).lower(), y)
                 if k in want_ay:
@@ -110,12 +113,16 @@ def resolve(items, snapshot_dir):
     for (slug, label), (acr, ay, agents) in keys.items():
         basis, cands = None, set()
         hits = {n for a in acr for n in by_acr.get(a, []) if eligible(n, agents)}
-        if hits:
-            basis, cands = "ACRONYM", hits
-        elif ay:
+        ay_c = set()
+        if ay:
             rs = by_ay.get((ay[0].lower(), ay[1]), [])
-            cands = {r["nct_id"] for r in rs if eligible(r["nct_id"], agents, r.get("citation") or "")}
-            basis = "AUTHOR_YEAR" if cands else None
+            ay_c = {r["nct_id"] for r in rs if eligible(r["nct_id"], agents, r.get("citation") or "")}
+        if hits and ay_c and hits != ay_c:
+            basis, cands = "ACRONYM_VS_AUTHOR_YEAR_CONFLICT", hits | ay_c     # two keys, two answers: never a pick
+        elif hits:
+            basis, cands = "ACRONYM", hits
+        else:
+            basis, cands = ("AUTHOR_YEAR" if ay_c else None), ay_c
         if len(cands) == 1:
             n = next(iter(cands))
             pmid, ptype, npm = report_pmid(n)
