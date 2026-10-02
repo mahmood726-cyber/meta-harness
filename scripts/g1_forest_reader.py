@@ -1073,7 +1073,49 @@ def unmatched_trial_ids(slug):
             for t in T["trials"] if t["slug"] == slug and t["label"][:60] in open_labels}
 
 
-def sweep(slugs, run, wide=False):
+DEEP_DIR = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader_search")
+
+
+def deep_hits(slug, run, max_hits=100):
+    """Hits of the topic's OWN recorded Europe PMC query beyond its first page: the same query string (from
+    registry/secondary_meta/search_<slug>.json), same sort, paged by cursorMark up to max_hits. Every page is recorded
+    (cursor, http status, response sha256); the k-gap lane's search file is never modified. Offline reads the record."""
+    p = os.path.join(DEEP_DIR, f"{slug}.json")
+    if os.path.exists(p):
+        return _j(p).get("hits") or []
+    if not run:
+        return []
+    sp = os.path.join(ROOT, "registry", "secondary_meta", f"search_{slug}.json")
+    if not os.path.exists(sp):
+        return []
+    q = _j(sp).get("query")
+    if not q:
+        return []
+    from harness import http
+    cursor, pages, hits = "*", [], []
+    while len(hits) < max_hits:
+        try:
+            st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                                 {"query": q, "format": "json", "pageSize": "25", "sort": "CITED desc",
+                                  "resultType": "lite", "cursorMark": cursor}, tries=2, timeout=60)
+            d = json.loads(b.decode("utf-8"))
+        except Exception as exc:  # noqa: BLE001 - recorded; the pages already held stand
+            pages.append({"cursor": cursor, "error": f"{type(exc).__name__}"})
+            break
+        res = d.get("resultList", {}).get("result", [])
+        pages.append({"cursor": cursor, "http_status": st, "response_sha256": hashlib.sha256(b).hexdigest(),
+                      "n": len(res)})
+        hits += [{"pmid": r.get("pmid"), "pmcid": r.get("pmcid"), "cited": r.get("citedByCount"),
+                  "year": r.get("pubYear"), "title": r.get("title")} for r in res if r.get("pmid")]
+        nxt = d.get("nextCursorMark")
+        if not res or not nxt or nxt == cursor:
+            break
+        cursor = nxt
+    _save(p, {"query": q, "sort": "CITED desc", "pages": pages, "hits": hits[:max_hits]})
+    return hits[:max_hits]
+
+
+def sweep(slugs, run, wide=False, deep=False):
     """The k-gap lane's two-source sweep (secondary_meta_build.metas_for: the topic's recorded Europe PMC search of
     open-access full-text metas), restricted DETERMINISTICALLY to the metas worth a dual read: not the comparator (read
     separately), not already usable by another route (typed table / single read that passed), and CITING -- in its own
@@ -1089,6 +1131,9 @@ def sweep(slugs, run, wide=False):
                 # every hit of the topic's RECORDED search (up to 25), not only the k-gap list's top N
                 metas = list(dict.fromkeys(metas + [h["pmid"] for h in smb.candidates(slug, not run)["hits"]
                                                     if h.get("pmid")]))
+            if deep:
+                # the same recorded query, paged beyond its first 25 hits (deep_hits records every page)
+                metas = list(dict.fromkeys(metas + [h["pmid"] for h in deep_hits(slug, run) if h.get("pmid")]))
         except Exception as exc:  # noqa: BLE001 - recorded, never fatal
             table[slug] = {"error": f"{type(exc).__name__}:{str(exc)[:120]}"}
             continue
@@ -1273,7 +1318,7 @@ def main(argv):
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
     if "--metas" in argv:
-        its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv))
+        its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv, deep="--deep" in argv))
     else:
         its, skipped = items(slugs, run)
     if "--verify-replay" in argv:
