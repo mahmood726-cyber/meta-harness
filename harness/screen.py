@@ -53,15 +53,31 @@ def _negated_at(text_lower: str, start: int) -> bool:
     return bool(_NEGATION.search(text_lower[max(0, start - 26):start]))
 
 
-def _has(text: str, terms) -> str | None:
+def _plural_re(term: str):
+    """Whole token, its plural allowed ('no probiotic' -> 'no probiotics'); a trailing '*' stays a stem."""
+    if term.endswith("*"):
+        return _boundary_re(term)
+    r = _PLURAL_CACHE.get(term)
+    if r is None:
+        r = _PLURAL_CACHE[term] = _re.compile(r"(?<![a-z0-9])" + _re.escape(term) + r"(?:e?s)?(?![a-z0-9])")
+    return r
+
+
+_PLURAL_CACHE: dict = {}
+
+
+def _has(text: str, terms, plural: bool = False) -> str | None:
     """Return the first exclusion term with a NON-negated occurrence in text (else None). A term that
-    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match."""
+    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match.
+    plural=True lets a POSITIVE (comparator) term match its plural: 'vitamin K antagonist' missed 'vitamin K
+    antagonists' and 'no probiotic' misses 'no probiotics' (found while auditing Imase 2008, 18402597, a probiotic RCT
+    X3-excluded; that record also needs topic vocabulary -- its organism and 'without probiotic' -- see the G1 dispatch)."""
     t = lexicon.fold(text)  # shared fold: British<->American spelling normalised on the haystack
     for term in terms or []:
         tl = lexicon.fold(term or "").strip()
         if not tl:
             continue
-        for m in _boundary_re(tl).finditer(t):
+        for m in (_plural_re(tl) if plural else _boundary_re(tl)).finditer(t):
             if not _negated_at(t, m.start()):
                 return term
     return None
@@ -485,7 +501,7 @@ def screen_record(rec, inc, neg_pmids):
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
                 _span(itext_raw, bad_int))
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    comp = _has(text, comparator_any)
+    comp = _has(text, comparator_any, plural=True)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
@@ -555,7 +571,7 @@ def screen_record_2(rec, inc):
     if inc.get("intervention_any") and not _has_intervention(text, inc["intervention_any"]):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    if (comparator_any and not _has(text, comparator_any)
+    if (comparator_any and not _has(text, comparator_any, plural=True)
             and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):
