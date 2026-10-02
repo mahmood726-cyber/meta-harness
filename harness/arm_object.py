@@ -159,8 +159,20 @@ def _contrast(drug: str, comparator: str, span: str, *, dose: str | None = None,
 
 _MIDDOT_DECIMAL = re.compile(r"(?<=\d)[·∙](?=\d)")
 _DOSE_NUM = re.compile(r"(\d+(?:\.\d+)?)\s*mg", re.I)
-_SEMA_DOSE_LIST = re.compile(r"\bsemaglutide\s*[\[(]?\s*(?P<list>\d+(?:\.\d+)?\s*mg(?:\s*,?\s*(?:or\s+|and\s+)?\d+(?:\.\d+)?\s*mg)*)",
-                             re.I)
+_SEMA_DOSE_LIST = re.compile(r"\bsemaglutide\s*[\[(]?\s*(?P<list>(?<![\d.])\d+(?:\.\d+)?\s*mg(?!\s*/\s*kg)"
+                             r"(?:\s*,?\s*(?:or\s+|and\s+)?\d+(?:\.\d+)?\s*mg(?!\s*/\s*kg))*)", re.I)
+# a semaglutide clause: up to 160 chars, crossing a decimal point ('0.25') but never a sentence end or ';'
+_SEMA_CLAUSE = re.compile(r"semaglutide(?P<cl>(?:[^.;]|\.(?=\d)){0,160})", re.I)
+# a reference dose as a whole number, never weight-based
+_REF_DOSE = re.compile(r"(?<![\d.,])(2[\.,]4|1[\.,]0|1[\.,]7|25|50)\s*mg(?!\s*/\s*kg)", re.I)
+_RUNIN_OR_TARGET = re.compile(r"\b(?:run-?in|lead-?in)\b|\b(?:escalat|titrat|up-?titrat|increas)\w*\s+(?:\w+\s+){0,3}?to\s+\d",
+                              re.I)
+
+
+def _sentence_at(text: str, pos: int) -> str:
+    a = max(text.rfind(". ", 0, pos), text.rfind("; ", 0, pos))
+    b = text.find(". ", pos)
+    return text[(a + 2 if a >= 0 else 0): (len(text) if b < 0 else b + 1)]
 
 
 def _generic_contrasts(raw: str) -> list[dict[str, Any]]:
@@ -169,14 +181,22 @@ def _generic_contrasts(raw: str) -> list[dict[str, Any]]:
     if "semaglutide" in low and "placebo" in low:
         # a middle-dot decimal ('0·4 mg', Lancet style) is a decimal point
         norm = _MIDDOT_DECIMAL.sub(".", raw)
-        dm = re.search(r"semaglutide[^.;]{0,80}?(2[\.,]4|1[\.,]0|1[\.,]7|25|50)\s*mg", norm, re.I)
-        dose = (dm.group(1).replace(",", ".") + " mg") if dm else None
-        if dose is None:
-            # no listed reference dose: the dose LIST that immediately follows 'semaglutide' is the randomised dose(s)
-            # (O'Neil 2018: 'semaglutide [0·05 mg, 0·1 mg, 0·2 mg, 0·3 mg, or 0·4 mg; ...] ... once-daily'). Read
-            # whole, so the registered dose rule can see that no arm is the required dose; else stays NOT_DERIVABLE.
+        # the FIRST reference dose stated in a semaglutide clause (a clause may cross a decimal point, never a sentence
+        # end), a whole number ('12.4 mg' is not 2.4) and never weight-based ('2.4 mg/kg'). FIRST, as before: reading
+        # every arm ('1.7 mg or 2.4 mg' -> keep, NR-C23) would also admit the 9-arm bimagrumab trial 41772149 to the
+        # served screen -- a PROTOCOL question (population_none lists 'bimagrumab') left to the registered owner, so
+        # this lane keeps every served decision on reference doses unchanged (recorded follow-up)
+        refs = []
+        for cm in _SEMA_CLAUSE.finditer(norm):
+            refs += [dm.group(1).replace(",", ".") + " mg" for dm in _REF_DOSE.finditer(cm.group("cl"))]
+        dose = refs[0] if refs else None
+        if dose is None and not _REF_DOSE.search(norm):
+            # no reference dose anywhere in the record: the dose LIST that immediately follows 'semaglutide' is the
+            # randomised dose(s) (O'Neil 2018: 'semaglutide [0·05 mg, 0·1 mg, 0·2 mg, 0·3 mg, or 0·4 mg; ...]'), read
+            # whole -- but NEVER from a sentence about a run-in or a titration to a target dose (NR-C23: 'semaglutide
+            # 0.25 mg escalated to 2.4 mg' must not read as 0.25 mg). Otherwise it stays NOT_DERIVABLE (no refusal).
             lm = _SEMA_DOSE_LIST.search(norm)
-            if lm:
+            if lm and not _RUNIN_OR_TARGET.search(_sentence_at(norm, lm.start())):
                 dose = ", ".join(n + " mg" for n in _DOSE_NUM.findall(lm.group("list")))
         out.append(_contrast("semaglutide", "placebo", raw, dose=dose, background=_background_of(raw)))
     for drug in ("dapagliflozin", "empagliflozin", "canagliflozin", "finerenone"):
@@ -391,7 +411,9 @@ def assess(obj: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | None
     if req_dose and matches:
         for c in matches:
             got = str((c.get("dose") or {}).get("value") or "")
-            if got != NOT_DERIVABLE and req_dose.lower() not in got.lower():
+            # the required dose as a WHOLE number in the read dose(s): '2.4 mg' is not found in '12.4 mg' (NR-C23)
+            req_rx = re.compile(r"(?<![\d.])" + re.escape(req_dose.lower().replace("mg", "").strip()) + r"\s*mg", re.I)
+            if got != NOT_DERIVABLE and not req_rx.search(got):
                 return {
                     "rule_id": "X-DOSE",
                     "reason": f"X-DOSE: randomised {c['drug']['value']} dose is {got}, but the protocol requires {req_dose}.",
