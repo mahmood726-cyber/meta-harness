@@ -569,7 +569,21 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     dropped = sorted({n for p in pmids for n, _t in idx["pmid_nct"].get(p, [])} - set(mapped))
     if dropped:
         basis.append(f"pmid_nct_registered_after_publication:{','.join(dropped[:4])}")
-    if len(mapped) > 1 and our_fams:
+    paper_lists_several = False
+    if len(mapped) > 1:
+        # the paper's OWN accessions (PubMed DataBankList + abstract, the FULL list) name its registration(s); a later
+        # trial that lists the paper as a reference does not (STEP 1's NEJM paper is a RESULT reference of SELECT too).
+        # Exactly one of the candidates named by the paper -> that one. Two or more -> the paper reports several trials
+        # (CANVAS + CANVAS-R; a pooled RE-COVER/RE-MEDY analysis): no tiebreak may pick one. Before any family tiebreak.
+        held = [p for p in pmids if p in DATABANK]
+        own = sorted({n for p in held for n in DATABANK[p]["databank"] + DATABANK[p]["abstract"]} & set(mapped))
+        if len(own) == 1:
+            basis.append(f"pmid_nct_from_pubmed_record_among_aact:{own[0]}")
+            mapped = own
+        elif len(own) > 1:
+            paper_lists_several = True
+            basis.append(f"pmid_nct_paper_lists_several:{','.join(own[:4])}")
+    if len(mapped) > 1 and our_fams and not paper_lists_several:
         ours = [n for n in mapped if n in our_fams]
         if len(ours) == 1:
             basis.append(f"pmid_nct_tiebreak_our_family:{ours[0]}")
@@ -1078,6 +1092,9 @@ def oa_probe(pmids: list[str], offline: bool) -> dict:
 PROP = os.path.join(ROOT, "registry", "model_proposals", "comparator_members.json")
 YEARS: dict = {}
 PUBNCT: dict = {}
+# PMID -> {"databank": [...], "abstract": [...]}: EVERY NCT the PubMed record lists (scripts/pubmed_databank_lookup.py);
+# PUBNCT holds only the first, which is wrong evidence for a paper reporting several trials
+DATABANK: dict = {}
 # comparator references with no PMID, looked up by exact title + first author + year (outputs/k_gap/ref_title_pmid.json)
 REF_PMID: dict = {}
 # PubMed collective-author names of comparator reference PMIDs (scripts/pubmed_collective_lookup.py)
@@ -1507,6 +1524,9 @@ def main(argv=None):
              for c in u["cited"] if c.get("pmid")}
     YEARS.update(pub_years(cited, offline))
     PUBNCT.update(pubmed_ncts(cited, offline))
+    _dbp = os.path.join(OUT, "pubmed_databank_ncts.json")
+    if os.path.exists(_dbp):
+        DATABANK.update({p: v for p, v in _j(_dbp).items() if "databank" in v})
     TITLES.update(pubmed_titles_of(cited, offline))
     SELF_REG.update(self_registration_sentences(glob.glob(os.path.join(ROOT, "cache", "*", "records.json"))))
     REF_PMID.update(load_ref_pmid())
