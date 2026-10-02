@@ -81,3 +81,64 @@ Plants are in `tests/test_g1_exclusion_audit.py`.
   therapy and "antibiotic-induced dysbiosis" populations. The reader reads them as population MET. Fixing this is a
   change to the registered protocol's wording, so it is Mahmood's decision, not a harness fix.
 - **metformin-pcos-ovulation, COMPARATOR_WORDING ×1 (PCOSMIC).** This is the known head-term class.
+
+---
+
+# Update (overnight, 2 to 3 Oct): the g1/tocilizumab lane after merging 8de69534
+
+## 7. Population and spans: converged with your 8de69534
+
+- **Population.** Your audit now covers in-screen and lane-named exclusions (118 rows). This lane's runner audits only
+  what it still leaves: n = 27, all classified, none INCONSISTENT.
+  - 15 TRUE_SCOPE_DIFFERENCE, each with a span;
+  - 8 INSUFFICIENT_RECORD;
+  - 3 NOT_AN_EXCLUSION;
+  - 1 SCREENER_ERROR.
+- **Spans.** Every TRUE_SCOPE row in `exclusion_audit.tracker.json` now carries a span, in your `{field, text, match}`
+  form. Each comes from one of: your classifier's own span; a protocol-excluded term the record states; or the reader's
+  quote that `verify_screening` located VERBATIM in the held record. A row without a span is demoted to
+  `INSUFFICIENT_RECORD:<sub>_NO_SPAN` (e.g. DELIVER 31081589).
+- **Request (unchanged).** Have `exclusion_audit_class` and `exclusion_audit_span` fall back to
+  `exclusion_audit.tracker.json` (same schema, keyed by slug and PMID). The 25 SCREENED_OUT_UNAUDITED trials on the page
+  are all classified there.
+
+## 8. Two readers
+
+- A second reader (gpt-5.5) ran with the same instrument and gate.
+- An axis now decides only where both verified readings agree. One instance: 24081972 (a doac-vte pooled bleeding
+  analysis) is design NOT_MET for gpt-6-astra and MET for gpt-5.5. It therefore stays INSUFFICIENT, where a single
+  reader would have named it.
+- **Proposal:** the same consensus rule in your audit's reader tie-break.
+
+## 9. Our two audits disagree on SOLOIST-WHF (sglt2-hfref)
+
+- **Yours:** SCREENER_ERROR INTERVENTION_ONLY_IN_ABSTRACT.
+- **Mine:** INSUFFICIENT_RECORD. The X3 rule misfired, but the abstract never states the HFrEF population, and the trial
+  enrolled across ejection fractions; the reader returns population NOT_STATED.
+- Both keep the trial eligible. Fixing the "screener error" would add a mixed-EF trial to an HFrEF pool. Please do not
+  count it as a screen to fix.
+
+## 10. Identity bindings, not exclusions (unchanged, plus one)
+
+- esketamine "Trial D" (31734084): a recorded X-DEDUP companion of TRANSFORM-3, which is pooled.
+- sglt2-primary-prevention, Radholm → CANVAS: your sweep now matches it, so this one is done.
+- GLAGOV and ODYSSEY FH I (pcsk9): included through another report. Their blocker should follow that report.
+
+## 11. A percentage is never a count: applied to tocilizumab (k 4 → 2) — please check the shared AACT path
+
+- **What changed here.** AACT "Percentage of Participants Surviving (Overall Survival)" values are Kaplan-Meier estimates;
+  CORIMUNO's ICU paper prints the same numbers as "Estimate at day 28". This lane had converted them, and mortality
+  rates, into counts.
+- **The rule now.** ESTABLISHED requires that a PRIMARY source STATE the counts. EMPACTA and CORIMUNO-TOCI-1 have counts
+  printed only by metas, so they are SECONDARY_COUNT_PRIMARY_CONSISTENT and not counted. tocilizumab is now 2 of 19
+  (COVACTA, TOCIBRAS).
+- **Request.** Your `aact_adapter` rules already refuse percentages as counts. Please confirm that `secondary_meta`'s
+  `PRIMARY_REGISTRY` route never back-converts a posted percentage either.
+
+## 12. Full-text spans
+
+- Some facts are settled only by an open full text, held under a licence its bytes state. Example: Zarpelon's control
+  group was "not receiving the study medication".
+- My rows carry these as `span.field = "fulltext"`. `span_is_verbatim` reads only the held record, so the tracker
+  cannot name on them.
+- **Proposal:** accept `fulltext` spans verified against `g1/data/audit_ft/<pmid>.json`, whose sha256 is recorded.
