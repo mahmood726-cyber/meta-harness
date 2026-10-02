@@ -22,10 +22,16 @@ def test_every_earlier_attempt_stays_on_record():
 
 
 def test_tracker_verdict_and_named_differences_cite_our_screen():
-    assert (O["k_matched"], O["N_eligible"], O["N_comparator_trials"], O["open_gaps"]) == (2, 2, 4, [])
+    # a scope difference is NAMED only when the exclusion audit classifies the excluded record TRUE_SCOPE_DIFFERENCE
+    # (scripts/g1_exclusion_audit_tracker.py). SOLOIST-WHF's X3 exclusion MISFIRED (sotagliflozin is an SGLT2 inhibitor
+    # under the registered criteria) and its abstract does not state the HFrEF population: an open gap, not a name.
+    assert (O["k_matched"], O["N_eligible"], O["N_comparator_trials"]) == (2, 3, 4)
     nd = {d["trial"].split(" ")[0]: d for d in O["named_differences"]}
-    assert nd["EMPEROR‐Preserved"]["rule_id"] == "X2" and nd["SOLOIST‐WHF"]["rule_id"] == "X3"
-    assert all(d["kind"] == "PROTOCOL_SCOPE_DIFFERENCE" and d["protocol_rule"] for d in nd.values())
+    assert list(nd) == ["EMPEROR‐Preserved"] and nd["EMPEROR‐Preserved"]["rule_id"] == "X2"
+    assert nd["EMPEROR‐Preserved"]["audit"]["class"] == "TRUE_SCOPE_DIFFERENCE"
+    assert [g.split(" ")[0] for g in O["open_gaps"]] == ["SOLOIST‐WHF"]
+    sol = next(x for x in O["trials"] if x["label"].startswith("SOLOIST"))
+    assert sol["blocker"].startswith("INSUFFICIENT_RECORD:RULE_X3_MISFIRED")
 
 
 def test_same_trials_verdict_holds_under_each_reader():
