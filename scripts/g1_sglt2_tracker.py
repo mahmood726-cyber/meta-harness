@@ -55,6 +55,11 @@ def identities():
             "EMPEROR-PRESERVED": {"nct": "NCT03057951", "pmid": "34449189", "basis": "comparator table registration"}}
 
 
+AUDIT_FILE = os.path.join(ROOT, "outputs", "k_gap", "exclusion_audit.tracker.json")
+AUDIT = ({(r["slug"], str(r["pmid"])): r for r in json.load(open(AUDIT_FILE, encoding="utf-8"))["rows"]}
+         if os.path.exists(AUDIT_FILE) else {})
+
+
 def norm(label):
     """'DAPA‐HF (n = 4744)', 'DAPA-HF †' -> 'DAPA-HF'."""
     s = re.sub(r"[‐-―−]", "-", label or "")
@@ -134,6 +139,23 @@ def build():
             x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (f" {f.get('rule_id')}: {f.get('reason')}"
                                                                    if f.get("rule_id") else "")
             x["scope_difference"] = gt.scope_difference(x, cfg)
+            # the blocker as the shared tracker would compute it for this (now seeded) trial, then the tracker-population
+            # exclusion audit (scripts/g1_exclusion_audit_tracker.py): a scope difference is NAMED only when that audit
+            # classifies the excluded record TRUE_SCOPE_DIFFERENCE -- the shared gate's rule, applied to the audit that
+            # covers this exclusion
+            x["blocker"] = gt.blocker_class(x, SLUG)
+            au = AUDIT.get((SLUG, p))
+            if au and not x["scope_difference"]:
+                if au["class"] == "TRUE_SCOPE_DIFFERENCE":
+                    term = (re.search(r"mention '([^']+)'", f.get("reason") or "") or [None, None])[1]
+                    x["scope_difference"] = {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f.get("rule_id"),
+                                             "screen_reason": f.get("reason"),
+                                             "protocol_rule": gt.protocol_rule(cfg, term) if term else None,
+                                             "registered_eligibility": cfg.get("eligibility_summary"), "pmid": p,
+                                             "audit": {"class": au["class"], "subclass": au["subclass"],
+                                                       "source": "outputs/k_gap/exclusion_audit.tracker.json"}}
+                elif au["class"] in ("SCREENER_ERROR", "INSUFFICIENT_RECORD"):
+                    x["blocker"] = f"{au['class']}:{au['subclass']}"
             if x["scope_difference"] and not x["scope_difference"].get("protocol_rule") and f.get("rule_id") == "X3":
                 x["scope_difference"]["protocol_rule"] = ("include.intervention_any = " +
                                                           repr((cfg.get("include") or {}).get("intervention_any")))
