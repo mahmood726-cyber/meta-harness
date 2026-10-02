@@ -135,6 +135,26 @@ TARGETS: dict = {
                                                  "caption_has": "Sleep onset latency measured through physiological"},
     "ticagrelor-vs-clopidogrel-acs::35155618": {"fig_id": "F2", "caption_has": "Comparison of the primary efficacy "
                                                 "outcomes (MACE) between ticagrelor and clopidogrel treatment in clinical"},
+    # wide-sweep metas (all hits of each topic's recorded search), each checked against its own caption
+    "colchicine-postop-af::36531704": {"fig_id": "F4", "caption_has": "risk ratios of post-operative atrial "
+                                                                      "fibrillation with colchicine."},
+    "colchicine-secondary-cv-prevention::38505729": {"fig_id": "fig3", "caption_has": "(a) CV death, MI, or stroke",
+                                                     "panel": "a", "panel_title": "CV death, MI, or stroke"},
+    "empagliflozin-hfpef-hosp::39400108": {
+        "fig_id": "fig3-17539447241289067", "caption_has": "comparing the risk of outcomes for patients with HFpEF",
+        "instruction": "The figure has several outcomes. Transcribe ONLY the block for the primary composite of "
+                       "cardiovascular death or hospitalization for heart failure: its study rows and its own pooled row."},
+    "esketamine-trd-madrs::36514492": {"fig_id": "f0003", "caption_has": "esketamine + antidepressant to improve MARDS"},
+    "esketamine-trd-madrs::37194806": {"fig_id": "f4", "caption_has": "Montgomery-Asberg Rating Scale, 25-day follow-up"},
+    "glp1-ra-mace-t2d::40886073": {"fig_id": "pvaf037-F1", "caption_has": "(A). Major adverse cardiovascular events"},
+    "iv-iron-hfref-hosp::39527395": {"fig_id": "Fig5", "caption_has": "first hospitalization for heart failure or "
+                                                                      "cardiovascular death", "panel": "B",
+                                     "panel_title": "incidence of first hospitalization due to heart failure"},
+    "iv-iron-hfref-hosp::41711738": {"fig_id": "xvaf018-F3", "caption_has": "(B) recurrent HHF on complete follow-up",
+                                     "panel": "B", "panel_title": "recurrent HHF on complete follow-up"},
+    "semaglutide-obesity-weight::40732345": {"fig_id": "pharmaceuticals-18-01058-f004",
+                                             "caption_has": "relative body weight change between semaglutide and "
+                                                            "placebo in the non-diabetes"},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
