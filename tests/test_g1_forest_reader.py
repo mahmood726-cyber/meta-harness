@@ -436,3 +436,21 @@ def test_printed_bounds_and_double_zero_NA_rows_with_counts():
     assert refused == [] and [r["label"] for r in proposed][-1] == "COVIDSTORM"
     row = proposed[-1]
     assert g.row_problems(row, True, "OR") == [] and g.counts_yv(row, "OR") is None
+
+
+def test_label_from_the_metas_own_references_only_when_exactly_one_is_cited():
+    refs = "Heathcote 2013: Heathcote L, et al. Metformin and clomiphene. Mewton N, Roubille F. Colchicine 2019."
+    assert g.label_from_references("Hemmings?", "Heathcote 2013", refs)["label"] == "Heathcote 2013"
+    assert g.label_from_references("Newton N–2019", "Mewton N-2019", refs)["label"] == "Mewton N-2019"
+    assert g.label_from_references("Smith 2010", "Jones 2011", refs) is None             # neither cited
+    assert g.label_from_references("Heathcote 2013", "Mewton 2019", refs) is None        # both cited: undecided
+
+
+def test_PLANT_a_label_resolved_by_references_lets_the_row_count(monkeypatch):
+    monkeypatch.setattr(g, "ref_text", lambda pmid: "Trial C 2011. Cited trials: Trial A, Trial B, Trial C, Trial D.")
+    b = reading()
+    b["rows"][2]["label"] = "Xrial C 2011"           # reader B misreads the label; numbers agree
+    v = g.judge(ITEM, reading(), b, "mc-a", "mc-b", HELD_DL)
+    assert v["state"] == "ACCEPTED", v["problems"]
+    row = next(r for r in v["proposed_rows"] if r["label"] == "Trial C 2011")
+    assert row["label_basis"].startswith("LABEL_FROM_META_REFERENCES")

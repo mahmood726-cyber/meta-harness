@@ -399,8 +399,19 @@ def prompt_bytes(fig, reader):
     where = ("The figure is the attached image." if reader == "codex" else
              "The figure is the image file image_0" + os.path.splitext(fig.get("image_name") or ".jpg")[1].lower() +
              " in the current directory: read that file and nothing else.")
+    if fig.get("retry_note"):
+        extra += "\n" + fig["retry_note"] + "\n"
     return (INSTR.replace("{schema}", json.dumps(SCHEMA, sort_keys=True)) + f"\n{where}\nFIGURE CAPTION (from the "
             f"article): {fig['caption']}\n" + extra).encode("utf-8")
+
+
+# ONE recorded second attempt, of BOTH readers together, for a figure whose first pair was refused because one reader
+# OMITTED rows the other transcribed (a long figure). The first attempt stays in the ledger ('<key>::attempt1'); the
+# gate judges the new pair only, never a mix of attempts. Same note for both readers; no value is suggested.
+RETRY_NOTE = ("This figure may be long. Transcribe EVERY study row of the requested panel, top to bottom, including "
+              "the rows of every subgroup within it -- do not stop early, and do not skip rows.")
+RETRY = {"dapagliflozin-hfpef-hosp", "dapagliflozin-hfpef-hosp::33859839", "glp1-ra-mace-t2d::40652242",
+         "iv-iron-hfref-hosp::29174251", "sglt2-primary-prevention-hf::33859839"}
 
 
 def run_reader(item, reader):
@@ -905,9 +916,62 @@ def measure_code(m):
         "OR" if ("ODDS" in m or m == "OR") else "MD" if ("MEAN" in m or m in ("MD", "WMD")) else m.strip()
 
 
+def ref_text(pmid):
+    """The meta's own reference list as text: the JATS <ref-list>, or the reference section of its stored PMC page."""
+    jp = jats_path(pmid)
+    if jp and jp.endswith("_kgap_jats.xml"):
+        root = ET.parse(jp).getroot()
+        return " ".join("".join(r.itertext()) for r in root.iter("ref-list"))
+    hp = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_pmcpage.html")
+    if os.path.exists(hp):
+        h = open(hp, encoding="utf-8", errors="replace").read()
+        i = max(h.find('id="ref-list'), h.find('class="ref-list'))
+        return _strip(h[i:]) if i > 0 else ""
+    return ""
+
+
+def _surname(label):
+    """The first-author surname a forest label starts with ('Heathcote 2013' -> 'heathcote'); None for an uncertain or
+    acronym-only label ('Hemmings?' is a reader's own uncertainty mark)."""
+    lab = _nfkc(label).strip()
+    if "?" in lab:
+        return None
+    m = re.match(r"([A-Za-z][a-z]{2,}(?:[- ][A-Z][a-z]+)?)", lab)
+    return m.group(1).lower() if m else None
+
+
+def label_from_references(la, lb, refs):
+    """{'label', 'basis'} when exactly ONE of the two labels' surnames appears (as a word) in the meta's references."""
+    if not refs:
+        return None
+    t = _nfkc(refs).lower()
+    hit = {}
+    for lab in (la, lb):
+        s = _surname(lab)
+        hit[lab] = bool(s) and re.search(r"\b" + re.escape(s) + r"\b", t) is not None
+    if hit[la] == hit[lb]:
+        return None
+    pick = la if hit[la] else lb
+    other = lb if pick == la else la
+    return {"label": pick, "basis": f"LABEL_FROM_META_REFERENCES: '{_surname(pick)}' is cited in the meta's reference "
+                                    f"list; '{other}' is not (or is marked uncertain by its reader)"}
+
+
 def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
     """Two parsed readings -> the figure's verdict, the proposed/refused rows, and (if ACCEPTED) the secondary rows."""
     proposed, refused, pooled, probs, not_estimable = agree(reading_a, reading_b)
+    # a row both readers transcribe with every number equal but a different LABEL ('Newton N' / 'Mewton N'): the meta's
+    # OWN reference list decides it -- the label whose first-author surname it cites, when the other's it does not
+    refs = ref_text(item["pmid"]) if any(r["why"] == "LABEL_DISAGREES" for r in refused) else ""
+    for r in [x for x in refused if x["why"] == "LABEL_DISAGREES"]:
+        pick = label_from_references(r["a"].get("label"), r["b"].get("label"), refs)
+        if pick:
+            refused.remove(r)
+            vals = {k: r["a"].get(k) for k in ("effect", "lower", "upper")}
+            for k in ("events_t", "n_t", "events_c", "n_c"):
+                vals[k] = agree_count(r["a"].get(k), r["b"].get(k))[1]
+            proposed.append({"label": pick["label"], **vals, "label_basis": pick["basis"]})
+    probs = [p for p in probs if not p.startswith("ROWS_DISAGREE")] + ([f"ROWS_DISAGREE:{len(refused)}"] if refused else [])
     agreed_not_trials = []
     if any(p.startswith("ROWS_ARE_NOT_STUDIES") for p in probs):
         # rows both readers agree on but which are NOT trials (outcomes / subgroups) are never per-trial proposals
@@ -985,7 +1049,7 @@ def items(slugs, run, pairs=None):
             continue
         with open(ip, "rb") as fh:
             b = fh.read()
-        fig = dict(fig, image_name=os.path.basename(ip))
+        fig = dict(fig, image_name=os.path.basename(ip), **({"retry_note": RETRY_NOTE} if key in RETRY else {}))
         out.append({"slug": slug, "pmid": pmid, "pmcid": pmcid, "key": key, "role": role, "figure": fig,
                     "image_path": ip, "image_ref": os.path.relpath(ip, ROOT).replace(os.sep, "/"),
                     "image_sha256": hashlib.sha256(b).hexdigest(), "image_url": (meta or {}).get("url"),
@@ -1236,6 +1300,9 @@ def main(argv):
             for f in cf.as_completed(futs):
                 it, rd = futs[f]
                 r = f.result()
+                old = runs.get(_key(it, rd))
+                if old and old.get("state") == "RAN_OK" and old.get("prompt_sha256") != r["prompt_sha256"]:
+                    runs.setdefault(_key(it, rd) + "::attempt1", old)      # the earlier attempt stays on record
                 runs[_key(it, rd)] = r
                 _save(RUNS, runs)
                 print(_key(it, rd), r["state"], r["record_id"], r.get("error") or "", flush=True)
