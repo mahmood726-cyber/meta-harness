@@ -90,6 +90,7 @@ def reconcile(slug):
     kw = (cfg.get("primary_outcome") or {}).get("keywords") or []
     method = (g.get("same_trials") or {}).get("method") or "FE"
     rows = []
+    named = {d.get("trial"): d for d in g.get("named_differences") or []}
     for x in g["trials"]:
         pid = _pid(x)
         rec = recs.get(pid) or {}
@@ -115,6 +116,10 @@ def reconcile(slug):
             at = x.get("analysis_set_attribution") or {}
             if ag.startswith("AGREE"):
                 row.update(cls="SAME_NUMBER", verdict="both sides hold the same result", basis=ag)
+            elif ag.startswith("NOT_COMPARABLE"):
+                # matched, but the comparator prints no per-trial row to compare (never a disagreement)
+                row.update(cls="MATCHED_NO_COMPARATOR_ROW", verdict="matched; the comparator prints no per-trial row",
+                           basis=ag)
             elif at.get("per_set"):
                 per = {p["analysis_set"]: p for p in at["per_set"]}
                 theirs = at.get("reproduced_by") or at.get("nearest")
@@ -130,12 +135,22 @@ def reconcile(slug):
                            per_set=at["per_set"], right_number_for_protocol=at.get("ours"))
             else:
                 row.update(cls="DISAGREE_UNATTRIBUTED", verdict="no held analysis set explains the comparator row", basis=ag)
+        elif (x.get("scope_difference") or {}).get("kind") == "NOT_AN_INCLUDED_TRIAL":
+            d = x["scope_difference"]
+            row.update(cls="NOT_AN_INCLUDED_TRIAL", verdict=("a reference of the comparator, not one of its trials: " + d["basis"]),
+                       stating_span=d["span"]["text"], comparator_span=d["comparator_span"]["text"])
         elif a:
             term = (re.search(r"'([^']+)'", a["subclass"]) or [None, None])[1]
             row.update(cls=f"{a['class']}:{a['subclass'].split(' (')[0].split(':')[0]}", audit=a,
                        stating_span=_sentence_with((rec.get("title") or "") + ". " + (rec.get("abstract") or ""),
                                                    term or ("open-label" if "OPEN_LABEL" in a["subclass"] else None)))
             if a["class"] == "TRUE_SCOPE_DIFFERENCE":
+                # the tracker's named difference carries the span it VERIFIED (a full-text span with its body's sha256):
+                # use it, so a clone without the gitignored body never rewrites "the full text states it" as "the record"
+                nsp = (named.get(x["label"]) or {}).get("span") or {}
+                if not row.get("fulltext_span") and nsp.get("field") == "fulltext":
+                    row["fulltext_span"] = nsp.get("text")
+                    row["fulltext_sha256"] = nsp.get("fulltext_sha256")
                 if row.get("fulltext_span"):
                     row["stating_span"] = row["fulltext_span"]
                     row["verdict"] = ("out of the registered protocol's scope; the held OA FULL TEXT states it (the abstract "
@@ -228,13 +243,27 @@ def reconcile(slug):
     surv = {
         "comparator_published": g.get("comparator"),
         "method": method,
-        "on_shared_trials": ("SURVIVES" if (scen["B_shared_trials_our_rows_ITT"] or {}).get("conclusion") ==
+        # no poolable shared rows on either side is NOT a survival (None == None): it is not testable on rows
+        "on_shared_trials": ("NOT_TESTABLE_ON_SHARED_ROWS" if not (scen["A_shared_trials_comparator_rows"]
+                                                                    and scen["B_shared_trials_our_rows_ITT"])
+                             else "SURVIVES" if (scen["B_shared_trials_our_rows_ITT"] or {}).get("conclusion") ==
                              (scen["A_shared_trials_comparator_rows"] or {}).get("conclusion") else "DOES_NOT_SURVIVE"),
         "why": f"the shared-trial benefit depends on which analysis set of the {aset} report is pooled"
         if (scen["C_shared_trials_held_set_nearest_the_comparator_row"] or {}).get("conclusion") ==
         (scen["A_shared_trials_comparator_rows"] or {}).get("conclusion") != (scen["B_shared_trials_our_rows_ITT"] or {}).get("conclusion")
         else None,
     }
+    if (g.get("same_trials") or {}).get("state") == "WHOLE_POOL_MEASURE_DIFFERS":
+        # same trials, different measures: decide what IS decidable without arm sizes (harness/event_total_check.py)
+        from harness import comparator_membership as cmb, event_total_check as etc
+        crec = recs.get(str(g.get("comparator_pmid"))) or {}
+        st = cmb.stated_trial_count(crec.get("abstract") or "")
+        matched = [r["pmid"] for r in rows if r["in_our_pool"] and r["pmid"]]
+        surv["whole_pool"] = {"ours": g.get("ours"), "theirs": g.get("comparator"), "same_trials": g.get("same_trials"),
+                              "event_total_check": etc.check(crec.get("abstract") or "",
+                                                             [(cfg.get("comparator_outcomes") or [{}])[0].get("name") or ""] + kw,
+                                                             (st or {}).get("n_patients"),
+                                                             {p: (recs.get(p) or {}).get("abstract") or "" for p in matched})}
     return {"slug": slug, "comparator_pmid": g.get("comparator_pmid"), "trials": rows, "scenarios": scen,
             "comparator_conclusion": surv, "n_comparator_trials": len(rows),
             "classes": {c: sum(1 for r in rows if r.get("cls") == c) for c in sorted({r.get("cls") for r in rows})}}
@@ -306,6 +335,15 @@ def to_md(r):
             L.append(f"| {k} | - | fewer than 2 poolable rows | - |")
     s = r["comparator_conclusion"]
     L += ["", f"**On the shared trials: {s['on_shared_trials']}.** {s.get('why') or ''}"]
+    wp = s.get("whole_pool")
+    if wp:
+        ec = wp["event_total_check"]
+        L += ["", "## Whole pools (the same trials, different measures)", "",
+              f"- ours: {wp['ours']}", f"- comparator: {wp['theirs']}", f"- {wp['same_trials'].get('state')}",
+              f"- event-total check: **{ec['state']}** -- {ec.get('basis') or ''}",
+              f"  - comparator: \"{(ec.get('comparator_rates') or {}).get('span')}\""]
+        for pmid, v in (ec.get("per_trial") or {}).items():
+            L.append(f"  - PMID {pmid}: {v['events']} -- \"{v['span'][:220]}\"")
     return "\n".join(L) + "\n"
 
 
