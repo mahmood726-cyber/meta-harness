@@ -1937,6 +1937,14 @@ def outcome_inputs(slug, config, records):
     ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
     varms = _load_verified_arms(slug)
     veffs = _load_verified_effects(slug)
+    # LOCATED VALUES (records["located_arms"] / records["located_effects"], in memory only): numbers a RECORDED
+    # table-location proposal pointed to and the deterministic gate (secondary_meta.gate_table_location) found verbatim
+    # in the trial's held open text. A committed verified entry always wins; every located row still passes the
+    # mandatory endpoint admissibility below. Absent from records -> byte-identical to before.
+    if records.get("located_arms"):
+        varms = {**records["located_arms"], **(varms or {})}
+    if records.get("located_effects"):
+        veffs = {**records["located_effects"], **(veffs or {})}
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)

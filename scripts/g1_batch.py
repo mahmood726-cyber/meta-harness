@@ -40,9 +40,11 @@ def _scrub(lines):
 
 
 def topics():
-    T = _j(os.path.join(OUT, "k_gap_table.json"))
-    confirmed = [t["slug"] for t in T["topics"] if (t.get("comparator_units") or 0) > 0]
-    return [s for s in FOCUS if s in confirmed] + sorted(s for s in confirmed if s not in FOCUS)
+    """EVERY served topic, focus first: a topic whose comparator lists no enumerable trial still gets a row stating
+    why (it was silently skipped: denosumab-vertebral-fracture)."""
+    import g1_tracker
+    served = g1_tracker.served_topics()
+    return [s for s in FOCUS if s in served] + sorted(s for s in served if s not in FOCUS)
 
 
 def run_topic(slug, t0, tracker_only=False):
@@ -107,9 +109,16 @@ def main(argv):
                              "stderr_tail": _scrub((imp.stderr or "").strip().splitlines()[-1:]) if imp.returncode else ""}
     with open(os.path.join(OUT, "g1_batch.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
-    subprocess.run([sys.executable, "scripts/g1_tracker.py", "--table"], cwd=ROOT, stdin=subprocess.DEVNULL,
-                   capture_output=True, env=dict(os.environ, PYTHONUTF8="1"))
-    print("BATCH", out["done"], "of", out["topics"], "in", out["wall_secs"], "s")
+    tb = subprocess.run([sys.executable, "scripts/g1_tracker.py", "--table"], cwd=ROOT, stdin=subprocess.DEVNULL,
+                        capture_output=True, text=True, encoding="utf-8", errors="replace",
+                        env=dict(os.environ, PYTHONUTF8="1"))
+    # the table REFUSES when a served topic has no row: that refusal is surfaced, never swallowed
+    out["table"] = {"rc": tb.returncode,
+                    "stderr_tail": _scrub((tb.stderr or "").strip().splitlines()[-1:]) if tb.returncode else ""}
+    with open(os.path.join(OUT, "g1_batch.json"), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(out, fh, indent=1)
+    print("BATCH", out["done"], "of", out["topics"], "in", out["wall_secs"], "s", "| table rc", tb.returncode,
+          out["table"]["stderr_tail"])
 
 
 if __name__ == "__main__":

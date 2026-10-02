@@ -147,3 +147,18 @@ def test_a_registry_outcome_title_is_gated_as_a_composite_definition():
               "for Unstable Angina"):
         assert gt.definition_gate(name, t)
     assert not gt.definition_gate(name, "Time to First Occurrence of MACE: CV Death, Non-Fatal MI or Non-Fatal Stroke")
+
+
+def test_every_served_topic_has_a_tracker_row():
+    # denosumab-vertebral-fracture had NO tracker file and no stated reason (3 Oct): a silent omission. Every served
+    # topic must have a row; one whose comparator lists no enumerable trial states COMPARATOR_NOT_ENUMERATED.
+    served = sorted(s for s in os.listdir(os.path.join(ROOT, "docs", "reviews"))
+                    if os.path.exists(os.path.join(ROOT, "docs", "reviews", s, "review.json")))
+    have = {f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1")) if f.endswith(".json")}
+    assert sorted(set(served) - have) == []
+    for s in served:
+        with open(os.path.join(ROOT, "outputs", "k_gap", "g1", f"{s}.json"), encoding="utf-8") as fh:
+            o = json.load(fh)
+        assert (o.get("g1_status") or {}).get("state"), s
+        if not o["N_comparator_trials"]:
+            assert o["g1_status"]["state"] == "COMPARATOR_NOT_ENUMERATED" and o["g1_status"].get("why"), s
