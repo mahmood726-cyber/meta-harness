@@ -420,3 +420,19 @@ def test_a_signed_number_is_a_number_and_background_IPD_is_not_the_metas_model()
     t = ("Recent efforts have also leveraged individual participant data to reassess signals. Hazard ratios were "
          "estimated with Cox models in the trials. We pooled mean differences with a random-effects model.")
     assert g.stated_model(t)["state"] == "STATED"
+
+
+def test_printed_bounds_and_double_zero_NA_rows_with_counts():
+    assert g.printed_matches(0.003, "<0.01") and not g.printed_matches(0.02, "<0.01")
+    assert g.printed_matches(120.0, ">100") and g.printed_matches(0.866, "0.87") and not g.printed_matches(0.86, "0.87")
+    # REACT: 0/26 vs 0/13 printed 'NA' with no CI -- both readers agree; counts say not estimable; never pooled
+    na = {"label": "COVIDSTORM", "effect": "NAᵇ", "lower": None, "upper": None, "weight_pct": None,
+          "events_t": "0", "n_t": "26", "events_c": "0", "n_c": "13"}
+    nb = dict(na, effect="NAb")
+    a, b = reading(), reading()
+    a["rows"].append(na)
+    b["rows"].append(nb)
+    proposed, refused, pooled, probs, ne = g.agree(a, b)
+    assert refused == [] and [r["label"] for r in proposed][-1] == "COVIDSTORM"
+    row = proposed[-1]
+    assert g.row_problems(row, True, "OR") == [] and g.counts_yv(row, "OR") is None
