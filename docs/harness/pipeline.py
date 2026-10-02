@@ -14,6 +14,7 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
+from . import fulltext as _ft_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -325,6 +326,92 @@ def _primacy(r):
     return 2  # an ordinary journal article
 
 
+def _fulltext_extract(ft, spec, interv, comp, dc):
+    """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
+    (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
+    refused as ambiguous (R4), never the first. Baseline/demographic tables are not read (dropped and listed)."""
+    seg = _ft_mod.extraction_segments(ft)
+    if _fulltext_prose_guard(seg):
+        return {"absent": True, "reason": ("full text holds a baseline-characteristics table whose inline copy in the "
+                                           "prose could not be located and removed; refused rather than risk reading "
+                                           "baseline values as outcomes")}
+    kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
+    own = _ft_mod.own_result_prose(seg["prose"])
+    fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
+    if seg.get("unstructured"):
+        # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
+        # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
+        if not fx.get("absent") and fx.get("effect") is not None and fx.get("ci_low") is not None:
+            return fx
+        return {"absent": True, "reason": ("unstructured OA copy (no table delimiters): only a reported effect+CI in a "
+                                           "prose sentence is admissible from it, and none was found")}
+    if not fx.get("absent"):
+        return fx
+    hits = []
+    for r in seg["rows"]:
+        rx = extract.extract_trial(r["row"], spec["keywords"], interv, comp, **kw)
+        if not rx.get("absent"):
+            hits.append(rx)
+    vals = {tuple(sorted((k, v) for k, v in h.items() if k != "source")) for h in hits}
+    if len(vals) == 1:
+        return hits[0]
+    if len(vals) > 1:
+        return {"absent": True, "reason": ("ambiguous: full-text table rows state different values for this "
+                                           "outcome; refused rather than take the first (R4)")}
+    why = fx.get("reason") or "no extractable value in the full-text prose or table rows"
+    if seg["dropped_tables"]:
+        why += f" (baseline tables not read: {len(seg['dropped_tables'])})"
+    return {"absent": True, "reason": why}
+
+
+def _fulltext_prose_guard(seg):
+    """A baseline table whose inline copy could not be removed from the prose is still readable there; the
+    full-text rung then refuses rather than risk reading WHO was randomised as WHAT happened."""
+    return bool(seg.get("baseline_inline_not_located"))
+
+
+# ONE pattern per clinical component, however it is written: 'Myocardial Infarction (MI)' is one component and
+# 'Hospitalization for heart failure (HHF)' is one component -- counting WORDS called both composites.
+_COMPOSITE_COMPONENTS = tuple(re.compile(p, re.I) for p in (
+    r"\b(?:death|deaths|mortality|died)\b",
+    r"\bmyocardial infarctions?\b|\bMI\b",
+    r"\bstrokes?\b",
+    r"\b(?:heart failure|HF)\b[^,;.]{0,30}\bhospitali[sz]|\bhospitali[sz]\w*\s+(?:for|due to)\s+(?:heart failure|HF)\b|\bHHF\b",
+    r"\brevasculari[sz]ation\b",
+    r"\bunstable angina\b",
+))
+
+
+def _registry_title_is_composite(title: str) -> bool:
+    """A registry outcome title names a composite when the prose detector says so OR it names >=2 distinct
+    components ('Time to First Occurrence of CV Death, MI, or Stroke' is a composite that _names_composite
+    alone does not see)."""
+    t = title or ""
+    return bool(extract._names_composite(t)) or sum(1 for p in _COMPOSITE_COMPONENTS if p.search(t)) >= 2
+
+
+def _ctgov_rung_admissible(cg, spec):
+    """The CT.gov structured-results rung takes a 2x2 only when (1) the registry types the measure as a PARTICIPANT
+    COUNT -- EXAMINE (PMID 23992602) posts MACE as a PERCENTAGE, 11.3 vs 11.8, and the rung read 11.3 as 11 events of
+    2701 -- and (2) for a declared COMPOSITE outcome, the registry measure is itself a composite: COLCHICINE-PCI
+    (PMID 32295417) was admitted on 'Peri-procedural Myocardial Infarction' because 'myocardial infarction' is one
+    of the composite's keywords. A refused rung falls through to the lower rungs; nothing is reconstructed from it.
+    Continuous (MEAN/SD) results carry no measure type and are unaffected."""
+    if not cg or "ai" not in cg:
+        return cg
+    if cg.get("registry_measure_type") != "COUNT_OF_PARTICIPANTS":
+        return None
+    if extract.declared_is_composite(spec.get("name", "")) and not _registry_title_is_composite(cg.get("registry_title", "")):
+        return None
+    # (3) THE composite, not just A composite: ELIXA posts 'CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization
+    # for Unstable Angina' as a participant count -- a 4-point estimate under a 3-point MACE label. A registry title IS
+    # the outcome's definition, so the component gate reads it as a definition clause.
+    if extract.composite_component_mismatch(spec.get("name", ""),
+                                            "composite outcome definition: " + (cg.get("registry_title") or "")):
+        return None
+    return cg
+
+
 def _dedup(records, pivotal=None):
     """Drop the CT.gov twin of a PubMed record (same NCT); then collapse PubMed records that
     share an NCT to the most-primary, latest-year one: a trial's RCT report beats a
@@ -403,13 +490,14 @@ def _reported_effect_candidate(eff, provenance, source_label):
 
 
 def _source_effect_candidates(spec, *, abstract=None, fulltext=None, ctgov_outcomes=None,
-                              verified_effect=None):
+                              verified_effect=None, record=None):
     return source_hierarchy_mod.source_effect_candidates(
         spec,
         abstract=abstract,
         fulltext=fulltext,
         ctgov_outcomes=ctgov_outcomes,
         verified_effect=verified_effect,
+        record=record,
     )
 
 
@@ -458,8 +546,96 @@ def _hand_fields(entry, slug, pid, rec=None):
     return out
 
 
-def _span_effect_candidates(spec, selected, base_candidates):
-    return source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates)
+HELD_FULLTEXT_ENABLED = frozenset()   # topics whose committed held full texts feed POOL CONSTRUCTION
+"""Per-topic opt-in, default OFF -- see held_fulltexts().
+
+Enabling all 58 committed held documents at once moved 4 of 51 outcomes in one step, and two of the
+first rows examined were extracted from the wrong part of their document (a figure caption, and a
+baseline-characteristics table). A corpus-wide aperture change is not landable as one commit: each
+topic is enabled on its own, with the table-role guard applied and a reproduction check, so a moved
+number can be attributed to the document that moved it.
+"""
+
+
+def held_fulltexts_enabled(slug, config=None):
+    """The per-topic opt-in. Declared in topics/<slug>.json as `"held_fulltexts_enabled": true`, so enabling one topic
+    changes that topic's config hash and nobody else's certificate (a code-level set would re-pin all 32 pages for
+    every enable). HELD_FULLTEXT_ENABLED remains as an override for tests."""
+    return str(slug) in HELD_FULLTEXT_ENABLED or bool((config or {}).get("held_fulltexts_enabled") is True)
+
+
+def held_fulltexts(slug, records, included_ids=None, config=None):
+    """Committed held full texts for this topic, merged under the recorded fetch, with digests.
+
+    Returns (texts_by_pmid, digests_by_pmid). `records.json`'s `fulltext_by_pmid` is the recorded
+    network fetch and keeps precedence; committed cache files fill in only where it has nothing, so
+    a later-committed file can never silently displace what acquisition actually retrieved.
+
+    Scope is deliberate and is the negative plant: a file is read only when it is
+    cache/<slug>/ft_<pmid>.txt AND <pmid> belongs to this topic's own records. Bytes dropped beside
+    the cache for an unrelated trial are not evidence about this topic.
+    """
+    import hashlib as _hashlib
+    import os as _os
+    texts = {str(k): str(v) for k, v in (records.get("fulltext_by_pmid") or {}).items() if v}
+    digests = {}
+    known = {str(r.get("id")) for r in (records.get("records") or []) if r.get("id") is not None}
+    if included_ids:
+        known |= {str(x) for x in included_ids}
+    cache_dir = _os.path.join(ROOT, "cache", str(slug))
+    if not _os.path.isdir(cache_dir) or not held_fulltexts_enabled(slug, config):
+        # Not opted in: the recorded fetch alone, exactly as before. The digests map stays empty so
+        # nothing downstream can believe a held document was read when it was not.
+        return texts, digests
+    for name in sorted(_os.listdir(cache_dir)):
+        if not (name.startswith("ft_") and name.endswith(".txt")):
+            continue
+        pid = name[3:-4]
+        if pid not in known:
+            continue          # not this topic's trial: not read, not digested, not counted
+        path = _os.path.join(cache_dir, name)
+        try:
+            raw = open(path, "rb").read()
+        except OSError:
+            continue
+        digests[pid] = {"ref": f"cache/{slug}/{name}", "sha256": _hashlib.sha256(raw).hexdigest(),
+                        "bytes": len(raw)}
+        body = raw.decode("utf-8", "replace")
+        # PARSE JATS BEFORE ANY EXTRACTOR SEES IT.
+        #
+        # These files are raw PMC XML. Handing that to extract.extract_trial -- which is built for
+        # prose -- reads numbers out of markup: corticosteroids-cap 35723686 yielded
+        # OR 0.89 (0.58, 1.38) from "The inset in each panel shows the same data on an enlarged y
+        # axis and up to day 60</p></caption><graphic xmlns:xlink=...", a FIGURE CAPTION. It was
+        # refused only because docs/refusals.json independently refuses that trial on timepoint,
+        # and the claimgraph would not publish a trial that was both refused and pooled.
+        # harness/fulltext exists precisely to turn JATS into the article's own sentences.
+        if body.lstrip()[:200].lower().startswith(("<?xml", "<!doctype", "<pmc-articleset", "<article")):
+            try:
+                from . import fulltext as _fulltext
+                parsed = _fulltext.combined_text(_fulltext.parse_pmc_xml(body))
+                if parsed and parsed.strip():
+                    body = parsed
+                    digests[pid]["parsed"] = "pmc_jats"
+            except Exception:  # noqa: BLE001 -- an unparseable document is not evidence; leave it out
+                digests[pid]["parsed"] = "PARSE_FAILED"
+                continue
+        texts.setdefault(pid, body)
+    return texts, digests
+
+
+def _span_effect_candidates(spec, selected, base_candidates, text=None):
+    # `text` is the HELD DOCUMENT. Without it a label-only candidate cannot be resolved to a
+    # definition span and is refused rather than admitted (endpoint eligibility before source
+    # preference). Every refusal is recorded ON THE ROW: when a refusal changes which number a
+    # trial contributes, the served page and the result-change notice must be able to say why,
+    # and a reason that exists only inside the function that applied it cannot be quoted later.
+    refusals: list[str] = []
+    out = source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates, text, refusals)
+    if refusals:
+        prior = list(selected.get("endpoint_eligibility_refusals") or [])
+        selected["endpoint_eligibility_refusals"] = prior + [r for r in refusals if r not in prior]
+    return out
 
 
 CROSS_SOURCE_LOG_TOL = 0.12
@@ -1046,19 +1222,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
     candidate_index = {}
+    eligibility_refusals = {}
     all_effect_candidates = []
     for d in included:
         rec = rec_by_id.get(d["id"], {})
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
         ve = (verified_effects or {}).get(d["id"])
+        _refusals: list[str] = []
         cands = _source_effect_candidates(
             spec,
             abstract=rec.get("abstract", ""),
             fulltext=ft,
             ctgov_outcomes=ctgov_results.get(nct) if nct else None,
             verified_effect=ve,
+            record=_refusals,
         )
+        if _refusals:
+            eligibility_refusals[d["id"]] = _refusals
         candidate_index[d["id"]] = cands
         all_effect_candidates.extend(cands)
     estimand_decision = source_hierarchy_mod.estimand_decision(spec, all_effect_candidates)
@@ -1201,14 +1382,18 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
             _mm = (extract.composite_component_mismatch(spec.get("name", ""), ex.get("source", ""))
                    or extract.population_mismatch(ex.get("source", ""))
-                   or extract.timepoint_mismatch(spec.get("timepoint", ""), ex.get("source", "")))
+                   or extract.timepoint_mismatch(spec.get("timepoint", ""), ex.get("source", ""))
+                   or extract.outcome_window_mismatch(spec.get("timepoint", ""), spec.get("keywords"),
+                                                      ex.get("source", ""))
+                   or extract.table_role_refusal(ex.get("source", ""))
+                   or extract.subgroup_refusal(ex.get("source", "")))
             if _mm:
                 absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence", "reason": _mm})
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
@@ -1220,11 +1405,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                             min_total=_enrollment_floor(rec.get("abstract", "")),
                             judgments=outcome_judgments)
               if nct and nct in ctgov_results else None)
+        cg = _ctgov_rung_admissible(cg, spec)
         if cg:
             cg["provenance"] = "ctgov_results"
             t = {"label": label, "id": idstr, **cg}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1232,13 +1418,36 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # often live in the PMC OA full text (Albert's azithromycin IRR 0.73). Same extractors,
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
-        fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc,
-                                   estimand=spec.get("estimand")) if ft else None
+        fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
         if fx and not fx.get("absent"):
+            # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
+            #
+            # The comment above promised "same round-trip + refuse-on-ambiguity guards"; the guards
+            # were only ever applied on the abstract route. It went unnoticed because committed
+            # full texts were invisible to pool construction, so this branch almost never ran. The
+            # moment held documents became visible (58 of them), it pooled two trials that the
+            # committed refusal registry refuses on estimand grounds:
+            #   35723686 Meduri/ESCAPe  -- reports 60-day mortality, not the declared 28-day
+            #   32295417 COLCHICINE-PCI -- a 30-day peri-PCI secondary composite, wrong scope
+            # The claimgraph refused both builds with REFUSED_AND_POOLED, which is the only reason
+            # this was caught rather than served. A wider aperture must not mean a looser gate.
+            _mmf = (extract.composite_component_mismatch(spec.get("name", ""), fx.get("source", ""))
+                    or extract.population_mismatch(fx.get("source", ""))
+                    or extract.timepoint_mismatch(spec.get("timepoint", ""), fx.get("source", ""))
+                    or extract.outcome_window_mismatch(spec.get("timepoint", ""), spec.get("keywords"),
+                                                       fx.get("source", ""))
+                    or extract.table_role_refusal(fx.get("source", ""))
+                    or extract.subgroup_refusal(fx.get("source", "")))
+            if _mmf:
+                absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence",
+                               "reason": _mmf, "provenance": "pmc_fulltext"})
+                continue
             fx["provenance"] = "pmc_fulltext"
             t = {"label": label, "id": idstr, **fx}
+            # Resolve label-only candidates against the document the number CAME FROM, not the
+            # abstract: a full-text row's definition span lives in the full text.
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
             )
             trials.append(t)
             continue
@@ -1256,7 +1465,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "source": va.get("source", "hand-verified structured arm-level counts"),
                  **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1274,7 +1483,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "source": va.get("source", "hand-verified continuous per-arm mean/SD/n"),
                  **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
             t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
             )
             trials.append(t)
             continue
@@ -1306,6 +1515,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
     # refused with the number they carried and both spans, so a reader sees what was refused and why.
+    # Carry every endpoint-eligibility refusal onto the row it applied to, before admissibility.
+    # These refusals decide WHICH candidate a trial contributes, so when a pooled result moves the
+    # notice has to be able to quote the reason rather than only report that the number changed.
+    for _t in trials:
+        _r = eligibility_refusals.get(str(_t.get("label") or "")) or             eligibility_refusals.get(str(_t.get("id") or "").replace("PMID ", "").strip())
+        if _r:
+            _prior = list(_t.get("endpoint_eligibility_refusals") or [])
+            _t["endpoint_eligibility_refusals"] = _prior + [x for x in _r if x not in _prior]
+        # A row read from a HELD FULL TEXT carries what that document says about how the number was estimated
+        # (covariate-adjusted; an exploratory endpoint), quoted from its bytes. Set only when non-empty, so no
+        # other row's object changes.
+        if str(_t.get("provenance") or "").startswith("pmc_fulltext"):
+            _pid = str(_t.get("id") or "").replace("PMID ", "").strip()
+            _q = extract.analysis_qualifiers(_t.get("source", ""), fulltext_by_pmid.get(_pid) or "",
+                                             spec.get("keywords"))
+            if _q:
+                _t["analysis_qualifiers"] = _q
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
     if spec.get("withdrawn"):
@@ -1354,7 +1580,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if (spec.get("estimand") or "").upper() == "MD":
         kept = []
         for t in trials:
-            if t.get("mean1") is not None:
+            # a REPORTED between-group mean difference + CI is the continuous estimand itself (generic inverse
+            # variance); only counts / proportions / ratios are the mismatch this guard exists to refuse
+            if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
                 kept.append(t)
             else:
                 absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
@@ -1470,14 +1698,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         def _meas(t):
             if t.get("e1i") is not None:
                 return "IRR"
-            if t.get("mean1") is not None:
+            if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
                 return "MD"
             return meas
         # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
         # continuous, else the topic's ratio estimand.
         if all(t.get("e1i") is not None for t in trials):
             pooled_scale = "IRR"
-        elif all(t.get("mean1") is not None for t in trials):
+        elif all(t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None) for t in trials):
             pooled_scale = "MD"
         elif all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
             # Every pooled trial reported an explicit effect on the SAME scale -> display that scale,
@@ -1841,7 +2069,9 @@ def outcome_inputs(slug, config, records):
     comp = config.get("comparator_terms", ["placebo", "control"])
 
     cgr = records.get("ctgov_results") or {}
-    ftbp = records.get("fulltext_by_pmid") or {}
+    # Committed held documents are evidence and must reach pool construction, not only the
+    # consistency checker. Digests are recorded so the page can state which bytes were read.
+    ftbp, ftbp_digests = held_fulltexts(slug, records, config=config)
     # Outcome-identity gate is OPT-IN per topic (config.outcome_identity) AND requires a committed
     # judgments cache; absent either, judgments=None and ctgov selection is the deterministic
     # substring match. This keeps every existing topic byte-identical until it opts in.

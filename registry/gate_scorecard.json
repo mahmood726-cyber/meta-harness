@@ -699,7 +699,7 @@
     }
    ],
    "gate_id": "gate.check_access_claim_supported",
-   "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME — that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled — when the PMC full-text adapter did not run.",
+   "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME \u2014 that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled \u2014 when the PMC full-text adapter did not run.",
    "where": "harness/gate.py:check_access_claim_supported"
   },
   {
@@ -783,7 +783,7 @@
     }
    ],
    "gate_id": "gate.check_cache_tracked",
-   "what_it_refuses": "A page replays from its committed cache, so that cache MUST be git-tracked — an untracked cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the page looked fine, but its cache/<slug>/records.json was never committed).",
+   "what_it_refuses": "A page replays from its committed cache, so that cache MUST be git-tracked \u2014 an untracked cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the page looked fine, but its cache/<slug>/records.json was never committed).",
    "where": "harness/gate.py:check_cache_tracked"
   },
   {
@@ -1446,7 +1446,7 @@
     }
    ],
    "gate_id": "gate.check_method_matches_scale",
-   "what_it_refuses": "The declared analysis-method string must match the scale ACTUALLY pooled — recomputed here independently via synth.method_text so the check cannot be a constant compared to itself (the melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and the old declared==served limb compared one METHOD constant to itself and could never fire).",
+   "what_it_refuses": "The declared analysis-method string must match the scale ACTUALLY pooled \u2014 recomputed here independently via synth.method_text so the check cannot be a constant compared to itself (the melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and the old declared==served limb compared one METHOD constant to itself and could never fire).",
    "where": "harness/gate.py:check_method_matches_scale"
   },
   {
@@ -1800,7 +1800,7 @@
     }
    ],
    "gate_id": "gate.check_preregistration_not_build",
-   "what_it_refuses": "A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a PROTOCOL-ONLY commit — one that contains no fetched cache, extracted review, blind pages or index.",
+   "what_it_refuses": "A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a PROTOCOL-ONLY commit \u2014 one that contains no fetched cache, extracted review, blind pages or index.",
    "where": "harness/gate.py:check_preregistration_not_build"
   },
   {
@@ -1908,7 +1908,7 @@
     }
    ],
    "gate_id": "gate.check_primary_result",
-   "what_it_refuses": "A page whose PRIMARY outcome has no pooled result cannot make its central claim and must not publish (this is what a k=0 decline looks like — the gate refuses it here rather than relying on a human to notice and not commit it).",
+   "what_it_refuses": "A page whose PRIMARY outcome has no pooled result cannot make its central claim and must not publish (this is what a k=0 decline looks like \u2014 the gate refuses it here rather than relying on a human to notice and not commit it).",
    "where": "harness/gate.py:check_primary_result"
   },
   {
@@ -3567,6 +3567,60 @@
    "gate_id": "gate.check_harms_synthesis_gated",
    "what_it_refuses": "An incomplete reporting-trial harm extraction serves a quantitative synthesis, omits the complete debt ledger, or inserts an extra result alongside the ledger.",
    "where": "harness/gate.py:check_harms_synthesis_gated"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "tests/test_offline_replay.py plant suite",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "1d751b41afef5aae0ea00788326a62a048cab1ba8d182d938a1b8e04a8702a88",
+      "evidence": [
+       "tests/test_offline_replay.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-replay-currency-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_offline_replay.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "stale/absent topic REPLAY.md, changed manifest digest, stale bundle binding, changed mirrored wheel, changed lock, lock/wheels digest mismatch (test_refuses_drift x7) and a planted guide via the CLI",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_replay_currency"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-replay-currency-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_replay_currency"
+    }
+   ],
+   "gate_id": "verify_all.limb_replay_currency",
+   "what_it_refuses": "replay currency (generated guides and offline dependencies)",
+   "where": "scripts/verify_all.py:limb_replay_currency"
   }
  ],
  "generated_utc": null,
