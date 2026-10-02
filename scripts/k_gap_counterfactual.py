@@ -180,7 +180,7 @@ def ctgov_results_cached(nct, offline=False):
     return oms
 
 
-def build(slug, extra_records=None, extra_fulltext=None, extra_ctgov=None, extra_located=None):
+def build(slug, extra_records=None, extra_fulltext=None, extra_ctgov=None):
     from harness.pipeline import build_review_core
     from harness.registration import protocol_sha
     config = _j(os.path.join(ROOT, "topics", slug + ".json"))
@@ -199,10 +199,6 @@ def build(slug, extra_records=None, extra_fulltext=None, extra_ctgov=None, extra
         for k, v in extra_fulltext.items():
             ft.setdefault(k, v)          # never replace full text the pinned cache already holds
         records["fulltext_by_pmid"] = ft
-    if extra_located:
-        # gate-accepted table-location values (scripts/g1_table_locator.py): in-memory overlay, never written to cache/
-        records["located_arms"] = extra_located.get("arms") or {}
-        records["located_effects"] = extra_located.get("effects") or {}
     return build_review_core(slug, config, records, protocol_sha(slug))
 
 
@@ -288,6 +284,11 @@ def held_open_sources(slug, base_core, fetch_missing=False):
     ft_t = sorted(({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
                     if str(d.get("id", "")).startswith("PMID ")} | {str(r.get("id")) for r in recs}) - held_ft)
     fts = {p: t for p in ft_t for t in [pmc_fulltext_cached(p, offline=True)] if t}
+    # the topic's own held texts (cache/<slug>/ft_<pmid>.txt) were never offered by this build
+    for p in ft_t:
+        cp = os.path.join(ROOT, "cache", slug, f"ft_{p}.txt")
+        if p not in fts and os.path.exists(cp) and os.path.getsize(cp) > 0:
+            fts[p] = open(cp, encoding="utf-8", errors="replace").read()
     from kgap import k_gap as _kg
     from harness import fulltext as _ftm
     # a trial's DOI from the topic's records OR the held member records: EMPEROR-Preserved's Unpaywall copy was never
@@ -304,7 +305,8 @@ def held_open_sources(slug, base_core, fetch_missing=False):
             fts[p] = _ftm.UNSTRUCTURED_MARKER + "\n" + u["text"]
             n_upw += 1
     recnct = {r.get("id"): r.get("nct") for r in rj.get("records", [])}
-    cg_t = set()
+    # seeded members' registrations too: their posted results were never read (a member is absent from the base build)
+    cg_t = {str(r.get("nct")) for r in recs if str(r.get("nct") or "").startswith("NCT")}
     for d in prim.get("declared_absent_trials", []):
         for n in (d.get("trial_family_id"), recnct.get(str(d.get("id", "")).replace("PMID ", "")), d.get("id")):
             if n and str(n).startswith("NCT"):
@@ -319,28 +321,7 @@ def build_with_held_sources(slug, base_core=None, fetch_missing=False):
     harness pools given everything it has acquired. Returns (core, (records, fulltext, ctgov, n_unpaywall))."""
     base_core = base_core or build(slug)
     src = held_open_sources(slug, base_core, fetch_missing=fetch_missing)
-    return build(slug, extra_records=src[0], extra_fulltext=src[1], extra_ctgov=src[2],
-                 extra_located=located_values(slug)), src
-
-
-def located_values(slug):
-    """Gate-ACCEPTED table-location values for a topic (outputs/k_gap/table_locator.json), in the verified-inputs
-    format: {"arms": {pmid: {outcome, ai, n1i, ci, n2i, ...}}, "effects": {pmid: {outcome, effect, ci_low, ...}}}."""
-    p = os.path.join(OUT, "table_locator.json")
-    if not os.path.exists(p):
-        return None
-    arms, effs = {}, {}
-    for r in (_j(p).get("rows") or []):
-        if r.get("slug") != slug or r.get("verdict") != "ACCEPTED":
-            continue
-        v, src = r["value"], f"table locator {r['record_id']}: {r['value'].get('span', '')[:200]}"
-        if v.get("events_t") is not None:
-            arms[r["pmid"]] = {"outcome": r["outcome"], "ai": v["events_t"], "n1i": v["n_t"], "ci": v["events_c"],
-                               "n2i": v["n_c"], "provenance": "table_located", "source": src}
-        elif v.get("effect") is not None:
-            effs[r["pmid"]] = {"outcome": r["outcome"], "effect": float(v["effect"]), "ci_low": float(v["lower"]),
-                               "ci_high": float(v["upper"]), "scale": v.get("measure") or "HR", "source": src}
-    return {"arms": arms, "effects": effs} if (arms or effs) else None
+    return build(slug, extra_records=src[0], extra_fulltext=src[1], extra_ctgov=src[2]), src
 
 
 def member_pmids(slug):

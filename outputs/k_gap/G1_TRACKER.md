@@ -40,13 +40,13 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 ## glp1-ra-mace-t2d (comparator PMID 34526024)
 
 - ELIXA: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: the bound endpoint span adds component(s) to the declared composite (unstable angina): a different composite is not '3-point major adverse cardiovascular events' and this outcome declares no near-match permission (allow_near_match / compone
-- LEADER: **PRIMARY** - our branch extraction PMID 27295427 (abstract); vs comparator row: AGREE
-- SUSTAIN-6: **PRIMARY** - our branch extraction PMID 27633186 (abstract); vs comparator row: AGREE
-- EXSCEL: **PRIMARY** - our branch extraction PMID 28910237 (abstract); vs comparator row: AGREE
-- HARMONY: **PRIMARY** - our branch extraction PMID 30291013 (abstract); vs comparator row: AGREE
-- REWIND: **PRIMARY** - our branch extraction PMID 31189511 (abstract); vs comparator row: AGREE
-- PIONEER 6: **PRIMARY** - our branch extraction PMID 31185157 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
-- AMPLITUDE-O: **PRIMARY** - our branch extraction PMID 34215025 (abstract); vs comparator row: AGREE
+- LEADER: **PRIMARY** - our held-source pool PMID 27295427 (abstract); vs comparator row: AGREE
+- SUSTAIN-6: **PRIMARY** - our held-source pool PMID 27633186 (abstract); vs comparator row: AGREE
+- EXSCEL: **PRIMARY** - our held-source pool PMID 28910237 (abstract); vs comparator row: AGREE
+- HARMONY: **PRIMARY** - our held-source pool PMID 30291013 (abstract); vs comparator row: AGREE
+- REWIND: **PRIMARY** - our held-source pool PMID 31189511 (abstract); vs comparator row: AGREE
+- PIONEER 6: **PRIMARY** - our held-source pool PMID 31185157 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
+- AMPLITUDE-O: **PRIMARY** - our held-source pool PMID 34215025 (abstract); vs comparator row: AGREE
 - NAMED ESTIMAND_DIFFERENCE: ELIXA -- harness.extract.composite_component_mismatch: 3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label. Registry (AACT 2026-08-30): 'Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina', arms Placebo 399/3034, Lixisenatide 406/3034, Hazard Ratio (HR) 1.017 (0.886-1.168); the comparator pooled it as {'effect': '1.02', 'lower': '0.89', 'upper': '1.17', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None, 'measure': 'HR'}
 - COMPARATOR FINDING COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND: ELIXA -- comparator row {'effect': '1.02', 'lower': '0.89', 'upper': '1.17', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None, 'measure': 'HR'} (the comparator's printed row equals, at its printed precision, the registry result of the composite our gate refuses for this topic)
 - COMPARATOR FINDING COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT: PIONEER 6 -- comparator row {'effect': '0.79', 'lower': '0.57', 'upper': '1.10', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None, 'measure': 'HR'} vs trial report {'measure': 'HR', 'effect': '0.79', 'lower': '0.57', 'upper': '1.11', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None} (SECONDARY_WRONG (primary numbers are in the primary's own span))
@@ -56,8 +56,8 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 - O’Neil, 2018: **NO_ROW** - IDENTIFICATION (secondary refused: ['OUTCOME_NOT_THE_TOPICS', 'TIMEPOINT_NOT_STATED_BY_META']); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 30122305: SCREENED_OUT X2: wrong population: title/conditions mention 'liraglutide'.
 - Rubino, 2021: **NO_ROW** - IDENTIFICATION (secondary refused: ['OUTCOME_NOT_THE_TOPICS', 'TIMEPOINT_NOT_STATED_BY_META']); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 33755728: SCREENED_OUT X2: wrong population: title/conditions mention 'maintenance'.; comparator row finding: [{'finding': 'ROW_CI_NOT_FROM_ARMS', 'printed_vs_arm_derived': {'lower': ['-14.75', -13.75], 'upper': ['-10.05', -11.05]}}]
-- Wadden, 2021: **PRIMARY** - our branch extraction PMID 33625476 (abstract); vs comparator row: AGREE
-- Wilding, 2021: **PRIMARY** - our branch extraction PMID 33567185 (abstract); vs comparator row: AGREE
+- Wadden, 2021: **PRIMARY** - our held-source pool PMID 33625476 (abstract); vs comparator row: AGREE
+- Wilding, 2021: **PRIMARY** - our held-source pool PMID 33567185 (abstract); vs comparator row: AGREE
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: O’Neil, 2018 -- screen X2 (wrong population: title/conditions mention 'liraglutide'.); protocol rule include.population_none[20] = 'liraglutide'; registered eligibility: Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Rubino, 2021 -- screen X2 (wrong population: title/conditions mention 'maintenance'.); protocol rule include.population_none[7] = 'maintenance'; registered eligibility: Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.
 - COMPARATOR FINDING ROW_CI_NOT_FROM_ARMS: Rubino, 2021 -- comparator row {'effect': '-12.40', 'lower': '-14.75', 'upper': '-10.05', 'events_t': None, 'n_t': 535, 'events_c': None, 'n_c': 268, 'measure': 'MD'}; {'lower': ['-14.75', -13.75], 'upper': ['-10.05', -11.05]}
@@ -110,10 +110,10 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Deftereos [15]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 23040570: SCREENED_OUT X2: wrong population: title/conditions mention 'pulmonary vein'.
 - Deftereos [16]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 24508207: SCREENED_OUT X2: wrong population: title/conditions mention 'pulmonary vein'.
 - Imazio [19]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 22090167: SCREENED_OUT X1: not a randomized controlled trial (record: 22090167).
-- Imazio [18]: **PRIMARY** - our branch extraction PMID 25172965 (abstract); vs comparator row: DISAGREE:our_counts_imply_0.81_vs_printed_0.66; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
+- Imazio [18]: **PRIMARY** - our held-source pool PMID 25172965 (abstract); vs comparator row: DISAGREE:our_counts_imply_0.81_vs_printed_0.66; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
 - Sarzaeem [23]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Tabbalat [22]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 27502857: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 27502857).
-- Tabbalat [21]: **PRIMARY** - our branch extraction PMID 32720823 (abstract); vs comparator row: AGREE_ON_POINT
+- Tabbalat [21]: **PRIMARY** - our held-source pool PMID 32720823 (abstract); vs comparator row: AGREE_ON_POINT
 - Zarpelon [20]: **PRIMARY** - meta 37341446 PRIMARY_VERIFIED PRIMARY_EXTRACTION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 27223641: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 27223641).
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Bessissow [17] -- screen X2 (wrong population: title/conditions mention 'lung resection'.); protocol rule include.population_none[8] = 'lung resection'; registered eligibility: None
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Deftereos [15] -- screen X2 (wrong population: title/conditions mention 'pulmonary vein'.); protocol rule include.population_none[1] = 'pulmonary vein'; registered eligibility: None
@@ -129,7 +129,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - COPE study: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - CORE study: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 16186468: SCREENED_OUT X3: no eligible comparator (none of ['placebo']).
 - COPPS study: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
-- CORP study: **PRIMARY** - our branch extraction PMID 21873705 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- CORP study: **PRIMARY** - our held-source pool PMID 21873705 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - pooled by us, not listed by the comparator: PMID 24694983 (2014; comparator 2012): PUBLISHED_AFTER_COMPARATOR
 
 ## colchicine-secondary-cv-prevention (comparator PMID 36176989)
@@ -144,10 +144,10 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Akodad et al. (15): **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 28065445: SCREENED_OUT X3: no eligible comparator (none of ['placebo']).
 - Hennessy et al. (23): **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Mewton et al. (26): **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Tardif et al. (8): **PRIMARY** - our branch extraction PMID 31733140 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Tardif et al. (8): **PRIMARY** - our held-source pool PMID 31733140 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Tong et al. (22): **NO_ROW** - EXTRACTION_FROM_TABLE; vs comparator row: NOT_IN_OUR_POOL; our refusal: source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence
 - Shah et al. (16): **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Nidorf et al. (7): **PRIMARY** - our branch extraction PMID 32865380 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Nidorf et al. (7): **PRIMARY** - our held-source pool PMID 32865380 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Akrami et al. (12): **NO_ROW** - EXTRACTION_FROM_TABLE; vs comparator row: NOT_IN_OUR_POOL; our refusal: source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Raju et al. (17) -- screen X2 (wrong population: title/conditions mention 'stroke'.); protocol rule include.population_none[11] = 'stroke'; registered eligibility: None
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Giannopoulos et al. (18) -- screen X2 (wrong population: title/conditions mention 'coronary artery bypass'.); protocol rule include.population_none[6] = 'coronary artery bypass'; registered eligibility: None
@@ -157,9 +157,9 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 ## corticosteroids-cap-mortality (comparator PMID 38128217)
 
-- Hydrocortisone in Severe Community-Acquired Pneumonia.: **PRIMARY** - our branch extraction PMID 36942789 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Hydrocortisone in Severe Community-Acquired Pneumonia.: **PRIMARY** - our held-source pool PMID 36942789 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Hydrocortisone infusion for severe community-acquired pneumo: **NO_ROW** - GENUINELY_UNAVAILABLE_OPEN; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Effect of corticosteroids on treatment failure among hospita: **PRIMARY** - our branch extraction PMID 25688779 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Effect of corticosteroids on treatment failure among hospita: **PRIMARY** - our held-source pool PMID 25688779 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Hydrocortisone and tumor necrosis factor in severe community: **NO_ROW** - GENUINELY_UNAVAILABLE_OPEN; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Low-dose methylprednisolone treatment in critically ill pati: **PRIMARY** - our held-source pool PMID 35723686 (pmc_fulltext); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Ampicillin dosage and use of prednisolone in treatment of pn: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 4404939: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['community-acquired pneumonia', 'community acquired pneumonia', 'severe com
@@ -172,7 +172,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 ## corticosteroids-covid19-mortality (comparator PMID 32876694)
 
-- Dexamethasone in Hospitalized Patients with Covid-19.: **PRIMARY** - our branch extraction PMID 32678530 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Dexamethasone in Hospitalized Patients with Covid-19.: **PRIMARY** - our held-source pool PMID 32678530 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Effect of Dexamethasone on Days Alive and Ventilator-Free in: **PRIMARY** - our held-source pool PMID 32876695 (pmc_fulltext); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Effect of Hydrocortisone on 21-Day Mortality or Respiratory : **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Effect of Hydrocortisone on Mortality and Organ Support in P: **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
@@ -193,21 +193,21 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 ## doac-vte-recurrence (comparator PMID 24963045)
 
-- Dabigatran versus warfarin in the treatment of acute venous : **PRIMARY** - our branch extraction PMID 19966341 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Treatment of acute venous thromboembolism with dabigatran or: **PRIMARY** - our branch extraction PMID 24344086 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Edoxaban versus warfarin for the treatment of symptomatic ve: **PRIMARY** - our branch extraction PMID 23991658 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Oral apixaban for the treatment of acute venous thromboembol: **PRIMARY** - our branch extraction PMID 23808982 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Oral rivaroxaban for symptomatic venous thromboembolism.: **PRIMARY** - our branch extraction PMID 21128814 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Oral rivaroxaban for the treatment of symptomatic pulmonary : **PRIMARY** - our branch extraction PMID 22449293 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Dabigatran versus warfarin in the treatment of acute venous : **PRIMARY** - our held-source pool PMID 19966341 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Treatment of acute venous thromboembolism with dabigatran or: **PRIMARY** - our held-source pool PMID 24344086 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Edoxaban versus warfarin for the treatment of symptomatic ve: **PRIMARY** - our held-source pool PMID 23991658 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Oral apixaban for the treatment of acute venous thromboembol: **PRIMARY** - our held-source pool PMID 23808982 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Oral rivaroxaban for symptomatic venous thromboembolism.: **PRIMARY** - our held-source pool PMID 21128814 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Oral rivaroxaban for the treatment of symptomatic pulmonary : **PRIMARY** - our held-source pool PMID 22449293 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Management and outcomes of major bleeding during treatment w: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 24081972: SCREENED_OUT X1: not a randomized controlled trial (record: 24081972).
 
 ## dpp4-mace-t2d (comparator PMID 34754403)
 
 - Alogliptin after acute coronary syndrome in patients with ty: **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Saxagliptin and cardiovascular outcomes in patients with typ: **PRIMARY** - our branch extraction PMID 23992601 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Saxagliptin and cardiovascular outcomes in patients with typ: **PRIMARY** - our held-source pool PMID 23992601 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Effect of Sitagliptin on Cardiovascular Outcomes in Type 2 D: **NO_ROW** - MEASURE_MISMATCH; vs comparator row: NOT_IN_OUR_POOL; our refusal: declared absent (estimand mismatch): TECOS's abstract reports its primary as a FOUR-point composite (cardiovascular death, nonfatal myocardial infarction, nonfatal stroke, OR hospitalization for unstable angina), HR 0.98 (0.88-1.09). Our ou
-- A randomized, placebo-controlled study of the cardiovascular: **PRIMARY** - our branch extraction PMID 28893244 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Effect of Linagliptin vs Placebo on Major Cardiovascular Eve: **PRIMARY** - our branch extraction PMID 30418475 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- A randomized, placebo-controlled study of the cardiovascular: **PRIMARY** - our held-source pool PMID 28893244 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Effect of Linagliptin vs Placebo on Major Cardiovascular Eve: **PRIMARY** - our held-source pool PMID 30418475 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 
 ## empagliflozin-hfpef-hosp (comparator PMID 37773799)
 
@@ -229,9 +229,9 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 ## finerenone-ckd-t2d-renal (comparator PMID 36742404)
 
 - Bakris et al. (15): **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Bakris et al. (16): **PRIMARY** - our branch extraction PMID 33264825 (fulltext_verified); vs comparator row: AGREE
+- Bakris et al. (16): **PRIMARY** - our held-source pool PMID 33264825 (fulltext_verified); vs comparator row: AGREE
 - Katayama et al. (17): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Pitt et al. (18): **PRIMARY** - our branch extraction PMID 34449181 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
+- Pitt et al. (18): **PRIMARY** - our held-source pool PMID 34449181 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
 - COMPARATOR FINDING COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT: Pitt et al. (18) -- comparator row {'effect': '0.87', 'lower': '0.75', 'upper': '1.00', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None, 'measure': 'HR'} vs trial report {'measure': 'HR', 'effect': '0.87', 'lower': '0.76', 'upper': '1.01', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None} (SECONDARY_WRONG (primary numbers are in the primary's own span))
 
 ## iv-iron-hfref-hosp (comparator PMID 39727669)
@@ -239,7 +239,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - HEART-FID [11]: **NO_ROW** - EXTRACTION_FROM_TABLE; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - AFFIRM-AHF [10]: **NO_ROW** - MEASURE_MISMATCH; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - FAIR-HF [20]: **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- CONFIRM-HF [2]: **PRIMARY** - our branch extraction PMID 25176939 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- CONFIRM-HF [2]: **PRIMARY** - our held-source pool PMID 25176939 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - EFFECT-HF [21]: **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - pooled by us, not listed by the comparator: PMID 40159390 (2025; comparator 2024): PUBLISHED_AFTER_COMPARATOR
 
@@ -299,7 +299,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Machado 2012: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 22892913: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['polycystic ovary syndrome', 'polycystic ovarian syndrome', 'pcos', 'polycy
 - Malkawi 2002: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Malkawi 2003: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 12850864: SCREENED_OUT X3: the randomised intervention is not ['metformin'] (not named in title/conditions; an incidental abstract mention does not qualify).
-- Moll 2006: **PRIMARY** - our branch extraction PMID 16769748 (published_rate); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Moll 2006: **PRIMARY** - our held-source pool PMID 16769748 (published_rate); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Morin‐Papunen 2012: **NO_ROW** - GENUINELY_UNAVAILABLE_OPEN; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Nestler 1998: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Ng 2001: **NO_ROW** - GENUINELY_UNAVAILABLE_OPEN; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
@@ -312,7 +312,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Siebert 2009: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 19396538: SCREENED_OUT X3: no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).
 - Sturrock 2002: **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Tang 2006: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
-- Vandermolen 2001: **PRIMARY** - our branch extraction PMID 11172832 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Vandermolen 2001: **PRIMARY** - our held-source pool PMID 11172832 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Yarali 2002: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 11821265: SCREENED_OUT X3: no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).
 - Zain 2009: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 18321486: SCREENED_OUT X3: no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Boudhraa 2010 -- screen X3 (no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).); protocol rule include.comparator_any = ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone'] (none met); registered eligibility: None
@@ -341,10 +341,10 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - GISSI-HF 2008 [33]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Tuttle 2008 [34]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 18489927: SCREENED_OUT X3: the randomised intervention is not ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic
 - Quinn 2010 [35]: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 21045096: SCREENED_OUT X2: wrong population: title/conditions mention 'alzheimer'.
-- Kromhout 2010 [36]: **PRIMARY** - our branch extraction PMID 20929341 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_RR
+- Kromhout 2010 [36]: **PRIMARY** - our held-source pool PMID 20929341 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_RR
 - Einvik 2010 [37]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: factorial-design trial: no extraction sentence explicitly names the intervention, so the effect cannot be attributed to our comparison rather than the co-randomised factor; refused (factorial guard)
 - Rauch 2010 [38]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Galan 2010 [39]: **PRIMARY** - our branch extraction PMID 21115589 (fulltext_verified); vs comparator row: NOT_COMPARABLE:HR_VS_RR
+- Galan 2010 [39]: **PRIMARY** - our held-source pool PMID 21115589 (fulltext_verified); vs comparator row: NOT_COMPARABLE:HR_VS_RR
 - ORIGIN 2012 [40]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Macchia 2013 [41]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL
 - Risk & Prevention 2013 [42]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
@@ -354,8 +354,8 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Alfaddagh 2017 [46]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 29246960: SCREENED_OUT X3: no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).
 - ASCEND 2018 [47]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Pahor 2019 [48]: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 30541065: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f
-- Bhatt 2019 [49]: **PRIMARY** - our branch extraction PMID 30415628 (ctgov_results); vs comparator row: NOT_COMPARABLE:HR_VS_RR
-- Manson 2019 [50]: **PRIMARY** - our branch extraction PMID 30415637 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_RR
+- Bhatt 2019 [49]: **PRIMARY** - our held-source pool PMID 30415628 (ctgov_results); vs comparator row: NOT_COMPARABLE:HR_VS_RR
+- Manson 2019 [50]: **PRIMARY** - our held-source pool PMID 30415637 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_RR
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Bemelmans 2002 [27] -- screen X3 (the randomised intervention is not ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic); protocol rule include.intervention_any = ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic', 'docosahexaenoic', 'polyunsaturated fatty acid'] (none met); registered eligibility: None
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Tuttle 2008 [34] -- screen X3 (the randomised intervention is not ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic); protocol rule include.intervention_any = ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic', 'docosahexaenoic', 'polyunsaturated fatty acid'] (none met); registered eligibility: None
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Quinn 2010 [35] -- screen X2 (wrong population: title/conditions mention 'alzheimer'.); protocol rule include.population_none[9] = 'alzheimer'; registered eligibility: None
@@ -373,21 +373,21 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - ODYSSEY FH II NCT01709500: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL
 - ODYSSEY HIGH FH NCT01617655: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 27618825: SCREENED_OUT X2: population not on-topic: title/conditions/abstract do not mention any of ['cardiovascular disease', 'atherosclerotic cardiovascular disease'
 - ODYSSEY JAPAN NCT02017898: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IDENTIFICATION
-- ODYSSEY OUTCOME NCT01663402: **PRIMARY** - our branch extraction PMID 30403574 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- ODYSSEY OUTCOME NCT01663402: **PRIMARY** - our held-source pool PMID 30403574 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - PACMAN - AMI NCT03067844: **NO_ROW** - MEASURE_MISMATCH; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 22019821: SCREENED_OUT X1: not a randomized controlled trial (record: 22019821).
 - DESCARTES NCT01516879: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IDENTIFICATION
 - OSLER-1 NCT01439880: **NO_ROW** - SCOPE_MISMATCH; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 25773607: SCREENED_OUT X3: no eligible comparator (none of ['placebo']).
 - GLAGOV NCT01813422: **NO_ROW** - GENUINELY_UNAVAILABLE_OPEN; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 27264224: SCREENED_VIA_OTHER_REPORT
-- FOURIER NCT01764633: **PRIMARY** - our branch extraction PMID 28304224 (ctgov_results); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- FOURIER NCT01764633: **PRIMARY** - our held-source pool PMID 28304224 (ctgov_results); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 
 ## probiotics-aad-prevention (comparator PMID 34385227)
 
-- Allen et al41: **PRIMARY** - our branch extraction PMID 23932219 (abstract); vs comparator row: AGREE
-- Beausoleil et al42: **PRIMARY** - our branch extraction PMID 18026577 (aact_verified); vs comparator row: AGREE
+- Allen et al41: **PRIMARY** - our held-source pool PMID 23932219 (abstract); vs comparator row: AGREE
+- Beausoleil et al42: **PRIMARY** - our held-source pool PMID 18026577 (aact_verified); vs comparator row: AGREE
 - Beniwal et al43: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Bravo et al44: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Can et al35: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Chatterjee et al45: **PRIMARY** - our branch extraction PMID 24772726 (abstract); vs comparator row: AGREE
+- Chatterjee et al45: **PRIMARY** - our held-source pool PMID 24772726 (abstract); vs comparator row: AGREE
 - Cimperman et al46: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Cindoruk et al47: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 17669103: SCREENED_OUT X2: population not on-topic: title/conditions/abstract do not mention any of ['antibiotic-associated diarr*', 'antibiotic associated diarr*', 'a
 - de Vrese et al33: **NO_ROW** - GENUINELY_UNAVAILABLE_OPEN; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
@@ -397,7 +397,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Gao et al28: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Gotz et al51: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Helps et al52: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
-- Hickson et al53: **PRIMARY** - our branch extraction PMID 17604300 (abstract); vs comparator row: AGREE
+- Hickson et al53: **PRIMARY** - our held-source pool PMID 17604300 (abstract); vs comparator row: AGREE
 - Horosheva et al23: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Iamharit et al54: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Imase et al29: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 18402597: SCREENED_OUT X3: the randomised intervention is not ['probiotic', 'Lactobacillus', 'Lactobacilli', 'Lacticaseibacillus', 'Limosilactobacillus', 'Saccharomyce
@@ -405,19 +405,19 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Koning et al56: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Lewis et al57: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Lönnermark et al58: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- McFarland et al59: **PRIMARY** - our branch extraction PMID 7872284 (abstract); vs comparator row: AGREE
+- McFarland et al59: **PRIMARY** - our held-source pool PMID 7872284 (abstract); vs comparator row: AGREE
 - Ouwehand et al30: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Pirker et al60: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - Plomer et al61: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 32897519: SCREENED_OUT X2: population not on-topic: title/conditions/abstract do not mention any of ['antibiotic-associated diarr*', 'antibiotic associated diarr*', 'a
 - Plummer et al62: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 15179608: SCREENED_OUT X2: population not on-topic: title/conditions/abstract do not mention any of ['antibiotic-associated diarr*', 'antibiotic associated diarr*', 'a
 - Pozzoni et al63: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: declared absent (population mismatch, cross-family definition audit): the stored 16/106 vs 13/98 are the 204 patients who COMPLETED follow-up, not the 275 randomized (~26% excluded). An ITT/randomized-denominator AAD result is not in the ab
-- Rajkumar et al64: **PRIMARY** - our branch extraction PMID 32035998 (abstract); vs comparator row: AGREE
+- Rajkumar et al64: **PRIMARY** - our held-source pool PMID 32035998 (abstract); vs comparator row: AGREE
 - Safdar et al65: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: round-trip mismatch: extracted counts 4/23 vs 6/16 imply 0.464 but the source reports RR 1.63 — counts likely belong to a different outcome; refused
 - Sampalis et al66: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Shimbo et al68: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 16437727: SCREENED_OUT X2: population not on-topic: title/conditions/abstract do not mention any of ['antibiotic-associated diarr*', 'antibiotic associated diarr*', 'a
-- Song et al69: **PRIMARY** - our branch extraction PMID 21165295 (abstract); vs comparator row: DISAGREE
+- Song et al69: **PRIMARY** - our held-source pool PMID 21165295 (abstract); vs comparator row: DISAGREE
 - Surawicz et al70: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 2494098: SCREENED_OUT X1: not a randomized controlled trial (record: 2494098).
-- Thomas et al71: **PRIMARY** - our branch extraction PMID 11560298 (abstract); vs comparator row: AGREE
+- Thomas et al71: **PRIMARY** - our held-source pool PMID 11560298 (abstract); vs comparator row: AGREE
 - Velasco et al27: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Wenus et al72: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: declared absent (population mismatch, cross-family definition audit): the stored RR 0.21 is a PER-PROTOCOL analysis of the 63 patients who 'completed the study according to the protocol', not the 87 randomized (46 vs 41). An ITT/randomized-
 - Wong et al73: **UNVERIFIED** - only the comparator's own row (never counts: anti-circularity); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
@@ -435,7 +435,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Cohn, 2001: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 11759645: SCREENED_OUT X3: the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin 
 - Granger, 2003: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 13678870: SCREENED_OUT X3: the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin 
 - McMurray, 2003: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 13678869: SCREENED_OUT X3: the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin 
-- McMurray, 2014: **PRIMARY** - our branch extraction PMID 25176015 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- McMurray, 2014: **PRIMARY** - our held-source pool PMID 25176015 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Tsutsui, 2021: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 33731544: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 33731544).
 - Yusuf, 2003: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 13678871: SCREENED_OUT X3: the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin 
 - Cleland, 2006: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 16963472: SCREENED_OUT X3: the randomised intervention is not ['sacubitril', 'LCZ696', 'sacubitril/valsartan', 'sacubitril-valsartan', 'ARNI', 'angiotensin-neprilysin 
@@ -452,14 +452,14 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 ## semaglutide-obesity-mace (comparator PMID 39345822)
 
 - O‘Neil et al. 28 NCT02453711: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 30122305: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
-- STEP 1 29: **PRIMARY** - our branch extraction PMID 37952131 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- STEP 1 29: **PRIMARY** - our held-source pool PMID 37952131 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
 - STEP 3 30: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 33625476: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
 - STEP 4 35: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 33755728: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
 - STEP 5 34: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 36216945: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
 - STEP 6 32: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 35131037: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
 - STEP 8 31: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - OASIS 1 36: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 37385278: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
-- SELECT 18: **PRIMARY** - our branch extraction PMID 37952131 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- SELECT 18: **PRIMARY** - our held-source pool PMID 37952131 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
 - STEP 7 33: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 38330988: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: STEP 6 32 -- screen X2 (population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia); protocol rule include.population_any = ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (none met); registered eligibility: RCT; adults with overweight/obesity and established cardiovascular disease without diabetes by title/registry conditions; semaglutide vs placebo; double-blind placebo-controlled. P/I/C/design only.
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: STEP 7 33 -- screen X2 (population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without dia); protocol rule include.population_any = ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (none met); registered eligibility: RCT; adults with overweight/obesity and established cardiovascular disease without diabetes by title/registry conditions; semaglutide vs placebo; double-blind placebo-controlled. P/I/C/design only.
@@ -469,12 +469,12 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 30415602: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
 - Empagliflozin after Acute Myocardial Infarction.: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 38587237: SCREENED_OUT X2: wrong population: title/conditions mention 'myocardial infarction'.
 - Canagliflozin and Cardiovascular and Renal Events in Type 2 : **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 28605608: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
-- Empagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our branch extraction PMID 36331190 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Empagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 36331190 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Dapagliflozin in Myocardial Infarction without Diabetes or H: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 38320489: SCREENED_OUT X2: wrong population: title/conditions mention 'myocardial infarction'.
 - Dapagliflozin in Heart Failure with Mildly Reduced or Preser: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 36027570: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
-- Dapagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our branch extraction PMID 32970396 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Dapagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 32970396 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Effect of Empagliflozin on the Clinical Stability of Patient: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 33081531: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
-- Canagliflozin and Renal Outcomes in Type 2 Diabetes and Neph: **PRIMARY** - our branch extraction PMID 30990260 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Canagliflozin and Renal Outcomes in Type 2 Diabetes and Neph: **PRIMARY** - our held-source pool PMID 30990260 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Empagliflozin, Cardiovascular Outcomes, and Mortality in Typ: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 26378978: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
 - Empagliflozin in Heart Failure with a Preserved Ejection Fra: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 34449189: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
 - Dapagliflozin in Patients with Heart Failure and Reduced Eje: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 31535829: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
@@ -491,11 +491,11 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 ## sglt2-primary-prevention-hf (comparator PMID 33519713)
 
-- Zinman (8): **PRIMARY** - our branch extraction PMID 26378978 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Zinman (8): **PRIMARY** - our held-source pool PMID 26378978 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Radholm (9): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 29526832: SCREENED_VIA_OTHER_REPORT
 - McMurray (10): **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 31535829: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure and reduced ejection fraction'.
-- Cannon (11): **PRIMARY** - our branch extraction PMID 32966714 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Wiviott (17): **PRIMARY** - our branch extraction PMID 30415602 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Cannon (11): **PRIMARY** - our held-source pool PMID 32966714 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Wiviott (17): **PRIMARY** - our held-source pool PMID 30415602 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Kosiborod (18): **PRIMARY** - our held-source pool PMID 28284707 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Isreb (19): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 31509682: SCREENED_OUT X1: not a randomized controlled trial (record: 31509682).
 - Packer (20): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 32865377: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiova
@@ -507,7 +507,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 - RALES1999: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - EPHESUS2003: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
-- EMPHASIS-HF2011: **PRIMARY** - our branch extraction PMID 21073363 (abstract); vs comparator row: AGREE
+- EMPHASIS-HF2011: **PRIMARY** - our held-source pool PMID 21073363 (abstract); vs comparator row: AGREE
 - Aldo-DHF2013: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - TOPCAT2014: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - ARTS-HF2013: **NO_ROW** - SCOPE_MISMATCH; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 25678098: SCREENED_OUT X1: not a randomized controlled trial (record: 25678098).
@@ -560,7 +560,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 ## ticagrelor-vs-clopidogrel-acs (comparator PMID 28545073)
 
-- 1 [21]: **PRIMARY** - our branch extraction PMID 19717846 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- 1 [21]: **PRIMARY** - our held-source pool PMID 19717846 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
 - 2 [22]: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 24154787: SCREENED_OUT X3: no eligible comparator (none of ['clopidogrel']).
 - 3 [23]: **NO_ROW** - SCREEN_OR_ELIGIBILITY (secondary refused: ['MEASURE_OR_IS_NOT_ESTIMAND_HR', 'OUTCOME_NOT_THE_TOPICS', 'TIMEPOINT_NOT_STATED_BY_META']); vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 24482383: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 24482383).
 - 4 [1]: **NO_ROW** - SCOPE_MISMATCH; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 23491524: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['acute coronary syndrome', 'acute coronary syndromes', 'ACS', 'non-ST-segme
@@ -568,7 +568,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - 6 [25]: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 24291273: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 24291273).
 - 7 [26]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - 8 [27]: **NO_ROW** - ACQUISITION (secondary refused: ['MEASURE_OR_IS_NOT_ESTIMAND_HR', 'OUTCOME_NOT_THE_TOPICS', 'TIMEPOINT_NOT_STATED_BY_META']); vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- 9 [28]: **PRIMARY** - our branch extraction PMID 19717846 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- 9 [28]: **PRIMARY** - our held-source pool PMID 19717846 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
 - 10 [29]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - 11 [30]: **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: UNRESOLVED_IDENTITY
 - 12 [31]: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 25085573: SCREENED_OUT X1: not a randomized controlled trial (record: 25085573).
@@ -591,7 +591,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 ## tranexamic-acid-pph (comparator PMID 39461793)
 
-- WOMAN1: **PRIMARY** - our branch extraction PMID 28456509 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- WOMAN1: **PRIMARY** - our held-source pool PMID 28456509 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - WOMAN-210: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 39461792: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['post-partum haemorrhage', 'postpartum haemorrhage', 'post-partum hemorrhag
 - TRAAP11: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 30134136: SCREENED_OUT X2: wrong population: title/conditions mention 'prevention'.
 - TRAAP-212: **NO_ROW** - SCREEN_OR_ELIGIBILITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: IN SCREEN PMID 33913639: SCREENED_OUT X2: wrong population: title/conditions mention 'prevention'.

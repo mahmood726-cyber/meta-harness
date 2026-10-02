@@ -29,11 +29,29 @@ def test_the_report_is_the_earliest_result_reference_not_the_self_naming_one(tmp
 
 def test_author_year_uses_only_the_studys_own_publications(tmp_path):
     d = _snap(tmp_path,
-              "1|NCT01589367|15155550|BACKGROUND|Baillargeon JP, et al. Metformin therapy in PCOS. 2004.\n"
-              "2|NCT00068861|17287476|RESULT|Legro RS, et al. Clomiphene, metformin, or both for infertility. 2007.\n",
+              "1|NCT01589367|15155550|BACKGROUND|Baillargeon JP, et al. Metformin therapy in PCOS. Fertil Steril. "
+              "2004 Oct;82(4):893-902.\n"
+              "2|NCT00068861|17287476|RESULT|Legro RS, et al. Clomiphene, metformin, or both for infertility. "
+              "N Engl J Med. 2007 Feb 8;356(6):551-66.\n",
               studies="NCT01589367|INTERVENTIONAL||Letrozole plus metformin|x\nNCT00068861|INTERVENTIONAL||PPCOS|x\n",
               interventions="1|NCT01589367|DRUG|metformin|\n2|NCT00068861|DRUG|metformin|\n")
     r = ic.resolve([("metformin-pcos-ovulation", "Baillargeon 2004", ["metformin"]),
                     ("metformin-pcos-ovulation", "Legro 2007", ["metformin"])], d)
     assert r[("metformin-pcos-ovulation", "Baillargeon 2004")]["state"] == "NOT_FOUND"
     assert r[("metformin-pcos-ovulation", "Legro 2007")]["nct"] == "NCT00068861"
+
+
+def test_author_year_reads_the_publication_year_not_a_year_in_the_title(tmp_path):
+    d = _snap(tmp_path, "1|NCT9|111|RESULT|Smith J. Metformin in 2007 patients. Journal. 2015 May;10(1):1-9.\n",
+              studies="NCT9|INTERVENTIONAL||Metformin trial|x\n", interventions="1|NCT9|DRUG|metformin|\n")
+    r = ic.resolve([("t", "Smith 2007", ["metformin"])], d)
+    assert r[("t", "Smith 2007")]["state"] == "NOT_FOUND"
+    assert ic.resolve([("t", "Smith 2015", ["metformin"])], d)[("t", "Smith 2015")]["nct"] == "NCT9"
+
+
+def test_an_acronym_and_an_author_year_that_disagree_are_ambiguous(tmp_path):
+    d = _snap(tmp_path, "1|NCT1|111|RESULT|Smith J. A trial. J Med. 2007 Jan;1:1.\n",
+              studies="NCT1|INTERVENTIONAL||Metformin A|x\nNCT2|INTERVENTIONAL|SMART|Metformin B|x\n",
+              interventions="1|NCT1|DRUG|metformin|\n2|NCT2|DRUG|metformin|\n")
+    r = ic.resolve([("t", "Smith 2007 (SMART)", ["metformin"])], d)[("t", "Smith 2007 (SMART)")]
+    assert r["state"] == "AMBIGUOUS" and r["basis"] == "ACRONYM_VS_AUTHOR_YEAR_CONFLICT"
