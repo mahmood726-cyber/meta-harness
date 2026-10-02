@@ -4,6 +4,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | glp1-ra-mace-t2d | 7 of 7 eligible (comparator N=8) | 1: ELIXA (ESTIMAND_DIFFERENCE) | 0 | 8 | 0 | 0 | 0 | {'AGREE': 6, 'DISAGREE': 1} | HR 0.85 (0.80 to 0.90) vs 0.85 (0.80 to 0.90), k=7, DL: **AGREE** | HR 0.86 (0.81 to 0.91) k=8 | HR 0.86 (0.79 to 0.94) |
 | semaglutide-obesity-weight | 2 of 2 eligible (comparator N=4) | 2: O’Neil, 2018 (PROTOCOL_SCOPE_DIFFERENCE), Rubino, 2021 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 2 | 0 | 0 | 2 | {'AGREE': 2} | MD -11.47 (-13.52 to -9.43) vs -11.49 (-13.58 to -9.41), k=2, DL: **AGREE** | MD -11.47 (no CI) k=2 | MD -11.85 (-12.81 to -10.90) |
+| sglt2-hfref-hosp-cvdeath | 2 of 2 eligible (comparator N=4) | 2: EMPEROR‐Preserved (n = 5988) (PROTOCOL_SCOPE_DIFFERENCE), SOLOIST‐WHF (n = 1222) (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 2 | 0 | 0 | 2 | {'AGREE': 1, 'READERS_DIFFER:result=DISAGREE/result_reader2=AGREE': 1} | HR 0.75 (0.68 to 0.83) vs 0.75 (0.68 to 0.83), k=2, FE: **AGREE** | HR 0.75 (no CI) k=2 | HR 0.74 (0.68 to 0.81) |
 | tocilizumab-covid19-mortality | 4 of 19 eligible (comparator N=19) | 0:  | 15 | 2 | 2 | 3 | 12 | {'AGREE': 4} | OR 1.19 (0.83 to 1.71) vs 1.19 (0.83 to 1.71), k=4, FE: **AGREE** | OR 1.19 (0.83 to 1.71) k=4 | OR 0.83 (0.74 to 0.92) |
 
 ## glp1-ra-mace-t2d (comparator PMID 34526024)
@@ -29,6 +30,15 @@
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: O’Neil, 2018 -- screen X2 (wrong population: title/conditions mention 'liraglutide'.); protocol rule include.population_none[20] = 'liraglutide'; registered eligibility: Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.
 - NAMED PROTOCOL_SCOPE_DIFFERENCE: Rubino, 2021 -- screen X2 (wrong population: title/conditions mention 'maintenance'.); protocol rule include.population_none[7] = 'maintenance'; registered eligibility: Double-blind placebo-controlled RCTs in adults with overweight/obesity without diabetes where once-weekly semaglutide 2.4 mg is compared with placebo (both plus lifestyle). Eligibility is P/I/C/design only. Weight-loss-maintenance/withdrawal designs and diabetes populations are excluded (different estimand/population); a single CT.gov estimand (in-trial/treatment-policy) is pooled consistently.
 - COMPARATOR FINDING ROW_CI_NOT_FROM_ARMS: Rubino, 2021 -- comparator row {'effect': '-12.40', 'lower': '-14.75', 'upper': '-10.05', 'events_t': None, 'n_t': 535, 'events_c': None, 'n_c': 268, 'measure': 'MD'}; {'lower': ['-14.75', -13.75], 'upper': ['-10.05', -11.05]}
+
+## sglt2-hfref-hosp-cvdeath (comparator PMID 35112512)
+
+- DAPA‐HF (n = 4744): **PRIMARY** - our branch extraction PMID 31535829 (ctgov_results); vs comparator row: AGREE
+- EMPEROR‐Preserved (n = 5988): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 34449189: SCREENED_OUT X2: wrong population: title/conditions mention 'preserved ejection fraction'.
+- EMPEROR‐Reduced (n = 3730): **PRIMARY** - our branch extraction PMID 32865377 (abstract); vs comparator row: READERS_DIFFER:result=DISAGREE/result_reader2=AGREE
+- SOLOIST‐WHF (n = 1222): **NO_ROW** - UNRESOLVED_IDENTITY; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 33200892: SCREENED_OUT X3: the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',
+- NAMED PROTOCOL_SCOPE_DIFFERENCE: EMPEROR‐Preserved (n = 5988) -- screen X2 (wrong population: title/conditions mention 'preserved ejection fraction'.); protocol rule include.population_none[0] = 'preserved ejection fraction'; registered eligibility: None
+- NAMED PROTOCOL_SCOPE_DIFFERENCE: SOLOIST‐WHF (n = 1222) -- screen X3 (the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',); protocol rule include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin']; registered eligibility: None
 
 ## tocilizumab-covid19-mortality (comparator PMID 34228774)
 
