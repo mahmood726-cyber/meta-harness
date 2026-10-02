@@ -5,11 +5,32 @@
  "N_comparator_trials": 7,
  "k_matched": 6,
  "k_in_our_pool": 6,
- "N_eligible": 7,
- "named_differences": [],
- "open_gaps": [
-  "Management and outcomes of major bleeding during treatment w"
+ "N_eligible": 6,
+ "named_differences": [
+  {
+   "trial": "Management and outcomes of major bleeding during treatment w",
+   "kind": "NOT_AN_INCLUDED_TRIAL",
+   "rule_id": "COMPARATOR_STATED_K",
+   "span": {
+    "field": "abstract",
+    "text": "METHODS AND RESULTS: Two independent investigators reviewed bleeding reports from 1034 individuals with 1121 major bleeds enrolled in 5 phase III trials comparing dabigatran with warfarin in 27 419 patients treated for 6 to 36 months.",
+    "match": "enrolled in 5 phase III trials"
+   },
+   "gate": "COMPARATOR_STATED_K: comparator states 6 trials == 6 matched; unit pools several trials (harness/comparator_membership.py)",
+   "comparator_span": {
+    "field": "abstract",
+    "text": "In the last 4 years, 6 phase 3 trials including a total of 27,023 patients with venous thromboembolism (VTE) compared a direct oral anticoagulant (DOAC) with vitamin K antagonists (VKAs).",
+    "match": "6 phase 3 trials including a total of 27,023 patients"
+   },
+   "comparator_stated_k": 6,
+   "comparator_stated_patients": 27023,
+   "basis": "the comparator states 6 trials; 6 are matched; this reference seed is itself a pooled analysis of several trials, not one of them",
+   "pmid": "24081972",
+   "span_source": "PMID 24081972 record abstract (held: cache/doac-vte-recurrence/records.json or outputs/k_gap/member_records.json)",
+   "comparator_span_source": "PMID 24963045 record abstract (held: cache/doac-vte-recurrence/records.json or outputs/k_gap/member_records.json)"
+  }
  ],
+ "open_gaps": [],
  "k_matched_of_comparator_N": "6 of 7",
  "comparator_set": {
   "state": "REFERENCE_SEED_CANDIDATES",
@@ -27,10 +48,8 @@
    }
   ]
  },
- "blockers": {
-  "SCREENED_OUT_UNAUDITED:X1": 1
- },
- "top_blocker": "SCREENED_OUT_UNAUDITED:X1",
+ "blockers": {},
+ "top_blocker": null,
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 6,
@@ -236,17 +255,37 @@
     "reason": "not a randomized controlled trial (record: 24081972).",
     "pmid": "24081972"
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X1"
+   "scope_difference": {
+    "kind": "NOT_AN_INCLUDED_TRIAL",
+    "rule_id": "COMPARATOR_STATED_K",
+    "span": {
+     "field": "abstract",
+     "text": "METHODS AND RESULTS: Two independent investigators reviewed bleeding reports from 1034 individuals with 1121 major bleeds enrolled in 5 phase III trials comparing dabigatran with warfarin in 27 419 patients treated for 6 to 36 months.",
+     "match": "enrolled in 5 phase III trials"
+    },
+    "gate": "COMPARATOR_STATED_K: comparator states 6 trials == 6 matched; unit pools several trials (harness/comparator_membership.py)",
+    "comparator_span": {
+     "field": "abstract",
+     "text": "In the last 4 years, 6 phase 3 trials including a total of 27,023 patients with venous thromboembolism (VTE) compared a direct oral anticoagulant (DOAC) with vitamin K antagonists (VKAs).",
+     "match": "6 phase 3 trials including a total of 27,023 patients"
+    },
+    "comparator_stated_k": 6,
+    "comparator_stated_patients": 27023,
+    "basis": "the comparator states 6 trials; 6 are matched; this reference seed is itself a pooled analysis of several trials, not one of them",
+    "pmid": "24081972",
+    "span_source": "PMID 24081972 record abstract (held: cache/doac-vte-recurrence/records.json or outputs/k_gap/member_records.json)",
+    "comparator_span_source": "PMID 24963045 record abstract (held: cache/doac-vte-recurrence/records.json or outputs/k_gap/member_records.json)"
+   },
+   "blocker": null
   }
  ],
  "per_trial_agreement": {
   "NOT_COMPARABLE:NO_COMPARATOR_ROW": 6
  },
  "same_trials": {
-  "state": "FEWER_THAN_2_SHARED_TRIALS",
-  "k": 0,
-  "method_basis": "comparator positive control not reproduced: PM default"
+  "state": "WHOLE_POOL_MEASURE_DIFFERS",
+  "ours": "HR",
+  "theirs": "RR"
  },
  "ours": {
   "k": 6,
@@ -278,6 +317,11 @@
    "rules": 3
   }
  },
+ "same_trials_per_trial": {
+  "state": "FEWER_THAN_2_SHARED_TRIALS",
+  "k": 0,
+  "method_basis": "comparator positive control not reproduced: PM default"
+ },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
   "held_records": 0,
@@ -289,20 +333,23 @@
  "g1_status": {
   "state": "NOT_YET",
   "criteria": {
-   "ALL_ELIGIBLE_MATCHED": false,
+   "ALL_ELIGIBLE_MATCHED": true,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": false,
    "DIVERGENCES_NAMED": true
   },
   "unmet": [
-   "ALL_ELIGIBLE_MATCHED",
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 7,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "NOT_AN_INCLUDED_TRIAL": 1
+   },
+   "trials": [
+    "Management and outcomes of major bleeding during treatment w [COMPARATOR_STATED_K]"
+   ]
   }
  }
 }

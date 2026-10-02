@@ -49,6 +49,9 @@ def test_copps2_both_numbers_are_in_the_report_and_ours_is_the_registered_estima
 def test_zarpelon_comparator_row_is_reproduced_from_our_held_counts():
     t = next(t for t in _res()["trials"] if t["trial"] == "Zarpelon [20]")
     assert t["comparator_row_reproduced_from_counts"] is True
+    if not t.get("fulltext_span"):
+        import pytest
+        pytest.skip("Zarpelon's PMC full-text body (gitignored) is not held in this clone: its stating span is unverifiable here")
     assert t["stating_span"].startswith("Methods Study Design and Participants This is a prospective, randomized, open")
 
 
