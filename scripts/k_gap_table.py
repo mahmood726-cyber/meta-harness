@@ -188,6 +188,61 @@ def numbered_citations(text):
     return out
 
 
+_LF_STOP = {"of", "and", "the", "for", "in", "with", "on", "to", "a", "an", "vs", "versus", "by", "after"}
+
+
+def acronym_long_form(acr, text, max_skips=4):
+    """Does `text` spell out acronym `acr` (Schwartz-Hearst style)? The acronym's letters are consumed IN ORDER by
+    prefixes of consecutive words: the FIRST letter from the first word's initial, the LAST letters from the last
+    word; a word may contribute nothing only if it is a stopword or one of at most `max_skips` skipped content
+    words. 'RALES' <- 'Randomized ALdactone Evaluation Study'; 'EPHESUS' <- 'Eplerenone Post-Acute Myocardial
+    Infarction Heart Failure Efficacy and SUrvival Study'. Returns the matched phrase, or ''."""
+    letters = re.sub(r"[^a-z0-9]", "", (acr or "").lower())
+    if len(letters) < 4:
+        return ""
+    words = re.findall(r"[A-Za-z0-9]+", k_gap.fold_dashes(text or ""))
+    low = [w.lower() for w in words]
+
+    def match(i, j, skips):
+        # letters[i:] must be consumed starting AT word j (word j must contribute)
+        if i == len(letters):
+            return j
+        if j >= len(low):
+            return None
+        w = low[j]
+        for k in range(min(len(w), len(letters) - i), 0, -1):
+            if w[:k] == letters[i:i + k]:
+                end = match_next(i + k, j + 1, skips)
+                if end is not None:
+                    return end
+        return None
+
+    def match_next(i, j, skips):
+        if i == len(letters):
+            return j
+        for jj in range(j, len(low)):
+            r = match(i, jj, skips + sum(1 for x in low[j:jj] if x not in _LF_STOP))
+            if r is not None and skips + sum(1 for x in low[j:jj] if x not in _LF_STOP) <= max_skips:
+                return r
+            if skips + sum(1 for x in low[j:jj + 1] if x not in _LF_STOP) > max_skips:
+                return None
+        return None
+    anchor = {"study", "trial", "investigators", "group", "collaborators", "collaborative"}
+    for s in range(len(low)):
+        if low[s][0] != letters[0]:
+            continue
+        end = match(0, s, 0)
+        # a long form NAMES A TRIAL or its investigators: the phrase ends in, or is followed within two words by,
+        # study / trial / investigators / group / collaborators ('...Evaluation Study Investigators'). A loose phrase
+        # inside a sentence ('COlchicine in addition ... PEricarditis') is not a name.
+        # ...and is a LONG form: at least 3 words, not the acronym's own tokens ('Aldo DHF' is not a long form of
+        # 'Aldo-DHF' -- that is chain 3's evidence, whose ambiguity must stand)
+        if end is not None and end - s >= 3 and "".join(low[s:end]) != letters and \
+                (low[end - 1] in anchor or any(w in anchor for w in low[end:end + 2])):
+            return " ".join(words[s:end])
+    return ""
+
+
 def subgroup_row(u):
     """A GROUP DESCRIPTION with a group size and no study identity -- 'Statin used group in QRISK 10-19% (n = 6438)'
     under the Gitsels 2016 study row -- is a sub-row of the study above it, not a trial. Requires a group word AND an
@@ -382,6 +437,20 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             basis.append(f"{how}_ref:{hits[0]['rid']}")
         elif len(hits) > 1:
             basis.append(f"{how}_ref_ambiguous:{len(hits)}")
+    # (chain 1c) 'Surname [I] et al' with NO year: the reference whose FIRST author is that surname -- exactly one in
+    # the whole list (whitespace folded: the PDF text splits 'Finke lstein'). Two such references: ambiguous.
+    elif not kept and parsed and not u.get("distrust_links") and u.get("author") and not u.get("year") and \
+            re.search(r"\bet\s+al\b", u.get("label") or ""):
+        def fold2(x):
+            import unicodedata
+            return re.sub(r"\s+", "", "".join(c for c in unicodedata.normalize("NFKD", x or "")
+                                                if not unicodedata.combining(c)).lower())
+        hits = [r for r in parsed["refs"].values() if fold2(r.get("first_author")) == fold2(u["author"])]
+        if len(hits) == 1:
+            kept.append(dict(hits[0], basis=None))
+            basis.append(f"author_only_ref:{hits[0]['rid']}")
+        elif len(hits) > 1:
+            basis.append(f"author_only_ref_ambiguous:{len(hits)}")
     # (chain 2) a cited reference with NO PMID: its DOI or its exact title, CONFIRMED in PubMed by title + first author
     # + year (scripts/ref_title_pmid_lookup.py, cached with retrieval time); never a guess
     for i, c in enumerate(kept):
@@ -490,6 +559,35 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 break
             if len(refs) > 1:
                 basis.append(f"acronym_in_comparator_refs_ambiguous:{a}:{len(refs)}")
+    # (chain 3b) the acronym's LONG FORM spelled out by exactly one comparator reference -- in its text, or in the
+    # PubMed collective-author name of its PMID (outputs/k_gap/pubmed_collective.json): 'RALES' <- 'Randomized
+    # aldactone evaluation study investigators' (ref text); 'EPHESUS' <- 'Eplerenone Post-Acute Myocardial Infarction
+    # Heart Failure Efficacy and Survival Study Investigators' (collective author only). Year-checked; unique or nothing.
+    if not ncts and not pmids and parsed and u["acronyms"]:
+        for a in u["acronyms"]:
+            if any(b.startswith(f"acronym_in_comparator_refs_ambiguous:{a}:") for b in basis):
+                continue                              # two references NAME it: no long form overrides that
+            refs = []
+            for r in parsed["refs"].values():
+                if u.get("year") and r.get("year") and r["year"] != u["year"]:
+                    continue
+                coll = (COLLECTIVE.get(r.get("pmid") or "") or {}).get("collective") or []
+                lf = acronym_long_form(a, r.get("text") or "") or next(
+                    (x for x in (acronym_long_form(a, c) for c in coll) if x), "")
+                if lf:
+                    refs.append((r, lf))
+            if len(refs) == 1 and refs[0][0].get("pmid"):
+                r, lf = refs[0]
+                pmids.add(r["pmid"])
+                pmid_resolved = True
+                basis.append(f"acronym_long_form_in_comparator_ref:{a}:{r['rid']}:{lf[:60]}")
+                only = sorted({n for n, _t in idx["pmid_nct"].get(r["pmid"], [])
+                               if registered_before(n, years.get(r["pmid"]), idx)})
+                if len(only) == 1:
+                    ncts.add(only[0])
+                break
+            if len(refs) > 1:
+                basis.append(f"acronym_long_form_ambiguous:{a}:{len(refs)}")
     # (chain 4, last resort) a trial of ANOTHER agent: the agent-restricted acronym steps refuse it by design (a
     # finerenone trial in a spironolactone review), so nothing typed it. An acronym of >= 5 characters that names
     # exactly ONE registration in ALL of AACT (by acronym, else by brief title), registered by the label's year,
@@ -850,6 +948,8 @@ YEARS: dict = {}
 PUBNCT: dict = {}
 # comparator references with no PMID, looked up by exact title + first author + year (outputs/k_gap/ref_title_pmid.json)
 REF_PMID: dict = {}
+# PubMed collective-author names of comparator reference PMIDs (scripts/pubmed_collective_lookup.py)
+COLLECTIVE: dict = {}
 
 
 def _ref_key(ref) -> str:
@@ -1268,6 +1368,8 @@ def main(argv=None):
     TITLES.update(pubmed_titles_of(cited, offline))
     SELF_REG.update(self_registration_sentences(glob.glob(os.path.join(ROOT, "cache", "*", "records.json"))))
     REF_PMID.update(load_ref_pmid())
+    cp_ = os.path.join(OUT, "pubmed_collective.json")
+    COLLECTIVE.update(_j(cp_) if os.path.exists(cp_) else {})
     store.ensure_ncts({n for v in SELF_REG.values() for n in v}, log=log)
     store.ensure_ncts({n for n in PUBNCT.values() if n}, log=log)
     store.ensure_registration_dates({n for p in cited for n, _t in store.d["pmid"].get(p, [])}, log=log)

@@ -291,3 +291,56 @@ def test_no_offset_is_learned_from_a_table_that_does_not_prove_one():
     mixed = [dict(unit(f'{NAMES[i - 1]} 2010 [{i}]', layout='row', table='T1'), distrust_links='s') for i in range(1, 4)] + units[3:]
     out = kt.learn_marker_offsets(mixed, p)
     assert out['T1']['offset'] is None and not any('marker_offset' in u for u in mixed)
+
+
+# ---------------------------------------------------------------- long forms (RALES, EPHESUS)
+def test_long_form_matcher_names_trials_only():
+    assert kt.acronym_long_form('RALES', 'heart failure. Randomized aldactone evaluation study investigators. N Engl J Med')
+    assert kt.acronym_long_form('EPHESUS', 'Eplerenone Post-Acute Myocardial Infarction Heart Failure Efficacy and '
+                                           'Survival Study Investigators')
+    # a loose phrase inside a sentence is not a trial's name (no study/trial/investigators anchor)
+    assert not kt.acronym_long_form('COPE', 'Colchicine in addition to conventional therapy for acute pericarditis: results')
+    assert not kt.acronym_long_form('RALES', 'Eplerenone, a selective aldosterone blocker, in patients with left '
+                                             'ventricular dysfunction after myocardial infarction.')
+    assert not kt.acronym_long_form('ASCEND', 'A Study of Cardiovascular Events in Diabetes')
+
+
+def test_long_form_step_text_and_collective_author(monkeypatch):
+    rales = {'rid': 'B1', 'pmid': '10471456', 'year': '1999', 'text': 'Pitt B. The effect of spironolactone. Randomized '
+             'aldactone evaluation study investigators. N Engl J Med. (1999)'}
+    ephesus = {'rid': 'B14', 'pmid': '12668699', 'year': '2003', 'text': 'Pitt B. Eplerenone, a selective aldosterone '
+               'blocker, in patients with left ventricular dysfunction after myocardial infarction. (2003)'}
+    other = {'rid': 'B17', 'pmid': '24716680', 'year': '2014', 'text': 'Pitt B. Spironolactone for HFpEF. (2014)'}
+    p = parsed(rales, ephesus, other)
+    monkeypatch.setattr(kt, 'COLLECTIVE', {'12668699': {'collective': [
+        'Eplerenone Post-Acute Myocardial Infarction Heart Failure Efficacy and Survival Study Investigators']}})
+    r = kt.resolve_unit(unit('RALES1999', layout='row'), p, IDX, None)
+    assert r['pmids'] == ['10471456'] and any(b.startswith('acronym_long_form_in_comparator_ref:RALES:B1') for b in r['basis'])
+    r = kt.resolve_unit(unit('EPHESUS2003', layout='row'), p, IDX, None)
+    assert r['pmids'] == ['12668699']             # the long form is ONLY in the collective author
+    # the wrong year never matches; without the collective name EPHESUS stays unresolved and says so
+    assert kt.resolve_unit(unit('RALES2005', layout='row'), p, IDX, None)['pmids'] == []
+    monkeypatch.setattr(kt, 'COLLECTIVE', {})
+    r = kt.resolve_unit(unit('EPHESUS2003', layout='row'), p, IDX, None)
+    assert r['pmids'] == [] and any(b.startswith('unresolved_at') for b in r['basis'])
+
+
+def test_long_form_in_two_references_is_ambiguous():
+    a = {'rid': 'A', 'pmid': '1', 'year': '', 'text': 'Randomized aldactone evaluation study investigators.'}
+    b = {'rid': 'B', 'pmid': '2', 'year': '', 'text': 'Randomized aldactone evaluation study group. Follow-up.'}
+    r = kt.resolve_unit(unit('RALES', layout='text'), parsed(a, b), IDX, None)
+    assert r['pmids'] == [] and 'acronym_long_form_ambiguous:RALES:2' in r['basis']
+
+
+def test_author_only_et_al_needs_exactly_one_first_author(monkeypatch):
+    assert k_gap.identity_tokens('Finkelstein Y et al')['author'] == 'Finkelstein'
+    assert k_gap.identity_tokens('Finkelstein')['author'] == ''         # a bare name is not an author reading
+    ref = {'rid': 'REF:10', 'label': '10', 'first_author': 'Finke lstein', 'year': '2002',
+           'title': 'Colchicine for the prevention of postpericardiotomy syndrome'}
+    other = {'rid': 'REF:6', 'label': '6', 'first_author': 'Adler', 'year': '1998', 'title': 'x'}
+    monkeypatch.setattr(kt, 'REF_PMID', {kt._ref_key(ref): {'state': 'CONFIRMED', 'pmid': '12574898'}})
+    r = kt.resolve_unit(unit('Finkelstein Y et al', layout='text'), parsed(ref, other), IDX, None)
+    assert r['pmids'] == ['12574898'] and 'author_only_ref:REF:10' in r['basis']
+    two = dict(ref, rid='REF:11', label='11')
+    r = kt.resolve_unit(unit('Finkelstein Y et al', layout='text'), parsed(ref, two), IDX, None)
+    assert r['pmids'] == [] and 'author_only_ref_ambiguous:2' in r['basis']
