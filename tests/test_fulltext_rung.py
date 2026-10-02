@@ -243,3 +243,18 @@ def test_source_hierarchy_does_not_offer_a_covariate_model_effect_as_a_candidate
           "significantly protective for S. boulardii (RR = 0.29, 95% CI = 0.08, 0.98).")
     c = source_hierarchy._effect_candidates_in_outcome(ab, ["aad", "antibiotic-associated diarr"])
     assert all(x["effect"] != 0.29 for x in c)
+
+
+def test_ctgov_rung_refuses_a_registry_composite_with_extra_components():
+    # ELIXA (NCT01147250) posts 'CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina'
+    # (406/3034 vs 399/3034) as COUNT_OF_PARTICIPANTS. The rung checked only that the title was A composite, not THE
+    # composite: a 4-point estimate would pool under a 3-point MACE label wherever the upstream target selector
+    # neither selects nor refuses. The registry title is the outcome definition, so the component gate reads it as one.
+    from harness import pipeline
+    spec = {"name": "3-point major adverse cardiovascular events"}
+    cg = {"ai": 406, "n1i": 3034, "ci": 399, "n2i": 3034, "registry_measure_type": "COUNT_OF_PARTICIPANTS",
+          "registry_title": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or "
+                            "Hospitalization for Unstable Angina"}
+    assert pipeline._ctgov_rung_admissible(dict(cg), spec) is None
+    ok = dict(cg, registry_title="Time to First Occurrence of MACE: CV Death, Non-Fatal MI or Non-Fatal Stroke")
+    assert pipeline._ctgov_rung_admissible(ok, spec) == ok
