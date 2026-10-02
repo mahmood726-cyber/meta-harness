@@ -1,24 +1,22 @@
 {
   "record_version": 1,
   "slug": "corticosteroids-covid19-mortality",
-  "utc": "2026-09-27T06:45:47Z",
+  "utc": "2026-10-02T05:01:28Z",
   "command": {
     "argv": [
-      "scripts/build_topic.py",
+      "F:\\captain3-main\\scripts\\build_topic.py",
       "corticosteroids-covid19-mortality",
       "--now",
       "2026-09-11"
     ],
     "now_argument": "2026-09-11",
-    "cwd": "C:\\mh-lanes\\evid2-v101"
+    "cwd": "F:\\captain3-main"
   },
   "tree": {
-    "generating_commit": "9eacfe09d41136a615e9fb3331b5b7b3968d124d",
-    "branch": "evid2/v101-population",
+    "generating_commit": "b41d20074a25c1709c1d48003b8eebad24267e0c",
+    "branch": "captain/incremental-rebuild",
     "tree_state": "DIRTY",
     "dirty_paths": [
-      "cache/glp1-ra-mace-t2d/families.evidence.json.gz",
-      "cache/glp1-ra-mace-t2d/families.json",
       "docs/reviews/balanced-crystalloids-vs-saline-mortality/CERTIFICATE.json",
       "docs/reviews/balanced-crystalloids-vs-saline-mortality/EXECUTION_RECORD.json",
       "docs/reviews/balanced-crystalloids-vs-saline-mortality/REPRODUCTION.json",
@@ -54,14 +52,16 @@
       "docs/reviews/corticosteroids-covid19-mortality/index.html",
       "docs/reviews/corticosteroids-covid19-mortality/manifest.json",
       "docs/reviews/corticosteroids-covid19-mortality/review.json",
-      "evidence/v101_population/LIVE_UNRESOLVED_84.json",
-      "harness/page.py",
-      "harness/population_witness.py",
-      "harness/trial_family.py",
+      "harness/pipeline.py",
       "registry/blind_map.json",
-      "tests/test_bundle.py",
-      "tests/test_bundle_verifier.py",
-      "tests/test_population_witness.py"
+      "registry/build_deps/balanced-crystalloids-vs-saline-mortality.json",
+      "registry/build_deps/colchicine-postop-af.json",
+      "registry/build_deps/colchicine-recurrent-pericarditis.json",
+      "registry/build_deps/colchicine-secondary-cv-prevention.json",
+      "registry/build_deps/corticosteroids-cap-mortality.json",
+      "scripts/incremental_rebuild.py",
+      "tests/test_build_determinism.py",
+      "tests/test_incremental_rebuild.py"
     ],
     "meaning": "paths OTHER than this build's outputs differed from the commit; the commit alone does not reproduce this build",
     "dirty_outputs_of_this_build": [
@@ -103,15 +103,15 @@
       "registry/blind_map.json"
     ],
     "dirty_other_paths": [
-      "cache/glp1-ra-mace-t2d/families.evidence.json.gz",
-      "cache/glp1-ra-mace-t2d/families.json",
-      "evidence/v101_population/LIVE_UNRESOLVED_84.json",
-      "harness/page.py",
-      "harness/population_witness.py",
-      "harness/trial_family.py",
-      "tests/test_bundle.py",
-      "tests/test_bundle_verifier.py",
-      "tests/test_population_witness.py"
+      "harness/pipeline.py",
+      "registry/build_deps/balanced-crystalloids-vs-saline-mortality.json",
+      "registry/build_deps/colchicine-postop-af.json",
+      "registry/build_deps/colchicine-recurrent-pericarditis.json",
+      "registry/build_deps/colchicine-secondary-cv-prevention.json",
+      "registry/build_deps/corticosteroids-cap-mortality.json",
+      "scripts/incremental_rebuild.py",
+      "tests/test_build_determinism.py",
+      "tests/test_incremental_rebuild.py"
     ],
     "output_path_rule": "outputs of a build run: docs/reviews/**, docs/m/**, docs/index.html, registry/blind_map.json; everything else is input or code"
   },
@@ -180,7 +180,6 @@
       "cycler==0.12.1",
       "cyclonedx-python-lib==11.7.0",
       "datahugger==0.13",
-      "dclnma==0.1.0",
       "dclnma==0.1.0",
       "debugpy==1.8.20",
       "defusedxml==0.7.1",
@@ -484,29 +483,33 @@
   "outputs": {
     "docs/reviews/corticosteroids-covid19-mortality/CERTIFICATE.json": {
       "bytes": 14762,
-      "sha256": "8b0877f003ca54ff4f7b2fbb5249975c148730c49106befd72523140a0019a01"
+      "sha256": "6b1ea7b212ba21dd4855a508be525a6d5c9094e4bd121a2d4bb88c44a9d909ba"
     },
     "docs/reviews/corticosteroids-covid19-mortality/index.html": {
       "bytes": 189179,
-      "sha256": "a0a017627dcdc566b04c0dd91cc0a4d1782a818f6307692f5f783dc60b17cb94"
+      "sha256": "53ca0727f6073f7e059b29bf1ed9988cb1691e590efe499235469ca1204e4558"
     },
     "docs/reviews/corticosteroids-covid19-mortality/manifest.json": {
       "bytes": 2093,
-      "sha256": "7c8c0be25abf103e588b1767adad9cacfd9ee0e80548864e8772777ce01605e7"
+      "sha256": "1342276efe80ae39418a6b59c127978480a88b8992bfb14ba6139c4e1832da16"
+    },
+    "docs/reviews/corticosteroids-covid19-mortality/REPLAY.md": {
+      "bytes": 3227,
+      "sha256": "1385b783de3d430998326c73586bfbdcb77d3f41273a98c27a7c015708b737c9"
     },
     "docs/reviews/corticosteroids-covid19-mortality/REPRODUCTION.json": {
       "bytes": 21238,
-      "sha256": "0f58966279a56ee6346c9bd61ce551da4428890755121f8881e4cdc64fa6b6f4"
+      "sha256": "94f1f1517c136ab3e5c4999a64a46403e6b18cb998af8f3df6e46845ab61435d"
     },
     "docs/reviews/corticosteroids-covid19-mortality/review.json": {
       "bytes": 2988269,
-      "sha256": "0649ab2ded7175d9c12f062e5689f30a009e150c13009cbd5d57b3de04e6a475"
+      "sha256": "bab02236df434dbfb9fdd0ee7a98ab2b8d5d0a29f352eaf0b9df55ab7ce26ca0"
     }
   },
   "release": {
-    "release_sha256": "0e05ce3839e84ddb5b59a45016314c1c0a1bafe74c350e3d48a1e59fa6965437",
+    "release_sha256": "ecdc8226f11ecce6e2942e9d3504d108a493b4bf496f757023fc432c7ede3f05",
     "review_sha256": "58582fa6c86d9c190fd03c9f70c2d44bf1b2f7b4d67f39ddebc4931080c169a4",
-    "html_sha256": "a0a017627dcdc566b04c0dd91cc0a4d1782a818f6307692f5f783dc60b17cb94",
+    "html_sha256": "53ca0727f6073f7e059b29bf1ed9988cb1691e590efe499235469ca1204e4558",
     "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
     "meaning": "the certificate this record accompanies; the certificate cannot name this record (it is computed first), so the link runs from the record to the certificate and from the bundle's review_files digest to this record"
   },
