@@ -23,7 +23,7 @@ def review_fixture(root=ROOT):
 
 
 def test_missing_held_file_binds_excerpt_and_never_pools(tmp_path):
-    rels = [OUTPUT, 'docs/recovery_maps.json', f'cache/{SLUG}/records.json']
+    rels = [OUTPUT, rb.FIGURE_BINDING, 'docs/recovery_maps.json', f'cache/{SLUG}/records.json']
     rels += [p.relative_to(ROOT).as_posix() for p in (ROOT / 'cache' / SLUG).glob('family_registry*')]
     for rel in rels:
         dest = tmp_path / rel
@@ -37,7 +37,7 @@ def test_missing_held_file_binds_excerpt_and_never_pools(tmp_path):
     assert rows
     for binding in rows:
         assert (binding['state'], binding['binding'], binding['denominator'], binding['numerator']) == (
-            'COUNTS_RECOVERED', 'PARTIAL', 'BOUND', 'RELAYED')
+            'CROSS_PROVIDER_VERIFIED', 'CROSS_PROVIDER_VERIFIED', 'CROSS_PROVIDER_VERIFIED', 'CROSS_PROVIDER_VERIFIED')
         assert binding['evidence']['mode'] == 'COMMITTED_EXCERPT'
         assert binding['evidence']['parent_bytes_verified'] is False
         assert binding['evidence']['declared_parent_sha256'] == rx.SHA256
@@ -46,7 +46,7 @@ def test_missing_held_file_binds_excerpt_and_never_pools(tmp_path):
             rb.require_poolable(dict(binding, poolable=True, state='ANALYSIS_READY'))
     assert not review['outcomes'][0]['trials']
     assert review['outcomes'][0]['result'] == numeric_before
-    assert all(r['result_status']['state'] == 'COUNTS_RECOVERED'
+    assert all(r['result_status']['state'] == 'CROSS_PROVIDER_VERIFIED'
                for r in review['outcomes'][0]['declared_absent_trials'])
 
 
@@ -133,7 +133,7 @@ def test_recovery_display_and_out_of_scope_routes_unchanged():
     rb.attach(review, SLUG)
     o = review['outcomes'][0]
     rendered = page._status_html(o['declared_absent_trials'][0], o)
-    assert 'PARTIAL' in rendered and 'BOUND' in rendered and 'RELAYED' in rendered
+    assert 'CROSS_PROVIDER_VERIFIED' in rendered and 'relayed:' in rendered
     foreign = dict(outcomes=[dict(name='Major bleeding', trials=[row()])])
     before = deepcopy(foreign)
     assert rb.attach(foreign, 'ticagrelor-vs-clopidogrel-acs') == []
@@ -150,7 +150,7 @@ def test_real_pipeline_binding_and_no_own_source_pool_promotion():
     assert [r['id'] for r in primary['trials']] == ['PMID 33933206']
     assert primary['trials'][0]['reconstruction_measure'] == 'OR'
     mapped = [r for r in primary['declared_absent_trials'] if r.get('recovery_map')]
-    assert mapped and all(r['recovery_binding']['binding'] == 'PARTIAL' for r in mapped)
-    assert all(r['result_status']['state'] == 'COUNTS_RECOVERED' for r in mapped)
+    assert mapped and all(r['recovery_binding']['binding'] == 'CROSS_PROVIDER_VERIFIED' for r in mapped)
+    assert all(r['result_status']['state'] == 'CROSS_PROVIDER_VERIFIED' for r in mapped)
     assert primary['population'] == 'intention-to-treat'
     assert all(r['recovery_binding']['population_equivalence'] == 'NOT_ADJUDICATED' for r in mapped)

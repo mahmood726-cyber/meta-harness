@@ -30,15 +30,20 @@ def _status_html(t, o) -> str:
     """A row's derived result status (harness.result_status), with the extraction it holds when not admitted."""
     rs = t.get("result_status") or {}
     st = rs.get("state")
-    if not st:
+    if not st and not t.get("disperse_display"):
         return ""
     m = re.search(r"(\d{7,8}|NCT\d{8})", str(t.get("id") or ""))
     if st == "ADMITTED" and m and m.group(1) in _PENDING_SIGNATURE.get(o.get("name"), set()):
         st = "ADMITTED_PENDING_SIGNATURE"
     bits = [f"<code data-result-status='{_e(st)}'>{_e(st)}</code>"]
-    for key in ("typed_timepoint", "population_class", "table_binding", "table_row", "dose_assessment", "lane_refusals", "recovery_map", "recovery_binding"):
+    for key in ("typed_timepoint", "population_class", "table_binding", "table_row", "dose_assessment", "lane_refusals"):
         if t.get(key):
             bits.append(f"{_e(key)}: {_e(json.dumps(t[key], sort_keys=True))}")
+    if t.get("disperse_display"):
+        bits.append(_disperse_html(t["disperse_display"]))
+    recovery = t.get('recovery_binding') or t.get('recovery_map')
+    if recovery:
+        bits.append(_recovery_html(recovery))
     ex = rs.get("extraction")
     if ex:
         val = (f"{_e(ex.get('scale') or 'ratio')} {_e(ex.get('effect'))} ({_e(ex.get('ci_low'))}&ndash;{_e(ex.get('ci_high'))})"
@@ -50,6 +55,60 @@ def _status_html(t, o) -> str:
         w = rs["withdrawn"].get("value") or {}
         bits.append(f"earlier served value WITHDRAWN ({_e(w.get('scale'))} {_e(w.get('effect'))}): {_e(rs['withdrawn'].get('reason'))}")
     return "<br><span class='muted'>result status: " + " &mdash; ".join(bits) + "</span>" + _chain_html(t)
+
+
+def _disperse_html(binding):
+    parts = ['DISPERSE-2: ' + binding['state'], binding['reason']]
+    if binding['rows']:
+        parts.append('model-transcribed from the held figure; arithmetic and reading-consensus checked; not independently cell-verified')
+        for row in binding['rows']:
+            parts.append(f"{row['transcription_state']}; {', '.join(row['flags'])}; {row['arm']}: {row['n']}/{row['N']} ({row['percent']}%); {row['outcome_label_verbatim']}")
+            for witness in row.get('cross_provider_witnesses', []):
+                parts.append('cross-provider reading (' + witness['provider'] + '; ' + witness['reported_by'] + '): ' +
+                             json.dumps(witness['disagreeing_cells'], sort_keys=True))
+        row = binding['rows'][0]
+        pop = row['population']
+        parts.extend([row['component_note'],
+            f"randomised {pop['randomized_total']} vs treated {pop['treated_total']}; population NOT_ADJUDICATED",
+            'post-lock MI events excluded; ' + ', '.join(row['flags']),
+            'image sha256s: ' + ', '.join(binding['image_sha256s']),
+            'record ids: ' + ', '.join(binding['record_ids'])])
+    return "<span data-disperse-table='" + _e(binding['state']) + "'>" + '; '.join(_e(p) for p in parts) + '</span>'
+
+
+def _recovery_html(recovery):
+    figure = recovery.get('figure_binding')
+    if not figure:
+        return 'recovery_map: ' + _e(json.dumps(recovery, sort_keys=True))
+
+    def counts(values):
+        return f"{values['ai']}/{values['n1i']} vs {values['ci']}/{values['n2i']}"
+
+    state = figure['state']
+    parts = [f"{_e(figure['trial'])}: <code>{_e(state)}</code>"]
+    if state in ('MODEL_TRANSCRIBED_CHECKED', 'CROSS_PROVIDER_VERIFIED', 'CONFLICT'):
+        parts.append('model-transcribed from the held figure; arithmetic and reading-consensus checked; not independently cell-verified: ' +
+                     _e(counts(figure['figure_counts'])))
+    else:
+        parts.append('figure binding refused: ' + _e('; '.join(figure['reasons'])))
+    for witness in figure.get('cross_provider_witnesses', []):
+        cells = witness['disagreeing_cells']
+        parts.append('cross-provider reading (' + _e(witness['provider'] + '; ' + witness['reported_by']) + '): ' +
+                     ('agrees on every cell of this row' if not cells else
+                      'disagrees on ' + _e(json.dumps(cells, sort_keys=True))))
+    parts.append('relayed: ' + _e(counts(figure['relayed'])))
+    if state == 'CONFLICT':
+        parts.append('figure/relayed conflict: ' + _e(', '.join(figure['conflicts'])))
+    note = figure.get('own_paper')
+    if note:
+        parts.append('Figure counts match the own-paper safety population (' + _e(counts(note['safety_counts'])) +
+                     '); own-paper mITT: ' + _e(counts(note['mitt_counts'])) +
+                     '. Held explanation: &ldquo;' + _e(note['explanation']) + '&rdquo; (' +
+                     _e(note['source']) + '; sha256 ' + _e(note['sha256']) + ')')
+    parts.extend(['source population: outcomes recorded; never pooled: population not adjudicated (NOT_ADJUDICATED)',
+                  'figure sha256: ' + _e(figure['figure_sha256']),
+                  'record ids: ' + _e(', '.join(figure['record_ids']))])
+    return "<span data-recovery-figure='" + _e(state) + "'>" + '; '.join(parts) + '</span>'
 
 
 def _chain_html(t) -> str:
@@ -1937,15 +1996,19 @@ def _unknown_measure_disclosure(o):
 
 
 def _outcome_block(o, show_inputs=True, review=None):
+    recovery_unmatched = ''.join(
+        '<p class="muted">Recovery entry without a matching review row (display only): ' +
+        _recovery_html(entry) + '</p>' for entry in o.get('recovery_figure_unmatched', []))
     r = (review or {"outcomes": [o]}) if o.get("primary") else {}
     from . import harms
     if harms.synthesis_incomplete(o):
         return (f"<h4>{_e(o.get('name'))}</h4>" + _unknown_measure_disclosure(o) + _harms_ledger_block(o)
-                + (_trial_inputs(o) if show_inputs else ""))
+                + (_trial_inputs(o) if show_inputs else "") + recovery_unmatched)
     reason = _absent(o)
     if reason:
-        return f"<h4>{_e(o.get('name'))}</h4>" + _unknown_measure_disclosure(o) + _absent_block(reason)
+        return f"<h4>{_e(o.get('name'))}</h4>" + _unknown_measure_disclosure(o) + _absent_block(reason) + recovery_unmatched
     body = f"<h4>{_e(o.get('name'))}{' (primary)' if o.get('primary') else ''}</h4>"
+    body += recovery_unmatched
     res = o.get("result")
     body += _unknown_measure_disclosure(o)
     if o.get("measure_mix"):
@@ -3410,6 +3473,17 @@ _R["verify"] = _verify   # registered here: _R is built above, before this funct
 
 
 def render_page(review: dict, neutral: bool = False) -> str:
+    # Display-only copy: never changes synthesis inputs or the persisted review.
+    if review.get('slug') == 'ticagrelor-vs-clopidogrel-acs':
+        from copy import deepcopy
+        from . import table_binding
+        review = deepcopy(review)
+        artifact = table_binding.load_disperse_binding()
+        for outcome in review.get('outcomes', []):
+            for row in outcome.get('trials', []) + outcome.get('declared_absent_trials', []):
+                if artifact['pmid'] in re.findall(r'\b\d{6,9}\b', str(row.get('id', ''))):
+                    row['disperse_display'] = table_binding.disperse(outcome)
+                    row.pop('dose_assessment', None)  # replace stale display text only
     # result status as the page shows it: the derived state, raised to ADMITTED_PENDING_SIGNATURE for a row whose
     # entry is in an OPEN result-change notice (notices are outside the review core)
     from . import result_status as _rs

@@ -1,0 +1,487 @@
+"""Offline transcription admission only. No pooling, inference of counts, or live calls."""
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
+from typing import TypedDict
+
+from harness import component_typing
+
+ARMS = ('90 mg bd', '180 mg bd', 'clopidogrel')
+RULES = ('ARM_N', 'PERCENT', 'AGREEMENT', 'KM_COUNT', 'SHARED_CONTROL', 'IMAGE_SOURCE', 'SCHEMA', 'RELAYED', 'STUDY_IDENTITY', 'TIMEPOINT', 'DEFINITION', 'DUPLICATE_ARM')
+IMAGE_DIR = Path('evidence/acquisition_cascade/held/PLATO-regulatory/disperse2_images')
+MENTION = re.compile(r'\b(?:DISPERSE[\s-]*2|D5130C00002)\b', re.I)
+TEXT = Path('evidence/acquisition_cascade/held/PLATO-regulatory/022433Orig1s000MedR.local.txt')
+
+
+class Row(TypedDict):
+    outcome_definition: str
+    arm: str
+    n: int
+    N: int
+    percent: str
+    timepoint: str
+    variant_flags: list[str]
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def refuse(rule, item, reason):
+    raise ValueError(f'{rule}: refused {item}: {reason}')
+
+
+def text_evidence(text):
+    """Only a named study's contiguous treatment sentence establishes total treated."""
+    sex = list(re.finditer(r'DISPERSE[\s-]*2\s+treated\s+(\d+)\s+male\s+and\s+(\d+)\s+female\s+patients', text, re.I))
+    totals = {int(m[1]) + int(m[2]) for m in sex}
+    if len(totals) != 1:
+        refuse('ARM_N', 'held text', 'missing or conflicting treated male/female totals')
+    total = next(iter(totals))
+    explicit = list(re.finditer(r'(\d+)\s+were randomized and\s+(\d+)\s*\([^)]*\)\s*patients received at least one dose', text, re.I))
+    if explicit and any(int(m[2]) != total for m in explicit):
+        refuse('ARM_N', 'held text', 'sex total conflicts with explicit treated total')
+    # Explicit per-arm N only; never reverse-engineer N from a rounded Holter percent.
+    scoped = '\n'.join(p for p in re.split(r'\n\s*\n', text) if MENTION.search(p))
+    ns = {}
+    for arm in ARMS:
+        pattern = re.escape(arm).replace(r'\ ', r'\s+')
+        values = {int(m[1]) for m in re.finditer(pattern + r'\s*\(\s*N\s*=\s*(\d+)\s*\)', scoped, re.I)}
+        if len(values) > 1:
+            refuse('ARM_N', arm, 'conflicting printed arm sizes')
+        if values:
+            ns[arm] = next(iter(values))
+    randomized = {int(m[1]) for m in explicit}
+    if len(randomized) > 1:
+        refuse('ARM_N', 'held text', 'conflicting randomized totals')
+    return {'total': total, 'randomized_total': next(iter(randomized), None), 'arm_sizes': ns, 'sex_spans': [m.group() for m in sex],
+            'randomized_and_treated_spans': [m.group() for m in explicit], 'text_sha256': sha(text.encode())}
+
+
+def flags(label, footnotes, kind, timepoint):
+    found = []
+    for name, pattern in (
+        ('NON_CABG', r'non[- ]CABG'), ('MAJOR', r'\bmajor\b'), ('MINOR', r'\bminor\b'),
+        ('MINIMAL', r'\bminimal\b'), ('ICAC', r'\bICAC\b'), ('TIMI', r'\bTIMI\b'),
+        ('PLATO', r'\bPLATO\b'), ('COMPOSITE', r'composite|\+'),
+        ('DISCONTINUATION', r'discontinu'), ('SERIOUS', r'\bserious\b')):
+        if re.search(pattern, label, re.I):
+            found.append(name)
+    if re.search(r'post\s+database\s+lock', footnotes, re.I):
+        found.append('POST_LOCK_EVENTS_EXCLUDED')
+    if kind == 'KM':
+        found.append('KM')
+    if timepoint in ('overall', 'overall study'):
+        found.append('OVERALL_NOT_FIXED_12_WEEKS')
+    return sorted(found)
+
+
+def validate_claim(claim, evidence):
+    """Pure typed gate for plants. Production must use gate_records for provenance."""
+    if not isinstance(claim, dict) or claim.get('trial') != 'DISPERSE-2':
+        refuse('SCHEMA', 'proposal', 'trial must be DISPERSE-2')
+    if claim.get('provenance') == 'RELAYED':
+        refuse('RELAYED', 'proposal', 'investigator-supplied values never admitted')
+    if claim.get('provenance') != 'IMAGE_TRANSCRIPTION':
+        refuse('SCHEMA', 'proposal', 'missing image transcription provenance')
+    tables = claim.get('tables')
+    if not isinstance(tables, list) or not tables:
+        refuse('SCHEMA', 'tables', 'nonempty table list required')
+    sizes, seen, output = {}, {}, []
+    for table in tables:
+        if not isinstance(table, dict):
+            refuse('SCHEMA', 'table', 'object required')
+        name = table.get('table_id', '<unnamed>')
+        if not isinstance(name, str) or not name or not isinstance(table.get('caption'), str) or not isinstance(table.get('footnotes'), str):
+            refuse('SCHEMA', name, 'table identity/caption/footnotes required')
+        arms = table.get('arm_sizes')
+        if not isinstance(arms, dict) or set(arms) != set(ARMS) or any(type(v) is not int or v <= 0 for v in arms.values()):
+            refuse('ARM_N', name, 'three positive integer dose-arm denominators required')
+        if sum(arms.values()) not in (evidence['total'], evidence.get('randomized_total')):
+            refuse('ARM_N', name, 'arm sizes match neither held treated nor randomized total')
+        headers = table.get('arm_headers')
+        if not isinstance(headers, dict) or set(headers) != set(ARMS):
+            refuse('ARM_N', name, 'verbatim arm headers required')
+        for arm, header in headers.items():
+            if not isinstance(header, str):
+                refuse('ARM_N', name, 'header must be a string')
+            ns = re.findall(r'\bn\s*=\s*(\d+)\b', header, re.I)
+            dose = r'\b90\s*mg\b' if arm == '90 mg bd' else r'\b180\s*mg\b' if arm == '180 mg bd' else r'clopidogrel'
+            if len(ns) != 1 or int(ns[0]) != arms[arm] or not re.search(dose, header, re.I):
+                refuse('ARM_N', name + '/' + arm, 'verbatim header N/arm differs from typed arm')
+        if not isinstance(table.get('printed_footnotes'), str):
+            refuse('SCHEMA', name, 'verbatim printed footnotes required')
+        for arm, n in arms.items():
+            if arm in evidence['arm_sizes'] and evidence['arm_sizes'][arm] != n:
+                refuse('ARM_N', name + '/' + arm, 'does not equal printed text N')
+            if arm in sizes and sizes[arm] != n:
+                refuse('ARM_N', name + '/' + arm, 'inconsistent across proposed tables')
+            sizes[arm] = n
+        if not isinstance(table.get('rows'), list) or not table['rows']:
+            refuse('SCHEMA', name, 'nonempty rows required')
+        for row in table['rows']:
+            if not isinstance(row, dict):
+                refuse('SCHEMA', name, 'row object required')
+            label, arm = row.get('outcome_definition'), row.get('arm')
+            item = f'{name}/{label}/{arm}'
+            if not isinstance(label, str) or not label.strip() or arm not in ARMS:
+                refuse('SCHEMA', item, 'outcome definition and canonical dose arm required')
+            if re.search(r'\bbleed', label, re.I) and not re.search(r'ICAC|TIMI|PLATO|GUSTO|study[- ]defined', label, re.I):
+                refuse('DEFINITION', item, 'bleeding definition unbound')
+            timepoint = row.get('timepoint')
+            if timepoint not in ('4 weeks', '12 weeks', 'overall', 'overall study'):
+                refuse('TIMEPOINT', item, 'unresolved timepoint')
+            kind, n, N, pct = row.get('percent_kind'), row.get('n'), row.get('N'), row.get('percent')
+            if kind == 'KM' or re.search(r'Kaplan[-\s]+Meier|\bKM\b', ' '.join((label, table['caption'], table['footnotes'], table['printed_footnotes'])), re.I):
+                refuse('KM_COUNT', item, 'KM percentages cannot enter patient-count rows')
+            if kind != 'CRUDE' or row.get('count_basis') != 'PRINTED_PATIENTS':
+                refuse('KM_COUNT', item, 'only explicit printed patient counts accepted')
+            if type(N) is not int or N != arms[arm]:
+                refuse('ARM_N', item, 'row N differs from arm N')
+            if type(n) is not int or not 0 <= n <= N:
+                refuse('PERCENT', item, 'invalid patient count')
+            if not isinstance(pct, str) or not re.fullmatch(r'\d+(?:\.\d+)?', pct) or not 0 <= Decimal(pct) <= 100:
+                refuse('PERCENT', item, 'printed decimal string required')
+            precision = Decimal(pct).as_tuple().exponent
+            recomputed = (Decimal(n) * 100 / Decimal(N)).quantize(Decimal(1).scaleb(precision), rounding=ROUND_HALF_UP)
+            if recomputed != Decimal(pct):
+                refuse('PERCENT', item, f'printed {pct} differs from recomputed {recomputed}')
+            if not isinstance(row.get('footnote_markers'), str) or not isinstance(row.get('printed_cell'), str):
+                refuse('SCHEMA', item, 'verbatim cell and footnote markers required')
+            cell = re.fullmatch(r'\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%?\s*\)\s*' + re.escape(row['footnote_markers']) + r'\s*', row['printed_cell'])
+            if not cell or int(cell[1]) != n or cell[2] != pct:
+                refuse('PERCENT', item, 'typed n/percent differ from printed cell')
+            typed = Row(outcome_definition=label, arm=arm, n=n, N=N, percent=pct, timepoint=timepoint,
+                        variant_flags=flags(label, table['footnotes'] + '\n' + table['printed_footnotes'], kind, timepoint))
+            key = (row_key(name, row)[1], 'overall study' if timepoint == 'overall' else timepoint, arm)
+            if key in seen:
+                if arm == 'clopidogrel':
+                    refuse('SHARED_CONTROL', item, 'shared clopidogrel repeated for outcome/timepoint')
+                refuse('DUPLICATE_ARM', item, 'dose arm repeated for outcome/timepoint')
+            seen[key] = typed
+            # Adapt an enumerated table label to the existing component-typing parser.
+            component_label = re.sub(r'\((?:excl|incl)\.?\s+silent(?:\s+MI)?\)', '', label, flags=re.I)
+            definition = 'The primary outcome was a composite of ' + component_label.replace('/', ',') + '.'
+            components = component_typing.derive(definition)
+            if components:
+                components['basis'] = 'component_typing.derive applied to normalized verbatim table label; not a trial-primary-endpoint assertion'
+                components['source_label'] = label
+            population = {'status': 'NOT_ADJUDICATED', 'randomized_total': evidence.get('randomized_total'),
+                          'treated_total': evidence['total'], 'header_total': sum(arms.values())}
+            population['conflict'] = evidence.get('randomized_total') is not None and evidence['randomized_total'] != evidence['total']
+            row_flags = list(typed['variant_flags'])
+            if population['conflict']:
+                row_flags.append('RANDOMIZED_TREATED_DENOMINATOR_CONFLICT')
+            output.append({**typed, 'table': name, 'outcome_label_verbatim': label,
+                           'component_set': components['components'] if components else [],
+                           'component_typing': components, 'arm_header_verbatim': headers[arm],
+                           'printed_cell': row['printed_cell'], 'footnote_markers': row['footnote_markers'],
+                           'printed_footnotes': table['printed_footnotes'], 'caption': table['caption'],
+                           'window': 'overall study' if timepoint == 'overall' else timepoint,
+                           'flags': sorted(row_flags), 'population': population,
+                           'component_note': 'MI excludes silent MI' if re.search(r'MI\s*\(\s*excl\.?\s+silent\s*\)', label, re.I) else None,
+                           'POOLABLE': False, 'poolable': False,
+                           'pending': ['population', 'window', 'multi-arm handling'], 'table_id': name, 'image_sha256': table.get('image_sha256'),
+                           'provenance': 'GATED_IMAGE_TRANSCRIPTION'})
+    groups = {}
+    for label, timepoint, arm in seen:
+        groups.setdefault((label, timepoint), set()).add(arm)
+    for key, arms in groups.items():
+        if arms != set(ARMS):
+            refuse('ARM_N', key, 'incomplete three-arm outcome/timepoint')
+    return output
+
+
+def consensus(values, path='proposal'):
+    """Vote each scalar cell; structure/order must match. Competing >=2 votes refuse."""
+    if all(isinstance(v, dict) for v in values):
+        if any(set(v) != set(values[0]) for v in values):
+            refuse('AGREEMENT', path, 'field inventory differs')
+        return {k: consensus([v[k] for v in values], path + '/' + k) for k in sorted(values[0])}
+    if all(isinstance(v, list) for v in values):
+        if any(len(v) != len(values[0]) for v in values):
+            refuse('AGREEMENT', path, 'row/table inventory differs')
+        return [consensus([v[i] for v in values], f'{path}/{i}') for i in range(len(values[0]))]
+    counts = {}
+    for value in values:
+        key = json.dumps(value, sort_keys=True, allow_nan=False)
+        counts[key] = counts.get(key, 0) + 1
+    winners = [k for k, n in counts.items() if n >= 2]
+    if len(winners) != 1:
+        refuse('AGREEMENT', path, 'no unique value with at least two distinct-model votes')
+    return json.loads(winners[0])
+
+
+
+def normalized_percent(value):
+    """Formatting only: retain every printed decimal place; remove at most one %."""
+    return value.strip().removesuffix('%').strip() if isinstance(value, str) else value
+
+
+def row_key(table_id, row):
+    label = row.get('outcome_definition')
+    if not isinstance(label, str) or not label.strip() or row.get('arm') not in ARMS:
+        refuse('SCHEMA', table_id, 'nonempty outcome and canonical arm required for key')
+    # Superscript footnote marks are not outcome components; raw labels still vote.
+    label = re.sub(r'[\u1d43\u1d47\u1d9c]+$', '', label.strip())
+    label = re.sub(r'\s*/\s*', '/', re.sub(r'\s+', ' ', label)).casefold()
+    window = row.get('timepoint')
+    if not isinstance(window, str):
+        refuse('TIMEPOINT', table_id + '/' + label, 'string timepoint required')
+    return (table_id, label, row['arm'], 'overall study' if window == 'overall' else window)
+
+
+def keyed_consensus(readers, evidence, audit):
+    """Distinct readers are already verified. Missing keys abstain, never shift rows."""
+    tables = {}
+    for mid, (_, claim) in sorted(readers.items()):
+        seen = set()
+        for table in claim['tables']:
+            tid = table['table_id']
+            if not isinstance(tid, str) or not tid:
+                refuse('SCHEMA', 'table key', 'nonempty table id required')
+            if tid in seen:
+                refuse('ARM_N', tid, 'duplicate table identity; inconsistent across proposed tables')
+            seen.add(tid)
+            tables.setdefault(tid, {})[mid] = table
+    top = consensus([{k: v for k, v in c.items() if k != 'tables'} for _, c in readers.values()])
+    top['tables'] = []
+
+    def vote(entries, path):
+        resolved = consensus([v for _, v in entries], path)
+        dissent = [{'model': mid, 'value': value} for mid, value in entries if value != resolved]
+        if dissent:
+            audit['outvoted'].append({'path': path, 'resolved': resolved, 'readings': dissent})
+        return resolved
+
+    for tid, by_model in sorted(tables.items()):
+        if len(by_model) < 2:
+            refuse('AGREEMENT', tid, 'table key present in fewer than two readers')
+        inventories = [set(t) - {'rows'} for t in by_model.values()]
+        if any(i != inventories[0] for i in inventories):
+            refuse('AGREEMENT', tid, 'table field inventory differs')
+        table = {}
+        for field in sorted(inventories[0]):
+            if field in ('arm_headers', 'arm_sizes'):
+                table[field] = {arm: vote([(m, t[field][arm]) for m, t in by_model.items()],
+                                         f'{tid}/{field}/{arm}') for arm in ARMS}
+            else:
+                table[field] = vote([(m, t[field]) for m, t in by_model.items()], f'{tid}/{field}')
+        keyed = {}
+        for mid, source in by_model.items():
+            seen = set()
+            for row in source['rows']:
+                key = row_key(tid, row)
+                if key in seen:
+                    refuse('SHARED_CONTROL' if row['arm'] == 'clopidogrel' else 'DUPLICATE_ARM',
+                           '/'.join(key), 'duplicate outcome/arm/window key in ' + mid)
+                seen.add(key)
+                keyed.setdefault(key, {})[mid] = row
+        table['rows'] = []
+        for key, source_rows in sorted(keyed.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][3], ARMS.index(kv[0][2]))):
+            path = '/'.join(key)
+            if len(source_rows) < 2:
+                refuse('AGREEMENT', path, 'row key present in fewer than two readers')
+            inventories = [set(r) for r in source_rows.values()]
+            if any(i != inventories[0] for i in inventories):
+                refuse('AGREEMENT', path, 'row field inventory differs')
+            effective = {mid: dict(row) for mid, row in source_rows.items()}
+            for mid, row in effective.items():
+                row['percent'] = normalized_percent(row.get('percent'))
+                if row.get('N') is None:
+                    arm = row['arm']
+                    header_votes = []
+                    for reader, source in by_model.items():
+                        header = source['arm_headers'].get(arm)
+                        ns = re.findall(r'\bn\s*=\s*(\d+)\b', header, re.I) if isinstance(header, str) else []
+                        dose = r'\b90\s*mg\b' if arm == '90 mg bd' else r'\b180\s*mg\b' if arm == '180 mg bd' else r'clopidogrel'
+                        valid = len(ns) == 1 and re.search(dose, header, re.I)
+                        n = int(ns[0]) if valid else None
+                        if type(source['arm_sizes'].get(arm)) is not int or source['arm_sizes'][arm] != n:
+                            n = None
+                        header_votes.append((reader, n))
+                    n = vote(header_votes, path + '/header_N')
+                    if type(n) is not int or n <= 0 or n != table['arm_sizes'][arm]:
+                        refuse('ARM_N', path, 'null row N lacks agreed typed header N')
+                    sizes = table['arm_sizes']
+                    if (any(type(v) is not int or v <= 0 for v in sizes.values())
+                            or sum(sizes.values()) not in (evidence['total'], evidence.get('randomized_total'))
+                            or (arm in evidence['arm_sizes'] and n != evidence['arm_sizes'][arm])):
+                        refuse('ARM_N', path, 'header N fails held total/printed text check')
+                    row['N'] = n
+                for field in ('percent', 'N'):
+                    if row.get(field) != source_rows[mid].get(field):
+                        audit['normalizations'].append({'key': list(key), 'model': mid, 'field': field,
+                            'raw': source_rows[mid].get(field), 'effective': row.get(field)})
+            resolved = {field: vote([(m, r[field]) for m, r in effective.items()], path + '/' + field)
+                        for field in sorted(inventories[0])}
+            table['rows'].append(resolved)
+            audit['keys'].append({'key': list(key), 'resolved': resolved,
+                                 'readings': [{'model': m, 'raw': r, 'effective': effective[m]} for m, r in source_rows.items()]})
+        top['tables'].append(table)
+    return top
+
+
+def gate_records(records, text, images, *, replay_response=None, record_problems=None, target=None):
+    """Offline only: caller injects digest-verifying replay and record validators.
+
+    Every cell needs two model votes; the assembled claim then passes all checks.
+    Any unresolved cell refuses this image block, never supplies partial pool data.
+    """
+    excluded, duplicate_models = [], []
+    audit = {"keys": [], "outvoted": [], "normalizations": []}
+    try:
+        if replay_response is None or record_problems is None:
+            refuse('AGREEMENT', 'records', 'verified replay and record validator required')
+        if not isinstance(records, list):
+            refuse('SCHEMA', 'records', 'list required')
+        claims, readers, prompts = [], {}, set()
+        for record in records:
+            problems = record_problems(record)
+            if problems:
+                refuse('AGREEMENT', 'record', '; '.join(problems))
+            if record.get('state') == 'RAN_ERROR':
+                excluded.append({'record_id': record['record_id'], 'state': 'RAN_ERROR', 'error': record.get('error')})
+                continue
+            claim = json.loads(replay_response(record))
+            model = record.get('model', {})
+            mid = model.get('id_reported')
+            if not isinstance(mid, str) or not mid.strip() or mid != model.get('id_requested'):
+                refuse('AGREEMENT', record['record_id'], 'requested/reported model pin mismatch')
+            prompts.add(record['prompt']['sha256'])
+            if mid in readers:
+                if readers[mid][1] != claim:
+                    refuse('AGREEMENT', mid, 'same-model duplicate proposals conflict')
+                duplicate_models.append({'model': mid, 'record_id': record['record_id']})
+                continue
+            # Validate source bindings for EVERY reader, including a dissenting one.
+            for table in claim['tables']:
+                image_sha = table.get('image_sha256')
+                if image_sha not in images:
+                    refuse('IMAGE_SOURCE', table.get('table_id'), 'image not in verified held manifest')
+                context = images[image_sha]
+                if context.get('study') != 'DISPERSE-2':
+                    refuse('STUDY_IDENTITY', table.get('table_id'), 'image belongs to ' + str(context.get('study')))
+                if table['caption'] not in context['captions']:
+                    refuse('IMAGE_SOURCE', table.get('table_id'), 'caption altered or omitted')
+                # The page context is HELD native text bound to this image by the verified manifest; a model's echo of
+                # text we supplied proves nothing about the table and differs only by trailing whitespace/truncation.
+                # The gate therefore uses the held context itself (for flags and agreement), never the echo.
+                table['footnotes'] = context['text']
+                if not any(d.get('sha256') == image_sha and d.get('ref') == context['path']
+                           and d.get('media_type') == 'image/png' for d in record.get('input_digests', [])):
+                    refuse('IMAGE_SOURCE', table.get('table_id'), 'missing matching recorded image input digest/path/media type')
+            readers[mid] = (record, claim)
+            claims.append(claim)
+        if len(readers) < 3 or len({r[0]['record_id'] for r in readers.values()}) < 3:
+            refuse('AGREEMENT', 'records', 'at least three RAN_OK proposals from three distinct model ids required')
+        if len(prompts) != 1:
+            refuse('AGREEMENT', 'records', 'identical independent prompts required')
+        evidence = text_evidence(text)
+        resolved = keyed_consensus(readers, evidence, audit)
+        rows = validate_claim(resolved, evidence)
+        for row in rows:
+            row['mace_candidate'] = bool(target and row['window'] == 'overall study'
+                and set(row['component_set']) == set(target['components'])
+                and not (row['component_typing'] or {}).get('untyped')
+                and re.fullmatch(r'CV death\s*/\s*MI\s*\(excl\.? silent\)\s*/\s*stroke', row['outcome_label_verbatim'], re.I))
+        return {'status': 'ADMIT', 'rows': rows, 'record_ids': [r[0]['record_id'] for r in readers.values()],
+                'model_ids': sorted(readers), 'excluded_records': excluded, 'duplicate_models': duplicate_models,
+                'text_evidence': evidence, 'target': target, 'pool_admission': False, 'agreement_audit': audit}
+    except Exception as exc:
+        # Injected replay errors and malformed nested JSON are explicit refusals, never fallbacks.
+        return {'status': 'REFUSED', 'rows': [], 'reason': str(exc) if re.match(r'^[A-Z_]+: ', str(exc)) else 'SCHEMA: refused record/proposal: ' + str(exc), 'excluded_records': excluded,
+                'duplicate_models': duplicate_models, 'pool_admission': False, 'agreement_audit': audit}
+
+
+def gate_batches(records, text, images, **verifiers):
+    """One quorum per attached image set; cross-table arm Ns and shared controls checked."""
+    groups = {}
+    try:
+        for record in records:
+            key = tuple(sorted(d['sha256'] for d in record.get('input_digests', [])
+                               if d.get('media_type') == 'image/png'))
+            groups.setdefault(key, []).append(record)
+        if not groups:
+            refuse('AGREEMENT', 'records', 'no image proposal groups')
+        results = [gate_records(group, text, images, **verifiers) for _, group in sorted(groups.items())]
+        failures = [r['reason'] for r in results if r['status'] != 'ADMIT']
+        if failures:
+            return {'status': 'REFUSED', 'rows': [], 'reason': '; '.join(failures), 'groups': results,
+                    'pool_admission': False}
+        rows = [row for result in results for row in result['rows']]
+        sizes, seen = {}, set()
+        for row in rows:
+            arm = row['arm']
+            if arm in sizes and sizes[arm] != row['N']:
+                refuse('ARM_N', row['table'] + '/' + arm, 'header N inconsistent across recorded tables')
+            sizes[arm] = row['N']
+            key = (re.sub(r'\s+', ' ', row['outcome_label_verbatim']).strip().casefold(), row['window'], arm)
+            if key in seen:
+                refuse('SHARED_CONTROL' if arm == 'clopidogrel' else 'DUPLICATE_ARM', key,
+                       'arm repeated across recorded tables')
+            seen.add(key)
+        return {'status': 'ADMIT', 'rows': rows, 'groups': results, 'pool_admission': False}
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+        return {'status': 'REFUSED', 'rows': [], 'reason': str(exc), 'pool_admission': False}
+
+
+def target_from_topic(root):
+    topic = json.loads((Path(root) / 'topics/ticagrelor-vs-clopidogrel-acs.json').read_text(encoding='utf-8'))
+    from harness.target_endpoint import _components_from_text
+    name = topic['primary_outcome']['name']
+    return {'label': name, 'components': sorted(_components_from_text(name, expand_named_composites=False)),
+            'basis': 'topics/ticagrelor-vs-clopidogrel-acs.json primary_outcome.name'}
+
+
+def held_inputs(root):
+    """Verify bytes AND re-render each held PDF rectangle before trusting the manifest."""
+    import fitz
+    from pypdf import PdfReader
+    root = Path(root)
+    held_root = root / 'evidence/acquisition_cascade/held'
+    registry = json.loads((held_root / 'HELD.json').read_text(encoding='utf-8'))
+    manifest_path = root / IMAGE_DIR / 'manifest.json'
+    def verify_held(path):
+        entry = registry.get(path.relative_to(held_root).as_posix(), {})
+        if entry.get('sha256') != sha(path.read_bytes()):
+            refuse('IMAGE_SOURCE', path.name, 'HELD.json digest differs or missing')
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+    from scripts.extract_pdf_table_images import PDF
+    if manifest['source'] != PDF.as_posix() or sha((root / PDF).read_bytes()) != manifest['source_sha256']:
+        refuse('IMAGE_SOURCE', 'PDF', 'manifest source mismatch')
+    doc = fitz.open(root / PDF)
+    reader = PdfReader(root / PDF)
+    images = {}
+    try:
+        pages = {p['page']: p for p in manifest['mention_pages']}
+        for image in manifest['images']:
+            path = (root / IMAGE_DIR / Path(image['rendered_path']).name).resolve()
+            if not path.is_relative_to((root / IMAGE_DIR).resolve()):
+                refuse('IMAGE_SOURCE', image['rendered_path'], 'unsafe path')
+            verify_held(path)
+            page = doc[image['page'] - 1]
+            rects = page.get_image_rects(image['xref'])
+            if len(rects) != 1 or list(rects[0]) != image['rectangle']:
+                refuse('IMAGE_SOURCE', image['rendered_path'], 'PDF placement mismatch')
+            rendered = page.get_pixmap(matrix=fitz.Matrix(2, 2), clip=rects[0], alpha=False).tobytes('png')
+            if sha(path.read_bytes()) != image['rendered_sha256'] or sha(rendered) != image['rendered_sha256']:
+                refuse('IMAGE_SOURCE', image['rendered_path'], 'rendered bytes differ from held PDF')
+            context = pages[image['page']]
+            actual_text = reader.pages[image['page'] - 1].extract_text() or ''
+            from scripts.extract_pdf_table_images import captions, image_context
+            if (actual_text != context['text'] or captions(actual_text) != context['captions']
+                    or sha(context['text'].encode()) != context['text_sha256']):
+                refuse('IMAGE_SOURCE', image['page'], 'page text digest mismatch')
+            bound = image_context(reader, page, image['page'], rects[0])
+            if bound['bound_caption'] is None:
+                refuse('IMAGE_SOURCE', image['rendered_path'], 'no spatially bound caption')
+            images[image['rendered_sha256']] = {**context, **bound,
+                 'captions': [bound['bound_caption']], 'path': path.relative_to(root.resolve()).as_posix()}
+    finally:
+        doc.close()
+    return (root / TEXT).read_text(encoding='utf-8'), images

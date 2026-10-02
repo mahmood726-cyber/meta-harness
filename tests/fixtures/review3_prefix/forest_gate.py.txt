@@ -1,0 +1,473 @@
+"""Offline arithmetic audit of recorded forest proposals; never a pool input.
+
+ADMITTED means only that the prescribed figure checks pass. It is neither a
+human countersignature nor proof of independence of the models' training data.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import re
+from decimal import Decimal, ROUND_HALF_UP
+from itertools import product
+from pathlib import Path
+from statistics import NormalDist
+
+from harness import recovery_excerpt
+
+FIGURE = 'evidence/acquisition_cascade/held/WHO-REACT/jama-e2111330-g001.jpg'
+SLUG = 'tocilizumab-covid19-mortality'
+COUNTS = ('ai', 'n1i', 'ci', 'n2i')
+EFFECTS = ('or', 'ci_low', 'ci_high')
+ROW_KEYS = {'kind', 'agent', 'trial', 'registration', *COUNTS, *EFFECTS, 'weight'}
+
+
+def norm(text):
+    return re.sub(r'[^A-Z0-9]', '', text.upper())
+
+
+def decimal(text):
+    if not isinstance(text, str) or not re.fullmatch(r'\d+(?:\.\d+)?', text):
+        raise ValueError('PRINTED_NUMBER_INVALID: ' + repr(text))
+    return Decimal(text)
+
+
+def matches(value, printed):
+    """Compare at the actual printed precision; honor printed < upper bounds."""
+    if not isinstance(printed, str):
+        return False
+    if printed.startswith('<'):
+        return Decimal(str(value)) < decimal(printed[1:])
+    target = decimal(printed)
+    return Decimal(str(value)).quantize(Decimal(1).scaleb(target.as_tuple().exponent),
+                                       rounding=ROUND_HALF_UP) == target
+
+
+def recompute(row):
+    a, n1, c, n2 = (row[k] for k in COUNTS)
+    if a == c == 0:
+        return None
+    cells = [a, n1 - a, c, n2 - c]
+    if 0 in cells:
+        cells = [x + 0.5 for x in cells]
+    a, b, c, d = cells
+    log_or = math.log(a) + math.log(d) - math.log(b) - math.log(c)
+    half = NormalDist().inv_cdf(0.975) * math.sqrt(sum(1 / x for x in cells))
+    return tuple(math.exp(x) for x in (log_or, log_or - half, log_or + half))
+
+
+def validate(proposal):
+    if not isinstance(proposal, dict) or set(proposal) != {'rows'} or not isinstance(proposal['rows'], list) or not proposal['rows']:
+        raise ValueError('SCHEMA: nonempty rows required')
+    seen = set()
+    normalized = []
+    for row in proposal['rows']:
+        if not isinstance(row, dict) or set(row) != ROW_KEYS:
+            raise ValueError('SCHEMA: exact row fields required')
+        for k in ('kind', 'agent', 'trial', 'registration', *EFFECTS, 'weight'):
+            if not isinstance(row[k], str):
+                raise ValueError('SCHEMA: string required for ' + k)
+        if row['kind'] not in ('trial', 'subgroup', 'overall') or not row['trial'].strip():
+            raise ValueError('SCHEMA: valid kind and trial required')
+        if row['kind'] != 'overall' and not row['agent'].strip():
+            raise ValueError('SCHEMA: agent required for ' + row['kind'] + ': ' + row['trial'])
+        # Summary rows belong to no agent section. Do not mutate replayed bytes.
+        row = dict(row, agent='') if row['kind'] == 'overall' else dict(row)
+        normalized.append(row)
+        key = (row['kind'], norm(row['agent']), norm(row['trial']))
+        if key in seen:
+            raise ValueError('DUPLICATE_ROW: ' + row['trial'])
+        seen.add(key)
+        for k in COUNTS:
+            if type(row[k]) is not int or row[k] < 0:
+                raise ValueError('COUNTS_INVALID: ' + row['trial'] + '.' + k)
+        if min(row['n1i'], row['n2i']) <= 0 or row['ai'] > row['n1i'] or row['ci'] > row['n2i']:
+            raise ValueError('COUNTS_INVALID: ' + row['trial'])
+        if row['weight'] != 'NA' and not 0 <= decimal(row['weight']) <= 100:
+            raise ValueError('WEIGHT_INVALID: ' + row['trial'])
+        for k in EFFECTS:
+            if row[k] != 'NA':
+                decimal(row[k].removeprefix('<'))
+    return normalized
+
+
+def table_problem(row, table):
+    """Explicit registration wins; unique exact normalized name otherwise.
+
+    Multiple intervention cells are deliberately not silently combined.
+    """
+    registration = row['registration']
+    candidates = [t for t in table['rows'] if
+                  (t['registration'] == registration if registration else norm(t['trial']) == norm(row['trial']))]
+    if len(candidates) > 1:
+        candidates = [t for t in candidates if norm(t['trial']) == norm(row['trial'])]
+    if len(candidates) != 1:
+        return 'TABLE1_IDENTITY_UNRESOLVED: ' + row['trial']
+    t = candidates[0]
+    if t['group'] != 'Tocilizumab':
+        return 'TABLE1_EXCLUDED: ' + row['trial']
+    if len(t['intervention']) != 1 or len(t['comparator']) != 1:
+        return 'TABLE1_MULTIPLE_ARMS: ' + row['trial']
+    expected = (t['intervention'][0]['n'], t['comparator'][0]['n'])
+    actual = (row['n1i'], row['n2i'])
+    if expected != actual:
+        return f'TABLE1_TOTAL_MISMATCH: {row["trial"]}: figure {actual}, Table1 {expected}'
+    return None
+
+
+def audit(proposal, table):
+    """Pure proposal arithmetic, also usable on explicitly synthetic test fixtures."""
+    rows = validate(proposal)
+    errors = {i: [] for i in range(len(rows))}
+    global_errors = []
+    trials = [r for r in rows if r['kind'] == 'trial']
+    groups = sorted({r['agent'] for r in trials})
+    subgroups = [r for r in rows if r['kind'] == 'subgroup']
+    overall = [r for r in rows if r['kind'] == 'overall']
+    if not trials:
+        global_errors.append('TOTALS: no trial rows')
+    for i, row in enumerate(rows):
+        if row['kind'] != 'trial':
+            continue  # pooled OR is not the OR of pooled arm counts
+        expected = recompute(row)
+        if expected is None:
+            if any(row[k] != 'NA' for k in EFFECTS):
+                errors[i].append('ARITHMETIC: double-zero requires NA OR and CI')
+        elif any(row[k] == 'NA' or not matches(v, row[k]) for k, v in zip(EFFECTS, expected)):
+            errors[i].append('ARITHMETIC: recomputed OR/CI ' + repr(expected) + ' differs from printed ' + repr([row[k] for k in EFFECTS]))
+        if norm(row['agent']) == 'TOCILIZUMAB':
+            problem = table_problem(row, table)
+            if problem:
+                errors[i].append(problem)
+    for agent in groups:
+        totals = [r for r in subgroups if r['agent'] == agent]
+        members = [r for r in trials if r['agent'] == agent]
+        if len(members) == 1 and not totals:
+            continue  # the checked trial is the section; invent no subtotal
+        if len(totals) != 1:
+            global_errors.append('TOTALS: missing/duplicate printed subgroup: ' + agent)
+            continue
+        for k in COUNTS:
+            total = sum(r[k] for r in trials if r['agent'] == agent)
+            if totals[0][k] != total:
+                global_errors.append(f'TOTALS: {agent}.{k}: printed {totals[0][k]} != row sum {total}')
+    if set(r['agent'] for r in subgroups) - set(groups):
+        global_errors.append('TOTALS: subgroup coverage differs from trial agents')
+    if len(overall) != 1:
+        global_errors.append('TOTALS: exactly one printed overall required')
+    else:
+        for k in COUNTS:
+            total = sum(r[k] for r in trials)
+            invalid = overall[0][k] != total if k in ('ai', 'n1i') else overall[0][k] > total
+            if invalid:
+                relation = '!=' if k in ('ai', 'n1i') else '>'
+                global_errors.append(f'TOTALS: overall.{k}: printed {overall[0][k]} {relation} trial sum {total}')
+        if overall[0]['weight'] != '100.00':
+            global_errors.append('WEIGHTS: overall must print 100.00')
+    weighted = []
+    for row in trials:
+        if row['weight'] == 'NA':
+            if row['ai'] or row['ci']:
+                global_errors.append('WEIGHTS: missing for ' + row['trial'])
+        else:
+            weighted.append(decimal(row['weight']))
+    tolerance = sum((Decimal(1).scaleb(w.as_tuple().exponent) / 2 for w in weighted), Decimal(0))
+    if not weighted or abs(sum(weighted) - Decimal('100.00')) > tolerance:
+        global_errors.append(f'WEIGHTS: trial sum {sum(weighted)} != 100.00 within rounding {tolerance}')
+    for subtotal in subgroups:
+        weights = [decimal(r['weight']) for r in trials if r['agent'] == subtotal['agent'] and r['weight'] != 'NA']
+        if subtotal['weight'] == 'NA':
+            global_errors.append('WEIGHTS: subgroup missing ' + subtotal['agent'])
+        else:
+            w = decimal(subtotal['weight'])
+            tol = sum((Decimal(1).scaleb(x.as_tuple().exponent) / 2 for x in weights + [w]), Decimal(0))
+            if abs(sum(weights) - w) > tol:
+                global_errors.append('WEIGHTS: subgroup sum mismatch ' + subtotal['agent'])
+    return rows, errors, global_errors
+
+
+def shared_control_candidates(rows):
+    """Candidate pairs only: no inferred identity or deduplicated counts.
+
+    Exact normalized names/printed registrations, or a common programme stem
+    with agent-specific four-letter suffixes (e.g. TOCI/SARI), nominate review.
+    The latter is explicitly a name-pattern candidate, never a proven family.
+    """
+    trials = [r for r in rows if r['kind'] == 'trial']
+    candidates = []
+    def programme(row):
+        match = re.fullmatch(r'(.+?)-' + re.escape(row['agent'][:4]) + r'-(.+)', row['trial'], re.I)
+        return norm(match[1]) if match else None
+    for i, left in enumerate(trials):
+        for right in trials[i + 1:]:
+            if norm(left['agent']) == norm(right['agent']):
+                continue
+            basis = []
+            if norm(left['trial']) == norm(right['trial']):
+                basis.append('SAME_PRINTED_TRIAL_NAME')
+            if left['registration'] and left['registration'] == right['registration']:
+                basis.append('SAME_PRINTED_REGISTRATION')
+            if programme(left) and programme(left) == programme(right):
+                basis.append('PROGRAMME_NAME_PATTERN_CANDIDATE_ONLY')
+            if basis:
+                candidates.append({'trials': [{'agent': r['agent'], 'trial': r['trial'],
+                                              'registration': r['registration']} for r in (left, right)],
+                                   'basis': basis, 'shared_control_proven': False})
+    return candidates
+
+
+def control_accounting(rows):
+    """Expose the upper-bound check and unverified gap, never pooled data."""
+    trials = [r for r in rows if r['kind'] == 'trial']
+    reports = []
+    for row in rows:
+        if row['kind'] != 'overall':
+            continue
+        fields = {}
+        for k in ('ci', 'n2i'):
+            total = sum(r[k] for r in trials)
+            fields[k] = {'printed': row[k], 'trial_sum': total, 'gap': total - row[k],
+                         'upper_bound_check': 'PASS' if row[k] <= total else 'REFUSED'}
+        reports.append({'trial': row['trial'], 'status': 'UNVERIFIABLE', 'poolable': False,
+                        'code': 'SHARED_CONTROL_DEDUP' if any(v['gap'] > 0 for v in fields.values()) else 'OVERALL_CONTROL_UNVERIFIABLE',
+                        'fields': fields, 'candidates': shared_control_candidates(rows),
+                        'reason': 'Overall control totals are UNVERIFIABLE from the figure alone; '
+                                  'gaps are not proven deduplication and must never be used as data.'})
+    return reports
+
+
+def cell_checks(rows, index, field, table):
+    """Run the existing checks with explicit dependencies for a disputed cell."""
+    _, local, global_errors = audit({'rows': rows}, table)
+    row = rows[index]
+    if field in ('kind', 'agent'):
+        return global_errors + [e for errors in local.values() for e in errors]
+    errors = []
+    if field in (*COUNTS, *EFFECTS):
+        errors += [e for e in local[index] if e.startswith('ARITHMETIC:')]
+    if field in ('trial', 'registration', 'n1i', 'n2i'):
+        errors += [e for e in local[index] if e.startswith('TABLE1_')]
+    if field == 'trial' and row['kind'] == 'trial':
+        # A majority spelling must itself join, even when a registration could
+        # otherwise conceal a misspelling. No fuzzy aliases are invented.
+        identities = [t for t in table['rows'] if norm(t['trial']) == norm(row['trial'])
+                      and norm(t['group']) == norm(row['agent'])
+                      and (not row['registration'] or t['registration'] == row['registration'])]
+        if len(identities) != 1:
+            errors.append('TABLE1_NAME_IDENTITY_UNRESOLVED: ' + row['trial'])
+    if field in COUNTS:
+        for error in global_errors:
+            if error.startswith('TOTALS:') and (
+                error.startswith(f"TOTALS: {row['agent']}.{field}:")
+                or error.startswith(f'TOTALS: overall.{field}:')
+                or 'coverage' in error or 'required' in error or 'missing/duplicate' in error):
+                errors.append(error)
+    # Missing weights also depend on event counts (double-zero exception).
+    if field in ('ai', 'ci') and row['kind'] == 'trial':
+        errors += [e for e in global_errors if e == 'WEIGHTS: missing for ' + row['trial']]
+    if field == 'weight':
+        for error in global_errors:
+            if ((row['kind'] == 'overall' and error == 'WEIGHTS: overall must print 100.00')
+                or (row['kind'] == 'trial' and (error.startswith('WEIGHTS: trial sum ')
+                    or error == 'WEIGHTS: missing for ' + row['trial']))
+                or (row['kind'] in ('trial', 'subgroup') and error in (
+                    'WEIGHTS: subgroup missing ' + row['agent'],
+                    'WEIGHTS: subgroup sum mismatch ' + row['agent']))):
+                errors.append(error)
+    return errors
+
+
+def resolve_cells(proposals, ids, models, table):
+    """Figure-order cell voting, with one vote per consistent model ID.
+
+    Enumerate all >=2-model candidates, never choose the first passing value.
+    A bounded search refuses rather than truncating alternatives.
+    """
+    rows = [dict(r) for r in proposals[0]['rows']]
+    if any(len(p['rows']) != len(rows) for p in proposals):
+        return rows, [], ['AGREEMENT: DISAGREEMENT: figure row counts differ']
+    cells = []
+    for i, row in enumerate(rows):
+        for field in sorted(ROW_KEYS):
+            readings = [{'record_id': rid, 'model_id': model, 'value': p['rows'][i][field]}
+                        for p, rid, model in zip(proposals, ids, models)]
+            values = list(dict.fromkeys(v['value'] for v in readings))
+            if len(values) == 1:
+                continue
+            candidates = []
+            for value in values:
+                supporters = {model for model in models if
+                              {r['value'] for r in readings if r['model_id'] == model} == {value}}
+                if len(supporters) >= 2:
+                    candidates.append(value)
+            cells.append({'row_index': i, 'trial': row['trial'], 'agent': row['agent'],
+                          'field': field, 'readings': readings, 'candidates': candidates,
+                          'status': 'DISAGREEMENT', 'passing_values': [], 'checks': []})
+    if not cells:
+        return rows, [], []
+    if len(set(models)) < 3:
+        return rows, cells, ['AGREEMENT: DISAGREEMENT: resolution requires three distinct RAN_OK model ids']
+    combinations = math.prod(len(c['candidates']) or 1 for c in cells)
+    if combinations > 4096:
+        return rows, cells, ['AGREEMENT: DISAGREEMENT: candidate search exceeds 4096; no alternatives discarded']
+    for values in product(*(c['candidates'] or [rows[c['row_index']][c['field']]] for c in cells)):
+        candidate_rows = [dict(r) for r in rows]
+        for cell, value in zip(cells, values):
+            candidate_rows[cell['row_index']][cell['field']] = value
+        for cell, value in zip(cells, values):
+            if value not in cell['candidates']:
+                continue
+            try:
+                errors = cell_checks(candidate_rows, cell['row_index'], cell['field'], table)
+            except (ValueError, ArithmeticError) as exc:
+                errors = ['CANDIDATE_REFUSED: ' + str(exc)]
+            cell['checks'].append({'value': value, 'reasons': errors})
+            if not errors and value not in cell['passing_values']:
+                cell['passing_values'].append(value)
+    for cell in cells:
+        if len(cell['passing_values']) == 1:
+            value = cell['passing_values'][0]
+            rows[cell['row_index']][cell['field']] = value
+            cell.update(status='RESOLVED', value=value,
+                        outvoted_record_ids=[r['record_id'] for r in cell['readings'] if r['value'] != value])
+    # Recheck the assembled result. Separately passing candidates cannot certify
+    # an inconsistent joint assignment. Unresolved cells still refuse the block.
+    for cell in cells:
+        if cell['status'] == 'RESOLVED':
+            try:
+                errors = cell_checks(rows, cell['row_index'], cell['field'], table)
+            except (ValueError, ArithmeticError) as exc:
+                errors = ['CANDIDATE_REFUSED: ' + str(exc)]
+            if errors:
+                cell.update(status='DISAGREEMENT', final_reasons=errors)
+                cell.pop('value', None)
+                cell.pop('outvoted_record_ids', None)
+    problems = [f"AGREEMENT: DISAGREEMENT: row {c['row_index']} {c['trial']}.{c['field']}"
+                for c in cells if c['status'] != 'RESOLVED']
+    return rows, cells, problems
+
+
+def gate(records, *, root: Path, replay_response):
+    """Validate response bytes, two distinct models/calls, held digest, and rows.
+
+    replay_response is injected by the offline CLI (model_source.replay). This
+    module must not import the model package: the base harness enforces that
+    separation. No record, missing evidence, schema defect, or global accounting defect can
+    produce an admitted row. Two readers must agree; three distinct models may
+    resolve disputed cells only under the deterministic checks.
+    """
+    root = Path(root)
+    problems, proposals, ids, models, prompts = [], [], [], [], []
+    excluded_records, resolutions = [], []
+    figure_sha = None
+    try:
+        figure_sha = hashlib.sha256((root / FIGURE).read_bytes()).hexdigest()
+        table = recovery_excerpt.load(root)
+    except (OSError, ValueError) as exc:
+        problems.append('HELD_EVIDENCE: ' + str(exc))
+        table = {'rows': []}
+    for record in records:
+        if record.get('state') == 'RAN_ERROR':
+            # The injected replay verifier checks hashes BEFORE refusing state.
+            # Only its verified state refusal can be excluded without poisoning
+            # the successful readers. Tampered errors remain global refusals.
+            excluded = {'record_id': record.get('record_id'), 'model': record.get('model'),
+                        'state': 'RAN_ERROR', 'error': record.get('error'), 'verified': False}
+            try:
+                replay_response(record)
+                problems.append('RECORD_REFUSED: RAN_ERROR unexpectedly replayed: ' + str(record.get('record_id')))
+            except Exception as exc:
+                excluded['reason'] = str(exc)
+                excluded['verified'] = str(exc).startswith('state RAN_ERROR:')
+                if not excluded['verified']:
+                    problems.append('RECORD_REFUSED: ' + str(exc))
+            excluded_records.append(excluded)
+            continue
+        try:
+            proposal = json.loads(replay_response(record))
+            if record.get('state') != 'RAN_OK':
+                raise ValueError('RAN_OK required: ' + str(record.get('record_id')))
+            proposal = {'rows': validate(proposal)}
+            proposals.append(proposal)
+            ids.append(record['record_id'])
+            prompts.append(record['prompt']['sha256'])
+            model = record.get('model', {})
+            if model.get('id_requested') != model.get('id_reported') or not model.get('id_reported'):
+                problems.append('RECORD_MODEL_PIN: ' + record['record_id'])
+            models.append(model.get('id_reported'))
+            image = [d for d in record.get('input_digests', []) if d.get('ref') == FIGURE]
+            if len(image) != 1 or image[0].get('sha256') != figure_sha or image[0].get('media_type') != 'image/jpeg':
+                problems.append('FIGURE_DIGEST: ' + record['record_id'])
+        except Exception as exc:
+            # The injected verifier's failures are all named refusals, never
+            # a fallback to unverified response bytes.
+            problems.append('RECORD_REFUSED: ' + str(exc))
+    if len(ids) < 2 or len(set(ids)) != len(ids) or len(set(models)) < 2:
+        problems.append('INDEPENDENCE: two distinct recorded calls with different pinned model ids required')
+    if len(set(prompts)) > 1:
+        problems.append('INDEPENDENCE: readers must receive identical prompt bytes, without prior answers')
+    rows, local, global_errors = [], {}, []
+    if proposals:
+        resolved_proposal = proposals[0]
+        use_resolution = len(proposals) >= 3
+        if use_resolution:
+            resolved_rows, resolutions, resolution_problems = resolve_cells(proposals, ids, models, table)
+            resolved_proposal = {'rows': resolved_rows}
+            problems.extend(resolution_problems)
+        try:
+            rows, local, global_errors = audit(resolved_proposal, table)
+        except (ArithmeticError, ValueError) as exc:
+            problems.append('ARITHMETIC: numeric range refused: ' + str(exc))
+        for other in ([] if use_resolution else proposals[1:]):
+            by_key = {(r['kind'], r['agent'], r['trial']): r for r in other['rows']}
+            first_keys = {(r['kind'], r['agent'], r['trial']) for r in rows}
+            if set(by_key) != first_keys:
+                problems.append('AGREEMENT: row inventory differs: ' + repr(sorted(set(by_key) ^ first_keys)))
+            for i, row in enumerate(rows):
+                other_row = by_key.get((row['kind'], row['agent'], row['trial']), {})
+                fields = sorted(k for k in ROW_KEYS if row[k] != other_row.get(k))
+                if fields:
+                    local[i].append('AGREEMENT: ' + row['trial'] + ': ' + ', '.join(fields))
+                    # Totals depend on the disputed row; refuse the entire accounting block.
+                    problems.append('AGREEMENT: disputed cell in ' + row['trial'])
+    problems.extend(global_errors)
+    controls = control_accounting(rows)
+    result = []
+    for i, row in enumerate(rows):
+        reasons = problems + local[i]
+        status = 'REFUSED' if reasons else ('UNVERIFIABLE' if row['kind'] == 'overall' else 'ADMITTED')
+        result.append({'row': row, 'status': status, 'reasons': reasons,
+                       'figure_sha256': figure_sha, 'record_ids': ids, 'poolable': False,
+                       'table1_evidence': table.get('evidence')})
+        if row['kind'] == 'overall':
+            result[-1]['control_accounting'] = next(c for c in controls if c['trial'] == row['trial'])
+    bindings = []
+    try:
+        block = json.loads((root / 'docs/recovery_maps.json').read_text(encoding='utf-8'))['topics'][SLUG]
+        for entry in block['entries']:
+            matches_ = [r for r in result if r['row']['kind'] == 'trial' and norm(r['row']['agent']) == 'TOCILIZUMAB'
+                        and norm(r['row']['trial']) == norm(entry['trial'])]
+            binding = {'trial': entry['trial'], 'from': 'RELAYED', 'state': 'RELAYED', 'poolable': False,
+                       'population': block['population'], 'population_equivalence': 'NOT_ADJUDICATED',
+                       'source_population': table.get('population'),
+                       'figure_sha256': figure_sha, 'record_ids': ids,
+                       'relayed': {k: entry[k] for k in COUNTS}}
+            if len(matches_) == 1:
+                match = matches_[0]
+                binding['proposed_figure_counts'] = {k: match['row'][k] for k in COUNTS}
+                binding['reasons'] = match['reasons']
+                if match['status'] == 'ADMITTED':
+                    binding['figure_counts'] = binding.pop('proposed_figure_counts')
+                    conflicts = [k for k in COUNTS if entry[k] != match['row'][k]]
+                    binding['state'] = 'CONFLICT' if conflicts else 'BOUND_TO_HELD_FIGURE'
+                    binding['conflicts'] = conflicts
+            else:
+                binding['reasons'] = ['RECOVERY_ROW_MISSING_OR_AMBIGUOUS: ' + entry['trial']]
+            bindings.append(binding)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        problems.append('RECOVERY_MAP_REFUSED: ' + str(exc))
+    return {'schema': 'forest_gate/1', 'rows': result, 'bindings': bindings, 'problems': problems,
+            'control_accounting': controls, 'cell_resolutions': resolutions,
+            'excluded_records': excluded_records,
+            'poolable': False, 'population_rule': 'outcomes recorded; equivalence to target population NOT_ADJUDICATED'}

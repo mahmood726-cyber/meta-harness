@@ -244,7 +244,7 @@ def plant_evidence():
     current=next(o for o in review['outcomes'] if o['name']=='Major bleeding')['trials']
     mixed=synth.pool([synth.Study('PHILO',effect=published['effect'],ci_low=published['ci_low'],ci_high=published['ci_high']),
                      synth.Study('PLATO',**{k:pl[k] for k in ('ai','n1i','ci','n2i')})],scale='HR')
-    d=binding.disperse()
+    d=binding.disperse_held_record()
     km=next(s for s in d['record']['abstract'].split(';') if 'Kaplan-Meier' in s and '%' in s)
     pct=float(re.search(r'(\d+(?:\.\d+)?)%',km)[1])
     fake=dict(ai=round(pct*1000/100),n1i=1000,ci=1,n2i=1000)

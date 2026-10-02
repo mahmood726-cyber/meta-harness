@@ -10,6 +10,7 @@
 """
 import copy
 import json
+import re
 import os
 
 import pytest
@@ -75,7 +76,16 @@ def test_held_originals_carry_hash_source_and_retrieval_time():
     led = json.load(open(os.path.join(ROOT, "evidence", "acquisition_cascade", "held", "HELD.json"), encoding="utf-8"))
     rows = {k: v for k, v in led.items() if not k.startswith("_")}
     assert rows and all(v.get("sha256") and v.get("source") and v.get("retrieved_utc") for v in rows.values())
-    assert all(v.get("representation") == "ORIGINAL_VERBATIM" for v in rows.values())
+    # Every held item is an ORIGINAL_VERBATIM, or a DECLARED derivative (an image extracted from, or a page rendered
+    # from, a held PDF) whose source names a held ORIGINAL_VERBATIM parent. A derivative is never labelled original.
+    derived = {"EMBEDDED_IMAGE_EXTRACTED", "DERIVED_RENDERING"}
+    for key, v in rows.items():
+        if v.get("representation") == "ORIGINAL_VERBATIM":
+            continue
+        assert v.get("representation") in derived, key
+        parent = re.match(r"(\S+\.pdf) \(page \d+\)$", v["source"])
+        assert parent and rows.get(parent[1], {}).get("representation") == "ORIGINAL_VERBATIM", key
+    assert sum(v.get("representation") == "ORIGINAL_VERBATIM" for v in rows.values()) > 0
 
 
 _OUT = {}

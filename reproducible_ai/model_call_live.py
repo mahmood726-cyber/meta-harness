@@ -65,8 +65,8 @@ LANE_CONTEXT = """# LANE_CONTEXT -- read this first
 This empty directory is the scratch working directory of ONE recorded model call (meta-harness, lane `rai`,
 reproducible_ai/model_call_live.py). It holds nothing you need except the output schema.
 
-Your task is ONLY the prompt you were given; everything you need is inside that prompt text. Nothing outside this
-prompt is context: do not read, list or search any other file or directory on this machine (no AGENTS.md, CLAUDE.md,
+Your task is ONLY the prompt you were given; everything you need is in that prompt or its explicitly attached images.
+Nothing else is context: do not read, list or search any other file or directory on this machine (no AGENTS.md, CLAUDE.md,
 INDEX.md, workbooks, registries, other repositories, home directories). Do not run commands. Do not write anything.
 """
 LANE_CONTEXT_SHA256 = hashlib.sha256(LANE_CONTEXT.encode("utf-8")).hexdigest()
@@ -169,7 +169,8 @@ def reported_model(stderr_text: str) -> str | None:
     return client_header(stderr_text).get("model") or None
 
 
-def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s: int) -> dict:
+def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s: int,
+                 images: tuple[Path, ...] = ()) -> dict:
     """Run one `codex exec`. Returns {rc, stdout, stderr, last_message, argv}; bytes throughout."""
     work = Path(tempfile.mkdtemp(prefix="mcall-", dir=os.environ.get("MODEL_CALL_WORKDIR") or None))
     try:
@@ -179,6 +180,8 @@ def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s
                 "--sandbox", "read-only", "--cd", str(work), "--output-schema", str(work / "schema.json"),
                 "--output-last-message", str(out), "-m", model,
                 "-c", f"model_reasoning_effort={effort}", "-c", "project_doc_max_bytes=0", "-"]
+        for image in images:
+            argv[-1:-1] = ["-i", str(image)]
         try:
             p = subprocess.run(argv, input=prompt, capture_output=True, timeout=timeout_s)
             rc, so, se = p.returncode, p.stdout, p.stderr
@@ -186,24 +189,50 @@ def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s
             rc, so, se = -9, exc.stdout or b"", (exc.stderr or b"") + f"\nTIMEOUT after {timeout_s}s".encode()
         last = out.read_bytes() if out.exists() else b""
         return {"rc": rc, "stdout": so, "stderr": se, "last_message": last,
-                "argv": ["codex"] + [a.replace(str(work), "<workdir>") for a in argv[1:]]}
+                "argv": ["codex"] + [next((f"<image:{i}>" for i, p in enumerate(images) if a == str(p)),
+                                           a.replace(str(work), "<workdir>")) for a in argv[1:]]}
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
+def image_inputs(images, root: Path) -> tuple[tuple[Path, ...], list[dict]]:
+    """Held images are digest-only inputs; reject paths outside the repository."""
+    paths, digests = [], []
+    root = Path(root).resolve()
+    for image in images:
+        path = Path(image)
+        path = (path if path.is_absolute() else root / path).resolve()
+        try:
+            ref = path.relative_to(root).as_posix()
+        except ValueError:
+            raise model_source.RecordIncomplete("IMAGE_OUTSIDE_REPOSITORY: " + path.name) from None
+        media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(path.suffix.lower())
+        if media is None or not path.is_file():
+            raise model_source.RecordIncomplete("IMAGE_MISSING_OR_UNSUPPORTED: " + ref)
+        paths.append(path)
+        digests.append({"ref": ref, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                        "media_type": media, "what": "held image input; bytes not copied"})
+    return tuple(paths), digests
+
+
 def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, input_digests: list,
-         timeout_s: int = 900, runner: Callable[..., dict] | None = None, client_version: str | None = None) -> dict:
+         timeout_s: int = 900, runner: Callable[..., dict] | None = None, client_version: str | None = None,
+         images: tuple = (), image_root: Path | None = None) -> dict:
     """One model call -> one record (RAN_OK with the response bytes, or RAN_ERROR with the error). Never raises for a
     failed call: a failure is data. Raises RecordIncomplete only when the record itself would be unsound."""
     runner = runner or codex_runner
     digests = list(input_digests)
+    image_paths, image_digests = image_inputs(images, image_root or model_source.ROOT)
+    digests.extend(image_digests)
     g = global_agents_digest() if runner is codex_runner else None
     if g:
         digests.append(g)
     digests.append({"ref": "output-schema (inline in params)", "sha256": hashlib.sha256(model_source.canonical(schema)).hexdigest(),
                     "what": "JSON schema the client constrains the final message to"})
     t0 = _utc()
-    r = runner(prompt, schema, model, effort, timeout_s)
+    r = runner(prompt, schema, model, effort, timeout_s, images=image_paths) if image_paths else runner(prompt, schema, model, effort, timeout_s)
+    if image_inputs(image_paths, image_root or model_source.ROOT)[1] != image_digests:
+        raise model_source.RecordIncomplete("IMAGE_CHANGED_DURING_CALL")
     t1 = _utc()
     so, se = r.get("stdout") or b"", r.get("stderr") or b""
     header = client_header(se.decode("utf-8", "replace"))

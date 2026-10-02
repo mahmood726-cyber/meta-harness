@@ -1,0 +1,196 @@
+{
+ "caller": {
+  "file": "scripts/react_figure_proposal.py",
+  "lane": "REACTFIG",
+  "line": "main --call",
+  "purpose": "Independent WHO REACT Figure 1 transcription"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-5.4",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-i",
+   "<image:0>",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-5.4",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0f41a-2ccc-7c70-9949-9cf7717492ef"
+  },
+  "lane_log": "registry/model_calls/lane_log/REACTFIG.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 1804,
+  "stderr_sha256": "87403200b528ef73ef282648947ff7dee937d851dfb3776cbafe9ba1ceee9c92",
+  "stdout_bytes": 0,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tokens_used": null,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "55d99255d50c88f6c02807d238b645b8be99d6e8e68284e38e610788dc6d3640"
+ },
+ "error": "client exited 1: iles, use tools, or consult previous proposals. If illegible, do not invent values; an incomplete or invalid proposal will be refused.\nwarning: Model metadata for `gpt-5.4` not found. Defaulting to fallback metadata; this can degrade performance and cause issues.\nERROR: {\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.4' model is not supported when using Codex with a ChatGPT account.\"}}\nERROR: {\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.4' model is not supported when using Codex with a ChatGPT account.\"}}\n",
+ "input_digests": [
+  {
+   "media_type": "image/jpeg",
+   "ref": "evidence/acquisition_cascade/held/WHO-REACT/jama-e2111330-g001.jpg",
+   "sha256": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+   "what": "held image input; bytes not copied"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "662569920d6271c3efdcfcebbf30b94afc6a4b2c249685c3f07e1bb869714c8e",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-5.4",
+  "id_requested": "gpt-5.4",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "rows": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "agent": {
+        "type": "string"
+       },
+       "ai": {
+        "minimum": 0,
+        "type": "integer"
+       },
+       "ci": {
+        "minimum": 0,
+        "type": "integer"
+       },
+       "ci_high": {
+        "type": "string"
+       },
+       "ci_low": {
+        "type": "string"
+       },
+       "kind": {
+        "enum": [
+         "trial",
+         "subgroup",
+         "overall"
+        ],
+        "type": "string"
+       },
+       "n1i": {
+        "minimum": 0,
+        "type": "integer"
+       },
+       "n2i": {
+        "minimum": 0,
+        "type": "integer"
+       },
+       "or": {
+        "type": "string"
+       },
+       "registration": {
+        "type": "string"
+       },
+       "trial": {
+        "type": "string"
+       },
+       "weight": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "agent",
+       "ai",
+       "ci",
+       "ci_high",
+       "ci_low",
+       "kind",
+       "n1i",
+       "n2i",
+       "or",
+       "registration",
+       "trial",
+       "weight"
+      ],
+      "type": "object"
+     },
+     "minItems": 1,
+     "type": "array"
+    }
+   },
+   "required": [
+    "rows"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "32dda90dacb00907567265483ab459284758b1bc29b4d8baf935a010717a81cf",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "VHJhbnNjcmliZSB0aGUgYXR0YWNoZWQgV0hPIFJFQUNUIEZpZ3VyZSAxICgyOC1kYXkgYWxsLWNhdXNlIG1vcnRhbGl0eSkuIFRoaXMgaXMgYSBQUk9QT1NBTCwgbm90IGRhdGEuIFJlYWQgRVZFUlkgcm93IHZlcmJhdGltLCBpbiBmaWd1cmUgb3JkZXI6IGFsbCB0cmlhbCByb3dzIGluIEVWRVJZIGFudGktSUwtNiBhZ2VudCBzZWN0aW9uLCBldmVyeSBwcmludGVkIHN1Ymdyb3VwIHRvdGFsLCBhbmQgdGhlIG92ZXJhbGwgdG90YWwuIERvIG5vdCBjb3JyZWN0IGFyaXRobWV0aWMsIGluZmVyIGFuIHVucHJpbnRlZCBzdWJ0b3RhbCwgZHJvcCB6ZXJvLWV2ZW50IHJvd3MsIG9yIHJlc29sdmUgc2hhcmVkIGNvbnRyb2xzLiBQcmVzZXJ2ZSB0cmlhbCBuYW1lczsgb21pdCBvbmx5IHN1cGVyc2NyaXB0IGZvb3Rub3RlIG1hcmtlcnMuIGFnZW50IGlzIHRoZSBzZWN0aW9uIGxhYmVsLiBraW5kIGlzIHRyaWFsLCBzdWJncm91cCwgb3Igb3ZlcmFsbDsgdXNlIHRoZSBwcmludGVkIHRvdGFsIGxhYmVsIGFzIHRyaWFsIGZvciBzdW1tYXJ5IHJvd3MuIGFpL24xaSBhcmUgZXZlbnRzL3RvdGFsIEFOVEktSUwtNjsgY2kvbjJpIGFyZSBldmVudHMvdG90YWwgVVNVQUwgQ0FSRSBPUiBQTEFDRUJPLiBDb3B5IE9SLCBjaV9sb3csIGNpX2hpZ2gsIGFuZCB3ZWlnaHQgYXMgc3RyaW5ncyBhdCBleGFjdGx5IHRoZSBwcmludGVkIHByZWNpc2lvbiAod2l0aG91dCBwZXJjZW50IHNpZ24pOyBwcmVzZXJ2ZSA8IGFuZCB1c2UgTkEgZm9yIGEgcHJpbnRlZCBOQSBvciBibGFuay4gcmVnaXN0cmF0aW9uIGlzIHRoZSBwcmludGVkIHJlZ2lzdHJhdGlvbiBpZGVudGlmaWVyIG9yIGVtcHR5IHN0cmluZyB3aGVuIGFic2VudDsgbmV2ZXIgaW5mZXIgb25lLiBSZXR1cm4gb25seSB0aGUgb3V0cHV0LXNjaGVtYSBKU09OLiBEbyBub3QgcmVhZCBvdGhlciBmaWxlcywgdXNlIHRvb2xzLCBvciBjb25zdWx0IHByZXZpb3VzIHByb3Bvc2Fscy4gSWYgaWxsZWdpYmxlLCBkbyBub3QgaW52ZW50IHZhbHVlczsgYW4gaW5jb21wbGV0ZSBvciBpbnZhbGlkIHByb3Bvc2FsIHdpbGwgYmUgcmVmdXNlZC4=",
+  "bytes": 1058,
+  "sha256": "45968700ae63315429fbb303cc124229d3852a474169884856c17958f66d5d1b"
+ },
+ "record_id": "mc-5be4c87b415c717805fa6319c8695493",
+ "request_utc": "2026-09-30T20:55:50Z",
+ "response": {
+  "b64": "",
+  "bytes": 0,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "response_utc": "2026-09-30T20:55:53Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_ERROR"
+}

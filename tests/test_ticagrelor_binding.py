@@ -121,7 +121,8 @@ def test_patients_not_events_or_km(bound):
 
 
 def test_disperse_km_shared_control_and_mi_plants():
-    d=b.disperse(); record=d['record']
+    d=b.disperse_held_record(); record=d['record']
+    assert d['pmid'] == b.load_disperse_binding()['pmid']  # held contract and render-time binding name one trial
     assert d['status']=='REFUSED' and d['recovery']=='ACTIVE'
     assert len(d['arms'])==3 and all(a['n'] is None for a in d['arms'])
     # Synthetic test denominator only; never derived from 1:1:1 or exposed as evidence.

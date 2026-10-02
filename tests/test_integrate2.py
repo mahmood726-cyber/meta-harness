@@ -138,10 +138,10 @@ def test_held_build_uses_wiring():
     assert rv['recovery_map']
     from harness.page import render_page
     rendered=render_page(rv)
-    assert 'typed_timepoint' in rendered and 'COUNTS_RECOVERED' in rendered
-    assert 'PARTIAL' in rendered and 'NOT_ADJUDICATED' in rendered
+    assert 'typed_timepoint' in rendered and 'CROSS_PROVIDER_VERIFIED' in rendered
+    assert 'model-transcribed from the held figure; arithmetic and reading-consensus checked; not independently cell-verified' in rendered and 'NOT_ADJUDICATED' in rendered
     bindings = rv['recovery_bindings']
-    assert bindings and all(b['denominator'] == 'BOUND' and b['numerator'] == 'RELAYED'
+    assert bindings and all(b['denominator'] == 'CROSS_PROVIDER_VERIFIED' and b['numerator'] == 'CROSS_PROVIDER_VERIFIED'
                             and not b['poolable'] for b in bindings)
 
 

@@ -10,7 +10,10 @@ def test_the_workdir_holds_only_the_schema_and_the_orientation(tmp_path):
     live.prepare_workdir(tmp_path, {"type": "object"})
     assert sorted(p.name for p in tmp_path.iterdir()) == ["LANE_CONTEXT.md", "schema.json"]
     text = (tmp_path / "LANE_CONTEXT.md").read_text(encoding="utf-8")
-    assert "Nothing outside this" in text and "AGENTS.md" in text
+    # Requirement, not wording: the prompt (and only explicitly attached images) is the whole context, and the
+    # orientation forbids reading anything else -- naming AGENTS.md -- and running or writing anything.
+    assert "Nothing else is context" in text and "AGENTS.md" in text
+    assert "explicitly attached images" in text and "Do not run commands" in text and "Do not write anything" in text
 
 
 def test_the_runner_prepares_its_workdir_and_records_the_digest():
