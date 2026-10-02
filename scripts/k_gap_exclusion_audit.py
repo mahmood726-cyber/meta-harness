@@ -162,6 +162,77 @@ AIM_THIS_STUDY = re.compile(r"\b(?:we|this (?:trial|study)|the (?:aim|objective|
                             r"(?:\w+\s+){0,2}?(?:examined|assessed|investigated|evaluated|tested|aimed|sought|compared|"
                             r"determined|was to)\b", re.I)
 
+# --- the EXCLUDED POPULATION of THIS study, stated in its own words (NR-C25 narrowed this to two constructions: a term
+# merely occurring in an aim or allocation sentence named in-scope trials on negations, subgroups, outcomes, secondary
+# aims, other studies' aims and contradicted abstracts)
+# words that say a sentence is about ANOTHER study
+_OTHER_STUDY = re.compile(r"\b(?:previous|prior|earlier|other|former)\s+(?:\w+\s+){0,2}?(?:trials?|stud(?:y|ies)|reports?|"
+                          r"analys[ie]s|meta-analys[ie]s|work)\b|\bauthors?\b|\breported\b|\bhave (?:been )?(?:examined|shown)\b",
+                          re.I)
+# a sentence about THIS study's enrolled population
+_ENROLLED = re.compile(r"\b(?:were|was)\s+(?:\w+\s+){0,2}?(?:randomi[sz]ed|randomly assigned|enrolled|recruited|included)\b|"
+                       r"\bwe\s+(?:\w+\s+){0,2}?(?:randomi[sz]ed|randomly assigned|enrolled|recruited)\b", re.I)
+# the enrolled population's phrase: 'patients / adults / women ... with <...>' up to the clause's end
+_POP_HEAD = re.compile(r"\b(?:patients|adults|women|men|participants|individuals|people|subjects|children)\b"
+                       r"(?P<tail>[^.;:]{0,200})", re.I)
+# any of these between the population head and the term negates, makes optional, or narrows it to a subgroup
+_NOT_MEMBERSHIP = re.compile(r"\b(?:without|not|no|none|unless|other than|except|excluding|excluded|exclusion|free of|"
+                             r"absence of|never|non|or without|including|subgroup|subset|those with|a history of|history)\b",
+                             re.I)
+# prevention verbs, applied to a condition
+_PREVENT = re.compile(r"\b(?:prevent|prevents|preventing|prevention of|prophylaxis (?:of|against)|prophylactic)\s+"
+                      r"(?P<obj>[^.;,]{0,80})", re.I)
+
+
+def _sentences_of(text):
+    ends = [e.start() for e in _SENT_END.finditer(text or "")]
+    a = 0
+    for e in ends + [len(text or "")]:
+        s = (text or "")[a:e + 1].strip()
+        if s:
+            yield s
+        a = e + 2
+
+
+def _negated_anywhere(text, term_rx):
+    """The abstract states the term NEGATED somewhere ('none had diabetes', 'without type 2 diabetes'): a naming would
+    contradict the record -> abstain."""
+    for m in term_rx.finditer(text or ""):
+        if _NOT_MEMBERSHIP.search(text[max(0, m.start() - 40):m.start()]):
+            return True
+    return False
+
+
+def stated_excluded_population(rec, inc):
+    """A verbatim span in which THIS study states that its enrolled population is one the protocol excludes, or None.
+      1. PREVENTION AIM: an unattributed first-person aim whose prevention verb takes the protocol's OWN condition
+         (population_any) as object, when the protocol excludes prevention (population_none has prevent / prophylaxis):
+         WOMAN-2 'We examined whether ... can prevent postpartum haemorrhage ...'. 'prevent death ... in women with
+         established postpartum haemorrhage' does not qualify (the object is death).
+      2. ENROLMENT: an unattributed randomisation / enrolment sentence whose population phrase ('patients ... with ...')
+         names a population_none term with nothing negating, optional or subgroup-like between the head and the term.
+    Either way, the abstract must never state the term negated (contradiction -> None)."""
+    ab = (rec or {}).get("abstract") or ""
+    none_rx, any_rx = _terms_rx(inc.get("population_none")), _terms_rx(inc.get("population_any"))
+    if not none_rx or not ab:
+        return None
+    prevention_excluded = any(re.match(r"(?:prevent|prophyla)", (t or "").strip(), re.I) for t in inc.get("population_none") or [])
+    for s in _sentences_of(ab):
+        if _OTHER_STUDY.search(s):
+            continue
+        if prevention_excluded and any_rx and AIM_THIS_STUDY.search(s):
+            for pm in _PREVENT.finditer(s):
+                om = any_rx.match(pm.group("obj").strip())
+                if om:
+                    return {"field": "abstract", "text": s, "match": pm.group(0)[:80]}
+        if _ENROLLED.search(s):
+            for hm in _POP_HEAD.finditer(s):
+                tail = hm.group("tail")
+                tm = none_rx.search(tail)
+                if tm and not _NOT_MEMBERSHIP.search(tail[:tm.start()]) and not _negated_anywhere(ab, none_rx):
+                    return {"field": "abstract", "text": s, "match": tm.group(0)}
+    return None
+
 
 def _terms_rx(terms):
     ts = [t.strip().rstrip("*") for t in terms or [] if t and t.strip()]
@@ -503,14 +574,10 @@ def _classify(rec, cfg):
         # another population; NOT_STATED / no verified reading -> the record does not say.
         # deterministic first: a population the protocol EXCLUDES, named in a sentence about THIS study (its first-person
         # aim, or its allocation) -- the record states the excluding fact in its own words
-        pn = _terms_rx(inc.get("population_none"))
-        if pn:
-            sp = next((x for x in _all_spans(rec, pn, ("abstract",), keep_in_bg=AIM_THIS_STUDY)
-                       if (AIM_THIS_STUDY.search(x["text"]) or THIS_STUDY_RANDOMISED.search(x["text"]))
-                       and not _negated(x["text"], x["match"])), None)
-            if sp:
-                return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION_STATED_FOR_THIS_STUDY:'{sp['match']}'",
-                        _with_span(base, sp))
+        sp = stated_excluded_population(rec, inc)
+        if sp and sp["text"] in (rec.get("abstract") or ""):
+            return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION_STATED_FOR_THIS_STUDY:'{sp['match']}'",
+                    _with_span(base, sp))
         pv, pq = READER.get(str(rec.get("id"))) or (None, None)
         if pv == "MET":
             return "SCREENER_ERROR", "POPULATION_VOCABULARY (recorded reader: population MET, quoted)", base
