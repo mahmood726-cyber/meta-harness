@@ -93,5 +93,20 @@ def test_every_true_scope_row_of_this_audit_carries_a_span_or_is_not_named():
     """The shared contract: a TRUE_SCOPE_DIFFERENCE names a trial only with the record's own words (span). A row of this
     audit without a span is never used to name (scripts/g1_sglt2_tracker.py requires au['span'])."""
     for r in A["rows"]:
-        if r["class"] == "TRUE_SCOPE_DIFFERENCE" and r.get("span"):
-            assert (r["span"].get("text") or "").strip()
+        if r["class"] == "TRUE_SCOPE_DIFFERENCE":
+            assert ((r.get("span") or {}).get("text") or "").strip(), (r["slug"], r["pmid"])
+
+
+def test_plant_a_single_reader_never_decides_where_two_disagree():
+    """24081972 (doac-vte, a pooled bleeding analysis): gpt-6-astra reads design NOT_MET, gpt-5.5 MET. With the second
+    reader removed it would be a TRUE_SCOPE_DIFFERENCE on one model's word; as built it stays INSUFFICIENT_RECORD."""
+    t.load_axes2()
+    built = _refine("doac-vte-recurrence", "24081972", "X1")[1]
+    saved = dict(t.AXES2)
+    t.AXES2.clear()                                   # guard removed: no second reader
+    try:
+        removed = _refine("doac-vte-recurrence", "24081972", "X1")[1]
+    finally:
+        t.AXES2.update(saved)
+    assert built[0] == "INSUFFICIENT_RECORD" and "readers disagree on design" in built[1]
+    assert removed[0] == "TRUE_SCOPE_DIFFERENCE"

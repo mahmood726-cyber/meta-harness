@@ -99,6 +99,23 @@ def population(slugs=None):
 
 # ------------------------------------------------------------------ lane refinements (after the shared classifier)
 AXES = {}            # pmid -> {axis: verdict} from VERIFIER_PASS second readings (all three proposal files)
+QUOTES = {}          # pmid -> {axis: the verified verbatim quote}
+
+
+def quote_span(rec, pmid, axis):
+    """The shared span contract ({field, text, match}, verbatim in the held record's field) from the reader's verified
+    quote on `axis`; None when the quote is not verbatim in title / conditions / abstract."""
+    q = (QUOTES.get(str(pmid)) or {}).get(axis)
+    if not q or not q.strip():
+        return None
+    for field in ("title", "conditions", "abstract"):
+        v = rec.get(field)
+        for item in (v if isinstance(v, list) else [v]):
+            if isinstance(item, str) and q in item:
+                return {"field": field, "text": q, "match": q, "source": f"recorded reader quote ({axis}, VERBATIM)"}
+    return None
+
+
 FT_DIR = os.path.join(ROOT, "g1", "data", "audit_ft")
 NO_PLACEBO_FT = re.compile(r"not receiving the study medication|did not receive (?:any )?(?:study )?(?:medication|drug|"
                            r"placebo)|no placebo was|without placebo|open[- ]label|unblinded|not blinded", re.I)
@@ -114,6 +131,33 @@ def load_axes():
             v = r.get("verification") or {}
             if v.get("state") == "VERIFIER_PASS" and r.get("pmid"):
                 AXES[str(r["pmid"])] = {k: (x or {}).get("verdict") for k, x in (v.get("axes") or {}).items()}
+                # the quote each verified axis rests on (verify_screening located it VERBATIM in the held record)
+                QUOTES[str(r["pmid"])] = {k: ((r.get("claim") or {}).get("axes") or {}).get(k, {}).get("quote")
+                                          for k, x in (v.get("axes") or {}).items()
+                                          if ((x or {}).get("located") or {}).get("match") == "VERBATIM"}
+
+
+AXES2 = {}           # the second reader's verified verdicts (gpt-5.5), same instrument
+
+
+def load_axes2():
+    p = READER2_PROP
+    if os.path.exists(p):
+        for r in xa._j(p).get("rows", []):
+            v = r.get("verification") or {}
+            if v.get("state") == "VERIFIER_PASS" and r.get("pmid"):
+                AXES2[str(r["pmid"])] = {k: (x or {}).get("verdict") for k, x in (v.get("axes") or {}).items()}
+
+
+def consensus(pmid):
+    """({axis: verdict} both readers verified identically, {axis: [v1, v2]} where they differ). Where the second reader
+    has no verified reading of this record, the first reader's verdicts stand (recorded as single-reader)."""
+    a1, a2 = AXES.get(str(pmid)) or {}, AXES2.get(str(pmid))
+    if a2 is None:
+        return a1, {}
+    agree = {k: v for k, v in a1.items() if a2.get(k) == v}
+    split = {k: [v, a2.get(k)] for k, v in a1.items() if a2.get(k) != v}
+    return agree, split
 
 
 def _stated_none_term(rec, cfg):
@@ -146,10 +190,15 @@ def refine(it, cls, sc, base, require_reader=True):
       R3  INSUFFICIENT and still undecided: the trial's OPEN full text (g1/data/audit_ft) states the design fact"""
     cfg = xa._cfg(it["slug"])
     rec, rule = it["rec"] or {}, base.get("rule_id") or it["recorded_rule"]
-    ax = AXES.get(str(it["pmid"])) or {}
+    # TWO READERS (gpt-6-astra, gpt-5.5; same instrument, each verified on its own): an axis counts only when both
+    # verified readings give the same verdict; an axis they disagree on is NOT decided (and is reported)
+    ax, split = consensus(it["pmid"])
+    if split:
+        it["readers_disagree"] = split
     if cls == "SCREENER_ERROR" and sc.startswith(("CONDITION_AS_OUTCOME", "POPULATION_ONLY_IN_ABSTRACT")):
         term = _stated_none_term(rec, cfg)
         if term and (ax.get("population") == "NOT_MET" or not require_reader):
+            base["span"] = xa.span_of(rec, xa._terms_rx([term]), ("title", "conditions", "abstract"))
             return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION_STATED:'{term}' (repair overruled: the "
                     f"record states it; recorded reader population NOT_MET, quoted)", "R1")
     # R0  a repair that flips the record to include proves only that THIS rule misfired. A SCREENER_ERROR claim also
@@ -161,6 +210,7 @@ def refine(it, cls, sc, base, require_reader=True):
         bad = sorted(k for k, v in ax.items() if v == "NOT_MET")
         unk = sorted(k for k, v in ax.items() if v == "NOT_STATED")
         if bad:
+            base["span"] = quote_span(rec, it["pmid"], bad[0])
             return ("TRUE_SCOPE_DIFFERENCE", f"{bad[0].upper()}_OUTSIDE_PROTOCOL (rule {rule} misfired: {sc}; recorded "
                     f"reader NOT_MET on {bad}, quoted)", "R0")
         if unk:
@@ -183,7 +233,10 @@ def refine(it, cls, sc, base, require_reader=True):
             return ("TRUE_SCOPE_DIFFERENCE", f"NO_PLACEBO_OR_OPEN_LABEL_STATED_IN_FULL_TEXT (recorded rule {rule} misfired; "
                     "the record meets it, the protocol's double-blind requirement excludes it): '"
                     + ft[max(0, m.start() - 60):m.end() + 20] + "'", "R3")
+    if v is None and axis and axis in (it.get("readers_disagree") or {}):
+        return cls, sc + f" | readers disagree on {axis}: {it['readers_disagree'][axis]}", None
     if v == "NOT_MET":
+        base["span"] = quote_span(rec, it["pmid"], axis)
         return "TRUE_SCOPE_DIFFERENCE", f"{axis.upper()}_OUTSIDE_PROTOCOL (recorded reader NOT_MET, quoted)", "R2"
     if v == "MET":
         sub = f"{rule}_BUT_RECORD_MEETS_{axis.upper()} (recorded reader MET, quoted)"
@@ -193,6 +246,8 @@ def refine(it, cls, sc, base, require_reader=True):
     if ft and (rule == "X1" or blind_rule):
         m = NO_PLACEBO_FT.search(ft)
         if m:
+            base["span"] = {"field": "fulltext", "text": ft[max(0, m.start() - 60):m.end() + 20], "match": m.group(0),
+                            "source": f"open full text g1/data/audit_ft/{it['pmid']}.json (licence stated in the bytes)"}
             return ("TRUE_SCOPE_DIFFERENCE", "NO_PLACEBO_OR_OPEN_LABEL_STATED_IN_FULL_TEXT: '"
                     + ft[max(0, m.start() - 60):m.end() + 20] + "'", "R3")
         if BLIND_PLACEBO_FT.search(ft):
@@ -241,6 +296,7 @@ def fixed_since(it):
 def main(argv):
     xa.load_reader()
     load_axes()
+    load_axes2()
     pop = population([a for a in argv if not a.startswith("--")] or None)
     rows, tally, sub = [], Counter(), Counter()
     for it in pop:
@@ -265,6 +321,12 @@ def main(argv):
         refined_by = None
         if it["rec"] and cls not in ("INCONSISTENT", "NOT_AN_EXCLUSION"):
             cls, sc, refined_by = refine(it, cls, sc, base)
+        # the SHARED span contract: a TRUE_SCOPE_DIFFERENCE stands only with the record's own words establishing it
+        # (span, verbatim in the held record); a full-text span (R3) is kept but named as such -- the tracker's
+        # verbatim check reads the held record, so it cannot name on it (proposed to the k-gap lane)
+        span = (base or {}).get("span") if cls == "TRUE_SCOPE_DIFFERENCE" else None
+        if cls == "TRUE_SCOPE_DIFFERENCE" and not (span or {}).get("text") and refined_by != "R3":
+            cls, sc = "INSUFFICIENT_RECORD", f"{sc.split(' (')[0]}_NO_SPAN"
         tally[cls] += 1
         sub[(cls, sc.split(":")[0].split(" (")[0])] += 1
         rows.append({"slug": it["slug"], "label": it["label"], "pmid": it["pmid"], "found_as": it["found_as"],
@@ -273,7 +335,8 @@ def main(argv):
                      "class": cls, "subclass": sc, "title": ((it["rec"] or {}).get("title") or "")[:140],
                      "has_abstract": bool((it["rec"] or {}).get("abstract")),
                      "shared_classifier": {"class": shared[0], "subclass": shared[1]}, "refined_by": refined_by,
-                     "reader_axes": AXES.get(str(it["pmid"]))})
+                     "reader_axes": AXES.get(str(it["pmid"])), "reader2_axes": AXES2.get(str(it["pmid"])),
+                     "readers_disagree": it.get("readers_disagree"), "span": span if cls == "TRUE_SCOPE_DIFFERENCE" else None})
     out = {"n": len(rows), "population": "every tracker trial blocked SCREENED_OUT_UNAUDITED or SCREENED_VIA_OTHER_REPORT",
            "by_class": dict(tally), "by_subclass": {f"{a}/{b}": v for (a, b), v in sorted(sub.items())}, "rows": rows}
     json.dump(out, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
@@ -315,20 +378,26 @@ def reader_items():
     return out
 
 
-def reader_main(run):
+READER2_PROP = READER_PROP.replace(".tracker.json", ".tracker.reader2.json")
+READER2_MODEL = "gpt-5.5"
+
+
+def reader_main(run, model=None, prop=None):
     import concurrent.futures as cf
     import k_gap_screen_recheck as rc
     from reproducible_ai import model_call_live, model_source as ms
     its = reader_items()
     bs = rc.batches(its)
-    data = xa._j(READER_PROP) if os.path.exists(READER_PROP) else {}
+    model = model or rc.MODEL
+    prop = prop or READER_PROP
+    data = xa._j(prop) if os.path.exists(prop) else {}
     runs = data.get("runs", {})
 
     def one(b):
         pilot = rc._pilot()
-        rec = model_call_live.call(b["prompt"], schema=pilot._schema(rc.TASK), model=rc.MODEL, effort=rc.EFFORT,
+        rec = model_call_live.call(b["prompt"], schema=pilot._schema(rc.TASK), model=model, effort=rc.EFFORT,
                                    caller={"file": "scripts/g1_exclusion_audit_tracker.py", "line": "reader_main",
-                                           "purpose": f"G1 exclusion audit second reader {b['batch']} (g1/tocilizumab lane)"},
+                                           "purpose": f"G1 exclusion audit reader {model} {b['batch']} (g1/tocilizumab lane)"},
                                    input_digests=b["digests"], timeout_s=1200)
         ms.write_record(rec, rc.REC_DIR)
         return {"batch": b["batch"], "record_id": rec["record_id"], "state": rec["state"], "prompt_sha256": rc._sha(b["prompt"])}
@@ -343,14 +412,17 @@ def reader_main(run):
     out = rc.verify(its, bs, runs)
     out["runs"] = runs
     out["task"] = "g1_exclusion_audit_tracker second reader"
-    json.dump(out, open(READER_PROP, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False, sort_keys=True)
+    out["model"] = model
+    json.dump(out, open(prop, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False, sort_keys=True)
     print(json.dumps({k: out[k] for k in ("N_items", "N_callable", "agreement")}, indent=1))
 
 
 if __name__ == "__main__":
     # ONE stdout wrapper per process: a second wrapper over the same buffer is closed when the first is collected
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-    if "--reader" in sys.argv:
+    if "--reader2" in sys.argv:
+        reader_main("--run" in sys.argv, READER2_MODEL, READER2_PROP)
+    elif "--reader" in sys.argv:
         reader_main("--run" in sys.argv)
     else:
         main(sys.argv[1:])
