@@ -157,6 +157,32 @@ def _matching_hmacs(text: str, key: str, registry: dict) -> list[str]:
     return sorted(matches)
 
 
+class _Matcher:
+    """_matching_hmacs for a whole scan: the keyed HMAC state is built once and copied per identifier, and each
+    distinct identifier is hashed once per scan (prose and slugs repeat across thousands of lines; the per-line
+    rebuild was most of the held-out limb's 7-10 minutes in CI). Same candidates, same digests, same membership
+    test: only repeated work is removed (tests/test_heldout.py::test_matcher_equals_the_per_line_scan)."""
+
+    def __init__(self, key: str, registry: dict):
+        self.tokens = _tokens(registry)
+        self._base = hmac.new(key.encode("utf-8"), digestmod=hashlib.sha256)
+        self._cache: dict[str, str] = {}
+
+    def _token(self, identifier: str) -> str:
+        t = self._cache.get(identifier)
+        if t is None:
+            h = self._base.copy()
+            h.update(identifier.lower().encode("utf-8"))
+            t = self._cache[identifier] = h.hexdigest()
+        return t
+
+    def __call__(self, text: str) -> list[str]:
+        if not self.tokens:
+            return []
+        return sorted({t for identifier in candidate_identifiers(text) for t in [self._token(identifier)]
+                       if t in self.tokens})
+
+
 def _is_binary(blob: bytes) -> bool:
     return b"\0" in blob
 
@@ -173,6 +199,7 @@ def scan_tree(root, key: str, registry: dict) -> list[dict]:
     """Scan every tracked text file for sealed identifiers without revealing them."""
     root = _root_path(root)
     hits = []
+    match = _Matcher(key, registry)
     for path in _scan_tracked_paths(root):
         abs_path = os.path.join(root, *path.split("/"))
         try:
@@ -183,7 +210,7 @@ def scan_tree(root, key: str, registry: dict) -> list[dict]:
             continue
         text = blob.decode("utf-8", errors="replace")
         for line_no, line in enumerate(text.splitlines(), start=1):
-            for digest in _matching_hmacs(line, key, registry):
+            for digest in match(line):
                 hits.append({"path": path, "identifier_hmac": digest, "line_no": line_no})
     return hits
 
