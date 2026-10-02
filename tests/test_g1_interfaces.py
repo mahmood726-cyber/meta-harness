@@ -131,3 +131,18 @@ def test_same_trials_result_verdict_is_typed():
     v = gt.result_verdict({"estimate": -10.0, "ci_low": -12.0, "ci_high": -8.0},
                           {"estimate": -11.5, "ci_low": -13.5, "ci_high": -9.5}, "MD")
     assert v["verdict"] == "SAME_CONCLUSION_DIFFERENT_ESTIMATE" and v["estimate_gap_over_ci_halfwidth"] == 0.75
+
+
+def test_a_registry_outcome_title_is_gated_as_a_composite_definition():
+    # ELIXA (NCT01147250): its 5- and 6-component posted secondaries passed the composite gate as bindable 3-point MACE,
+    # because the gate reads only spans that say 'composite'/'primary' and a registry title says neither
+    import sys
+    sys.path.append(os.path.join(ROOT, "scripts"))
+    import g1_tracker as gt
+    name = "3-point major adverse cardiovascular events"
+    for t in ("Time to First Occurence of CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke, Hospitalization for "
+              "Unstable Angina or Hospitalization For Heart Failure",
+              "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization "
+              "for Unstable Angina"):
+        assert gt.definition_gate(name, t)
+    assert not gt.definition_gate(name, "Time to First Occurrence of MACE: CV Death, Non-Fatal MI or Non-Fatal Stroke")
