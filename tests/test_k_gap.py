@@ -566,3 +566,12 @@ def test_exclusion_audit_insufficient_vs_true_scope():
     assert a.classify(obs, {"include": inc})[:2] == ("TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)")
     silent = _rec("Statin therapy in older adults", "Outcomes improved with statin therapy.", pubtypes=("Journal Article",))
     assert a.classify(silent, {"include": inc})[0] == "INSUFFICIENT_RECORD"
+
+
+def test_label_tokens_read_a_typographic_apostrophe():
+    # Medicine 2026 (PMID 42536519) labels a row "O’Neil, 2018" (U+2019): no author was read, the row had no
+    # citation / NCT / acronym either, so it was skipped and the comparator enumerated 3 trials instead of 4
+    t = k_gap._label_tokens("O’Neil, 2018")
+    assert (t["author"], t["year"]) == ("O'Neil", "2018")
+    assert k_gap._label_tokens("O'Neil, 2018")["author"] == "O'Neil"
+    assert k_gap._label_tokens("D‘Agostino 2001")["author"] == "D'Agostino"
