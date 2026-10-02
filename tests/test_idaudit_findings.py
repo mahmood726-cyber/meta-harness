@@ -73,3 +73,49 @@ def test_negative_paper_accession_outside_aact_links_does_not_override(monkeypat
     r = kt.resolve_unit(unit("STEP 1 29", [{"pmid": "33567185"}]), None, idx_two_regs(), None, our_fams=None)
     assert r["ncts"] == []
     assert any(b.startswith("pmid_nct_ambiguous") for b in r["basis"])
+
+
+# ---- permanent gate over the committed table: a row's label acronym must not contradict its registration's own name --
+def _n(x):
+    import re
+    return re.sub(r"[^A-Z0-9]", "", (x or "").upper())
+
+
+def label_registration_contradictions(trials):
+    """Rows whose short label names an acronym that neither prefixes / is prefixed by the resolved registration's AACT
+    acronym nor appears in its titles ('STEP 1 29' resolved to SELECT). Prefix, not equality: a citation number is
+    glued onto the label ('WOMAN-210' = WOMAN-2 + ref 10). Title-style labels (> 6 words) are not acronym claims."""
+    import re
+    bad = []
+    for r in trials:
+        if not r.get("ncts") or len((r.get("label") or "").split()) > 6:
+            continue
+        acrs = [_n(re.sub(r"\bNCT\d{8}\b", "", a)) for a in k_gap.identity_tokens(r["label"])["acronyms"]]
+        acrs = [a for a in acrs if len(a) >= 4]
+        for nct in r["ncts"]:
+            st = (r.get("study") or {}).get(nct) or {}
+            reg = _n(st.get("acronym"))
+            if not acrs or not reg:
+                continue
+            titles = _n(st.get("brief_title")) + "|" + _n(st.get("official_title"))
+            if not any(a.startswith(reg) or reg.startswith(a) or a in titles for a in acrs):
+                bad.append((r["slug"], r["label"], nct, st.get("acronym")))
+    return bad
+
+
+def test_gate_flags_the_planted_step1_select_row():
+    planted = [{"slug": "x", "label": "STEP 1 29", "ncts": ["NCT03574597"],
+                "study": {"NCT03574597": {"acronym": "SELECT", "brief_title": "Semaglutide Effects on Heart Disease"}}}]
+    assert label_registration_contradictions(planted) == [("x", "STEP 1 29", "NCT03574597", "SELECT")]
+
+
+def test_negative_gate_passes_glued_citation_numbers():
+    ok = [{"slug": "x", "label": "WOMAN-210", "ncts": ["NCT03475342"], "study": {"NCT03475342": {"acronym": "WOMAN-2"}}},
+          {"slug": "x", "label": "OSLER-1 NCT01439880", "ncts": ["NCT01439880"], "study": {"NCT01439880": {"acronym": "OSLER"}}}]
+    assert label_registration_contradictions(ok) == []
+
+
+def test_committed_table_has_no_label_registration_contradiction():
+    import json
+    t = json.loads((ROOT / "outputs" / "k_gap" / "k_gap_table.json").read_text(encoding="utf-8"))
+    assert label_registration_contradictions(t["trials"]) == []
