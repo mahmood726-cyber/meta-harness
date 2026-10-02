@@ -357,6 +357,21 @@ def _classify(rec, cfg):
         if inc.get("design_double_blind") and OPEN_DESIGN_SELF.search(rec.get("abstract") or ""):
             return ("TRUE_SCOPE_DIFFERENCE", "OPEN_DESIGN_STATED_FOR_THIS_STUDY (a placebo mention elsewhere cites another "
                     "study)", _with_span(base, span_of(rec, OPEN_DESIGN_SELF, ("abstract",))))
+        # the SERVED screen (harness/screen.py) applies the registered ARM OBJECT after the ruleset includes: re-screen
+        # the same way, or a record the screen excludes reads here as 'the ruleset includes it' (O'Neil 2018 30122305:
+        # once-daily semaglutide 0·05-0·4 mg, protocol arm_object.dose.required = 2.4 mg -> X-DOSE)
+        if cfg.get("arm_object"):
+            from harness import arm_object
+            _, ref = arm_object.screen_refusal(rec, cfg)
+            if ref:
+                b2 = dict(base, decision="exclude", rule_id=ref["rule_id"], reason=ref["reason"])
+                m = re.search(r"randomised (.+?) dose is", ref.get("reason") or "")
+                if ref["rule_id"] == "X-DOSE" and m:
+                    # the record's own words stating the dose(s): '<drug> [0·05 mg, ...' (a middle dot is a decimal)
+                    sp = span_of(rec, re.compile(re.escape(m.group(1)) + r"\s*[\[(]?\s*\d+(?:[.,·]\d+)?\s*mg", re.I),
+                                 ("title", "abstract"))
+                    return ("TRUE_SCOPE_DIFFERENCE", f"DOSE_OUTSIDE_PROTOCOL_STATED ({ref['reason']})", _with_span(b2, sp))
+                return "INSUFFICIENT_RECORD", f"ARM_OBJECT_{ref['rule_id']}_NOT_SPANNED", b2
         return "INCONSISTENT", "RULESET_INCLUDES", base
     rule, reason = base["rule_id"], base["reason"] or ""
     ab = rec.get("abstract") or ""
