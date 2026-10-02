@@ -146,16 +146,18 @@ def test_synthetic_controls_for_all_key_direction_classes():
     assert _direction(nd, "endpoint_definition")["key_direction"] == CD.NOT_DERIVABLE
 
 
-def test_sweep_writes_separate_direction_counts():
+def test_sweep_writes_separate_direction_counts(tmp_path):
+    # Write to tmp_path, never docs/ (the served tree).
+    target = tmp_path / "compat_direction_sweep.json"
     subprocess.run(
-        ["python", "scripts/compat_direction_sweep.py"],
+        ["python", "scripts/compat_direction_sweep.py", "--out", str(target)],
         cwd=ROOT,
         check=True,
         capture_output=True,
         text=True,
         encoding="utf-8",
     )
-    out = json.loads((ROOT / "docs" / "compat_direction_sweep.json").read_text(encoding="utf-8"))
+    out = json.loads(target.read_text(encoding="utf-8"))
     assert "over_claiming" in out["summary"]
     assert "under_claiming" in out["summary"]
     assert "not_derivable" in out["summary"]
