@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `37a544ea54c955a0c71f8fb09528c5e3f4ef749d287e055f4142f6fcc348b2d6` |
-| html_sha256 (served page bytes) | `1f6251dd0fe46233482471afded6653a15ef70da32a9a79e70cad150bac44d33` |
-| release_sha256 (certificate) | `86d96b1841c8fadbb5f596f0d763e4e91fd8ff26f83e4243d0d5a1b568579fef` |
+| review_sha256 (canonical review core) | `576c22aa29bf6abd56f35668d3e95265ba3d171f0c47d0d86ecc1b7b8dd09255` |
+| html_sha256 (served page bytes) | `cfc747c6a543a479478b696356a0c6b65cb1bfc019202b7bc5ee1430c9876203` |
+| release_sha256 (certificate) | `96294be8218032be052458edc3b68481e2e3e9585d20ac593612dfd142f0caa6` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `a56039f46158272c40c9565150903cf87db37c3c` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `b41d20074a25c1709c1d48003b8eebad24267e0c` |
+| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -44,6 +44,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/iv-iron-hfref-hosp/ft_40159390.txt` | `fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661` |
 
 Recorded judgments live under `cache/iv-iron-hfref-hosp/`; their object digest is
-`0ff977d0db2510dfb4ec6db72fe981055f7c39b5a46ea4ce160b7e2141ebbf98`. Acquisitions live under `docs/acquisitions/iv-iron-hfref-hosp/`.
+`cbdaf860d5b4de2179678ccc96cab3e6835897273673e662d0903e3734b2edda`. Acquisitions live under `docs/acquisitions/iv-iron-hfref-hosp/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `3eb69ba729b4e1f31e13cba9e8490c55ca60974b8d0d03474ced4a8e91a6eb4b` |
-| html_sha256 (served page bytes) | `6bef28c9bfac9635989b4477adcf920e447af9bf71e052c50fb32e09bbc8ef4c` |
-| release_sha256 (certificate) | `2801243e7f028aa2ba55d2cae3b36ca21b7afd49a934bf72fef9927d5143459b` |
+| review_sha256 (canonical review core) | `442ddb15cd7de3f54b8d8dd12a5c11ec16cda64a4c008cddde7bfa035617e03e` |
+| html_sha256 (served page bytes) | `117cb6e5147fdd63bec3bef0d1bd64adc2aaf14fa211e1855e3b1c467d3689c4` |
+| release_sha256 (certificate) | `f30f4694a9f28dec03e69a775d3f7df4fa2186994047638b39e5562fa34d4485` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `b41d20074a25c1709c1d48003b8eebad24267e0c` |
+| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -42,6 +42,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/colchicine-secondary-cv-prevention/ft_32407460.txt` | `a506eb61dac23665aa44a47a400a82a62b4fe476c6818670967cf9a0004b8098` |
 
 Recorded judgments live under `cache/colchicine-secondary-cv-prevention/`; their object digest is
-`b682263ad975e41a6dea38fc5123413214ed4de77a0014306031f3fb672d2830`. Acquisitions live under `docs/acquisitions/colchicine-secondary-cv-prevention/`.
+`b9fe05cf82e1dc2ec0a84d66ae64c30126ee1d6d797bc967476ef741c9ace0bf`. Acquisitions live under `docs/acquisitions/colchicine-secondary-cv-prevention/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

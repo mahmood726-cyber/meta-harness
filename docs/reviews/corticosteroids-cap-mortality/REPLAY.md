@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `d26a4681fa259b8274aa7f8fcbe22f049842d3a4c425438d66637839417398bb` |
-| html_sha256 (served page bytes) | `8b33e8d16adbcbf391b80b5fdc584d1b3def6444ed7b2a729f7a2bb37cd7128e` |
-| release_sha256 (certificate) | `78b0ee83b1e1feb8857f44cf018eed6b78dd528dc8a2f6343f0010b15ae65950` |
+| review_sha256 (canonical review core) | `a5e4a987e31acfc1d4153645cae7ec3aa4280709c4eea26375abd9ff54324d69` |
+| html_sha256 (served page bytes) | `c65ebd6e70b5108feb194b6c5492b0a40c4582141012e73438a64c33a5ba34c9` |
+| release_sha256 (certificate) | `d1bb4ba8d043b752847f42d652623037d4056c57802de93b4b7dbe6a1ecd1964` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `036ee46c6c45cb5c10607def1eeda86ba536d750` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `b41d20074a25c1709c1d48003b8eebad24267e0c` |
+| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -41,6 +41,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/corticosteroids-cap-mortality/ft_35723686.txt` | `9c2c8fa8eaabac5eee60a3500fe667e7da2f15a65b483d18634fa893d5d56fde` |
 
 Recorded judgments live under `cache/corticosteroids-cap-mortality/`; their object digest is
-`63b76acab80457a8a9e98f653181944f76d34cd0444d629b7bdfd8a31530116e`. Acquisitions live under `docs/acquisitions/corticosteroids-cap-mortality/`.
+`9d6cde8a0d62a0597bf9e7e488bbaa0e956d2955cee68f59fd925bcf6dfac6f4`. Acquisitions live under `docs/acquisitions/corticosteroids-cap-mortality/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

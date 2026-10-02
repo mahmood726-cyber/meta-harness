@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `f7342a793e53f013fe70165bca21478669a3c3f50d010f98c70f3b3863cd06fc` |
-| html_sha256 (served page bytes) | `e94ebb9577fd2dfad105cac5cd7120caa47228a9021f7c2f9a3946be292f207e` |
-| release_sha256 (certificate) | `fdd604ec2de364869b36ca070fd78b801390537b131ab3e70ccf5415838165a8` |
+| review_sha256 (canonical review core) | `c6c7d9a9b31fe507a91ceb8f2dc88b5691c515bc333d5ea578421ed32f3645a5` |
+| html_sha256 (served page bytes) | `60f477b942201c99491c9632c1fe8fca5c253931bfff7081d5e02ff84b5f0d4f` |
+| release_sha256 (certificate) | `c70125bdee90a8fc4d20dcb38c3b9b41eb12a031451d9d0e1300beeb419a7767` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `768c98fb539969c99716a5974e118d134ad6cf62` |
 | analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `b41d20074a25c1709c1d48003b8eebad24267e0c` |
+| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,6 +38,7 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/spironolactone-hfref-mortality/aact_inputs.json` | `4d4455d6cfff6ba1296bd22d4ada8a2db154ec3e58f48749e73160734c05188a` |
 | `cache/spironolactone-hfref-mortality/comparator_fulltext.txt` | `c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c` |
+| `cache/spironolactone-hfref-mortality/ft_28824029.txt` | `e44b31c82ad9409992dc1eaff0fa76ce67843e1ab29f98d650995f2a011c233a` |
 
 Recorded judgments live under `cache/spironolactone-hfref-mortality/`; their object digest is
 `89bf041092e040196816cfdc9d4fb993b64b0f18fa6773ddcbee46747bb807fa`. Acquisitions live under `docs/acquisitions/spironolactone-hfref-mortality/`.
