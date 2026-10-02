@@ -75,7 +75,7 @@ def test_k2_refused_ci_emits_no_pooled_claim():
     assert cl["crosses_null"] is None and cl["significant"] is False
 
 
-def test_claim_check_helper_and_build_gate_fire(monkeypatch):
+def test_claim_check_helper_and_build_gate_fire(monkeypatch, tmp_path):
     """Integration: _claim_check catches a renderer that asserts the opposite of the object,
     and build_review_dir refuses the build. Proves the gate can FAIL (not only pass)."""
     import harness.census as census
@@ -97,5 +97,5 @@ def test_claim_check_helper_and_build_gate_fire(monkeypatch):
     import pytest
     with pytest.raises(ValueError, match="CLAIM-OBJECT CONTRADICTION"):
         census.build_review_dir(core, {"slug": "x", "declared_method": "m", "served_method": "m",
-                                       "comparator": {}}, "F:/claude-temp/claude/_cc_gate_test",
+                                       "comparator": {}}, str(tmp_path / "_cc_gate_test"),
                                  "deadbeef", from_cache=True)
