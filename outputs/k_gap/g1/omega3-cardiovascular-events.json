@@ -60,16 +60,18 @@
  "blockers": {
   "SCREENED_OUT_UNAUDITED:X2": 4,
   "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
-  "IDENTITY_UNRESOLVED": 5,
-  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 3,
+  "SCREENED_OUT_UNAUDITED:X-DESIGN": 3,
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 4,
   "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 1,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
-  "SCREENED_OUT_UNAUDITED:X-DESIGN": 2,
   "SCREENED_OUT_UNAUDITED:X3": 1,
+  "EXTRACTION:ENDPOINT_UNBOUND": 1,
   "SCREEN_OR_ELIGIBILITY": 2,
-  "IDENTIFICATION": 2
+  "IDENTITY_UNRESOLVED": 1,
+  "IDENTIFICATION": 2,
+  "EXTRACTION:RESULT_INCOMPATIBLE": 1
  },
- "top_blocker": "IDENTITY_UNRESOLVED",
+ "top_blocker": "SCREENED_OUT_UNAUDITED:X2",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 5,
@@ -143,12 +145,12 @@
   },
   {
    "label": "GISSI-P 1999 [25]",
-   "family": null,
+   "family": "PMID 10465168",
    "in_our_pool": false,
    "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
-   "our_refusal": "UNRESOLVED_IDENTITY",
-   "gap_class": "UNRESOLVED_IDENTITY",
+   "basis": "SCREEN_OR_ELIGIBILITY",
+   "our_refusal": "IN SCREEN PMID 10465168: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 10465168).",
+   "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
@@ -158,8 +160,15 @@
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 10465168).",
+    "pmid": "10465168",
+    "already_in_screen": true
+   },
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN"
   },
   {
    "label": "Nilsen 2001 [26]",
@@ -386,23 +395,26 @@
   },
   {
    "label": "GISSI-HF 2008 [33]",
-   "family": null,
+   "family": "PMID 18757090",
    "in_our_pool": false,
    "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
-   "our_refusal": "UNRESOLVED_IDENTITY",
-   "gap_class": "UNRESOLVED_IDENTITY",
-   "absent_code": null,
+   "basis": "ACQUISITION",
+   "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+   "gap_class": "ACQUISITION",
+   "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": null,
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": null,
+   "registry_binding": {
+    "state": "NO_POSTED_RESULTS",
+    "nct": "NCT00336336"
+   },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE"
   },
   {
    "label": "Tuttle 2008 [34]",
@@ -652,23 +664,71 @@
   },
   {
    "label": "ORIGIN 2012 [40]",
-   "family": null,
+   "family": "PMID 22686415",
    "in_our_pool": false,
    "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
-   "our_refusal": "UNRESOLVED_IDENTITY",
-   "gap_class": "UNRESOLVED_IDENTITY",
-   "absent_code": null,
+   "basis": "EXTRACTION_FROM_TABLE",
+   "our_refusal": "the hand-extracted number is not bound to an endpoint in the held document (named endpoint has no definition span in the held text); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
+   "gap_class": "EXTRACTION_FROM_TABLE",
+   "absent_code": "ENDPOINT_UNBOUND",
    "comparator_row": null,
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": null,
+   "registry_binding": {
+    "state": "REFUSED",
+    "candidates": [
+     {
+      "nct": "NCT00069784",
+      "outcome_id": "258777810",
+      "title": "Composite of the First Occurrence of Cardiovascular (CV) Death, Nonfatal Myocardial Infarction (MI) or Nonfatal Stroke",
+      "time_frame": "from randomization until study cut-off date (median duration of follow-up: 6.2 years)",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258777810",
+       "param_type": "Cox Proportional Hazard",
+       "param_value": "1.022",
+       "ci_lower": "0.937",
+       "ci_upper": "1.114"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+       "rules": 2
+      },
+      "gate": "OUTCOME_NOT_NAMED",
+      "verdict": "REFUSED",
+      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
+     },
+     {
+      "nct": "NCT00069784",
+      "outcome_id": "258777811",
+      "title": "Composite of the First Occurrence of Cardiovascular (CV) Death, Nonfatal Myocardial Infarction (MI), Nonfatal Stroke, Revascularization Procedure or Hospitalization for Heart Failure (HF)",
+      "time_frame": "from randomization until study cut-off date (median duration of follow-up: 6.2 years)",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258777811",
+       "param_type": "Cox Proportional Hazard",
+       "param_value": "1.038",
+       "ci_lower": "0.972",
+       "ci_upper": "1.109"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+       "rules": 2
+      },
+      "gate": "OUTCOME_NOT_NAMED",
+      "verdict": "REFUSED",
+      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
+     }
+    ]
+   },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "EXTRACTION:ENDPOINT_UNBOUND"
   },
   {
    "label": "Macchia 2013 [41]",
@@ -886,23 +946,163 @@
   },
   {
    "label": "ASCEND 2018 [47]",
-   "family": null,
+   "family": "PMID 30146932",
    "in_our_pool": false,
    "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
-   "our_refusal": "UNRESOLVED_IDENTITY",
-   "gap_class": "UNRESOLVED_IDENTITY",
-   "absent_code": null,
+   "basis": "MEASURE_MISMATCH",
+   "our_refusal": "the bound endpoint span adds component(s) to the declared composite (transient ischemic attack): a different composite is not 'Major vascular events / MACE' and this outcome declares no near-match permission (allow_near_match / component_co",
+   "gap_class": "MEASURE_MISMATCH",
+   "absent_code": "RESULT_INCOMPATIBLE",
    "comparator_row": null,
    "comparator_row_findings": [],
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": null,
+   "registry_binding": {
+    "state": "BINDABLE",
+    "candidates": [
+     {
+      "nct": "NCT00135226",
+      "outcome_id": "258646503",
+      "title": "Number of Participants With First Occurrence of Any Serious Vascular Event (SVE)",
+      "time_frame": "Randomized treatment phase during a mean of 7.4 years",
+      "arms": [
+       {
+        "group": "838553299",
+        "count": 658,
+        "n": 7740,
+        "title": "Aspirin"
+       },
+       {
+        "group": "838553300",
+        "count": 743,
+        "n": 7740,
+        "title": "Placebo Aspirin"
+       },
+       {
+        "group": "838553301",
+        "count": 689,
+        "n": 7740,
+        "title": "Omega-3"
+       },
+       {
+        "group": "838553302",
+        "count": 712,
+        "n": 7740,
+        "title": "Placebo Omega-3"
+       }
+      ],
+      "analysis": {
+       "outcome_id": "258646503",
+       "param_type": "Rate Ratio",
+       "param_value": "0.88",
+       "ci_lower": "0.79",
+       "ci_upper": "0.97"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+       "rules": 2
+      },
+      "gate": null,
+      "verdict": "BINDABLE",
+      "reason": null,
+      "named_by": [
+       "serious vascular event"
+      ]
+     },
+     {
+      "nct": "NCT00135226",
+      "outcome_id": "258646504",
+      "title": "Number of Participants With First Occurrence of Any Major Bleed (Aspirin Comparison Only)",
+      "time_frame": "Randomized treatment phase during a mean of 7.4 years",
+      "arms": [
+       {
+        "group": "838553303",
+        "count": 314,
+        "n": 7740,
+        "title": "Aspirin"
+       },
+       {
+        "group": "838553304",
+        "count": 245,
+        "n": 7740,
+        "title": "Placebo Aspirin"
+       }
+      ],
+      "analysis": {
+       "outcome_id": "258646504",
+       "param_type": "Rate Ratio",
+       "param_value": "1.29",
+       "ci_lower": "1.09",
+       "ci_upper": "1.52"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+       "rules": 2
+      },
+      "gate": "OUTCOME_NOT_NAMED",
+      "verdict": "REFUSED",
+      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
+     },
+     {
+      "nct": "NCT00135226",
+      "outcome_id": "258646505",
+      "title": "Number of Participants With Combined End-point of Serious Vascular Events (SVEs) or Revascularizations",
+      "time_frame": "Randomized treatment phase during a mean of 7.4 years",
+      "arms": [
+       {
+        "group": "838553305",
+        "count": 833,
+        "n": 7740,
+        "title": "Aspirin"
+       },
+       {
+        "group": "838553306",
+        "count": 936,
+        "n": 7740,
+        "title": "Placebo Aspirin"
+       },
+       {
+        "group": "838553307",
+        "count": 882,
+        "n": 7740,
+        "title": "Omega-3"
+       },
+       {
+        "group": "838553308",
+        "count": 887,
+        "n": 7740,
+        "title": "Placebo Omega-3"
+       }
+      ],
+      "analysis": {
+       "outcome_id": "258646505",
+       "param_type": "Rate Ratio",
+       "param_value": "0.88",
+       "ci_lower": "0.8",
+       "ci_upper": "0.97"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
+       "rules": 2
+      },
+      "gate": null,
+      "verdict": "BINDABLE",
+      "reason": null,
+      "named_by": [
+       "serious vascular event",
+       "serious vascular events"
+      ]
+     }
+    ]
+   },
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "EXTRACTION:RESULT_INCOMPATIBLE"
   },
   {
    "label": "Pahor 2019 [48]",
