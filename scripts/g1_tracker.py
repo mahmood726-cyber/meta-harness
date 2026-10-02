@@ -37,6 +37,13 @@ G1_DIR = os.path.join(OUT, "g1")
 SCHEMA_VERSION = 1
 
 
+def _int(v):
+    try:
+        return int(str(v)[:4])
+    except (TypeError, ValueError):
+        return None
+
+
 def _j(p):
     with open(p, encoding="utf-8") as fh:
         return json.load(fh)
@@ -91,13 +98,33 @@ def same_trials_pool(pairs, method_label):
             return {"state": f"{side.upper()}_ROW_NOT_POOLABLE", "k": len(pairs)}
         mu, lo, hi = (g(x) for x in sm.pool([v[0] for v in yv], [v[1] for v in yv], method, hk))
         out[side] = {"estimate": round(mu, 4), "ci_low": round(lo, 4), "ci_high": round(hi, 4)}
+    out["verdict"] = result_verdict(out["ours"], out["theirs"], measure)
     return out
+
+
+def result_verdict(ours, theirs, measure):
+    """Like-for-like RESULT agreement on the same trials, typed:
+      AGREE     same conclusion about the null (both exclude it on the same side, or both include it) AND the estimates
+                differ by less than 10% of the comparator's CI half-width (on the analysis scale: log for ratios)
+      SAME_CONCLUSION_DIFFERENT_ESTIMATE / DIFFERENT_CONCLUSION otherwise."""
+    null = 1.0 if measure in sm.RATIO else 0.0
+    f = math.log if measure in sm.RATIO else (lambda x: x)
+
+    def concl(r):
+        return "BENEFIT" if r["ci_high"] < null else "HARM" if r["ci_low"] > null else "NULL_INCLUDED"
+    if concl(ours) != concl(theirs):
+        return {"verdict": "DIFFERENT_CONCLUSION", "ours": concl(ours), "theirs": concl(theirs)}
+    half = (f(theirs["ci_high"]) - f(theirs["ci_low"])) / 2
+    rel = abs(f(ours["estimate"]) - f(theirs["estimate"])) / half if half > 0 else float("inf")
+    return {"verdict": "AGREE" if rel < 0.10 else "SAME_CONCLUSION_DIFFERENT_ESTIMATE", "conclusion": concl(ours),
+            "estimate_gap_over_ci_halfwidth": round(rel, 4)}
 
 
 def topic(slug, T):
     import secondary_meta_build as smb
     import k_gap_counterfactual as cfm
     S = _j(os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json"))
+    rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     comp = S["comparator_pmid"]
     ours = smb.our_trials(slug)
     core = cfm.build(slug)
@@ -142,6 +169,8 @@ def topic(slug, T):
                                                                            "events_c", "n_c", "measure")}
                                           if theirs else None),
                        "comparator_row_findings": theirs.findings if theirs else [],
+                       "disagreement_side": ((theirs.verification or {}).get("which_side")
+                                             if theirs and theirs.state == sm.MISMATCH else None),
                        "g1_countable": route == "PRIMARY" or bool(sm.g1_countable(sec, {comp})),
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
                        else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None})
@@ -168,7 +197,6 @@ def topic(slug, T):
     pc = ((S.get("metas") or {}).get(comp) or {}).get("positive_control") or {}
     method = (pc.get("methods") or ["PM"])[0]
     res = prim.get("result") or {}
-    rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     rep = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     comp_basis = "served review comparator.reported" if rep else None
     cm = (S.get("metas") or {}).get(comp) or {}
@@ -181,6 +209,14 @@ def topic(slug, T):
         comp_basis = (f"comparator's typed table {cm.get('table')} pooled row, positive control "
                       f"{cm.get('positive_control', {}).get('methods')}")
     extra = sorted(str(t.get("id")) for t in prim.get("trials", []) if str(t.get("id")) not in matched_ids)
+    recs = {str(r.get("id")): r for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", [])}
+    comp_year = _int((rev.get("comparator") or {}).get("year"))
+    extra_detail = []
+    for e in extra:
+        y = _int((recs.get(e.replace("PMID ", "")) or {}).get("year"))
+        extra_detail.append({"id": e, "year": y, "comparator_year": comp_year,
+                             "why_not_in_comparator": ("PUBLISHED_AFTER_COMPARATOR" if y and comp_year and y > comp_year
+                                                       else "NOT_EXPLAINED_BY_DATE")})
     return {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if x["in_our_pool"]),
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
@@ -191,7 +227,7 @@ def topic(slug, T):
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
             "comparator_basis": comp_basis,
-            "ours_not_in_comparator": extra,
+            "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
 
 
@@ -210,8 +246,8 @@ def table():
           "|---|---|---|---|---|---|---|---|---|---|"]
     for o in out:
         r, st = o["routes"], o["same_trials"]
-        same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}"
-                if st.get("state") == "POOLED" else st.get("state"))
+        same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}: "
+                f"**{(st.get('verdict') or {}).get('verdict')}**" if st.get("state") == "POOLED" else st.get("state"))
         md.append(f"| {o['slug']} | {o['k_matched']} of {o['N_comparator_trials']} | {r.get('PRIMARY', 0)} | "
                   f"{r.get('TWO_SOURCE', 0)} | {r.get('UNVERIFIED', 0)} | {r.get('NO_ROW', 0)} | "
                   f"{o['per_trial_agreement']} | {same} | {_fmt(o['ours'])} k={o['ours'].get('k')} | {_fmt(o['comparator'])} |")
@@ -221,9 +257,11 @@ def table():
             md.append(f"- {x['label']}: **{x['route']}** - {x['basis']}; vs comparator row: "
                       f"{x['agreement_with_comparator_row']}"
                       + (f"; our refusal: {x['our_refusal']}" if x.get("our_refusal") else "")
-                      + (f"; comparator row finding: {x['comparator_row_findings']}" if x.get("comparator_row_findings") else ""))
-        if o["ours_not_in_comparator"]:
-            md.append(f"- pooled by us, not listed by the comparator: {', '.join(o['ours_not_in_comparator'])}")
+                      + (f"; comparator row finding: {x['comparator_row_findings']}" if x.get("comparator_row_findings") else "")
+                      + (f"; side: {x['disagreement_side']}" if x.get("disagreement_side") else ""))
+        for e in o.get("ours_not_in_comparator_detail") or []:
+            md.append(f"- pooled by us, not listed by the comparator: {e['id']} ({e['year']}; comparator "
+                      f"{e['comparator_year']}): {e['why_not_in_comparator']}")
     with open(os.path.join(OUT, "G1_TRACKER.md"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(md) + "\n")
     return md
