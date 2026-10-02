@@ -55,7 +55,17 @@ CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative
 
 # A figure named by hand when the deterministic selector cannot choose. The caption must CONTAIN `caption_has`
 # (checked against the comparator's JATS); `instruction` tells both readers which panel/subgroup to transcribe.
-TARGETS: dict = {}
+TARGETS: dict = {
+    # COMBINE AF (Circulation 2022, PMC8800560, an author manuscript): its only forest plot is F1 (F3 is covariate
+    # strata, F4 an HR-by-age curve the broadened caption match would otherwise pick). F1's rows may be outcomes, not
+    # trials: the readers are asked to say so (row_kind), and the gate refuses non-study rows.
+    "noac-vs-warfarin-af-stroke": {
+        "fig_id": "F1", "caption_has": "Forest plots showing hazard ratios comparing standard-dose",
+        "instruction": "Transcribe ONLY the left panel ('Efficacy Outcomes'). Report row_kind honestly: if each row "
+                       "is an outcome rather than a trial, say row_kind=\"outcome\". For rows, give the standard-dose "
+                       "DOAC vs warfarin row of each entry; for pooled, the 'Stroke or Systemic Embolism' standard-dose "
+                       "row."},
+}
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
@@ -142,7 +152,12 @@ def figure_for(slug, pmid):
                     "panel_title": t.get("panel_title"), "instruction": t.get("instruction"),
                     "selected_by": f"TARGETS (caption contains {t['caption_has']!r})"}, "SELECTED"
         return None, "TARGET_FIGURE_ABSENT"
-    fig, why = fp.select_figure(slug, pmid, jats_date=os.path.basename(jp)[:10], caption_re=CAPTION)
+    # a caption that says "forest" first; the broader pooled/ratio captions only when no forest caption qualifies (a
+    # broad match alone picked COMBINE AF's HR-by-age curve)
+    fig, why = fp.select_figure(slug, pmid, jats_date=os.path.basename(jp)[:10])
+    if not fig:
+        fig, why2 = fp.select_figure(slug, pmid, jats_date=os.path.basename(jp)[:10], caption_re=CAPTION)
+        why = why if fig is None and why2.startswith("NO_OUTCOME") else why2
     if fig:
         fig["selected_by"] = "k_gap_forest_plot.select_figure (comparator's own captions)"
     return fig, why
@@ -594,6 +609,10 @@ def measure_code(m):
 def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
     """Two parsed readings -> the figure's verdict, the proposed/refused rows, and (if ACCEPTED) the secondary rows."""
     proposed, refused, pooled, probs = agree(reading_a, reading_b)
+    agreed_not_trials = []
+    if any(p.startswith("ROWS_ARE_NOT_STUDIES") for p in probs):
+        # rows both readers agree on but which are NOT trials (outcomes / subgroups) are never per-trial proposals
+        agreed_not_trials, proposed = proposed, []
     measure = measure_code(reading_a.get("measure"))
     model = stated_model(mtext if mtext is not None else held, reading_a.get("model_printed") if reading_a.get("model_printed") ==
                          reading_b.get("model_printed") else None)
@@ -614,6 +633,7 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
                          **{k: r[k] for k in ("events_t", "n_t", "events_c", "n_c")}})
     return {"state": state, "problems": problems, "measure": measure, "stated_model": model,
             "proposed_rows": proposed, "refused_rows": refused, "pooled_agreed": pooled,
+            "agreed_rows_not_trials": agreed_not_trials,
             "acceptance": acc, "secondary_rows": rows,
             "anti_circularity": f"comparator-side rows of meta {item['pmid']}: never pool inputs; never count toward "
                                 f"agreement with meta {item['pmid']} (secondary_meta.g1_countable)"}
