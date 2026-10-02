@@ -386,7 +386,20 @@ def test_a_target_refused_before_reading_needs_its_caption_to_match(tmp_path, mo
     (d / "2026-10-02_kgap_jats.xml").write_text(
         '<article xmlns:xlink="http://www.w3.org/1999/xlink"><body><fig id="F1"><caption><p>A: Fatal MI; B: stroke'
         '</p></caption><graphic xlink:href="f1.jpg"/></fig></body></article>', encoding="utf-8")
-    monkeypatch.setitem(g.TARGETS, "plant-slug", {"fig_id": "F1", "caption_has": "A: Fatal MI", "refuse": "NO_PANEL"})
+    monkeypatch.setitem(g.TARGETS, "plant-slug::22222222", {"fig_id": "F1", "caption_has": "A: Fatal MI", "refuse": "NO_PANEL"})
     assert g.figure_for("plant-slug", "22222222") == (None, "REFUSED_BEFORE_READING:NO_PANEL")
-    monkeypatch.setitem(g.TARGETS, "plant-slug", {"fig_id": "F1", "caption_has": "MACE", "refuse": "NO_PANEL"})
+    monkeypatch.setitem(g.TARGETS, "plant-slug::22222222", {"fig_id": "F1", "caption_has": "MACE", "refuse": "NO_PANEL"})
     assert g.figure_for("plant-slug", "22222222") == (None, "TARGET_CAPTION_MISMATCH")      # a target is never trusted
+
+
+def test_accepted_rows_take_comparator_and_other_metas_of_the_topic_only(tmp_path, monkeypatch):
+    row = lambda pm: {"meta_pmid": pm, "trial_label": "T " + pm}  # noqa: E731
+    out = {"results": {"topic-a": {"state": "ACCEPTED", "pmid": "1", "secondary_rows": [row("1")]}},
+           "meta_results": {"topic-a::2": {"slug": "topic-a", "state": "ACCEPTED", "secondary_rows": [row("2")]},
+                            "topic-a::3": {"slug": "topic-a", "state": "REFUSED", "secondary_rows": []},
+                            "topic-b::4": {"slug": "topic-b", "state": "ACCEPTED", "secondary_rows": [row("4")]}}}
+    p = tmp_path / "out.json"
+    p.write_text(json.dumps(out), encoding="utf-8")
+    monkeypatch.setattr(g, "OUT", str(p))
+    assert sorted(r["meta_pmid"] for r in g.accepted_rows("topic-a")) == ["1", "2"]
+    assert [r["meta_pmid"] for r in g.accepted_rows("topic-b")] == ["4"]
