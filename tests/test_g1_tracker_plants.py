@@ -141,3 +141,26 @@ def test_a_year_glued_to_an_acronym_still_joins_the_family():
     assert fam(row) == "PMID 10471456"
     row.trial_label = "EMPHASIS-HF2011"
     assert fam(row) == "PMID 21073363"
+
+
+def test_a_comparator_citing_another_report_of_a_trial_we_pool_is_matched_to_that_pool_row():
+    # sglt2-primary-prevention: the comparator cites Radholm 2018 (CANVAS heart-failure outcomes, PMID 29526832, no NCT
+    # in its row); our pool holds CANVAS under Neal 2017 (PMID 28605608), same NCT01032629. Matched -- once, to that row.
+    import json
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-primary-prevention-hf.json"), encoding="utf-8"))
+    x = next(t for t in o["trials"] if t["label"].startswith("Radholm"))
+    assert x["in_our_pool"] and x["route"] == "PRIMARY"
+    assert x["matched_via_other_report"] == {"nct": "NCT01032629", "pool_row": "PMID 28605608", "comparator_cites": "29526832"}
+    assert "PMID 28605608" not in o["ours_not_in_comparator"]
+    fams = [t.get("family") for t in o["trials"] if t["in_our_pool"]]
+    assert len(fams) == len(set(fams))                 # one pool row never matches two comparator trials
+
+
+def test_the_screens_own_dedup_verdict_joins_a_comparator_trial_to_the_pooled_registration():
+    # esketamine Trial D (PMID 31734084) was screened out X-DEDUP 'companion/duplicate report of TRANSFORM-3
+    # (NCT02422186, already pooled)': the same trial; matched to the NCT02422186 pool row
+    import json
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "esketamine-trd-madrs.json"), encoding="utf-8"))
+    x = next(t for t in o["trials"] if t["label"].startswith("Trial D"))
+    assert x["in_our_pool"] and x["matched_via_other_report"]["pool_row"] == "NCT02422186"
+    assert "NCT02422186" not in o["ours_not_in_comparator"]

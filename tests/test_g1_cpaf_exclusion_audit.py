@@ -78,7 +78,7 @@ def test_substudy_of_an_rct_is_a_screener_error_and_a_protocol_paper_is_not():
     cls, sub, _ = audit.classify(_rec("Colchicine and postoperative atrial fibrillation: the X substudy", body), CFG)
     assert (cls, sub.split(":")[0]) == ("SCREENER_ERROR", "SECONDARY_REPORT_OF_RCT")
     cls, sub, _ = audit.classify(_rec("Rationale and design of the X trial of colchicine after cardiac surgery", body), CFG)
-    assert (cls, sub.split(":")[0]) == ("TRUE_SCOPE_DIFFERENCE", "DESIGN_OR_PROTOCOL_PAPER_STATED")
+    assert (cls, sub.split(":")[0]) == ("INSUFFICIENT_RECORD", "DESIGN_PAPER_ONLY")      # the trial stays eligible
 
 
 def test_a_full_text_span_names_zarpelon_only_when_verified_against_the_held_body(monkeypatch):
@@ -126,8 +126,8 @@ _BODY = ("METHODS: 300 patients undergoing cardiac surgery in a multicenter, dou
 def test_c21_a_protocol_paper_titled_substudy_is_a_protocol_paper_not_a_screener_error():
     cls, sub, d = audit.classify(_rec("Substudy design and protocol of a randomized trial of colchicine after cardiac surgery",
                                       _BODY), CFG)
-    assert (cls, sub.split(":")[0]) == ("TRUE_SCOPE_DIFFERENCE", "DESIGN_OR_PROTOCOL_PAPER_STATED")
-    assert d["span"]["field"] == "title"
+    # a protocol paper is not a screener error -- and it never removes the TRIAL: the trial stays eligible
+    assert (cls, sub.split(":")[0]) == ("INSUFFICIENT_RECORD", "DESIGN_PAPER_ONLY")
 
 
 def test_c21_a_non_randomised_substudy_is_not_a_randomised_report():
@@ -163,3 +163,10 @@ def test_c21_a_pinned_lane_file_for_another_topic_is_refused():
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-hfref-hosp-cvdeath.json"), encoding="utf-8"))
     with pytest.raises(audit.LaneSourceUnreadable):
         audit.lane_named_differences(dict(o, slug="tocilizumab-covid19-mortality"))
+
+
+def test_a_design_paper_never_removes_its_trial_from_the_denominator():
+    # spironolactone 25678098: 'Rationale and design of the ARTS-HF ...' -- the report is a design paper, the TRIAL
+    # (ARTS-HF) has a results report we do not hold; naming it out of scope would shrink the denominator
+    cls, sub, _ = audit.classify(_rec("Rationale and design of a randomized trial of colchicine after cardiac surgery", _BODY), CFG)
+    assert cls != "TRUE_SCOPE_DIFFERENCE"

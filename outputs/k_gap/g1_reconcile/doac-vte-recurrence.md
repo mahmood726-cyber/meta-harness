@@ -10,7 +10,7 @@ Every number is a comparator printed row, a served row, or counts read from a qu
 | Oral apixaban for the treatment of acute venous thromboembol (PMID 23808982) | MATCHED_NO_COMPARATOR_ROW | matched; the comparator prints no per-trial row |   (-) | None/None vs None/None |  |
 | Oral rivaroxaban for symptomatic venous thromboembolism. (PMID 21128814) | MATCHED_NO_COMPARATOR_ROW | matched; the comparator prints no per-trial row |   (-) | None/None vs None/None |  |
 | Oral rivaroxaban for the treatment of symptomatic pulmonary  (PMID 22449293) | MATCHED_NO_COMPARATOR_ROW | matched; the comparator prints no per-trial row |   (-) | None/None vs None/None |  |
-| Management and outcomes of major bleeding during treatment w (PMID 24081972) | NOT_AN_INCLUDED_TRIAL | a reference of the comparator, not one of its trials: the comparator states 6 trials; 6 distinct trials are matched; this reference seed is itself a pooled analysis of several trials, not one of them |   (-) | / vs / | METHODS AND RESULTS: Two independent investigators reviewed bleeding reports from 1034 individuals with 1121 major bleeds enrolled in 5 phase III trials compari |
+| Management and outcomes of major bleeding during treatment w (PMID 24081972) | TRUE_SCOPE_DIFFERENCE:SECONDARY_ANALYSIS_OF_TRIALS_STATED | out of the registered protocol's scope; the record states it |   (-) | / vs / |  |
 
 ## Does the comparator's conclusion survive?
 
