@@ -71,7 +71,8 @@ def test_aact_adapter_entry_shape_and_fail_closed(tmp_path, monkeypatch):
             "outcome_counts.txt": "id|nct_id|outcome_id|result_group_id|scope|units|count\n"
                                   "c1|NCT1|o1|g1|Measure|Participants|100\nc2|NCT1|o1|g2|Measure|Participants|100\n",
             "result_groups.txt": "id|nct_id|ctgov_group_code|result_type|title|outcome_id\n"
-                                 "g1|NCT1|OG000|Outcome|Drug|o1\ng2|NCT1|OG001|Outcome|Placebo|o1\n"}
+                                 "g1|NCT1|OG000|Outcome|Drug|o1\ng2|NCT1|OG001|Outcome|Placebo|o1\n",
+            "outcome_analysis_groups.txt": "id|nct_id|outcome_analysis_id|result_group_id|ctgov_group_code\n"}
     for f, body in rows.items():
         (snap / f).write_text(body, encoding="utf-8")
     monkeypatch.setenv("AACT_SNAPSHOT", str(snap))
