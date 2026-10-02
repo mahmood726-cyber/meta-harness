@@ -108,8 +108,9 @@ def printed_pool(c):
             "quote": (eff.get("span") or {}).get("quote"), "method": (ts.get("method") or {}).get("value")}
 
 
-def select_figure(slug, pmid, jats_date="2026-09-28", caption_re=None):
-    jp = os.path.join(COMP, pmid, f"{jats_date}_kgap_jats.xml")
+def select_figure(slug, pmid, jats_date="2026-09-28", caption_re=None, jats_file=None):
+    # jats_file: an explicit JATS(-like) file (scripts/g1_forest_reader.py derives one from a PMC article page)
+    jp = jats_file or os.path.join(COMP, pmid, f"{jats_date}_kgap_jats.xml")
     if not os.path.exists(jp):
         return None, "NO_JATS"
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
