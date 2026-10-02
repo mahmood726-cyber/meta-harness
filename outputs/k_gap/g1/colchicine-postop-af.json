@@ -4,24 +4,83 @@
  "comparator_pmid": "36050741",
  "N_comparator_trials": 9,
  "k_matched": 2,
- "N_eligible": 9,
- "named_differences": [],
+ "N_eligible": 4,
+ "named_differences": [
+  {
+   "trial": "Bessissow [17]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'lung resection'.",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'lung resection'"
+   },
+   "protocol_rule": "include.population_none[8] = 'lung resection'",
+   "registered_eligibility": null,
+   "pmid": "29237033"
+  },
+  {
+   "trial": "Deftereos [15]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'pulmonary vein'.",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"
+   },
+   "protocol_rule": "include.population_none[1] = 'pulmonary vein'",
+   "registered_eligibility": null,
+   "pmid": "23040570"
+  },
+  {
+   "trial": "Deftereos [16]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'pulmonary vein'.",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"
+   },
+   "protocol_rule": "include.population_none[1] = 'pulmonary vein'",
+   "registered_eligibility": null,
+   "pmid": "24508207"
+  },
+  {
+   "trial": "Tabbalat [22]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X-DESIGN",
+   "screen_reason": "not double-blind/placebo-controlled (record: 27502857).",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "OPEN_LABEL_STATED (protocol requires double-blind)"
+   },
+   "protocol_rule": "include.design_double_blind = True",
+   "registered_eligibility": null,
+   "pmid": "27502857"
+  },
+  {
+   "trial": "Zarpelon [20]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X-DESIGN",
+   "screen_reason": "not double-blind/placebo-controlled (record: 27223641).",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "OPEN_DESIGN_STATED_FOR_THIS_STUDY (a placebo mention elsewhere cites another study) [full text: REGEX_ON_FULLTEXT]"
+   },
+   "protocol_rule": "include.design_double_blind = True",
+   "registered_eligibility": null,
+   "pmid": "27223641"
+  }
+ ],
  "open_gaps": [
-  "Bessissow [17]",
-  "Deftereos [15]",
-  "Deftereos [16]",
   "Imazio [19]",
-  "Sarzaeem [23]",
-  "Tabbalat [22]",
-  "Zarpelon [20]"
+  "Sarzaeem [23]"
  ],
  "blockers": {
-  "SCREENED_OUT_UNAUDITED:X2": 3,
-  "SCREENED_OUT_UNAUDITED:X1": 1,
-  "IDENTITY_UNRESOLVED": 1,
-  "SCREENED_OUT_UNAUDITED:X-DESIGN": 2
+  "SCREENER_ERROR:SECONDARY_REPORT_OF_RCT:'substudy' (route to its trial family)": 1,
+  "IDENTITY_UNRESOLVED": 1
  },
- "top_blocker": "SCREENED_OUT_UNAUDITED:X2",
+ "top_blocker": "SCREENER_ERROR:SECONDARY_REPORT_OF_RCT:'substudy' (route to its trial family)",
  "other_agent_units": [],
  "comparator_findings": [
   {
@@ -49,6 +108,48 @@
     "n_c": 180
    },
    "basis": "SECONDARY_WRONG (primary numbers are in the primary's own span)"
+  },
+  {
+   "finding": "COMPARATOR_ROW_NEAREST_TO_A_DIFFERENT_ANALYSIS_SET",
+   "trial": "Imazio [18]",
+   "comparator": "36050741",
+   "comparator_row": {
+    "effect": "0.66",
+    "lower": "0.45",
+    "upper": "0.96",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "RR"
+   },
+   "ours": "all randomised (no analysis set named)",
+   "theirs": "on-treatment",
+   "reproduced": false,
+   "per_set": [
+    {
+     "analysis_set": "all randomised (no analysis set named)",
+     "rr": 0.8133,
+     "ci": [
+      0.6225,
+      1.0627
+     ],
+     "reproduces_printed_row": false,
+     "distance_log_rr": 0.2089,
+     "span": "There were no significant differences between the colchicine and placebo groups for the secondary end points of postoperative AF (colchicine, 61 patients [33.9%]; placebo, 75 patients [41.7%]; absolute difference, 7.8%; 95% CI, -2.2% to 17.6%)"
+    },
+    {
+     "analysis_set": "on-treatment",
+     "rr": 0.6539,
+     "ci": [
+      0.4687,
+      0.9122
+     ],
+     "reproduces_printed_row": false,
+     "distance_log_rr": 0.0093,
+     "span": ", although there was a reduction in postoperative AF in the prespecified on-treatment analysis (placebo, 61/148 patients [41.2%]; colchicine, 38/141 patients [27.0%]; absolute difference, 14.2%; 95% CI, 3.3%-24.7%)"
+    }
+   ]
   }
  ],
  "k_ours_total": 3,
@@ -94,8 +195,19 @@
     "pmid": "29237033",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'lung resection'.",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'lung resection'"
+    },
+    "protocol_rule": "include.population_none[8] = 'lung resection'",
+    "registered_eligibility": null,
+    "pmid": "29237033"
+   },
+   "blocker": null
   },
   {
    "label": "Deftereos [15]",
@@ -130,8 +242,19 @@
     "pmid": "23040570",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'pulmonary vein'.",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"
+    },
+    "protocol_rule": "include.population_none[1] = 'pulmonary vein'",
+    "registered_eligibility": null,
+    "pmid": "23040570"
+   },
+   "blocker": null
   },
   {
    "label": "Deftereos [16]",
@@ -166,8 +289,19 @@
     "pmid": "24508207",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'pulmonary vein'.",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"
+    },
+    "protocol_rule": "include.population_none[1] = 'pulmonary vein'",
+    "registered_eligibility": null,
+    "pmid": "24508207"
+   },
+   "blocker": null
   },
   {
    "label": "Imazio [19]",
@@ -206,7 +340,7 @@
     "already_in_screen": true
    },
    "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X1"
+   "blocker": "SCREENER_ERROR:SECONDARY_REPORT_OF_RCT:'substudy' (route to its trial family)"
   },
   {
    "label": "Imazio [18]",
@@ -244,7 +378,44 @@
    "agreement_with_comparator_row": "DISAGREE:our_counts_imply_0.81_vs_printed_0.66",
    "comparator_row_state": "MISMATCH",
    "scope_difference": null,
-   "blocker": null
+   "blocker": null,
+   "analysis_set_attribution": {
+    "state": "NOT_REPRODUCED",
+    "reproduced_by": null,
+    "nearest": "on-treatment",
+    "per_set": [
+     {
+      "analysis_set": "all randomised (no analysis set named)",
+      "rr": 0.8133,
+      "ci": [
+       0.6225,
+       1.0627
+      ],
+      "reproduces_printed_row": false,
+      "distance_log_rr": 0.2089,
+      "span": "There were no significant differences between the colchicine and placebo groups for the secondary end points of postoperative AF (colchicine, 61 patients [33.9%]; placebo, 75 patients [41.7%]; absolute difference, 7.8%; 95% CI, -2.2% to 17.6%)"
+     },
+     {
+      "analysis_set": "on-treatment",
+      "rr": 0.6539,
+      "ci": [
+       0.4687,
+       0.9122
+      ],
+      "reproduces_printed_row": false,
+      "distance_log_rr": 0.0093,
+      "span": ", although there was a reduction in postoperative AF in the prespecified on-treatment analysis (placebo, 61/148 patients [41.2%]; colchicine, 38/141 patients [27.0%]; absolute difference, 14.2%; 95% CI, 3.3%-24.7%)"
+     }
+    ],
+    "printed": {
+     "effect": "0.66",
+     "lower": "0.45",
+     "upper": "0.96"
+    },
+    "rule_id": "analysis_set:labelled_counts_v1",
+    "ours": "all randomised (no analysis set named)",
+    "report_pmid": "25172965"
+   }
   },
   {
    "label": "Sarzaeem [23]",
@@ -364,8 +535,19 @@
     "pmid": "27502857",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X-DESIGN",
+    "screen_reason": "not double-blind/placebo-controlled (record: 27502857).",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "OPEN_LABEL_STATED (protocol requires double-blind)"
+    },
+    "protocol_rule": "include.design_double_blind = True",
+    "registered_eligibility": null,
+    "pmid": "27502857"
+   },
+   "blocker": null
   },
   {
    "label": "Tabbalat [21]",
@@ -438,8 +620,19 @@
     "pmid": "27223641",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X-DESIGN",
+    "screen_reason": "not double-blind/placebo-controlled (record: 27223641).",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "OPEN_DESIGN_STATED_FOR_THIS_STUDY (a placebo mention elsewhere cites another study) [full text: REGEX_ON_FULLTEXT]"
+    },
+    "protocol_rule": "include.design_double_blind = True",
+    "registered_eligibility": null,
+    "pmid": "27223641"
+   },
+   "blocker": null
   }
  ],
  "per_trial_agreement": {
