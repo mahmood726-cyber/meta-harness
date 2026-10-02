@@ -79,7 +79,8 @@ def lookup(ref):
     words = [w for w in norm(ref["title"]).split() if len(w) > 2 and w not in stop and w not in ref.get("_drop", ())][:20]
     term = " AND ".join(f"{w}[ti]" for w in words)
     if ref.get("first_author"):
-        term += f" AND {ref['first_author']}[1au]"
+        au = re.sub(r"\s+", "", ref["first_author"]) if ref.get("_join_author") else ref["first_author"]
+        term += f" AND {au}[1au]"
     res = json.loads(get(EUTILS + "esearch.fcgi?" + urllib.parse.urlencode(
         {"db": "pubmed", "term": term, "retmode": "json", "retmax": 20})))["esearchresult"]
     ids = res["idlist"]
@@ -92,6 +93,11 @@ def lookup(ref):
         # ONE retry without exactly the words PubMed names as not found (a title word the index lacks, e.g. 'infloran');
         # precision is unchanged -- the confirmation below still demands the exact title, first author and year.
         missing = [w.lower() for w in (out["errors"].get("phrasesnotfound") or [])]
+        # a missing token that belongs to the AUTHOR is a PDF-split surname ('Finke lstein'): retry it joined
+        in_author = [w for w in missing if w in (ref.get("first_author") or "").lower().split()]
+        if in_author and " " in (ref.get("first_author") or "") and not ref.get("_join_author"):
+            again = lookup(dict(ref, _join_author=True))
+            return dict(again, first_query=out["query"], joined_author=True)
         if missing and not ref.get("_drop"):
             again = lookup(dict(ref, _drop=tuple(missing)))
             return dict(again, first_query=out["query"], dropped_words=missing)
