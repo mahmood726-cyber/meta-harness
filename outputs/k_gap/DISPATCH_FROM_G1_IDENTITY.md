@@ -110,3 +110,25 @@ re-runs for the three affected topics are reported in G1_TRACKER.md when they fi
 **Pre-existing failure, not from this branch.** `tests/test_aact_cache.py::test_replay_with_snapshot_access_forbidden`
 fails with a tocilizumab CERTIFICATE release_sha256 mismatch. It fails identically on g1/noac (f974f249b, which
 contains base 435236c1a), and this branch touches no release or page path.
+
+## 5. Full suite on g1/identity (2-3 Oct) and tracker re-runs
+
+**Full suite.** Run per file, with a 1500 s timeout per file.
+- 230 files; 4853 tests passed.
+- 14 tests failed, in 11 files. **All 14 fail identically on g1/noac f974f249b**, which contains base 435236c1a and
+  none of the identity changes, so none comes from this branch.
+- The 14 sit in the release, certificate and regex inventory of shared code: tocilizumab CERTIFICATE sha;
+  BUNDLE.json stale against harness/*.py; certificate code closure; a regex site in harness/extract.py with no
+  plant; evidence_records private-content check; fixstate real store; test_gate on a real review;
+  result_withdrawn for dapagliflozin and empagliflozin.
+- The full list of test ids is in the session record; please re-run them on acq/k-gap.
+- `tests/test_architecture_identity.py` hit the 1500 s per-file timeout and is **unverified**, not passed.
+
+**Tracker re-runs after the STEP 1 fix:**
+- semaglutide-obesity-mace: k matched 2 -> 1 (the false STEP 1 merge). This is the served-number notice in
+  section 4.
+- colchicine-secondary-cv-prevention: k matched 2, unchanged.
+- sglt2-ckd-progression: k matched 3, unchanged.
+
+**Table rebuild after the fallback guard (2ec493f00).** 0 identities added or moved; the committed table is
+byte-identical.
