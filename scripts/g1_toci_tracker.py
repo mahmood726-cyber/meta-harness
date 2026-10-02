@@ -15,7 +15,7 @@ from g1 import tocilizumab as g  # noqa: E402
 
 SLUG = "tocilizumab-covid19-mortality"
 OUT = os.path.join(ROOT, "outputs", "k_gap", "g1", f"{SLUG}.json")
-ROUTE = {g.ESTABLISHED: "PRIMARY", g.ONE_SOURCE: "UNVERIFIED", g.CONFLICT: "UNVERIFIED", g.NO_SOURCE: "NO_ROW"}
+ROUTE = {g.ESTABLISHED: "PRIMARY", g.SECONDARY_COUNT: "UNVERIFIED", g.ONE_SOURCE: "UNVERIFIED", g.CONFLICT: "UNVERIFIED", g.NO_SOURCE: "NO_ROW"}
 
 
 CASCADE = os.path.join(ROOT, "g1", "data", "cascade")
@@ -149,8 +149,15 @@ def build():
 
 
 def main():
+    import g1_tracker as gt
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     d = build()
+    # the SAME citation contract as every topic: every trial matched, an open gap, or named with rule ID + span
+    d = gt.cite_or_demote(d, SLUG)
+    d["g1_status"] = gt.g1_status(d)
+    bad = gt.scope_citation_violations(d)
+    if bad:
+        raise SystemExit("REFUSED (scope citation): " + "; ".join(bad))
     open(OUT, "w", encoding="utf-8", newline="\n").write(json.dumps(d, indent=1, ensure_ascii=False) + "\n")
     s = d["same_trials"]
     print(f"k matched {d['k_matched']} of {d['N_comparator_trials']} | routes {d['routes']} | same trials k={s['k']}: "
