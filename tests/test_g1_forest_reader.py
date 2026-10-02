@@ -209,3 +209,59 @@ def test_agy_log_redaction_keeps_only_call_lines_without_paths_identity_or_setti
     assert "someone" not in red and "permissions=" not in red and "mcall-ab12cd" not in red and "@" not in red
     assert "<workdir>" in red and "soft-denying" in red and 'label="Gemini 3.1 Pro (High)"' in red
     assert "<3 client-session log lines not published" in red
+
+
+# ------------------------------------------------------------------------------------------------ counts and labels
+COUNT_ROWS = [  # (label, events_t, n_t, events_c, n_c) -- one zero-cell study, one not estimable
+    ("S1", 12, 100, 18, 100), ("S2", 8, 90, 15, 92), ("S3", 20, 150, 24, 148), ("S4", 0, 40, 3, 41), ("S5", 0, 30, 0, 30)]
+
+
+def count_reading(pooled, rows=COUNT_ROWS, label="M-H, Random, 95% CI"):
+    out = []
+    for lab, a, n1, c, n2 in rows:
+        r = {"label": lab, "events_t": a, "n_t": n1, "events_c": c, "n_c": n2}
+        yv = g.counts_yv(r, "RR")
+        if yv is None:
+            e = lo = hi = "Not estimable"
+        else:
+            import math
+            e, lo, hi = (f"{math.exp(yv[0] + s * 1.959963984540054 * math.sqrt(yv[1])):.2f}" for s in (0, -1, 1))
+        out.append({"label": lab, "effect": e, "lower": lo, "upper": hi, "weight_pct": None,
+                    "events_t": str(a), "n_t": str(n1), "events_c": str(c), "n_c": str(n2)})
+    return {"legible": True, "row_kind": "study", "measure": "Risk Ratio", "model_printed": label, "notes": "",
+            "pooled": {"label": "Total (95% CI)", "effect": pooled[0], "lower": pooled[1], "upper": pooled[2]}, "rows": out}
+
+
+def _mhre():
+    rows = [{"events_t": a, "n_t": n1, "events_c": c, "n_c": n2} for _, a, n1, c, n2 in COUNT_ROWS]
+    return [f"{x:.2f}" for x in g.reconstruct(rows, True, "RR", ["MH-RE"])["MH-RE"]]
+
+
+def test_PLANT_count_rows_accept_under_the_figures_own_MH_random_label():
+    p = _mhre()
+    v = g.judge(ITEM, count_reading(p), count_reading(p), "mc-a", "mc-b", "Random-effects (DerSimonian-Laird).")
+    assert v["state"] == "ACCEPTED", v["problems"]
+    assert v["stated_model"]["methods"] == ["MH-RE"] and v["stated_model"]["quotes"]["FIGURE_LABEL"].startswith("M-H")
+
+
+def test_PLANT_a_count_misread_is_caught_by_the_rows_own_printed_effect():
+    """Both readers agree on a wrong count: the row's printed RR no longer follows from its counts -> refused."""
+    p = _mhre()
+    a, b = count_reading(p), count_reading(p)
+    for r in (a, b):
+        r["rows"][0]["events_t"] = "21"                 # printed RR stays the one 12/100 gives
+    v = g.judge(ITEM, a, b, "mc-a", "mc-b", "")
+    assert v["state"] == "REFUSED" and any(x.startswith("ROW_COUNTS_DO_NOT_GIVE_PRINTED") for x in v["problems"])
+
+
+def test_PLANT_a_label_naming_another_model_refuses():
+    p = _mhre()
+    v = g.judge(ITEM, count_reading(p, label="M-H, Fixed, 95% CI"), count_reading(p, label="M-H, Fixed, 95% CI"),
+                "mc-a", "mc-b", "")
+    assert v["state"] == "REFUSED" and "RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL" in v["problems"]
+
+
+def test_revman_label_mapping_and_thousands_separators():
+    assert g.revman_label("IV, Fixed, 95% CI") == ["FE"] and g.revman_label("IV, Random, 95% CI") == ["DL"]
+    assert g.revman_label("M-H, Random, 95% CI") == ["MH-RE"] and g.revman_label("Peto, Fixed") is None
+    assert g.agree_count("10 637", "10637") == (True, 10637)
