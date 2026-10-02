@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 import sys
@@ -10,7 +11,10 @@ sys.path.insert(0, str(ROOT))
 from harness import compat_direction  # noqa: E402
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", type=Path, default=ROOT / "docs" / "compat_direction_sweep.json")
+    args = ap.parse_args(argv)
     rows = []
     for path in sorted((ROOT / "docs" / "reviews").glob("*/review.json")):
         review = json.loads(path.read_text(encoding="utf-8"))
@@ -59,8 +63,8 @@ def main() -> int:
         },
     }
     out = {"summary": summary, "rows": rows}
-    target = ROOT / "docs" / "compat_direction_sweep.json"
-    target.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    # Bytes with an explicit "\n": text mode on Windows would write CRLF into the served tree.
+    args.out.write_bytes((json.dumps(out, indent=2, sort_keys=True) + "\n").encode("utf-8"))
     print(summary["over_claiming"]["statement"])
     print(summary["under_claiming"]["statement"])
     print(summary["not_derivable"]["statement"])
