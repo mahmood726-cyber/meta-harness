@@ -46,3 +46,11 @@ def test_plants_fire_only_with_their_guard_removed():
                                     capture_output=True, text=True, encoding="utf-8", check=True).stdout)
     assert not any(v["fired_as_built"] for v in out.values())
     assert all(v["fires_with_guard_removed"] for k, v in out.items() if "fires_with_guard_removed" in v)
+
+
+def test_a_safety_population_count_is_shown_never_established_and_react_bacc_row_is_one():
+    bacc = next(t for t in R["trials"] if t["label"] == "BACC-Bay")
+    assert bacc["vs_react"]["verdict"] == "REACT_ROW_IS_SAFETY_POPULATION" and bacc["state"] != g.ESTABLISHED
+    s = [x for x in bacc["readings"] if x["denominator_kind"] == g.SAFETY]
+    assert s and s[0]["values"] == {"deaths_t": 9, "n_t": 161, "deaths_c": 4, "n_c": 82}
+    assert all((t["row"] or {}).get("denominator_kind") != g.SAFETY for t in R["trials"])
