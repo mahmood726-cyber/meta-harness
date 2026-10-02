@@ -2154,10 +2154,14 @@ def stamp_manifest(review_dir: Path, source: dict, check_only: bool) -> list[str
 # ----------------------------------------------------------------------------------------------------------------
 
 def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
+    from scripts.generate_replay import dependency_binding, render
     review_dir = ROOT / "docs" / "reviews" / slug
     cert_bytes = (review_dir / "CERTIFICATE.json").read_bytes()
     cert = json.loads(cert_bytes.decode("utf-8"))
     problems: list[str] = []
+    replay_path = review_dir / "REPLAY.md"
+    if not replay_path.is_file() or replay_path.read_bytes() != render(review_dir, ROOT).encode("utf-8"):
+        problems.append("REPLAY.md stale or missing; run python scripts/generate_replay.py")
     records = _read_json(ROOT / "cache" / slug / "records.json")
     reg = _regulatory_sources()
     acq = load_acquisitions(slug)
@@ -2394,6 +2398,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "regenerate": f"python scripts/acquire_bundle_evidence.py {slug} (only if new acquisitions are needed); commit any page rebuild; "
                       f"python scripts/build_bundle.py {slug}; tests/test_bundle.py refuses a stale bundle",
     }
+    bundle["offline_replay"] = dependency_binding(ROOT)
     return bundle, problems
 
 

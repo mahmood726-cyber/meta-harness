@@ -838,7 +838,11 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 if isinstance(fv, dict) and fv.get("basis") == "REGISTERED_DEFAULT":
                     fv["span"] = "intention-to-treat"; break
         elif limb == "served_basis_lie":   # the bundle says REGISTERED_DEFAULT where the source states on-treatment (a deserialised state must not be trusted)
-            rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"].replace("intention-to-treat", "on-treatment population"))
+            abstract = rec_by_pmid[pmid]["abstract"]
+            changed = abstract.replace("intention-to-treat", "on-treatment population")
+            if changed == abstract:
+                changed += " The primary outcome analysis used the on-treatment population."
+            rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=changed)
             br["source"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"])
             br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
         elif limb == "container":
@@ -1179,7 +1183,19 @@ def main(argv=None):
         pass
     store = Store(a.root, a.url)
     try:
+        baseline = run(store, a.slug, None) if a.corrupt else None
         rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None, anchor_live=(a.anchor == "live"))
+        if baseline is not None:
+            # A self-test measures new refusals, not pre-existing damage. Regulatory
+            # plants target ELIXA, independently of the supplied primary-row PMID.
+            before = {r["pmid"]: r for r in baseline["rows"]}
+            detected = [f"{r['pmid']}/{p}" for r in rep["rows"]
+                        for p, ok in r["predicates"].items()
+                        if not ok and before.get(r["pmid"], {}).get("predicates", {}).get(p) is True]
+            detected += [f for f in rep["failures"] if f not in baseline["failures"]]
+            rep["corruption"].update({"detected_by": detected, "baseline_verdict": baseline["verdict"]})
+            rep["verdict"] = ("CORRUPTION_DETECTED" if detected and baseline["verdict"] == "PASS"
+                              else "CORRUPTION_UNDETECTED")
     except Refusal as r:
         rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": r.code, "detail": r.detail, "failures": [f"{r.code} {r.detail}"],
                "note": "the verifier could not complete; this is a verdict, not a crash"}
@@ -1226,7 +1242,7 @@ def main(argv=None):
             print(f"corruption {rep['corruption']}: rows no longer ADMISSIBLE = {[(r['pmid'], r['final']) for r in rep['rows'] if r['final'] != 'ADMISSIBLE']}")
         for f in rep["failures"]:
             print("  FAIL:", f)
-    return 0 if rep["verdict"] == "PASS" else 1
+    return 2 if rep["verdict"] == "CORRUPTION_DETECTED" else 0 if rep["verdict"] == "PASS" else 1
 
 
 if __name__ == "__main__":
