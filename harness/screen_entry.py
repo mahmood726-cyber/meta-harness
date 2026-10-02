@@ -46,6 +46,47 @@ def _entry_condition_terms(inc: dict) -> list[str]:
     )
 
 
+_ARM_TERMS: set | None = None
+
+
+def arm_name_terms() -> set:
+    """population_none terms that name an ARM (an agent), from harness/data/population_term_classes.json -- derived
+    from the versioned AACT snapshot + WHO INN stems by scripts/build_population_term_classes.py, never typed by hand.
+    A missing artefact raises: a population rule silently matching arm names again is the failure this prevents."""
+    global _ARM_TERMS
+    if _ARM_TERMS is None:
+        import json
+        import os
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "population_term_classes.json")
+        with open(p, encoding="utf-8") as fh:
+            d = json.load(fh)
+        _ARM_TERMS = {_norm(t) for rows in d["topics"].values() for t, r in rows.items() if r["class"] == "ARM_NAME"}
+    return _ARM_TERMS
+
+
+def population_descriptors(inc: dict) -> list:
+    """The population_none terms a POPULATION rule (X2) may match: never an arm name -- the topic's own intervention /
+    comparator terms, or an agent (arm_name_terms). O'Neil 2018 (semaglutide vs liraglutide vs placebo, adults with
+    obesity) was excluded as 'wrong population: title mentions liraglutide' -- a word about the arms read as a word about
+    who was enrolled, the condition-as-outcome family (Mahmood 3 Oct)."""
+    arms = arm_name_terms() | {_norm(t) for k in ("intervention_any", "comparator_any") for t in inc.get(k) or []}
+    return [t for t in inc.get("population_none") or [] if _norm(t) not in arms]
+
+
+def misfiled_form_terms(inc: dict) -> list:
+    """Arm-name terms in population_none that name a FORM of OUR OWN intervention ('oral semaglutide' in a once-weekly
+    subcutaneous semaglutide protocol): taken out of the population rule, they are applied where they belong -- the
+    intervention-form exclusion (X3, like intervention_none). Arm names of OTHER agents ('liraglutide') are not re-filed:
+    an active arm beside a placebo-controlled contrast of ours is not an exclusion; the comparator rule decides."""
+    ours = [_norm(t) for t in inc.get("intervention_any") or [] if _norm(t)]
+    out = []
+    for t in inc.get("population_none") or []:
+        n = _norm(t)
+        if n in arm_name_terms() and n not in ours and any(re.search(rf"\b{re.escape(o)}\b", n) for o in ours):
+            out.append(t)
+    return out
+
+
 def population_exclusion(
     poptext: str,
     inc: dict,
@@ -58,7 +99,7 @@ def population_exclusion(
     diabetes-only CVOT from an HFrEF review, but they do not exclude an HFrEF
     trial merely because diabetes is a comorbidity or subgroup.
     """
-    bad = has(poptext, inc.get("population_none"))
+    bad = has(poptext, population_descriptors(inc))
     if bad and all_occurrences_qualified(
         poptext, bad, ("mildly ", "or preserved ", "preserved or ", "mid-range ")
     ):
