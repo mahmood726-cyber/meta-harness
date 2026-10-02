@@ -369,8 +369,12 @@ def _classify(rec, cfg):
             if not re.search(r"non-?randomi[sz]ed", title + " " + ab, re.I):
                 pm = PROTOCOL_PAPER_MARKER.search(title)
                 if pm:
-                    return ("TRUE_SCOPE_DIFFERENCE", f"DESIGN_OR_PROTOCOL_PAPER_STATED:'{pm.group(0)}'",
-                            _with_span(base, span_of(rec, PROTOCOL_PAPER_MARKER, ("title",))))
+                    # a design / protocol paper says something about the REPORT, not the trial: the trial has (or will
+                    # have) a results report we do not hold. The unit is the TRIAL, so it stays ELIGIBLE -- never a
+                    # scope difference (spironolactone 25678098 'Rationale and design of ARTS-HF' would otherwise have
+                    # removed the ARTS-HF trial from the denominator; caught by this lane on regeneration, 3 Oct)
+                    return ("INSUFFICIENT_RECORD", f"DESIGN_PAPER_ONLY:'{pm.group(0)}' (the trial's results report is "
+                            f"not held)", base)
                 rm = RESULTS_REPORT_MARKER.search(title)
                 if rm:
                     return "SCREENER_ERROR", f"SECONDARY_REPORT_OF_RCT:'{rm.group(0)}' (route to its trial family)", base
