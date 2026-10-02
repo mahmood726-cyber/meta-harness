@@ -1117,8 +1117,11 @@ def _apply_trial_annotations(spec, trials):
         ann = anns.get(pid) or anns.get(str(t.get("label") or "")) or anns.get(str(t.get("id") or ""))
         if not isinstance(ann, dict):
             continue
-        for k in allowed:
-            if k in ann:
+        # Iterate the ANNOTATION's own (source-defined) key order, never the `allowed` set: set order follows
+        # PYTHONHASHSEED, so the served review.json bytes moved between identical builds (2026-10-02,
+        # tests/test_build_determinism.py).
+        for k in ann:
+            if k in allowed:
                 if k == "components" and t.get("components"):
                     continue
                 t[k] = ann[k]
