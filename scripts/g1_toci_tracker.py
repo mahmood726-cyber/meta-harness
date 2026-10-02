@@ -18,6 +18,36 @@ OUT = os.path.join(ROOT, "outputs", "k_gap", "g1", f"{SLUG}.json")
 ROUTE = {g.ESTABLISHED: "PRIMARY", g.ONE_SOURCE: "UNVERIFIED", g.CONFLICT: "UNVERIFIED", g.NO_SOURCE: "NO_ROW"}
 
 
+CASCADE = os.path.join(ROOT, "g1", "data", "cascade")
+
+
+def cascade_summary(label):
+    """The acquisition cascade as run for this trial (scripts/g1_toci_cascade.py): what each rung returned."""
+    fp = os.path.join(CASCADE, f"{label}.json")
+    if not os.path.exists(fp):
+        return {"state": "CASCADE_NOT_RUN"}
+    c = json.load(open(fp, encoding="utf-8"))
+    acq = os.path.join(ROOT, "g1", "data", "acquired")
+    pc = [r for r in c["candidates"] if r["screen"] == "PRIMARY_REPORT_CANDIDATE"]
+
+    def bound(p):
+        f = os.path.join(acq, f"{p}.json")
+        a = json.load(open(f, encoding="utf-8")) if os.path.exists(f) else {}
+        return a.get("binding"), label in (a.get("bound_labels") or [])
+    return {"run_utc": c["run_utc"],
+            "discovery": {d["rung"] + (" " + d["request"].split("term=")[-1][:40] if "term=" in d.get("request", "") else ""):
+                          len(d["returned"]) for d in c["discovery"]},
+            "candidates_found": len(c["candidates"]),
+            "primary_report_candidates": [{"pmid": r["pmid"], "title": r["title"][:90],
+                                           "R1_PMC": r["rungs"][0]["outcome"], "R2_EuropePMC": r["rungs"][1]["outcome"],
+                                           "R3_Unpaywall": r["rungs"][2]["outcome"] + (
+                                               f" ({r['rungs'][2].get('host')}, {r['rungs'][2].get('licence')})"
+                                               if r["rungs"][2].get("is_oa") else ""),
+                                           "held_open_text": r.get("held"), "binding": bound(r["pmid"])[0],
+                                           "read_for_this_trial": bound(r["pmid"])[1]} for r in pc],
+            "R4_AACT": c["trial_rungs"][0]["outcome"], "R5_ISRCTN": c["trial_rungs"][1]["outcome"]}
+
+
 def _route(t, best):
     """ESTABLISHED by two primaries (AACT + the trial's own text) -> PRIMARY; by one primary plus the second meta ->
     TWO_SOURCE (G1_INTERFACES section 2); anything less is not countable."""
@@ -46,8 +76,8 @@ def build():
                  "only a SAFETY-population count is held (" + "; ".join(sorted({s["source"] for x in t["readings"]
                  for s in x["sources"]})) + "); no efficacy-population 28-day count stated"
                  if t["readings"] and all(x["denominator_kind"] == g.SAFETY for x in t["readings"]) else
-                 "no open primary source states 28-day deaths (" + "; ".join(t["texts_held"]) + ")" if t["texts_held"]
-                 else "no open primary source held")
+                 "no held primary source states 28-day deaths per arm (" + "; ".join(t["texts_held"]) + ")"
+                 if t["texts_held"] else "no primary report held after the full cascade")
         verdict = t["vs_react"]["verdict"]
         trials.append({
             "label": t["label"], "family": t["registration"], "in_our_pool": None, "route": _route(t, best),
@@ -57,6 +87,7 @@ def build():
                 if verdict == "REACT_ROW_IS_SAFETY_POPULATION" else []),
             "our_value": _row(t["row"]), "our_denominator_kind": (t["row"] or {}).get("denominator_kind"),
             "readings": t["readings"], "g1_countable": t["state"] == g.ESTABLISHED,
+            "acquisition_cascade": cascade_summary(t["label"]),
             "agreement_with_comparator_row": ("AGREE" if verdict == "AGREE" else "DISAGREE"
                                               if verdict in ("DIFFER", "DENOMINATOR_KIND_DIFFERS") else verdict)
             if t["row"] else "NO_PRIMARY_ROW"})
@@ -66,6 +97,16 @@ def build():
     pa = g.pool_fe([x["row"] for x in rows_any])
     pra = g.pool_fe([x["react_row"] for x in rows_any])
     gv = rx["governing"]
+    size = {x["label"]: x["n_t"] + x["n_c"] for x in rx["rows"]}
+    n_all, n_est = sum(size.values()), sum(size[t["label"]] for t in est)
+    missing = sorted(((size[t["label"]], t["label"], t["g1_state"]) for t in trials if t["g1_state"] != g.ESTABLISHED),
+                     reverse=True)
+    coverage = {"k_established": len(est), "k_comparator": len(trials), "participants_established": n_est,
+                "participants_comparator": n_all, "participant_share": round(n_est / n_all, 3),
+                "largest_trials_not_established": [{"trial": l, "n": n, "state": st} for n, l, st in missing[:4]]}
+    label = (f"COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: {len(est)} of {len(trials)} trials, "
+             f"{round(100 * n_est / n_all)}% of REACT's participants; missing "
+             + ", ".join(f"{l} (n={n})" for n, l, _ in missing[:2]))
     return {
         "schema_version": 1, "slug": SLUG, "comparator_pmid": rx["comparator_pmid"],
         "basis": ("g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials whose 28-day deaths per arm are ESTABLISHED "
@@ -81,7 +122,10 @@ def build():
                                  "basis": f["source"]} for t in trials for f in t["comparator_row_findings"]],
         "k_ours_total": None, "routes": dict(Counter(t["route"] for t in trials)), "trials": trials,
         "per_trial_agreement": dict(Counter(t["agreement_with_comparator_row"] for t in est)),
-        "same_trials": {"state": "POOLED" if pe else "NOT_POOLED", "k": pe and pe["k_informative"], "measure": "OR",
+        "coverage": coverage,
+        "result_label": label,
+        "same_trials": {"state": "POOLED" if pe else "NOT_POOLED", "k": pe and pe["k_informative"],
+                        "measure": f"OR [{label}]", "is_a_finding": False,
                         "method": "FE",
                         "ours": {"estimate": pe and pe["or"], "ci_low": pe and pe["lo"], "ci_high": pe and pe["hi"]},
                         "theirs": {"estimate": pr and pr["or"], "ci_low": pr and pr["lo"], "ci_high": pr and pr["hi"]},
@@ -92,7 +136,10 @@ def build():
                                         f"{r['positive_control']['or']} ({r['positive_control']['lo']}-{r['positive_control']['hi']})"},
         "same_trials_incl_one_source": {"k": pa and pa["k_informative"], "ours": pa, "theirs": pra,
                                         "note": "established + one-source rows; one-source rows are NOT counted in k"},
-        "ours": {"k": len(est), "estimate": pe and pe["or"], "ci_low": pe and pe["lo"], "ci_high": pe and pe["hi"], "scale": "OR"},
+        # NO topic result is stated: the pool of the established trials is a reconciliation of OUR rows with REACT's on
+        # those trials, not an estimate of tocilizumab's effect, while the two largest trials are not established
+        "ours": {"k": len(est), "estimate": None, "ci_low": None, "ci_high": None, "scale": "OR",
+                 "state": "NOT_STATED: " + label},
         "comparator": {"outcome": "28-day all-cause mortality (Figure 1, tocilizumab)", "estimate": gv["estimate"],
                        "ci_low": gv["ci_low"], "ci_high": gv["ci_high"], "scale": "OR"},
         "comparator_basis": "REACT abstract/results text (VERIFIED_NOT_HELD, PMC8261689) and Figure 1 rows",

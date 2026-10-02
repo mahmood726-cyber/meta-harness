@@ -251,7 +251,8 @@ def text_locates(row: dict, text: str) -> Optional[str]:
     return None
 
 
-_TABLE_HEAD = re.compile(r"(tocilizumab|tcz|usual care|placebo|standard (?:of )?care|control)[^()]{0,30}\(\s*n\s*=\s*(\d+)\s*\)",
+# "Standard-of-care group ( n = 29)" (COVIDSTORM): the hyphenated form is the same arm word (plant Q9)
+_TABLE_HEAD = re.compile(r"(tocilizumab|tcz|usual care|placebo|standard[- ](?:of[- ])?care|control)[^()]{0,30}\(\s*n\s*=\s*(\d+)\s*\)",
                          re.I)
 _TABLE_ROW = re.compile(r"((?:mortality|death|died)[^0-9]{0,40}?(?:28 days|day 28|28-day|28 d\b)[^0-9]{0,20})"
                         r"(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)\s*(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)", re.I)
@@ -364,6 +365,75 @@ def second_meta_rows() -> dict:
     return out
 
 
+META2_FILE = os.path.join(ROOT, "g1", "data", "meta2_forest.json")
+_META2 = None          # run() caches meta2_rows() here
+
+
+def _pmid_to_label() -> dict:
+    """PMID -> REACT label(s), from OUR bindings only: a held cache paper by its registration majority (held_texts) and
+    an acquired paper by its bound_labels. Never from a meta's numbers."""
+    out = {}
+    for label in IDENTITY:
+        for ref, _ in held_texts(label):
+            out.setdefault(ref.split()[1], set()).add(label)
+    return out
+
+
+def _doi_to_pmid() -> dict:
+    out = {}
+    for f in (os.listdir(os.path.join(ROOT, "g1", "data", "cascade")) if os.path.isdir(os.path.join(ROOT, "g1", "data", "cascade")) else []):
+        if f.endswith(".json") and f[0].isupper():
+            for c in json.load(open(os.path.join(ROOT, "g1", "data", "cascade", f), encoding="utf-8")).get("candidates") or []:
+                if c.get("doi"):
+                    out[c["doi"].lower()] = c["pmid"]
+    return out
+
+
+def meta2_rows() -> dict:
+    """{label: [row, ...]} from the REACT-independent open second metas (scripts/g1_toci_meta2_forest.py): rows admitted
+    by its gates AND printed identically by two readers. A row binds to a trial through the META'S OWN REFERENCE LIST
+    (its superscript reference number, or its first author + year) -> the cited paper's PMID/DOI -> the trial our held
+    copy of that paper is bound to. SECONDARY: it can confirm a primary reading's counts, never supply them."""
+    if not os.path.exists(META2_FILE):
+        return {}
+    p2l, d2p = _pmid_to_label(), _doi_to_pmid()
+    out = {}
+    for mp, res in json.load(open(META2_FILE, encoding="utf-8")).items():
+        if res.get("state") != "PASS" or (res.get("independence") or {}).get("state") != "INDEPENDENT":
+            continue
+        jp = next((os.path.join(ROOT, "cache", "comparators", mp, f) for f in
+                   os.listdir(os.path.join(ROOT, "cache", "comparators", mp)) if f.startswith("g1_meta2_")), None)
+        x = open(jp, encoding="utf-8").read() if jp else ""
+        refs = []
+        for r in re.findall(r"<ref[ >].*?</ref>", x, re.S):
+            lab = re.search(r"<label>\s*(\d+)", r)
+            pm = re.search(r'pub-id-type="pmid">(\d+)', r)
+            doi = re.search(r'pub-id-type="doi">([^<]+)', r) or re.search(r"(10\.\d{4,9}/[^\s<\"]+)", r)
+            refs.append({"n": lab.group(1) if lab else None, "text": _fold(re.sub(r"<[^>]+>", " ", r)),
+                         "pmid": pm.group(1) if pm else (d2p.get(doi.group(1).rstrip(".").lower()) if doi else None)})
+        for row in res.get("admitted_rows") or []:
+            lab = row["label"]
+            sup = re.search(r"[¹²³⁰-⁹]+$", lab.strip())
+            hit = []
+            if sup:
+                n = sup.group(0).translate(str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹",
+                                                         "0123456789"))
+                hit = [r for r in refs if r["n"] == n]
+            else:
+                m = re.match(r"\s*([A-Z][A-Za-z'\-]+)(?:\s+et al\.?)?\s+(\d{4})", lab)
+                if m:
+                    hit = [r for r in refs if re.match(r"\s*\d*\.?\s*" + re.escape(m.group(1)) + r"\b", r["text"])
+                           and m.group(2) in r["text"]]
+            labels = sorted(p2l.get(hit[0]["pmid"], set())) if len(hit) == 1 and hit[0]["pmid"] else []
+            rec = {"meta_pmid": mp, "label": lab, "cited_pmid": hit[0]["pmid"] if len(hit) == 1 else None,
+                   "binding": ("BOUND" if labels else "UNBOUND: " + ("reference not resolved" if len(hit) != 1 else
+                                                                     "cited paper is not one we hold bound to a trial")),
+                   **{k: row[k] for k in ("events_t", "total_t", "events_c", "total_c")}}
+            for l in labels or ["_unbound"]:
+                out.setdefault(l, []).append(rec)
+    return out
+
+
 def meta_consistent(row: dict, m: dict) -> bool:
     """The meta's printed OR and CI (2 decimals) reproduced from the row's counts (Woolf, 0.5 for a single zero cell)."""
     lo = log_or(row)
@@ -397,6 +467,10 @@ def _held_papers() -> dict:
 
 
 _HELD = None
+# which acquired papers are read (plants switch these guards off): every acquired paper, and only for the trial(s) its
+# own text binds it to (scripts/g1_toci_cascade.binding)
+_ACQ_KEEP = lambda a: True                                              # noqa: E731
+_ACQ_BOUND = lambda a, label: label in (a.get("bound_labels") or [])    # noqa: E731
 
 
 def held_texts(label: str) -> list:
@@ -419,8 +493,19 @@ def held_texts(label: str) -> list:
         if not re.match(r"\d+\.json$", f):
             continue
         a = json.load(open(os.path.join(acq, f), encoding="utf-8"))
+        if not _ACQ_KEEP(a):
+            continue
         kinds = " ".join(a.get("pub_types") or []) + " " + (a.get("title") or "")
-        if a.get("label_query") != label or a["pmid"] in have or re.search(r"protocol|review|meta-analysis", kinds, re.I):
+        # bound by scripts/g1_toci_cascade.binding(): the paper's own text names THIS trial's registration most (or,
+        # for a trial with no registration, its name is in the title) -- being found by a search for it is not enough
+        if not _ACQ_BOUND(a, label) or re.search(r"protocol|review|meta-analysis", kinds, re.I):
+            continue
+        if a["pmid"] in have:
+            # the cache held this paper's ABSTRACT only; its acquired FULL TEXT joins it (one paper = one source). Before
+            # this, the cached abstract shadowed RECOVERY's acquired full text (plant Q10).
+            if a.get("fulltext"):
+                i = next(j for j, (r, _) in enumerate(out) if r.split()[1] == a["pmid"])
+                out[i] = (out[i][0] + " + acquired full text", a["fulltext"] + "\n" + out[i][1])
             continue
         body = (a.get("fulltext") or "") + "\n" + (a.get("abstract") or "")
         if body.strip():
@@ -470,6 +555,13 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
             g["kinds"].add("META")
             g["sources"].append({"source": f"SECONDARY meta {SECOND_META}: {m['trial_label']} OR {m['effect']} "
                                            f"({m['lower']}-{m['upper']}) reproduced from these counts"})
+    m2 = (_META2 if _META2 is not None else meta2_rows()).get(label) or []
+    for g in by_value.values():
+        for r in m2:
+            if (r["events_t"], r["total_t"], r["events_c"], r["total_c"]) == tuple(g["row"][k] for k in _KEY):
+                g["kinds"].add("META")
+                g["sources"].append({"source": f"SECONDARY meta {r['meta_pmid']} (independent of the comparator by its reference list; two readers): "
+                                               f"'{r['label']}' cites PMID {r['cited_pmid']}; prints these counts"})
     every = list(by_value.values())
     groups = [g for g in every if g["denominator_kind"] != SAFETY]          # only efficacy readings can be the row
     est = [g for g in groups if len(g["kinds"]) >= 2 and g["kinds"] & {"AACT", "TEXT"}]
@@ -486,7 +578,7 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
     return {"label": label, "registration": nct, "identity": why, "state": state, "row": row,
             "readings": [{"values": g["row"], "independent_sources": sorted(g["kinds"]), "sources": g["sources"],
                           "denominator_kind": g["denominator_kind"]} for g in every],
-            "second_meta": m, "texts_held": [r for r, _ in texts]}
+            "second_meta": m, "meta2_rows": m2, "texts_held": [r for r, _ in texts]}
 
 
 # ------------------------------------------------------------------------------------------------- comparison, pooling
@@ -532,6 +624,8 @@ def run(extract: Optional[dict] = None) -> dict:
     rrows = {r["label"]: r for r in rx["rows"]}
     trials = []
     metas = second_meta_rows()
+    global _META2
+    _META2 = meta2_rows()
     for label in sorted(rrows):
         a = assess(label, extract, metas)
         a["vs_react"] = compare(a["row"], rrows[label])
