@@ -155,6 +155,17 @@ TARGETS: dict = {
     "semaglutide-obesity-weight::40732345": {"fig_id": "pharmaceuticals-18-01058-f004",
                                              "caption_has": "relative body weight change between semaglutide and "
                                                             "placebo in the non-diabetes"},
+    # deep-sweep metas (the same recorded queries paged to 100 hits), each checked against its own caption
+    "colchicine-secondary-cv-prevention::35495414": {"fig_id": "fig3", "caption_has": "impact of colchicine on primary "
+                                                                                      "composite endpoint"},
+    "colchicine-secondary-cv-prevention::37600022": {"fig_id": "F3", "caption_has": "The results of MACEs."},
+    "colchicine-secondary-cv-prevention::41976993": {"fig_id": "jcm-15-02695-f002",
+                                                     "caption_has": "Forest plot of OR for the primary outcome (MACE)"},
+    "ticagrelor-vs-clopidogrel-acs::38455558": {"fig_id": "fig2", "caption_has": "Forest plot of MACE."},
+    "colchicine-postop-af::39156919": {
+        "fig_id": "f0015", "caption_has": "Odds ratio (OR) of outcomes in colchicine compared to placebo",
+        "instruction": "The figure has several outcomes. Transcribe ONLY the block for postoperative atrial fibrillation "
+                       "(POAF): its study rows and its own pooled row."},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
