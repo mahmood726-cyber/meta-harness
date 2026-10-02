@@ -119,3 +119,19 @@ def test_committed_table_has_no_label_registration_contradiction():
     import json
     t = json.loads((ROOT / "outputs" / "k_gap" / "k_gap_table.json").read_text(encoding="utf-8"))
     assert label_registration_contradictions(t["trials"]) == []
+
+
+def test_single_nct_fallback_refuses_a_multi_trial_paper(monkeypatch):
+    # no AACT link at all; PUBNCT holds the first DataBank NCT, the full list holds two -> no identity
+    monkeypatch.setattr(kt, "PUBNCT", {"28605608": "NCT01032629"})
+    monkeypatch.setattr(kt, "DATABANK", {"28605608": {"databank": ["NCT01032629", "NCT01989754"], "abstract": []}})
+    r = kt.resolve_unit(unit("CANVAS Program", [{"pmid": "28605608"}]), None, IDX, None)
+    assert r["ncts"] == []
+    assert "pmid_nct_paper_lists_several:NCT01032629,NCT01989754" in r["basis"]
+
+
+def test_negative_single_nct_fallback_kept_for_a_single_trial_paper(monkeypatch):
+    monkeypatch.setattr(kt, "PUBNCT", {"31707795": "NCT01169259"})
+    monkeypatch.setattr(kt, "DATABANK", {"31707795": {"databank": ["NCT01169259"], "abstract": []}})
+    r = kt.resolve_unit(unit("Manson 2019 [50]", [{"pmid": "31707795"}]), None, IDX, None)
+    assert r["ncts"] == ["NCT01169259"]
