@@ -54,3 +54,37 @@ def test_a_safety_population_count_is_shown_never_established_and_react_bacc_row
     s = [x for x in bacc["readings"] if x["denominator_kind"] == g.SAFETY]
     assert s and s[0]["values"] == {"deaths_t": 9, "n_t": 161, "deaths_c": 4, "n_c": 82}
     assert all((t["row"] or {}).get("denominator_kind") != g.SAFETY for t in R["trials"])
+
+
+def test_every_trial_has_a_logged_cascade_with_every_rung():
+    for label in g.IDENTITY:
+        c = json.load(open(os.path.join(ROOT, "g1", "data", "cascade", f"{label}.json"), encoding="utf-8"))
+        assert [r["rung"] for r in c["trial_rungs"]] == ["R4 AACT", "R5 ISRCTN"]
+        assert any(d["rung"].startswith("D") or "esearch" in d["rung"] or "Europe PMC" in d["rung"] for d in c["discovery"]) \
+            or label == "PreToVid" or c["discovery"]
+        for r in c["candidates"]:
+            if r["screen"] == "PRIMARY_REPORT_CANDIDATE":
+                assert [x["rung"] for x in r["rungs"]] == ["R1 PMC", "R2 Europe PMC", "R3 Unpaywall"]
+
+
+def test_recovery_own_open_full_text_is_held_and_read():
+    a = json.load(open(os.path.join(ROOT, "g1", "data", "acquired", "33933206.json"), encoding="utf-8"))
+    assert "<body" in a["fulltext"] and "RECOVERY" in a["bound_labels"] and "by/4.0" in (a["license"] or "")
+    rec = next(t for t in R["trials"] if t["label"] == "RECOVERY")
+    assert any("33933206" in r for r in rec["texts_held"])
+
+
+def test_second_metas_are_independent_of_react_and_two_reader_admitted():
+    m = json.load(open(os.path.join(ROOT, "g1", "data", "meta2_forest.json"), encoding="utf-8"))
+    for pmid, r in m.items():
+        assert r["independence"]["state"] == "INDEPENDENT" and r["state"] == "PASS"
+        assert all(v["gate"]["state"] == "PASS" for v in r["readers"].values())
+
+
+def test_the_pool_is_labelled_coverage_limited_and_no_topic_result_is_stated():
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "tocilizumab-covid19-mortality.json"), encoding="utf-8"))
+    assert o["same_trials"]["is_a_finding"] is False and "COVERAGE-LIMITED" in o["same_trials"]["measure"]
+    assert o["ours"]["estimate"] is None and "NOT_STATED" in o["ours"]["state"]
+    assert [x["trial"] for x in o["coverage"]["largest_trials_not_established"][:2]] == ["RECOVERY", "REMAP-CAP"]
+    md = open(os.path.join(ROOT, "g1", "TOCILIZUMAB_G1.md"), encoding="utf-8").read()
+    assert "NOT a finding" in md

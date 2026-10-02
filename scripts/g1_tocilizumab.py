@@ -40,8 +40,11 @@ def markdown(r) -> str:
              f"to REACT's row).",
              f"- **States**: {r['tally']}. REACT rows that are a paper's SAFETY-population count: "
              f"{r['react_rows_that_are_safety_counts'] or 'none'}.",
-             f"- **Pool on the established trials**: ours OR {po.get('or')} ({po.get('lo')}-{po.get('hi')}); REACT's rows "
-             f"for the same trials OR {pre.get('or')} ({pre.get('lo')}-{pre.get('hi')}).", "",
+             f"- **Coverage-limited reconciliation, NOT a finding.** On the {po.get('k_informative')} established trials "
+             f"only, our rows pool to OR {po.get('or')} ({po.get('lo')}-{po.get('hi')}) and REACT's rows for the same "
+             f"trials to OR {pre.get('or')} ({pre.get('lo')}-{pre.get('hi')}): this checks that our rows reproduce "
+             f"REACT's on those trials. It is not an estimate of tocilizumab's effect: the two largest trials "
+             f"(RECOVERY, REMAP-CAP) are not established, so no topic-level result is stated.", "",
              "| REACT trial | registration | state | sources (independent) | our row | REACT row | verdict |",
              "|---|---|---|---|---|---|---|"]
     for t in r["trials"]:
