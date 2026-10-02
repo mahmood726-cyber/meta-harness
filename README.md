@@ -149,6 +149,10 @@ eligibility universe, and the tamper-evident-not-blinded claim) are recorded as 
 - The search is **fetch-once**: results are cached in-repo under `cache/` and
   committed, so screening/extraction/synthesis replay **offline** and identically.
 - The index (`harness/index.py`) is **generated, never hand-maintained**.
+- Full corpus replay: `python scripts/replay_offline.py --report scratch/corpus-replay.json` (networking and child
+  processes denied). Install NumPy/SciPy first from the hashed lock per [the offline contract](docs/offline/REPLAY.md);
+  every topic has an object-generated `REPLAY.md`, and `python scripts/generate_replay.py --check` (a `verify_all.py`
+  limb) refuses stale guides, dependency bindings or mismatched lock/wheel digests.
 
 ## Layout
 ```

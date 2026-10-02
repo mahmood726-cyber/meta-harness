@@ -281,6 +281,40 @@ def _effect_from_match(m, context=""):
     return Effect(scale, pt, lo, hi)
 
 
+# A REPORTED between-group MEAN DIFFERENCE with its CI ("difference, -10.3 percentage points [95% CI, -12.0 to -8.6]";
+# "estimated treatment difference of -12.4 percentage points (95% CI, -13.4 to -11.5)"). extract_effect reads ratios only,
+# so for an MD outcome the ladder fell through to reconstructing a difference from arm means -- for STEP 1 / STEP 3 that
+# was CT.gov's OBSERVED means, a different quantity from the trial's primary estimated treatment difference, which is
+# exactly what the comparator meta pools (found by the acq/k-gap G1 result-agreement check, 2026-09-29).
+_MD_EFFECT = re.compile(
+    r"\b(?:(?:mean|estimated|adjusted|treatment|between[- ]group|placebo[- ]adjusted)\s+)*difference"
+    r"[^0-9+\-]{0,45}?([-+]?\d+(?:\.\d+)?)"
+    r"[^0-9+\-]{0,45}?(?:95\s*%\s*)?(?:confidence intervals?|\bCI\b)[^0-9+\-]{0,15}?"
+    r"([-+]?\d+(?:\.\d+)?)\s*(?:to|,|;|\s-\s)\s*([-+]?\d+(?:\.\d+)?)", re.I)
+
+
+def extract_md_effect(sentence, require_unit=None):
+    """(\"MD\", point, lo, hi) from a reported between-group difference with its CI, else None. Signed; U+2212 folded."""
+    t = (sentence or "").replace("\u2212", "-").replace("\u2013", "-").replace("\u2014", "-")
+    m = _MD_EFFECT.search(t)
+    if not m:
+        return None
+    if require_unit:
+        # the UNIT is what follows the point estimate, up to the CI marker -- not the whole match, whose "95% CI"
+        # contains a "%" (STEP 1's '-12.7 kg; 95% CI' passed a percent test on the whole match)
+        after = t[m.end(1):m.start(2)]
+        cut = re.search(r"95|\bCI\b|confidence", after, re.I)
+        unit_text = after[:cut.start()] if cut else after
+        if not re.search(require_unit, unit_text, re.I):
+            return None                  # e.g. '-12.7 kg' when the outcome is PERCENT change (STEP 1 states both)
+    pt, lo, hi = float(m.group(1)), float(m.group(2)), float(m.group(3))
+    if lo > hi:
+        lo, hi = hi, lo
+    if not (lo <= pt <= hi) or lo == hi:
+        return None
+    return Effect("MD", pt, lo, hi)
+
+
 def extract_effect(sentence):
     """Return (scale, point, lo, hi) from the FIRST effect+CI phrase, else None."""
     m = _EFFECT.search(sentence)
@@ -442,7 +476,10 @@ def _is_factorial(abstract):
 # plural 'subgroups' / 'sensitivity analyses' / 'exploratory analyses' are subgroup language.
 _SUBGROUP = re.compile(
     r"\bper[-\s]?protocol\b|\bpost[-\s]?hoc\b|\bsubgroups?\b|\bsensitivity analys[ie]s\b|\bas[-\s]?treated\b|\blowest in\b|"
-    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b", re.I)
+    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b"
+    # 'in the group of patients who were on regular PPI' (PMID 34541475): a subgroup named by a baseline
+    # attribute. Narrow on purpose: 'who received X' describes an ARM and must not be refused.
+    r"|\bin the (?:group|subset|subpopulation) of (?:patients|participants|subjects) (?:who were|with|on)\b", re.I)
 
 
 def _is_subgroup_sentence(sentence):
@@ -496,7 +533,10 @@ _COMPOSITE_ENDPOINT = re.compile(
     r"\bcomposite\b|\bmajor adverse cardiovascular\b|\bMACE\b|"
     r"\bdeath or\b|\bor death\b|\bor first (?:heart failure |hf )?hospitali|"
     r"\bor (?:heart failure|hf) hospitali|\bor worsening (?:heart failure|hf)\b|"
-    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b", re.I)
+    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b|"
+    # VERB FORM of a death composite: 'had been intubated or had died' (BACC Bay), 'died or required mechanical
+    # ventilation'. 'died or were lost to follow-up' is a disposition, not an endpoint, and stays unmatched.
+    r"\bor (?:who )?(?:had )?died\b|\bdied or (?:required|needed|received|were intubated|was intubated)\b", re.I)
 
 
 def _names_composite(sentence):
@@ -775,6 +815,16 @@ def extract_rate(sentence, interv_terms, comp_terms):
     return RateArms(e1, t1, e2, t2) if i_pos <= c_pos else RateArms(e2, t2, e1, t1)
 
 
+def _covariate_model_sentence(s):
+    """An effect from a risk-factor / multivariable MODEL is not the randomised contrast: McFarland 1995's only abstract
+    effect was 'Using a multivariate model to adjust for two independent risk factors ... adjusted relative risk
+    (RR = 0.29...)' where the randomised comparison is the crude one. One definition, shared with the full-text rung
+    (fulltext.COVARIATE_ANALYSIS), which already dropped such sentences; a plain 'adjusted hazard ratio' is NOT
+    matched there, so a trial's own stratified result still stands."""
+    from .fulltext import COVARIATE_ANALYSIS
+    return bool(COVARIATE_ANALYSIS.search(s or ""))
+
+
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason.
 
@@ -825,7 +875,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                     or (_skip_composite and _names_composite(s))
                     or _kw_only_in_null_result(s, outcome_kws)):
                 continue
-            eff = extract_effect(s)
+            eff = None if _covariate_model_sentence(s) else extract_effect(s)
             if eff and eff[0] == "HR":
                 return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
                         "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
@@ -868,7 +918,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                 or (_skip_composite and _names_composite(s))
                 or _kw_only_in_null_result(s, outcome_kws)):
             continue
-        eff = extract_effect(s)
+        eff = None if _covariate_model_sentence(s) else extract_effect(s)
         if eff:
             return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": eff[0],
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}
@@ -891,6 +941,26 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
                 "measure": "IRR",
                 "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
+    # Reported between-group MEAN DIFFERENCE + CI, for an MD outcome: a REPORTED effect outranks one reconstructed from
+    # arm means (the same precedence the ratio path keeps). Same sentence guards as every other path.
+    if estimand and str(estimand).upper() in ("MD", "MEAN DIFFERENCE"):
+        _mds = []
+        for s in sents:
+            if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                    or (_skip_composite and _names_composite(s))
+                    or _kw_only_in_null_result(s, outcome_kws)):
+                continue
+            _pct = any(("percent" in k.lower() or "%" in k) for k in (outcome_kws or []))
+            e = extract_md_effect(s, require_unit=(r"percentage points?|%|percent" if _pct else None))
+            if e:
+                _mds.append((e, s))
+        if len({(e.point, e.lo, e.hi) for e, _ in _mds}) > 1:
+            return {"absent": True, "reason": ("ambiguous: admissible sentences state different reported mean "
+                    "differences for this outcome; refused rather than take the first (R4)")}
+        if _mds:
+            e, s = _mds[0]
+            return {"effect": e.point, "ci_low": e.lo, "ci_high": e.hi, "scale": "MD",
+                    "source": "abstract reported mean difference + CI: " + s.strip()[:200]}
     # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
     ns = _arm_ns(abstract, interv_terms, comp_terms)
     _conts = []
@@ -985,3 +1055,193 @@ def extract_meta(abstract, outcome_kws):
                 eff = {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0], "source": s.strip()[:220]}
             break
     return {"primary": eff, "k": _parse_k(abstract)}
+
+
+def outcome_window_mismatch(declared_timepoint: str, keywords, source_span: str) -> str:
+    """Refuse a result measured over a DIFFERENT explicit day-window than the outcome declares.
+
+    `timepoint_mismatch` above is deliberately narrow: it fires only for a purely in-hospital /
+    index-admission declared timepoint, and returns early when the declared string itself names a
+    day window. So an outcome declaring '30-day or in-hospital' had NO guard at all against a source
+    reporting the same outcome at a different window.
+
+    corticosteroids-cap-mortality found it. PMID 35723686 (Meduri/ESCAPe) reports "There was no
+    significant difference in 60-day all-cause mortality (16% vs. 18%)". docs/refusals.json refuses
+    that trial by hand -- "reports 60-day mortality, not the declared 28-day; timepoint mismatch" --
+    but the harness had no rule, so when the committed full text became visible to pool construction
+    the row was pooled, and only the claimgraph's REFUSED_AND_POOLED check stopped it being served.
+    A registry entry written by a person is not a substitute for a rule.
+
+    The allowed windows come from the declared timepoint AND the outcome's own keywords, because a
+    topic states its intent in both: this outcome declares '30-day or in-hospital' and enumerates
+    '28-day mortality', '28-30', 'death by day 28'. So 28 and 30 are allowed and 60 is not.
+
+    Conservative on purpose -- it fires only when the span attaches an explicit day number to the
+    outcome ("60-day all-cause mortality", "mortality at 90 days"), never on a bare number
+    elsewhere in the sentence, and never when no window is declared at all.
+    """
+    dt = (declared_timepoint or "").lower()
+    allowed = {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", dt)}
+    for k in (keywords or []):
+        allowed |= {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", str(k).lower())}
+        allowed |= {int(n) for n in re.findall(r"\bday\s+(\d{1,3})\b", str(k).lower())}
+        m = re.fullmatch(r"(\d{1,3})\s*-\s*(\d{1,3})", str(k).strip())
+        if m:                                  # an explicit span such as '28-30'
+            allowed |= set(range(int(m.group(1)), int(m.group(2)) + 1))
+    if not allowed:
+        return ""
+    s = (source_span or "").lower()
+    found = set()
+    for m in re.finditer(r"(\d{1,3})\s*[- ]?\s*day\s+(?:all[- ]cause\s+)?(?:mortality|death|survival)", s):
+        found.add(int(m.group(1)))
+    for m in re.finditer(r"(?:mortality|death|survival)\s+at\s+(\d{1,3})\s*days?\b", s):
+        found.add(int(m.group(1)))
+    outside = sorted(w for w in found if w not in allowed)
+    if not outside:
+        return ""
+    return (f"source reports the outcome at {', '.join(str(w) + '-day' for w in outside)} but the outcome "
+            f"declares {declared_timepoint!r} (windows allowed: {sorted(allowed)}); pooling different "
+            "measurement windows would be estimand-inconsistent")
+
+
+_TABLE_ROLE_NEVER_AN_EFFECT_SOURCE = (
+    "baseline demographic", "baseline characteristic", "baseline clinical",
+    "demographic and clinical characteristic", "patient characteristic",
+    "subject characteristic", "study design", "trial design", "inclusion criteria",
+    "exclusion criteria", "eligibility criteria", "schedule of assessment",
+)
+
+
+def table_role_refusal(source_span: str) -> str:
+    """Refuse an effect read out of a BASELINE / DEMOGRAPHIC / DESIGN table.
+
+    A baseline table's numbers are arm sizes and patient characteristics. They look exactly like
+    outcome counts to a keyword-scoped extractor -- same shape, same two arms -- and pooling them
+    produces a confident, well-formed, entirely fictitious effect.
+
+    Found in colchicine-secondary-cv-prevention, PMID 32295417, the moment committed held full texts
+    reached pool construction: the extracted span was
+
+        "Supplementary Material Supplementary Material === TABLES (structured; cell boundaries =
+         ' | ') === TABLE Table 1.: Baseline demographic and clinical characteristics of subject..."
+
+    Nothing downstream would have caught it as a number -- it is arithmetically fine. The build was
+    refused only because docs/refusals.json independently refuses that trial and the claimgraph will
+    not publish a trial that is both refused and pooled. That is luck, not a gate.
+
+    The guard keys on the TABLE CAPTION nearest the span's start, because the caption is where a
+    document states a table's role. It does not key on the word "baseline" anywhere in the span: a
+    results table legitimately says "change from baseline", and refusing that would lose real
+    effects. Returns a reason or ''.
+
+    UNCAPTIONED TABLES (2026-10-01). An inline table carries no 'Table N:' caption, so the caption
+    branch cannot see it -- and the original fallback (no caption found -> scan the whole head for
+    the phrases) refused real results that merely mention "baseline characteristics" in a sentence.
+    probiotics-aad-prevention PMID 39497860 is the case that forced this: its span
+    "Characteristic Probiotic Group (n=170) Placebo Group (n=170) Age Groups (n;%) 18-30 years ..."
+    was read as per-arm mean+/-SD, a mean difference of patient AGES entered an RR pool, and the
+    estimand mix suppressed the pooled result. So the phrase list applies only to a real caption, and
+    an uncaptioned table is refused on STRUCTURE: its content opens with a 'Characteristic(s)' header
+    AND a demographic row label (age, sex, BMI, ...) appears in the head.
+    """
+    s = (source_span or "")
+    if not s:
+        return ""
+    head = s[:600].lower()
+    m = re.search(r"table\s+[^:\n]{0,40}:\s*([^\n|]{0,160})", head)
+    if m:
+        caption = m.group(1).lower()
+        for phrase in _TABLE_ROLE_NEVER_AN_EFFECT_SOURCE:
+            if phrase in caption:
+                return (f"the effect was read from a table whose caption describes it as {phrase!r} "
+                        "(baseline/demographic/design tables report arm composition, not outcome events); "
+                        "a number from such a table is not an effect")
+        return ""
+    # The span may carry a provenance label ("abstract mean+/-SD per arm (mean difference): ..."); the table's
+    # own content starts after it.
+    content = head.split("): ", 1)[1] if "): " in head[:120] else head
+    if (_UNCAPTIONED_BASELINE_HEADER.match(content.lstrip())
+            and _DEMOGRAPHIC_ROW_LABEL.search(content)):
+        return ("the effect was read from an uncaptioned table whose header is 'Characteristic' and whose rows "
+                "are patient demographics (a baseline table reports arm composition, not outcome events); "
+                "a number from such a table is not an effect")
+    return ""
+
+
+_UNCAPTIONED_BASELINE_HEADER = re.compile(r"(?:baseline\s+)?(?:patient\s+)?characteristics?\b")
+_DEMOGRAPHIC_ROW_LABEL = re.compile(
+    r"\b(?:age(?:\s+groups?)?|sex|gender|male|female|bmi|body mass index|ethnicity|race|smoking)\b")
+_SUBGROUP_RESTRICTION = re.compile(
+    r"\bin the (?:sub)?group of (?:patients|participants|subjects|those) (?:who|with)\b"
+    r"|\bsubgroup (?:of|analysis|analyses)\b"
+    r"|\bamong (?:the )?(?:patients|participants|subjects|those) (?:who (?:were|was) (?:on|receiving|taking|using)|on regular)\b"
+    r"|\bin the subset of\b")
+
+
+def subgroup_refusal(source_span: str) -> str:
+    """Refuse an effect that the source itself restricts to a SUBGROUP of the randomised population.
+
+    probiotics-aad-prevention PMID 34541475: "in the group of patients who were on regular PPI, LcS use was
+    associated with a lower risk of AAD at 7 (... RR: 0.53, 95% CI: 0.29-0.99)" was harvested as the trial's
+    effect the moment its held full text was read. A subgroup estimate is a different population; pooling it
+    beside whole-trial effects is estimand-inconsistent. Conservative: fires only on an explicit restriction
+    phrase in the sentence that carries the number. "Consistent across subgroups" describes an overall
+    result and does not fire. Returns a reason or ''.
+    """
+    m = _SUBGROUP_RESTRICTION.search((source_span or "").lower())
+    if not m:
+        return ""
+    return (f"the source restricts this result to a subgroup ('{m.group(0)}'), not the randomised population "
+            "the outcome declares; a subgroup estimate is a different population and is not pooled")
+
+
+_ADJUSTED_EFFECT = re.compile(
+    r"(?<!un)\badjusted\s+(?:hazard|odds|risk|rate)\s+ratio\b[^.;]{0,40}?"
+    r"|\ba(?:HR|OR|RR)\b|\b(?:multivariable|covariate)[- ]adjusted\b")
+_EXPLORATORY_STATEMENT = re.compile(r"\bexploratory\s+(?:end[\s-]?point|outcome|analysis|analyses)\b", re.I)
+_LABEL_ONLY_KW = re.compile(
+    r"^(?:the\s+)?(?:co-?primary|primary|key secondary|secondary|main)[\s-]+(?:composite\s+)?"
+    r"(?:outcome|end[\s-]?point|measure|variable|end[\s-]?point event)s?$|^(?:the\s+)?composite", re.I)
+
+
+def analysis_qualifiers(source_span: str, held_text: str, keywords) -> list:
+    """What the source itself says about HOW this result was estimated, with the verbatim span -- never typed.
+
+      COVARIATE_ADJUSTED    the row's own span reports an adjusted ratio ("adjusted hazard ratio", "aHR", ...);
+                            "unadjusted" does not fire.
+      EXPLORATORY_ENDPOINT  a sentence of the held document states that THIS outcome (one of its declared keywords,
+                            label-only keywords such as "primary endpoint" excluded) was an exploratory endpoint.
+
+    Not a refusal: whether such a result is poolable is the protocol's rule. This makes the qualifier visible on the
+    row and in any notice about it (omega3 PMID 38199870, DO-HEALTH: "adjusted hazard ratio (aHR) = 1.00" and "The
+    risk of MACE ... was an exploratory endpoint of DO-HEALTH"). Returns [] or [{code, quote}].
+    """
+    out = []
+    span = source_span or ""
+    # The row's stored span is a SNIPPET (220 chars) and can stop mid-phrase -- DO-HEALTH's ends at "(adjusted hazard".
+    # Locate it in the held document and read the whole sentence it came from.
+    content = span.split("): ", 1)[1] if "): " in span[:80] else span
+    probe = " ".join(content.split())[:60]
+    flat = " ".join((held_text or "").split())
+    at = flat.find(probe) if len(probe) >= 30 else -1
+    if at >= 0:
+        stop = re.search(r"(?<=[.!?])\s+[A-Z]", flat[at + len(probe):])
+        span = flat[at: at + len(probe) + (stop.start() if stop else 600)]
+    m = _ADJUSTED_EFFECT.search(span)
+    if m:
+        lo, hi = max(0, m.start() - 40), min(len(span), m.end() + 40)
+        while lo > 0 and not span[lo - 1].isspace():        # whole words only: the quote is read, not sliced
+            lo -= 1
+        while hi < len(span) and not span[hi].isspace():
+            hi += 1
+        out.append({"code": "COVARIATE_ADJUSTED", "quote": span[lo:hi].strip()})
+    kws = [str(k).lower() for k in (keywords or []) if str(k).strip() and not _LABEL_ONLY_KW.match(str(k).strip())]
+    if kws:
+        for sentence in re.split(r"(?<=[.!?])\s+", held_text or ""):
+            if not _EXPLORATORY_STATEMENT.search(sentence):
+                continue
+            low = sentence.lower()
+            if any((k in low) if len(k) > 4 else re.search(r"\b" + re.escape(k) + r"\b", low) for k in kws):
+                out.append({"code": "EXPLORATORY_ENDPOINT", "quote": sentence.strip()[:300]})
+                break
+    return out

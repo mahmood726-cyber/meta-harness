@@ -61,11 +61,20 @@ def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 26
     kl = [str(k).lower() for k in kws or []]
     candidates: list[dict[str, Any]] = []
     for sentence in extract._sentences(text):
+        # the extractor's own sentence guard: a subgroup / per-protocol / post-hoc effect is not the trial's
+        # result (PMID 34541475: the PPI-subgroup RR 0.53 was selected over the refused ITT extraction)
+        if extract._is_subgroup_sentence(sentence):
+            continue
+        # ... nor is an effect from a risk-factor / multivariable model (McFarland 1995, PMID 7872284: the adjusted RR
+        # 0.29 was ranked above the randomised counts 7/97 vs 14/96, RR 0.49 -- the comparator's value)
+        if extract._covariate_model_sentence(sentence):
+            continue
         low = sentence.lower()
         prev_end = 0
         for m in _EFFECT_CANDIDATE.finditer(sentence):
             clause = low[prev_end:m.start()][-window:]
-            if any(k in clause for k in kl):
+            hits = [k for k in kl if k in clause]
+            if hits:
                 eff = extract._effect_from_match(m, sentence[max(0, m.start() - 260):m.end() + 120])
                 if eff:
                     candidates.append({
@@ -74,9 +83,111 @@ def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 26
                         "ci_high": eff[3],
                         "scale": eff[0],
                         "source": _snippet(sentence, prev_end, m.end()),
+                        # WHICH declared keywords put this candidate here, and the sentence it came
+                        # from. Needed because a keyword that is only an endpoint LABEL ("primary
+                        # endpoint") says nothing about which endpoint is being reported -- see
+                        # effect_candidates_for_outcome below.
+                        "matched_keywords": hits,
+                        "sentence": sentence,
                     })
             prev_end = m.end()
     return candidates
+
+
+# An endpoint LABEL is a name for whichever endpoint a trial designated, not a description of one.
+# "primary endpoint" identifies a different quantity in every trial that uses it.
+_LABEL_ONLY_KEYWORD = re.compile(
+    r"^(?:the\s+)?(?:co-?primary|primary|key secondary|secondary|main)[\s-]+(?:composite\s+)?"
+    r"(?:outcome|end[\s-]?point|measure|variable)s?$"
+    r"|^(?:the\s+)?composite(?:\s+(?:outcome|end[\s-]?point))?$",
+    re.I,
+)
+_COMPOSITE_OUTCOME_NAME = re.compile(
+    r"composite|\bMACE\b|major adverse cardiovascular|major vascular|major coronary"
+    r"|\bor\b|/", re.I,
+)
+
+
+def _declared_outcome_is_composite(spec: dict[str, Any]) -> bool:
+    canon = (spec.get("endpoint_canonical") or {})
+    if len(canon.get("components") or []) >= 2:
+        return True
+    return bool(_COMPOSITE_OUTCOME_NAME.search(str(spec.get("name") or "")))
+
+
+def label_only_harvest_refusal(spec: dict[str, Any], text: str, candidate: dict[str, Any],
+                               *, unresolved_is_refusal: bool = False) -> str | None:
+    """Why this candidate must not be offered for this outcome, or None if it may be.
+
+    A candidate is in question only when EVERY keyword that surfaced it is a bare endpoint label.
+    Such a sentence ("The primary endpoint occurred in 29.7% ... [hazard ratio=0.85]") names no
+    outcome at all; it names whatever the trial designated. So the label is resolved to its own
+    definition span in the SAME held text and the endpoint is settled from that.
+
+    Refuse when the definition is a composite of two or more components and the declared outcome is
+    not itself a composite: that is a different quantity, and offering it lets the source-hierarchy
+    selector prefer it over a correct reconstruction, which is how a CV-death/HHF composite came to
+    be served as all-cause mortality (PMID 28824029).
+
+    Do NOT refuse when the declared outcome IS the composite the label resolves to -- that is the
+    label doing its job, and it is the only route by which some MACE trials report a result at all
+    (PMID 30418475). A rule that refuses both is a rule that deleted the keyword.
+    """
+    hits = [str(k) for k in (candidate.get("matched_keywords") or [])]
+    if not hits or not all(_LABEL_ONLY_KEYWORD.match(k.strip()) for k in hits):
+        return None
+    if _declared_outcome_is_composite(spec):
+        return None
+    from . import target_endpoint as _te
+    binding = _te.bind_result_span(text or "", candidate.get("sentence") or candidate.get("source"))
+    components = sorted(binding.get("components") or [])
+    if len(components) >= 2:
+        return (
+            f"the sentence names its endpoint only as {hits[0]!r}, which this document defines as a "
+            f"composite of {', '.join(components)}; the declared outcome "
+            f"{str(spec.get('name') or '')!r} is a single component, so this is a different quantity"
+        )
+    if not components and unresolved_is_refusal:
+        return (
+            f"the sentence names its endpoint only as {hits[0]!r} and no definition span for that "
+            "label is present in the text supplied, so which endpoint it reports is unknown"
+        )
+    return None
+
+
+def candidate_scope_refusal(candidate: dict[str, Any]) -> str | None:
+    """The row-level scope guards, applied to a HARVESTED candidate.
+
+    The pipeline applies extract's guards to the row it extracts, but the source-hierarchy selector can then
+    REPLACE that row's number with a harvested candidate (provenance pmc_fulltext_effect), and nothing guarded
+    the candidate. That is how a subgroup RR (probiotics PMID 34541475, patients on regular PPI) reached the pool
+    when held full texts were enabled. The sentence the number came from is checked, falling back to the snippet.
+    """
+    text = candidate.get("sentence") or candidate.get("source") or ""
+    return (extract.subgroup_refusal(text) or extract.table_role_refusal(text)) or None
+
+
+def effect_candidates_for_outcome(spec: dict[str, Any], text: str,
+                                  record: list[str] | None = None) -> list[dict[str, Any]]:
+    """Harvested effect candidates for the declared outcome, with label-only mismatches removed.
+
+    ENDPOINT ELIGIBILITY BEFORE SOURCE PREFERENCE. The selector downstream ranks candidates by
+    source and estimand class and never asks what endpoint they are about, so a candidate that is
+    about the wrong endpoint must not reach it.
+    """
+    kept = []
+    for cand in _effect_candidates_in_outcome(text or "", spec.get("keywords") or []):
+        refusal = (label_only_harvest_refusal(spec, text or "", cand)
+                   or candidate_scope_refusal(cand))
+        if refusal:
+            # A refusal that is not recorded cannot be explained later. The pooled result moves,
+            # the notice says a different number is now contributed, and nothing anywhere says
+            # why the previous one was dropped -- so the reason is carried out with the candidate.
+            if record is not None:
+                record.append(refusal)
+            continue
+        kept.append(cand)
+    return kept
 
 
 def _append_unique(out: list[dict[str, Any]], candidate: dict[str, Any] | None) -> None:
@@ -91,16 +202,22 @@ def source_effect_candidates(
     fulltext: str | None = None,
     ctgov_outcomes: Any = None,
     verified_effect: dict[str, Any] | None = None,
+    record: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for eff in _effect_candidates_in_outcome(abstract or "", spec.get("keywords") or []):
+    for eff in effect_candidates_for_outcome(spec, abstract or "", record):
         _append_unique(candidates, reported_effect_candidate(eff, "abstract", "abstract"))
     if fulltext:
-        for eff in _effect_candidates_in_outcome(fulltext, spec.get("keywords") or []):
-            _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
+        # the same units the full-text rung reads: prose, then each verbatim non-baseline table row on its own
+        # (acq/k-gap), each read by effect_candidates_for_outcome (table-role guard, record-aware)
+        from . import fulltext as _ft_mod
+        seg = _ft_mod.extraction_segments(fulltext)
+        for unit in [_ft_mod.own_result_prose(seg["prose"])["prose"]] + [r["row"] for r in seg["rows"]]:
+            for eff in effect_candidates_for_outcome(spec, unit, record):
+                _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
     if ctgov_outcomes:
         text = json.dumps(ctgov_outcomes, ensure_ascii=False)
-        for eff in _effect_candidates_in_outcome(text, spec.get("keywords") or []):
+        for eff in effect_candidates_for_outcome(spec, text, record):
             _append_unique(
                 candidates,
                 reported_effect_candidate(eff, "ctgov_results_effect", "ClinicalTrials.gov results"),
@@ -129,9 +246,27 @@ def selection_extras(row: dict[str, Any]) -> dict[str, Any]:
     return extras
 
 
-def span_effect_candidates(spec: dict[str, Any], selected: dict[str, Any], base_candidates: list[dict[str, Any]]):
+def span_effect_candidates(spec: dict[str, Any], selected: dict[str, Any],
+                           base_candidates: list[dict[str, Any]], text: str | None = None,
+                           record: list[str] | None = None):
+    """`text` is the HELD DOCUMENT, not the row's source snippet.
+
+    A label-only candidate is settled by resolving the label to its definition span, and that span
+    is almost never inside the snippet the row carries (PMID 28824029's is 171 chars and holds the
+    result sentence alone). Filtering against the snippet would resolve nothing and refuse nothing
+    while looking like a filter, so the held document is passed in and the snippet is only a
+    fallback -- and on that fallback an unresolvable label-only candidate is REFUSED, not admitted.
+    """
+    span_text = selected.get("source", "") or ""
+    resolve_text = text or span_text
     candidates = list(base_candidates or [])
-    for eff in _effect_candidates_in_outcome(selected.get("source", "") or "", spec.get("keywords") or []):
+    for eff in _effect_candidates_in_outcome(span_text, spec.get("keywords") or []):
+        refusal = (label_only_harvest_refusal(spec, resolve_text, eff, unresolved_is_refusal=not text)
+                   or candidate_scope_refusal(eff))
+        if refusal:
+            if record is not None:
+                record.append(refusal)
+            continue
         cand = reported_effect_candidate(
             eff,
             selected.get("provenance") or "committed_source",

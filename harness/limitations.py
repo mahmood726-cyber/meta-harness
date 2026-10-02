@@ -1135,6 +1135,14 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str, rev
         add(f"{prefix}:harms-incomplete", LimitationKind.HARMS_INCOMPLETE,
             Severity.BLOCKS_CLAIM, f"outcome result: {outcome.get('name')}", EvidenceState.PARTIAL,
             ["/outcomes/*/result/harm_reporting_trials"], _page._harms_ledger_block(outcome))
+        # Mirror page._outcome_block: an incomplete harms synthesis does not hide that the pool is ALSO suppressed
+        # (corticosteroids-cap Hyperglycaemia, 2026-10-01). Both limitations are true; both are objects.
+        _res = outcome.get("result") or {}
+        if isinstance(_res, dict) and _res.get("suppressed_incompatible"):
+            add(f"{prefix}:suppressed-pool", LimitationKind.SUPPRESSED_POOL, Severity.BLOCKS_CLAIM,
+                f"pooled estimate: {outcome.get('name')}", EvidenceState.SUPPRESSED,
+                ["/outcomes/*/result/suppressed_incompatible", "/outcomes/*/result/suppressed_reason"],
+                _suppressed_outcome_block(_res))
         return
     reason = _absent(outcome)
     if reason:

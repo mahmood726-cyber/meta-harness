@@ -34,9 +34,13 @@ PATH = ROOT / "docs" / "result_changes.json"
 def _notice(slug: str, outcome_sub: str):
     data = json.load(open(PATH, encoding="utf-8"))
     hits = [n for n in data["notices"] if n["slug"] == slug and outcome_sub.lower() in n["outcome"].lower()]
-    if len(hits) != 1:
-        sys.exit(f"{len(hits)} notices match {slug} / {outcome_sub!r}; name one")
-    return data, hits[0]
+    # An outcome can carry a SIGNED notice for an earlier change and an OPEN one for a later change (a signed notice
+    # is never rewritten). Signing acts on the open one; a signed notice is never re-signed or overwritten here.
+    open_hits = [n for n in hits if not str((n.get("reviewer_countersignature") or {}).get("state") or "")
+                 .upper().endswith("SIGNED")]
+    if len(open_hits) != 1:
+        sys.exit(f"{len(open_hits)} OPEN notices match {slug} / {outcome_sub!r} ({len(hits)} in all); name one")
+    return data, open_hits[0]
 
 
 def _annotated(n):
