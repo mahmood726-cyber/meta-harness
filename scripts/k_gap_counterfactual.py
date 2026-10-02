@@ -261,6 +261,57 @@ def all_with_screen_hypothesis(slug):
                                 "flip_funnel": funnel(cf_core, sorted(flip))}
 
 
+def held_open_sources(slug, base_core, fetch_missing=False):
+    """Every OPEN primary source this lane already holds for a topic, no new network unless fetch_missing:
+      records    the comparator's member trials' PubMed records (member_records.json; efetch the rest if fetch_missing)
+      full text  PMC OA (_ft cache), else the Unpaywall OA copy typed UNSTRUCTURED, for each declared-absent PMID
+      registry   posted CT.gov results (_ctgov cache) for each declared-absent trial's NCT
+    Returns (records, fulltext_by_pmid, ctgov_by_nct, n_unpaywall)."""
+    prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
+    rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+    pm, _nct_only = member_pmids(slug)
+    mrec_p = os.path.join(OUT, "member_records.json")
+    mrec = _j(mrec_p) if os.path.exists(mrec_p) else {}
+    recs = [mrec[p] for p in pm if p in mrec]
+    missing = [p for p in pm if p not in mrec]
+    if missing and fetch_missing:
+        from harness import fetch
+        recs += fetch._efetch(missing)
+    held_ft = set(rj.get("fulltext_by_pmid") or {})
+    ft_t = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
+                   if str(d.get("id", "")).startswith("PMID ")} - held_ft)
+    fts = {p: t for p in ft_t for t in [pmc_fulltext_cached(p, offline=True)] if t}
+    from kgap import k_gap as _kg
+    from harness import fulltext as _ftm
+    doi_of = {r.get("id"): (r.get("doi") or "").strip() for r in rj.get("records", [])}
+    n_upw = 0
+    for p in ft_t:
+        if p in fts or not doi_of.get(p):
+            continue
+        u = _kg.unpaywall_text(doi_of[p], os.path.join(OUT, "_upw"), os.path.join(OUT, "unpaywall_text_index.json"),
+                               offline=True)
+        if u.get("text"):
+            fts[p] = _ftm.UNSTRUCTURED_MARKER + "\n" + u["text"]
+            n_upw += 1
+    recnct = {r.get("id"): r.get("nct") for r in rj.get("records", [])}
+    cg_t = set()
+    for d in prim.get("declared_absent_trials", []):
+        for n in (d.get("trial_family_id"), recnct.get(str(d.get("id", "")).replace("PMID ", "")), d.get("id")):
+            if n and str(n).startswith("NCT"):
+                cg_t.add(str(n))
+    cgs = {n: o for n in sorted(cg_t - set(rj.get("ctgov_results") or {}))
+           for o in [ctgov_results_cached(n, offline=True)] if o}
+    return recs, fts, cgs, n_upw
+
+
+def build_with_held_sources(slug, base_core=None, fetch_missing=False):
+    """The branch build of a topic WITH every held open primary source injected (the --all counterfactual): what this
+    harness pools given everything it has acquired. Returns (core, (records, fulltext, ctgov, n_unpaywall))."""
+    base_core = base_core or build(slug)
+    src = held_open_sources(slug, base_core, fetch_missing=fetch_missing)
+    return build(slug, extra_records=src[0], extra_fulltext=src[1], extra_ctgov=src[2]), src
+
+
 def member_pmids(slug):
     """Comparator members the k-gap table marks IDENTIFICATION (never in our corpus), confirmed-set only.
 
@@ -370,44 +421,9 @@ def main(argv):
             elif mode == "--all":
                 # every adapter at once, from the caches the single-adapter runs filled (no new network): the
                 # combined number is MEASURED, not summed -- two routes can admit the same trial.
-                from harness import fetch
                 base_core = build(slug)
                 base = core_primary(base_core)
-                prim = next((o for o in base_core["outcomes"] if o.get("primary")), {})
-                rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
-                pm, _nct_only = member_pmids(slug)
-                mrec_p = os.path.join(OUT, "member_records.json")
-                mrec = _j(mrec_p) if os.path.exists(mrec_p) else {}
-                recs = [mrec[p] for p in pm if p in mrec]
-                missing = [p for p in pm if p not in mrec]
-                if missing:
-                    recs += fetch._efetch(missing)
-                held_ft = set(rj.get("fulltext_by_pmid") or {})
-                ft_t = sorted({str(d.get("id", "")).replace("PMID ", "") for d in prim.get("declared_absent_trials", [])
-                               if str(d.get("id", "")).startswith("PMID ")} - held_ft)
-                fts = {p: t for p in ft_t for t in [pmc_fulltext_cached(p, offline=True)] if t}
-                # adapter 4 (Unpaywall OA copy, typed UNSTRUCTURED) for the declared-absent trials PMC does not hold
-                from kgap import k_gap as _kg
-                from harness import fulltext as _ftm
-                doi_of = {r.get("id"): (r.get("doi") or "").strip() for r in rj.get("records", [])}
-                n_upw = 0
-                for p in ft_t:
-                    if p in fts or not doi_of.get(p):
-                        continue
-                    u = _kg.unpaywall_text(doi_of[p], os.path.join(OUT, "_upw"),
-                                           os.path.join(OUT, "unpaywall_text_index.json"), offline=True)
-                    if u.get("text"):
-                        fts[p] = _ftm.UNSTRUCTURED_MARKER + "\n" + u["text"]
-                        n_upw += 1
-                recnct = {r.get("id"): r.get("nct") for r in rj.get("records", [])}
-                cg_t = set()
-                for d in prim.get("declared_absent_trials", []):
-                    for n in (d.get("trial_family_id"), recnct.get(str(d.get("id", "")).replace("PMID ", "")), d.get("id")):
-                        if n and str(n).startswith("NCT"):
-                            cg_t.add(str(n))
-                cgs = {n: o for n in sorted(cg_t - set(rj.get("ctgov_results") or {}))
-                       for o in [ctgov_results_cached(n, offline=True)] if o}
-                cfc = build(slug, extra_records=recs, extra_fulltext=fts, extra_ctgov=cgs)
+                cfc, (recs, fts, cgs, n_upw) = build_with_held_sources(slug, base_core=base_core, fetch_missing=True)
                 cf = core_primary(cfc)
                 res[slug] = {"served_k": s["k"], "baseline_k": base["k"], "baseline_k_valid": base["k_valid"],
                              "counterfactual_k": cf["k"], "counterfactual_k_valid": cf["k_valid"],
