@@ -52,7 +52,11 @@ def _pilot():
 def items(run):
     ea.load_reader()
     audit = _j(os.path.join(OUT, "exclusion_audit.json"))
+    # the SAME population the audit classifies: seeded exclusions AND our own screen's (NR-C21 -- with the seeded
+    # population alone, every in-screen item's record was missing here, Zarpelon 27223641 among them)
     pop = {(it["slug"], it["pmid"]): it for it in ea.population()}
+    for it in ea.population_in_screen():
+        pop.setdefault((it["slug"], it["pmid"]), it)
     out = []
     for row in audit["rows"]:
         if row["class"] != "INSUFFICIENT_RECORD":
@@ -116,11 +120,21 @@ def main(argv):
                          "fulltext": "NO_OA_FULLTEXT", "class_after": "INSUFFICIENT_RECORD", "how": None})
             continue
         rec_ft = dict(it["rec"] or {}, abstract=((it["rec"] or {}).get("abstract") or "") + "\n\n" + it["fulltext"])
-        cls, sub, _ = ea.classify(rec_ft, ea._cfg(it["slug"]))                    # regex first, on the full text
+        cls, sub, det = ea.classify(rec_ft, ea._cfg(it["slug"]))                  # regex first, on the full text
+        sp = (det or {}).get("span")
+        if cls == "TRUE_SCOPE_DIFFERENCE" and not (sp and sp.get("text") and sp["text"] in it["fulltext"]):
+            # the span is not the FULL TEXT's own words (it crossed the abstract/full-text join, or came from the
+            # abstract the record pass already read): no full-text evidence, so the item stays insufficient and goes on
+            # to the reader -- never a scope class without its span (NR-C21)
+            cls = "INSUFFICIENT_RECORD"
         if cls != "INSUFFICIENT_RECORD":
+            # the span must be the FULL TEXT's own words (verbatim in the held body), not a line of the abstract
+            # the full text was appended to -- else it is a record span and the record pass would have found it
+            sp = ({"field": "fulltext", "text": sp["text"], "match": sp.get("match")}
+                  if sp and sp.get("text") and sp["text"] in it["fulltext"] else None)
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
                          "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT",
-                         "fulltext_sha256": hashlib.sha256(it["fulltext"].encode("utf-8")).hexdigest()})
+                         "span": sp, "fulltext_sha256": hashlib.sha256(it["fulltext"].encode("utf-8")).hexdigest()})
             continue
         p, held, cd = reader_prompt(pilot, it, rec_ft)
         r = runs.get(key)

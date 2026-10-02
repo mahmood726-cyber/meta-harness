@@ -3,10 +3,10 @@ reproduces (lane G1, colchicine-postop-af).
 
 COPPS-2 (PMID 25172965) states postoperative AF twice, for two analysis sets:
   all randomised  '... postoperative AF (colchicine, 61 patients [33.9%]; placebo, 75 patients [41.7%]; ...)'
-                  with 'placebo (n=180) or colchicine (...; n=180)'                    -> RR 0.81 (0.62-1.07)
+                  with 'placebo (n=180) or colchicine (...; n=180)'                    -> RR 0.81 (0.62-1.06)
   on-treatment    '... a reduction in postoperative AF in the prespecified on-treatment analysis
                   (placebo, 61/148 patients [41.2%]; colchicine, 38/141 patients [27.0%] ...)'  -> RR 0.65 (0.47-0.91)
-Our registered estimand is ITT, so we pool the first; the comparator printed RR 0.66 (0.45-0.96). Which held analysis
+We pool the first (all randomised: its n is the randomised n; the abstract does not call it ITT); the comparator printed RR 0.66 (0.45-0.96). Which held analysis
 set a printed row comes from is a typed, checkable question, never a guess: a set REPRODUCES the row only when its RR
 and both CI limits round to the printed values at the printed precision; otherwise the NEAREST set is reported as
 nearest, and the row stays unreproduced.
@@ -17,7 +17,7 @@ import math
 import re
 from typing import Any
 
-RULE_ID = "analysis_set:labelled_counts_v1"
+RULE_ID = "analysis_set:labelled_counts_v2"
 
 # 'placebo (n=180)', 'colchicine (0.5 mg twice daily ...; n=180)': an arm's randomised size
 _ARM_N = re.compile(r"\b(?P<arm>[A-Za-z][\w-]{2,40})\s*\((?:[^()]{0,200}?[;,]\s*)?n\s*=\s*(?P<n>\d{1,6})\)", re.I)
@@ -25,7 +25,7 @@ _ARM_N = re.compile(r"\b(?P<arm>[A-Za-z][\w-]{2,40})\s*\((?:[^()]{0,200}?[;,]\s*
 _COUNT = re.compile(r"(?:^|[;(]\s*)(?P<arm>[A-Za-z][\w-]{2,40}),\s*(?P<e>\d{1,6})(?:\s*/\s*(?P<n>\d{1,6}))?\s+"
                     r"(?:patients|participants|subjects)\b", re.I)
 # the analysis set named in the clause before a count group
-_SET = re.compile(r"\b(?P<set>on[-\s]treatment|per[-\s]protocol|as[-\s]treated|modified\s+intention[-\s]to[-\s]treat|"
+_SET = re.compile(r"\b(?P<set>on[-\s]treatment|per[-\s]protocol|as[-\s]treated|modified\s+(?:intention[-\s]to[-\s]treat|ITT)|"
                   r"intention[-\s]to[-\s]treat|mITT|ITT|completers?)\b", re.I)
 _PAREN = re.compile(r"\(([^()]*)\)")
 _SENT = re.compile(r"(?<=[.;])\s+(?=[A-Z])")
@@ -36,7 +36,16 @@ _CANON = {"on-treatment": "on-treatment", "on treatment": "on-treatment", "per-p
           "intention-to-treat": "intention-to-treat", "intention to treat": "intention-to-treat",
           "itt": "intention-to-treat", "mitt": "modified intention-to-treat", "completer": "completers",
           "completers": "completers"}
-ALL_RANDOMISED = "all randomised (no analysis set named)"
+ALL_RANDOMISED = "all randomised (no analysis set named; n = the randomised n)"
+# no set named and the n is not the randomised n (or it is unknown): never presumed to be all randomised (NR-C20 #6)
+NO_SET_NAMED = "no analysis set named (n is not the randomised n)"
+# a restricted set's denominator is its own: never inherited from the randomised arm sizes (NR-C20 #10)
+RESTRICTED = {"on-treatment", "per-protocol", "as-treated", "modified intention-to-treat", "completers"}
+
+
+def _clause(lead: str) -> str:
+    """The clause a count group or percentage pair belongs to: the text after the last ';' (NR-C20 #7, #15)."""
+    return lead.rsplit(";", 1)[-1]
 
 
 _FOLD = str.maketrans({c: " " for c in "()[]{};:,.!?/\"'"})
@@ -62,6 +71,22 @@ def _matches(arm: str, terms) -> bool:
     return any(t.lower() in a or a in t.lower() for t in terms if t)
 
 
+def _best(arm: str, terms) -> int:
+    """Length of the longest term naming this arm (0 when none): 'no-colchicine' is named better by the control term
+    'no-colchicine' than by the treatment term 'colchicine' (NR-C20 #8)."""
+    a = arm.lower()
+    return max((len(t) for t in terms if t and (t.lower() in a or a in t.lower())), default=0)
+
+
+def _role(arm: str, treat_terms, ctrl_terms) -> str | None:
+    a = arm.lower()
+    et, ec = any(a == t.lower() for t in treat_terms if t), any(a == t.lower() for t in ctrl_terms if t)
+    if et != ec:                                         # an arm NAMED exactly by one side's term is that side's
+        return "t" if et else "c"
+    bt, bc = _best(arm, treat_terms), _best(arm, ctrl_terms)
+    return None if bt == bc else ("t" if bt > bc else "c")
+
+
 def labelled_counts(text: str, treat_terms, ctrl_terms, outcome_terms) -> list[dict[str, Any]]:
     """Every count group stating the outcome for one treatment arm and one control arm, with its analysis set."""
     text = _WS.sub(" ", text or "")
@@ -74,16 +99,22 @@ def labelled_counts(text: str, treat_terms, ctrl_terms, outcome_terms) -> list[d
         for g in _PAREN.finditer(sent):
             lead = sent[prev_end:g.start()]
             prev_end = g.end()
+            clause = _clause(lead)
+            lab = list(_SET.finditer(clause))
+            label = _canon(lab[-1].group("set")) if lab else None
             arms = {}
             for c in _COUNT.finditer(g.group(1)):
-                role = "t" if _matches(c.group("arm"), treat_terms) else "c" if _matches(c.group("arm"), ctrl_terms) else None
+                role = _role(c.group("arm"), treat_terms, ctrl_terms)
                 if role and role not in arms:
-                    n = int(c.group("n")) if c.group("n") else sizes.get(c.group("arm").lower())
-                    arms[role] = {"arm": c.group("arm"), "events": int(c.group("e")), "n": n}
-            if set(arms) != {"t", "c"} or not _names_outcome(lead, outcome_terms):
+                    stated = int(c.group("n")) if c.group("n") else None
+                    rand = sizes.get(c.group("arm").lower())
+                    n = stated if stated is not None else (None if label in RESTRICTED else rand)
+                    arms[role] = {"arm": c.group("arm"), "events": int(c.group("e")), "n": n, "randomised_n": rand}
+            if set(arms) != {"t", "c"} or not _names_outcome(clause, outcome_terms):
                 continue
-            lab = list(_SET.finditer(lead))
-            label = _canon(lab[-1].group("set")) if lab else ALL_RANDOMISED
+            if label is None:
+                is_rand = all(a["n"] is not None and a["n"] == a["randomised_n"] for a in arms.values())
+                label = ALL_RANDOMISED if is_rand else NO_SET_NAMED
             out.append({"analysis_set": label, "treatment": arms["t"], "control": arms["c"],
                         "span": (lead[-160:] + "(" + g.group(1) + ")").strip(), "rule_id": RULE_ID})
     return out
@@ -102,26 +133,29 @@ def percent_back_calculation(text: str, treat_terms, ctrl_terms, outcome_terms) 
     text = _WS.sub(" ", text or "")
     sizes = {}
     for m in _N_TO_GROUP.finditer(text):
-        role = "t" if _matches(m.group("arm"), treat_terms) else "c" if _matches(m.group("arm"), ctrl_terms) else None
+        role = _role(m.group("arm"), treat_terms, ctrl_terms)
         if role:
             sizes.setdefault(role, int(m.group("n")))
     if set(sizes) != {"t", "c"}:
         return None
     for sent in _SENT.split(text):
         m = _PCT_PAIR.search(sent)
-        if not m or not _names_outcome(sent, outcome_terms):
+        if not m or not _names_outcome(_clause(sent[:m.start()]), outcome_terms):
             continue
         ok = []
         for pt, pc in ((m.group("p1"), m.group("p2")), (m.group("p2"), m.group("p1"))):
-            et, ec = round(float(pt) / 100 * sizes["t"]), round(float(pc) / 100 * sizes["c"])
-            if _same_at_printed(100 * et / sizes["t"], pt) and _same_at_printed(100 * ec / sizes["c"], pc):
-                ok.append((et, ec, pt, pc))
-        if len(ok) == 1:
+            # EVERY whole count that rounds back to the printed percentage, per arm; the assignment yields counts only
+            # when each arm has exactly one (7% of 1000 is any of 65..75 -- not a count: NR-C20 #13)
+            ets = [e for e in range(sizes["t"] + 1) if _same_at_printed(100 * e / sizes["t"], pt)]
+            ecs = [e for e in range(sizes["c"] + 1) if _same_at_printed(100 * e / sizes["c"], pc)]
+            if ets and ecs:
+                ok.append((ets[0], ecs[0], pt, pc) if len(ets) == 1 and len(ecs) == 1 else None)
+        if len(ok) == 1 and ok[0] is not None:
             et, ec, pt, pc = ok[0]
             return {"treatment": {"events": et, "n": sizes["t"], "printed_pct": pt},
                     "control": {"events": ec, "n": sizes["c"], "printed_pct": pc}, "span": sent[:300],
                     "basis": "the only assignment whose whole counts round back to both printed percentages",
-                    "rule_id": "analysis_set:percent_back_calculation_v1"}
+                    "rule_id": "analysis_set:percent_back_calculation_v2"}
         return {"state": "AMBIGUOUS" if ok else "NO_EXACT_COUNTS", "span": sent[:300]}
     return None
 
@@ -167,6 +201,9 @@ def attribute(row: dict[str, Any], sets: list[dict[str, Any]]) -> dict[str, Any]
         return {"state": "NO_HELD_COUNTS", "per_set": []}
     hit = [p for p in per if p["reproduces_printed_row"]]
     near = min(per, key=lambda p: p["distance_log_rr"])
-    return {"state": "REPRODUCED" if hit else "NOT_REPRODUCED", "reproduced_by": hit[0]["analysis_set"] if hit else None,
+    hit_sets = sorted({p["analysis_set"] for p in hit})
+    # two different sets reproducing the row is an AMBIGUOUS attribution, never the first one listed (NR-C20 #11)
+    state = "REPRODUCED_BY_SEVERAL" if len(hit_sets) > 1 else "REPRODUCED" if hit else "NOT_REPRODUCED"
+    return {"state": state, "reproduced_by": hit_sets[0] if len(hit_sets) == 1 else None, "reproduced_by_all": hit_sets,
             "nearest": near["analysis_set"], "per_set": per, "printed": {k: row.get(k) for k in ("effect", "lower", "upper")},
             "rule_id": RULE_ID}

@@ -2,7 +2,8 @@
 population / design / analysis-set / timepoint scope difference or an error on one side, and whether the comparator's
 conclusion survives on the shared trials.
 
-    python scripts/g1_reconcile.py SLUG   -> outputs/k_gap/g1/<slug>.reconcile.json and .md
+    python scripts/g1_reconcile.py SLUG   -> outputs/k_gap/g1_reconcile/<slug>.json and .md (its own directory: every
+    reader of outputs/k_gap/g1/*.json takes each file there as a tracker row)
 
 Reads only what the harness already holds and derives: outputs/k_gap/g1/<slug>.json (scripts/g1_tracker.py),
 outputs/k_gap/exclusion_audit.json (scripts/k_gap_exclusion_audit.py), cache/<slug>/records.json (held abstracts),
@@ -26,6 +27,10 @@ OUT = os.path.join(ROOT, "outputs", "k_gap")
 import g1_tracker as gt  # noqa: E402
 from harness import analysis_set  # noqa: E402
 from harness import secondary_meta as sm  # noqa: E402
+RECON_DIR = os.path.join(OUT, "g1_reconcile")
+ANALYSIS_SET_DIFFERENCE = "ANALYSIS_SET_DIFFERENCE"
+UNREPRODUCED_NEAREST_SET = "COMPARATOR_ROW_UNREPRODUCED:NEAREST_HELD_SET_NAMED"
+SET_CLASSES = (ANALYSIS_SET_DIFFERENCE, UNREPRODUCED_NEAREST_SET)
 
 
 def _j(p):
@@ -113,7 +118,10 @@ def reconcile(slug):
             elif at.get("per_set"):
                 per = {p["analysis_set"]: p for p in at["per_set"]}
                 theirs = at.get("reproduced_by") or at.get("nearest")
-                row.update(cls="ANALYSIS_SET_DIFFERENCE",
+                # the class says only what was SHOWN (NR-C20 #1): a held set that REPRODUCES the comparator's row is an
+                # analysis-set difference; a row no held set reproduces has a NEAREST set, and its provenance stays open
+                row.update(cls=ANALYSIS_SET_DIFFERENCE if at.get("state") == "REPRODUCED" else UNREPRODUCED_NEAREST_SET,
+                           comparator_row_attribution=at.get("state"), nearest_set_to_comparator_row=theirs,
                            verdict=(f"both numbers are in the report: we pool the {at.get('ours')} counts (registered "
                                     f"estimand: {(cfg.get('primary_outcome') or {}).get('population')}); the comparator's row "
                                     + ("IS" if at.get("state") == "REPRODUCED" else "is nearest to, but is not reproduced by,")
@@ -173,22 +181,26 @@ def reconcile(slug):
     scope_out = [r for r in rows if str(r.get("cls", "")).startswith("TRUE_SCOPE_DIFFERENCE")]
     in_scope = [r for r in rows if r not in scope_out and r["comparator_row"]]
 
+    def _set_row(r, name):
+        p = next(p for p in r["per_set"] if p["analysis_set"] == name)
+        return {"measure": "RR", "effect": f"{p['rr']}", "lower": f"{p['ci'][0]}", "upper": f"{p['ci'][1]}"}
+
     def ours_or_itt(r):
-        if r.get("cls") == "ANALYSIS_SET_DIFFERENCE":
-            p = next(p for p in r["per_set"] if p["analysis_set"] == r["right_number_for_protocol"])
-            return {"measure": "RR", "effect": f"{p['rr']}", "lower": f"{p['ci'][0]}", "upper": f"{p['ci'][1]}"}
+        if r.get("cls") in SET_CLASSES:
+            return _set_row(r, r["right_number_for_protocol"])
         return r["our_row"] if r["in_our_pool"] else r["comparator_row"]
 
-    def ontreat(r):
-        if r.get("cls") == "ANALYSIS_SET_DIFFERENCE":
-            p = next(p for p in r["per_set"] if p["analysis_set"] != r["right_number_for_protocol"])
-            return {"measure": "RR", "effect": f"{p['rr']}", "lower": f"{p['ci'][0]}", "upper": f"{p['ci'][1]}"}
+    def nearest_set(r):
+        # the held set NEAREST the comparator's row (or reproducing it) -- a sensitivity scenario, never the comparator's
+        # established analysis set unless it reproduces the row
+        if r.get("cls") in SET_CLASSES:
+            return _set_row(r, r["nearest_set_to_comparator_row"])
         return r["our_row"]
 
     scen = {
         "A_shared_trials_comparator_rows": _pool([theirs(r) for r in shared], method),
         "B_shared_trials_our_rows_ITT": _pool([r["our_row"] for r in shared], method),
-        "C_shared_trials_our_rows_with_the_comparators_analysis_set": _pool([ontreat(r) for r in shared], method),
+        "C_shared_trials_held_set_nearest_the_comparator_row": _pool([nearest_set(r) for r in shared], method),
         "D_comparator_rows_all_printed": _pool([theirs(r) for r in rows if r["comparator_row"]], method),
         "E_comparator_rows_protocol_scope_only": _pool([theirs(r) for r in in_scope], method),
         "F_protocol_scope_only_with_ITT_where_held": _pool([ours_or_itt(r) for r in in_scope], method),
@@ -202,14 +214,14 @@ def reconcile(slug):
             v["comparator_only_rows"] = [r["trial"] for r in members[k[0]] if not r["in_our_pool"]
                                          and not r.get("comparator_row_reproduced_from_counts")
                                          and (k[0] in ("D", "E") or not r["in_our_pool"])]
-    aset = next((r["trial"] for r in rows if r.get("cls") == "ANALYSIS_SET_DIFFERENCE"), None)
+    aset = next((r["trial"] for r in rows if r.get("cls") in SET_CLASSES), None)
     surv = {
         "comparator_published": g.get("comparator"),
         "method": method,
         "on_shared_trials": ("SURVIVES" if (scen["B_shared_trials_our_rows_ITT"] or {}).get("conclusion") ==
                              (scen["A_shared_trials_comparator_rows"] or {}).get("conclusion") else "DOES_NOT_SURVIVE"),
         "why": f"the shared-trial benefit depends on which analysis set of the {aset} report is pooled"
-        if (scen["C_shared_trials_our_rows_with_the_comparators_analysis_set"] or {}).get("conclusion") ==
+        if (scen["C_shared_trials_held_set_nearest_the_comparator_row"] or {}).get("conclusion") ==
         (scen["A_shared_trials_comparator_rows"] or {}).get("conclusion") != (scen["B_shared_trials_our_rows_ITT"] or {}).get("conclusion")
         else None,
     }
@@ -260,9 +272,10 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     slug = sys.argv[1]
     res = reconcile(slug)
-    with open(os.path.join(OUT, "g1", f"{slug}.reconcile.json"), "w", encoding="utf-8", newline="\n") as fh:
+    os.makedirs(RECON_DIR, exist_ok=True)
+    with open(os.path.join(RECON_DIR, f"{slug}.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(res, fh, indent=1, ensure_ascii=False)
     md = to_md(res)
-    with open(os.path.join(OUT, "g1", f"{slug}.reconcile.md"), "w", encoding="utf-8", newline="\n") as fh:
+    with open(os.path.join(RECON_DIR, f"{slug}.md"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write(md)
     print(md)

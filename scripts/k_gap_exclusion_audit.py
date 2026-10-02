@@ -18,7 +18,10 @@ call must reproduce the recorded rule, or the item is INCONSISTENT and not class
                         from title, conditions AND abstract) -> needs the full text
   TRUE_SCOPE_DIFFERENCE the record STATES the excluding fact: a population our protocol names as out of scope
                         (population_none term), another agent randomised, a non-placebo comparator named
-                        (usual care / no treatment / open-label), an open-label design
+                        (usual care / no treatment / open-label), an open-label design. STATES means a SPAN: every
+                        TRUE_SCOPE_DIFFERENCE carries `span` = {field, text, match}, the record's own words (verbatim in
+                        that field) that establish the excluding fact. No span -> INSUFFICIENT_RECORD:<sub>_NO_SPAN, and
+                        the trial stays ELIGIBLE (Mahmood 3 Oct: a denominator never shrinks on an unevidenced claim)
 Each item carries the comparator's own eligibility sentences (from its held text), so the contrast is visible.
 
     python scripts/k_gap_exclusion_audit.py   -> outputs/k_gap/exclusion_audit.json (small)
@@ -44,22 +47,77 @@ RANDOMISED_HERE = re.compile(r"\b(?:were|was|been|are|is)\s+(?:\w+\s+)?randomi[s
 # a comparison is STATED (an active or non-placebo comparator), even when no placebo is named
 COMPARISON_STATED = re.compile(r"\bversus\b|\bvs\.?\s|compared (?:with|to)|\bcombination\b|with (?:and|or) without|added to", re.I)
 BLIND = re.compile(r"\b(?:double|single|triple)[- ]?blind\w*|\bblinded\b|\bmasked\b|open[- ]label|unblinded|not blinded", re.I)
-# an open design, also as a bare design adjective: 'a prospective, randomized, open, single-center clinical assay'
-# (Zarpelon 27223641 full text) -- 'open' only between design words, never 'open heart' / 'open surgery'
-OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded|"
-                  r"\b(?:randomi[sz]ed|prospective|controlled)\s*,\s*open\s*,|\bopen\s*,\s*(?:single|multi)[- ]?cent(?:er|re)", re.I)
+# (the bare design adjective 'randomized, open,' is NOT here: unattributed it fires on a background line about ANOTHER
+# study -- 'Unlike the earlier randomized, open, single-center study' (NR-C21); THIS study's open design is
+# OPEN_DESIGN_SELF, which requires the self-attribution)
+OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded", re.I)
 # THIS study self-described as open ('This is a prospective, randomized, open, single-center clinical assay') -- narrow on
 # purpose: never 'open-label extension' (a double-blind trial can have one), never 'open heart'
 OPEN_DESIGN_SELF = re.compile(r"\b(?:this|the present|our)\s+(?:is\s+an?\s+|was\s+an?\s+)?(?:\w+\s*,\s*){0,3}?"
                               r"(?:randomi[sz]ed|prospective|controlled)\s*,\s*open\s*,", re.I)
 OTHER_COMP = re.compile(r"\b(?:usual care|standard (?:of )?care|standard therapy|no treatment|untreated|"
                         r"conventional (?:care|therapy|treatment)|control group received no|best supportive care|"
-                        r"control group,? not receiving (?:the )?(?:study )?(?:medication|drug|treatment))\b", re.I)
+                        # ...unless the same sentence gives that group a placebo ('received identical dummy tablets',
+                        # NR-C21): then it is a placebo control, not another comparator
+                        r"control group,? not receiving (?:the )?(?:study )?(?:medication|drug|treatment)"
+                        r"(?![^.]{0,120}\b(?:placebo|dummy|identical|matching|sham)\b))\b", re.I)
+# a title marker naming a DESIGN / PROTOCOL paper ('per-protocol' is an analysis set of a results report, not this)
+PROTOCOL_PAPER_MARKER = re.compile(r"(?<!per[- ])\bprotocol\b|\brationale and design\b|\bstudy design\b|"
+                                   r"\bstatistical analysis plan\b|\bdesign and (?:rationale|methods)\b", re.I)
 OBSERVATIONAL = re.compile(r"\bassociation of\b|\bcohort\b|\bobservational\b|\bretrospective\b|\bregistry\b|"
                            r"\bcase series\b|\bcross-sectional\b|population-based|case-control|nationwide", re.I)
 ORDER = ("SCREENER_ERROR", "INSUFFICIENT_RECORD", "TRUE_SCOPE_DIFFERENCE", "INCONSISTENT")
 # a title marker naming a RESULTS report of a randomised trial (not a design / protocol paper)
 RESULTS_REPORT_MARKER = re.compile(r"sub-?study|secondary analysis|post[-\s]?hoc", re.I)
+
+
+SPAN_FIELDS = ("title", "conditions", "abstract")
+SPAN_CAP = 240
+
+
+# a sentence ends at '. ' -- never at an abbreviation ('Medical vs. surgical', 'et al. ', 'e.g. ', 'i.e. ', 'Dr. ')
+_SENT_END = re.compile(r"(?<!\bvs)(?<!\bal)(?<!\be\.g)(?<!\bi\.e)(?<!\bDr)(?<!\bno)\.\s", re.I)
+
+
+def record_field_texts(rec, fields=SPAN_FIELDS):
+    """(field, text) for each string a record holds in `fields` (a list field gives one entry per item)."""
+    for f in fields:
+        v = (rec or {}).get(f)
+        for s in (v if isinstance(v, list) else [v]):
+            if isinstance(s, str) and s.strip():
+                yield f, s
+
+
+def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None):
+    """The first verbatim span of `rec` (the sentence around a match of `rx`, at most SPAN_CAP chars either side of
+    the match) in which `avoid` does not occur: {field, text, match}. None when the record never states it."""
+    for f, s in record_field_texts(rec, fields):
+        ends = [e.start() for e in _SENT_END.finditer(s)]
+        for m in rx.finditer(s):
+            i = max((e for e in ends if e < m.start()), default=-1)
+            a = max(0 if i < 0 else i + 2, m.start() - SPAN_CAP)
+            b = min((e for e in ends if e >= m.end()), default=-1)
+            b = len(s) if b < 0 else b + 1
+            b = min(b, m.end() + SPAN_CAP)
+            txt = s[a:b].strip()
+            if avoid is not None and avoid.search(txt):
+                continue
+            return {"field": f, "text": txt, "match": m.group(0)}
+    return None
+
+
+def _terms_rx(terms):
+    ts = [t.strip().rstrip("*") for t in terms or [] if t and t.strip()]
+    return re.compile("|".join(r"(?<![A-Za-z0-9])" + re.escape(t) + r"(?![A-Za-z0-9])" for t in ts), re.I) if ts else None
+
+
+# what THIS study randomised: in the TITLE any statement of the study ('trial', 'study', 'effect of', 'versus'); in the
+# ABSTRACT only a sentence about THIS study's allocation -- a background line ('few randomized controlled trials have
+# been conducted') states nothing about the trial (PEP-CHF, 3 Oct)
+TITLE_STUDY_STATED = re.compile(r"\b(?:trial|study|effects? of|versus|vs\.?|compared|comparing)\b", re.I)
+THIS_STUDY_RANDOMISED = re.compile(r"\b(?:this|the present|we)\b[^.]{0,80}?\brandomi[sz]ed|"
+                                   r"\b(?:were|was)\s+(?:\w+\s+){0,2}?randomi[sz]ed|randomly\s+(?:assigned|allocated|divided)|"
+                                   r"\bcomparing\b", re.I)
 
 
 def _j(p):
@@ -76,29 +134,7 @@ def population():
              "NOT_IN_SCREEN"]
     pinned = {}
     out = []
-    served_screen = {}
     for r in T["trials"]:
-        if r["gap_class"] == "SCREEN_OR_ELIGIBILITY" and r["drug"] != "OTHER_AGENT":
-            # a comparator trial OUR OWN screen saw and excluded (not seeded): the same claim -- 'a published comparator
-            # included something our protocol should not' -- so the same audit gates it (g1_tracker gives it the same
-            # funnel record; until 2026-10-02 the audit never saw these: colchicine-postop-af's 6 exclusions all sat
-            # SCREENED_OUT_UNAUDITED). Record = the topic's held record; rule = the served screening ledger's.
-            if r["slug"] not in served_screen:
-                rv = os.path.join(ROOT, "docs", "reviews", r["slug"], "review.json")
-                served_screen[r["slug"]] = ({str(x.get("id")): x for x in (_j(rv).get("screening") or {}).get("records", [])}
-                                            if os.path.exists(rv) else {})
-            if r["slug"] not in pinned:
-                rp = os.path.join(ROOT, "cache", r["slug"], "records.json")
-                rj = _j(rp) if os.path.exists(rp) else {}
-                pinned[r["slug"]] = {str(x.get("id")): x for x in rj.get("records", []) + rj.get("ctgov", [])}
-            for p in (r.get("cited_pmids") or r.get("pmids") or []):
-                s = served_screen[r["slug"]].get(str(p))
-                if s and s.get("decision") == "exclude":
-                    out.append({"slug": r["slug"], "label": r["label"], "pmid": str(p),
-                                "rec": pinned[r["slug"]].get(str(p)) or mrec.get(str(p)), "stage": "SCREENED_OUT",
-                                "recorded_rule": s.get("rule_id"), "origin": "OUR_SCREEN"})
-                    break
-            continue
         if r["gap_class"] != "IDENTIFICATION" or r["unit_source"] == "REFERENCE_SEED" or r["drug"] == "OTHER_AGENT":
             continue
         seeds = r["cited_pmids"] if set(r.get("cited_pmids") or []) & set(r["pmids"]) else r["pmids"]
@@ -131,6 +167,82 @@ def population():
         dedup.append(it)
     DUPLICATES[:] = dups
     return dedup
+
+
+def population_in_screen():
+    """(slug, label, record, recorded rule) per comparator trial ALREADY in our screen and excluded there -- the class
+    SCREENED_OUT_UNAUDITED (76 trials over 31 topics on 3 Oct). Read from the tracker files (outputs/k_gap/g1/*.json,
+    trials[].seeded_funnel with already_in_screen) and the topic's own pinned records.json; same classifier, same
+    INCONSISTENT check as the seeded population."""
+    gdir = os.path.join(OUT, "g1")
+    out, pinned = [], {}
+    for f in sorted(os.listdir(gdir)) if os.path.isdir(gdir) else []:
+        if not f.endswith(".json") or ".tmp" in f:
+            continue
+        o = _j(os.path.join(gdir, f))
+        if o.get("lane_source"):
+            # a lane-owned topic: the lane NAMED these exclusions; each still needs a span from its record, so the
+            # same classifier runs on them (origin LANE_NAMED) -- the tracker demotes an unspanned one to an open gap
+            slug = o["slug"]
+            # the LANE's naming, from the lane's own file pinned in lane_source (commit + path + sha256) -- the local copy
+            # is the tracker's output, from which an unspanned name has already been demoted, so reading it made the
+            # committed audit unreproducible (SOLOIST-WHF's row vanished on regeneration, 3 Oct)
+            for d in lane_named_differences(o):
+                if d.get("kind") != "PROTOCOL_SCOPE_DIFFERENCE" or not d.get("pmid"):
+                    continue
+                if slug not in pinned:
+                    rp = os.path.join(ROOT, "cache", slug, "records.json")
+                    rj = _j(rp) if os.path.exists(rp) else {}
+                    pinned[slug] = {str(r.get("id")): r for r in rj.get("records", []) + rj.get("ctgov", [])}
+                rec = pinned[slug].get(str(d["pmid"])) or _member_records().get(str(d["pmid"]))
+                out.append({"slug": slug, "label": d["trial"], "pmid": str(d["pmid"]), "rec": rec,
+                            "stage": "SCREENED_OUT", "recorded_rule": d.get("rule_id"), "origin": "LANE_NAMED"})
+            continue
+        for x in o.get("trials") or []:
+            fn = x.get("seeded_funnel") or {}
+            if not (fn.get("already_in_screen") and fn.get("stage") == "SCREENED_OUT"):
+                continue
+            slug = o["slug"]
+            if slug not in pinned:
+                rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+                pinned[slug] = {str(r.get("id")): r for r in rj.get("records", []) + rj.get("ctgov", [])}
+            out.append({"slug": slug, "label": x["label"], "pmid": fn["pmid"], "rec": pinned[slug].get(str(fn["pmid"])),
+                        "stage": "SCREENED_OUT", "recorded_rule": fn.get("rule_id"), "origin": "IN_SCREEN"})
+    return out
+
+
+class LaneSourceUnreadable(RuntimeError):
+    pass
+
+
+def lane_named_differences(o):
+    """named_differences of a lane-owned tracker file AS THE LANE WROTE THEM: git show <lane_source.commit>:<path>,
+    checked against lane_source.sha256. Refuses (raises) when the pinned blob is unreadable or its hash differs --
+    an audit of a lane's naming that cannot read the naming must not quietly audit something else."""
+    import hashlib
+    import subprocess
+    ls = o["lane_source"]
+    try:
+        b = subprocess.run(["git", "show", f"{ls['commit']}:{ls['path']}"], cwd=ROOT, capture_output=True,
+                           stdin=subprocess.DEVNULL, check=True).stdout
+    except (subprocess.CalledProcessError, KeyError) as e:
+        raise LaneSourceUnreadable(f"{o.get('slug')}: lane_source {ls} not readable ({e})") from e
+    if hashlib.sha256(b).hexdigest() != ls.get("sha256"):
+        raise LaneSourceUnreadable(f"{o.get('slug')}: lane_source blob sha256 != recorded {ls.get('sha256')}")
+    lane = json.loads(b.decode("utf-8"))
+    if lane.get("slug") != o.get("slug"):              # right bytes, wrong topic: refuse (NR-C21)
+        raise LaneSourceUnreadable(f"{o.get('slug')}: pinned lane file is for topic {lane.get('slug')!r}")
+    return lane.get("named_differences") or []
+
+
+_MREC = {}
+
+
+def _member_records():
+    if not _MREC:
+        p = os.path.join(OUT, "member_records.json")
+        _MREC.update(_j(p) if os.path.exists(p) else {})
+    return _MREC
 
 
 def comparator_eligibility(slug):
@@ -173,7 +285,19 @@ def fold_rec(rec):
 
 
 def classify(rec, cfg):
-    """(class, subclass, detail) for one excluded record under its topic config."""
+    """(class, subclass, detail) for one excluded record under its topic config. A TRUE_SCOPE_DIFFERENCE is returned
+    only with detail['span'] set (the record's words establishing it); without one it is INSUFFICIENT_RECORD."""
+    cls, sub, base = _classify(rec, cfg)
+    if cls == "TRUE_SCOPE_DIFFERENCE" and not (base or {}).get("span"):
+        return "INSUFFICIENT_RECORD", sub.split(" (")[0].split(":")[0] + "_NO_SPAN", base
+    return cls, sub, base
+
+
+def _with_span(base, span):
+    return dict(base, span=span)
+
+
+def _classify(rec, cfg):
     inc = copy.deepcopy(cfg.get("include") or {})
     base = decide(rec, inc)
     if base["decision"] == "include":
@@ -182,7 +306,7 @@ def classify(rec, cfg):
         # decides the design axis (the protocol requires double-blind or placebo-controlled)
         if inc.get("design_double_blind") and OPEN_DESIGN_SELF.search(rec.get("abstract") or ""):
             return ("TRUE_SCOPE_DIFFERENCE", "OPEN_DESIGN_STATED_FOR_THIS_STUDY (a placebo mention elsewhere cites another "
-                    "study)", base)
+                    "study)", _with_span(base, span_of(rec, OPEN_DESIGN_SELF, ("abstract",))))
         return "INCONSISTENT", "RULESET_INCLUDES", base
     rule, reason = base["rule_id"], base["reason"] or ""
     ab = rec.get("abstract") or ""
@@ -208,7 +332,8 @@ def classify(rec, cfg):
     if not ab.strip():
         return "INSUFFICIENT_RECORD", "NO_ABSTRACT", base
     if OBSERVATIONAL.search((rec.get("title") or "") + " " + ab) and not RANDOMISED_HERE.search((rec.get("title") or "") + " " + ab):
-        return "TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)", base
+        return ("TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)",
+                _with_span(base, span_of(rec, OBSERVATIONAL, ("title", "abstract"))))
     if rule == "X1":
         from harness import screen as _screen
         mark = _screen._TITLE_RCT_NOT.search(rec.get("title") or "")
@@ -219,35 +344,62 @@ def classify(rec, cfg):
             # randomised. A design / protocol paper is legitimately not a results report; a substudy / secondary /
             # post-hoc report IS a randomised report of a trial -- 'not a randomized controlled trial' misstates it
             # (colchicine-postop-af 22090167, the COPPS POAF substudy; the recorded adjudicator already disagreed).
-            if RESULTS_REPORT_MARKER.search(mark.group(0)):
-                return "SCREENER_ERROR", f"SECONDARY_REPORT_OF_RCT:'{mark.group(0)}' (route to its trial family)", base
-            return "TRUE_SCOPE_DIFFERENCE", f"DESIGN_OR_PROTOCOL_PAPER_STATED:'{mark.group(0)}'", base
-        return (("TRUE_SCOPE_DIFFERENCE", "NOT_RANDOMISED_STATED", base) if re.search(r"non-?randomi[sz]ed", ab, re.I)
+            # the WHOLE title decides, not its first marker (NR-C21: 'Substudy design and protocol of ...' is a protocol
+            # paper; 'Non-randomised substudy of ...' is not a randomised report, whatever its parent trial did)
+            title = rec.get("title") or ""
+            if not re.search(r"non-?randomi[sz]ed", title + " " + ab, re.I):
+                pm = PROTOCOL_PAPER_MARKER.search(title)
+                if pm:
+                    return ("TRUE_SCOPE_DIFFERENCE", f"DESIGN_OR_PROTOCOL_PAPER_STATED:'{pm.group(0)}'",
+                            _with_span(base, span_of(rec, PROTOCOL_PAPER_MARKER, ("title",))))
+                rm = RESULTS_REPORT_MARKER.search(title)
+                if rm:
+                    return "SCREENER_ERROR", f"SECONDARY_REPORT_OF_RCT:'{rm.group(0)}' (route to its trial family)", base
+        return (("TRUE_SCOPE_DIFFERENCE", "NOT_RANDOMISED_STATED",
+                 _with_span(base, span_of(rec, re.compile(r"non-?randomi[sz]ed", re.I), ("title", "abstract"))))
+                if re.search(r"non-?randomi[sz]ed", ab, re.I)
                 else ("INSUFFICIENT_RECORD", "DESIGN_NOT_ESTABLISHED_BY_RECORD", base))
     if rule == "X-DESIGN":
-        return (("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED (protocol requires double-blind)", base) if OPEN.search(ab)
+        return (("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED (protocol requires double-blind)",
+                 _with_span(base, span_of(rec, OPEN, ("title", "abstract"))))
+                if OPEN.search(ab)
                 else ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED", base))
     if rule == "X3" and "no eligible comparator" in reason:
-        return (("TRUE_SCOPE_DIFFERENCE", "NON_PLACEBO_COMPARATOR_STATED (protocol requires placebo)", base)
+        # the span must state ANOTHER comparator: a sentence naming a protocol comparator proves nothing
+        avoid = _terms_rx(inc.get("comparator_any"))
+        sp = span_of(rec, OTHER_COMP, ("title", "abstract"), avoid) or span_of(rec, COMPARISON_STATED, ("title", "abstract"), avoid)
+        comps = ", ".join((inc.get("comparator_any") or [])[:4]) or "a named comparator"
+        return (("TRUE_SCOPE_DIFFERENCE", f"NON_PROTOCOL_COMPARATOR_STATED (protocol requires {comps})", _with_span(base, sp))
                 if OTHER_COMP.search(ab) or COMPARISON_STATED.search((rec.get("title") or "") + " " + ab)
                 else ("INSUFFICIENT_RECORD", "COMPARATOR_NOT_STATED", base))
     if rule == "X3":
-        return "TRUE_SCOPE_DIFFERENCE", "OTHER_INTERVENTION_OR_FORM_RANDOMISED", base
+        # ANOTHER agent randomised must be STATED: a sentence saying what was studied / randomised that names none of
+        # the protocol's intervention terms. The screen's 'is not [...]' is an ABSENCE, never on its own a scope fact.
+        av = _terms_rx(inc.get("intervention_any"))
+        # a record that names OUR intervention anywhere (title or abstract) does not establish that another agent was
+        # randomised -- metformin 15498183 randomised metformin under a generic title ('[Clinical study on ...]')
+        named_ours = av is not None and any(av.search(t) for _, t in record_field_texts(rec, ("title", "abstract")))
+        sp = None if named_ours else (span_of(rec, TITLE_STUDY_STATED, ("title",), av) or
+                                      span_of(rec, THIS_STUDY_RANDOMISED, ("abstract",), av))
+        return "TRUE_SCOPE_DIFFERENCE", "OTHER_INTERVENTION_OR_FORM_RANDOMISED", _with_span(base, sp)
     if rule == "X2" and reason.startswith("wrong population"):
         term = (re.search(r"mention '([^']+)'", reason) or [None, ""])[1]
-        return "TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION:'{term}'", base
+        return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION:'{term}'",
+                _with_span(base, span_of(rec, _terms_rx([term]), ("title", "conditions", "abstract")) if term else None))
     if rule == "X2":
         # 'population term absent' cannot tell a vocabulary gap from a different population from an unstated one. The
         # tie-break is the RECORDED second reader's population axis on this same record (scripts/k_gap_screen_recheck.py,
         # quote-verified by model_source.verify_screening): MET -> our wording missed it; NOT_MET -> the record states
         # another population; NOT_STATED / no verified reading -> the record does not say.
-        pv = READER.get(str(rec.get("id")))
+        pv, pq = READER.get(str(rec.get("id"))) or (None, None)
         if pv == "MET":
             return "SCREENER_ERROR", "POPULATION_VOCABULARY (recorded reader: population MET, quoted)", base
         if pv == "NOT_MET":
-            return "TRUE_SCOPE_DIFFERENCE", "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)", base
+            # the reader's quote, re-found VERBATIM in this record (never taken on the reader's word)
+            sp = span_of(rec, re.compile(re.escape(pq.strip())), ("title", "conditions", "abstract")) if pq and pq.strip() else None
+            return "TRUE_SCOPE_DIFFERENCE", "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)", _with_span(base, sp)
         return "INSUFFICIENT_RECORD", "POPULATION_NOT_STATED_IN_RECORD", base
-    return "TRUE_SCOPE_DIFFERENCE", f"RULE:{rule}", base
+    return "INSUFFICIENT_RECORD", f"RULE:{rule}_NOT_AUDITABLE", base
 
 
 READER = {}
@@ -263,12 +415,15 @@ def load_reader():
         for r in _j(p).get("rows", []):
             v = r.get("verification") or {}
             if v.get("state") == "VERIFIER_PASS" and r.get("pmid"):
-                READER[str(r["pmid"])] = ((v.get("axes") or {}).get("population") or {}).get("verdict")
+                READER[str(r["pmid"])] = (((v.get("axes") or {}).get("population") or {}).get("verdict"),
+                                          (((r.get("claim") or {}).get("axes") or {}).get("population") or {}).get("quote"))
 
 
 def main():
     load_reader()
     pop = population()
+    have = {(it["slug"], it["pmid"]) for it in pop}
+    pop += [it for it in population_in_screen() if (it["slug"], it["pmid"]) not in have]
     elig = {}
     rows, tally, sub = [], Counter(), Counter()
     for it in pop:
@@ -284,8 +439,10 @@ def main():
         tally[cls] += 1
         sub[(cls, sc.split(":")[0].split(" (")[0])] += 1
         rows.append({"slug": s, "label": it["label"], "pmid": it["pmid"], "stage": it["stage"],
+                     "origin": it.get("origin", "SEEDED"),
                      "rule_id": base.get("rule_id") or it["recorded_rule"], "reason": (base.get("reason") or "")[:160],
-                     "class": cls, "subclass": sc, "title": ((it["rec"] or {}).get("title") or "")[:140]})
+                     "class": cls, "subclass": sc, "title": ((it["rec"] or {}).get("title") or "")[:140],
+                     "span": (base or {}).get("span") if cls == "TRUE_SCOPE_DIFFERENCE" else None})
     out = {"n": len(rows), "duplicate_table_rows_counted_once": DUPLICATES, "by_class": {k: tally.get(k, 0) for k in ORDER},
            "by_subclass": {f"{a}/{b}": v for (a, b), v in sorted(sub.items())},
            "comparator_eligibility": elig, "rows": rows}
