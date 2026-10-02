@@ -79,7 +79,7 @@ def _signed(n: dict) -> bool:
     return ((n.get("reviewer_countersignature") or {}).get("state") or "").upper().endswith("SIGNED")
 
 
-def build(root: Path, title: str, out: Path, base_note: str) -> str:
+def build(root: Path, title: str, out: Path, base_note: str, version: str = "V3") -> str:
     open_notices = [n for n in _notices(root) if not _signed(n)]
     batch, individual = [], []
     for n in open_notices:
@@ -95,7 +95,7 @@ def build(root: Path, title: str, out: Path, base_note: str) -> str:
     def entry(n, block, sha, ann, individual_line):
         nonlocal k
         k += 1
-        eid = f"V3-{k:02d}"
+        eid = f"{version}-{k:02d}"
         lines.extend([f"### {eid} — {n['slug']} / {n['outcome']}", ""])
         if ann.get("conclusion_changed"):
             lines.extend([f"**Cannot be batched:** {ann['conclusion_changed']}", ""])
@@ -107,7 +107,7 @@ def build(root: Path, title: str, out: Path, base_note: str) -> str:
     lines.extend([f"## A. BATCHABLE — {len(batch)} decision(s), one signature line → `BATCH_SEEN_AND_SIGNED`", ""])
     ids = [entry(n, b, s, a, False) for n, b, s, a in batch]
     if ids:
-        lines.extend(["```", f"SIGNED-BY: Mahmood  BATCH: v3-A  COVERS: {', '.join(ids)}  DATE: ____", "```", ""])
+        lines.extend(["```", f"SIGNED-BY: Mahmood  BATCH: {version.lower()}-A  COVERS: {', '.join(ids)}  DATE: ____", "```", ""])
     lines.extend([f"## B. INDIVIDUAL — {len(individual)} decision(s), each its own line → `SEEN_AND_SIGNED`", ""])
     for n, b, s, a in individual:
         entry(n, b, s, a, True)
@@ -181,11 +181,12 @@ def main(argv=None) -> int:
     b.add_argument("--title", required=True)
     b.add_argument("--out", required=True)
     b.add_argument("--base-note", default="")
+    b.add_argument("--version", default="V3", help="packet version label for entry ids and the batch (V4 -> V4-01, v4-A)")
     g = sub.add_parser("guard")
     g.add_argument("packet")
     a = ap.parse_args(argv)
     if a.cmd == "build":
-        d = build(ROOT, a.title, Path(a.out), a.base_note)
+        d = build(ROOT, a.title, Path(a.out), a.base_note, a.version)
         problems = guard(ROOT, Path(a.out))
         print(f"wrote {a.out}  sha256 {d}")
         for p in problems:
