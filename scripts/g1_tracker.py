@@ -120,6 +120,102 @@ def result_verdict(ours, theirs, measure):
             "estimate_gap_over_ci_halfwidth": round(rel, 4)}
 
 
+def definition_gate(spec_name, registry_title):
+    """The harness composite gate (extract.composite_component_mismatch) applied to a REGISTRY OUTCOME TITLE. The gate
+    reads a span only when it is a composite-DEFINITION clause ('composite' / 'primary' in it), so that an abstract's
+    incidental mention of a component is not read as the outcome. A registry outcome title IS the outcome's definition
+    ('Time to First Occurence of CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke, Hospitalization for Unstable
+    Angina or Hospitalization For Heart Failure'), so it is passed AS a definition clause: without that, ELIXA's 5- and
+    6-component secondaries passed as bindable 3-point MACE."""
+    from harness import extract
+    return extract.composite_component_mismatch(spec_name, "composite outcome definition: " + (registry_title or ""))
+
+
+def registry_binding(nct, spec_name, keywords):
+    """BIND A COMPARATOR TRIAL WE DO NOT POOL VIA THE AACT SNAPSHOT (source hierarchy 2a), through the same gates.
+    Candidates: the trial's PRIMARY posted outcomes and any outcome whose title names a topic keyword. Gates, in order:
+      ESTIMAND  extract.composite_component_mismatch(topic outcome, registry outcome title) -- a different composite
+      ARMS      two distinct result groups with people-unit counts (aact_adapter rules 2)
+    Returns {"state": "BINDABLE"|"REFUSED"|"NO_POSTED_RESULTS"|"SNAPSHOT_UNAVAILABLE", "candidates": [...]}."""
+    from harness import extract
+    from kgap import aact_adapter
+    try:
+        aact_adapter.ensure([nct])
+    except FileNotFoundError as exc:
+        return {"state": "SNAPSHOT_UNAVAILABLE", "why": str(exc)[:160]}
+    reg = aact_adapter.registry_for(nct)
+    if not reg:
+        return {"state": "NO_POSTED_RESULTS", "nct": nct}
+    kws = [k.lower() for k in keywords if k]
+    cands = []
+    for oid, o in reg["outcomes"].items():
+        t = o.get("title") or ""
+        if (o.get("type") or "").upper() != "PRIMARY" and not any(k in t.lower() for k in kws):
+            continue
+        groups = reg["groups"].get(oid) or []
+        an = next((a for a in reg["analyses"] if a["outcome_id"] == oid), None)
+        c = {"nct": nct, "outcome_id": oid, "title": t, "time_frame": o.get("time_frame"),
+             "arms": [dict(g, title=reg["group_titles"].get(str(g["group"]))) for g in groups], "analysis": an,
+             "snapshot": reg["_snapshot"]}
+        mm = definition_gate(spec_name, t)
+        if mm:
+            c.update(gate="ESTIMAND", verdict="REFUSED", reason=mm)
+        elif len({g["group"] for g in groups}) < 2:
+            c.update(gate="ARMS", verdict="REFUSED", reason="fewer than two result groups with people-unit counts")
+        else:
+            c.update(gate=None, verdict="BINDABLE", reason=None)
+        cands.append(c)
+    if not cands:
+        return {"state": "NO_CANDIDATE_OUTCOME", "nct": nct}
+    return {"state": "BINDABLE" if any(c["verdict"] == "BINDABLE" for c in cands) else "REFUSED", "candidates": cands}
+
+
+def protocol_rule(cfg, term):
+    """The registered protocol field that holds an exclusion term: 'include.population_none[20] = liraglutide'."""
+    for key, vals in (cfg.get("include") or {}).items():
+        if isinstance(vals, list):
+            for i, v in enumerate(vals):
+                if isinstance(v, str) and v.lower() == (term or "").lower():
+                    return f"include.{key}[{i}] = {v!r}"
+    return None
+
+
+def scope_difference(x, cfg):
+    """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
+    cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
+    trial is an open gap (it must then stay visible as NO_ROW, never be dropped)."""
+    import re as _re
+    f = x.get("seeded_funnel") or {}
+    if f.get("stage") == "SCREENED_OUT" and f.get("rule_id"):
+        m = _re.search(r"mention '([^']+)'", f.get("reason") or "")
+        return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f["rule_id"], "screen_reason": f.get("reason"),
+                "protocol_rule": protocol_rule(cfg, m.group(1)) if m else None,
+                "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
+    rb = x.get("registry_binding") or {}
+    ref = [c for c in rb.get("candidates") or [] if c.get("gate") == "ESTIMAND"]
+    if rb.get("state") == "REFUSED" and ref:
+        c = ref[0]
+        return {"kind": "ESTIMAND_DIFFERENCE", "gate": "harness.extract.composite_component_mismatch",
+                "reason": c["reason"], "registry_outcome": c["title"], "registry_arms": c["arms"],
+                "registry_analysis": c["analysis"], "snapshot": c["snapshot"],
+                "comparator_pooled_it_as": x.get("comparator_row")}
+    return None
+
+
+def comparator_findings(trials, comp):
+    """Findings ABOUT the comparator's own rows, typed, each with where it sits and what it rests on."""
+    out = []
+    for x in trials:
+        if x.get("disagreement_side", "") and str(x["disagreement_side"]).startswith("SECONDARY_WRONG"):
+            out.append({"finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT", "trial": x["label"], "comparator": comp,
+                        "comparator_row": x.get("comparator_row"), "trial_report": x.get("our_value"),
+                        "basis": x["disagreement_side"]})
+        for f in x.get("comparator_row_findings") or []:
+            out.append({"finding": f.get("finding"), "trial": x["label"], "comparator": comp,
+                        "comparator_row": x.get("comparator_row"), "detail": f.get("printed_vs_arm_derived")})
+    return out
+
+
 def topic(slug, T):
     import secondary_meta_build as smb
     import k_gap_counterfactual as cfm
@@ -137,6 +233,9 @@ def topic(slug, T):
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
     comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"]
+    cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
+    spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
+    kw_all = list((cfg.get("primary_outcome") or {}).get("keywords") or [])
     trials, routes, pairs, matched_ids = [], Counter(), [], set()
     for t in comp_rows:
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
@@ -171,6 +270,11 @@ def topic(slug, T):
                        "comparator_row_findings": theirs.findings if theirs else [],
                        "disagreement_side": ((theirs.verification or {}).get("which_side")
                                              if theirs and theirs.state == sm.MISMATCH else None),
+                       "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
+                                                                          "events_t", "n_t", "events_c", "n_c")}
+                                     if in_pool else None),
+                       "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all)
+                                            if not in_pool and (t.get("ncts") or []) else None),
                        "g1_countable": route == "PRIMARY" or bool(sm.g1_countable(sec, {comp})),
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
                        else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None})
@@ -194,6 +298,10 @@ def topic(slug, T):
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
             elif x["route"] == "NO_ROW" and (t.get("pmids") or [None])[0] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
+    for x in trials:
+        x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg)
+    named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
+    open_gaps = [x["label"] for x in trials if not x["in_our_pool"] and not x.get("scope_difference")]
     pc = ((S.get("metas") or {}).get(comp) or {}).get("positive_control") or {}
     method = (pc.get("methods") or ["PM"])[0]
     res = prim.get("result") or {}
@@ -219,6 +327,8 @@ def topic(slug, T):
                                                        else "NOT_EXPLAINED_BY_DATE")})
     return {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if x["in_our_pool"]),
+            "N_eligible": len(trials) - len(named), "named_differences": named, "open_gaps": open_gaps,
+            "comparator_findings": comparator_findings(trials, comp),
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if x["in_our_pool"])),
             "same_trials": dict(same_trials_pool(pairs, method),
@@ -242,13 +352,17 @@ def _fmt(r):
 def table():
     out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json")]
     md = ["# G1 tracker (derived: scripts/g1_tracker.py; one source file per topic in outputs/k_gap/g1/)", "",
-          "| topic | k matched | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator |",
-          "|---|---|---|---|---|---|---|---|---|---|"]
+          "| topic | k matched | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for o in out:
         r, st = o["routes"], o["same_trials"]
         same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}: "
                 f"**{(st.get('verdict') or {}).get('verdict')}**" if st.get("state") == "POOLED" else st.get("state"))
-        md.append(f"| {o['slug']} | {o['k_matched']} of {o['N_comparator_trials']} | {r.get('PRIMARY', 0)} | "
+        nd = o.get("named_differences") or []
+        md.append(f"| {o['slug']} | {o['k_matched']} of {o.get('N_eligible', o['N_comparator_trials'])} eligible "
+                  f"(comparator N={o['N_comparator_trials']}) | "
+                  f"{len(nd)}: " + ", ".join(f"{d['trial']} ({d['kind']})" for d in nd) + f" | {len(o.get('open_gaps') or [])} | "
+                  f"{r.get('PRIMARY', 0)} | "
                   f"{r.get('TWO_SOURCE', 0)} | {r.get('UNVERIFIED', 0)} | {r.get('NO_ROW', 0)} | "
                   f"{o['per_trial_agreement']} | {same} | {_fmt(o['ours'])} k={o['ours'].get('k')} | {_fmt(o['comparator'])} |")
     for o in out:
@@ -259,6 +373,21 @@ def table():
                       + (f"; our refusal: {x['our_refusal']}" if x.get("our_refusal") else "")
                       + (f"; comparator row finding: {x['comparator_row_findings']}" if x.get("comparator_row_findings") else "")
                       + (f"; side: {x['disagreement_side']}" if x.get("disagreement_side") else ""))
+        for d in o.get("named_differences") or []:
+            if d["kind"] == "PROTOCOL_SCOPE_DIFFERENCE":
+                md.append(f"- NAMED {d['kind']}: {d['trial']} -- screen {d['rule_id']} ({d['screen_reason']}); protocol "
+                          f"rule {d['protocol_rule']}; registered eligibility: {d['registered_eligibility']}")
+            else:
+                an = d.get("registry_analysis") or {}
+                md.append(f"- NAMED {d['kind']}: {d['trial']} -- {d['gate']}: {d['reason']}. Registry ({d['snapshot']['id']}): "
+                          f"'{d['registry_outcome']}', arms " + ", ".join(f"{a.get('title')} {a['count']}/{a['n']}"
+                                                                         for a in d.get("registry_arms") or [])
+                          + (f", {an.get('param_type')} {an.get('param_value')} ({an.get('ci_lower')}-{an.get('ci_upper')})"
+                             if an else "") + f"; the comparator pooled it as {d.get('comparator_pooled_it_as')}")
+        for f in o.get("comparator_findings") or []:
+            md.append(f"- COMPARATOR FINDING {f['finding']}: {f['trial']} -- comparator row {f.get('comparator_row')}"
+                      + (f" vs trial report {f['trial_report']}" if f.get("trial_report") else "")
+                      + (f"; {f['detail']}" if f.get("detail") else "") + (f" ({f['basis']})" if f.get("basis") else ""))
         for e in o.get("ours_not_in_comparator_detail") or []:
             md.append(f"- pooled by us, not listed by the comparator: {e['id']} ({e['year']}; comparator "
                       f"{e['comparator_year']}): {e['why_not_in_comparator']}")
