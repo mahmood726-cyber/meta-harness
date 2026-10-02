@@ -269,6 +269,14 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 break
             if len(tc) > 1:
                 basis.append(f"acronym_title_ambiguous:{a}:{','.join(tc[:4])}")
+                continue
+            sr = sorted({n for n in SELF_REG.get(k_gap.norm_acronym(a), []) if idx["agent_nct"].get(n)})
+            if len(sr) == 1:
+                ncts.add(sr[0])
+                basis.append(f"acronym_self_registration_sentence:{a}")
+                break
+            if len(sr) > 1:
+                basis.append(f"acronym_self_registration_ambiguous:{a}:{','.join(sr[:4])}")
     # NCT -> its PMIDs only when the NCT IS the identity (printed in the table, or an acronym match). When the identity is
     # a cited PMID, adding every other paper registered to its NCT is association, not identity.
     if not pmid_resolved:
@@ -505,6 +513,25 @@ def oa_probe(pmids: list[str], offline: bool) -> dict:
 PROP = os.path.join(ROOT, "registry", "model_proposals", "comparator_members.json")
 YEARS: dict = {}
 PUBNCT: dict = {}
+# PROPOSED on g1/noac for the k-gap lane to adopt or reject (the session channel to that lane was unavailable):
+# acronym -> NCTs, read from a trial's OWN registration sentence in a held PubMed abstract
+# ("... ROCKET AF ClinicalTrials.gov number, NCT00403767."). Used only after both AACT acronym steps fail.
+SELF_REG: dict = {}
+_SELF_REG_RE = re.compile(r"\b([A-Z][A-Za-z0-9-]*(?: [A-Z0-9][A-Za-z0-9-]*){0,3}) ClinicalTrials\.gov (?:number|identifier),? (NCT\d{8})\b")
+
+
+def self_registration_sentences(paths) -> dict:
+    """{normalised acronym: sorted NCTs} from every held records.json given. Deterministic, offline, no model."""
+    out = defaultdict(set)
+    for path in sorted(paths):
+        try:
+            recs = _j(path)
+        except (OSError, ValueError):
+            continue
+        for r in (recs.get("records") if isinstance(recs, dict) else recs) or []:
+            for m in _SELF_REG_RE.finditer(str(r.get("abstract") or "")):
+                out[k_gap.norm_acronym(m.group(1))].add(m.group(2))
+    return {a: sorted(v) for a, v in out.items()}
 TITLES: dict = {}
 STORE = os.environ.get("K_GAP_AACT_STORE") or os.path.join(OUT, "_aact_store.json")
 _AUTH_YR = re.compile(r"^([A-Z][A-Za-z'À-ſ‐-]+)[^0-9]{0,14}((?:19|20)\d\d)[a-z]?$")
@@ -860,6 +887,8 @@ def main(argv=None):
     YEARS.update(pub_years(cited, offline))
     PUBNCT.update(pubmed_ncts(cited, offline))
     TITLES.update(pubmed_titles_of(cited, offline))
+    SELF_REG.update(self_registration_sentences(glob.glob(os.path.join(ROOT, "cache", "*", "records.json"))))
+    store.ensure_ncts({n for v in SELF_REG.values() for n in v}, log=log)
     store.ensure_ncts({n for n in PUBNCT.values() if n}, log=log)
     store.ensure_registration_dates({n for p in cited for n, _t in store.d["pmid"].get(p, [])}, log=log)
     for slug, P in per.items():

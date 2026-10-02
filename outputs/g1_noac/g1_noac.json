@@ -3,7 +3,7 @@
   "held_source_digests": {
     "cache/noac-vs-warfarin-af-stroke/records.json": "6e35e6e5379076d27ee29755b122b72892404ecce68b22cd0e60f0cd33ce0242",
     "docs/reviews/noac-vs-warfarin-af-stroke/review.json": "26e3bcd73c899a1a5fe815d7b3f551af78fd7ba4a023bbb006af15628cb9be23",
-    "outputs/k_gap/k_gap_table.csv": "d965b9d99db5d59eecf651692f7f4949c320a1a598f88406e816fd320105c092",
+    "outputs/k_gap/k_gap_table.csv": "0e9292839bfba7b1611e66a0b3b0fee9c606519890227ee3632846c6033189bc",
     "outputs/k_gap/G1_STATUS.md": "a6685fedaed2293fcc2c4289c07736c86acd4d5281b86377903e9f7e9a579139"
   },
   "comparator": {
@@ -8273,6 +8273,204 @@
       "ci_high_fixed": 0.9118600368599102,
       "estimate_fixed": 0.8515032914509577,
       "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
+    }
+  },
+  "same_trials": {
+    "stroke_se": {
+      "comparator_population": [
+        "ITT"
+      ],
+      "inputs": [
+        {
+          "trial": "RE-LY",
+          "fact_id": "F002",
+          "source_id": "AACT",
+          "population": "ITT",
+          "definition": "STROKE_OR_SYSTEMIC_EMBOLISM",
+          "values": {
+            "effect": "0.65",
+            "lower": "0.52",
+            "upper": "0.81"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "SINGLE_SOURCE",
+          "population_matches_comparator": true
+        },
+        {
+          "trial": "ROCKET AF",
+          "fact_id": "F029",
+          "source_id": "PUBMED:21830957",
+          "population": "ITT",
+          "definition": "STROKE_OR_SYSTEMIC_EMBOLISM",
+          "values": {
+            "effect": "0.88",
+            "lower": "0.74",
+            "upper": "1.03"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "SINGLE_SOURCE",
+          "population_matches_comparator": true
+        },
+        {
+          "trial": "ARISTOTLE",
+          "fact_id": "F006",
+          "source_id": "AACT",
+          "population": "ITT",
+          "definition": "STROKE_OR_SYSTEMIC_EMBOLISM",
+          "values": {
+            "effect": "0.79",
+            "lower": "0.66",
+            "upper": "0.95"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "TWO_SOURCE_VERIFIED",
+          "population_matches_comparator": true
+        },
+        {
+          "trial": "ENGAGE AF-TIMI 48",
+          "fact_id": "F019",
+          "source_id": "AACT",
+          "population": "ITT",
+          "definition": "STROKE_OR_SYSTEMIC_EMBOLISM",
+          "values": {
+            "effect": "0.87",
+            "lower": "0.709",
+            "upper": "1.068"
+          },
+          "ci_percent": "99",
+          "ci95_used": [
+            0.7444356204794481,
+            1.0167433948318114
+          ],
+          "route": "SINGLE_SOURCE",
+          "population_matches_comparator": true
+        }
+      ],
+      "missing": [],
+      "comparator": {
+        "effect": "0.81",
+        "lower": "0.74",
+        "upper": "0.89"
+      },
+      "ours": {
+        "estimate": 0.8039639365159851,
+        "ci_low": 0.6516215073885032,
+        "ci_high": 0.9919224640216084,
+        "estimate_fixed": 0.8146781017204526,
+        "ci_low_fixed": 0.7458278646089639,
+        "ci_high_fixed": 0.8898841688769793,
+        "tau2": 0.00903453892624384,
+        "Q": 5.617233021148859,
+        "pi_low": 0.5562744030877215,
+        "pi_high": 1.1619409550943363,
+        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+        "k": 4
+      },
+      "verdict_random_effects": "AGREE",
+      "verdict_fixed_effect": "AGREE",
+      "n_two_source": 1,
+      "n_population_matches": 4,
+      "method_note": "ours: inverse-variance on log HR from each trial's printed CI (PM tau2 + HKSJ, and fixed effect); comparator: patient-level stratified Cox with random effects, ITT censored at 32 months -- different estimators on the same four trials"
+    },
+    "major_bleeding": {
+      "comparator_population": [
+        "ON_TREATMENT",
+        "SAFETY"
+      ],
+      "inputs": [
+        {
+          "trial": "RE-LY",
+          "fact_id": "F004",
+          "source_id": "AACT",
+          "population": "ITT",
+          "definition": "UNKNOWN",
+          "values": {
+            "effect": "0.93",
+            "lower": "0.81",
+            "upper": "1.07"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "TWO_SOURCE_VERIFIED",
+          "population_matches_comparator": false
+        },
+        {
+          "trial": "ROCKET AF",
+          "fact_id": "F039",
+          "source_id": "FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt",
+          "population": "ON_TREATMENT",
+          "definition": "UNKNOWN",
+          "values": {
+            "effect": "1.04",
+            "lower": "0.90",
+            "upper": "1.20"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "SINGLE_SOURCE",
+          "population_matches_comparator": true
+        },
+        {
+          "trial": "ARISTOTLE",
+          "fact_id": "F009",
+          "source_id": "AACT",
+          "population": "ON_TREATMENT",
+          "definition": "ISTH",
+          "values": {
+            "effect": "0.69",
+            "lower": "0.6",
+            "upper": "0.8"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "TWO_SOURCE_VERIFIED",
+          "population_matches_comparator": true
+        },
+        {
+          "trial": "ENGAGE AF-TIMI 48",
+          "fact_id": "F021",
+          "source_id": "AACT",
+          "population": "ON_TREATMENT",
+          "definition": "ISTH_MODIFIED",
+          "values": {
+            "effect": "0.8",
+            "lower": "0.707",
+            "upper": "0.914"
+          },
+          "ci_percent": "95",
+          "ci95_used": null,
+          "route": "TWO_SOURCE_VERIFIED",
+          "population_matches_comparator": true
+        }
+      ],
+      "missing": [],
+      "comparator": {
+        "effect": "0.86",
+        "lower": "0.74",
+        "upper": "1.01"
+      },
+      "ours": {
+        "estimate": 0.8544961646656503,
+        "ci_low": 0.6438112500650539,
+        "ci_high": 1.1341269593448806,
+        "estimate_fixed": 0.8525940068592327,
+        "ci_low_fixed": 0.7956038231370253,
+        "ci_high_fixed": 0.9136664749373458,
+        "tau2": 0.0266342239046935,
+        "Q": 18.084270903233495,
+        "pi_low": 0.4729495837182674,
+        "pi_high": 1.5438510161862395,
+        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+        "k": 4
+      },
+      "verdict_random_effects": "AGREE",
+      "verdict_fixed_effect": "DIFFERENT_CONCLUSION",
+      "n_two_source": 3,
+      "n_population_matches": 3,
+      "method_note": "ours: inverse-variance on log HR from each trial's printed CI (PM tau2 + HKSJ, and fixed effect); comparator: patient-level stratified Cox with random effects, ITT censored at 32 months -- different estimators on the same four trials"
     }
   },
   "result_comparison": {

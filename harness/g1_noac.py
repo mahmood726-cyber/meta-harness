@@ -681,7 +681,82 @@ def audit(root, index):
                                     for p in held_paths},
             'comparator': comp, 'identities': identities, 'facts': facts,
             'rows': rows, 'decisions': decisions, 'reproduction': reproduction, 'proposed_major_bleeding': proposed,
+            'same_trials': same_trials(facts, rows, comp, identities),
             'result_comparison': result_comparison, 'census': census, 'aact': index}
+
+
+# Comparator population per outcome (its own methods sentence): efficacy ITT; safety in the trials' safety populations.
+SAME_TRIALS_POPULATION = {'stroke_se': ('ITT',), 'major_bleeding': ('ON_TREATMENT', 'SAFETY')}
+
+
+def same_trials(facts, rows, comp, identities):
+    """G1 like-for-like: COMBINE AF prints no per-trial rows and its trial set IS these four trials, so the same-trials
+    comparison is OUR pool over exactly those trials vs its printed pooled HR. Per trial: the HR whose population matches
+    the comparator's, preferring a TWO_SOURCE_VERIFIED tuple, then AACT, then the trial's own report; a stated CI level
+    other than 95% is converted to its SE with the stated z (never pooled as if 95%). Rows and their routes are named."""
+    import math
+    from statistics import NormalDist
+    from .synth import Study, pool
+    from dataclasses import asdict
+    verified = {x for r in rows for pair in r['effect_route'].get('verified_facts', []) for x in pair}
+    out = {}
+    for key, pops in SAME_TRIALS_POPULATION.items():
+        inputs, missing = [], []
+        for ident in identities:
+            cands = [f for f in facts if f['nct'] == ident['nct'] and f['outcome'] == key and f['kind'] == 'EFFECT'
+                     and f['measure'] == 'HR' and f.get('dose', 'STANDARD') == 'STANDARD']
+            if not cands:
+                missing.append(ident['label'])
+                continue
+            def rank(f):
+                return (f['population'] not in pops,            # comparator's population first
+                        f['fact_id'] not in verified,           # then two-source verified
+                        not f['source_id'].startswith('AACT'),  # then the posted registry result
+                        f['fact_id'])
+            f = sorted(cands, key=rank)[0]
+            level = float(f['ci_percent'])
+            z = NormalDist().inv_cdf((1 + level / 100) / 2)
+            lo, hi, est = (float(f['values'][k]) for k in ('lower', 'upper', 'effect'))
+            se = (math.log(hi) - math.log(lo)) / (2 * z)
+            z95 = NormalDist().inv_cdf(0.975)
+            ci95 = [math.exp(math.log(est) - z95 * se), math.exp(math.log(est) + z95 * se)]
+            inputs.append({'trial': ident['label'], 'fact_id': f['fact_id'], 'source_id': f['source_id'],
+                           'population': f['population'], 'definition': f['definition'], 'values': f['values'],
+                           'ci_percent': f['ci_percent'], 'ci95_used': ci95 if level != 95 else None,
+                           'route': 'TWO_SOURCE_VERIFIED' if f['fact_id'] in verified else 'SINGLE_SOURCE',
+                           'population_matches_comparator': f['population'] in pops,
+                           'study': Study(label=ident['label'], measure='HR', effect=est,
+                                          ci_low=ci95[0], ci_high=ci95[1])})
+        res = {'comparator_population': list(pops), 'inputs': [{k: v for k, v in i.items() if k != 'study'} for i in inputs],
+               'missing': missing,
+               'comparator': {k: comp['outcomes'][key]['effect'][k] for k in ('effect', 'lower', 'upper')}}
+        if len(inputs) >= 2:
+            pr = asdict(pool([i['study'] for i in inputs], scale='HR'))
+            res['ours'] = {k: pr[k] for k in ('estimate', 'ci_low', 'ci_high', 'estimate_fixed', 'ci_low_fixed',
+                                              'ci_high_fixed', 'tau2', 'Q', 'pi_low', 'pi_high', 'ci_provenance')}
+            res['ours']['k'] = len(inputs)
+            c = {k: float(v) for k, v in res['comparator'].items()}
+            o = res['ours']
+
+            def verdict(est, lo, hi):
+                # the G1 tracker's typed rule (scripts/g1_tracker.py::result_verdict), restated here because a harness
+                # module does not import a script; tests/test_g1_noac.py pins the two to the same answers
+                def concl(e, l, h):
+                    return 'BENEFIT' if h < 1 else 'HARM' if l > 1 else 'NULL_INCLUDED'
+                if concl(est, lo, hi) != concl(c['effect'], c['lower'], c['upper']):
+                    return 'DIFFERENT_CONCLUSION'
+                half = (math.log(c['upper']) - math.log(c['lower'])) / 2
+                rel = abs(math.log(est) - math.log(c['effect'])) / half
+                return 'AGREE' if rel < 0.10 else 'SAME_CONCLUSION_DIFFERENT_ESTIMATE'
+            res['verdict_random_effects'] = verdict(o['estimate'], o['ci_low'], o['ci_high'])
+            res['verdict_fixed_effect'] = verdict(o['estimate_fixed'], o['ci_low_fixed'], o['ci_high_fixed'])
+            res['n_two_source'] = sum(i['route'] == 'TWO_SOURCE_VERIFIED' for i in inputs)
+            res['n_population_matches'] = sum(i['population_matches_comparator'] for i in inputs)
+            res['method_note'] = ('ours: inverse-variance on log HR from each trial\'s printed CI (PM tau2 + HKSJ, and '
+                                  'fixed effect); comparator: patient-level stratified Cox with random effects, ITT '
+                                  'censored at 32 months -- different estimators on the same four trials')
+        out[key] = res
+    return out
 
 
 def render_report(data):
@@ -701,6 +776,24 @@ def render_report(data):
     for f in data['facts']:
         lines.append(f'| {f["fact_id"]} | {f["nct"]} / {f["outcome"]} | {f["source_id"]} | '
                      f'{f["kind"]} / {f["population"]} / {f["definition"]} | {json.dumps(f["values"])} |')
+    lines += ['', '## Same-trials result vs COMBINE AF (AACT-first inputs, two-source rule)', '',
+              'COMBINE AF prints no per-trial rows; its trial set is these four trials, so the like-for-like comparison is '
+              'our pool over exactly them vs its printed pooled HR, typed by the G1 tracker rule (same conclusion about '
+              'the null, and an estimate gap under 10% of the comparator CI half-width on the log scale).', '',
+              '| outcome | k | ours, random effects | verdict | ours, fixed effect | verdict | comparator | inputs two-source | '
+              'population matches comparator |', '|---|---|---|---|---|---|---|---|---|']
+    for key, v in data['same_trials'].items():
+        o, c = v['ours'], v['comparator']
+        lines.append(f"| {key} | {o['k']} | {o['estimate']:.3f} ({o['ci_low']:.3f}-{o['ci_high']:.3f}) | "
+                     f"{v['verdict_random_effects']} | {o['estimate_fixed']:.3f} ({o['ci_low_fixed']:.3f}-"
+                     f"{o['ci_high_fixed']:.3f}) | {v['verdict_fixed_effect']} | {c['effect']} ({c['lower']}-{c['upper']}) | "
+                     f"{v['n_two_source']} of {o['k']} | {v['n_population_matches']} of {o['k']} |")
+    lines += ['', '| outcome | trial | fact | source | population | CI level (95% used) | values | route |', '|---|---|---|---|---|---|---|---|']
+    for key, v in data['same_trials'].items():
+        for i in v['inputs']:
+            used = '' if i['ci95_used'] is None else ' -> ' + '-'.join(f'{x:.3f}' for x in i['ci95_used'])
+            lines.append(f"| {key} | {i['trial']} | {i['fact_id']} | {i['source_id']} | {i['population']} | "
+                         f"{i['ci_percent']}{used} | {json.dumps(i['values'])} | {i['route']} |")
     lines += ['', '## Proposed arithmetic only', '', '```json', json.dumps(data['proposed_major_bleeding'], indent=2), '```', '',
               '## Census and reproduction', '', '```json', json.dumps(data['census'], indent=2), '```', '']
     return '\n'.join(lines)

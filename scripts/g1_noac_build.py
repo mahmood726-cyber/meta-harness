@@ -26,9 +26,10 @@ def main():
         parser.error('Supply --aact SNAPSHOT or explicit --reuse-index')
     result = audit(ROOT, index)
     out.mkdir(parents=True, exist_ok=True)
-    (out / 'g1_noac.json').write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    (out / 'G1_NOAC.md').write_text(render_report(result), encoding='utf-8', newline='
-')
+    # LF on every platform: the committed outputs must be the bytes a rebuild produces (tests/test_g1_noac.py).
+    (out / 'g1_noac.json').write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8',
+                                      newline='\n')
+    (out / 'G1_NOAC.md').write_text(render_report(result), encoding='utf-8', newline='\n')
     print(json.dumps(result['census'], indent=2))
 
 

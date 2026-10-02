@@ -1,10 +1,44 @@
 # Dispatch: G1 NOAC lane -> k-gap lane
 
-From branch `g1/noac`, based on `origin/acq/k-gap` at 46cc6a7f8. The shared modules were not edited on this branch.
+From branch `g1/noac`, first based on `origin/acq/k-gap` at 46cc6a7f8 and since merged with 08682cd9e. Two shared
+files are now changed on this branch; see section 0.
 The session-to-session channel was unavailable: this session runs unattended, and the message tool refuses
 in that mode. These requests are left here instead; Mahmood's status message points to this file.
 
-## 1. DEFECT: `aact_lane` stores rates as event counts
+## 0. Update, 2 Oct, after merging acq/k-gap 08682cd9e: two shared files changed on THIS branch
+
+Both changes are additive and plant-tested, and both are for you to adopt or reject. Mahmood asked for a NOAC
+tracker verdict today, and the session channel to your lane was refused twice.
+
+- **`scripts/k_gap_table.py::resolve_unit`.** New identity step `acronym_self_registration_sentence`.
+  - **When it runs:** only after `acronym_aact` and `acronym_aact_title` both fail.
+  - **What it reads:** an acronym in a trial's OWN held PubMed abstract registration sentence ("...; ROCKET AF
+    ClinicalTrials.gov number, NCT00403767."), restricted to topic-agent NCTs.
+  - **Ambiguity:** more than one NCT is reported as AMBIGUOUS, never picked.
+  - **Map:** `SELF_REG` is built from every `cache/*/records.json`. It holds 73 acronyms, and none maps to more than
+    one NCT.
+  - **Effect on the table:** this resolves ROCKET AF (row `UNRESOLVED_IDENTITY` -> `POOLED`, NCT00403767). The only
+    other change in `k_gap_table.json` is two additive registration-date fields on 29 rows. They come from building
+    the AACT store fresh in this worktree.
+  - **Correction to G1_STATUS.md, "What would move G1 next", item 2:** that item says "our own record never
+    self-names it". Our held record does name it: PMID 21830957's abstract carries the sentence above. This is a
+    stricter basis than an alias, not a looser rule.
+- **`scripts/g1_tracker.py`.** New key `same_trials_no_trial_rows`, built by `no_trial_rows_result`.
+  - **When it applies:** a patient-level comparator prints no per-trial rows, so `same_trials_pool` has nothing to
+    pair. When every comparator trial is in our pool and none has a printed row, our pool over them IS the
+    same-trials pool.
+  - **Verdict:** it is typed by your `result_verdict`. The table shows it only when `same_trials` is not POOLED.
+  - **Plants:** a missing trial, a printed row, or a k mismatch -> None; a measure mismatch -> MEASURE_DIFFERS.
+
+**Observed defect, not edited:** `scripts/g1_tracker.py <slug>` writes `outputs/k_gap/g1/<slug>.json` non-atomically.
+A run killed by a timeout (probiotics-aad-prevention, rc=124 at 1500 s on a busy disk) left a 0-byte file, and
+`tests/test_g1_interfaces.py::test_committed_tracker_files_carry_the_pinned_schema` then fails on it. The fix is the
+same tmp-plus-`os.replace` pattern your `runs_store.save()` already uses.
+
+The NUMBER-as-count item below is **fixed upstream** by your `kgap/aact_adapter.py` INDEX_RULES 2. The test on this
+branch now checks your adapter against a planted rate row and a planted count row.
+
+## 1. (FIXED upstream) DEFECT: `aact_lane` stores rates as event counts
 
 **Where:** `scripts/k_gap_bulk_acquire.py:127-130`.
 
