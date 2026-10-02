@@ -916,6 +916,33 @@ def topic(slug, T):
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
             elif x["route"] == "NO_ROW" and not x.get("seeded_funnel") and rp[id(t)] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
+    # SAME TRIAL, OTHER REPORT: the comparator cites a secondary report (Radholm 2018, CANVAS heart-failure outcomes) whose
+    # registered trial (the funnel's NCT link) we pool under its main report (Neal 2017, same NCT). The comparator trial
+    # IS matched -- to that pool row -- once, and never to a pool row another comparator trial already matched.
+    for x in trials:
+        f = x.get("seeded_funnel") or {}
+        via = f"PMID {f.get('via')}" if f.get("via") else None
+        if (x["in_our_pool"] or f.get("stage") != "SCREENED_VIA_OTHER_REPORT" or f.get("via_decision") != "include"
+                or not via or via not in pooled_ids or via in matched_ids or not f.get("nct")):
+            continue
+        matched_ids.add(via)
+        routes[x["route"]] -= 1
+        routes["PRIMARY"] += 1
+        x.update(in_our_pool=True, route="PRIMARY", family=via, g1_countable=True, our_refusal=None,
+                 basis=f"same registered trial {f['nct']}: pooled under its report {via} (the comparator cites {f.get('pmid')})",
+                 our_value=our_value_from_row(row_by_id[via]) if row_by_id.get(via) else None,
+                 matched_via_other_report={"nct": f["nct"], "pool_row": via, "comparator_cites": f.get("pmid")})
+        cr = x.get("comparator_row")
+        if cr and x["our_value"]:
+            theirs = sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="COMPARATOR_ROW",
+                                     trial_label=x["label"], measure=cr.get("measure") or "", outcome_definition="",
+                                     **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
+            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+        else:
+            x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
+    for k in [k for k, n in routes.items() if n <= 0]:
+        del routes[k]
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
