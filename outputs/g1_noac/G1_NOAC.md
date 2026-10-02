@@ -82,6 +82,26 @@ Full AACT records, row hashes, excerpts and abstract spans are in g1_noac.json.
 | F039 | NCT00403767 / major_bleeding | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | EFFECT / ON_TREATMENT / UNKNOWN | {"effect": "1.04", "lower": "0.90", "upper": "1.20"} |
 | F040 | NCT00403767 / major_bleeding | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | COUNTS / ON_TREATMENT / UNKNOWN | {"events_t": 395, "n_t": 7111, "events_c": 386, "n_c": 7125} |
 
+## Same-trials result vs COMBINE AF (AACT-first inputs, two-source rule)
+
+COMBINE AF prints no per-trial rows; its trial set is these four trials, so the like-for-like comparison is our pool over exactly them vs its printed pooled HR, typed by the G1 tracker rule (same conclusion about the null, and an estimate gap under 10% of the comparator CI half-width on the log scale).
+
+| outcome | k | ours, random effects | verdict | ours, fixed effect | verdict | comparator | inputs two-source | population matches comparator |
+|---|---|---|---|---|---|---|---|---|
+| stroke_se | 4 | 0.804 (0.652-0.992) | AGREE | 0.815 (0.746-0.890) | AGREE | 0.81 (0.74-0.89) | 1 of 4 | 4 of 4 |
+| major_bleeding | 4 | 0.854 (0.644-1.134) | AGREE | 0.853 (0.796-0.914) | DIFFERENT_CONCLUSION | 0.86 (0.74-1.01) | 3 of 4 | 3 of 4 |
+
+| outcome | trial | fact | source | population | CI level (95% used) | values | route |
+|---|---|---|---|---|---|---|---|
+| stroke_se | RE-LY | F002 | AACT | ITT | 95 | {"effect": "0.65", "lower": "0.52", "upper": "0.81"} | SINGLE_SOURCE |
+| stroke_se | ROCKET AF | F029 | PUBMED:21830957 | ITT | 95 | {"effect": "0.88", "lower": "0.74", "upper": "1.03"} | SINGLE_SOURCE |
+| stroke_se | ARISTOTLE | F006 | AACT | ITT | 95 | {"effect": "0.79", "lower": "0.66", "upper": "0.95"} | TWO_SOURCE_VERIFIED |
+| stroke_se | ENGAGE AF-TIMI 48 | F019 | AACT | ITT | 99 -> 0.744-1.017 | {"effect": "0.87", "lower": "0.709", "upper": "1.068"} | SINGLE_SOURCE |
+| major_bleeding | RE-LY | F004 | AACT | ITT | 95 | {"effect": "0.93", "lower": "0.81", "upper": "1.07"} | TWO_SOURCE_VERIFIED |
+| major_bleeding | ROCKET AF | F039 | FDA:ROCKET_FDA2022_Table5_major_bleeding.tables.txt | ON_TREATMENT | 95 | {"effect": "1.04", "lower": "0.90", "upper": "1.20"} | SINGLE_SOURCE |
+| major_bleeding | ARISTOTLE | F009 | AACT | ON_TREATMENT | 95 | {"effect": "0.69", "lower": "0.6", "upper": "0.8"} | TWO_SOURCE_VERIFIED |
+| major_bleeding | ENGAGE AF-TIMI 48 | F021 | AACT | ON_TREATMENT | 95 | {"effect": "0.8", "lower": "0.707", "upper": "0.914"} | TWO_SOURCE_VERIFIED |
+
 ## Proposed arithmetic only
 
 ```json

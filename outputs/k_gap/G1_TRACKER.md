@@ -3,6 +3,7 @@
 | topic | k matched | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | glp1-ra-mace-t2d | 7 of 7 eligible (comparator N=8) | 1: ELIXA (ESTIMAND_DIFFERENCE) | 0 | 8 | 0 | 0 | 0 | {'AGREE': 6, 'DISAGREE': 1} | HR 0.85 (0.80 to 0.90) vs 0.85 (0.80 to 0.90), k=7, DL: **AGREE** | HR 0.86 (0.81 to 0.91) k=8 | HR 0.86 (0.79 to 0.94) |
+| noac-vs-warfarin-af-stroke | 4 of 4 eligible (comparator N=4) | 0:  | 0 | 4 | 0 | 0 | 0 | {'NOT_COMPARABLE:NO_COMPARATOR_ROW': 4} | HR 0.81 (0.66 to 0.98) vs 0.81 (0.74 to 0.89), k=4 (comparator prints no trial rows; ours on its trials vs its pooled): **AGREE** | HR 0.81 (0.66 to 0.98) k=4 | HR 0.81 (0.74 to 0.89) |
 | semaglutide-obesity-weight | 2 of 2 eligible (comparator N=4) | 2: O’Neil, 2018 (PROTOCOL_SCOPE_DIFFERENCE), Rubino, 2021 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 2 | 0 | 0 | 2 | {'AGREE': 2} | MD -11.47 (-13.52 to -9.43) vs -11.49 (-13.58 to -9.41), k=2, DL: **AGREE** | MD -11.47 (no CI) k=2 | MD -11.85 (-12.81 to -10.90) |
 
 ## glp1-ra-mace-t2d (comparator PMID 34526024)
@@ -18,6 +19,13 @@
 - NAMED ESTIMAND_DIFFERENCE: ELIXA -- harness.extract.composite_component_mismatch: 3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label. Registry (AACT 2026-08-30): 'Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina', arms Placebo 399/3034, Lixisenatide 406/3034, Hazard Ratio (HR) 1.017 (0.886-1.168); the comparator pooled it as {'effect': '1.02', 'lower': '0.89', 'upper': '1.17', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None, 'measure': 'HR'}
 - COMPARATOR FINDING COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT: PIONEER 6 -- comparator row {'effect': '0.79', 'lower': '0.57', 'upper': '1.10', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None, 'measure': 'HR'} vs trial report {'measure': 'HR', 'effect': '0.79', 'lower': '0.57', 'upper': '1.11', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None} (SECONDARY_WRONG (primary numbers are in the primary's own span))
 - pooled by us, not listed by the comparator: PMID 40162642 (2025; comparator 2021): PUBLISHED_AFTER_COMPARATOR
+
+## noac-vs-warfarin-af-stroke (comparator PMID 34985309)
+
+- RE-LY: **PRIMARY** - our branch extraction PMID 19717844 (pre_specified_dose); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- ROCKET AF: **PRIMARY** - our branch extraction PMID 21830957 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- ARISTOTLE: **PRIMARY** - our branch extraction PMID 21870978 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- ENGAGE AF-TIMI 48: **PRIMARY** - our branch extraction PMID 24251359 (pre_specified_dose); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 
 ## semaglutide-obesity-weight (comparator PMID 42536519)
 

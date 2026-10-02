@@ -102,6 +102,26 @@ def same_trials_pool(pairs, method_label):
     return out
 
 
+def no_trial_rows_result(trials, ours, theirs):
+    """PROPOSED on g1/noac for the k-gap lane (additive key). A patient-level comparator (COMBINE AF) prints NO per-trial
+    rows, so same_trials_pool has nothing to pair. When EVERY comparator trial is in our pool and NONE has a printed row,
+    our pool over those trials IS the same-trials pool, and the like-for-like comparison is it vs the comparator's printed
+    pooled result -- by the same result_verdict. Any trial missing from our pool, or any printed row, -> None."""
+    if not trials or any(not t["in_our_pool"] or t["comparator_row"] for t in trials):
+        return None
+    if ours.get("k") != len(trials) or ours.get("estimate") is None or theirs.get("estimate") is None:
+        return None
+    measure = (ours.get("scale") or "").upper()
+    if measure != (theirs.get("scale") or "").upper():
+        return {"state": "MEASURE_DIFFERS", "ours": ours.get("scale"), "theirs": theirs.get("scale")}
+    o = {k: ours[k] for k in ("estimate", "ci_low", "ci_high")}
+    t = {k: theirs[k] for k in ("estimate", "ci_low", "ci_high")}
+    return {"state": "COMPARATOR_PRINTS_NO_TRIAL_ROWS", "k": len(trials), "measure": measure, "ours": o, "theirs": t,
+            "verdict": result_verdict(o, t, measure),
+            "note": "ours = our served pool over exactly the comparator's trials; theirs = its printed pooled result; "
+                    "estimators differ (theirs is patient-level)"}
+
+
 def result_verdict(ours, theirs, measure):
     """Like-for-like RESULT agreement on the same trials, typed:
       AGREE     same conclusion about the null (both exclude it on the same side, or both include it) AND the estimates
@@ -334,6 +354,7 @@ def topic(slug, T):
             "same_trials": dict(same_trials_pool(pairs, method),
                                 method_basis=("comparator positive control reproduced " + method) if pc.get("methods")
                                 else "comparator positive control not reproduced: PM default"),
+            "same_trials_no_trial_rows": no_trial_rows_result(trials, res, rep),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
             "comparator_basis": comp_basis,
@@ -358,6 +379,10 @@ def table():
         r, st = o["routes"], o["same_trials"]
         same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}: "
                 f"**{(st.get('verdict') or {}).get('verdict')}**" if st.get("state") == "POOLED" else st.get("state"))
+        nr = o.get("same_trials_no_trial_rows")
+        if st.get("state") != "POOLED" and nr and nr.get("state") == "COMPARATOR_PRINTS_NO_TRIAL_ROWS":
+            same = (f"{nr['measure']} {_fmt(nr['ours'])} vs {_fmt(nr['theirs'])}, k={nr['k']} (comparator prints no "
+                    f"trial rows; ours on its trials vs its pooled): **{nr['verdict']['verdict']}**")
         nd = o.get("named_differences") or []
         md.append(f"| {o['slug']} | {o['k_matched']} of {o.get('N_eligible', o['N_comparator_trials'])} eligible "
                   f"(comparator N={o['N_comparator_trials']}) | "

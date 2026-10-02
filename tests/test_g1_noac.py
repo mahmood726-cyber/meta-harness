@@ -1,4 +1,5 @@
 """Defect plants plus offline integration contracts; no network or served writes."""
+import os
 import ast
 from copy import deepcopy
 import io
@@ -32,32 +33,38 @@ def secondary(**updates):
 
 def base_aact_rate_plant():
     """Execute the actual unedited base aact_lane AST with in-memory I/O and planted rows."""
-    tree = ast.parse((ROOT / 'scripts/k_gap_bulk_acquire.py').read_text(encoding='utf-8'))
-    node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'aact_lane')
-    data = {'outcomes.txt': [{'nct_id': 'NCT00000001', 'id': 'o', 'title': 'stroke', 'time_frame': '1 year',
-                             'outcome_type': 'PRIMARY', 'units': '%/year'}],
-            'outcome_analyses.txt': [],
-            'outcome_measurements.txt': [{'nct_id': 'NCT00000001', 'outcome_id': 'o', 'result_group_id': 'g',
-                                          'param_type': 'NUMBER', 'units': '%/year', 'param_value_num': '3.55'}],
-            'outcome_counts.txt': [{'nct_id': 'NCT00000001', 'outcome_id': 'o', 'result_group_id': 'g',
-                                    'scope': 'Measure', 'count': '100'}]}
-    class Sink(io.StringIO):
-        def close(self):
-            pass
-    sink = Sink()
-    def memory_open(path, mode, **kwargs):
-        return io.BytesIO(sink.getvalue().encode()) if mode == 'rb' else sink
-    import hashlib
-    env = dict(time=types.SimpleNamespace(time=lambda: 0), json=json, hashlib=hashlib, AACT_IDX='memory_only',
-               open=memory_open, _rows=lambda name, want: iter(data[name]))
-    exec(compile(ast.Module(body=[node], type_ignores=[]), '<base-aact-function>', 'exec'), env)
-    env['aact_lane'](['NCT00000001'])
-    return json.loads(sink.getvalue())
+    # The shared AACT adapter (kgap/aact_adapter.py, INDEX_RULES 2) -- which replaced the pre-fix aact_lane that turned
+    # RE-LY's 3.55 %/year into "3 events" (dispatched from this branch) -- fed one planted rate row and one planted
+    # people-unit count row through its real build_entries.
+    from kgap import aact_adapter
+    def rows(name, want):
+        data = {'outcomes.txt': [{'nct_id': 'NCT00000001', 'id': 'o', 'title': 'stroke', 'time_frame': '1 year',
+                                  'outcome_type': 'PRIMARY', 'population': '', 'units_analyzed': ''}],
+                'result_groups.txt': [{'nct_id': 'NCT00000001', 'id': g, 'result_type': 'Outcome', 'title': g}
+                                      for g in ('g_rate', 'g_count')],
+                'outcome_analyses.txt': [],
+                'outcome_measurements.txt': [
+                    {'nct_id': 'NCT00000001', 'outcome_id': 'o', 'result_group_id': 'g_rate', 'param_type': 'NUMBER',
+                     'units': '%/year', 'param_value_num': '3.55', 'category': '', 'classification': ''},
+                    {'nct_id': 'NCT00000001', 'outcome_id': 'o', 'result_group_id': 'g_count', 'param_type': 'NUMBER',
+                     'units': 'participants', 'param_value_num': '42', 'category': '', 'classification': ''}],
+                'outcome_counts.txt': [{'nct_id': 'NCT00000001', 'outcome_id': 'o', 'result_group_id': g,
+                                        'scope': 'Measure', 'units': 'Participants', 'count': '100'}
+                                       for g in ('g_rate', 'g_count')]}
+        return iter(data.get(name, []))
+    original = aact_adapter._rows
+    aact_adapter._rows = rows
+    try:
+        return aact_adapter.build_entries(['NCT00000001'], {'id': 'plant', 'digest': 'plant', 'rules': 2})
+    finally:
+        aact_adapter._rows = original
 
 
-def test_rate_never_counts_with_base_pre_fix():
-    before = base_aact_rate_plant()
-    assert before['NCT00000001']['groups']['o'][0]['count'] == 3
+def test_rate_never_counts_shared_adapter_and_here():
+    entry = base_aact_rate_plant()['NCT00000001']
+    groups = {g['group']: g['count'] for g in entry['groups'].get('o', [])}
+    assert 'g_rate' not in groups          # the %/year rate is never an event count (the dispatched defect, now fixed)
+    assert groups.get('g_count') == 42      # and a people-unit integer still is: the check can fail both ways
     assert lane.measurement_kind({'param_type': 'NUMBER', 'param_value': '3.55', 'units': '%/year'}, {}) == 'RATE'
     assert lane.measurement_kind({'param_type': 'NUMBER', 'param_value': '3', 'units': 'patients'}, {}) == 'COUNT'
 
@@ -271,3 +278,127 @@ def test_denominator_reproduction_arithmetic_and_plants():
     index['milestones'].append(dict(rely))
     with pytest.raises(ValueError, match='STARTED_ARMS_NOT_UNIQUE'):
         lane.denominator_reproduction(index, d['identities'], d['comparator'])
+
+
+def test_build_script_runs_and_reproduces_committed_outputs(tmp_path):
+    """The build must RUN (a syntax error once shipped while 'deterministic' checks compared untouched files) and its
+    replay must reproduce the committed bytes exactly."""
+    import shutil
+    import subprocess
+    import sys
+    work = tmp_path / 'repo'
+    # exactly what a --reuse-index replay reads (harness/g1_noac.audit), nothing wider
+    for rel in ('harness', 'docs/reviews/' + lane.SLUG, 'cache/' + lane.SLUG, 'topics', 'outputs/g1_noac',
+                'evidence/acquisition_cascade/excerpts'):
+        shutil.copytree(ROOT / rel, work / rel, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+    for rel in ('scripts/g1_noac_build.py', 'cache/comparators/34985309/2026-09-30_kgap_jats.xml',
+                'outputs/k_gap/k_gap_table.csv', 'outputs/k_gap/G1_STATUS.md'):
+        (work / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / rel, work / rel)
+    before = {p: (work / 'outputs/g1_noac' / p).read_bytes() for p in ('g1_noac.json', 'G1_NOAC.md')}
+    run = subprocess.run([sys.executable, str(work / 'scripts/g1_noac_build.py'), '--reuse-index'], cwd=work,
+                         capture_output=True, text=True, encoding='utf-8', env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
+    assert run.returncode == 0, run.stderr[-2000:]
+    after = {p: (work / 'outputs/g1_noac' / p).read_bytes() for p in before}
+    assert after == before
+    assert b'\r\n' not in after['G1_NOAC.md'] and b'"same_trials"' in after['g1_noac.json']
+
+
+def test_same_trials_selection_and_ci_level_plants():
+    d = lane.read_json(ROOT / 'outputs/g1_noac/g1_noac.json')
+    st = d['same_trials']
+    assert set(st) == {'stroke_se', 'major_bleeding'}
+    for key, v in st.items():
+        assert v['ours']['k'] == 4 and not v['missing']
+        assert {i['trial'] for i in v['inputs']} == {i['label'] for i in d['identities']}
+        for i in v['inputs']:
+            # a non-95% interval is never pooled as 95%: it is converted and the converted interval is recorded
+            assert (i['ci95_used'] is None) == (i['ci_percent'] == '95')
+    eng = next(i for i in st['stroke_se']['inputs'] if i['trial'].startswith('ENGAGE'))
+    assert eng['population'] == 'ITT' and eng['ci_percent'] == '99'
+    assert abs(eng['ci95_used'][0] - 0.744) < 0.001 and abs(eng['ci95_used'][1] - 1.017) < 0.001
+    # a population mismatch is disclosed, never hidden
+    rely = next(i for i in st['major_bleeding']['inputs'] if i['trial'] == 'RE-LY')
+    assert rely['population_matches_comparator'] is False
+
+
+def test_same_trials_verdict_types():
+    comp = {'outcomes': {k: {'effect': {'effect': '0.81', 'lower': '0.74', 'upper': '0.89'}} for k in ('stroke_se', 'major_bleeding')}}
+    def fact(i, nct, est, lo, hi, pop='ITT'):
+        f = lane.fact(nct, 'stroke_se', 'EFFECT', 'AACT', 'plant', fact_id=f'P{i}')
+        f.update(measure='HR', population=pop, ci_percent='95', values={'effect': est, 'lower': lo, 'upper': hi})
+        return f
+    ids = [{'label': f'T{i}', 'nct': f'NCT0000000{i}'} for i in range(3)]
+    agree = [fact(i, ids[i]['nct'], '0.81', '0.71', '0.93') for i in range(3)]
+    r = lane.same_trials(agree, [], comp, ids)['stroke_se']
+    assert r['verdict_random_effects'] == 'AGREE' and r['n_two_source'] == 0
+    # same side of the null but a gap of >= 10% of the comparator's CI half-width (log scale): not AGREE
+    near = [fact(i, ids[i]['nct'], '0.80', '0.70', '0.92') for i in range(3)]
+    assert lane.same_trials(near, [], comp, ids)['stroke_se']['verdict_random_effects'] == 'SAME_CONCLUSION_DIFFERENT_ESTIMATE'
+    harm = [fact(i, ids[i]['nct'], '1.30', '1.10', '1.55') for i in range(3)]
+    assert lane.same_trials(harm, [], comp, ids)['stroke_se']['verdict_random_effects'] == 'DIFFERENT_CONCLUSION'
+    # an on-treatment tuple is chosen only when no ITT tuple exists, and is then flagged
+    mixed = agree[:2] + [fact(2, ids[2]['nct'], '0.81', '0.71', '0.93', pop='ON_TREATMENT')]
+    r = lane.same_trials(mixed, [], comp, ids)['stroke_se']
+    assert r['n_population_matches'] == 2
+
+
+def test_same_trials_verdict_is_the_trackers_rule():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('g1_tracker_for_test', ROOT / 'scripts' / 'g1_tracker.py')
+    trk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trk)
+    comp = {'outcomes': {k: {'effect': {'effect': '0.81', 'lower': '0.74', 'upper': '0.89'}} for k in ('stroke_se', 'major_bleeding')}}
+    ids = [{'label': f'T{i}', 'nct': f'NCT0000000{i}'} for i in range(3)]
+    for est, lo, hi in [('0.80', '0.70', '0.92'), ('0.70', '0.60', '0.82'), ('1.30', '1.10', '1.55'), ('0.95', '0.80', '1.12')]:
+        facts = []
+        for i in range(3):
+            f = lane.fact(ids[i]['nct'], 'stroke_se', 'EFFECT', 'AACT', 'plant', fact_id=f'P{i}')
+            f.update(measure='HR', population='ITT', ci_percent='95', values={'effect': est, 'lower': lo, 'upper': hi})
+            facts.append(f)
+        r = lane.same_trials(facts, [], comp, ids)['stroke_se']
+        o = r['ours']
+        want = trk.result_verdict({'estimate': o['estimate'], 'ci_low': o['ci_low'], 'ci_high': o['ci_high']},
+                                  {'estimate': 0.81, 'ci_low': 0.74, 'ci_high': 0.89}, 'HR')['verdict']
+        assert r['verdict_random_effects'] == want
+
+
+def test_tracker_no_trial_rows_branch_plants():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('g1_tracker_for_test2', ROOT / 'scripts' / 'g1_tracker.py')
+    trk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trk)
+    trials = [{'in_our_pool': True, 'comparator_row': None} for _ in range(4)]
+    ours = {'k': 4, 'estimate': 0.8069, 'ci_low': 0.6611, 'ci_high': 0.985, 'scale': 'HR'}
+    theirs = {'estimate': 0.81, 'ci_low': 0.74, 'ci_high': 0.89, 'scale': 'HR'}
+    r = trk.no_trial_rows_result(trials, ours, theirs)
+    assert r['state'] == 'COMPARATOR_PRINTS_NO_TRIAL_ROWS' and r['verdict']['verdict'] == 'AGREE'
+    # plants: a missing trial, a printed row, a k mismatch or a measure mismatch never yields this comparison
+    assert trk.no_trial_rows_result([dict(trials[0], in_our_pool=False)] + trials[1:], ours, theirs) is None
+    assert trk.no_trial_rows_result([dict(trials[0], comparator_row={'effect': '0.8'})] + trials[1:], ours, theirs) is None
+    assert trk.no_trial_rows_result(trials, dict(ours, k=3), theirs) is None
+    assert trk.no_trial_rows_result(trials, ours, dict(theirs, scale='RR'))['state'] == 'MEASURE_DIFFERS'
+    d = lane.read_json(ROOT / 'outputs/k_gap/g1/noac-vs-warfarin-af-stroke.json')
+    assert d['k_matched'] == d['N_comparator_trials'] == 4
+    assert d['same_trials_no_trial_rows']['verdict']['verdict'] == 'AGREE'
+
+
+def test_rocket_identity_from_its_own_registration_sentence():
+    import importlib.util, sys as _sys
+    _sys.path.insert(0, str(ROOT / 'scripts'))
+    spec = importlib.util.spec_from_file_location('k_gap_table_for_test', ROOT / 'scripts' / 'k_gap_table.py')
+    kt = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(kt)
+    m = kt.self_registration_sentences([str(ROOT / 'cache' / lane.SLUG / 'records.json')])
+    assert m[kt.k_gap.norm_acronym('ROCKET AF')] == ['NCT00403767']
+    # plant: two different NCTs claimed by one acronym are kept (both), so the resolver reports ambiguity, never a pick
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        p = os.path.join(td, 'records.json')
+        with open(p, 'w', encoding='utf-8') as fh:
+            json.dump({'records': [{'abstract': 'Funded by X; PLANT ClinicalTrials.gov number, NCT00000001.'},
+                                   {'abstract': 'Funded by Y; PLANT ClinicalTrials.gov number, NCT00000002.'}]}, fh)
+        assert kt.self_registration_sentences([p])[kt.k_gap.norm_acronym('PLANT')] == ['NCT00000001', 'NCT00000002']
+    row = next(t for t in lane.read_json(ROOT / 'outputs/k_gap/k_gap_table.json')['trials']
+               if t['slug'] == lane.SLUG and t['label'] == 'ROCKET AF')
+    assert row['ncts'] == ['NCT00403767'] and row['identity_basis'] == ['acronym_self_registration_sentence:ROCKET AF']
