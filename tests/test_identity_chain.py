@@ -372,3 +372,30 @@ def test_a_two_word_trial_name_never_resolves_to_its_sibling(monkeypatch):
     monkeypatch.setattr(kt, 'COLLECTIVE', {'34449189': {'collective': ['EMPEROR-Preserved Trial Investigators']}})
     r = kt.resolve_unit(unit('EMPEROR Preserved, 2020', layout='row'), parsed(reduced, preserved), IDX, None)
     assert r['pmids'] == ['34449189']
+
+
+def test_a_named_trials_standalone_year_is_read_and_proves_a_shifted_reference(monkeypatch):
+    t = k_gap.identity_tokens('Risk & Prevention 2013 [42]')
+    assert (t['year'], t['marker']) == ('2013', '42')
+    assert k_gap.identity_tokens('Trial A (2019) (19)')['year'] == '2019'
+    assert k_gap.identity_tokens('(2015 and 2016 cohorts)')['year'] == ''         # two different years: no year
+    monkeypatch.setattr(kt, 'registered_before', kt._registered_before_real)
+    refs = [{'rid': f'R{i}', 'label': str(i), 'pmid': str(23000000 + i), 'year': y, 'first_author': a, 'text': f'{a} 2013'}
+            for i, (y, a) in enumerate([('2012', 'Bosch'), ('2013', 'Macchia'), ('2013', 'Roncaglioni')], start=41)]
+    u = dict(unit('Risk & Prevention 2013 [42]', layout='row'), distrust_links='shifted', marker_offset=1,
+             marker_offset_evidence='27/28 rows agree at +1')
+    # the real reference 43's collective author names the trial; without it the label's first word is guessed to be
+    # a surname ('Risk' vs 'Roncaglioni') and the row is refused
+    r = kt.resolve_unit(u, parsed(*refs), IDX, None)
+    assert r['pmids'] == [] and 'label_marker_shifted_ref_disagrees_with_row:42->43' in r['basis']
+    monkeypatch.setattr(kt, 'COLLECTIVE', {'23000043': {'collective': ['Risk and Prevention Study Collaborative Group']}})
+    r = kt.resolve_unit(u, parsed(*refs), IDX, None)
+    assert r['pmids'] == ['23000043'] and any(b.startswith('label_marker_ref_shifted:+1:42->43') for b in r['basis'])
+
+
+def test_name_words_match_is_positive_name_evidence(monkeypatch):
+    monkeypatch.setattr(kt, 'COLLECTIVE', {'23656645': {'collective': ['Risk and Prevention Study Collaborative Group']}})
+    ref = {'pmid': '23656645', 'text': 'Roncaglioni MC. n-3 fatty acids in patients with multiple cardiovascular risk factors.'}
+    assert kt.name_words_match('Risk & Prevention 2013 [42]', ref)
+    assert not kt.name_words_match('Risk & Outcomes 2013 [42]', ref)       # every name word must be there
+    assert not kt.name_words_match('Prevention 2013 [42]', ref)             # one word is not a name
