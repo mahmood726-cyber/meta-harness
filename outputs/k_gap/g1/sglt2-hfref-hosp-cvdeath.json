@@ -4,26 +4,66 @@
  "comparator_pmid": "35112512",
  "N_comparator_trials": 4,
  "k_matched": 2,
- "N_eligible": 3,
+ "k_in_our_pool": 2,
+ "N_eligible": 2,
  "named_differences": [
   {
    "trial": "EMPEROR‐Preserved (n = 5988)",
    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
    "rule_id": "X2",
    "screen_reason": "wrong population: title/conditions mention 'preserved ejection fraction'.",
-   "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
-   "registered_eligibility": null,
-   "pmid": "34449189",
+   "span": {
+    "field": "title",
+    "text": "Empagliflozin in Heart Failure with a Preserved Ejection Fraction.",
+    "match": "Preserved Ejection Fraction"
+   },
+   "span_source": "PMID 34449189 record title (held: cache/sglt2-hfref-hosp-cvdeath/records.json or outputs/k_gap/member_records.json)",
    "audit": {
     "class": "TRUE_SCOPE_DIFFERENCE",
-    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction'",
-    "source": "outputs/k_gap/exclusion_audit.tracker.json"
-   }
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction'"
+   },
+   "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
+   "registered_eligibility": null,
+   "pmid": "34449189"
+  },
+  {
+   "trial": "SOLOIST‐WHF (n = 1222)",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X3",
+   "screen_reason": "the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "OTHER_INTERVENTION_OR_FORM_RANDOMISED"
+   },
+   "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin'] (none met)",
+   "registered_eligibility": null,
+   "pmid": "33200892",
+   "span": {
+    "field": "abstract",
+    "text": "METHODS: We performed a multicenter, double-blind trial in which patients with type 2 diabetes mellitus who were recently hospitalized for worsening heart failure were randomly assigned to receive sotagliflozin or placebo.",
+    "match": "randomly assigned"
+   },
+   "named_by": "acq/k-gap tracker (audit span), not the lane",
+   "span_source": "PMID 33200892 record abstract (held: cache/sglt2-hfref-hosp-cvdeath/records.json or outputs/k_gap/member_records.json)"
   }
  ],
- "open_gaps": [
-  "SOLOIST‐WHF (n = 1222)"
- ],
+ "open_gaps": [],
+ "k_matched_of_comparator_N": "2 of 4",
+ "comparator_set": {
+  "state": "TABLE_ENUMERATED",
+  "sources_tried": [
+   {
+    "source": "JATS_TABLE",
+    "units": 4,
+    "drug_specific_resolved": 3
+   },
+   {
+    "source": "MODEL_PROPOSAL_GATED",
+    "units": 4,
+    "drug_specific_resolved": 3
+   }
+  ]
+ },
  "blockers": {
   "SCREENED_VIA_OTHER_REPORT": 1,
   "IDENTITY_UNRESOLVED": 1
@@ -42,7 +82,7 @@
    "family": "PMID 31535829",
    "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "our branch extraction PMID 31535829 (ctgov_results)",
+   "basis": "our held-source pool PMID 31535829 (ctgov_results)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
@@ -121,12 +161,18 @@
        "param_type": "Hazard Ratio (HR)",
        "param_value": "0.79",
        "ci_lower": "0.69",
-       "ci_upper": "0.9"
+       "ci_upper": "0.9",
+       "analysis_id": "128821770",
+       "groups": [
+        "837487251",
+        "837487252"
+       ],
+       "groups_description": "\"Cox regression, with terms for treatment, region, baseline status of diabetes, age, sex, left ventricular ejection fraction (LVEF) and glomerular filtration rate estimated by the chronic kidney disea"
       },
       "snapshot": {
        "id": "AACT 2026-08-30",
-       "digest": "7ab4dafebbe247a2a23a859fd2d0dea35a35137fb6fc937c1e0742689791c128",
-       "rules": 2
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
       },
       "gate": "OUTCOME_NOT_NAMED",
       "verdict": "REFUSED",
@@ -147,14 +193,19 @@
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
     "rule_id": "X2",
     "screen_reason": "wrong population: title/conditions mention 'preserved ejection fraction'.",
-    "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
-    "registered_eligibility": null,
-    "pmid": "34449189",
+    "span": {
+     "field": "title",
+     "text": "Empagliflozin in Heart Failure with a Preserved Ejection Fraction.",
+     "match": "Preserved Ejection Fraction"
+    },
+    "span_source": "PMID 34449189 record title (held: cache/sglt2-hfref-hosp-cvdeath/records.json or outputs/k_gap/member_records.json)",
     "audit": {
      "class": "TRUE_SCOPE_DIFFERENCE",
-     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction'",
-     "source": "outputs/k_gap/exclusion_audit.tracker.json"
-    }
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction'"
+    },
+    "protocol_rule": "include.population_none[0] = 'preserved ejection fraction'",
+    "registered_eligibility": null,
+    "pmid": "34449189"
    },
    "blocker": "SCREENED_OUT_UNAUDITED:X2",
    "identity": {
@@ -168,7 +219,7 @@
    "family": "PMID 32865377",
    "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "our branch extraction PMID 32865377 (abstract)",
+   "basis": "our held-source pool PMID 32865377 (abstract)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
@@ -253,8 +304,26 @@
    "g1_countable": false,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
-   "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:RULE_X3_MISFIRED_BUT_POPULATION_NOT_STATED (INTERVENTION_ONLY_IN_ABSTRACT; recorded reader NOT_STATED on ['population'])",
+   "scope_difference": {
+    "trial": "SOLOIST‐WHF (n = 1222)",
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X3",
+    "screen_reason": "the randomised intervention is not ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin',",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "OTHER_INTERVENTION_OR_FORM_RANDOMISED"
+    },
+    "protocol_rule": "include.intervention_any = ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin'] (none met)",
+    "registered_eligibility": null,
+    "pmid": "33200892",
+    "span": {
+     "field": "abstract",
+     "text": "METHODS: We performed a multicenter, double-blind trial in which patients with type 2 diabetes mellitus who were recently hospitalized for worsening heart failure were randomly assigned to receive sotagliflozin or placebo.",
+     "match": "randomly assigned"
+    },
+    "named_by": "acq/k-gap tracker (audit span), not the lane"
+   },
+   "blocker": null,
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X3",
@@ -373,6 +442,16 @@
   "scale": "HR"
  },
  "comparator_basis": "served review comparator.reported; LVEF <=40% subgroup rows: Figure 2A, two gated readers",
+ "comparator_rows_source": [
+  {
+   "branch": "g1/forest-reader",
+   "commit": "56e503b7024ea4706e5bf020871bb4d6852968a9",
+   "path": "registry/model_proposals/g1_forest_reader.json",
+   "sha256": "18a113b952337445f15a55dcbe3b6e500724813d556a2badf4ea4536f3a2ae13",
+   "rows": 3,
+   "joined": 0
+  }
+ ],
  "ours_not_in_comparator": [],
  "ours_not_in_comparator_detail": [],
  "secondary_tally": {},
@@ -393,17 +472,34 @@
    "rules": 2
   }
  },
+ "pool_basis": {
+  "build": "k_gap_counterfactual.build_with_held_sources",
+  "held_records": 5,
+  "held_fulltext": 0,
+  "held_unpaywall": 0,
+  "held_registry": 0
+ },
+ "served_pool_lags": [],
  "g1_status": {
-  "state": "NOT_YET",
+  "state": "G1_MATCHED",
   "criteria": {
-   "ALL_ELIGIBLE_MATCHED": false,
+   "ALL_ELIGIBLE_MATCHED": true,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
-  "unmet": [
-   "ALL_ELIGIBLE_MATCHED"
-  ]
+  "unmet": [],
+  "excluded_by_scope": {
+   "n": 2,
+   "of_comparator_N": 4,
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 2
+   },
+   "trials": [
+    "EMPEROR‐Preserved (n = 5988) [X2]",
+    "SOLOIST‐WHF (n = 1222) [X3]"
+   ]
+  }
  },
  "lane": {
   "script": "scripts/g1_sglt2_tracker.py",
@@ -472,9 +568,9 @@
  "lane_source": {
   "lane": "Evidence lane two (g1/tocilizumab)",
   "branch": "g1/tocilizumab",
-  "commit": "0e19b5235f2faa7199a04e87550c53fdd7694490",
+  "commit": "7796c3ea3bc84e43f6e6b4b12d88edf2e87ce0a7",
   "path": "outputs/k_gap/g1/sglt2-hfref-hosp-cvdeath.json",
-  "sha256": "8ea47c3f96bd51ffe887af4acbf47cecf99c8877529f586b84a2b273432544bc",
+  "sha256": "6444e038a1426d1879902d7a64e7b9ae1c0e0eb93b68576dd7681564880ac256",
   "format": "tracker_v1"
  }
 }

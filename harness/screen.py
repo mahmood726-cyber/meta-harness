@@ -457,7 +457,9 @@ def screen_record(rec, inc, neg_pmids):
     # zinc), or a trial that only MEASURES our drug while randomising another (doxepin, with melatonin
     # as a biomarker). intervention_none lists those excluded forms; a match here excludes even though
     # intervention_any matched. Negation-aware (via _has), so "not a receptor agonist" would not fire.
-    bad_int = _has(itext, inc.get("intervention_none"))
+    # + form terms of OUR intervention that a protocol filed under population_none ('oral semaglutide'): applied here,
+    # as an intervention-form rule, never as a population rule (screen_entry.misfiled_form_terms)
+    bad_int = _has(itext, list(inc.get("intervention_none") or []) + screen_entry.misfiled_form_terms(inc))
     if bad_int:
         return ScreenDecision("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
