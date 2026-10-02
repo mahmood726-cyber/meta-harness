@@ -26,7 +26,7 @@ XML = ("<PubmedArticleSet><PubmedArticle><MedlineCitation Status='MEDLINE'><PMID
 
 
 def test_parse_reads_only_comment_on_edges():
-    assert co.parse(XML) == {"111": {"comment_on": ["222"], "pubtypes": ["Letter", "Comment"]}}
+    assert co.parse(XML) == {"111": {"comment_on": ["222"], "comment_on_unresolved": 0, "pubtypes": ["Letter", "Comment"]}}
 
 
 def test_the_recorded_edge_carries_its_source_hash():
@@ -51,7 +51,7 @@ def test_a_letter_whose_article_is_not_excluded_with_a_span_stays_eligible(monke
     gt.name_letter_units_by_comment_on(SLUG, json.load(open(os.path.join(ROOT, "topics", SLUG + ".json"), encoding="utf-8")),
                                        [x], rev)
     assert x["scope_difference"] is None and x["blocker"] == "B"
-    monkeypatch.setattr(co, "comment_on", lambda p: ["30990260", "999"])               # two articles: never chosen
+    monkeypatch.setattr(co, "record", lambda p: {"comment_on": ["30990260", "999"]})  # two articles: never chosen
     rev2 = {"screening": {"records": [{"id": "30990260", "decision": "exclude", "rule_id": "X2", "reason": "r"}]}}
     gt.name_letter_units_by_comment_on(SLUG, {}, [x], rev2)
     assert x["scope_difference"] is None
@@ -60,3 +60,58 @@ def test_a_letter_whose_article_is_not_excluded_with_a_span_stays_eligible(monke
 def test_pre_fix_isreb_was_an_open_gap():
     base = json.loads(subprocess.check_output(["git", "show", f"17fb03ab:outputs/k_gap/g1/{SLUG}.json"], cwd=ROOT))
     assert "Isreb (19)" in base["open_gaps"] and base["N_eligible"] == 6
+
+
+# --- plants from cross-vendor review NR-C24 (Codex; artefact F:/mh-nr101-codex/c24-g1-comment-on/last_message.txt) ---
+def _art(own, ccs):
+    return (f"<PubmedArticle><MedlineCitation><PMID Version='1'>{own}</PMID><Article><PublicationTypeList>"
+            f"<PublicationType>Letter</PublicationType></PublicationTypeList></Article><CommentsCorrectionsList>{ccs}"
+            f"</CommentsCorrectionsList></MedlineCitation></PubmedArticle>")
+
+
+def test_c24_a_pmid_less_comment_on_never_borrows_the_next_relationships_pmid():
+    x = _art(111, '<CommentsCorrections RefType="CommentOn"><RefSource>N Engl J Med</RefSource></CommentsCorrections>'
+                  '<CommentsCorrections RefType="CommentIn"><RefSource>x</RefSource><PMID>222</PMID></CommentsCorrections>')
+    r = co.parse("<PubmedArticleSet>" + x + "</PubmedArticleSet>")["111"]
+    assert r["comment_on"] == [] and r["comment_on_unresolved"] == 1
+
+
+def test_c24_whitespace_and_quoting_variants_parse_alike():
+    x = _art(" 111 ", "<CommentsCorrections RefType='CommentOn'><RefSource>y</RefSource><PMID> 222 </PMID></CommentsCorrections>")
+    assert co.parse("<PubmedArticleSet>" + x + "</PubmedArticleSet>")["111"]["comment_on"] == ["222"]
+
+
+def test_c24_conflicting_duplicate_records_are_refused():
+    import pytest
+    a = _art(111, '<CommentsCorrections RefType="CommentOn"><PMID>222</PMID></CommentsCorrections>')
+    b = _art(111, '<CommentsCorrections RefType="CommentOn"><PMID>333</PMID></CommentsCorrections>')
+    with pytest.raises(ValueError):
+        co.parse("<PubmedArticleSet>" + a + b + "</PubmedArticleSet>")
+
+
+def test_c24_a_letter_is_named_only_with_one_resolved_edge_and_a_row_bound_to_the_article(monkeypatch):
+    import g1_tracker as gt
+    cfg = json.load(open(os.path.join(ROOT, "topics", SLUG + ".json"), encoding="utf-8"))
+    rev = {"screening": {"records": [{"id": "30990260", "decision": "exclude", "rule_id": "X2", "reason": "r"}]}}
+
+    def unit(row):
+        return {"label": "L", "family": "PMID 31509682", "in_our_pool": False, "scope_difference": None, "blocker": "B",
+                "comparator_row": row}
+    ok = {"effect": "0.63", "n_t": 2202, "n_c": 2199}
+    x = unit(ok)
+    gt.name_letter_units_by_comment_on(SLUG, cfg, [x], rev)
+    assert x["scope_difference"] and x["scope_difference"]["row_binding"]["total"] == 4401
+    x = unit({"effect": "0.63", "n_t": 1000, "n_c": 1000})                 # the row is NOT the article's trial
+    gt.name_letter_units_by_comment_on(SLUG, cfg, [x], rev)
+    assert x["scope_difference"] is None and x["blocker"] == "B"
+    x = unit({"effect": "0.63"})                                          # no row counts: identity unbound
+    gt.name_letter_units_by_comment_on(SLUG, cfg, [x], rev)
+    assert x["scope_difference"] is None
+    x = unit(ok)
+    gt.name_letter_units_by_comment_on(SLUG, cfg, [x], {"screening": {"records": [
+        {"id": "30990260", "decision": "exclude", "rule_id": "X1", "reason": "r"}]}})    # screen rule != audit rule
+    assert x["scope_difference"] is None
+    monkeypatch.setattr(co, "record", lambda p: {"comment_on": ["30990260"], "comment_on_unresolved": 1})
+    x = unit(ok)
+    gt.name_letter_units_by_comment_on(SLUG, cfg, [x], rev)                # an unresolved second edge: ambiguous
+    assert x["scope_difference"] is None

@@ -830,6 +830,7 @@ def name_letter_units_by_comment_on(slug, cfg, trials, rev):
     excluded that article under a rule AND the exclusion audit classes the article's exclusion TRUE_SCOPE_DIFFERENCE with
     a span verbatim in the article's held record -- the span and rule are the ARTICLE's, never the letter's words
     (sglt2-primary-prevention-hf: 'Isreb (19)', NEJM letter 31509682 on CREDENCE 30990260, screened out X2 'nephropathy')."""
+    import re
     from kgap import comment_on as co
     import k_gap_exclusion_audit as au
     ledger = {str(r.get("id")): r for r in ((rev or {}).get("screening") or {}).get("records", [])}
@@ -841,18 +842,32 @@ def name_letter_units_by_comment_on(slug, cfg, trials, rev):
         pts = [str(p).lower() for p in rec.get("pubtypes") or []]
         if not any(t in pts for t in ("letter", "comment", "editorial")) or any("randomized controlled trial" in p for p in pts):
             continue
-        targets = co.comment_on(pmid)
-        if len(targets) != 1:
+        rco = co.record(pmid)
+        targets = rco.get("comment_on") or []
+        # exactly ONE CommentOn relationship, resolved (an unresolved second edge makes the target ambiguous: NR-C24)
+        if len(targets) != 1 or rco.get("comment_on_unresolved"):
             continue
         art = targets[0]
         led, arec = ledger.get(art) or {}, held_record(slug, art)
         if led.get("decision") != "exclude" or not led.get("rule_id") or not arec:
             continue
+        # the comparator's ROW must be the article's trial: its arm sizes sum to a patient count the article itself states
+        # (a comment link is a relationship, not trial identity -- NR-C24; Isreb row 2202 + 2199 = 4401, CREDENCE: '4401
+        # patients had undergone randomization')
+        row = x.get("comparator_row") or {}
+        try:
+            total = int(row.get("n_t")) + int(row.get("n_c"))
+        except (TypeError, ValueError):
+            continue
+        tot_rx = re.compile(r"(?<![\d.,])" + "{:,}".format(total).replace(",", r"[,  ]?") + r"(?![\d.,]\d)")
+        bind = next(((f, m.group(0)) for f in ("abstract", "title") for m in [tot_rx.search(arec.get(f) or "")] if m), None)
+        if not bind:
+            continue
         cls, sub, base = au.classify(arec, cfg)
         sp = (base or {}).get("span")
-        if cls != "TRUE_SCOPE_DIFFERENCE" or not sp or not span_is_verbatim(slug, art, sp):
+        # the served screen's rule and the audit's re-screen must AGREE on the excluding rule (NR-C24)
+        if cls != "TRUE_SCOPE_DIFFERENCE" or not sp or not span_is_verbatim(slug, art, sp) or                 (base or {}).get("rule_id") != led["rule_id"]:
             continue
-        rco = co._load().get(pmid) or {}
         x["scope_difference"] = {
             "kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": led["rule_id"], "screen_reason": led.get("reason"),
             "audit": {"class": cls, "subclass": sub}, "protocol_rule": protocol_rule_for(cfg, led["rule_id"], led.get("reason")),
@@ -860,7 +875,9 @@ def name_letter_units_by_comment_on(slug, cfg, trials, rev):
             "span_source": span_source_of(slug, art, sp) + f" -- the comparator unit is PMID {pmid} "
                            f"({', '.join(rec.get('pubtypes') or [])}), which comments on PMID {art}",
             "via_comment_on": {"unit_pmid": pmid, "comment_on": art, "source": rco.get("source"),
-                               "xml_sha256": rco.get("xml_sha256"), "record": "outputs/k_gap/comment_on.json"}}
+                               "xml_sha256": rco.get("xml_sha256"), "record": "outputs/k_gap/comment_on.json"},
+            "row_binding": {"total": total, "article_field": bind[0], "article_states": bind[1],
+                            "basis": "comparator row n_t + n_c equals a patient count stated in the article's held record"}}
         x["blocker"] = None
 
 
