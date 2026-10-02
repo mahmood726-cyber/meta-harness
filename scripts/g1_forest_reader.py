@@ -65,6 +65,47 @@ TARGETS: dict = {
                        "is an outcome rather than a trial, say row_kind=\"outcome\". For rows, give the standard-dose "
                        "DOAC vs warfarin row of each entry; for pooled, the 'Stroke or Systemic Embolism' standard-dose "
                        "row."},
+    # captions without the word 'forest' (the deterministic selector requires it, or a ratio phrase)
+    "colchicine-secondary-cv-prevention": {"fig_id": "F3", "caption_has": "on the risks of (A) MACE", "panel": "A",
+                                           "panel_title": "MACE"},
+    "sglt2-primary-prevention-hf": {"fig_id": "f2", "caption_has": "Heart failure hospitalization in type 2 diabetes "
+                                    "patients receiving SGLT2 inhibitors versus control"},
+    # one figure, several outcomes stacked without panel letters: the readers are told which block
+    "iv-iron-hfref-hosp": {
+        "fig_id": "diseases-12-00339-f003",
+        "caption_has": "forest plot comparing FCM versus placebo on HF and non-HF hospitalization rates",
+        "instruction": "The figure stacks several outcomes. Transcribe ONLY the block for heart-failure (HF) "
+                       "hospitalization: its study rows and its own pooled row. Ignore non-HF hospitalization, the "
+                       "composite, all-cause mortality and any overall row."},
+    "pcsk9-mace": {
+        "fig_id": "F2", "caption_has": "Efficacy endpoints for PCSK9 inhibitors vs. control",
+        "instruction": "Transcribe ONLY the major adverse cardiovascular events (MACE) part: its study rows and its own "
+                       "pooled row. Report row_kind honestly: if the figure has one row per outcome rather than per "
+                       "trial, say row_kind=\"outcome\"."},
+    # refused BEFORE any model call, for a reason the comparator's own caption states (checked like any target)
+    # free-to-read PMC articles (JATS-like file derived from the PMC article page): per-trial plots without 'forest'
+    "corticosteroids-covid19-mortality": {
+        "fig_id": "joi200104f2", "caption_has": "Association Between Corticosteroids and 28-Day All-Cause Mortality in "
+                                                "Each Trial",
+        "instruction": "Rows: every trial row, once each (the trials are grouped by corticosteroid drug; do not give "
+                       "the drug subtotals as rows). Pooled: the OVERALL row for all trials."},
+    "metformin-pcos-ovulation": {
+        "fig_id": "CD013505-fig-0024", "caption_has": "Comparison 2 Metformin and clomiphene citrate versus clomiphene "
+                                                      "citrate alone, Outcome 4 Ovulation rate",
+        "instruction": "Rows: every study row (if the analysis is split into subgroups, every study row of every "
+                       "subgroup, once each; never a subtotal). Pooled: the overall 'Total (95% CI)' row; if there is no "
+                       "overall total, the pooled row printed last, and say so in notes."},
+    "sglt2-ckd-progression": {"fig_id": "joi250094f1", "caption_has": "CKD Progression According to Baseline eGFR",
+                              "refuse": "NO_PER_TRIAL_TOPIC_FIGURE: the comparator's figures are CKD-progression / eGFR "
+                                        "outcomes by baseline eGFR or UACR SUBGROUP, not per-trial rows of the "
+                                        "trial-defined cardiorenal composite"},
+    "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
+                      "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
+                                "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
+    "sacubitril-valsartan-hfref": {"fig_id": "ehf214298-fig-0003",
+                                   "caption_has": "available interventions for the composite outcome",
+                                   "refuse": "NETWORK_META_ANALYSIS_FIGURE: rows are treatments (network estimates), "
+                                             "not trials"},
 }
 
 SCHEMA = {
@@ -120,9 +161,68 @@ def _save(p, obj):
 # ------------------------------------------------------------------ figure: selection and image acquisition
 
 def jats_path(pmid):
+    """The comparator's JATS as k_gap fetched it; else the JATS-like file derived from its PMC article page."""
     d = os.path.join(COMP, pmid)
-    return next((os.path.join(d, f) for f in sorted(os.listdir(d), reverse=True) if f.endswith("_kgap_jats.xml")),
-                None) if os.path.isdir(d) else None
+    if not os.path.isdir(d):
+        return None
+    fs = sorted(os.listdir(d), reverse=True)
+    return next((os.path.join(d, f) for f in fs if f.endswith("_kgap_jats.xml")), None) or \
+        next((os.path.join(d, f) for f in fs if f.endswith("_forest_pmcpage_jats.xml")), None)
+
+
+def _strip(h):
+    import html as _html
+    return re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", h))).strip()
+
+
+def pmc_page_jats(pmid, pmcid):
+    """A free-to-read PMC article outside the OA subset has no JATS from Europe PMC (empty body) and no images in the
+    OA bucket, but its PMC article page is public. The page bytes are stored with URL + sha256; a JATS-LIKE file is
+    DERIVED from them (abstract, body text before the references, and every <figure>: id, caption text, image file
+    name) so the same caption-based selector and model-text typing run on it. Returns the derived path or None."""
+    from harness import http
+    from xml.sax.saxutils import escape, quoteattr
+    d = os.path.join(COMP, pmid)
+    page = f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/"
+    hp = os.path.join(d, f"{FETCH_DATE}_forest_pmcpage.html")
+    if not os.path.exists(hp):
+        try:
+            st, b = http.get_raw(page, tries=2, timeout=60)
+        except Exception:  # noqa: BLE001 - recorded as NO_JATS by the caller
+            return None
+        if b"POW_CHALLENGE" in b or b"<figure" not in b:
+            return None                         # a bot gate or a page without figures: not solved, not used
+        os.makedirs(d, exist_ok=True)
+        with open(hp, "wb") as fh:
+            fh.write(b)
+        _save(hp + ".meta.json", {"url": page, "http_status": st, "bytes": len(b), "sha256": hashlib.sha256(b).hexdigest(),
+                                  "fetched": FETCH_DATE, "why": "free-to-read PMC article outside the OA subset"})
+    with open(hp, "rb") as fh:
+        b = fh.read()
+    h = b.decode("utf-8", "replace")
+    art = h[h.find("<article"):] if "<article" in h else h
+    cut = min([i for i in (art.find('id="ref-list'), art.find('class="ref-list')) if i > 0] or [len(art)])
+    figs, body_h = [], art[:cut]
+    for m in re.finditer(r'<figure[^>]*\bid="([^"]+)"[^>]*>(.*?)</figure>', body_h, re.S):
+        img = re.search(r'src="https://cdn\.ncbi\.nlm\.nih\.gov/pmc/blobs/[^"]+/([^"/]+\.(?:jpe?g|png|gif))"', m.group(2))
+        if img:
+            cap = _strip(re.sub(r"<img[^>]*>|<a[^>]*>\s*Open in a new tab\s*</a>", " ", m.group(2)))
+            figs.append((m.group(1), img.group(1), cap))
+    abstract = _strip(next(iter(re.findall(r'<section[^>]*class="[^"]*abstract[^"]*"[^>]*>(.*?)</section>', body_h, re.S)), ""))
+    text = _strip(re.sub(r"<figure.*?</figure>", " ", body_h, flags=re.S))
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+           f'<article xmlns:xlink="http://www.w3.org/1999/xlink" derived-from={quoteattr(page)} '
+           f'derived-from-sha256="{hashlib.sha256(b).hexdigest()}">',
+           f"<front><article-meta><abstract><p>{escape(abstract)}</p></abstract></article-meta></front>",
+           f"<body><p>{escape(text)}</p>"]
+    for fid, name, cap in figs:
+        xml.append(f'<fig id={quoteattr(fid)}><caption><p>{escape(cap)}</p></caption>'
+                   f'<graphic xlink:href={quoteattr(name)}/></fig>')
+    xml.append("</body></article>")
+    out = os.path.join(d, f"{FETCH_DATE}_forest_pmcpage_jats.xml")
+    with open(out, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(xml) + "\n")
+    return out
 
 
 def held_text(pmid):
@@ -148,15 +248,17 @@ def figure_for(slug, pmid):
             g = f.find(".//graphic")
             if g is None or t["caption_has"].lower() not in re.sub(r"\s+", " ", cap).lower():
                 return None, "TARGET_CAPTION_MISMATCH"
+            if t.get("refuse"):
+                return None, "REFUSED_BEFORE_READING:" + t["refuse"]
             return {"fig_id": t["fig_id"], "href": g.get(fp.XL), "caption": cap.strip()[:300], "panel": t.get("panel"),
                     "panel_title": t.get("panel_title"), "instruction": t.get("instruction"),
                     "selected_by": f"TARGETS (caption contains {t['caption_has']!r})"}, "SELECTED"
         return None, "TARGET_FIGURE_ABSENT"
     # a caption that says "forest" first; the broader pooled/ratio captions only when no forest caption qualifies (a
     # broad match alone picked COMBINE AF's HR-by-age curve)
-    fig, why = fp.select_figure(slug, pmid, jats_date=os.path.basename(jp)[:10])
+    fig, why = fp.select_figure(slug, pmid, jats_file=jp)
     if not fig:
-        fig, why2 = fp.select_figure(slug, pmid, jats_date=os.path.basename(jp)[:10], caption_re=CAPTION)
+        fig, why2 = fp.select_figure(slug, pmid, jats_file=jp, caption_re=CAPTION)
         why = why if fig is None and why2.startswith("NO_OUTCOME") else why2
     if fig:
         fig["selected_by"] = "k_gap_forest_plot.select_figure (comparator's own captions)"
@@ -199,10 +301,15 @@ def acquire_image(pmid, pmcid, href):
     from harness import http
     name = _image_name(href)
     page = f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/"
-    try:
-        st, html = http.get_raw(page, tries=2, timeout=60)
-    except Exception as exc:  # noqa: BLE001 - recorded as the refusal reason
-        return None, {"why": f"ARTICLE_PAGE_FETCH_FAILED:{type(exc).__name__}"}
+    held = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_pmcpage.html")
+    if os.path.exists(held):                    # the page already stored (with its sha256) by pmc_page_jats
+        with open(held, "rb") as fh:
+            html = fh.read()
+    else:
+        try:
+            st, html = http.get_raw(page, tries=2, timeout=60)
+        except Exception as exc:  # noqa: BLE001 - recorded as the refusal reason
+            return None, {"why": f"ARTICLE_PAGE_FETCH_FAILED:{type(exc).__name__}"}
     urls = sorted(set(re.findall(r'https://cdn\.ncbi\.nlm\.nih\.gov/pmc/blobs/[^"\s]+/' + re.escape(name),
                                  html.decode("utf-8", "replace"))))
     if len(urls) != 1:
@@ -354,6 +461,23 @@ def agree(ra, rb):
             proposed.append({"label": r.get("label"), **vals})
     for s in by_b.values():
         refused.append({"label": s.get("label"), "why": "ONLY_IN_READING_B", "a": None, "b": s})
+    # a row the readers transcribe with the SAME numbers at the SAME position but a different label is one row whose
+    # LABEL disagrees ('Newton N' / 'Mewton N'): still refused -- a label decides which trial a row is -- but typed so
+    nums = ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")
+    only_a = [x for x in refused if x["why"] == "ONLY_IN_READING_A"]
+    only_b = [x for x in refused if x["why"] == "ONLY_IN_READING_B"]
+    pos_a = {id(x): la.index(_norm_label(x["a"].get("label"))) for x in only_a}
+    pos_b = {id(x): lb.index(_norm_label(x["b"].get("label"))) for x in only_b}
+    for x in only_a:
+        y = next((y for y in only_b if pos_b[id(y)] == pos_a[id(x)] and all(
+            (agree_value(x["a"].get(k), y["b"].get(k)) is not None) if k in ("effect", "lower", "upper")
+            else agree_count(x["a"].get(k), y["b"].get(k))[0] for k in nums)), None)
+        if y is not None:
+            refused.remove(x)
+            refused.remove(y)
+            only_b.remove(y)
+            refused.append({"label": f"{x['a'].get('label')} / {y['b'].get('label')}", "why": "LABEL_DISAGREES",
+                            "a": x["a"], "b": y["b"]})
     pa, pb = ra.get("pooled") or {}, rb.get("pooled") or {}
     pooled = {k: agree_value(pa.get(k), pb.get(k)) for k in ("effect", "lower", "upper")}
     if None in pooled.values():
@@ -427,7 +551,8 @@ def stated_model(text, model_printed=None):
     """{methods: [...], quotes: {...}, state}. State NOT_RECONSTRUCTABLE for a one-stage IPD model; NOT_STATED when the
     text names no pooling model. Methods: the figure's own RevMan label when both readers agree on one; else the
     estimators the text names; a random-effects model with no named estimator is {DL, PM, REML} (each in the record)."""
-    t = re.sub(r"\s+", " ", text or "")
+    # typographic hyphens folded first: Cochrane prints 'Mantel‐Haenszel' and 'fixed‐effect' (U+2010)
+    t = re.sub(r"\s+", " ", re.sub(r"[\u2010-\u2015\u2212]", "-", text or ""))
     ipd0 = _ipd_sentence(t)
     rl = revman_label(model_printed)
     if rl and not ipd0:
@@ -455,6 +580,11 @@ def stated_model(text, model_printed=None):
         named = {k for k in ("DL", "PM", "REML") if k in quotes}
         methods |= named or {"DL", "PM", "REML"}
     if "FE" in quotes:
+        methods.add("FE")
+    iv = re.search(r"inverse[- ]variance[- ]?weighted (?:fixed[- ]effects? )?meta-analys", t, re.I)
+    if iv and "RE" not in quotes and not methods:
+        # 'pooled using inverse variance-weighted meta-analysis' and no random effects named: fixed-effect IV
+        quotes["FE"] = t[max(0, iv.start() - 80): iv.end() + 80]
         methods.add("FE")
     if "MH" in quotes:
         methods.add("MH-FE" if "RE" not in quotes else "MH-RE")
@@ -723,6 +853,8 @@ def items(slugs, run):
         if run and not jats_path(pmid):
             from kgap import k_gap
             k_gap.fetch_comparator_jats(pmid, FETCH_DATE)
+            if not jats_path(pmid) and pmcid_of(pmid):
+                pmc_page_jats(pmid, pmcid_of(pmid))
         fig, why = figure_for(slug, pmid)
         if not fig:
             skipped[slug] = {"pmid": pmid, "why": why}
@@ -790,6 +922,50 @@ def accepted_rows(slug):
     return list(r.get("secondary_rows") or []) if r.get("state") == "ACCEPTED" else []
 
 
+REPORT = os.path.join(ROOT, "outputs", "k_gap", "G1_FOREST_READER.md")
+
+
+def report(out):
+    """outputs/k_gap/G1_FOREST_READER.md, derived from the proposals file only (nothing typed by hand)."""
+    res, sk = out["results"], out["skipped"]
+    n_read = sum(1 for v in res.values() if v.get("readings"))
+    acc = [s for s, v in res.items() if v["state"] == "ACCEPTED"]
+    md = ["# G1 dual-model forest-plot reader (derived: scripts/g1_forest_reader.py)", "",
+          "Two model families read each comparator forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every "
+          "call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both "
+          "readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the "
+          "meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY comparator rows: never pool "
+          "inputs, never counted toward agreement with their own meta.", "",
+          f"- topics: {len(res) + len(sk)}; figures read by both models: {n_read}; ACCEPTED {len(acc)}, REFUSED "
+          f"{sum(1 for v in res.values() if v['state'] == 'REFUSED')}, not read {len(sk)}",
+          f"- rows: proposed {out['rows']['proposed']}, refused (readings disagree) {out['rows']['refused']}, accepted as "
+          f"secondary comparator rows {out['rows']['accepted_as_secondary']}",
+          f"- pooled-reconstruction pass rate: {len(acc)} of {n_read} figures read", "",
+          "| topic | comparator | figure | state | rows proposed / refused | stated model | printed pool | reconstructed | why |",
+          "|---|---|---|---|---|---|---|---|---|"]
+    for s in sorted(res):
+        v = res[s]
+        a = v.get("acceptance") or {}
+        rec = "; ".join(f"{k} {x[0]:.4f} ({x[1]:.4f}-{x[2]:.4f})" for k, x in (a.get("recomputed") or {}).items())
+        pp = v.get("pooled_agreed") or {}
+        md.append(f"| {s} | PMID {v['pmid']} | {v['figure']['fig_id']} | **{v['state']}** | "
+                  f"{len(v.get('proposed_rows') or [])} / {len(v.get('refused_rows') or [])} | "
+                  f"{(v.get('stated_model') or {}).get('state', '')} {(v.get('stated_model') or {}).get('methods', '')} | "
+                  f"{pp.get('effect', '')} ({pp.get('lower', '')}-{pp.get('upper', '')}) | {rec} | "
+                  f"{', '.join(v.get('problems') or []) or '-'} |")
+    md += ["", "## Not read (typed reason)", ""]
+    for s in sorted(sk):
+        x = sk[s]
+        md.append(f"- {s}: " + (f"PMID {x.get('pmid')}: {x.get('why')}" if isinstance(x, dict) else str(x)))
+    md += ["", "## Disagreements (both readings shown)", ""]
+    for s in sorted(res):
+        for r in res[s].get("refused_rows") or []:
+            md.append(f"- {s} / {r['label']}: {r['why']}; codex {json.dumps(r['a'], ensure_ascii=False)}; "
+                      f"agy {json.dumps(r['b'], ensure_ascii=False)}")
+    with open(REPORT, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(md) + "\n")
+
+
 def main(argv):
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")]
@@ -837,6 +1013,7 @@ def main(argv):
                     "refused": sum(len(v.get("refused_rows") or []) for v in results.values()),
                     "accepted_as_secondary": sum(len(v.get("secondary_rows") or []) for v in results.values())}}
     _save(OUT, out)
+    report(out)
     print(json.dumps({"tally": out["tally"], "rows": out["rows"], "skipped": skipped}, indent=1, ensure_ascii=False))
     return 0
 

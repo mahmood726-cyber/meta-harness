@@ -69,6 +69,14 @@ def test_PLANT_one_perturbed_reading_refuses_that_row_and_the_figure_with_both_r
     assert v["secondary_rows"] == []
 
 
+def test_PLANT_same_numbers_different_label_is_LABEL_DISAGREES_and_refused():
+    b = reading()
+    b["rows"][2]["label"] = "Trial G 2011"           # 'Mewton' read as 'Newton': numbers agree, the trial does not
+    v = g.judge(ITEM, reading(), b, "mc-a", "mc-b", HELD_DL)
+    assert v["state"] == "REFUSED" and [x["why"] for x in v["refused_rows"]] == ["LABEL_DISAGREES"]
+    assert v["refused_rows"][0]["label"] == "Trial C 2011 / Trial G 2011" and v["secondary_rows"] == []
+
+
 def test_PLANT_a_row_only_one_reader_saw_is_refused():
     b = reading(rows=ROWS[:3])
     v = g.judge(ITEM, reading(), b, "mc-a", "mc-b", HELD_DL)
@@ -265,3 +273,50 @@ def test_revman_label_mapping_and_thousands_separators():
     assert g.revman_label("IV, Fixed, 95% CI") == ["FE"] and g.revman_label("IV, Random, 95% CI") == ["DL"]
     assert g.revman_label("M-H, Random, 95% CI") == ["MH-RE"] and g.revman_label("Peto, Fixed") is None
     assert g.agree_count("10 637", "10637") == (True, 10637)
+
+
+def test_stated_model_reads_typographic_hyphens_and_inverse_variance_weighting():
+    cochrane = "We used OR using the Mantel‐Haenszel method. We employed a fixed‐effect model in the analysis."
+    assert g.stated_model(cochrane)["methods"] == ["FE", "MH-FE"]
+    jama = "Treatment effects in individual trials were pooled using inverse variance–weighted meta-analysis."
+    assert g.stated_model(jama)["methods"] == ["FE"]
+    assert g.stated_model("We did a systematic review.")["state"] == "NOT_STATED"
+
+
+PAGE = """<html><body><article><section class="abstract"><p>We pooled odds ratios with a fixed-effect model.</p></section>
+<p>Methods text.</p>
+<figure id="f1"><h3>Figure 1. Flow diagram</h3><img src="https://cdn.ncbi.nlm.nih.gov/pmc/blobs/aa/1/bb/x-g001.jpg"></figure>
+<figure id="f2"><h3>Figure 2. Association Between Drug and Mortality in Each Trial</h3>
+<img src="https://cdn.ncbi.nlm.nih.gov/pmc/blobs/aa/1/cc/x-g002.jpg"><a href="#">Open in a new tab</a></figure>
+<section class="ref-list"><figure id="ref-fig"><img src="https://cdn.ncbi.nlm.nih.gov/pmc/blobs/aa/1/dd/r.jpg"></figure></section>
+</article></body></html>"""
+
+
+def test_pmc_page_is_stored_and_a_jats_like_file_derived_with_figures_and_model_text(tmp_path, monkeypatch):
+    monkeypatch.setattr(g, "COMP", str(tmp_path))
+    d = tmp_path / "11111111"
+    d.mkdir()
+    (d / f"{g.FETCH_DATE}_forest_pmcpage.html").write_bytes(PAGE.encode("utf-8"))   # held page: no network
+    out = g.pmc_page_jats("11111111", "PMC1")
+    assert out and out.endswith("_forest_pmcpage_jats.xml") and g.jats_path("11111111") == out
+    import xml.etree.ElementTree as ET
+    root = ET.parse(out).getroot()
+    figs = {f.get("id"): (" ".join("".join(c.itertext()) for c in f.iter("caption")),
+                          f.find(".//graphic").get("{http://www.w3.org/1999/xlink}href")) for f in root.iter("fig")}
+    assert set(figs) == {"f1", "f2"}                           # the reference-list figure is not the article's
+    assert figs["f2"] == ("Figure 2. Association Between Drug and Mortality in Each Trial", "x-g002.jpg")
+    assert len(root.get("derived-from-sha256")) == 64
+    assert g.stated_model(g.model_text("11111111"))["methods"] == ["FE"]
+
+
+def test_a_target_refused_before_reading_needs_its_caption_to_match(tmp_path, monkeypatch):
+    monkeypatch.setattr(g, "COMP", str(tmp_path))
+    d = tmp_path / "22222222"
+    d.mkdir()
+    (d / "2026-10-02_kgap_jats.xml").write_text(
+        '<article xmlns:xlink="http://www.w3.org/1999/xlink"><body><fig id="F1"><caption><p>A: Fatal MI; B: stroke'
+        '</p></caption><graphic xlink:href="f1.jpg"/></fig></body></article>', encoding="utf-8")
+    monkeypatch.setitem(g.TARGETS, "plant-slug", {"fig_id": "F1", "caption_has": "A: Fatal MI", "refuse": "NO_PANEL"})
+    assert g.figure_for("plant-slug", "22222222") == (None, "REFUSED_BEFORE_READING:NO_PANEL")
+    monkeypatch.setitem(g.TARGETS, "plant-slug", {"fig_id": "F1", "caption_has": "MACE", "refuse": "NO_PANEL"})
+    assert g.figure_for("plant-slug", "22222222") == (None, "TARGET_CAPTION_MISMATCH")      # a target is never trusted
