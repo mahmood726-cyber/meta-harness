@@ -30,7 +30,10 @@ QUERIES = {
     "COVITOZ": "NCT04435717[si]", "TOCOVID": "NCT04332094[si]", "ARCHITECTS": "NCT04412772[si]",
     "COVIDOSE2-SS-A": "NCT04479358[si]", "REMAP-CAP": "NCT02735707[si] AND (tocilizumab OR interleukin-6)",
     "PreToVid": "PreToVid[tiab]", "COVINTOC": "COVINTOC[tiab]",
+    # both CORIMUNO populations share NCT04331808: the critical-care population's own report is found by its name
+    "CORIMUNO-TOCI-ICU": "CORIMUNO[tiab] AND tocilizumab[tiab] AND (critical[tiab] OR ICU[tiab] OR intensive[tiab])",
 }
+ONLY = sys.argv[1:]
 
 
 def get(url, tries=3):
@@ -49,6 +52,8 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     log = []
     for label, q in QUERIES.items():
+        if ONLY and label not in ONLY:
+            continue
         ids = json.loads(get(f"{EUTILS}/esearch.fcgi?db=pubmed&retmode=json&retmax=10&term={urllib.parse.quote(q)}"))
         pmids = ids.get("esearchresult", {}).get("idlist", [])
         log.append({"label": label, "query": q, "pmids": pmids})
