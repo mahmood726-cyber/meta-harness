@@ -78,6 +78,16 @@ def build():
                  if t["readings"] and all(x["denominator_kind"] == g.SAFETY for x in t["readings"]) else
                  "no held primary source states 28-day deaths per arm (" + "; ".join(t["texts_held"]) + ")"
                  if t["texts_held"] else "no primary report held after the full cascade")
+        if t["state"] == g.SECONDARY_COUNT:
+            basis = ("counts printed only by a meta (" + "; ".join(best["counts_stated_by"]) + "); every primary gives a "
+                     "percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- "
+                     "a primary must state the counts (plant Q15)")
+        ots = t.get("other_timepoint_statements") or []
+        if ots:
+            basis += ("; its open report states deaths only at: " + "; ".join(f"{o['timepoint']} ({o['source'].split(' (')[0]})"
+                                                                         for o in ots)
+                      + ". REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after "
+                        "randomization'), so this row cannot be matched from open sources")
         verdict = t["vs_react"]["verdict"]
         trials.append({
             "label": t["label"], "family": t["registration"], "in_our_pool": None, "route": _route(t, best),
