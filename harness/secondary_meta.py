@@ -415,6 +415,7 @@ def verify_against_primary(row: SecondaryRow, primary: Optional[dict], queue_rea
     if same_value(row, p):
         row.state = VERIFIED
         row.verification = {"result": "MATCH" + ("_FROM_PRIMARY_COUNTS" if derived else ""),
+                            "route": "PRIMARY_EXTRACTION",
                             "primary_source": primary.get("source"), "primary_span": primary.get("span")}
         return row
     span = primary.get("span") or ""

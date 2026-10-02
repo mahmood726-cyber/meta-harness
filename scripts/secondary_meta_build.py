@@ -34,6 +34,8 @@ sys.path.insert(0, ROOT)
 sys.path.append(os.path.join(ROOT, "scripts"))
 from harness import secondary_meta as sm  # noqa: E402
 from kgap import k_gap  # noqa: E402
+from kgap import aact_adapter  # noqa: E402
+from kgap import runs_store  # noqa: E402
 import k_gap_forest_plot as fp  # noqa: E402
 from reproducible_ai import model_call_live as mcl  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
@@ -406,7 +408,18 @@ def report_text(slug, pmid):
     return ((rec or {}).get("title") or "") + " " + ((rec or {}).get("abstract") or "")
 
 
-_AACT = None
+_AACT = {"state": "NOT_ENSURED"}
+
+
+def ensure_registry(ncts):
+    """Index the topic's NCTs from the AACT snapshot (shared adapter). A missing snapshot is RECORDED on the topic
+    output (registry route unavailable for this run), never a silent empty registry."""
+    try:
+        st = aact_adapter.ensure(ncts)
+        _AACT.update(state="READY", snapshot=st["snapshot"])
+    except FileNotFoundError as exc:
+        _AACT.update(state="SNAPSHOT_UNAVAILABLE", why=str(exc)[:200])
+    return dict(_AACT)
 
 
 def primary_sources(slug, pmid, nct=None):
@@ -414,7 +427,6 @@ def primary_sources(slug, pmid, nct=None):
     cache/<slug>/ft_<pmid>.txt (markup stripped), the Unpaywall copy. Registry: posted CT.gov results for its NCT(s) from
     the local AACT index (scripts/k_gap_bulk_acquire.py)."""
     import hashlib as _h
-    global _AACT
     out = []
     mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
     rec = None
@@ -435,12 +447,11 @@ def primary_sources(slug, pmid, nct=None):
         if os.path.exists(up) and os.path.getsize(up) > 0:
             with open(up, encoding="utf-8", errors="replace") as fh:
                 out.append(("text", f"PMID {pmid} Unpaywall OA (doi {doi})", fh.read()))
-    if _AACT is None:
-        ap = os.path.join(ROOT, "outputs", "k_gap", "_aact_results.json")
-        _AACT = _j(ap) if os.path.exists(ap) else {}
-    for n in {x for x in (nct, (rec or {}).get("nct")) if x}:
-        if _AACT.get(n, {}).get("outcomes"):
-            out.append(("registry", f"{n} CT.gov posted results (AACT 2026-08-30)", _AACT[n]))
+    if _AACT.get("state") == "READY":           # build() ran aact_adapter.ensure for this topic's NCTs
+        for n in sorted({x for x in (nct, (rec or {}).get("nct")) if x}):
+            reg = aact_adapter.registry_for(n)
+            if reg:
+                out.append(("registry", f"{n} CT.gov posted results ({reg['_snapshot']['id']})", reg))
     return out
 
 
@@ -542,6 +553,7 @@ def build(slug, run, runs):
                 runs[r["key"]] = r
                 print(r["key"], r["state"], r["record_id"], flush=True)
     ours = our_trials(slug)
+    registry_state = ensure_registry([t["nct"] for t in ours if t.get("nct")])
     fam = family_of_factory(ours)
     rows, metas_out = [], {}
     for pmid, t in typed.items():
@@ -655,7 +667,7 @@ def build(slug, run, runs):
     g1 = sm.g1_countable(rows, {comp})
     out = {"slug": slug, "comparator_pmid": comp, "metas_considered": metas, "skipped": skipped, "metas": metas_out,
            "tally": dict(Counter(r.state for r in rows)),
-           "typed_verification": {"verified": typed_n, "secs": typed_secs},
+           "typed_verification": {"verified": typed_n, "secs": typed_secs}, "registry": registry_state,
            "verification_queue": queue, "verification_queue_reasons": dict(Counter(q["reason"] for q in queue)),
            "g1_countable_vs_comparator": sorted({r.family_id for r in g1}),
            "refusal_reasons": dict(Counter(x.split(":")[0] for r in rows for x in r.reasons)),
@@ -692,15 +704,14 @@ def verify_replay(slugs, runs):
 def main(argv):
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")] or (list(QUERY) + MORE)
-    rp = os.path.join(OUTD, "runs.json")
-    runs = _j(rp) if os.path.exists(rp) else {}
+    runs = runs_store.load()          # per-topic ledger: registry/secondary_meta/runs/<slug>.json
     if "--verify-replay" in argv:
         probs = verify_replay(slugs, runs)
         print("REPLAY_OK" if not probs else "REPLAY_PROBLEMS", json.dumps(probs, indent=1))
         return
     for s in slugs:
         o = build(s, run, runs)
-        _save(rp, runs)
+        runs_store.save(runs, slugs={s})
         print(s, "metas", len(o["metas_considered"]), "usable", sum(1 for v in o["metas"].values() if v.get("usable")),
               "tally", o["tally"], "g1_countable", len(o["g1_countable_vs_comparator"]), "skipped", o["skipped"], flush=True)
 
