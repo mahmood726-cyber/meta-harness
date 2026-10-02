@@ -299,6 +299,39 @@ def is_matched(x):
 SWEEP_DIR = os.path.join(OUT, "sweep")
 
 
+def outcome_set_differences(trials, comp_meta, comp, rows):
+    """NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: G1 matches the comparator's RESULT for this outcome. When the comparator's own
+    per-trial analysis of the outcome is COMPLETE and CONTROLLED -- a typed table or a gated figure read for THIS
+    outcome, its rows reproducing its printed pooled result (positive control), and EVERY one of its rows joined to a
+    comparator trial -- a comparator trial with NO row in it contributed nothing to that result: it is named, with the
+    comparator's row list and control as the span, never silently dropped (finerenone 3 Oct: the kidney composite pool
+    is FIDELIO + FIGARO; ARTS-DN (Bakris 2015, Katayama 2017) report UACR and have no row). Refused (nothing named)
+    when the control did not reproduce, the read is not usable, or any comparator row is unjoined."""
+    pc = comp_meta.get("positive_control") or {}
+    if not (comp_meta.get("usable") and pc.get("reproduced")):
+        return []
+    crow = [r for r in rows if r.meta_pmid == comp]
+    joined = [x for x in trials if x.get("comparator_row")]
+    if not crow or len(joined) != len(crow):
+        return []
+    where = (f"table {comp_meta.get('table')}" if comp_meta.get("provenance") == "TYPED_TABLE" else
+             f"figure {comp_meta.get('figure')}{(' panel ' + comp_meta['panel']) if comp_meta.get('panel') else ''} "
+             f"(recorded read {comp_meta.get('record_id')})")
+    span = (f"comparator PMID {comp} {where}: rows {[r.trial_label for r in crow]}; positive control reproduced "
+            f"({pc.get('methods')}) against its printed pooled result ({comp_meta.get('control_basis') or 'TYPED_TABLE'})")
+    named = []
+    for x in trials:
+        if x.get("in_our_pool") or x.get("scope_difference") or x.get("comparator_row"):
+            continue
+        x["scope_difference"] = {"kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS", "rule_id": "G1-OUTCOME-SET",
+                                 "protocol_rule": "G1 matches the comparator's result for this outcome",
+                                 "span": {"field": "comparator outcome analysis", "text": span},
+                                 "span_source": f"comparator PMID {comp} {where}", "pmid": None}
+        x["blocker"] = None
+        named.append(x["label"])
+    return named
+
+
 def sweep_results(slug):
     p = os.path.join(SWEEP_DIR, f"{slug}.json")
     return {r["label"]: r for r in (_j(p).get("trials") or [])} if os.path.exists(p) else {}
@@ -484,7 +517,8 @@ def cite_or_demote(o, slug):
                 continue
             cls, sub = exclusion_audit_class(slug, d.get("pmid"))
             why = f"SCOPE_UNCITED:{d.get('rule_id')}" + (f" (audit {cls}:{sub})" if cls else " (not audited)")
-        elif d.get("kind") == "ESTIMAND_DIFFERENCE" and d.get("span") and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
+        elif d.get("kind") in ("ESTIMAND_DIFFERENCE", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS") and d.get("span") \
+                and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
             keep.append(d)
             continue
         else:
@@ -885,6 +919,7 @@ def topic(slug, T):
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
+    outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or {}, comp, rows)
     sweep_merge(slug, trials, routes, pairs)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
@@ -1019,6 +1054,9 @@ def table():
                 md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['screen_reason']}); protocol "
                           f"rule {d['protocol_rule']}; SPAN [{d['span_source']}]: \"{d['span']['text']}\"; "
                           f"registered eligibility: {d['registered_eligibility']}")
+            elif d["kind"] == "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS":
+                md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['protocol_rule']}); "
+                          f"SPAN [{d['span_source']}]: \"{d['span']['text']}\"")
             else:
                 an = d.get("registry_analysis") or {}
                 md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d.get('rule_id')}; {d['gate']}: {d['reason']}. "
