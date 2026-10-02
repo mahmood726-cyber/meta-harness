@@ -653,10 +653,12 @@ def build(slug, run, runs):
     for pm, ds in sorted(dual.items()):
         if (metas_out.get(pm) or {}).get("usable"):
             continue
-        tp = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
+        # the timepoint the FIGURE's own caption states ('28-Day All-Cause Mortality in Each Trial', REACT) is the most
+        # specific statement of it; else, as for every figure row, the meta's text for a core (mortality) outcome
+        tp_text = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
         for d in ds:
             r = sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
-            r.timepoint = tp
+            r.timepoint = meta_timepoint(r.outcome_definition) or tp_text
             rows.append(sm.admit(r, spec, fam))
         metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
                          "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
