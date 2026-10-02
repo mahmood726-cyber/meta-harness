@@ -567,18 +567,152 @@ def typed_match_registry(row: SecondaryRow, registry: dict, outcome_terms: list,
                     _eq_printed(a.get("param_value"), row.effect) and _eq_printed(a.get("ci_lower"), row.lower) and \
                     _eq_printed(a.get("ci_upper"), row.upper):
                 o = registry["outcomes"][a["outcome_id"]]
-                return {"result": "TYPED_MATCH", "source": source_ref,
+                return {"result": "TYPED_MATCH", "source": source_ref, "route": "PRIMARY_REGISTRY",
                         "span": f"{o.get('title')} [{o.get('time_frame')}]: {a.get('param_type')} {a.get('param_value')} "
-                                f"({a.get('ci_lower')}, {a.get('ci_upper')})"}
+                                f"({a.get('ci_lower')}, {a.get('ci_upper')})",
+                        "registry_fields": registry_fields(registry, a["outcome_id"], analysis=a),
+                        "registry_vs_publication": registry_vs_publication(row, o)}
     if None not in (row.events_t, row.n_t, row.events_c, row.n_c):
         for oid in named:
             g = registry.get("groups", {}).get(oid) or []
             pairs = {(x.get("count"), x.get("n")) for x in g}
             if (row.events_t, row.n_t) in pairs and (row.events_c, row.n_c) in pairs:
                 o = registry["outcomes"][oid]
-                return {"result": "TYPED_MATCH", "source": source_ref,
-                        "span": f"{o.get('title')}: groups {sorted(pairs)}"}
+                return {"result": "TYPED_MATCH", "source": source_ref, "route": "PRIMARY_REGISTRY",
+                        "span": f"{o.get('title')}: groups {sorted(pairs)}",
+                        "registry_fields": registry_fields(registry, oid),
+                        "registry_vs_publication": registry_vs_publication(row, o)}
     return None
+
+
+# ------------------------------------------------------------------ CT.gov / AACT as a PRIMARY source (2 Oct decision)
+
+_POP_CLASS = (("SAFETY", re.compile(r"safety (?:analysis |population|set)|as[- ]treated|received (?:at least one|any) dose", re.I)),
+              ("PER_PROTOCOL", re.compile(r"per[- ]protocol", re.I)),
+              ("MITT", re.compile(r"modified intent|\bm-?ITT\b|full analysis set", re.I)),
+              ("ITT", re.compile(r"intent(?:ion)?[- ]to[- ]treat|\bITT\b|all randomi[sz]ed|randomi[sz]ed participants", re.I)))
+
+
+def population_class(text: Optional[str]) -> str:
+    """The analysis population a registry/publication STATES, typed: SAFETY / PER_PROTOCOL / MITT / ITT / NOT_STATED.
+    Order matters: 'modified intention-to-treat' is MITT, not ITT."""
+    for name, rx in _POP_CLASS:
+        if rx.search(text or ""):
+            return name
+    return "NOT_STATED"
+
+
+def registry_fields(registry: dict, outcome_id: str, analysis: Optional[dict] = None) -> dict:
+    """The typed fields a registry verification rests on, recorded beside the verdict: snapshot id + digest, outcome
+    measure title, time frame, stated analysis population, arm counts per result group, and the analysis if one."""
+    o = (registry.get("outcomes") or {}).get(outcome_id) or {}
+    titles = registry.get("group_titles") or {}
+    return {"snapshot": registry.get("_snapshot"), "outcome_id": outcome_id, "measure_title": o.get("title"),
+            "time_frame": o.get("time_frame"), "population": o.get("population"),
+            "population_class": population_class(o.get("population")), "units_analyzed": o.get("units_analyzed"),
+            "arm_counts": [dict(x, title=titles.get(str(x.get("group")))) for x in
+                           (registry.get("groups") or {}).get(outcome_id) or []],
+            "analysis": analysis}
+
+
+def registry_vs_publication(row: SecondaryRow, outcome: dict) -> list:
+    """Registry-vs-publication DIFFERENCES, recorded and never reconciled: a stated follow-up of a different length, or
+    a stated analysis population of a different class. Unstated on either side is not a difference (nothing to
+    compare) -- the registry's own values are kept in registry_fields regardless."""
+    out = []
+    a, b = _days(outcome.get("time_frame")), _days(row.timepoint)
+    if a is not None and b is not None and a != b:
+        out.append({"field": "timepoint", "registry": outcome.get("time_frame"), "publication": row.timepoint})
+    pr, pp = population_class(outcome.get("population")), population_class(row.population)
+    if "NOT_STATED" not in (pr, pp) and pr != pp:
+        out.append({"field": "analysis_population", "registry": pr, "publication": pp,
+                    "registry_text": (outcome.get("population") or "")[:200]})
+    return out
+
+
+# ------------------------------------------------------------------ TWO-SOURCE RULE (2 Oct decision)
+
+TWO_SOURCE = "TWO_SOURCE_VERIFIED"
+_REF_LIST = re.compile(rb"<ref-list\b.*?</ref-list>", re.S)
+_PUB_ID = re.compile(rb"<pub-id[^>]*pub-id-type=\"(pmid|doi)\"[^>]*>\s*([^<\s]+)\s*</pub-id>", re.I)
+
+
+def cited_ids_from_jats(jats: bytes) -> Optional[set]:
+    """Every PMID and DOI (lower-cased) in a meta's reference list, by regex over its JATS. None when the JATS carries
+    no reference list at all -- an unknown citation set, which the independence check treats as NOT independent."""
+    lists = _REF_LIST.findall(jats or b"")
+    if not lists:
+        return None
+    return {v.decode("utf-8", "replace").strip().lower() for blk in lists for _, v in _PUB_ID.findall(blk)}
+
+
+def independence(a: SecondaryRow, b: SecondaryRow, refs_of, known_metas: set) -> Optional[str]:
+    """None when two metas' extractions are INDEPENDENT; otherwise the typed reason they may not be. Fail-closed:
+      SAME_META / SAME_BYTES             -- one extraction, not two
+      CITATIONS_UNKNOWN:<meta>           -- no reference list to check
+      CITES_OTHER:<a>-><b>               -- one meta cites the other (may have copied its extraction)
+      COMMON_CITED_META:<ids>            -- both cite a third meta of this topic (may both have copied it)"""
+    if a.meta_pmid == b.meta_pmid:
+        return "SAME_META"
+    if a.source_digest and a.source_digest == b.source_digest:
+        return "SAME_BYTES"
+    ra, rb = refs_of(a.meta_pmid), refs_of(b.meta_pmid)
+    for m, r in ((a.meta_pmid, ra), (b.meta_pmid, rb)):
+        if r is None:
+            return f"CITATIONS_UNKNOWN:{m}"
+    ids = lambda x: {str(x.meta_pmid).lower(), str(x.meta_doi or "").lower()} - {""}   # noqa: E731
+    if ids(b) & ra:
+        return f"CITES_OTHER:{a.meta_pmid}->{b.meta_pmid}"
+    if ids(a) & rb:
+        return f"CITES_OTHER:{b.meta_pmid}->{a.meta_pmid}"
+    common = ra & rb & {str(k).lower() for k in known_metas} - ids(a) - ids(b)
+    if common:
+        return f"COMMON_CITED_META:{','.join(sorted(common))}"
+    return None
+
+
+def two_source(rows: list, refs_of, known_metas: set) -> list:
+    """A row with no primary match is TWO_SOURCE_VERIFIED when two INDEPENDENT metas print the same typed tuple for the
+    same trial family (same measure, rounding-aware equal effect+CI, or identical counts). Only still-queued rows are
+    considered (a disagreement was already BLOCKED by cross_check). A row whose agreeing partners are all dependent stays
+    queued, with the dependence reason appended to its queue reason."""
+    by = {}
+    for r in rows:
+        if r.state == UNVERIFIED:
+            by.setdefault(r.family_id, []).append(r)
+    for fam, group in by.items():
+        pairs, dep = [], {}
+        for i, x in enumerate(group):
+            for y in group[i + 1:]:
+                if x.meta_pmid == y.meta_pmid or not same_value(x, y):
+                    continue
+                why = independence(x, y, refs_of, known_metas)
+                if why is None:
+                    pairs.append(sorted([x.meta_pmid, y.meta_pmid]))
+                else:
+                    dep.setdefault(id(x), []).append(why)
+                    dep.setdefault(id(y), []).append(why)
+        sup = {m for p in pairs for m in p}
+        for r in group:
+            prior = (r.verification or {}).get("queue_reason")
+            if r.meta_pmid in sup:
+                r.state = TWO_SOURCE
+                r.verification = {"result": "TWO_SOURCE_MATCH", "route": "TWO_SOURCE", "supports": sorted(sup),
+                                  "independent_pairs": pairs, "prior_queue_reason": prior}
+            elif id(r) in dep:
+                r.verification = dict(r.verification or {}, queue_reason=(prior or "NO_PRIMARY") +
+                                      " | TWO_SOURCE_NOT_INDEPENDENT:" + ";".join(sorted(set(dep[id(r)]))))
+    return rows
+
+
+def route_of(row: SecondaryRow) -> str:
+    """The verification ROUTE a row reached, for per-topic reporting: PRIMARY (text, registry or our extraction),
+    TWO_SOURCE, or UNVERIFIED (queued / mismatch / blocked)."""
+    if row.state == VERIFIED:
+        return "PRIMARY"
+    if row.state == TWO_SOURCE:
+        return "TWO_SOURCE"
+    return "UNVERIFIED"
 
 
 def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> SecondaryRow:
@@ -591,13 +725,23 @@ def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> Secon
         hit = (typed_match_text(row, payload, outcome_terms, ref) if kind == "text"
                else typed_match_registry(row, payload, outcome_terms, ref))
         if hit:
+            hit.setdefault("route", "PRIMARY_TEXT")
             row.state, row.verification = VERIFIED, hit
             return row
     return row
 
 
 def g1_countable(rows: list, comparator_meta_ids: set) -> list:
-    """G1 'k matched' against a comparator: only PRIMARY_VERIFIED rows, and never a row sourced FROM that comparator
-    (it would be the comparator agreeing with itself)."""
+    """G1 'k matched' against a comparator: PRIMARY_VERIFIED rows, and TWO_SOURCE_VERIFIED rows whose support survives
+    removing the comparator (an independent pair with neither meta being the comparator). Never a row sourced FROM the
+    comparator: it would be the comparator agreeing with itself."""
     ids = {str(x) for x in comparator_meta_ids}
-    return [r for r in rows if r.state == VERIFIED and str(r.meta_pmid) not in ids and str(r.meta_doi) not in ids]
+
+    def ok(r):
+        if str(r.meta_pmid) in ids or str(r.meta_doi) in ids:
+            return False
+        if r.state == VERIFIED:
+            return True
+        return r.state == TWO_SOURCE and any(not ({str(m) for m in p} & ids)
+                                             for p in (r.verification or {}).get("independent_pairs") or [])
+    return [r for r in rows if ok(r)]
