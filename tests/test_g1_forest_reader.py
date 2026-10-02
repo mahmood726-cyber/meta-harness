@@ -124,6 +124,76 @@ def test_PLANT_outcome_rows_are_not_trial_rows():
     assert v["proposed_rows"] == [] and len(v["agreed_rows_not_trials"]) == 4     # agreed, but never per-trial proposals
 
 
+REAL = "spironolactone-hfref-mortality"
+
+
+def _real_readings():
+    """The two RECORDED readings of a real comparator figure (PMID 40959489 F4(D)), replayed from evidence/ -- offline."""
+    runs = json.load(open(g.RUNS, encoding="utf-8"))
+    out = {}
+    for rd in ("codex", "agy"):
+        k = next(k for k in runs if k.startswith(REAL + "::") and k.endswith("::" + rd))
+        raw, (d, why) = g.replay_reading(runs[k])
+        rec = ms.load_record(os.path.join(g.REC_DIR, runs[k]["record_id"] + ".json"))
+        assert why is None and ms.sha256_bytes(raw) == rec["response"]["sha256"]       # byte-identical replay
+        out[rd] = (d, runs[k]["record_id"])
+    return out
+
+
+def _real_item():
+    res = json.load(open(g.OUT, encoding="utf-8"))["results"][REAL]
+    return {"slug": REAL, "pmid": res["pmid"], "image_sha256": res["image"]["sha256"], "figure": res["figure"]}
+
+
+def test_REAL_FIGURE_the_two_recorded_readings_accept():
+    r = _real_readings()
+    v = g.judge(_real_item(), r["codex"][0], r["agy"][0], r["codex"][1], r["agy"][1], g.held_text("40959489"),
+                g.model_text("40959489"))
+    assert v["state"] == "ACCEPTED" and v["acceptance"]["methods_reproducing"] == ["FE"]
+
+
+def test_REAL_FIGURE_PLANT_one_perturbed_reading_refuses():
+    r = _real_readings()
+    b = copy.deepcopy(r["agy"][0])
+    b["rows"][0]["upper"] = "0.84"                      # RALES upper limit printed 0.82
+    v = g.judge(_real_item(), r["codex"][0], b, r["codex"][1], r["agy"][1], g.held_text("40959489"),
+                g.model_text("40959489"))
+    assert v["state"] == "REFUSED" and [x["why"] for x in v["refused_rows"]] == ["UPPER_DISAGREES"]
+
+
+def test_REAL_FIGURE_PLANT_a_perturbed_pooled_row_refuses_the_figure():
+    r = _real_readings()
+    a, b = copy.deepcopy(r["codex"][0]), copy.deepcopy(r["agy"][0])
+    for x in (a, b):
+        x["pooled"]["effect"], x["pooled"]["lower"], x["pooled"]["upper"] = "0.74", "0.68", "0.81"
+    v = g.judge(_real_item(), a, b, r["codex"][1], r["agy"][1], g.held_text("40959489"), g.model_text("40959489"))
+    assert v["state"] == "REFUSED" and "RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL" in v["problems"]
+
+
+def test_slash_estimand_admits_each_named_measure_and_still_refuses_others():
+    row = sm.SecondaryRow(meta_pmid="1", meta_doi="", location={}, source_digest="", provenance="x", trial_label="T",
+                          measure="HR", outcome_definition="All-cause mortality")
+    assert sm.measure_identity(row, "RR/HR") is None
+    row.measure = "OR"
+    assert sm.measure_identity(row, "RR/HR") == "MEASURE_OR_IS_NOT_ESTIMAND_RR/HR"
+    row.measure = "HR"
+    assert sm.measure_identity(row, "RR") == "MEASURE_HR_IS_NOT_ESTIMAND_RR"            # unchanged for one estimand
+
+
+def test_family_resolution_reads_a_year_glued_to_the_label():
+    import secondary_meta_build as smb
+    ours = [{"id": "PMID 10471456", "acronyms": ["RALES"], "label": "RALES", "author_year": None},
+            {"id": "PMID 21073363", "acronyms": ["EMPHASIS-HF"], "label": "EMPHASIS-HF", "author_year": None},
+            {"id": "PMID 12668699", "acronyms": ["EPHESUS"], "label": "EPHESUS", "author_year": None}]
+    fam = smb.family_of_factory(ours)
+    lab = lambda s: sm.SecondaryRow(meta_pmid="1", meta_doi="", location={}, source_digest="", provenance="x",  # noqa: E731
+                                    trial_label=s, measure="HR", outcome_definition="d")
+    assert fam(lab("RALES2000")) == "PMID 10471456"
+    assert fam(lab("EMPHASIS-HF2011")) == "PMID 21073363"
+    assert fam(lab("EPHESUS 2003")) == "PMID 12668699"
+    assert fam(lab("RALESX")) is None                     # control: only a YEAR is split off, never letters
+
+
 def test_agreement_is_within_the_printed_rounding():
     assert g.agree_value("0.80", "0.8") == "0.80"
     assert g.agree_value("0.8", "0.81") is None

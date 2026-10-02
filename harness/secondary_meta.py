@@ -359,7 +359,8 @@ def nested_subgroup(row: SecondaryRow, randomised_n: Optional[int]) -> Optional[
 def measure_identity(row: SecondaryRow, estimand: str) -> Optional[str]:
     """The row's measure must BE the topic's estimand, or be derivable without assumption (counts -> RR/OR)."""
     m, e = (row.measure or "").upper(), (estimand or "").upper()
-    if m == e:
+    # a topic whose estimand admits either ratio ('RR/HR': spironolactone, all-cause mortality) admits each named one
+    if m == e or (m and m in {x.strip() for x in e.split("/")}):
         return None
     counts = None not in (row.events_t, row.n_t, row.events_c, row.n_c)
     if e in ("RR", "OR") and counts:
