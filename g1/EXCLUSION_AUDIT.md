@@ -28,8 +28,8 @@ TRUE_SCOPE_DIFFERENCE = the record states the excluding fact (protocol rule name
 | sglt2-ckd-progression | Dapagliflozin in Myocardial Infarction w | 38320489 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'myocardial infarction' | shared | c=MET, d=MET, i=MET, p=NOT_STATED |
 | sglt2-ckd-progression | Effect of Empagliflozin on the Clinical  | 33081531 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'heart failure' | shared | c=MET, d=MET, i=MET, p=NOT_STATED |
 | sglt2-ckd-progression | Empagliflozin after Acute Myocardial Inf | 38587237 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'myocardial infarction' | shared | c=MET, d=MET, i=MET, p=NOT_STATED |
-| sglt2-ckd-progression | Empagliflozin in Heart Failure with a Pr | 34449189 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'heart failure' | shared | c=MET, d=MET, i=MET, p=NOT_MET |
+| sglt2-ckd-progression | Empagliflozin in Heart Failure with a Pr | 34449189 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'heart failure' | shared | c=MET, d=MET, i=MET, p=NOT_STATED |
 | sglt2-hfref-hosp-cvdeath | EMPEROR‐Preserved (n = 5988) | 34449189 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'preserved ejection fraction' | shared | c=MET, d=MET, i=MET, p=NOT_MET |
-| sglt2-primary-prevention-hf | Radholm (9) | 28605608 | INCLUDE | NOT_AN_EXCLUSION | SCREENED_VIA_AN_INCLUDED_REPORT | shared | c=MET, d=NOT_STATED, i=MET, p=NOT_STATED |
+| sglt2-primary-prevention-hf | Radholm (9) | 28605608 | INCLUDE | NOT_AN_EXCLUSION | SCREENED_VIA_AN_INCLUDED_REPORT | shared | - |
 | spironolactone-hfref-mortality | ARTS-HF2013 | 25678098 | X1 | TRUE_SCOPE_DIFFERENCE | DESIGN_OUTSIDE_PROTOCOL (recorded reader NOT_MET, quoted) | R2 | c=NOT_MET, d=NOT_MET, i=NOT_MET, p=NOT_STATED |
 | ticagrelor-vs-clopidogrel-acs | 16 [35] | 19923168 | X2 | TRUE_SCOPE_DIFFERENCE | PROTOCOL_EXCLUDES_POPULATION:'stable coronary' | shared | c=MET, d=MET, i=MET, p=NOT_MET |
