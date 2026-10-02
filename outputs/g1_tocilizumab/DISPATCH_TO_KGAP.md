@@ -176,3 +176,18 @@ Two findings are for you rather than this lane:
 - **#10: `run()` replaces an arm-index build failure with an empty index**, and the report does not say so. Proposal:
   record `arm_index_state: FAILED (<exception>)` in the run output, and refuse X-DEDUP / contrast evictions that depend
   on it.
+
+## 14. The audit's one SCREENER_ERROR (probiotics, Imase 2008, 18402597): harness part fixed, vocabulary part for the topic owner
+Both readers verified all four axes MET. It is a probiotic RCT for AAD prevention: *Clostridium butyricum* CBM588 against
+"group A (without probiotics)". The screen excludes it (X3) for two reasons:
+
+1. **Harness, fixed here (NEEDS RE-CERTIFICATION).** Comparator terms did not match their plurals ("no probiotic" ↛ "no
+   probiotics", "vitamin K antagonist" ↛ "vitamin K antagonists"). Positive comparator matching now allows a plural
+   ending. Exclusion terms stay exact. Plant: `tests/test_codex_review_screen.py::test_audit_a_comparator_term_matches_its_plural`
+   (fails pre-fix). Corpus: 2 of 16,668 decisions change. doac 27778440 changes for screener 2 only. omega3 29246960 goes
+   X3 → X-DESIGN (rule only).
+2. **Topic vocabulary, yours to decide.** The title names the organism, which is not in the title-anchored list. The
+   comparator is "without probiotics". Simulated on the fixed harness, adding `"Clostridium butyricum"`, `"CBM588"` to
+   `intervention_any` (plus its own agent) and `"without probiotic"` to `comparator_any` changes **exactly 1 of 780**
+   probiotics decisions: this record, exclude (X3) → include, for both screeners. That is a served inclusion, so it needs
+   your signature.

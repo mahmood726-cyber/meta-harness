@@ -48,3 +48,14 @@ def test_4_one_drug_does_not_satisfy_another():
     assert s._has_intervention("bio-k+ cl1285 versus placebo", ["BIO-K"]) == "BIO-K"
     assert s._has_intervention("antibiotic-associated diarrhoea", ["antibiotic-associated diarr*"]) is not None
     assert s._has_intervention("metformin-resistant pcos", ["metformin"]) is None
+
+
+def test_audit_a_comparator_term_matches_its_plural():
+    """Found by the G1 exclusion audit (Imase 2008, 18402597), not by the codex review. Corpus effect: 2 of 16,668
+    decisions (doac 27778440 screener-2 only; omega3 29246960 X3 -> X-DESIGN, rule only)."""
+    assert s._has("compared with vitamin k antagonists", ["vitamin K antagonist"], plural=True) == "vitamin K antagonist"
+    assert s._has("group a received no probiotics", ["no probiotic"], plural=True) == "no probiotic"
+    # controls: exclusion terms stay exact; a negated plural is still negated; a stem is still a stem
+    assert s._has("in rats", ["rat"]) is None
+    assert s._has("patients without controls", ["control"], plural=True) is None
+    assert s._has("antibiotic-associated diarrhoea", ["antibiotic-associated diarr*"], plural=True) is not None
