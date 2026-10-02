@@ -403,3 +403,20 @@ def test_accepted_rows_take_comparator_and_other_metas_of_the_topic_only(tmp_pat
     monkeypatch.setattr(g, "OUT", str(p))
     assert sorted(r["meta_pmid"] for r in g.accepted_rows("topic-a")) == ["1", "2"]
     assert [r["meta_pmid"] for r in g.accepted_rows("topic-b")] == ["4"]
+
+
+def test_footnote_superscripts_repeated_labels_and_NA_rows():
+    a = reading(rows=[("REMAP-CAPᵈ", "0.64", "0.47", "0.87"), ("REMAP-CAPᵈ", "0.66", "0.42", "1.04"),
+                      ("TOCOVID", "NAᵇ", "NAᵇ", "NAᵇ")])
+    b = reading(rows=[("REMAP-CAPd", "0.64", "0.47", "0.87"), ("REMAP-CAPd", "0.66", "0.42", "1.04"),
+                      ("TOCOVID", "NAb", "NAb", "NAb")])
+    proposed, refused, pooled, probs, ne = g.agree(a, b)
+    assert refused == [] and [r["effect"] for r in proposed] == ["0.64", "0.66"]       # matched by occurrence
+    assert [r["label"] for r in ne] == ["TOCOVID"]                                       # agreed, never pooled
+
+
+def test_a_signed_number_is_a_number_and_background_IPD_is_not_the_metas_model():
+    assert g._num("+0.50") == 0.5 and g._num("-1.87") == -1.87
+    t = ("Recent efforts have also leveraged individual participant data to reassess signals. Hazard ratios were "
+         "estimated with Cox models in the trials. We pooled mean differences with a random-effects model.")
+    assert g.stated_model(t)["state"] == "STATED"
