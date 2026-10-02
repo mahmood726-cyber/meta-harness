@@ -230,8 +230,12 @@ def fold_dashes(s: str) -> str:
     return _DASHES.sub("-", s or "")
 
 
+_APOSTROPHES = str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "′": "'"})
+
+
 def _label_tokens(label: str) -> dict:
-    lab = fold_dashes(_flat(label))
+    # typographic apostrophes -> "'": 'O’Neil, 2018' read no author, so the row was skipped as furniture
+    lab = fold_dashes(_flat(label)).translate(_APOSTROPHES)
     acr = [a for a in _ACRO.findall(lab) if a.replace("-", "").replace(" ", "").upper() not in _NOT_ACRO
            and not NCT_RE.match(a)]
     m = _AUTHOR_YEAR.match(lab)

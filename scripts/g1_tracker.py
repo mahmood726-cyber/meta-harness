@@ -103,6 +103,8 @@ def topic(slug, T):
     core = cfm.build(slug)
     prim = next((o for o in core["outcomes"] if o.get("primary")), {})
     pooled_ids = {str(t.get("id")) for t in prim.get("trials", [])}
+    absent_by_id = {str(a.get("id")): str(a.get("reason") or a.get("reason_code") or "")[:240]
+                    for a in prim.get("declared_absent_trials", [])}
     rows = [_row(d) for d in S["rows"]]
     by_fam = {}
     for r in rows:
@@ -115,13 +117,16 @@ def topic(slug, T):
         fam = mine["id"] if mine else None
         in_pool = bool(mine and str(mine["id"]) in pooled_ids and mine.get("primary"))
         sec = by_fam.get(fam, []) if fam else []
-        theirs = next((r for r in sec if r.meta_pmid == comp and r.state != sm.REFUSED), None)
+        # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
+        # comparator pooled for the trial, not whether we may use its row as data
+        theirs = next((r for r in sec if r.meta_pmid == comp), None)
         if in_pool:
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", mine["primary"]["source"]
             if theirs:
                 pairs.append((as_row(mine["primary"], t["label"], theirs.measure), theirs))
         else:
+            refusal = absent_by_id.get(str(mine["id"])) if mine else None
             best = sorted(sec, key=lambda r: {"PRIMARY": 0, "TWO_SOURCE": 1}.get(sm.route_of(r), 2))
             if best and best[0].state != sm.REFUSED:
                 route = sm.route_of(best[0])
@@ -132,14 +137,49 @@ def topic(slug, T):
                     f" (secondary refused: {sorted({x for r in sec for x in r.reasons})[:3]})" if sec else "")
         routes[route] += 1
         trials.append({"label": t["label"][:60], "family": fam, "in_our_pool": in_pool, "route": route, "basis": basis,
+                       "our_refusal": None if in_pool else (refusal or (t.get("gap_class") if not mine else None)),
+                       "comparator_row": ({k: getattr(theirs, k) for k in ("effect", "lower", "upper", "events_t", "n_t",
+                                                                           "events_c", "n_c", "measure")}
+                                          if theirs else None),
+                       "comparator_row_findings": theirs.findings if theirs else [],
                        "g1_countable": route == "PRIMARY" or bool(sm.g1_countable(sec, {comp})),
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
                        else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None})
+    # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
+    # tracker says what our own screen/extraction does with each -- not just "identification gap"
+    screened = {str(r["id"]) for r in core["screening"]["records"]}
+    unseen = {p for x, t in zip(trials, comp_rows) if x["route"] == "NO_ROW"
+              for p in (t.get("pmids") or [])[:1] if str(p).isdigit() and str(p) not in screened}
+    if unseen:
+        mp = os.path.join(OUT, "member_records.json")
+        held = _j(mp) if os.path.exists(mp) else {}
+        recs = [held[p] for p in sorted(unseen) if p in held]
+        fun = cfm.funnel(cfm.build(slug, extra_records=recs), [r["id"] for r in recs], recs) if recs else {}
+        for x, t in zip(trials, comp_rows):
+            p = next((q for q in (t.get("pmids") or [])[:1] if q in fun), None)
+            if p and x["route"] == "NO_ROW":
+                f = fun[p]
+                x["seeded_funnel"] = dict(f, pmid=p)
+                x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (
+                    f" {f.get('rule_id')}: {f.get('reason')}" if f.get("rule_id") else
+                    f" {f.get('reason_code')}" if f.get("reason_code") else "")
+            elif x["route"] == "NO_ROW" and (t.get("pmids") or [None])[0] in unseen:
+                x["our_refusal"] = "NO_RECORD_HELD"
     pc = ((S.get("metas") or {}).get(comp) or {}).get("positive_control") or {}
     method = (pc.get("methods") or ["PM"])[0]
     res = prim.get("result") or {}
     rev = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
     rep = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
+    comp_basis = "served review comparator.reported" if rep else None
+    cm = (S.get("metas") or {}).get(comp) or {}
+    if not rep and cm.get("usable") and cm.get("pooled") and cm.get("provenance") == "TYPED_TABLE":
+        # the served review typed no comparator result; the comparator's OWN pooled row, typed from its JATS table and
+        # reproduced from its rows (positive control), is the comparator result -- with that basis stated
+        pr = cm["pooled"]
+        rep = {"outcome": cm.get("identity_basis"), "estimate": sm._num(pr["effect"]), "ci_low": sm._num(pr["lower"]),
+               "ci_high": sm._num(pr["upper"]), "scale": cm.get("measure")}
+        comp_basis = (f"comparator's typed table {cm.get('table')} pooled row, positive control "
+                      f"{cm.get('positive_control', {}).get('methods')}")
     extra = sorted(str(t.get("id")) for t in prim.get("trials", []) if str(t.get("id")) not in matched_ids)
     return {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if x["in_our_pool"]),
@@ -150,6 +190,7 @@ def topic(slug, T):
                                 else "comparator positive control not reproduced: PM default"),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
+            "comparator_basis": comp_basis,
             "ours_not_in_comparator": extra,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
 
@@ -178,7 +219,9 @@ def table():
         md += ["", f"## {o['slug']} (comparator PMID {o['comparator_pmid']})", ""]
         for x in o["trials"]:
             md.append(f"- {x['label']}: **{x['route']}** - {x['basis']}; vs comparator row: "
-                      f"{x['agreement_with_comparator_row']}")
+                      f"{x['agreement_with_comparator_row']}"
+                      + (f"; our refusal: {x['our_refusal']}" if x.get("our_refusal") else "")
+                      + (f"; comparator row finding: {x['comparator_row_findings']}" if x.get("comparator_row_findings") else ""))
         if o["ours_not_in_comparator"]:
             md.append(f"- pooled by us, not listed by the comparator: {', '.join(o['ours_not_in_comparator'])}")
     with open(os.path.join(OUT, "G1_TRACKER.md"), "w", encoding="utf-8", newline="\n") as fh:

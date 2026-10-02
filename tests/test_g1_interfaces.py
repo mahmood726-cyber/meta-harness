@@ -64,10 +64,12 @@ def test_aact_adapter_entry_shape_and_fail_closed(tmp_path, monkeypatch):
     rows = {"outcomes.txt": "id|nct_id|outcome_type|title|time_frame|population|units_analyzed\n"
                             "o1|NCT1|PRIMARY|All-cause mortality|Day 28|ITT||\n",
             "outcome_analyses.txt": "id|nct_id|outcome_id|param_type|param_value|ci_lower_limit|ci_upper_limit\n",
-            "outcome_measurements.txt": "id|nct_id|outcome_id|result_group_id|param_type|param_value_num|category|classification\n"
-                                        "m1|NCT1|o1|g1|COUNT_OF_PARTICIPANTS|10|||\nm2|NCT1|o1|g2|COUNT_OF_PARTICIPANTS|20||\n",
-            "outcome_counts.txt": "id|nct_id|outcome_id|result_group_id|scope|count\n"
-                                  "c1|NCT1|o1|g1|Measure|100\nc2|NCT1|o1|g2|Measure|100\n",
+            "outcome_measurements.txt": "id|nct_id|outcome_id|result_group_id|units|param_type|param_value_num|category|"
+                                        "classification\n"
+                                        "m1|NCT1|o1|g1|Participants|COUNT_OF_PARTICIPANTS|10|||\n"
+                                        "m2|NCT1|o1|g2|Participants|COUNT_OF_PARTICIPANTS|20||\n",
+            "outcome_counts.txt": "id|nct_id|outcome_id|result_group_id|scope|units|count\n"
+                                  "c1|NCT1|o1|g1|Measure|Participants|100\nc2|NCT1|o1|g2|Measure|Participants|100\n",
             "result_groups.txt": "id|nct_id|ctgov_group_code|result_type|title|outcome_id\n"
                                  "g1|NCT1|OG000|Outcome|Drug|o1\ng2|NCT1|OG001|Outcome|Placebo|o1\n"}
     for f, body in rows.items():

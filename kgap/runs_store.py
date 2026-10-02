@@ -58,9 +58,15 @@ def save(runs: dict, slugs=None) -> list:
         if slugs is not None and topic not in slugs:
             continue
         p = _path(topic)
-        if os.path.exists(p) and _j(p) == d:
+        # MERGE, never replace: a caller holding a stale dict (loaded before another process saved) must not delete the
+        # entries written in between. Its own entries win on a shared key (it ran those calls most recently).
+        on_disk = _j(p) if os.path.exists(p) else {}
+        merged = {**on_disk, **d}
+        if merged == on_disk:
             continue
-        with open(p, "w", encoding="utf-8", newline="\n") as fh:
-            json.dump(dict(sorted(d.items())), fh, indent=1, ensure_ascii=False)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(dict(sorted(merged.items())), fh, indent=1, ensure_ascii=False)
+        os.replace(tmp, p)
         wrote.append(p)
     return wrote

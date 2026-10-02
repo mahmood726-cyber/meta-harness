@@ -25,6 +25,7 @@ Consumers: scripts/secondary_meta_build.primary_sources (typed verification) and
 from __future__ import annotations
 
 import csv
+import re
 import hashlib
 import json
 import os
@@ -34,7 +35,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SNAPSHOT = "F:/AACT-storage/AACT/2026-08-30"
 FILES = ("outcomes.txt", "outcome_analyses.txt", "outcome_measurements.txt", "outcome_counts.txt", "result_groups.txt")
 DIGEST_CACHE = os.path.join(ROOT, "outputs", "k_gap", "aact_snapshot_digest.json")
+# The INDEX RULES version is part of every entry's tag: changing how an entry is derived (rules 2: counts only in people
+# units, integral; N only in people units) makes every older entry stale, exactly as a new snapshot does.
+INDEX_RULES = 2
 COUNT_PARAMS = ("COUNT_OF_PARTICIPANTS", "NUMBER", "COUNT_OF_UNITS")
+# An arm's EVENT COUNT is an integral value in PEOPLE units. 'NUMBER 63.6 percentage of patients' (NCT03794349) is a
+# rate, not 63 events; a Kaplan-Meier percentage is never a count. The N is the 'measure' scope count in people units
+# ('Participants'), never 'Patient-months' or 'Eyes'.
+PEOPLE_UNITS = re.compile(r"^\s*(?:number of |count of )?(?:participants?|subjects?|patients?|people|persons?|"
+                          r"individuals?)\s*$", re.I)
 csv.field_size_limit(10 ** 8)
 
 
@@ -55,6 +64,11 @@ def _j(p):
         return json.load(fh)
 
 
+def _dir_id(d):
+    """The snapshot DIRECTORY's identity for the hash cache, as a digest (a committed file never carries a local path)."""
+    return hashlib.sha256(os.path.abspath(d).replace("\\", "/").lower().encode("utf-8")).hexdigest()[:16]
+
+
 def snapshot():
     """The snapshot's identity: its version AND a sha256 per file read, cached against size+mtime (the 3 GB file is
     hashed once). digest = sha256 over the file names + their hashes, in FILES order."""
@@ -63,7 +77,9 @@ def snapshot():
     files = {}
     for f in FILES:
         st = os.stat(os.path.join(d, f))
-        prev = (old.get("files") or {}).get(f) or {}
+        # a cached hash is reused only for the SAME directory: two snapshots with one basename, equal sizes and equal
+        # mtimes must not share an identity
+        prev = ((old.get("files") or {}).get(f) or {}) if old.get("dir_sha256") == _dir_id(d) else {}
         if prev.get("size") == st.st_size and prev.get("mtime") == int(st.st_mtime) and prev.get("sha256"):
             files[f] = prev
             continue
@@ -72,7 +88,7 @@ def snapshot():
             for blk in iter(lambda: fh.read(1 << 22), b""):
                 h.update(blk)
         files[f] = {"size": st.st_size, "mtime": int(st.st_mtime), "sha256": h.hexdigest()}
-    out = {"id": "AACT " + os.path.basename(d.rstrip("/\\")),
+    out = {"id": "AACT " + os.path.basename(d.rstrip("/\\")), "dir_sha256": _dir_id(d),
            "digest": hashlib.sha256("".join(f + files[f]["sha256"] for f in FILES).encode()).hexdigest(),
            "files": files}
     if out != old:
@@ -105,14 +121,18 @@ def build_entries(ncts, tag):
                                              "ci_upper": r.get("ci_upper_limit")})
     counts, ns = {}, {}
     for r in _rows("outcome_measurements.txt", want):
-        # a categorised/classified measurement is one cell of a breakdown, never the arm's event count
-        if (r.get("param_type") or "").upper() in COUNT_PARAMS and not (r.get("category") or r.get("classification")):
+        # a categorised/classified measurement is one cell of a breakdown, never the arm's event count; the value must
+        # be a whole number of PEOPLE (a percentage / proportion / rate is not a count, however it is typed)
+        if (r.get("param_type") or "").upper() in COUNT_PARAMS and not (r.get("category") or r.get("classification")) \
+                and PEOPLE_UNITS.match(r.get("units") or ""):
             try:
-                counts[(r["nct_id"], r["outcome_id"], r["result_group_id"])] = int(float(r["param_value_num"]))
+                v = float(r["param_value_num"])
             except (TypeError, ValueError):
-                pass
+                continue
+            if v == int(v) and v >= 0:
+                counts[(r["nct_id"], r["outcome_id"], r["result_group_id"])] = int(v)
     for r in _rows("outcome_counts.txt", want):
-        if (r.get("scope") or "").lower() == "measure":
+        if (r.get("scope") or "").lower() == "measure" and PEOPLE_UNITS.match(r.get("units") or ""):
             try:
                 ns[(r["nct_id"], r["outcome_id"], r["result_group_id"])] = int(r["count"])
             except (TypeError, ValueError):
@@ -135,7 +155,7 @@ def _load():
 
 def ensure(ncts):
     """Index every NCT in `ncts` not already held FROM THIS SNAPSHOT. Returns {"added", "held", "snapshot"}."""
-    tag = {k: v for k, v in snapshot().items() if k in ("id", "digest")}
+    tag = dict({k: v for k, v in snapshot().items() if k in ("id", "digest")}, rules=INDEX_RULES)
     idx = _load()
     stale = [n for n, v in idx.items() if (v or {}).get("_snapshot") != tag]
     if stale:                                     # never mix two snapshots in one index: rebuild the stale entries
