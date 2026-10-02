@@ -1,0 +1,179 @@
+"""Render the G1 tracker page (docs/g1/index.html) from the topic lanes' tracker files.
+
+GOAL 1 (Mahmood, 2026-10-02): match published open-access meta-analyses trial-for-trial on four topics. Each topic lane
+writes outputs/k_gap/g1/<slug>.json (schema_version 1, kgap/G1_INTERFACES.md section 4). This page is GENERATED from those
+files and nothing else; `--check` refuses a committed page that differs from a fresh render.
+
+The G1 count is recomputed here, not copied, under the rule Mahmood set:
+  * a trial counts when its verification route is PRIMARY (posted CT.gov results from the versioned AACT snapshot, or
+    the trial's own open full text) or TWO_SOURCE (two independent metas print the same typed tuple);
+  * nothing sourced only from the comparator counts: a TWO_SOURCE row counts only when its independent pair is KNOWN
+    and contains no id of the comparator. An unknown pair is not counted (fail-closed) and is said so on the page;
+  * UNVERIFIED and NO_ROW never count.
+Where this recount differs from the route tally a lane reported, both numbers are printed, never reconciled.
+
+Usage: python scripts/render_g1_tracker.py [--check]
+"""
+from __future__ import annotations
+
+import argparse
+import html
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = Path("outputs") / "k_gap" / "g1"
+OUT = Path("docs") / "g1" / "index.html"
+# The four G1 topics (decision 2026-10-02). A topic with no tracker file on this tree is shown as NOT YET LANDED.
+G1_TOPICS = ("glp1-ra-mace-t2d", "semaglutide-obesity-weight", "noac-vs-warfarin-af-stroke",
+             "tocilizumab-covid19-mortality")
+COUNTED_ROUTES = ("PRIMARY", "TWO_SOURCE")
+
+
+def _ids(value) -> set[str]:
+    """Normalised identifiers (PMID digits, DOIs lower-cased) from a string or a list of them."""
+    vals = value if isinstance(value, (list, tuple, set)) else [value]
+    out = set()
+    for v in vals:
+        s = str(v or "").strip().lower()
+        if not s:
+            continue
+        s = re.sub(r"^(pmid[:\s]*|doi[:\s]*)", "", s)
+        out.add(s)
+    return out
+
+
+def pair_of(trial: dict) -> set[str] | None:
+    raw = trial.get("independent_pair_ids")
+    if raw is None:
+        raw = (trial.get("verification") or {}).get("independent_pair_ids")
+    return _ids(raw) if raw else None
+
+
+def counts(trial: dict, comparator_ids: set[str]) -> tuple[bool, str]:
+    """(counted, why) for one tracker trial under the G1 rule."""
+    route = trial.get("route")
+    if route == "PRIMARY":
+        return True, "primary source"
+    if route == "TWO_SOURCE":
+        pair = pair_of(trial)
+        if pair is None:
+            return False, "TWO_SOURCE but the independent pair is not recorded: not counted (fail-closed)"
+        if pair & comparator_ids:
+            return False, "TWO_SOURCE pair includes the comparator: not counted (anti-circularity)"
+        return True, "two independent metas, comparator excluded"
+    return False, f"{route or 'no route'}: not counted"
+
+
+def topic_summary(rec: dict) -> dict:
+    comparator_ids = _ids([rec.get("comparator_pmid"), rec.get("comparator_doi")])
+    rows = []
+    for t in rec.get("trials") or []:
+        ok, why = counts(t, comparator_ids)
+        rows.append({"trial": t, "counted": ok, "why": why})
+    recount = {r: sum(1 for x in rows if x["trial"].get("route") == r and x["counted"]) for r in COUNTED_ROUTES}
+    return {"rows": rows, "g1_count": sum(recount.values()), "recount": recount,
+            "reported_routes": rec.get("routes") or {}}
+
+
+def _e(x) -> str:
+    return html.escape("" if x is None else str(x))
+
+
+def _fmt_pool(p) -> str:
+    if not isinstance(p, dict) or p.get("estimate") is None:
+        return "not pooled"
+    lo, hi = p.get("ci_low"), p.get("ci_high")
+    ci = f" ({lo:.2f} to {hi:.2f})" if isinstance(lo, (int, float)) and isinstance(hi, (int, float)) else " (no CI)"
+    return f"{p['estimate']:.2f}{ci}"
+
+
+def render(root: Path = ROOT) -> str:
+    recs = {}
+    for slug in G1_TOPICS:
+        p = root / SRC / f"{slug}.json"
+        if p.is_file():
+            recs[slug] = json.loads(p.read_text(encoding="utf-8"))
+    parts = [
+        "<!doctype html><html lang='en'><head><meta charset='utf-8'>",
+        "<meta name='viewport' content='width=device-width,initial-scale=1'><title>G1 tracker</title>",
+        "<style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:24px auto;padding:0 16px;color:#1d2b33}"
+        "table{border-collapse:collapse;width:100%;margin:8px 0 20px}th,td{border:1px solid #dbe3e8;padding:5px 7px;"
+        "font-size:13.5px;vertical-align:top;text-align:left}th{background:#f2f6f8}.no{color:#8a3b12}.ok{color:#1d6b3a}"
+        ".muted{color:#5b6b75;font-size:13px}</style></head><body>",
+        "<h1>G1 tracker: trial-for-trial against published open-access meta-analyses</h1>",
+        "<p class='muted'>Generated by scripts/render_g1_tracker.py from outputs/k_gap/g1/&lt;topic&gt;.json; never "
+        "hand-edited. A trial counts toward G1 only when verified by a PRIMARY source (posted CT.gov results from a "
+        "versioned AACT snapshot, or the trial's own open full text) or by TWO independent metas; nothing sourced only "
+        "from the comparator counts, and a two-source row whose independent pair is not recorded is not counted.</p>",
+        "<table><tr><th>topic</th><th>comparator</th><th>comparator trials (N)</th><th>matched</th>"
+        "<th>G1 count (primary + two-source)</th><th>same trials: ours vs theirs</th><th>status</th></tr>",
+    ]
+    for slug in G1_TOPICS:
+        rec = recs.get(slug)
+        if rec is None:
+            parts.append(f"<tr><td>{_e(slug)}</td><td colspan='5' class='muted'>no tracker file on this tree</td>"
+                         "<td class='no'>NOT YET LANDED</td></tr>")
+            continue
+        s = topic_summary(rec)
+        st = rec.get("same_trials") or {}
+        verdict = (st.get("verdict") or {}).get("verdict") if isinstance(st.get("verdict"), dict) else st.get("verdict")
+        same = (f"{_e(st.get('measure'))} {_fmt_pool(st.get('ours'))} vs {_fmt_pool(st.get('theirs'))}, "
+                f"k={_e(st.get('k'))}, {_e(st.get('method'))}: <strong>{_e(verdict)}</strong>") if st else "not pooled"
+        parts.append(f"<tr><td><a href='#{_e(slug)}'>{_e(slug)}</a></td><td>PMID {_e(rec.get('comparator_pmid'))}</td>"
+                     f"<td>{_e(rec.get('N_comparator_trials'))}</td><td>{_e(rec.get('k_matched'))} of "
+                     f"{_e(rec.get('N_eligible'))} eligible</td><td><strong>{s['g1_count']}</strong> of "
+                     f"{_e(rec.get('N_comparator_trials'))}</td><td>{same}</td><td>LANDED</td></tr>")
+    parts.append("</table>")
+    for slug, rec in recs.items():
+        s = topic_summary(rec)
+        parts.append(f"<h2 id='{_e(slug)}'>{_e(slug)} <span class='muted'>(comparator PMID "
+                     f"{_e(rec.get('comparator_pmid'))})</span></h2>")
+        rep = s["reported_routes"]
+        if any(int(rep.get(r) or 0) != s["recount"][r] for r in COUNTED_ROUTES):
+            parts.append(f"<p class='no'>The lane reported routes {_e(rep)}; recounted under the G1 rule: "
+                         f"{_e(s['recount'])}. Both are shown; neither is reconciled here.</p>")
+        parts.append("<table><tr><th>trial</th><th>route</th><th>source / basis</th><th>counts toward G1</th>"
+                     "<th>vs comparator row</th></tr>")
+        for r in s["rows"]:
+            t = r["trial"]
+            agree = t.get("agreement_with_comparator_row")
+            side = t.get("disagreement_side")
+            parts.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('route'))}</td><td>{_e(t.get('basis'))}</td>"
+                         f"<td class='{'ok' if r['counted'] else 'no'}'>{'yes' if r['counted'] else 'no'}: "
+                         f"{_e(r['why'])}</td><td>{_e(agree)}{(' (' + _e(side) + ')') if side else ''}</td></tr>")
+        parts.append("</table>")
+        for d in rec.get("named_differences") or []:
+            parts.append(f"<p><strong>Named difference</strong> {_e(d.get('trial'))} ({_e(d.get('kind'))}): "
+                         f"{_e(d.get('reason'))}</p>")
+        for f in rec.get("comparator_findings") or []:
+            parts.append(f"<p><strong>Comparator finding</strong> {_e(f.get('finding'))}: {_e(f.get('trial'))}</p>")
+        for g in rec.get("open_gaps") or []:
+            parts.append(f"<p class='no'><strong>Open gap</strong> {_e(g)}</p>")
+    parts.append("</body></html>\n")
+    return "".join(parts)
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--check", action="store_true")
+    a = ap.parse_args(argv)
+    out = ROOT / OUT
+    want = render().encode("utf-8")
+    if a.check:
+        if not out.is_file() or out.read_bytes() != want:
+            print(f"REFUSED: {OUT.as_posix()} is stale or absent; run python scripts/render_g1_tracker.py")
+            return 1
+        print(f"OK {OUT.as_posix()} current")
+        return 0
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(want)
+    landed = sum((ROOT / SRC / f"{s}.json").is_file() for s in G1_TOPICS)
+    print(f"wrote {OUT.as_posix()}: {landed} of {len(G1_TOPICS)} topics landed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
