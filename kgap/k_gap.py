@@ -211,7 +211,10 @@ _FURNITURE = re.compile(r"^(?:study|trial|author|year|\d{4}|n|total|overall|refe
 # after a HYPHEN a segment may be mixed case ('EMPEROR-Reduced', 'EMPEROR-Preserved'); after a SPACE only caps/digits
 # ('PIONEER 6', 'ENGAGE AF-TIMI 48'), so an ordinary word ('RALES Study') is not absorbed into the acronym
 _ACRO = re.compile(r"\b([A-Z][A-Z0-9]{2,}(?:-[A-Z0-9][A-Za-z0-9]*| [A-Z0-9]{1,}\b){0,3})")
-_AUTHOR_YEAR = re.compile(r"^([A-Z][A-Za-z'À-ſ-]+)(?:\s+et\s+al\.?)?,?\s*\(?((?:19|20)\d\d)\)?")
+# a surname may carry particles ('van der Molen', 'de Vrese') or be two capitalised words ('Ben Ayed', 'Almeida
+# Montes'): those labels were read as having NO author-year key and the trial was never searched
+_SURNAME = r"(?:(?:[Vv]an|[Dd]e[rn]?|[Vv]on|[Dd][aiu]|[Dd]el|[Dd]os|[Ll][ae]|[Ee]l|[Aa]l)\s+){0,2}[A-Z][A-Za-z'À-ſ-]+(?:\s+[A-Z][A-Za-z'À-ſ-]{2,})?"
+_AUTHOR_YEAR = re.compile(r"^(" + _SURNAME + r")(?:\s+et\s+al\.?)?,?\s*\(?((?:19|20)\d\d)\)?")
 _PAREN_ACRO = re.compile(r"\(([A-Z][A-Za-z0-9]*[A-Z0-9][A-Za-z0-9]*(?:[- ][A-Za-z0-9]+){0,3})\)")
 _NOT_ACRO = {"RCT", "RCTS", "USA", "UK", "NA", "NR", "HR", "RR", "OR", "CI", "BMI", "LDL", "HDL", "CKD", "HF",
              "HFREF", "HFPEF", "LVEF", "NYHA", "ACS", "MI", "CAD", "PCI", "CABG", "DM", "T2DM", "AF", "VTE",
