@@ -45,6 +45,7 @@ import k_gap_forest_plot as fp  # noqa: E402
 # bound HERE, with the repo root first on sys.path: scripts/kgap.py (a CLI) shadows the kgap PACKAGE whenever another
 # importer has put scripts/ first, and a later lazy 'from kgap import k_gap' then fails (seen under pytest collection)
 from kgap import k_gap  # noqa: E402
+from harness import secondary_meta as sm  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
 
 OUT = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader.json")
@@ -237,6 +238,12 @@ TARGETS: dict = {
                                        "panel_title": "MADRS change at week 3-4, intranasal esketamine vs placebo"},
     "colchicine-secondary-cv-prevention::34957237": {"fig_id": "F2", "caption_has": "Meta-analysis results for the "
                                                      "primary endpoint", "panel": "A", "panel_title": "Primary endpoint"},
+    # read twice (3 Oct, the second pair agreed and reproduced its pool), then refused on what the figure IS: an
+    # observational CAPA-vs-non-CAPA risk-factor plot (odds of corticosteroid EXPOSURE), not trials of the topic contrast
+    "corticosteroids-covid19-mortality::34570355": {
+        "fig_id": "Fig4", "caption_has": "divided into CAPA versus non-CAPA",
+        "refuse": "NOT_TOPIC_TRIALS: observational CAPA vs non-CAPA cohorts; the rows are odds of corticosteroid "
+                  "exposure, not randomised corticosteroid-vs-control effects on mortality"},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
@@ -576,6 +583,36 @@ RETRY = {"dapagliflozin-hfpef-hosp", "dapagliflozin-hfpef-hosp::33859839", "glp1
          "iv-iron-hfref-hosp::29174251", "sglt2-primary-prevention-hf::33859839"}
 
 
+# ONE recorded further attempt, of BOTH readers together, for a second-source figure refused because the two readings
+# had DIFFERENT ROW COUNTS (one reader read every panel / outcome block, the other one block: 31 of 59 ROWS_DISAGREE
+# refusals, 3 Oct). The same note goes to both readers: it names the review (topic title) the figure is read for and
+# asks for that outcome's block only, or legible=false if the figure has none. No value is suggested; earlier attempts
+# stay in the ledger; the gate judges the new pair only. Frozen list (not recomputed), so the prompts replay.
+TOPIC_NOTE = ("This figure may have several panels or outcome blocks. It is read for the review '{title}'. Transcribe "
+              "ONLY the panel or block whose outcome is that review's outcome: every study row of it, top to bottom, "
+              "once each, and its own pooled row -- never rows or pooled rows of other outcomes. If no panel or block "
+              "reports that outcome, set legible=false and say so in notes.")
+TOPIC_RETRY = {
+    "balanced-crystalloids-vs-saline-mortality::33317590", "colchicine-secondary-cv-prevention::34414335",
+    "colchicine-secondary-cv-prevention::36609745", "colchicine-secondary-cv-prevention::40889093",
+    "colchicine-secondary-cv-prevention::41236500", "corticosteroids-cap-mortality::26374694",
+    "corticosteroids-covid19-mortality::34259663", "corticosteroids-covid19-mortality::34570355",
+    "dapagliflozin-hfpef-hosp::33859839", "dapagliflozin-hfpef-hosp::33962654", "empagliflozin-hfpef-hosp::33335975",
+    "empagliflozin-hfpef-hosp::35338608", "glp1-ra-mace-t2d::40652242", "glp1-ra-mace-t2d::42376130",
+    "iv-iron-hfref-hosp::29174251", "metformin-pcos-ovulation::28630466", "omega3-cardiovascular-events::29387889",
+    "omega3-cardiovascular-events::31567003", "pcsk9-mace::35706032", "semaglutide-obesity-mace::36572913",
+    "sglt2-ckd-progression::31992158", "sglt2-ckd-progression::33962654", "sglt2-ckd-progression::38583093",
+    "sglt2-ckd-progression::42144626", "sglt2-primary-prevention-hf::33859839",
+    "spironolactone-hfref-mortality::35332595", "spironolactone-hfref-mortality::36348348",
+    "spironolactone-hfref-mortality::40410293", "ticagrelor-vs-clopidogrel-acs::24614630",
+    "ticagrelor-vs-clopidogrel-acs::28619104", "tocilizumab-covid19-mortality::33161150"}
+
+
+def topic_note(key):
+    with open(os.path.join(ROOT, "topics", key.split("::")[0] + ".json"), encoding="utf-8") as fh:
+        return TOPIC_NOTE.format(title=json.load(fh)["title"])
+
+
 def run_reader(item, reader):
     from reproducible_ai import model_call_live as mcl
     p = prompt_bytes(item["figure"], reader)
@@ -902,16 +939,8 @@ def _yv(r, ratio, z=1.959963984540054):
 
 
 def _reml_tau2(y, v, iters=200):
-    t2 = max(0.0, sum((a - sum(y) / len(y)) ** 2 for a in y) / max(1, len(y) - 1) - sum(v) / len(v))
-    for _ in range(iters):
-        w = [1 / (vi + t2) for vi in v]
-        mu = sum(a * b for a, b in zip(w, y)) / sum(w)
-        num = sum(wi ** 2 * ((yi - mu) ** 2 - vi) for wi, yi, vi in zip(w, y, v)) + sum(w2 for w2 in (wi ** 2 for wi in w)) / sum(w)
-        new = max(0.0, num / sum(wi ** 2 for wi in w))
-        if abs(new - t2) < 1e-12:
-            return new
-        t2 = new
-    return t2
+    """One REML implementation for the harness: harness.secondary_meta.reml_tau2 (checked against metafor)."""
+    return sm.reml_tau2(y, v, iters)
 
 
 def _mh(rows, measure):
@@ -1230,7 +1259,8 @@ def items(slugs, run, pairs=None):
             continue
         with open(ip, "rb") as fh:
             b = fh.read()
-        fig = dict(fig, image_name=os.path.basename(ip), **({"retry_note": RETRY_NOTE} if key in RETRY else {}))
+        note = topic_note(key) if key in TOPIC_RETRY else RETRY_NOTE if key in RETRY else None
+        fig = dict(fig, image_name=os.path.basename(ip), **({"retry_note": note} if note else {}))
         out.append({"slug": slug, "pmid": pmid, "pmcid": pmcid, "key": key, "role": role, "figure": fig,
                     "image_path": ip, "image_ref": os.path.relpath(ip, ROOT).replace(os.sep, "/"),
                     "image_sha256": hashlib.sha256(b).hexdigest(), "image_url": (meta or {}).get("url"),
@@ -1540,7 +1570,9 @@ def main(argv):
         slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1"))
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    if "--kgap-sweep" in argv:
+    if "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
+        its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
+    elif "--kgap-sweep" in argv:
         its, skipped = items([], run, pairs=kgap_sweep_pairs(slugs))
     elif "--metas" in argv:
         its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv, deep="--deep" in argv))

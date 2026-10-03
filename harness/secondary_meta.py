@@ -298,6 +298,22 @@ def row_yi_vi(row: SecondaryRow, z=1.959963984540054):
     return math.log((a / n1) / (c / n2)), 1 / a - 1 / n1 + 1 / c - 1 / n2
 
 
+def reml_tau2(yi, vi, iters=200):
+    """REML tau^2 by the fixed-point (Fisher scoring) update metafor's rma(method="REML") converges to; checked against
+    metafor on dat.bcg (tests/test_secondary_meta.py). Truncated at 0."""
+    k = len(yi)
+    t2 = max(0.0, sum((a - sum(yi) / k) ** 2 for a in yi) / max(1, k - 1) - sum(vi) / k)
+    for _ in range(iters):
+        w = [1 / (v + t2) for v in vi]
+        mu = sum(a * b for a, b in zip(w, yi)) / sum(w)
+        sw2 = sum(x * x for x in w)
+        new = max(0.0, (sum(x * x * ((y - mu) ** 2 - v) for x, y, v in zip(w, yi, vi)) + sw2 / sum(w)) / sw2)
+        if abs(new - t2) < 1e-12:
+            return new
+        t2 = new
+    return t2
+
+
 def pool(yi, vi, method="FE", hk=False, z=1.959963984540054):
     from scipy import stats
     k = len(yi)
@@ -311,6 +327,8 @@ def pool(yi, vi, method="FE", hk=False, z=1.959963984540054):
     elif method == "PM":
         from .synth import _paule_mandel_tau2
         t2 = float(_paule_mandel_tau2(yi, vi))
+    elif method == "REML":
+        t2 = reml_tau2(yi, vi)
     ww = [1 / (v + t2) for v in vi]
     mu = sum(a * b for a, b in zip(ww, yi)) / sum(ww)
     if hk and k >= 2:
