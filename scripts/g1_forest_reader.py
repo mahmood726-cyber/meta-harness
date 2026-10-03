@@ -111,6 +111,12 @@ TARGETS: dict = {
         "instruction": "The figure has three panels: A (patients with HFmrEF or HFpEF, EF >=40%), B (HFpEF, EF >=50%) and "
                        "C (HFmrEF). Transcribe ONLY panel A: every study row of panel A, once each, and panel A's own "
                        "Total (95% CI) row as the pooled row. Ignore panels B and C entirely."},
+    # PLoS One 2013: study rows grouped under 'Objective' and 'Subjective' subtotal rows, then 'Overall'
+    "melatonin-primary-insomnia-sol": {
+        "fig_id": "pone-0063773-g001", "caption_has": "Efficacy of Melatonin in Reducing Sleep Latency",
+        "instruction": "Rows: every STUDY row of every group, once each, top to bottom -- never a group subtotal row "
+                       "(e.g. 'Objective', 'Subjective'); set row_kind=\"study\" when you give only study rows. Pooled: the "
+                       "'Overall' row."},
     "tranexamic-acid-pph": {"fig_id": "F2", "caption_has": "Effect of tranexamic acid on life-threatening bleeding",
                             "refuse": "NO_TOPIC_OUTCOME_FIGURE: the comparator's figures are life-threatening bleeding (a "
                                       "composite of death or surgical intervention) and thromboembolic events; none is "

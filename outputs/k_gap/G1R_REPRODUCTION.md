@@ -2,7 +2,7 @@
 
 Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Mantel-Haenszel from counts) reproduce each comparator's printed pooled result from the comparator's OWN per-trial rows, under the comparator's STATED model? A separate metric from G1.
 
-- tally: {'REPRODUCED': 21, 'NO_COMPARATOR_ROWS': 11}
+- tally: {'REPRODUCED': 22, 'NO_COMPARATOR_ROWS': 10}
 
 | topic | comparator | rows (source) | stated model | printed pool | our engine (stated) | verdict | note |
 |---|---|---|---|---|---|---|---|
@@ -21,7 +21,7 @@ Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Man
 | finerenone-ckd-t2d-renal | PMID 36742404 | 2 (DUAL_READ f2) | ['DL', 'FE', 'PM', 'REML'] | 0.84 (0.77-0.92) | DL [0.8404, 0.766, 0.9219]; FE [0.8404, 0.766, 0.9219]; PM [0.8404, 0.766, 0.9219] | **REPRODUCED** | by DL, FE, PM |
 | glp1-ra-mace-t2d | PMID 34526024 | 8 (DUAL_READ Fig3) | ['PM', 'PM+HK'] | 0.86 (0.79-0.94) | PM [0.861, 0.7993, 0.9274]; PM+HK [0.861, 0.7872, 0.9417] | **REPRODUCED** | by PM+HK |
 | iv-iron-hfref-hosp | PMID 39727669 | 5 (DUAL_READ diseases-12-00339-f003) | ['DL'] | 0.59 (0.40-0.88) | DL [0.5879, 0.3944, 0.8763] | **REPRODUCED** | by DL |
-| melatonin-primary-insomnia-sol | PMID 23691095 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_ARE_NOT_STUDIES:mixed/study |
+| melatonin-primary-insomnia-sol | PMID 23691095 | 15 (DUAL_READ pone-0063773-g001) | ['DL', 'FE', 'PM', 'REML'] | 7.06 (4.37-9.75) | DL [9.4873, 4.5092, 14.4653]; FE [7.0606, 4.3765, 9.7448]; PM [9.6253, 4.3752, 14.8754] | **REPRODUCED** | by FE |
 | metformin-pcos-ovulation | PMID 31845767 | 21 (DUAL_READ CD013505-fig-0024) | ['MH-FE'] | 1.65 (1.35-2.03) | MH-FE [1.6547, 1.3485, 2.0305] | **REPRODUCED** | by MH-FE |
 | noac-vs-warfarin-af-stroke | PMID 34985309 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_ARE_NOT_STUDIES:outcome/outcome |
 | omega3-cardiovascular-events | PMID 35905212 | 22 (DUAL_READ F2) | ['DL', 'PM', 'REML'] | 0.94 (0.89-1.00) | DL [0.9439, 0.8909, 1.0001]; PM [0.9425, 0.8679, 1.0237] | **REPRODUCED** | by DL |
