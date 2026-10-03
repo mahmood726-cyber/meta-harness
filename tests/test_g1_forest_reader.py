@@ -454,3 +454,12 @@ def test_PLANT_a_label_resolved_by_references_lets_the_row_count(monkeypatch):
     assert v["state"] == "ACCEPTED", v["problems"]
     row = next(r for r in v["proposed_rows"] if r["label"] == "Trial C 2011")
     assert row["label_basis"].startswith("LABEL_FROM_META_REFERENCES")
+
+
+def test_mantel_haenszel_wording_names_the_MH_variant_for_counts_and_is_dropped_otherwise():
+    cochrane = "We used OR using the Mantel-Haenszel method. We employed a fixed-effect model in the analysis."
+    assert g.stated_model(cochrane, measure="OR")["methods"] == ["MH-FE"]        # never plain IV 'FE' as well
+    assert g.stated_model(cochrane, measure="MD")["methods"] == ["FE"]           # M-H cannot apply without counts
+    mixed = "Dichotomous: Mantel-Haenszel random-effects; continuous: inverse variance random-effects (DerSimonian-Laird)."
+    assert g.stated_model(mixed, measure="RR")["methods"] == ["MH-RE"]
+    assert g.stated_model(mixed, measure="MD")["methods"] == ["DL"]
