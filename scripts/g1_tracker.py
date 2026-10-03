@@ -557,6 +557,61 @@ def apply_single_primary(o):
     return flipped
 
 
+CONFIRM_BINDINGS = os.path.join(OUT, "g1_confirm", "bindings.json")
+
+
+def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
+    """G1 confirm-unverified (scripts/g1_confirm_bind.py, Mahmood 3 Oct): an UNVERIFIED comparator trial whose typed tuple
+    is printed by its OWN primary source -- the trial's open report or its posted CT.gov results -- is PRIMARY (2 Oct
+    decision: one primary source suffices). Re-checked here, offline, from the committed binding:
+      COUNTS     through single_primary_source, unchanged (every count verbatim in the quoted span)
+      EFFECT_CI  the span prints the effect and both CI bounds verbatim
+    The comparator's row was the SEARCH KEY: agreement with it is true by construction and is recorded
+    NOT_INDEPENDENT, never AGREE (it must not inflate per-trial agreement). Rows not UNVERIFIED are never touched."""
+    if not os.path.exists(path):
+        return []
+    by = {b["label"]: b for b in (_j(path).get("bindings") or []) if b.get("slug") == o.get("slug")}
+    flipped = []
+    for x in o.get("trials") or []:
+        b = by.get(x["label"])
+        if not b or x.get("route") != "UNVERIFIED":
+            continue
+        v, span = b.get("values") or {}, b.get("span") or ""
+        src = f"{'TEXT' if b.get('source_kind') == 'TEXT' else 'AACT'} {b.get('source')}"
+        if b.get("tuple_kind") == "COUNTS":
+            probe = dict(x, g1_state="ONE_SOURCE", readings=[{
+                "values": {"deaths_t": v.get("events_t"), "n_t": v.get("n_t"), "deaths_c": v.get("events_c"),
+                           "n_c": v.get("n_c")},
+                "sources": [{"source": src, "span": span}]}])
+            ok, why = single_primary_source(probe)
+        else:
+            flat = span.replace(",", "")
+            ok = all(str(v.get(k) or "") and str(v.get(k)) in flat for k in ("effect", "lower", "upper"))
+            why = ("single PRIMARY source: effect + CI verbatim in the trial's own span" if ok
+                   else "EFFECT_CI_NOT_IN_SPAN")
+        x["confirm_binding"] = {"admitted": ok, "why": why, "source": b.get("source"), "pmid": b.get("pmid"),
+                                "source_sha256": b.get("source_sha256"), "tuple_kind": b.get("tuple_kind"),
+                                "search_key": b.get("search_key")}
+        if not ok:
+            continue
+        x.update(route="PRIMARY", g1_countable=True, basis=f"{why} ({b.get('source')}); search key: comparator row",
+                 reclassified_by="g1/confirm-unverified primary binding",
+                 agreement_with_comparator_row="NOT_INDEPENDENT:SEARCH_KEYED_BY_COMPARATOR_ROW",
+                 blocker=None)
+        flipped.append(x["label"])
+    if flipped:
+        tr = o["trials"]
+        o["routes"] = dict(Counter(x["route"] for x in tr))
+        o["k_matched"] = sum(1 for x in tr if is_matched(x))
+        o["k_matched_of_comparator_N"] = f"{o['k_matched']} of {len(tr)}"
+        o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g not in flipped]
+        o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in tr if is_matched(x)))
+        bl = Counter(x["blocker"] for x in tr if x.get("blocker") and not is_matched(x))
+        o["blockers"], o["top_blocker"] = dict(bl), (bl.most_common(1)[0][0] if bl else None)
+        o["confirm_bindings_flipped"] = flipped
+    return flipped
+
+
 def primary_counts(x):
     """Counts a trial's OWN primary states (a lane reading whose counts are printed by a primary -- TEXT or posted
     results -- not only by a meta), as (events_t, n_t, events_c, n_c), or None."""
@@ -1391,6 +1446,7 @@ def topic(slug, T):
                                    "pooled": lane_acc.get("pooled_agreed")}
     if out["g1r_reproduction"].get("state") == "NO_PER_TRIAL_ROWS":
         out["g1r_reproduction"] = g1r_from_trials(out)
+    apply_confirm_bindings(out)
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
