@@ -321,6 +321,63 @@ def pool(yi, vi, method="FE", hk=False, z=1.959963984540054):
     return mu, mu - q * se, mu + q * se
 
 
+def pool_mh(rows: list, measure: str, random: bool = False, z=1.959963984540054):
+    """Mantel-Haenszel pooling from PRINTED 2x2 counts, as RevMan 5 and R meta::metabin(method="MH", MH.exact=FALSE):
+    0.5 added to every cell of a study with a zero cell (in the M-H estimate too); a study with no events in either arm
+    (or all events in both) is not estimable and carries no weight. Variance: Greenland-Robins (RR) / Robins-Breslow-
+    Greenland (OR). random=True is RevMan's 'M-H, Random': DerSimonian-Laird tau^2 with Q taken about the M-H estimate,
+    then inverse-variance weights. Returns (estimate, lower, upper) on the LOG scale, or None (no full counts, < 2 rows).
+    Checked against meta::metabin on PMID 34385227's 42 rows and metafor::rma.mh (tests/test_secondary_meta.py)."""
+    m = (measure or "").upper()
+    if m not in ("RR", "OR"):
+        return None
+    cells = []
+    for r in rows:
+        a, n1, c, n2 = r.events_t, r.n_t, r.events_c, r.n_c
+        if None in (a, n1, c, n2) or n1 <= 0 or n2 <= 0 or not (0 <= a <= n1 and 0 <= c <= n2):
+            return None
+        if (a == 0 and c == 0) or (a == n1 and c == n2):
+            continue                                            # not estimable
+        b, d = n1 - a, n2 - c
+        if 0 in (a, b, c, d):
+            a, b, c, d = a + .5, b + .5, c + .5, d + .5
+        cells.append((a, b, c, d))
+    if len(cells) < 2:
+        return None
+    num = den = pr = ps = qs = sr = ss = rr_v = 0.0
+    yi, vi = [], []
+    for a, b, c, d in cells:
+        n1, n2 = a + b, c + d
+        n = n1 + n2
+        if m == "OR":
+            R, S = a * d / n, b * c / n
+            P, Q = (a + d) / n, (b + c) / n
+            num, den = num + R, den + S
+            pr, ps, qs = pr + P * R, ps + P * S + Q * R, qs + Q * S
+            yi.append(math.log(a * d / (b * c)))
+            vi.append(1 / a + 1 / b + 1 / c + 1 / d)
+        else:
+            num, den = num + a * n2 / n, den + c * n1 / n
+            rr_v += (n1 * n2 * (a + c) - a * c * n) / n ** 2
+            yi.append(math.log((a / n1) / (c / n2)))
+            vi.append(1 / a - 1 / n1 + 1 / c - 1 / n2)
+    if num <= 0 or den <= 0:
+        return None
+    est = math.log(num / den)
+    var = (pr / (2 * num ** 2) + ps / (2 * num * den) + qs / (2 * den ** 2)) if m == "OR" else rr_v / (num * den)
+    if not random:
+        return est, est - z * math.sqrt(var), est + z * math.sqrt(var)
+    w = [1 / v for v in vi]
+    k = len(yi)
+    q = sum(a * (b - est) ** 2 for a, b in zip(w, yi))
+    c_ = sum(w) - sum(a * a for a in w) / sum(w)
+    t2 = max(0.0, (q - (k - 1)) / c_) if c_ > 0 else 0.0
+    ww = [1 / (v + t2) for v in vi]
+    mu = sum(a * b for a, b in zip(ww, yi)) / sum(ww)
+    se = math.sqrt(1 / sum(ww))
+    return mu, mu - z * se, mu + z * se
+
+
 def positive_control(rows: list, printed: dict, measure: str) -> dict:
     """Does the meta's own printed pooled result follow from the rows extracted from it? FE/DL/PM, each +/- HK; the
     tolerance is the printed rounding plus one printed unit for row-rounding propagation. A meta that fails is unused."""
