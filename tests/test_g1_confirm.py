@@ -209,3 +209,11 @@ def test_table_counts_with_swapped_headers_are_refused(monkeypatch):
     t = _tbl("Table 2: Outcomes.", "Outcome | Placebo (N = 7942) | Treatment group (N = 7860)",
              "Diarrhoea — no. (%) | 418 (5.3) | 467 (5.9)")
     assert run(monkeypatch, t, trial(**ROWC))[0] is None
+
+
+def test_counts_among_those_who_completed_the_study_are_refused(monkeypatch):
+    # Can 2006 (PMID 16572062): 78 + 73 = the 151 who completed, not the randomized
+    b, why = run(monkeypatch, "A total of 151 patients completed the study. RESULTS: The antibiotic-associated diarrhea "
+                              "development ratio in placebo group was 9% (7/78) and in the study group 1.4% (1/73).",
+                 trial(events_t="1", n_t="73", events_c="7", n_c="78", measure="RR"))
+    assert b is None and why.startswith("SUBGROUP_OR_POST_HOC_SPAN")

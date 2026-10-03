@@ -53,7 +53,10 @@ SUBGROUP_EXTRA = _re.compile(r"\bp[-\s]?(?:value\s+)?for\s+interaction\b|\binter
                              # completers / per-protocol in other words (CONFREV, Wenus: '... completed the protocol;
                              # two patients (5.9%) in the treatment group ...' is the 63 completers, not the 87 randomized)
                              r"|\bcomplet\w*\s+(?:the\s+)?(?:study\s+)?(?:according\s+to\s+)?(?:the\s+)?protocol\b"
-                             r"|\baccording to (?:the )?protocol\b|\bcompleters?\b", _re.I)
+                             r"|\baccording to (?:the )?protocol\b|\bcompleters?\b"
+                             # Can 2006: 'A total of 151 patients completed the study. RESULTS: ... (7/78) ... (1/73)'
+                             # -- 78 + 73 = 151, the completers
+                             r"|\bcompleted the (?:study|trial|follow-?up)\b", _re.I)
 
 
 def _int(v):
