@@ -76,3 +76,74 @@ def test_committed_snapshot_matches_its_declared_tracker_blob():
     src = json.loads((ROOT / g1.SOURCE).read_text(encoding="utf-8"))
     data = (ROOT / "outputs" / "k_gap" / "G1_TRACKER.md").read_bytes().replace(b"\r\n", b"\n")
     assert hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest() == src["tracker_blob"]
+
+
+# --- two-number scoreboard (decision 2026-10-03): COVERAGE beside INDEPENDENTLY CONFIRMED ---------------------------
+
+def _cs(label, digest="d" * 64, meta=COMP, **kw):
+    pv = {"meta_pmid": meta, "location": {"kind": "figure", "id": "f1", "row_label": label}, "digest": digest,
+          "read": "MODEL_PROPOSAL_DUAL:mc-a+mc-b"}
+    if digest is None:
+        pv.pop("digest")
+    return _t(label, route="NO_ROW", pooled=False, coverage="COMPARATOR_SOURCED",
+              comparator_sourced={"value": {"measure": "OR"}, "provenance": pv}, **kw)
+
+
+def test_PLANT_a_comparator_sourced_row_is_coverage_and_never_confirmation():
+    r = g1.recompute(_rec([_t("A"), _cs("B")], k=1, named=("B",)))
+    assert (r["covered"], r["g1_count"], r["comparator_sourced"]) == (2, 1, 1)
+    # even pooled, a comparator-sourced row cannot make the topic MATCHED
+    r2 = g1.recompute(_rec([_t("A"), dict(_cs("B"), in_our_pool=True)]))
+    assert not r2["criteria"]["MATCHED_ARE_VERIFIED"] and not r2["matched"]
+
+
+def test_PLANT_a_comparator_sourced_row_without_its_digest_is_not_covered():
+    r = g1.recompute(_rec([_t("A"), _cs("B", digest=None)], k=1, named=("B",)))
+    assert r["covered"] == 1 and r["rows"][1]["covered"] is False and r["comparator_sourced"] == 0
+
+
+def _two(label, stated):
+    return _t(label, route="TWO_SOURCE", readings=[{"counts_stated_by": stated}])
+
+
+def test_PLANT_two_source_counts_on_two_distinct_recorded_non_comparator_sources():
+    ok = g1.recompute(_rec([_two("A", ["TEXT PMID 33472855 + full text", "META 36102463 (prints events/total)"])]))
+    assert ok["g1_count"] == 1 and ok["matched"]
+    same = g1.recompute(_rec([_two("A", ["TEXT PMID 33472855", "TEXT PMID 33472855 + acquired full text"])]))
+    assert same["g1_count"] == 0  # two readings of ONE text are one source
+    circ = g1.recompute(_rec([_two("A", ["TEXT PMID 33472855", f"META {COMP} (prints events/total)"])]))
+    assert circ["g1_count"] == 0 and "anti-circularity" in circ["rows"][0]["why"]
+
+
+def _ss(label, meta, digest="e" * 64):
+    return _t(label, route="SWEEP_SECONDARY_SINGLE", sweep={"basis": {
+        "meta": meta, "where": {"kind": "figure", "id": "fig2"}, "digest": digest, "provenance": "MODEL_PROPOSAL:mc-x"}})
+
+
+def test_PLANT_secondary_single_counts_only_from_a_recorded_non_comparator_meta():
+    assert g1.recompute(_rec([_ss("A", "33745918")]))["g1_count"] == 1
+    assert g1.recompute(_rec([_ss("A", COMP)]))["g1_count"] == 0
+    assert g1.recompute(_rec([_ss("A", "33745918", digest="")]))["g1_count"] == 0
+
+
+def test_the_committed_page_shows_both_numbers_recomputed_from_the_trial_rows():
+    recs = g1.load()
+    conf = sum(g1.recompute(r)["g1_count"] for r in recs.values())
+    cov = sum(g1.recompute(r)["covered"] for r in recs.values())
+    n = g1.trial_totals(recs)["comparator_n"]
+    page = (ROOT / g1.OUT).read_text(encoding="utf-8")
+    assert f"<strong>{cov} of {n}</strong>" in page and f"<strong>{conf} of {n}</strong>" in page
+    assert "COVERAGE" in page and "INDEPENDENTLY CONFIRMED" in page and cov >= conf
+
+
+def test_PLANT_codex_review_2026_10_03_four_miscount_inputs_are_refused():
+    # 1. a comparator-sourced row is never confirmation, whatever route it carries
+    r = g1.recompute(_rec([dict(_cs("A"), route="PRIMARY", in_our_pool=True)]))
+    assert (r["g1_count"], r["covered"], r["comparator_sourced"]) == (0, 1, 1) and not r["matched"]
+    # 2. unidentifiable 'sources' are not two sources
+    assert g1.recompute(_rec([_two("A", ["", "unknown"])]))["g1_count"] == 0
+    # 3. 'PMID: <comparator>' is still the comparator
+    assert g1.recompute(_rec([_two("A", ["TEXT PMID 33472855", f"PMID: {COMP}"])]))["g1_count"] == 0
+    # 4. a 'comparator-sourced' row read from ANOTHER meta is not comparator coverage
+    r4 = g1.recompute(_rec([_t("A"), _cs("B", meta="33745918")], k=1, named=("B",)))
+    assert (r4["covered"], r4["comparator_sourced"]) == (1, 0)
