@@ -82,11 +82,14 @@ TARGETS: dict = {
         "instruction": "The figure stacks several outcomes. Transcribe ONLY the block for heart-failure (HF) "
                        "hospitalization: its study rows and its own pooled row. Ignore non-HF hospitalization, the "
                        "composite, all-cause mortality and any overall row."},
-    "pcsk9-mace": {
-        "fig_id": "F2", "caption_has": "Efficacy endpoints for PCSK9 inhibitors vs. control",
-        "instruction": "Transcribe ONLY the major adverse cardiovascular events (MACE) part: its study rows and its own "
-                       "pooled row. Report row_kind honestly: if the figure has one row per outcome rather than per "
-                       "trial, say row_kind=\"outcome\"."},
+    # F2 (read 2 Oct, refused: its rows are outcomes) stays on record; the comparator's OWN supplement (Data_Sheet_1.PDF,
+    # listed in its JATS) prints the per-trial plot of major vascular events, panel A random / panel B fixed effect
+    "pcsk9-mace": {"supplement": "Data_Sheet_1.PDF", "page": 7,
+                   "caption_has": "models for major vascular events", "panel": "A",
+                   "panel_title": "major vascular events, random-effects model",
+                   "instruction": "The page has two panels of the same trials: (A) random-effects and (B) fixed-effect. "
+                                  "Transcribe ONLY panel (A): every trial row once each, and panel (A)'s overall pooled "
+                                  "row. Ignore panel (B)."},
     # refused BEFORE any model call, for a reason the comparator's own caption states (checked like any target)
     # free-to-read PMC articles (JATS-like file derived from the PMC article page): per-trial plots without 'forest'
     "corticosteroids-covid19-mortality": {
@@ -138,9 +141,12 @@ TARGETS: dict = {
                        "patients with LVEF <= 40% (reduced ejection fraction): its study rows, and its SUBTOTAL row as the "
                        "pooled row. effect/lower/upper come only from the 'Hazard Ratio ... 95% CI' column, never from "
                        "log[Hazard Ratio] or SE. Ignore the LVEF > 40% subgroup, any overall row, and panel (B)."},
-    "denosumab-vertebral-fracture": {"fig_id": "fig4", "caption_has": "direct and indirect results of vertebral fractures",
-                                     "refuse": "NETWORK_META_ANALYSIS_FIGURE: direct and indirect head-to-head estimates "
-                                               "(treatments), not trial rows"},
+    # the main figures are network estimates (fig4: direct and indirect head-to-head results -- treatments, not trials);
+    # the comparator's OWN supplement (mmc1.pdf, listed in its JATS, PMC OA bucket) prints the pairwise per-trial plot
+    "denosumab-vertebral-fracture": {"supplement": "mmc1.pdf", "page": 43,
+                                     "caption_has": "Denosumab Compared with Placebo on Vertebral Fracture",
+                                     "instruction": "Rows: every trial row of this denosumab-versus-placebo plot, once "
+                                                    "each. Pooled: the plot's overall pooled row."},
     # OTHER metas from the two-source sweep (keyed '<slug>::<pmid>'): their captions name the outcome in their own words
     "colchicine-secondary-cv-prevention::40314333": {
         "fig_id": "ehaf174-F1", "caption_has": "Forest plot of clinical efficacy endpoints (hazard ratios)",
@@ -365,6 +371,84 @@ def held_text(pmid):
         return k_gap.jats_body_text(fh.read())
 
 
+def held_supplement(pmid, name):
+    d = os.path.join(COMP, pmid)
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if f.endswith("_forest_supp_" + name):
+            return os.path.join(d, f)
+    return None
+
+
+def fetch_supplement(pmid, pmcid, name):
+    """A comparator's OWN supplementary PDF, from the PMC OA bucket (the same open source as its figures), stored with
+    URL + sha256. Only a file that starts '%PDF' is kept."""
+    if held_supplement(pmid, name) or not pmcid:
+        return held_supplement(pmid, name)
+    from harness import http
+    for v in (1, 2, 3):
+        url = f"https://pmc-oa-opendata.s3.amazonaws.com/{pmcid}.{v}/{name}"
+        try:
+            st, b = http.get_raw(url, tries=2, timeout=120)
+        except Exception:  # noqa: BLE001 - try the next article version
+            continue
+        if b[:4] == b"%PDF":
+            out = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_supp_{name}")
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            with open(out, "wb") as fh:
+                fh.write(b)
+            _save(out + ".meta.json", {"url": url, "http_status": st, "bytes": len(b),
+                                       "sha256": hashlib.sha256(b).hexdigest(), "fetched": FETCH_DATE,
+                                       "via": "PMC OA bucket: the comparator's own supplementary material"})
+            return out
+    return None
+
+
+def supplement_figure(slug, pmid, t):
+    """(figure dict, why) for a TARGETS entry naming a page of the comparator's OWN supplementary PDF. The supplement
+    must be listed in the comparator's JATS (<supplementary-material>), held, and its page must carry the caption words.
+    The page's image is DERIVED offline from the held bytes: its one embedded image extracted unchanged, else the page
+    rendered at 200 dpi; the derivation (source sha256, page, method, MuPDF version) is stored beside it."""
+    import fitz
+    jp = jats_path(pmid)
+    root = ET.parse(jp).getroot()
+    names = {m.get(fp.XL) or "" for tag in ("media", "supplementary-material") for m in root.iter(tag)}
+    if t["supplement"] not in names:
+        return None, "TARGET_SUPPLEMENT_NOT_IN_JATS"
+    sp = held_supplement(pmid, t["supplement"])
+    if not sp:
+        return None, "SUPPLEMENT_NOT_HELD"
+    with open(sp, "rb") as fh:
+        b = fh.read()
+    doc = fitz.open(stream=b, filetype="pdf")
+    if not 1 <= t["page"] <= doc.page_count:
+        return None, "TARGET_SUPPLEMENT_PAGE_ABSENT"
+    page = doc[t["page"] - 1]
+    text = re.sub(r"\s+", " ", page.get_text())
+    if t["caption_has"].lower() not in text.lower():
+        return None, "TARGET_CAPTION_MISMATCH"
+    i = text.lower().find(t["caption_has"].lower())
+    j = text.rfind("Figure", 0, i + 1)          # the caption from its 'Figure N' label ('eFigure 5. ...')
+    cap = text[max(0, j - 10) if j >= 0 else i:][:300].strip()
+    imgs = page.get_images(full=True)
+    if len(imgs) == 1:
+        x = doc.extract_image(imgs[0][0])
+        ib, ext, how = x["image"], x["ext"], "the page's one embedded image, extracted unchanged"
+    else:
+        ib, ext, how = page.get_pixmap(dpi=200).tobytes("png"), "png", "the page rendered at 200 dpi (MuPDF)"
+    href = f"supp_{t['supplement']}_p{t['page']}.{'jpg' if ext in ('jpeg', 'jpg') else ext}"
+    ip = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_{href}")
+    if not os.path.exists(ip):
+        with open(ip, "wb") as fh:
+            fh.write(ib)
+        smeta = _j(sp + ".meta.json")
+        _save(ip + ".meta.json", {"url": smeta.get("url"), "sha256": hashlib.sha256(ib).hexdigest(), "bytes": len(ib),
+                                  "via": f"comparator's supplementary PDF {t['supplement']}, page {t['page']}: {how}",
+                                  "supplement_sha256": smeta.get("sha256"), "mupdf": fitz.VersionBind})
+    return {"fig_id": f"{t['supplement']}#p{t['page']}", "href": href, "caption": cap, "panel": t.get("panel"),
+            "panel_title": t.get("panel_title"), "instruction": t.get("instruction"),
+            "selected_by": f"TARGETS supplement page (text contains {t['caption_has']!r})"}, "SELECTED"
+
+
 def figure_for(slug, pmid):
     """(figure dict, why). A TARGETS entry is honoured only if its figure exists and its caption contains the words."""
     jp = jats_path(pmid)
@@ -372,6 +456,8 @@ def figure_for(slug, pmid):
         return None, "NO_JATS"
     # a TARGETS entry keyed by the slug names the COMPARATOR's figure; another meta's is keyed '<slug>::<pmid>'
     t = TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if pmid == comparator_of(slug) else None)
+    if t and t.get("supplement"):
+        return supplement_figure(slug, pmid, t)
     if t:
         for f in ET.parse(jp).getroot().iter("fig"):
             if f.get("id") != t["fig_id"]:
@@ -922,7 +1008,8 @@ def reconstruct(rows, ratio, measure, methods, z=1.959963984540054):
 def printed_matches(x, printed):
     """A computed value against what the figure prints: a number within its printed rounding, or a printed BOUND
     ('<0.01', '>100': REACT prints COVIDOSE2-SS-A's lower limit as '<0.01') that the value satisfies."""
-    p = _nfkc(printed).strip() if printed is not None else ""
+    # ASCII sign: a printed U+2212 ('−0.22') is a minus, and fp._close floats the string (crashed the sweep, 3 Oct)
+    p = re.sub(r"^\s*[−‒–—]", "-", _nfkc(printed)).strip() if printed is not None else ""
     m = re.fullmatch(r"([<>])\s*(\d+(?:\.\d+)?)", p)
     if m:
         lim = float(m.group(2))
@@ -1123,6 +1210,9 @@ def items(slugs, run, pairs=None):
             k_gap.fetch_comparator_jats(pmid, FETCH_DATE)
             if not jats_path(pmid) and pmcid_of(pmid):
                 pmc_page_jats(pmid, pmcid_of(pmid))
+        t = TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if role == "comparator" else None)
+        if run and t and t.get("supplement") and jats_path(pmid):
+            fetch_supplement(pmid, pmcid_of(pmid), t["supplement"])
         fig, why = figure_for(slug, pmid)
         if not fig:
             skipped[key] = {"pmid": pmid, "why": why, "role": role, "slug": slug}

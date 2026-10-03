@@ -481,3 +481,9 @@ def test_a_label_naming_fixed_and_random_states_both_and_jats_references_keep_wo
         "<article><back><ref-list><ref><person-group><name><surname>Mewton</surname><given-names>N</given-names>"
         "</name></person-group></ref></ref-list></back></article>", encoding="utf-8")
     assert g.label_from_references("Newton N–2019", "Mewton N-2019", g.ref_text("33333333"))["label"] == "Mewton N-2019"
+
+
+def test_a_typographic_minus_in_a_printed_row_value_is_compared_as_a_number():
+    # the PMID sweep crashed in printed_matches on '−0.22' (fp._close floats the raw string)
+    assert g.printed_matches(-0.22, "−0.22")
+    assert not g.printed_matches(0.22, "−0.22")
