@@ -112,6 +112,58 @@ def same_trials_pool(pairs, method_label):
     return out
 
 
+def pair_trial(pair, trials):
+    """The tracker trial a same-trials pair belongs to: the trial whose comparator_row has the comparator side's printed
+    values (effect, lower, upper -- the same row object's numbers); else one whose label equals either side's label."""
+    o, t = pair
+    for x in trials or []:
+        cr = x.get("comparator_row") or {}
+        if cr and all(str(cr.get(k)) == str(getattr(t, k, None)) for k in ("effect", "lower", "upper")):
+            return x
+    return next((x for x in trials or [] if x.get("label") in (o.trial_label, t.trial_label)), None)
+
+
+def verdict_attribution(pairs, method_label, trials=()):
+    """WHICH shared trial makes the two same-trial pools disagree -- per trial, typed. For each shared trial i, the pools
+    are recomputed with ONLY trial i's row taken from the other side (same method, same verdict rule, same_trials_pool):
+      theirs_with_our_row_i  -- the comparator's pool with our value for trial i
+      ours_with_their_row_i  -- our pool with the comparator's value for trial i
+    A trial is a DRIVER when either swap alone turns the verdict to AGREE (or to the same conclusion). Every trial's own
+    row agreement and, where the tracker attributed it, its analysis-set finding are carried beside it, so the
+    disagreement is closed trial by trial rather than as one number. Read-only: nothing is pooled differently."""
+    if len(pairs) < 2:
+        return None
+    by_label = {x.get("label"): x for x in trials or []}
+    out = []
+    for i, (o_i, t_i) in enumerate(pairs):
+        swapped_t = [(o, (o_i if j == i else t)) for j, (o, t) in enumerate(pairs)]
+        swapped_o = [((t_i if j == i else o), t) for j, (o, t) in enumerate(pairs)]
+        a, b = same_trials_pool(swapped_t, method_label), same_trials_pool(swapped_o, method_label)
+
+        def conc(r, side):
+            if r.get("state") != "POOLED":
+                return None
+            v = r["verdict"]
+            return v.get("conclusion") or v.get(side)
+        x = pair_trial((o_i, t_i), trials) or {}
+        lab = x.get("label") or t_i.trial_label or o_i.trial_label
+        flips = {"theirs_with_our_row": (a.get("verdict") or {}).get("verdict"),
+                 "theirs_with_our_row_conclusion": conc(a, "theirs"), "theirs_with_our_row_pool": a.get("theirs"),
+                 "ours_with_their_row": (b.get("verdict") or {}).get("verdict"),
+                 "ours_with_their_row_conclusion": conc(b, "ours"), "ours_with_their_row_pool": b.get("ours")}
+        driver = any(str(flips[k] or "").startswith(("AGREE", "SAME_CONCLUSION")) for k in ("theirs_with_our_row",
+                                                                                             "ours_with_their_row"))
+        out.append({"trial": lab, "row_agreement": x.get("agreement_with_comparator_row"),
+                    "analysis_set": (x.get("analysis_set_attribution") or {}).get("state"),
+                    "comparator_row_nearest_set": (x.get("analysis_set_attribution") or {}).get("nearest"),
+                    "disagreement_side": x.get("disagreement_side"), "driver": driver, **flips})
+    drivers = [r["trial"] for r in out if r["driver"]]
+    return {"basis": "single-trial swaps of the same-trials pools (same method, same verdict rule)",
+            "drivers": drivers, "per_trial": out,
+            "closed": bool(drivers) and all(r["row_agreement"] and (r["driver"] or str(r["row_agreement"]).startswith("AGREE"))
+                                            for r in out)}
+
+
 def result_verdict(ours, theirs, measure):
     """Like-for-like RESULT agreement on the same trials, typed:
       AGREE     same conclusion about the null (both exclude it on the same side, or both include it) AND the estimates
@@ -1251,6 +1303,17 @@ def topic(slug, T):
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))
+    # 'same trials' are trials BOTH sides hold AND that stay in our eligible set: a trial named out of protocol scope is
+    # neither matched (is_matched) nor compared (Zarpelon [20] entered through a verified meta row before it was named)
+    pairs_excluded = []
+    keep_pairs = []
+    for p in pairs:
+        px = pair_trial(p, trials)
+        if px is not None and px.get("scope_difference"):
+            pairs_excluded.append(px.get("label"))
+        else:
+            keep_pairs.append(p)
+    pairs = keep_pairs
     pc = ((S.get("metas") or {}).get(comp) or {}).get("positive_control") or {}
     method = (pc.get("methods") or ["PM"])[0]
     res = prim.get("result") or {}
@@ -1288,12 +1351,16 @@ def topic(slug, T):
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if is_matched(x))),
             "same_trials": dict(same_trials_pool(pairs, method),
                                 method_basis=("comparator positive control reproduced " + method) if pc.get("methods")
-                                else "comparator positive control not reproduced: PM default"),
+                                else "comparator positive control not reproduced: PM default",
+                                excluded_named_scope_differences=pairs_excluded),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
             "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
+    if ((out["same_trials"].get("verdict") or {}).get("verdict") or "").startswith(("DIFFERENT_CONCLUSION",
+                                                                                     "SAME_CONCLUSION_DIFFERENT")):
+        out["same_trials"]["attribution"] = verdict_attribution(pairs, method, trials)
     wp = whole_pool_comparison(out)
     if wp:
         out["same_trials_per_trial"] = out["same_trials"]
