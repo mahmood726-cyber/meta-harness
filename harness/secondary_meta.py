@@ -877,7 +877,43 @@ def route_of(row: SecondaryRow) -> str:
         return "PRIMARY"
     if row.state == TWO_SOURCE:
         return "TWO_SOURCE"
+    if row.state == SECONDARY_SINGLE:
+        return "SECONDARY_SINGLE"
     return "UNVERIFIED"
+
+
+# ------------------------------------------------------------------ SECONDARY_SINGLE (Mahmood decision, 3 Oct)
+# Per-trial rows from ONE published meta that is NOT the comparator count toward G1 when NO primary source is open,
+# provided that meta SELF-REPRODUCES its pooled result (its own rows, pooled, give its printed pool: the positive
+# control of a typed table / the gate of a figure read / the dual-model reader's stated-model reconstruction).
+SECONDARY_SINGLE = "SECONDARY_SINGLE"
+
+
+def secondary_single(rows: list, comparator_meta_ids: set, primary_open, reproduces) -> list:
+    """Rows still SECONDARY_UNVERIFIED after primary verification and the two-source rule become SECONDARY_SINGLE when
+      * the meta is not the comparator (under any of its ids),
+      * reproduces(row) -- the meta self-reproduced its printed pooled result from its rows, and
+      * not primary_open(row) -- no open primary source exists for the trial (an open one must be extracted instead;
+        the row then stays queued with reason SECONDARY_SINGLE_REFUSED:PRIMARY_SOURCE_OPEN).
+    A BLOCKED row (two metas disagree), a MISMATCH and a REFUSED row are never eligible. Returns the rows changed."""
+    ids = {str(x).strip().lower() for x in comparator_meta_ids} - {""}
+    out = []
+    for r in rows:
+        if r.state != UNVERIFIED or (meta_ids(r) & ids) or not reproduces(r):
+            continue
+        prior = (r.verification or {}).get("queue_reason")
+        opened = primary_open(r)
+        if opened:
+            r.verification = dict(r.verification or {}, queue_reason=(prior or "NO_PRIMARY") +
+                                  f" | SECONDARY_SINGLE_REFUSED:PRIMARY_SOURCE_OPEN:{opened}")
+            continue
+        r.state = SECONDARY_SINGLE
+        r.verification = {"result": "SECONDARY_SINGLE", "route": "SECONDARY_SINGLE", "meta": r.meta_pmid,
+                          "prior_queue_reason": prior,
+                          "basis": "one non-comparator meta that self-reproduces its pooled result; no open primary "
+                                   "source for the trial (decision 3 Oct)"}
+        out.append(r)
+    return out
 
 
 def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> SecondaryRow:
@@ -906,7 +942,7 @@ def g1_countable(rows: list, comparator_meta_ids: set) -> list:
     def ok(r):
         if meta_ids(r) & ids:
             return False
-        if r.state == VERIFIED:
+        if r.state in (VERIFIED, SECONDARY_SINGLE):      # SECONDARY_SINGLE: decision 3 Oct (comparator excluded above)
             return True
         v = r.verification or {}
         groups = v.get("independent_pair_ids") or v.get("independent_pairs") or []

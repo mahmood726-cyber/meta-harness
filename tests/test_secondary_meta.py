@@ -374,3 +374,34 @@ def test_typed_table_reads_unicode_minus_signs_and_pools_md_from_the_arms():
     # no aligned header naming the control -> arm-level data are NOT taken (arm order unknown)
     bad = jats.replace(b"<th>Placebo mean (SD)</th>", b"<th>Mean (SD)</th>")
     assert sm.typed_rows_from_jats(bad, "x")[0]["rows"][3].mean_t is None
+
+
+# ------------------------------------------------------------------ SECONDARY_SINGLE (Mahmood decision, 3 Oct)
+def _single_row(meta="111", state=None):
+    r = _row(measure="HR", effect="0.80", lower="0.70", upper="0.91")
+    r.meta_pmid, r.family_id = meta, "PMID 1"
+    r.state = state or sm.UNVERIFIED
+    r.verification = {"result": "QUEUED", "queue_reason": "NO_PRIMARY_VALUE"}
+    return r
+
+
+def test_SECONDARY_SINGLE_counts_one_self_reproducing_non_comparator_meta_when_no_primary_is_open():
+    r = _single_row()
+    assert sm.secondary_single([r], {"999"}, lambda x: None, lambda x: True) == [r]
+    assert r.state == sm.SECONDARY_SINGLE and sm.route_of(r) == "SECONDARY_SINGLE"
+    assert sm.g1_countable([r], {"999"}) == [r]
+
+
+def test_PLANT_SECONDARY_SINGLE_never_from_the_comparator_an_open_primary_or_a_non_reproducing_meta():
+    comp = _single_row(meta="999")
+    assert sm.secondary_single([comp], {"999"}, lambda x: None, lambda x: True) == [] and comp.state == sm.UNVERIFIED
+    opened = _single_row()
+    assert sm.secondary_single([opened], {"999"}, lambda x: "PMID 1 PMC OA", lambda x: True) == []
+    assert opened.state == sm.UNVERIFIED and "PRIMARY_SOURCE_OPEN" in opened.verification["queue_reason"]
+    norep = _single_row()
+    assert sm.secondary_single([norep], {"999"}, lambda x: None, lambda x: False) == [] and norep.state == sm.UNVERIFIED
+    blocked = _single_row(state=sm.BLOCKED)
+    assert sm.secondary_single([blocked], {"999"}, lambda x: None, lambda x: True) == [] and blocked.state == sm.BLOCKED
+    # anti-circularity holds even if a comparator row were somehow marked SECONDARY_SINGLE
+    comp.state = sm.SECONDARY_SINGLE
+    assert sm.g1_countable([comp], {"999"}) == []

@@ -291,6 +291,7 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
     want = {t["label"] for t in ts}
     metas = sorted({m for t in ts for m in metas_by_trial.get(t["label"], [])})
     rows, meta_state = [], {}
+    repro = set()         # metas that SELF-REPRODUCE their printed pooled result (the SECONDARY_SINGLE condition)
     for m in metas:
         try:
             tb = smb.typed_table(slug, m, spec, run)
@@ -300,6 +301,8 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
             meta_state[m] = f"ERROR:{type(exc).__name__}:{str(exc)[:80]}"
             continue
         meta_state[m] = state
+        if tb:
+            repro.add(m)                                   # typed table: its rows reproduced its printed pooled row
         for tbl in tabs:
             for r in tbl["rows"]:
                 r = sm.admit(r, spec, fam)
@@ -323,11 +326,29 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
         meta_state[m] = (meta_state.get(m, "") + f" | FOREST {entry.get('figure')} gate {entry.get('gate')} "
                          f"control {(entry.get('positive_control') or {}).get('reproduced')} rows {entry.get('rows_read')}"
                          ).strip(" |")
+        if entry.get("gate") == "PASS" and (entry.get("positive_control") or {}).get("reproduced"):
+            repro.add(m)                                   # figure read through the tier's gate: pool reproduced
         for r in frows:
             r = sm.admit(r, spec, fam)
             if r.family_id in want:
                 rows.append(r)
-    metas = sorted(set(metas) | set(fig_items or {}))
+    # (b0') the DUAL-MODEL forest reader's ACCEPTED rows (scripts/g1_forest_reader.py: codex + agy agree within printed
+    #       rounding AND the meta's stated model reproduces its printed pool) -- replayed output, no model here
+    import g1_forest_reader as gfr
+    dual_metas = set()
+    have = {r.meta_pmid for r in rows}         # a meta already giving rows (typed table / tier read) keeps them: two
+    for d in gfr.accepted_rows(slug):          # readings of ONE meta would be two rows of one family, refused together
+        if str(d.get("meta_pmid")) in comp_ids or str(d.get("meta_pmid")) in have:
+            continue
+        r = sm.admit(sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__}),
+                     spec, fam)
+        repro.add(r.meta_pmid)
+        dual_metas.add(r.meta_pmid)
+        if r.family_id in want:
+            rows.append(r)
+    for m in sorted(dual_metas):
+        meta_state[m] = (meta_state.get(m, "") + " | DUAL_FOREST_READER ACCEPTED (stated-model reconstruction)").strip(" |")
+    metas = sorted(set(metas) | set(fig_items or {}) | dual_metas)
     # (b1) the meta's printed numbers in the trial's OWN held primary sources (text, posted results) -> PRIMARY
     smb.ensure_registry(sorted({n for t in ts for n in t["ncts"]}))
     by_label = {t["label"]: t for t in ts}
@@ -340,6 +361,17 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
     sm.cross_check(rows)
     # (b2) two independent metas, same typed tuple
     sm.two_source(rows, smb.refs_of, [smb.meta_aliases(m) for m in metas])
+
+    # (b3) SECONDARY_SINGLE (Mahmood 3 Oct): ONE non-comparator meta that self-reproduces its pooled result counts when
+    #      NO primary source is open for the trial. 'Open' = the trial's full text (PMC OA / held / Unpaywall) or its
+    #      posted results; its PubMed abstract alone is not (had it printed the number, verify_typed would have matched).
+    def primary_open(r):
+        t = by_label[r.family_id]
+        if not (t["report_pmid"] or t["ncts"]):
+            return None
+        srcs = smb.primary_sources(slug, t["report_pmid"] or "", (t["ncts"] or [None])[0])
+        return next((ref for kind, ref, _ in srcs if not ref.endswith(" abstract")), None)
+    sm.secondary_single(rows, comp_ids, primary_open, lambda r: r.meta_pmid in repro)
     countable = {id(r) for r in sm.g1_countable(rows, comp_ids)}
     import g1_tracker as gt
     res = []
@@ -351,8 +383,9 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
         route, value = None, None
         if ok:
             best = sorted(ok, key=lambda r: {"PRIMARY": 0, "TWO_SOURCE": 1}.get(sm.route_of(r), 2))[0]
-            # every counted route is TWO sources agreeing on the typed tuple: a meta row + the trial's own text, a meta
-            # row + posted results (AACT), or two independent metas
+            # a counted route is TWO sources agreeing on the typed tuple (a meta row + the trial's own text, a meta row +
+            # posted results, or two independent metas) -- or, by the 3 Oct decision, SECONDARY_SINGLE: one
+            # self-reproducing non-comparator meta when no primary source is open (route SWEEP_SECONDARY_SINGLE)
             route = "SWEEP_" + ("META+TRIAL_TEXT" if (best.verification or {}).get("route") == "PRIMARY_TEXT" else
                                 "META+AACT" if (best.verification or {}).get("route") == "PRIMARY_REGISTRY" else
                                 "TWO_INDEPENDENT_METAS" if sm.route_of(best) == "TWO_SOURCE" else sm.route_of(best))
