@@ -324,10 +324,19 @@ def text_locates_how(row: dict, text: str) -> Optional[tuple]:
 
 
 # "Standard-of-care group ( n = 29)" (COVIDSTORM): the hyphenated form is the same arm word (plant Q9)
-_TABLE_HEAD = re.compile(r"(tocilizumab|tcz|usual care|placebo|standard[- ](?:of[- ])?care|control)[^()]{0,30}\(\s*n\s*=\s*(\d+)\s*\)",
-                         re.I)
-_TABLE_ROW = re.compile(r"((?:mortality|death|died)[^0-9]{0,40}?(?:28 days|day 28|28-day|28 d\b)[^0-9]{0,20})"
-                        r"(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)\s*(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)", re.I)
+# an arm's n also as 'Tocilizumab + remdesivir N = 430' (REMDACTA Table 2: no parentheses)
+_TABLE_HEAD = re.compile(r"(tocilizumab|tcz|usual care|placebo|standard[- ](?:of[- ])?care|control)[^()]{0,30}"
+                         r"(?:\(\s*n\s*=\s*(\d+)\s*\)|\bN\s*=\s*(\d+)\b)", re.I)
+# the row label may carry the column annotation 'n (%) [95% CI]' and a footnote letter, and each cell may carry its
+# bracketed CI ('Mortality at day 28, n (%) [95% CI] g 78 (18.1) [14.5-21.8] 41 (19.5) [14.2-24.9]' -- REMDACTA)
+_TABLE_ROW = re.compile(r"((?:mortality|death|died)[^0-9]{0,40}?(?:28 days|day 28|28-day|28 d\b)"
+                        r"(?:,?\s*n\s*\(\s*%\s*\)\s*\[\s*95\s*%\s*CI\s*\])?[^0-9]{0,20})"
+                        r"(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)\s*(?:\[[^\]\d]{0,3}\d[^\]]{0,25}\]\s*)?"
+                        r"(\d{1,4})\s*\((\d{1,3}(?:\.\d+)?)\)", re.I)
+
+
+def _head_n(h) -> int:
+    return int(h.group(2) or h.group(3))
 
 
 def table_candidates(text: str) -> list:
@@ -354,7 +363,7 @@ def table_candidates(text: str) -> list:
         a2 = "t" if h2.group(1).lower() in ("tocilizumab", "tcz") else "c"
         if {a1, a2} != {"t", "c"}:
             continue
-        cells = {a1: (int(m.group(2)), m.group(3), int(h1.group(2))), a2: (int(m.group(4)), m.group(5), int(h2.group(2)))}
+        cells = {a1: (int(m.group(2)), m.group(3), _head_n(h1)), a2: (int(m.group(4)), m.group(5), _head_n(h2))}
         if not all(_pct_ok(p, d, n) for d, p, n in cells.values()):
             continue
         out.append({"deaths_t": cells["t"][0], "n_t": cells["t"][2], "deaths_c": cells["c"][0], "n_c": cells["c"][2],
@@ -434,7 +443,7 @@ def safety_candidates(text: str) -> list:
         a2 = "t" if h2.group(1).lower() in ("tocilizumab", "tcz") else "c"
         if {a1, a2} != {"t", "c"}:
             continue
-        cells = {a1: (int(row.group(1)), row.group(2), int(h1.group(2))), a2: (int(row.group(3)), row.group(4), int(h2.group(2)))}
+        cells = {a1: (int(row.group(1)), row.group(2), _head_n(h1)), a2: (int(row.group(3)), row.group(4), _head_n(h2))}
         if all(_pct_ok(p, d, n) for d, p, n in cells.values()):
             out.append({"deaths_t": cells["t"][0], "n_t": cells["t"][2], "deaths_c": cells["c"][0], "n_c": cells["c"][2],
                         "denominator_kind": SAFETY, "span": (cap.group(0) + " ... " + h1.group(0) + " ... " + h2.group(0)
