@@ -558,6 +558,28 @@ def apply_single_primary(o):
 
 
 CONFIRM_BINDINGS = os.path.join(OUT, "g1_confirm", "bindings.json")
+# A primary binding confirms the comparator's NUMBER; it must never override a typed reason the number is not this
+# topic's result (CONFREV, 3 Oct: ELIXA's 4-point composite, Siebert's non-placebo contrast, Wenus' per-protocol RR 0.21
+# were all bound while the tracker already refused them).
+CONFIRM_BLOCKING_ABSENT = {"ENGINE_CANNOT_CONSUME", "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH", "ENDPOINT_UNBOUND",
+                           "RESULT_INCOMPATIBLE"}
+import re as _cre  # noqa: E402
+CONFIRM_BLOCKING_REFUSAL = _cre.compile(r"per[- ]?protocol|completers?\b|completed the study|population mismatch|"
+                                        r"subgroup|different composite|estimand|cluster|cross-?over|post[- ]?hoc", _cre.I)
+
+
+def confirm_blocked(x):
+    """Why a comparator trial may NOT be confirmed by a primary binding, or None: out of the topic's scope (a named
+    scope / estimand difference), or our own typed refusal says the comparator's value is not the trial's result for
+    this topic (design, estimand, population)."""
+    if x.get("scope_difference"):
+        return f"NOT_ELIGIBLE:{(x['scope_difference'] or {}).get('kind')}"
+    if x.get("absent_code") in CONFIRM_BLOCKING_ABSENT:
+        return f"TYPED_REFUSAL:{x['absent_code']}"
+    m = CONFIRM_BLOCKING_REFUSAL.search(x.get("our_refusal") or "")
+    if m:
+        return f"TYPED_REFUSAL_NAMES:{m.group(0).lower()}"
+    return None
 
 
 def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
@@ -578,6 +600,21 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             continue
         v, span = b.get("values") or {}, b.get("span") or ""
         src = f"{'TEXT' if b.get('source_kind') == 'TEXT' else 'AACT'} {b.get('source')}"
+        blocked = confirm_blocked(x)
+        arms = None
+        if not blocked and b.get("tuple_kind") == "COUNTS" and b.get("source_kind") == "TEXT":
+            # arm ownership RE-CHECKED from the committed span, never taken from the binder's own verdict
+            import g1_confirm_bind as _cb
+            row = _cb.key_row(o.get("slug"), {"label": x["label"], "comparator_row": {
+                "events_t": v.get("events_t"), "n_t": v.get("n_t"), "events_c": v.get("events_c"), "n_c": v.get("n_c")}})
+            arms = (_cb.arm_check(row, span, *_cb.arm_terms(o.get("slug"))) if not b.get("span_parts")
+                    else b.get("arm_check"))
+            if arms in ("SWAPPED", "CONFLICT"):
+                blocked = "ARM_COUNTS_SWAPPED"
+        if blocked:
+            x["confirm_binding"] = {"admitted": False, "why": blocked, "source": b.get("source"),
+                                    "pmid": b.get("pmid"), "tuple_kind": b.get("tuple_kind")}
+            continue
         if b.get("tuple_kind") == "COUNTS":
             probe = dict(x, g1_state="ONE_SOURCE", readings=[{
                 "values": {"deaths_t": v.get("events_t"), "n_t": v.get("n_t"), "deaths_c": v.get("events_c"),
