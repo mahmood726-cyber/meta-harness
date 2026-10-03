@@ -168,3 +168,24 @@ def test_g1r_reproduction_is_separate_from_g1():
     meta = {"positive_control": {"reproduced": True, "methods": ["FE"]}, "figure": "f2", "record_id": "mc-x"}
     assert gt.g1r_reproduction(meta, "C", [_srow("C")])["state"] == "REPRODUCED"
     assert gt.g1r_reproduction(dict(meta, positive_control={"reproduced": False}), "C", [_srow("C")])["state"] == "NOT_REPRODUCED"
+
+
+def test_text_linked_figures_need_the_outcome_sentence_and_its_pooled_triple(monkeypatch):
+    # a meta whose forest caption does not name the outcome: the body sentence naming the outcome, printing the effect
+    # and citing 'Figure N' links figure N; the read's pooled triple must BE that sentence's triple
+    assert sw._FIGREF.findall("all-cause mortality (RR 0.85, 95% CI 0.75-0.96; Fig. 2)") == ["2"]
+    assert sw._NOT_FOREST.search("PRISMA flow diagram of study selection") and not sw._NOT_FOREST.search("Forest plot")
+    import secondary_meta_build as smb
+    from reproducible_ai import model_source as ms
+    it = {"figure": {"fig_id": "f2"}, "link_sentence": "Mortality was lower (RR 0.85, 95% CI 0.75 to 0.96; Figure 2)."}
+    monkeypatch.setattr(smb, "figure_rows", lambda *a, **k: ([_srow("M")], {"gate": "PASS"}))
+    monkeypatch.setattr(ms, "load_record", lambda p: {})
+    for pooled, ok in (({"effect": "0.85", "lower": "0.75", "upper": "0.96"}, True),
+                       ({"effect": "0.80", "lower": "0.70", "upper": "0.91"}, False)):
+        monkeypatch.setattr(ms, "replay", lambda rec, _p=pooled: json.dumps({"pooled": _p}).encode())
+        rows, why = sw.ref_rows("t", it, {"record_id": "mc-1"}, {}, "C")
+        assert bool(rows) is ok, why
+        if ok:
+            assert rows[0].outcome_definition.startswith("Mortality was lower")
+        else:
+            assert why == "POOLED_NOT_IN_LINKING_SENTENCE"
