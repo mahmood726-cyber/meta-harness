@@ -41,3 +41,23 @@ def test_colchicine_is_closed_per_trial_and_never_compares_a_named_trial():
     d = next(r for r in a["per_trial"] if r["trial"] == "Imazio [18]")
     assert d["comparator_row_nearest_set"] == "on-treatment" and d["analysis_set"] == "NOT_REPRODUCED"
     assert d["theirs_with_our_row"] == "AGREE"
+
+
+def test_colchicine_disagreement_is_resolved_against_the_comparators_copps2_row():
+    o = json.load(open(os.path.join(gt.G1_DIR, "colchicine-postop-af.json"), encoding="utf-8"))
+    r = o["g1_status"]["result_disagreement"]
+    assert r["state"] == "RESOLVED_AGAINST_COMPARATOR_ROW" and r["rows"] == ["Imazio [18]"]
+    assert "RESULT_AGREES" in o["g1_status"]["unmet"]                    # beside RESULT_AGREES, never instead of it
+
+
+def test_an_undetermined_side_never_resolves():
+    pairs = [(_row("A", 0.81, 0.62, 1.06), _row("A", 0.66, 0.45, 0.96)),
+             (_row("B", 0.83, 0.56, 1.24), _row("B", 0.83, 0.56, 1.24))]
+    trials = [{"label": "A", "comparator_row": {"effect": "0.66", "lower": "0.45", "upper": "0.96"},
+               "agreement_with_comparator_row": "DISAGREE", "disagreement_side": "UNDETERMINED (primary value not anchored)"},
+              {"label": "B", "comparator_row": {"effect": "0.83", "lower": "0.56", "upper": "1.24"},
+               "agreement_with_comparator_row": "AGREE"}]
+    a = gt.verdict_attribution(pairs, "FE", trials)
+    assert a["drivers"] == ["A"] and a["resolution"]["state"] == "UNRESOLVED"
+    trials[0]["disagreement_side"] = "SECONDARY_WRONG (primary numbers are in the primary's own span)"
+    assert gt.verdict_attribution(pairs, "FE", trials)["resolution"]["state"] == "RESOLVED_AGAINST_COMPARATOR_ROW"
