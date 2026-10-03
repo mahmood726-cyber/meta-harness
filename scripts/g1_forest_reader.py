@@ -1126,6 +1126,31 @@ def deep_hits(slug, run, max_hits=100):
     return hits[:max_hits]
 
 
+KGAP_PAIRS = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader_kgap_pairs.json")
+
+
+def kgap_sweep_pairs(slugs):
+    """The metas the k-gap lane's TWO-SOURCE SWEEP found for each UNMATCHED comparator trial (scripts/
+    g1_two_source_sweep.py: Europe PMC CITES:<trial PMID> / NCT discovery, outputs/k_gap/sweep/<slug>.json
+    'metas_found'), the comparator excluded under its id. Returns [(slug, pmid)] in a stable order and records which
+    unmatched trials each meta was found for."""
+    out, table = [], {}
+    for slug in slugs:
+        p = os.path.join(ROOT, "outputs", "k_gap", "sweep", f"{slug}.json")
+        if not os.path.exists(p):
+            continue
+        comp = comparator_of(slug)
+        cov = {}
+        for t in _j(p).get("trials") or []:
+            for m in t.get("metas_found") or []:
+                if m != comp:
+                    cov.setdefault(m, []).append(t["label"])
+        table[slug] = {m: sorted(v) for m, v in sorted(cov.items())}
+        out += [(slug, m) for m in sorted(cov, key=lambda m: (-len(cov[m]), m))]
+    _save(KGAP_PAIRS, table)
+    return out
+
+
 def sweep(slugs, run, wide=False, deep=False):
     """The k-gap lane's two-source sweep (secondary_meta_build.metas_for: the topic's recorded Europe PMC search of
     open-access full-text metas), restricted DETERMINISTICALLY to the metas worth a dual read: not the comparator (read
@@ -1328,7 +1353,9 @@ def main(argv):
         slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1"))
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    if "--metas" in argv:
+    if "--kgap-sweep" in argv:
+        its, skipped = items([], run, pairs=kgap_sweep_pairs(slugs))
+    elif "--metas" in argv:
         its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv, deep="--deep" in argv))
     else:
         its, skipped = items(slugs, run)
