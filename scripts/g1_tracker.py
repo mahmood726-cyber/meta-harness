@@ -24,6 +24,7 @@ import io
 import json
 import math
 import os
+import re
 import sys
 from collections import Counter
 
@@ -1398,7 +1399,55 @@ def topic(slug, T):
     if bad:
         raise SystemExit(f"G1 TRACKER REFUSED {slug}: comparator trial(s) non-eligible without rule + span: {bad}")
     out["g1_status"] = g1_status(out)
+    if (out.get("comparator") or {}).get("estimate") is None:
+        ab = comparator_primary_absence(slug, cfg, comp)
+        if ab:
+            from harness import comparator_membership as cmb
+            st = cmb.stated_trial_count((held_record(slug, comp) or {}).get("abstract") or "")
+            out["g1_status"] = {"state": "COMPARATOR_NO_PRIMARY_RESULT", "criteria": {}, "unmet": ["COMPARATOR_PRIMARY_RESULT"],
+                                "excluded_by_scope": out["g1_status"].get("excluded_by_scope"),
+                                "comparator_stated_trials": (st or {}).get("k"), "comparator_trials_listed": len(trials),
+                                **ab}
     return out
+
+
+_EFFECT_SENT = re.compile(r"[^.]*\b(?:RR|OR|HR|MD|SMD|WMD|risk ratio|odds ratio|hazard ratio|mean difference)\b\s*"
+                          r"[=:,]?\s*\(?-?\d[^.]*(?:\.\d[^.]*)*\.", re.I)
+
+
+def comparator_primary_absence(slug, cfg, comp):
+    """The comparator reports NO pooled result for the topic's primary outcome: no sentence of its abstract -- or of its
+    held full text, only when that text is verified as the named article (k_gap.held_text_identity NAMED_ARTICLE) --
+    that carries an effect estimate names any comparator-outcome term. Returns the evidence (what it DOES pool, as
+    verbatim sentences), or None when it cannot be shown (then the topic stays NOT_YET: an extraction miss is not this).
+    dpp4-mace-t2d: van den ... 34754403 pools MI, stroke, HF hospitalisation, CV death, revascularisation, unstable
+    angina and arrhythmias -- never 3-point MACE."""
+    terms = [t for co in cfg.get("comparator_outcomes") or [] for t in [co.get("name")] + list(co.get("keywords") or [])
+             if t and t.lower() not in ("hazard ratio", "odds ratio", "risk ratio", "primary outcome", "primary endpoint")]
+    if not terms:
+        return None
+    crec = held_record(slug, comp) or {}
+    texts = [("abstract", crec.get("abstract") or "")]
+    try:
+        from kgap import k_gap
+        body, ref = k_gap.held_text(slug)
+        ident = k_gap.held_text_identity(crec.get("abstract") or "", body)
+        if ident.get("state") == "NAMED_ARTICLE":
+            texts.append((f"held full text ({ref})", body))
+        else:
+            return None                             # a held text that may not be the comparator cannot show an absence
+    except Exception:
+        return None
+    effects = [(where, s) for where, t in texts
+               for s in re.split(r"(?<=[.;])\s+(?=[A-Z])", re.sub(r"\s+", " ", t)) if _EFFECT_SENT.search(s)]
+    if not effects or not texts[0][1]:
+        return None
+    low = [t.lower() for t in terms]
+    if any(any(t in s.lower() for t in low) for _, s in effects):
+        return None
+    return {"why": "the comparator pools no result for the topic's primary outcome; every effect it reports is for "
+                   "another outcome", "terms_searched": terms,
+            "comparator_pools": [{"where": w, "sentence": s[:300]} for w, s in effects[:12]]}
 
 
 def _fmt(r):
