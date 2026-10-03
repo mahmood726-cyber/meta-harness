@@ -139,6 +139,13 @@ def _first_citation(chunk):
             year.group(1) if year else "", first)
 
 
+def kt_fold(s):
+    """Surname comparison only: diacritics, case and spaces folded ('Ben Ayed' == 'BenAyed')."""
+    import unicodedata
+    return re.sub(r"\s+", "", "".join(c for c in unicodedata.normalize("NFKD", s or "")
+                                      if not unicodedata.combining(c)).lower())
+
+
 def study_id_citations(text):
     """A review's 'References to studies included in this review' section (Cochrane layout) as reference records:
     one per STUDY ID ('Baillargeon 2004'), carrying its FIRST citation's first author, title and year. No PMID is
@@ -151,8 +158,15 @@ def study_id_citations(text):
     ids = list(_STUDY_ID.finditer(body))
     for i, sid in enumerate(ids):
         chunk = body[sid.end(): ids[i + 1].start() if i + 1 < len(ids) else len(body)]
-        surname, title, year, first = _first_citation(chunk)
         label = sid.group(1).replace("’", "'").replace("‐", "-").strip()
+        # the study ID names its PRIMARY report ('Legro 2007' = Legro RS, NEJM 2007), which need not be listed first
+        # (Cataldo 2008, a secondary report, is): take the ONE citation whose first author and year are the ID's
+        cites = [c for c in re.split(r"(?:\[ ?(?:DOI|PubMed|Google Scholar|PMC free article|CrossRef|Ref list|"
+                                     r"original article|[a-z ]{3,30}) ?\]\s*)+", chunk) if c.strip()]
+        id_sur, id_year = re.match(r"(.+?) ((?:19|20)\d\d)[a-z]?$", label).groups()
+        named = [p for p in map(_first_citation, cites)
+                 if p[2] == id_year and kt_fold(p[0]) == kt_fold(id_sur)]
+        surname, title, year, first = named[0] if len(named) == 1 else _first_citation(chunk)
         if label in out:                               # a study ID listed twice is not an identity
             dup.add(label)
             continue
@@ -441,6 +455,29 @@ def registered_before(n, year, idx) -> bool:
     return not (year and d[:4].isdigit() and int(d[:4]) > int(year))
 
 
+def _paper_registration(cands, pmids, u, idx, basis):
+    """ONE registration for a paper AACT links to `cands` (registered before publication), or None. A single candidate
+    is it. Several: the paper's OWN full accession list (DATABANK) must name exactly one of them, or -- when it names
+    several -- the row's own label must name exactly one by its registered acronym. No family tiebreak here."""
+    if len(cands) == 1:
+        return cands[0]
+    if len(cands) < 2:
+        return None
+    own = sorted({n for p in pmids if p in DATABANK for n in DATABANK[p]["databank"] + DATABANK[p]["abstract"]}
+                 & set(cands))
+    if len(own) == 1:
+        basis.append(f"pmid_nct_from_pubmed_record_among_aact:{own[0]}")
+        return own[0]
+    want = {k_gap.norm_acronym(a) for a in u["acronyms"]} - {""}
+    named = [n for n in (own or cands)
+             if k_gap.norm_acronym(((idx.get("study") or {}).get(n) or {}).get("acronym") or "") in want]
+    if len(own) > 1 and len(named) == 1:
+        basis.append(f"pmid_nct_paper_lists_several_label_acronym:{named[0]}")
+        return named[0]
+    basis.append(f"pmid_nct_ambiguous:{','.join(cands[:4])}")
+    return None
+
+
 def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     """Identity: cited ref PMID > NCT written in the unit > Author-Year against the comparator's own
     ref-list > acronym against AACT studies.acronym restricted to NCTs whose interventions name a topic
@@ -581,8 +618,18 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             basis.append(f"pmid_nct_from_pubmed_record_among_aact:{own[0]}")
             mapped = own
         elif len(own) > 1:
-            paper_lists_several = True
-            basis.append(f"pmid_nct_paper_lists_several:{','.join(own[:4])}")
+            # the ROW'S OWN LABEL may name exactly one of them by its registered acronym (synthetic example:
+            # a label naming one of a paper's two listed registrations by its acronym): direct evidence, not a
+            # tiebreak. SMART's own record lists SMART-MED and SMART-SURG: 'SMART' names neither, so it stays refused
+            want = {k_gap.norm_acronym(a) for a in u["acronyms"]} - {""}
+            named = [n for n in own if k_gap.norm_acronym(((idx.get("study") or {}).get(n) or {}).get("acronym") or "")
+                     in want]
+            if len(named) == 1:
+                basis.append(f"pmid_nct_paper_lists_several_label_acronym:{named[0]}")
+                mapped = named
+            else:
+                paper_lists_several = True
+                basis.append(f"pmid_nct_paper_lists_several:{','.join(own[:4])}")
     if len(mapped) > 1 and our_fams and not paper_lists_several:
         ours = [n for n in mapped if n in our_fams]
         if len(ours) == 1:
@@ -658,8 +705,9 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 basis.append(f"acronym_named_in_comparator_ref:{a}:{refs[0]['rid']}")
                 only = sorted({n for n, _t in idx["pmid_nct"].get(refs[0]["pmid"], [])
                                if registered_before(n, years.get(refs[0]["pmid"]), idx)})
-                if len(only) == 1:
-                    ncts.add(only[0])
+                one = _paper_registration(only, [refs[0]["pmid"]], u, idx, basis)
+                if one:
+                    ncts.add(one)
                 break
             if len(refs) > 1:
                 # REPORT-FAMILY at reference level: several references naming the acronym are ONE trial when every
@@ -714,8 +762,9 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
                 basis.append(f"acronym_long_form_in_comparator_ref:{a}:{r['rid']}:{lf[:60]}")
                 only = sorted({n for n, _t in idx["pmid_nct"].get(r["pmid"], [])
                                if registered_before(n, years.get(r["pmid"]), idx)})
-                if len(only) == 1:
-                    ncts.add(only[0])
+                one = _paper_registration(only, [r["pmid"]], u, idx, basis)
+                if one:
+                    ncts.add(one)
                 break
             if len(refs) > 1:
                 basis.append(f"acronym_long_form_ambiguous:{a}:{len(refs)}")

@@ -135,3 +135,77 @@ def test_negative_single_nct_fallback_kept_for_a_single_trial_paper(monkeypatch)
     monkeypatch.setattr(kt, "DATABANK", {"31707795": {"databank": ["NCT01169259"], "abstract": []}})
     r = kt.resolve_unit(unit("Manson 2019 [50]", [{"pmid": "31707795"}]), None, IDX, None)
     assert r["ncts"] == ["NCT01169259"]
+
+
+# ---- a Cochrane study ID names its PRIMARY report: 'Legro 2007' is Legro RS 2007 (NEJM, NCT00068861), not the first
+# citation listed under it (Cataldo 2008, a secondary report with no registration) -- acq/k-gap's identity chain
+# resolved this row to the NEJM paper; ours took Cataldo. Found by comparing the two chains at integration.
+LEGRO = ("References to studies included in this review "
+         "Legro 2007 {published data only} Cataldo N, Barnhart H, Legro R. Extended-release metformin does not reduce "
+         "the clomiphene citrate dose required to induce ovulation in polycystic ovary syndrome. Journal of Clinical "
+         "Endocrinology and Metabolism 2008;93(8):3147-7. [ DOI ] [ PMC free article ] [ PubMed ] [ Google Scholar ] "
+         "Legro RS, Barnhart HX, Schlaff WD. Clomiphene, metformin, or both for infertility in the polycystic ovary "
+         "syndrome. New England Journal of Medicine 2007;356:551-66. [original article] [ DOI ] [ PubMed ] "
+         "[ Google Scholar ] "
+         "Liu 2017 {published data only} Liu C, Feng G, Huang W. Comparison of clomiphene citrate and letrozole for "
+         "ovulation induction in women with polycystic ovary syndrome: a prospective randomized trial. Gynecological "
+         "Endocrinology 2017;33(11):872-6. [ DOI ] [ PubMed ] [ Google Scholar ] "
+         "Additional references")
+
+
+def test_study_id_takes_the_citation_whose_author_and_year_name_the_study():
+    refs = kt.study_id_citations(LEGRO)
+    assert (refs["Legro 2007"]["first_author"], refs["Legro 2007"]["year"]) == ("Legro", "2007")
+    assert refs["Legro 2007"]["title"].startswith("Clomiphene, metformin, or both")
+
+
+def test_negative_study_id_with_one_citation_unchanged():
+    refs = kt.study_id_citations(LEGRO)
+    assert (refs["Liu 2017"]["first_author"], refs["Liu 2017"]["year"]) == ("Liu", "2017")
+
+
+# ---- a paper listing several registrations is still resolved when the ROW'S OWN LABEL names exactly one of them by
+# its AACT acronym. SYNTHETIC acronyms below (ALPHA / BETA-ED); the real SMART case is the negative at the end.
+def test_several_listed_resolved_by_the_labels_own_acronym(monkeypatch):
+    monkeypatch.setattr(kt, "DATABANK", {"29485925": {"databank": ["NCT02444988", "NCT02547779"], "abstract": []}})
+    idx = dict(idx_two_regs("NCT02444988", "NCT02547779", "29485925"),
+               study={"NCT02444988": {"acronym": "ALPHA"}, "NCT02547779": {"acronym": "BETA-ED"}})
+    r = kt.resolve_unit(unit("Semler (ALPHA trial)", [{"pmid": "29485925"}]), None, idx, None)
+    assert r["ncts"] == ["NCT02444988"]
+    assert "pmid_nct_paper_lists_several_label_acronym:NCT02444988" in r["basis"]
+
+
+def test_negative_several_listed_without_a_label_acronym_stays_refused(monkeypatch):
+    monkeypatch.setattr(kt, "DATABANK", {"29485925": {"databank": ["NCT02444988", "NCT02547779"], "abstract": []}})
+    idx = dict(idx_two_regs("NCT02444988", "NCT02547779", "29485925"),
+               study={"NCT02444988": {"acronym": "ALPHA"}, "NCT02547779": {"acronym": "BETA-ED"}})
+    r = kt.resolve_unit(unit("Semler [15]", [{"pmid": "29485925"}]), None, idx, None, our_fams={"NCT02547779"})
+    assert r["ncts"] == []
+
+
+def test_chain3_acronym_ref_applies_the_same_paper_registration_rules(monkeypatch):
+    # (synthetic) 'Semler (ALPHA trial)' reaches PMID 29485925 through the comparator's reference naming ALPHA (chain 3), not a
+    # cited PMID; the PMID -> NCT step there must apply the same full-list + label-acronym rules
+    monkeypatch.setattr(kt, "DATABANK", {"29485925": {"databank": ["NCT02444988", "NCT02547779"], "abstract": []}})
+    idx = dict(idx_two_regs("NCT02444988", "NCT02547779", "29485925"),
+               study={"NCT02444988": {"acronym": "ALPHA"}, "NCT02547779": {"acronym": "BETA-ED"}})
+    parsed = {"refs": {"CR15": {"rid": "CR15", "label": "15", "ordinal": 15, "pmid": "29485925", "year": "2018",
+                                "first_author": "Semler", "title": "Balanced crystalloids versus saline",
+                                "text": "Semler MW. Balanced crystalloids versus saline in critically ill adults "
+                                        "(ALPHA). N Engl J Med 2018."}}}
+    u = unit("Semler (ALPHA trial)", [])
+    u["layout"] = "text"
+    r = kt.resolve_unit(u, parsed, idx, None)
+    assert r["ncts"] == ["NCT02444988"]
+    assert "pmid_nct_paper_lists_several_label_acronym:NCT02444988" in r["basis"]
+
+
+def test_negative_real_smart_two_registrations_stay_refused(monkeypatch):
+    # REAL: SMART is registered twice in AACT (NCT02444988 SMART-MED, NCT02547779 SMART-SURG) and its NEJM record
+    # (PMID 29485925) lists both. The label 'SMART' names neither registration's acronym exactly: no single NCT.
+    monkeypatch.setattr(kt, "DATABANK", {"29485925": {"databank": ["NCT02444988", "NCT02547779"], "abstract": []}})
+    idx = dict(idx_two_regs("NCT02444988", "NCT02547779", "29485925"),
+               study={"NCT02444988": {"acronym": "SMART-MED"}, "NCT02547779": {"acronym": "SMART-SURG"}})
+    r = kt.resolve_unit(unit("Semler (SMART trial)", [{"pmid": "29485925"}]), None, idx, None)
+    assert r["ncts"] == []
+    assert "pmid_nct_paper_lists_several:NCT02444988,NCT02547779" in r["basis"]
