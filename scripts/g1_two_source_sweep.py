@@ -24,8 +24,11 @@ concurrency 3, replayable), planned greedily so each unmatched trial gets two ca
 the SAME gate as the tier (secondary_meta_build.figure_rows: rows consistent, pooled row printed, rows reproduce it).
 A model-read row is a PROPOSAL: it counts only after verify_typed (found in the trial's own text / posted results) or
 two_source (an independent meta prints the same tuple). Posted results alone are one source (AACT_ONLY_SINGLE_SOURCE,
-recorded, not counted). A trial is SWEEP-VERIFIED only through a counted route (SWEEP_*); its tuple is then compared
-with the comparator's own printed row (agreement), which is reported, never used as a source.
+recorded, not counted). SWEEP_SECONDARY_SINGLE (Mahmood decision 3 Oct): with no OPEN primary held (no open full
+text, no bindable posted results) and nothing contradicting it, ONE typed-admitted row from a self-reproducing
+non-comparator meta (controlled table or gated figure read; never an uncontrolled table) counts, queued for primary
+verification. A trial is SWEEP-VERIFIED only through a counted route (SWEEP_*); its tuple is then compared with the
+comparator's own printed row (agreement), which is reported, never used as a source.
 
     python scripts/g1_two_source_sweep.py [--run] [SLUG ...]   -> outputs/k_gap/sweep/<slug>.json + sweep_summary.json
         --run   network allowed (Europe PMC search, JATS fetch); without it, only recorded searches / held JATS are used
@@ -50,7 +53,7 @@ from harness import secondary_meta as sm  # noqa: E402
 OUT = os.path.join(ROOT, "outputs", "k_gap")
 SWEEP = os.path.join(OUT, "sweep")
 SEARCH = os.path.join(SWEEP, "search")
-MAX_METAS_PER_TRIAL = 6
+MAX_METAS_PER_TRIAL = 10
 META_TITLE = '(TITLE:"meta-analysis" OR TITLE:"meta analysis" OR TITLE:"meta-analyses" OR TITLE:"systematic review")'
 
 
@@ -68,7 +71,7 @@ def _save(p, obj):
 
 
 # ------------------------------------------------------------------ targets
-def targets(slugs=None):
+def targets(slugs=None, routes=None):
     """{slug: [trial dict]} for every unmatched, un-named comparator trial, with its identity (PMIDs, NCTs, acronyms)."""
     T = _j(os.path.join(OUT, "k_gap_table.json"))
     by = {}
@@ -84,7 +87,7 @@ def targets(slugs=None):
             continue
         named = {d.get("trial") for d in o.get("named_differences") or []}
         for x in o.get("trials") or []:
-            if x.get("in_our_pool") or x["label"] in named:
+            if x.get("in_our_pool") or x["label"] in named or (routes and x.get("route") not in routes):
                 continue
             t = by.get((o["slug"], x["label"])) or {}
             acr = sorted({v["acronym"] for v in (t.get("study") or {}).values() if (v or {}).get("acronym")})
@@ -284,6 +287,12 @@ def prepare_figures(slug, metas, run):
     return items, state
 
 
+def ss_rows(rows):
+    """Rows admissible for SECONDARY_SINGLE: typed-admitted (state SECONDARY_UNVERIFIED) and from a SELF-REPRODUCING
+    source -- a controlled typed table or a gated figure read (an uncontrolled table never counts alone)."""
+    return [r for r in rows if r.state == sm.UNVERIFIED and r.provenance != "TYPED_TABLE_UNCONTROLLED"]
+
+
 def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=None):
     import secondary_meta_build as smb
     spec = smb.spec_of(slug)
@@ -360,6 +369,16 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
                                                    "events_c", "n_c")}
             basis = {"meta": best.meta_pmid, "table": (best.location or {}).get("id"),
                      "row_label": best.trial_label, "verification": best.verification}
+        elif ss_rows(mine) and not any(r.state in (sm.MISMATCH, sm.BLOCKED) for r in mine) and not gt.primary_open(
+                slug, {"pmid": t["report_pmid"]}, {"pmids": t["pmids"], "ncts": t["ncts"]}):
+            # SECONDARY_SINGLE (Mahmood 3 Oct): ONE self-reproducing non-comparator meta, typed-admitted row, no open
+            # primary, nothing contradicting it; queued for primary verification
+            best = ss_rows(mine)[0]
+            route = "SWEEP_SECONDARY_SINGLE"
+            value = {k: getattr(best, k) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t",
+                                                   "events_c", "n_c")}
+            basis = {"meta": best.meta_pmid, "where": best.location, "row_label": best.trial_label,
+                     "digest": best.source_digest, "provenance": best.provenance, "queued_for_primary": True}
         elif bind and len(bind.get("arms") or []) == 2:
             a = bind["arms"]
             # posted results ALONE are one source: recorded, never counted (SMART's posted counts cover 5,381 patients,
@@ -399,7 +418,9 @@ def main(argv):
     run = "--run" in argv
     slugs = [a for a in argv if not a.startswith("--")] or None
     t0 = time.time()
-    tg = targets(slugs)
+    # --routes=UNVERIFIED: the trials that already HAVE one row (cheapest second-source wins) first (Mahmood 3 Oct)
+    routes = next((set(a.split("=", 1)[1].split(",")) for a in argv if a.startswith("--routes=")), None)
+    tg = targets(slugs, routes)
     n_nct = add_registry_ncts(tg)
     # discovery: per trial, in parallel (network bound; Europe PMC returns 503 above ~2 concurrent)
     metas_by = {}
@@ -438,6 +459,7 @@ def main(argv):
         with cf.ThreadPoolExecutor(max_workers=3) as ex:              # codex concurrency 3
             for r in ex.map(smb.read_one, todo):
                 runs[r["key"]] = r
+                runs_store.save(runs, slugs={r["key"].split("::")[0]})   # ledgered per read: a kill never re-pays
                 print("READ", r["key"], r["state"], r["record_id"], flush=True)
         runs_store.save(runs, slugs={it["slug"] for it in todo})
     summary = {"started": time.strftime("%Y-%m-%dT%H:%M:%S"), "run": run, "ncts_added_from_aact_references": n_nct,
@@ -451,7 +473,15 @@ def main(argv):
         o["metas"].update({m: v for m, v in fig_state[s].items() if m not in o["metas"]})
         for r in o["trials"]:
             r["searches"] = disc.get((s, r["label"]))
-        _save(os.path.join(SWEEP, f"{s}.json"), o)
+        sp = os.path.join(SWEEP, f"{s}.json")
+        if routes and os.path.exists(sp):
+            # a route-filtered run (--routes=) re-sweeps a SUBSET: merge it into the topic's file, never truncate it
+            prev = _j(sp)
+            mine = {r["label"] for r in o["trials"]}
+            o["trials"] = [r for r in prev.get("trials") or [] if r["label"] not in mine] + o["trials"]
+            o["metas"] = dict(prev.get("metas") or {}, **o["metas"])
+            o["tally"] = dict(Counter(r["verdict"] for r in o["trials"]))
+        _save(sp, o)
         summary["topics"][s] = o["tally"]
         print(s, o["tally"], flush=True)
     tot = Counter()
