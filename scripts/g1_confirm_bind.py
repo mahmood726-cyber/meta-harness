@@ -108,7 +108,7 @@ def _pct_ok(e, n, printed):
     return n > 0 and abs(100.0 * e / n - float(printed)) <= 0.5 * 10 ** -d + 1e-9
 
 
-def table_match(row, text, terms):
+def table_match(row, text, terms, arms=((), ())):
     """(span_parts, by_counts) from a held text's STRUCTURED tables (harness.fulltext renders cells ' | '), or None.
     COUNTS: a row whose label names the topic outcome, with 'e (p%)' in the column whose header states N = the row's
     N for each arm, p consistent with e/N at its printed precision. EFFECT_CI: 'effect (lower-upper)' in a column
@@ -145,6 +145,11 @@ def table_match(row, text, terms):
                         if ns[i] == nn and e == ee and _pct_ok(e, nn, m.group(2)):
                             ok[arm] = i
                 if "t" in ok and "c" in ok and ok["t"] != ok["c"]:
+                    iv = [w.lower() for w in list(arms[0]) + GENERIC_INTERV if w]
+                    cp = [w.lower() for w in list(arms[1]) + GENERIC_COMP if w]
+                    ht, hc = head[ok["t"]].lower(), head[ok["c"]].lower()
+                    if any(w in ht for w in cp) and any(w in hc for w in iv) and                             not any(w in ht for w in iv) and not any(w in hc for w in cp):
+                        continue                     # the comparator's arms are SWAPPED against the table's headers
                     return [f"TABLE {title}", lines[0], ln], True
             if row.effect not in (None, "") and row.measure in _MEASURE_HEAD:
                 for i, c in enumerate(cells[1:], 1):
@@ -154,6 +159,57 @@ def table_match(row, text, terms):
                             sm._eq_printed(m.group(3), row.upper):
                         return [f"TABLE {title}", lines[0], ln], False
     return None
+
+
+def arm_terms(slug):
+    """(intervention_terms, comparator_terms) of the topic config, as the shared table locator reads them."""
+    p = os.path.join(ROOT, "topics", slug + ".json")
+    cfg = acq._j(p) if os.path.exists(p) else {}
+    return cfg.get("intervention_terms") or [], cfg.get("comparator_terms") or []
+
+
+GENERIC_COMP = ["placebo", "control group", "control arm", "controls", "usual care", "standard care", "saline"]
+GENERIC_INTERV = ["study group", "treatment group", "experimental group", "intervention group", "active group"]
+
+
+def arm_check(row, span, interv, comp):
+    """Which arm label is NEAREST each matched pair in the span (120 chars before, 60 after): CONSISTENT (treatment pair
+    by an intervention term, control pair by a comparator term), SWAPPED (the reverse: refused -- a comparator that
+    swapped arms must not be 'confirmed'), or UNRESOLVED (no arm term near a pair: recorded, not refused)."""
+    s = (span or "").lower()
+    iv = [t.lower() for t in list(interv or []) + GENERIC_INTERV if t]
+    cp = [t.lower() for t in list(comp or []) + GENERIC_COMP if t]
+
+    bound = _re.compile(r"[;.](?!\d)|\band\b|\bversus\b|\bvs\b\.?|\bcompared (?:to|with)\b|\bwhereas\b|\bwhile\b")
+
+    def label_in(seg, last):
+        hits = [(k.start(), lab) for lab, terms_ in (("I", iv), ("C", cp)) for t in terms_
+                for k in _re.finditer(_re.escape(t), seg)]
+        if not hits:
+            return None
+        return (max(hits) if last else min(hits))[1]
+
+    def side(e, n):
+        m = _re.search(rf"(?<![\d.]){e}\s*(?:/|of|out of)\s*(?:{n:,}|{n})(?![\d])", s)
+        if not m:
+            return None
+        # the clause the pair sits in: the arm named EARLIER in it ('in the placebo group in 9% (7/78)'), else the
+        # first named after it, before the next clause boundary ('6/16 (37%) in the placebo group and ...')
+        pre = s[max(0, m.start() - 160): m.start()]
+        cuts = list(bound.finditer(pre))
+        pre = pre[cuts[-1].end():] if cuts else pre
+        got = label_in(pre, last=True)
+        if got:
+            return got
+        post = s[m.end(): m.end() + 80]
+        c = bound.search(post)
+        return label_in(post[:c.start()] if c else post, last=False)
+    a, b = side(row.events_t, row.n_t), side(row.events_c, row.n_c)
+    if a == "C" and b == "I":
+        return "SWAPPED"
+    if a == "I" and b == "C":
+        return "CONSISTENT"
+    return "UNRESOLVED"
 
 
 def bind_one(slug, x, pmids, ncts, terms):
@@ -171,7 +227,7 @@ def bind_one(slug, x, pmids, ncts, terms):
             hit = (sm.typed_match_text(row, payload, terms, ref) if kind == "text"
                    else sm.typed_match_registry(row, payload, terms, ref))
             if not hit and kind == "text":
-                tb = table_match(row, payload, terms)
+                tb = table_match(row, payload, terms, arm_terms(slug))
                 if tb:
                     parts, by_counts = tb
                     body = payload
@@ -199,8 +255,12 @@ def bind_one(slug, x, pmids, ncts, terms):
                 if extract._is_subgroup_sentence(span) or extract._is_subgroup_sentence(before) or \
                         SUBGROUP_EXTRA.search(span) or SUBGROUP_EXTRA.search(before):
                     return None, f"SUBGROUP_OR_POST_HOC_SPAN:{ref}"
+                arms = arm_check(row, span, *arm_terms(slug)) if by_counts else "NOT_APPLICABLE"
+                if arms == "SWAPPED":
+                    return None, f"ARMS_SWAPPED_VS_COMPARATOR:{ref}"
             else:
                 by_counts = has_counts and hit.get("route") == "PRIMARY_REGISTRY" and "groups" in span
+                arms = "REGISTRY_GROUPS"
             body = payload if isinstance(payload, str) else json.dumps(payload, sort_keys=True)
             return {"slug": slug, "label": x["label"], "pmid": p or None, "ncts": ncts,
                     "source_kind": "TEXT" if kind == "text" else "AACT", "source": ref,
@@ -211,6 +271,7 @@ def bind_one(slug, x, pmids, ncts, terms):
                                if by_counts else {"measure": row.measure, "effect": row.effect, "lower": row.lower,
                                                   "upper": row.upper}),
                     "registry_fields": hit.get("registry_fields"),
+                    "arm_check": arms,
                     "search_key": SEARCH_KEY,
                     "agreement_with_comparator_row": "NOT_INDEPENDENT:SEARCH_KEYED_BY_COMPARATOR_ROW"}, "BOUND"
     return None, ("NO_PRIMARY_SOURCE_HELD" if not tried else

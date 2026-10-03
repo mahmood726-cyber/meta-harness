@@ -189,3 +189,23 @@ def test_table_effect_needs_the_measure_in_the_column_header(monkeypatch):
     assert why == "BOUND" and b["tuple_kind"] == "EFFECT_CI"
     bad = _tbl("Table 2: Outcomes.", "Outcome | Drug | Placebo | P value", "Diarrhoea | 1 | 2 | 0.84 (0.73–0.97)")
     assert run(monkeypatch, bad, trial(effect="0.84", lower="0.73", upper="0.97", measure="OR"))[0] is None
+
+
+# ---- arm orientation -------------------------------------------------------------------------------------------------
+def test_text_counts_with_arms_swapped_against_the_comparator_are_refused(monkeypatch):
+    # the comparator assigns 7/78 to the TREATMENT arm; the trial prints 7/78 for PLACEBO
+    b, why = run(monkeypatch, "RESULTS: diarrhea developed in the placebo group in 9% (7/78) and in the study group "
+                              "in 1.4% (1/73).", trial(events_t="7", n_t="78", events_c="1", n_c="73", measure="RR"))
+    assert b is None and why.startswith("ARMS_SWAPPED_VS_COMPARATOR")
+
+
+def test_text_counts_with_consistent_arms_record_it(monkeypatch):
+    b, why = run(monkeypatch, "RESULTS: diarrhea developed in the placebo group in 9% (7/78) and in the study group "
+                              "in 1.4% (1/73).", trial(events_t="1", n_t="73", events_c="7", n_c="78", measure="RR"))
+    assert why == "BOUND" and b["arm_check"] == "CONSISTENT"
+
+
+def test_table_counts_with_swapped_headers_are_refused(monkeypatch):
+    t = _tbl("Table 2: Outcomes.", "Outcome | Placebo (N = 7942) | Treatment group (N = 7860)",
+             "Diarrhoea — no. (%) | 418 (5.3) | 467 (5.9)")
+    assert run(monkeypatch, t, trial(**ROWC))[0] is None
