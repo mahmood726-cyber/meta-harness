@@ -112,6 +112,27 @@ def same_trials_pool(pairs, method_label):
     return out
 
 
+def whole_pool_event_check(o):
+    """For whole pools that cannot be compared on one measure: does the comparator's printed outcome even count the
+    trials' primary outcome? (harness/event_total_check.py: the trials' summed primary-outcome events, each a verbatim
+    span of the trial's held abstract, against the most events the comparator's printed rates allow over its stated
+    patients.) EVENTS_INCOMPATIBLE_WITH_COMPARATOR_RATES means no number on our side could 'agree' with it -- the
+    comparator counted a different outcome definition, window or population. Read-only; never changes the verdict."""
+    try:
+        from harness import comparator_membership as cmb, event_total_check as etc
+        slug = o.get("slug")
+        crec = held_record(slug, o.get("comparator_pmid")) or {}
+        st = cmb.stated_trial_count(crec.get("abstract") or "")
+        cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
+        terms = [(cfg.get("comparator_outcomes") or [{}])[0].get("name") or ""] + \
+                list((cfg.get("primary_outcome") or {}).get("keywords") or [])
+        matched = [str(x.get("family") or "").replace("PMID ", "").strip() for x in o.get("trials") or [] if is_matched(x)]
+        return etc.check(crec.get("abstract") or "", terms, (st or {}).get("n_patients"),
+                         {p: (held_record(slug, p) or {}).get("abstract") or "" for p in matched})
+    except Exception as e:                                  # an unrunnable check reports that it did not run
+        return {"state": "NOT_RUN", "why": str(e)[:200]}
+
+
 def pair_trial(pair, trials):
     """The tracker trial a same-trials pair belongs to: the trial whose comparator_row has the comparator side's printed
     values (effect, lower, upper -- the same row object's numbers); else one whose label equals either side's label."""
@@ -1066,7 +1087,8 @@ def whole_pool_comparison(o):
         return None
     m = (ours.get("scale") or "").upper()
     if m != (comp.get("scale") or "").upper():
-        return {"state": "WHOLE_POOL_MEASURE_DIFFERS", "ours": ours.get("scale"), "theirs": comp.get("scale")}
+        return {"state": "WHOLE_POOL_MEASURE_DIFFERS", "ours": ours.get("scale"), "theirs": comp.get("scale"),
+                "outcome_check": whole_pool_event_check(o)}
     o_ = {k: ours[k] for k in ("estimate", "ci_low", "ci_high")}
     t_ = {k: comp[k] for k in ("estimate", "ci_low", "ci_high")}
     return {"state": "POOLED", "basis": "ALL_TRIALS_SHARED_WHOLE_POOLS (comparator prints no per-trial rows)",

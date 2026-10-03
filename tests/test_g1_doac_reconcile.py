@@ -3,6 +3,7 @@ without arm sizes (harness/event_total_check.py), and three defects of scripts/g
 on a topic other than colchicine (each failed before its fix)."""
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -46,3 +47,14 @@ def test_a_full_text_scope_verdict_survives_a_clone_without_the_body():
     t = next(t for t in rc.reconcile("colchicine-postop-af")["trials"] if t["trial"] == "Zarpelon [20]")
     assert t["verdict"].startswith("out of the registered protocol's scope; the held OA FULL TEXT states it")
     assert t["stating_span"].startswith("Methods Study Design and Participants This is a prospective, randomized, open")
+
+
+def test_the_tracker_carries_why_doac_vte_cannot_agree():
+    # 6 / 6 eligible matched; RESULT_AGREES unmet. The tracker row itself says why: different measures, AND the
+    # comparator's printed rates cannot hold the trials' own primary-outcome events -- it counted a different outcome
+    import g1_tracker as gt
+    o = json.load(open(os.path.join(gt.G1_DIR, "doac-vte-recurrence.json"), encoding="utf-8"))
+    assert o["N_eligible"] == 6 and o["k_matched"] == 6 and o["g1_status"]["unmet"] == ["RESULT_AGREES"]
+    oc = o["same_trials"]["outcome_check"]
+    assert o["same_trials"]["state"] == "WHOLE_POOL_MEASURE_DIFFERS"
+    assert oc["state"] == "EVENTS_INCOMPATIBLE_WITH_COMPARATOR_RATES" and oc["trial_events_total"] == 702
