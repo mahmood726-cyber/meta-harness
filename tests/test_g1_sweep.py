@@ -228,9 +228,12 @@ def _cs_topic(g1r="REPRODUCED", state="SECONDARY_UNVERIFIED"):
     cr = {"measure": "RR", "effect": "0.80", "lower": "0.60", "upper": "1.05", "events_t": None, "n_t": None,
           "events_c": None, "n_c": None}
     return {"g1r_reproduction": {"state": g1r},
-            "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "comparator_row": cr},
+            "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "comparator_row": cr,
+                        "our_value": dict(cr), "agreement_with_comparator_row": "AGREE"},      # orientation: A agrees
                        {"label": "B", "in_our_pool": False, "route": "UNVERIFIED", "comparator_row": cr,
-                        "comparator_row_state": state, "scope_difference": None, "g1_countable": False}],
+                        "comparator_row_state": state, "scope_difference": None, "g1_countable": False,
+                        "comparator_row_provenance": {"meta_pmid": "C", "location": {"kind": "figure", "id": "F2"},
+                                                      "digest": "d" * 64, "read": "MODEL_PROPOSAL_DUAL:mc-1+mc-2"}}],
             "N_eligible": 2, "k_matched": 1, "open_gaps": ["B"], "named_differences": [],
             "same_trials": {"verdict": {"verdict": "AGREE"}}}
 
@@ -251,3 +254,15 @@ def test_a_non_self_reproducing_comparators_rows_are_never_admitted():
         assert o["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_DOES_NOT_SELF_REPRODUCE")
     for st in ("REFUSED", "MISMATCH", "BLOCKED_CROSSCHECK"):           # an untyped / contradicted row neither
         assert gt.apply_coverage(_cs_topic(state=st))["trials"][1]["coverage"] is None
+
+
+def test_comparator_rows_need_established_orientation_and_provenance():
+    o = _cs_topic()
+    o["trials"][0]["agreement_with_comparator_row"] = "NOT_COMPARABLE"          # no shared trial agrees: UNKNOWN
+    assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"] == "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
+    o = _cs_topic()
+    o["trials"][1].pop("comparator_row_provenance")
+    assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_ROW_PROVENANCE_MISSING")
+    # a MIRRORED shared row (reciprocal ratio) disputes orientation; a merely different number does not
+    assert gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "1.25"})
+    assert not gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "0.70"})
