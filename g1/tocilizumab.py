@@ -561,6 +561,36 @@ def _held_papers() -> dict:
 
 _HELD = None
 
+# Two REACT rows share NCT04331808 (CORIMUNO-TOCI-1 severe, CORIMUNO-TOCI-ICU critical). A paper naming that registration
+# belongs to ONE of them only when its TITLE states the population; otherwise to neither. One rule for held cache papers
+# (held_texts) and acquired papers (scripts/g1_toci_cascade.binding): the cache path bound the TOCI-1 paper (33080017) to
+# BOTH by registration alone, so a second meta's Hermine row reached CORIMUNO-TOCI-ICU (plant Q16).
+TITLE_LABEL = {"CORIMUNO-TOCI-ICU": r"critically ill|intensive care|\bICU\b",
+               "CORIMUNO-TOCI-1": r"(?:moderate|severe)[^.]{0,30}(?:COVID|pneumonia)"}
+_TITLES = None
+_SHARED_REG_GUARD = True        # plants set False to show the defect fires without it
+
+
+def _title(pmid: str) -> str:
+    global _TITLES
+    if _TITLES is None:
+        _TITLES = {}
+        for v in json.load(open(os.path.join(ROOT, "cache", SLUG, "records.json"), encoding="utf-8")).values():
+            if isinstance(v, list):
+                _TITLES.update({str(x.get("id")): x.get("title") or "" for x in v if isinstance(x, dict)})
+    return _TITLES.get(str(pmid), "")
+
+
+def shared_registration_label(label: str, title: str) -> bool:
+    """True when `label` does not share its registration with another REACT row, or when the title states THIS row's
+    population and no other sharing row's."""
+    nct = IDENTITY[label][0]
+    sharing = [l for l, (n, _) in IDENTITY.items() if n and n == nct]
+    if len(sharing) < 2:
+        return True
+    hit = [l for l in sharing if l in TITLE_LABEL and re.search(TITLE_LABEL[l], title or "", re.I)]
+    return hit == [label]
+
 _REG_STATED = re.compile(r"(?:trial registration|registration(?: number)?|registered (?:at|with|on|in)|identifier|"
                          r"ClinicalTrials\.gov(?: number| identifier| registration)?)[^.]{0,60}?(NCT\d{8})", re.I)
 
@@ -596,7 +626,7 @@ def held_texts(label: str) -> list:
     nct = IDENTITY[label][0]
     out = []
     for pmid, text in sorted(_HELD.items()) if nct else []:
-        if own_registration(text) == nct:
+        if own_registration(text) == nct and (not _SHARED_REG_GUARD or shared_registration_label(label, _title(pmid))):
             out.append((f"PMID {pmid}", text))
     # papers acquired for THIS trial (scripts/g1_toci_acquire.py): found by its registration in PubMed's secondary-id
     # field (or, for a trial with none, by its name in title/abstract), never a protocol, review or meta-analysis
