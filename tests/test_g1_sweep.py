@@ -77,7 +77,9 @@ def test_every_committed_sweep_file_counts_only_two_source_verdicts():
             continue
         for t in json.load(open(os.path.join(d, f), encoding="utf-8"))["trials"]:
             if str(t["verdict"]).startswith("SWEEP_"):
-                rows = [r for r in t["rows"] if r["state"] in ("PRIMARY_VERIFIED", "TWO_SOURCE_VERIFIED")]
+                ok = ("PRIMARY_VERIFIED", "TWO_SOURCE_VERIFIED") + (
+                    ("SECONDARY_UNVERIFIED",) if t["verdict"] == "SWEEP_SECONDARY_SINGLE" else ())
+                rows = [r for r in t["rows"] if r["state"] in ok]
                 if not rows or t["value"] is None:
                     bad.append(f"{f}::{t['label']}")
     assert not bad, bad
@@ -127,3 +129,96 @@ def test_one_primary_source_is_primary_when_typed_and_never_when_reconstructed()
     assert gt.single_primary_source(multi) == (False, "AACT_MULTIPLE_TIME_FRAMES")
     o = {"trials": [_one_source("TEXT PMID 33933206", span=span)], "open_gaps": ["T"]}
     assert gt.apply_single_primary(o) == ["T"] and o["k_matched"] == 1 and o["open_gaps"] == []
+
+
+def _srow(meta, state="SECONDARY_UNVERIFIED", prov="MODEL_PROPOSAL:mc-1"):
+    from harness import secondary_meta as _sm
+    r = _sm.SecondaryRow(meta_pmid=meta, meta_doi="", location={"kind": "figure", "id": "f1"}, source_digest="d" * 64,
+                         provenance=prov, trial_label="T", measure="RR", outcome_definition="", effect="0.8",
+                         lower="0.6", upper="1.0")
+    r.state = state
+    return r
+
+
+def test_secondary_single_counts_one_self_reproducing_non_comparator_meta_only(monkeypatch):
+    # Mahmood 3 Oct: with no open primary, ONE non-comparator meta's typed-admitted row counts (route SECONDARY_SINGLE);
+    # the comparator's own row never does; a contradiction, an uncontrolled table or an open primary refuses it
+    monkeypatch.setattr(gt, "primary_open", lambda slug, mine, t: [])
+    metas = {"M": {"usable": True, "positive_control": {"reproduced": True}, "figure": "f1", "record_id": "mc-1"},
+             "N": {"usable": False, "positive_control": {"reproduced": False}}}
+    assert gt.secondary_single([_srow("C")], metas, {"C"}, "t", {}, {}) is None                 # comparator only
+    ok = gt.secondary_single([_srow("M")], metas, {"C"}, "t", {}, {})
+    assert ok["row"].meta_pmid == "M" and ok["provenance"]["meta_pmid"] == "M" and "queued for primary" in ok["basis"]
+    assert gt.secondary_single([_srow("N")], metas, {"C"}, "t", {}, {})["why"] == "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
+    assert gt.secondary_single([_srow("M"), _srow("N", "MISMATCH")], metas, {"C"}, "t", {}, {})["why"].startswith("CONTRADICTED")
+    assert "row" not in gt.secondary_single([_srow("M", prov="TYPED_TABLE_UNCONTROLLED")], metas, {"C"}, "t", {}, {})
+    monkeypatch.setattr(gt, "primary_open", lambda slug, mine, t: ["OPEN_FULL_TEXT"])
+    assert gt.secondary_single([_srow("M")], metas, {"C"}, "t", {}, {})["why"].startswith("PRIMARY_OPENLY_AVAILABLE")
+
+
+def test_a_named_trial_is_never_matched_and_secondary_single_is_its_own_route_group():
+    x = {"in_our_pool": False, "g1_countable": True, "route": "SECONDARY_SINGLE", "scope_difference": None}
+    assert gt.is_matched(x) and gt.route_group("SWEEP_SECONDARY_SINGLE") == "SECONDARY_SINGLE"
+    assert not gt.is_matched(dict(x, scope_difference={"kind": "PROTOCOL_SCOPE_DIFFERENCE"}))
+    assert gt.route_group("SWEEP_META+AACT") == "PRIMARY" and gt.route_group("SWEEP_TWO_INDEPENDENT_METAS") == "TWO_SOURCE"
+
+
+def test_g1r_reproduction_is_separate_from_g1():
+    assert gt.g1r_reproduction({}, "C", [])["state"] == "NO_PER_TRIAL_ROWS"
+    meta = {"positive_control": {"reproduced": True, "methods": ["FE"]}, "figure": "f2", "record_id": "mc-x"}
+    assert gt.g1r_reproduction(meta, "C", [_srow("C")])["state"] == "REPRODUCED"
+    assert gt.g1r_reproduction(dict(meta, positive_control={"reproduced": False}), "C", [_srow("C")])["state"] == "NOT_REPRODUCED"
+
+
+def test_text_linked_figures_need_the_outcome_sentence_and_its_pooled_triple(monkeypatch):
+    # a meta whose forest caption does not name the outcome: the body sentence naming the outcome, printing the effect
+    # and citing 'Figure N' links figure N; the read's pooled triple must BE that sentence's triple
+    assert sw._FIGREF.findall("all-cause mortality (RR 0.85, 95% CI 0.75-0.96; Fig. 2)") == ["2"]
+    assert sw._NOT_FOREST.search("PRISMA flow diagram of study selection") and not sw._NOT_FOREST.search("Forest plot")
+    import secondary_meta_build as smb
+    from reproducible_ai import model_source as ms
+    it = {"figure": {"fig_id": "f2"}, "link_sentence": "Mortality was lower (RR 0.85, 95% CI 0.75 to 0.96; Figure 2)."}
+    monkeypatch.setattr(smb, "figure_rows", lambda *a, **k: ([_srow("M")], {"gate": "PASS"}))
+    monkeypatch.setattr(ms, "load_record", lambda p: {})
+    for pooled, ok in (({"effect": "0.85", "lower": "0.75", "upper": "0.96"}, True),
+                       ({"effect": "0.80", "lower": "0.70", "upper": "0.91"}, False)):
+        monkeypatch.setattr(ms, "replay", lambda rec, _p=pooled: json.dumps({"pooled": _p}).encode())
+        rows, why = sw.ref_rows("t", it, {"record_id": "mc-1"}, {}, "C")
+        assert bool(rows) is ok, why
+        if ok:
+            assert rows[0].outcome_definition.startswith("Mortality was lower")
+        else:
+            assert why == "POOLED_NOT_IN_LINKING_SENTENCE"
+
+
+def test_counts_attach_only_when_they_reproduce_the_printed_effect():
+    # tocilizumab: the figure prints RR, the protocol registers OR; counts read from the same figure are attached ONLY
+    # when the RR they imply equals the row's printed RR (CORIMUNO-TOCI-1 7/63 vs 8/67 -> 0.93)
+    ok, bad = _srow("M"), _srow("M")
+    ok.trial_label, ok.effect = "CORIMUNO-TOCI-1", "0.93"
+    bad.trial_label, bad.effect = "BACC Bay", "1.53"
+    got = {"rows": [{"label": "CORIMUNO-TOCI-1", "events_t": "7", "n_t": "63", "events_c": "8", "n_c": "67"},
+                    {"label": "BACC Bay", "events_t": "9", "n_t": "161", "events_c": "9", "n_c": "82"}]}
+    assert sw.attach_counts([ok, bad], got) == 1
+    assert (ok.events_t, ok.n_t, ok.events_c, ok.n_c) == (7, 63, 8, 67) and bad.events_t is None
+
+
+def test_two_2x2_tables_compare_as_counts_whatever_ratio_label():
+    theirs = _srow("C")
+    theirs.measure, theirs.events_t, theirs.n_t, theirs.events_c, theirs.n_c = "OR", 26, 249, 11, 128
+    assert gt.agreement({"measure": "RR", "events_t": 26, "n_t": 249, "events_c": 11, "n_c": 128}, theirs) == "AGREE"
+
+
+def test_a_sweep_row_never_replaces_a_matched_trial_and_is_flagged_when_the_primary_contradicts(monkeypatch):
+    v = {"measure": "RR", "effect": "0.89", "lower": "0.80", "upper": "0.99", "events_t": 596, "n_t": 2022,
+         "events_c": 694, "n_c": 2094}
+    monkeypatch.setattr(gt, "sweep_results", lambda slug: {
+        "RECOVERY": {"label": "RECOVERY", "verdict": "SWEEP_SECONDARY_SINGLE", "value": v, "basis": {"meta": "33745918"}},
+        "OPEN": {"label": "OPEN", "verdict": "SWEEP_SECONDARY_SINGLE", "value": v, "basis": {"meta": "33745918"}}})
+    lane_matched = {"label": "RECOVERY", "in_our_pool": None, "g1_countable": True, "route": "PRIMARY"}
+    contradicted = {"label": "OPEN", "in_our_pool": None, "route": "NO_ROW", "scope_difference": None,
+                    "readings": [{"values": {"deaths_t": 621, "n_t": 2022, "deaths_c": 729, "n_c": 2094},
+                                  "sources": [{"source": "TEXT PMID 33933206", "span": "621 ... 729"}]}]}
+    assert gt.sweep_merge("t", [lane_matched, contradicted]) == []
+    assert lane_matched["route"] == "PRIMARY"
+    assert contradicted["secondary_single_flag"]["state"] == "CONTRADICTED_BY_PRIMARY"
