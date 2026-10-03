@@ -121,6 +121,29 @@ _STUDY_ID = re.compile(r"([A-Z][A-Za-z'’‐\- ]{1,40}? (?:19|20)\d\d[a-z]?) \{
 _AUTHORS_END = re.compile(r"^(?P<authors>(?:[^.]{1,40}? [A-Z]{1,4}(?:, |\. ))+?)(?=[A-Z0-9])")
 
 
+def _save_cache(cp, cache):
+    """Shared PubMed caches are written by several tracker processes at once (g1_batch runs topics in parallel): a
+    plain open('w') let a reader see a truncated file and corrupted pubmed_titles.json (2 Oct). Union with what is on
+    disk now (another process's new entries survive; ours win on a key both hold), write a temp file, os.replace.
+    Bounded retry: Windows refuses the replace while another process holds the file open."""
+    import time
+    for attempt in range(5):
+        try:
+            disk = _j(cp) if os.path.exists(cp) else {}
+        except ValueError:
+            disk = {}
+        merged = {**disk, **cache}
+        tmp = f"{cp}.{os.getpid()}.tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(merged, fh, indent=1, sort_keys=True)
+        try:
+            os.replace(tmp, cp)
+            return
+        except PermissionError:
+            time.sleep(0.5 * (attempt + 1))
+    raise PermissionError(f"could not replace {cp} after 5 attempts")
+
+
 def _first_citation(chunk):
     """'Baillargeon JP, Jakubowicz DJ, Nestler JE. Effects of ... sensitivity. Fertility and Sterility 2004;82:893-902.'
     -> (first author surname, title, year). Authors are 'Surname INITIALS' items ending at the first '. '."""
@@ -394,8 +417,7 @@ def pub_years(pmids, offline=False) -> dict:
             for x in chunk:
                 m = re.match(r"(\d{4})", ((d.get("result") or {}).get(x) or {}).get("pubdate") or "")
                 cache[x] = int(m.group(1)) if m else None
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -418,8 +440,7 @@ def pubmed_ncts(pmids, offline=False) -> dict:
             got = {r.get("id"): (r.get("nct") or "").upper() for r in recs}
             for x in chunk:
                 cache[x] = got.get(x, "")
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -440,8 +461,7 @@ def pubmed_titles_of(pmids, offline=False) -> dict:
                 continue
             for x in chunk:
                 cache[x] = ((d.get("result") or {}).get(x) or {}).get("title", "")
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -1072,8 +1092,7 @@ def trial_abstracts(pmids, offline) -> dict:
                 doi = next((e.text for e in a.iter("ArticleId") if e.get("IdType") == "doi" and e.text), "")
                 cache[pm] = {"abstract": " ".join("".join(e.itertext()) for e in a.iter("AbstractText")), "doi": doi}
             time.sleep(0.4)
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -1097,8 +1116,7 @@ def unpaywall_probe(dois, offline) -> dict:
             except Exception as exc:  # noqa: BLE001
                 cache[d] = {"error": str(exc)[:160]}
             time.sleep(0.15)
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -1137,8 +1155,7 @@ def oa_probe(pmids: list[str], offline: bool) -> dict:
                 if v.get("pmcid") in flag:
                     v["is_oa"] = flag[v["pmcid"]]
         os.makedirs(OUT, exist_ok=True)
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -1217,8 +1234,7 @@ def comparator_abstracts(pmids, offline) -> dict:
                           {"db": "pubmed", "id": ",".join(todo), "retmode": "xml"})
         for a in ET.fromstring(x).iter("PubmedArticle"):
             cache[a.find(".//PMID").text] = " ".join("".join(e.itertext()) for e in a.iter("AbstractText"))
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
     return cache
 
 
@@ -1343,8 +1359,7 @@ def pubmed_acronym(acr, agents, offline):
             cache[q] = d.get("esearchresult", {}).get("idlist", [])
         except Exception as exc:  # noqa: BLE001
             cache[q] = {"error": str(exc)[:200]}
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
         time.sleep(0.4)
     ids = cache.get(q)
     if isinstance(ids, list) and len(ids) == 1:
@@ -1379,8 +1394,7 @@ def pubmed_author_year(author, year, agents, offline):
             cache[q] = d.get("esearchresult", {}).get("idlist", [])
         except Exception as exc:  # noqa: BLE001
             cache[q] = {"error": str(exc)[:200]}
-        with open(cp, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, indent=1, sort_keys=True)
+        _save_cache(cp, cache)
         time.sleep(0.4)
     ids = cache.get(q)
     return (ids[0] if isinstance(ids, list) and len(ids) == 1 else None), q, ids
