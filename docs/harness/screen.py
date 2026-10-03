@@ -421,10 +421,14 @@ def screen_record(rec, inc, neg_pmids):
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
     pop_haystack = _text(rec) if inc.get("prevention") else poptext
     pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
-    bad = screen_entry.population_exclusion(pop_haystack, inc, _has, _all_occurrences_qualified)
+    # ...but only the POSITIVE population signal widens to the abstract. The exclusion terms stay on title/conditions,
+    # as the reason text says: read over the abstract they fired on incidental words -- 'a multivariate model' (the term
+    # means animal models), 'Subgroup analysis of subjects' (it means secondary reports), 'interest in probiotics for the
+    # treatment of AAD' (a background sentence) -- and excluded 4 pooled probiotics trials once prevention was derived.
+    bad = screen_entry.population_exclusion(poptext, inc, _has, _all_occurrences_qualified)
     if bad:
         return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
-                _span(pop_haystack_raw, bad))
+                _span(raw_pop, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
     if population_any and not popok:
@@ -453,7 +457,9 @@ def screen_record(rec, inc, neg_pmids):
     # zinc), or a trial that only MEASURES our drug while randomising another (doxepin, with melatonin
     # as a biomarker). intervention_none lists those excluded forms; a match here excludes even though
     # intervention_any matched. Negation-aware (via _has), so "not a receptor agonist" would not fire.
-    bad_int = _has(itext, inc.get("intervention_none"))
+    # + form terms of OUR intervention that a protocol filed under population_none ('oral semaglutide'): applied here,
+    # as an intervention-form rule, never as a population rule (screen_entry.misfiled_form_terms)
+    bad_int = _has(itext, list(inc.get("intervention_none") or []) + screen_entry.misfiled_form_terms(inc))
     if bad_int:
         return ScreenDecision("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
@@ -546,11 +552,45 @@ def _is_unresolved(rec) -> bool:
                     rec.get("conditions"), rec.get("interventions")))
 
 
+def prevention_terms(config: dict) -> list[str]:
+    """Derive condition-as-outcome eligibility from the declared event endpoint.
+
+    Keyword overlap alone is unsafe: mortality keywords can include the enrolled
+    disease, and continuous outcomes can include body weight or sleep latency.
+    Require the population term to denote the entire event outcome, allowing the
+    configured trailing stem and an occurrence prefix. No topic names are used.
+    """
+    outcome = config.get("primary_outcome") or {}
+    if outcome.get("estimand") not in {"RR", "OR", "HR", "RD"}:
+        return []
+    name = lexicon.fold(outcome.get("name") or "").strip()
+    name = _re.sub(r"^(?:at least one|one or more|new|incident|recurrent)\s+", "", name)
+    keywords = [lexicon.fold(k).strip() for k in outcome.get("keywords") or []]
+    matches = []
+    for term in (config.get("include") or {}).get("population_any") or []:
+        folded = lexicon.fold(term).strip()
+        stem = folded.rstrip("*")
+        denotes_outcome = (bool(_re.fullmatch(_re.escape(stem) + r"\w*", name))
+                           if folded.endswith("*") else name == stem)
+        if stem and denotes_outcome and any(
+                k == stem or _has(k, [term]) for k in keywords):
+            matches.append(term)
+    return matches
+
+
+def effective_include(config: dict) -> dict:
+    """Resolve prevention in the harness without mutating registered topic data."""
+    inc = dict(config.get("include") or {})
+    if prevention_terms(config):
+        inc["prevention"] = True
+    return inc
+
+
 def run_dual(all_recs: list, config: dict) -> dict:
     """Run both rule screeners and report the disagreement rate (PRISMA item 8) over RESOLVED records
     only. Deterministic, replay-safe. Adjudicator = screener 1. Records with no retrievable text are
     'unresolved' (UNKNOWN != excluded) and counted separately, not as screening disagreements."""
-    inc = config.get("include", {})
+    inc = effective_include(config)
     neg = set(config.get("negative_control_pmids", []))
     dis = []
     agree = 0
@@ -598,7 +638,7 @@ def _source_case_basis(basis: str, rec: dict) -> str:
 
 
 def run(all_recs: list, config: dict) -> dict:
-    inc = config.get("include", {})
+    inc = effective_include(config)
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
     # publication defect the external audit named: a "design and rationale" paper or a secondary report
