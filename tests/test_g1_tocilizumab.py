@@ -87,6 +87,9 @@ def test_the_pool_is_labelled_coverage_limited_and_no_topic_result_is_stated():
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "tocilizumab-covid19-mortality.json"), encoding="utf-8"))
     assert o["same_trials"]["is_a_finding"] is False and "COVERAGE-LIMITED" in o["same_trials"]["measure"]
     assert o["ours"]["estimate"] is None and "NOT_STATED" in o["ours"]["state"]
-    assert [x["trial"] for x in o["coverage"]["largest_trials_not_established"][:2]] == ["RECOVERY", "REMAP-CAP"]
+    # the label names the largest trials NOT matched, from the coverage it is computed from (RECOVERY is matched by its
+    # one bound primary that states the counts, 2 Oct decision; REMAP-CAP's open sources state in-hospital deaths only)
+    miss = [x["trial"] for x in o["coverage"]["largest_trials_not_matched"]]
+    assert "RECOVERY" not in miss and miss[0] == "REMAP-CAP" and all(m in o["result_label"] for m in miss[:2])
     md = open(os.path.join(ROOT, "g1", "TOCILIZUMAB_G1.md"), encoding="utf-8").read()
     assert "NOT a finding" in md

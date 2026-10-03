@@ -381,8 +381,7 @@ def run_trial(label, A):
 # two REACT rows share NCT04331808 (CORIMUNO-TOCI-1 severe, CORIMUNO-TOCI-ICU critical): a paper bound to that registration
 # is bound to ONE of them only when its title states the population ('...Moderate or Severe Pneumonia' / 'critically
 # ill'); otherwise to neither (codex review cascade#3: a unique winning registration had bound a report to both)
-TITLE_LABEL = {"CORIMUNO-TOCI-ICU": r"critically ill|intensive care|\bICU\b",
-               "CORIMUNO-TOCI-1": r"(?:moderate|severe)[^.]{0,30}(?:COVID|pneumonia)"}
+TITLE_LABEL = g.TITLE_LABEL          # one rule with held_texts (g1/tocilizumab.py)
 
 
 def binding(a):
