@@ -78,7 +78,8 @@ python scripts/g1_tracker.py --table        # regenerates outputs/k_gap/G1_TRACK
 
 **Schema** (`schema_version` 1):
 - `N_comparator_trials`, `k_matched`, `k_ours_total`;
-- `routes`: PRIMARY / TWO_SOURCE / UNVERIFIED / NO_ROW, summing to N;
+- `routes`: PRIMARY / TWO_SOURCE / SECONDARY_SINGLE / UNVERIFIED / NO_ROW, summing to N (SECONDARY_SINGLE: a
+  non-comparator meta row, Mahmood decision 3 Oct; g1_tracker.is_matched already counts it);
 - `trials[]`, each with `route`, `basis` and `agreement_with_comparator_row`;
 - `per_trial_agreement`;
 - `same_trials`: ours vs the comparator's rows pooled on exactly the shared trials, by the method the comparator's
