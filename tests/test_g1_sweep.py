@@ -168,3 +168,101 @@ def test_g1r_reproduction_is_separate_from_g1():
     meta = {"positive_control": {"reproduced": True, "methods": ["FE"]}, "figure": "f2", "record_id": "mc-x"}
     assert gt.g1r_reproduction(meta, "C", [_srow("C")])["state"] == "REPRODUCED"
     assert gt.g1r_reproduction(dict(meta, positive_control={"reproduced": False}), "C", [_srow("C")])["state"] == "NOT_REPRODUCED"
+
+
+def test_text_linked_figures_need_the_outcome_sentence_and_its_pooled_triple(monkeypatch):
+    # a meta whose forest caption does not name the outcome: the body sentence naming the outcome, printing the effect
+    # and citing 'Figure N' links figure N; the read's pooled triple must BE that sentence's triple
+    assert sw._FIGREF.findall("all-cause mortality (RR 0.85, 95% CI 0.75-0.96; Fig. 2)") == ["2"]
+    assert sw._NOT_FOREST.search("PRISMA flow diagram of study selection") and not sw._NOT_FOREST.search("Forest plot")
+    import secondary_meta_build as smb
+    from reproducible_ai import model_source as ms
+    it = {"figure": {"fig_id": "f2"}, "link_sentence": "Mortality was lower (RR 0.85, 95% CI 0.75 to 0.96; Figure 2)."}
+    monkeypatch.setattr(smb, "figure_rows", lambda *a, **k: ([_srow("M")], {"gate": "PASS"}))
+    monkeypatch.setattr(ms, "load_record", lambda p: {})
+    for pooled, ok in (({"effect": "0.85", "lower": "0.75", "upper": "0.96"}, True),
+                       ({"effect": "0.80", "lower": "0.70", "upper": "0.91"}, False)):
+        monkeypatch.setattr(ms, "replay", lambda rec, _p=pooled: json.dumps({"pooled": _p}).encode())
+        rows, why = sw.ref_rows("t", it, {"record_id": "mc-1"}, {}, "C")
+        assert bool(rows) is ok, why
+        if ok:
+            assert rows[0].outcome_definition.startswith("Mortality was lower")
+        else:
+            assert why == "POOLED_NOT_IN_LINKING_SENTENCE"
+
+
+def test_counts_attach_only_when_they_reproduce_the_printed_effect():
+    # tocilizumab: the figure prints RR, the protocol registers OR; counts read from the same figure are attached ONLY
+    # when the RR they imply equals the row's printed RR (CORIMUNO-TOCI-1 7/63 vs 8/67 -> 0.93)
+    ok, bad = _srow("M"), _srow("M")
+    ok.trial_label, ok.effect = "CORIMUNO-TOCI-1", "0.93"
+    bad.trial_label, bad.effect = "BACC Bay", "1.53"
+    got = {"rows": [{"label": "CORIMUNO-TOCI-1", "events_t": "7", "n_t": "63", "events_c": "8", "n_c": "67"},
+                    {"label": "BACC Bay", "events_t": "9", "n_t": "161", "events_c": "9", "n_c": "82"}]}
+    assert sw.attach_counts([ok, bad], got) == 1
+    assert (ok.events_t, ok.n_t, ok.events_c, ok.n_c) == (7, 63, 8, 67) and bad.events_t is None
+
+
+def test_two_2x2_tables_compare_as_counts_whatever_ratio_label():
+    theirs = _srow("C")
+    theirs.measure, theirs.events_t, theirs.n_t, theirs.events_c, theirs.n_c = "OR", 26, 249, 11, 128
+    assert gt.agreement({"measure": "RR", "events_t": 26, "n_t": 249, "events_c": 11, "n_c": 128}, theirs) == "AGREE"
+
+
+def test_a_sweep_row_never_replaces_a_matched_trial_and_is_flagged_when_the_primary_contradicts(monkeypatch):
+    v = {"measure": "RR", "effect": "0.89", "lower": "0.80", "upper": "0.99", "events_t": 596, "n_t": 2022,
+         "events_c": 694, "n_c": 2094}
+    monkeypatch.setattr(gt, "sweep_results", lambda slug: {
+        "RECOVERY": {"label": "RECOVERY", "verdict": "SWEEP_SECONDARY_SINGLE", "value": v, "basis": {"meta": "33745918"}},
+        "OPEN": {"label": "OPEN", "verdict": "SWEEP_SECONDARY_SINGLE", "value": v, "basis": {"meta": "33745918"}}})
+    lane_matched = {"label": "RECOVERY", "in_our_pool": None, "g1_countable": True, "route": "PRIMARY"}
+    contradicted = {"label": "OPEN", "in_our_pool": None, "route": "NO_ROW", "scope_difference": None,
+                    "readings": [{"values": {"deaths_t": 621, "n_t": 2022, "deaths_c": 729, "n_c": 2094},
+                                  "sources": [{"source": "TEXT PMID 33933206", "span": "621 ... 729"}]}]}
+    assert gt.sweep_merge("t", [lane_matched, contradicted]) == []
+    assert lane_matched["route"] == "PRIMARY"
+    assert contradicted["secondary_single_flag"]["state"] == "CONTRADICTED_BY_PRIMARY"
+
+
+def _cs_topic(g1r="REPRODUCED", state="SECONDARY_UNVERIFIED"):
+    cr = {"measure": "RR", "effect": "0.80", "lower": "0.60", "upper": "1.05", "events_t": None, "n_t": None,
+          "events_c": None, "n_c": None}
+    return {"g1r_reproduction": {"state": g1r},
+            "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "comparator_row": cr,
+                        "our_value": dict(cr), "agreement_with_comparator_row": "AGREE"},      # orientation: A agrees
+                       {"label": "B", "in_our_pool": False, "route": "UNVERIFIED", "comparator_row": cr,
+                        "comparator_row_state": state, "scope_difference": None, "g1_countable": False,
+                        "comparator_row_provenance": {"meta_pmid": "C", "location": {"kind": "figure", "id": "F2"},
+                                                      "digest": "d" * 64, "read": "MODEL_PROPOSAL_DUAL:mc-1+mc-2"}}],
+            "N_eligible": 2, "k_matched": 1, "open_gaps": ["B"], "named_differences": [],
+            "same_trials": {"verdict": {"verdict": "AGREE"}}}
+
+
+def test_a_comparator_sourced_row_never_counts_toward_independently_confirmed():
+    # Mahmood decision 3 Oct: comparator-sourced rows FILL coverage; INDEPENDENTLY CONFIRMED and G1_MATCHED ignore them
+    o = gt.apply_coverage(_cs_topic())
+    b = o["trials"][1]
+    assert b["coverage"] == "COMPARATOR_SOURCED" and not gt.is_matched(b)
+    assert (o["k_independent"], o["k_comparator_sourced"], o["k_covered"]) == (1, 1, 2) and o["coverage_complete"]
+    assert gt.g1_status(o)["state"] == "NOT_YET"            # strict G1: B is not independently confirmed
+
+
+def test_a_non_self_reproducing_comparators_rows_are_never_admitted():
+    for g1r in ("NOT_REPRODUCED", "NO_PER_TRIAL_ROWS", None):
+        o = gt.apply_coverage(_cs_topic(g1r=g1r))
+        assert o["trials"][1]["coverage"] is None and o["k_comparator_sourced"] == 0
+        assert o["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_DOES_NOT_SELF_REPRODUCE")
+    for st in ("REFUSED", "MISMATCH", "BLOCKED_CROSSCHECK"):           # an untyped / contradicted row neither
+        assert gt.apply_coverage(_cs_topic(state=st))["trials"][1]["coverage"] is None
+
+
+def test_comparator_rows_need_established_orientation_and_provenance():
+    o = _cs_topic()
+    o["trials"][0]["agreement_with_comparator_row"] = "NOT_COMPARABLE"          # no shared trial agrees: UNKNOWN
+    assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"] == "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
+    o = _cs_topic()
+    o["trials"][1].pop("comparator_row_provenance")
+    assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_ROW_PROVENANCE_MISSING")
+    # a MIRRORED shared row (reciprocal ratio) disputes orientation; a merely different number does not
+    assert gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "1.25"})
+    assert not gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "0.70"})
