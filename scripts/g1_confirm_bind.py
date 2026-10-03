@@ -38,6 +38,7 @@ from harness import extract  # noqa: E402
 from harness import secondary_meta as sm  # noqa: E402
 import g1_confirm_acquire as acq  # noqa: E402
 import secondary_meta_build as smb  # noqa: E402
+import g1_tracker as gt  # noqa: E402
 
 OUT = os.path.join(ROOT, "outputs", "k_gap")
 BIND = os.path.join(OUT, "g1_confirm", "bindings.json")
@@ -48,7 +49,11 @@ SEARCH_KEY = "COMPARATOR_ROW"
 # names a trial's OWN population and is not here.
 import re as _re  # noqa: E402
 SUBGROUP_EXTRA = _re.compile(r"\bp[-\s]?(?:value\s+)?for\s+interaction\b|\binteraction\s*(?:p|=)|\bin those (?:with|without)\b"
-                             r"|\bthose without\b", _re.I)
+                             r"|\bthose without\b"
+                             # completers / per-protocol in other words (CONFREV, Wenus: '... completed the protocol;
+                             # two patients (5.9%) in the treatment group ...' is the 63 completers, not the 87 randomized)
+                             r"|\bcomplet\w*\s+(?:the\s+)?(?:study\s+)?(?:according\s+to\s+)?(?:the\s+)?protocol\b"
+                             r"|\baccording to (?:the )?protocol\b|\bcompleters?\b", _re.I)
 
 
 def _int(v):
@@ -205,10 +210,12 @@ def arm_check(row, span, interv, comp):
         c = bound.search(post)
         return label_in(post[:c.start()] if c else post, last=False)
     a, b = side(row.events_t, row.n_t), side(row.events_c, row.n_c)
-    if a == "C" and b == "I":
-        return "SWAPPED"
     if a == "I" and b == "C":
         return "CONSISTENT"
+    if a == b and a is not None:
+        return "CONFLICT"                     # both pairs claimed by one arm: ownership unknowable, refused
+    if a == "C" or b == "I":
+        return "SWAPPED"                      # ONE pair positively owned by the wrong arm is enough (CONFREV P1)
     return "UNRESOLVED"
 
 
@@ -240,6 +247,7 @@ def bind_one(slug, x, pmids, ncts, terms):
                                         "n_c": row.n_c} if by_counts else
                                        {"measure": row.measure, "effect": row.effect, "lower": row.lower,
                                         "upper": row.upper}),
+                            "arm_check": "TABLE_HEADERS_NOT_SWAPPED" if by_counts else "NOT_APPLICABLE",
                             "search_key": SEARCH_KEY,
                             "agreement_with_comparator_row": "NOT_INDEPENDENT:SEARCH_KEYED_BY_COMPARATOR_ROW"}, "BOUND"
             if not hit:
@@ -256,8 +264,8 @@ def bind_one(slug, x, pmids, ncts, terms):
                         SUBGROUP_EXTRA.search(span) or SUBGROUP_EXTRA.search(before):
                     return None, f"SUBGROUP_OR_POST_HOC_SPAN:{ref}"
                 arms = arm_check(row, span, *arm_terms(slug)) if by_counts else "NOT_APPLICABLE"
-                if arms == "SWAPPED":
-                    return None, f"ARMS_SWAPPED_VS_COMPARATOR:{ref}"
+                if arms in ("SWAPPED", "CONFLICT"):
+                    return None, "ARM_COUNTS_SWAPPED" if arms == "SWAPPED" else "ARM_COUNTS_CONFLICT"
             else:
                 by_counts = has_counts and hit.get("route") == "PRIMARY_REGISTRY" and "groups" in span
                 arms = "REGISTRY_GROUPS"
@@ -288,7 +296,8 @@ def main(argv):
         x = next(r for r in g["trials"] if r["label"] == t["label"])
         spec = smb.spec_of(t["slug"])
         terms = [k for k in (spec.get("keywords") or []) if k] + list(spec.get("core") or [])
-        b, why = bind_one(t["slug"], x, t["pmids"], t["ncts"], terms)
+        blocked = gt.confirm_blocked(x)
+        b, why = (None, blocked) if blocked else bind_one(t["slug"], x, t["pmids"], t["ncts"], terms)
         tally[(b or {}).get("source_kind", why.split(":")[0])] += 1
         out.append(b or {"slug": t["slug"], "label": t["label"], "pmid": None, "state": "NOT_BOUND", "why": why})
         print(t["slug"], "|", t["label"], "|", (b or {}).get("source") or why[:120], flush=True)

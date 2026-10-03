@@ -196,7 +196,7 @@ def test_text_counts_with_arms_swapped_against_the_comparator_are_refused(monkey
     # the comparator assigns 7/78 to the TREATMENT arm; the trial prints 7/78 for PLACEBO
     b, why = run(monkeypatch, "RESULTS: diarrhea developed in the placebo group in 9% (7/78) and in the study group "
                               "in 1.4% (1/73).", trial(events_t="7", n_t="78", events_c="1", n_c="73", measure="RR"))
-    assert b is None and why.startswith("ARMS_SWAPPED_VS_COMPARATOR")
+    assert b is None and why == "ARM_COUNTS_SWAPPED"
 
 
 def test_text_counts_with_consistent_arms_record_it(monkeypatch):
