@@ -132,3 +132,27 @@ def test_prevention_widens_the_population_signal_not_the_exclusions():
     sub = _rec("A subgroup analysis of a probiotic trial for antibiotic-associated diarrhoea", rec["abstract"])
     d, rule, reason, span = S.screen_record(sub, inc, [])
     assert d == "exclude" and rule == "X2" and "subgroup analysis" in reason
+
+
+def test_PLANT_a_population_named_only_in_a_prior_work_sentence_does_not_widen():
+    # probiotics 41707673 (an IBS-D trial) was INCLUDED for AAD prevention: its abstract's only AAD sentence describes
+    # PRIOR work ("has previously exerted positive effects in people with antibiotic-associated diarrhoea"). The widened
+    # (prevention) population signal must come from the trial's OWN sentences. Corpus 2026-10-03: of 227 included
+    # records with population terms, 19 were admitted via the abstract only, and 1 (this one, not pooled) only via
+    # prior-work sentences.
+    inc = {"prevention": True, "population_any": ["antibiotic-associated diarr*"], "intervention_any": ["probiotic"],
+           "comparator_any": ["placebo"]}
+    recs = json.load(open(os.path.join(_ROOT, "cache", "probiotics-aad-prevention", "records.json"), encoding="utf-8"))
+    rec = next(r for r in recs["records"] if str(r["id"]) == "41707673")
+    d, rule, reason, span = S.screen_record(rec, inc, [])
+    assert d == "exclude" and rule == "X2", (d, rule, reason)
+    prior = _rec("A probiotic formula for gastrointestinal health: a randomized trial",
+                 "Patients with IBS-D were randomized to probiotic or placebo. The formula has previously shown "
+                 "benefit in antibiotic-associated diarrhoea.")
+    assert S.screen_record(prior, inc, [])[0] == "exclude"
+    own = _rec("A probiotic formula for gastrointestinal health: a randomized trial",
+               "Inpatients starting antibiotics were randomized to probiotic or placebo to prevent "
+               "antibiotic-associated diarrhoea. The formula has previously shown benefit.")
+    d, rule, reason, span = S.screen_record(own, inc, [])
+    assert d == "include", (d, rule, reason)
+    assert "previously" not in span  # the span quotes the trial's own sentence
