@@ -166,6 +166,56 @@ TARGETS: dict = {
         "fig_id": "f0015", "caption_has": "Odds ratio (OR) of outcomes in colchicine compared to placebo",
         "instruction": "The figure has several outcomes. Transcribe ONLY the block for postoperative atrial fibrillation "
                        "(POAF): its study rows and its own pooled row."},
+    # metas the k-gap TWO-SOURCE SWEEP found per unmatched trial (outputs/k_gap/sweep), highest coverage first; each
+    # checked against its own caption. Blocks/panels are named where a figure stacks outcomes.
+    "tocilizumab-covid19-mortality::35802687": {"fig_id": "pone.0270668.g003", "caption_has": "direct evidence from each "
+                                                "included trial for all-cause mortality 28 days"},
+    "omega3-cardiovascular-events::35187035": {"fig_id": "F4", "caption_has": "on the risks of (A) MACE", "panel": "A",
+                                               "panel_title": "MACE"},
+    "omega3-cardiovascular-events::29387889": {"fig_id": "hoi170076f1", "caption_has": "Associations of Omega-3 Fatty "
+                                                                                     "Acids With Major Vascular Events"},
+    "corticosteroids-cap-mortality::26374694": {
+        "fig_id": "f2", "caption_has": "Forrest plots.OR: odds ratio",
+        "instruction": "The figure may hold several outcomes. Transcribe ONLY the block for all-cause MORTALITY: its "
+                       "study rows and its own pooled row."},
+    "corticosteroids-cap-mortality::23112872": {"fig_id": "pone-0047926-g002", "caption_has": "association between "
+                                                                                             "mortality and corticosteroids"},
+    "corticosteroids-cap-mortality::37076606": {
+        "fig_id": "Fig2", "caption_has": "Forest plot for mortality based on severity subgroup",
+        "instruction": "Rows: every study row of every severity subgroup, once each (never a subgroup subtotal). "
+                       "Pooled: the OVERALL row for all studies."},
+    "corticosteroids-cap-mortality::31261585": {"fig_id": "F4", "caption_has": "(A) Forest plot comparing all-cause "
+                                                "mortality in patients with corticosteroid", "panel": "A",
+                                                "panel_title": "all-cause mortality, corticosteroid versus placebo"},
+    "balanced-crystalloids-vs-saline-mortality::35436929": {"fig_id": "Fig1", "caption_has": "mortality at the longest "
+                                                            "follow-up for studies performed in ICU"},
+    "balanced-crystalloids-vs-saline-mortality::35407578": {"fig_id": "jcm-11-01971-f002", "caption_has": "(A) Forest "
+                                                            "plot comparing balanced crystalloids and normal saline "
+                                                            "regarding overall mortality", "panel": "A",
+                                                            "panel_title": "overall mortality"},
+    "probiotics-aad-prevention::35794520": {"fig_id": "Fig3", "caption_has": "The forest plot of the included studies"},
+    "probiotics-aad-prevention::29023420": {
+        "fig_id": "antibiotics-06-00021-f003", "caption_has": "outcome: incidence of antibiotic-associated diarrhea",
+        "instruction": "Rows: every RCT row of every probiotic subgroup, once each (never a subtotal). Pooled: the "
+                       "OVERALL row for all trials."},
+    "ticagrelor-vs-clopidogrel-acs::26467661": {"fig_id": "Fig3", "caption_has": "(c) composite outcome including "
+                                                "cardiovascular mortality, myocardial infarction, and stroke",
+                                                "panel": "c", "panel_title": "composite of CV mortality, MI and stroke"},
+    "spironolactone-hfref-mortality::26891235": {"fig_id": "pone.0145958.g002", "caption_has": "(B) All-cause mortality",
+                                                 "panel": "B", "panel_title": "All-cause mortality"},
+    "corticosteroids-covid19-mortality::34492533": {"fig_id": "f0010", "caption_has": "Effect of corticosteroids on "
+                                                                                      "mortality."},
+    "iv-iron-hfref-hosp::40159279": {"fig_id": "Fig4", "caption_has": "recurrent HF hospitalizations over the complete "
+                                                                      "length of follow-up"},
+    "iv-iron-hfref-hosp::36734033": {
+        "fig_id": "ehf214310-fig-0003", "caption_has": "Forest plots examining the cardiovascular outcomes of "
+                                                       "intravenous iron infusion",
+        "instruction": "The figure has several outcomes. Transcribe ONLY the block for HOSPITALIZATION FOR HEART FAILURE: "
+                       "its study rows and its own pooled row."},
+    "esketamine-trd-madrs::33888663": {"fig_id": "F2", "caption_has": "(D) week 3", "panel": "D",
+                                       "panel_title": "MADRS change at week 3-4, intranasal esketamine vs placebo"},
+    "colchicine-secondary-cv-prevention::34957237": {"fig_id": "F2", "caption_has": "Meta-analysis results for the "
+                                                     "primary endpoint", "panel": "A", "panel_title": "Primary endpoint"},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
