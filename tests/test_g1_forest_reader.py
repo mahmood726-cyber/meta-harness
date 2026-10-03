@@ -463,3 +463,9 @@ def test_mantel_haenszel_wording_names_the_MH_variant_for_counts_and_is_dropped_
     mixed = "Dichotomous: Mantel-Haenszel random-effects; continuous: inverse variance random-effects (DerSimonian-Laird)."
     assert g.stated_model(mixed, measure="RR")["methods"] == ["MH-RE"]
     assert g.stated_model(mixed, measure="MD")["methods"] == ["DL"]
+
+
+def test_a_typographic_minus_agrees_and_comes_back_as_an_ascii_number():
+    assert g.agree_value("−0.22", "-0.22") == "-0.22"
+    assert g.agree_value("−0.22", "−0.22") == "-0.22"
+    assert g.agree_value("−0.22", "-0.23") is None
