@@ -572,22 +572,60 @@ def primary_counts(x):
 CS_OK_STATES = (None, sm.UNVERIFIED, sm.VERIFIED, sm.TWO_SOURCE)
 
 
-def comparator_sourced(x, g1r_state):
+def orientation(o):
+    """Is the comparator's arm orientation OURS? Established only by the trials both sides hold: >= 1 independently
+    confirmed trial whose value AGREES with its comparator row and none that DISAGREES. Melatonin (3 Oct): the
+    comparator's rows are +8.9 ... +38.7 minutes where ours is -17.4 -- with no shared trial, its orientation is unknown,
+    and pooling the two would mix 'placebo minus melatonin' with 'melatonin minus placebo'."""
+    shared = [x for x in o.get("trials") or [] if is_matched(x) and x.get("comparator_row")]
+    agree = [x for x in shared if str(x.get("agreement_with_comparator_row") or "").startswith("AGREE")]
+    # a DISAGREEMENT disputes orientation only when the comparator's row MIRRORS ours (reciprocal ratio, negated
+    # difference, swapped arm counts); a different number in the same direction is a discrepancy finding, not a flip
+    mirrored = [x for x in shared if str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE")
+                and _mirrors(x.get("our_value") or {}, x.get("comparator_row") or {})]
+    if mirrored:
+        return "DISPUTED", f"{len(mirrored)} shared trial(s) mirror our orientation"
+    return ("ESTABLISHED", f"{len(agree)} shared trial(s) AGREE") if agree else ("UNKNOWN", "no shared trial agrees")
+
+
+def _mirrors(ours, theirs):
+    """theirs looks like ours with the arms swapped: counts swapped, a ratio ~ 1/ours, or a difference ~ -ours."""
+    ot = tuple(ours.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
+    tt = tuple(theirs.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
+    if None not in ot and None not in tt:
+        return (tt[2], tt[3], tt[0], tt[1]) == ot and tt != ot
+    a, b = sm._num(ours.get("effect")), sm._num(theirs.get("effect"))
+    if a is None or b is None:
+        return False
+    if (ours.get("measure") or "").upper() in sm.RATIO and a > 0 and b > 0:
+        la, lb = math.log(a), math.log(b)
+        return la * lb < 0 and abs(la + lb) < abs(la - lb)
+    return a * b < 0 and abs(a + b) < abs(a - b)
+
+
+def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
     """COMPARATOR_SOURCED (Mahmood decision 3 Oct) -- COVERAGE ONLY, never independent confirmation: a comparator trial
     not independently confirmed (and not named out of scope) is filled from the comparator meta's OWN per-trial row when
       - the comparator self-reproduces its pooled result from its rows (G1-R REPRODUCED),
+      - its arm orientation is ours (orientation ESTABLISHED by a shared trial; the typed tuple's 'arms'),
       - the row passed the typed admission (state not REFUSED / MISMATCH / BLOCKED_CROSSCHECK) and, read by two
-        models, the readers agree (comparator_row_readings not READERS_DIFFER).
+        models, the readers agree (comparator_row_readings not READERS_DIFFER),
+      - the row carries its provenance: the table/figure location AND a digest or read record (shown on the page).
     Returns ({"value", "provenance"}, None) or (None, why)."""
     cr = x.get("comparator_row")
     if not cr:
         return None, "NO_COMPARATOR_ROW"
     if g1r_state != "REPRODUCED":
         return None, f"COMPARATOR_DOES_NOT_SELF_REPRODUCE ({g1r_state})"
+    if orient != "ESTABLISHED":
+        return None, f"COMPARATOR_ARM_ORIENTATION_{orient}"
     if x.get("comparator_row_state") not in CS_OK_STATES:
         return None, f"COMPARATOR_ROW_{x.get('comparator_row_state')}"
     if (x.get("comparator_row_readings") or {}).get("state") == "READERS_DIFFER":
         return None, "COMPARATOR_ROW_READERS_DIFFER"
+    pv = x.get("comparator_row_provenance") or {}
+    if not ((pv.get("location") or {}).get("id") and (pv.get("digest") or pv.get("read"))):
+        return None, "COMPARATOR_ROW_PROVENANCE_MISSING (no table/figure location + digest)"
     return {"value": {k: cr.get(k) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")},
             "provenance": x.get("comparator_row_provenance") or {}}, None
 
@@ -618,6 +656,8 @@ def apply_coverage(o):
     """The SCOREBOARD's second number. Per trial: coverage INDEPENDENT (is_matched) / COMPARATOR_SOURCED / None, with
     the refusal reason; per topic: k_covered, coverage_complete, discrepancy_findings. G1_MATCHED is untouched."""
     g1r = (o.get("g1r_reproduction") or {}).get("state")
+    orient, orient_why = orientation(o)
+    o["comparator_orientation"] = {"state": orient, "why": orient_why}
     for x in o.get("trials") or []:
         x.pop("comparator_sourced", None)
         x.pop("comparator_sourced_refusal", None)
@@ -627,7 +667,7 @@ def apply_coverage(o):
         if x.get("scope_difference"):
             x["coverage"] = None
             continue
-        cs, why = comparator_sourced(x, g1r)
+        cs, why = comparator_sourced(x, g1r, orient)
         x["coverage"] = "COMPARATOR_SOURCED" if cs else None
         if cs:
             x["comparator_sourced"] = cs
@@ -893,6 +933,44 @@ def with_identity_chain(T):
     return T
 
 
+def attach_forest_reader_provenance(o, slug):
+    """A LANE file's comparator rows (tocilizumab: the lane's own counts, no per-row location) take the provenance of
+    the forest-reader lane's DUAL-MODEL read of the SAME comparator figure -- only for a row that joins exactly one
+    forest-reader row (the build's family join) AND prints the same four counts (the values are verified identical,
+    never replaced). The figure's acceptance (rows reproduce its printed pool) is then this topic's G1-R. Returns the
+    number of rows given provenance."""
+    import secondary_meta_build as smb
+    comp = str(o.get("comparator_pmid") or "")
+    rows, used = lane_comparator_rows(slug, comp, [{"id": x["label"], "label": x["label"], "acronyms": [], "author_year": None}
+                                                   for x in o.get("trials") or []])
+    acc = next((u for u in used if (u.get("acceptance") or {}).get("state") == "ACCEPTED"), None)
+    if not acc:
+        return 0
+    n = 0
+    by = {}
+    for r in rows:
+        if r.family_id:
+            by.setdefault(r.family_id, []).append(r)
+    for x in o.get("trials") or []:
+        cr = x.get("comparator_row") or {}
+        if not cr or x.get("comparator_row_provenance"):
+            continue
+        want = tuple(cr.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
+        same = [r for r in by.get(x["label"], []) if (r.events_t, r.n_t, r.events_c, r.n_c) == want and None not in want]
+        if len(same) == 1:
+            r = same[0]
+            x["comparator_row_provenance"] = {"meta_pmid": r.meta_pmid, "location": r.location, "digest": r.source_digest,
+                                              "read": r.provenance, "row_label": r.trial_label,
+                                              "verified": "the forest-reader dual read prints the same counts"}
+            n += 1
+    if not (o.get("g1r_reproduction") or {}).get("state") == "REPRODUCED":
+        o["g1r_reproduction"] = {"state": "REPRODUCED", "rows": acc.get("rows"),
+                                 "methods": (acc.get("acceptance") or {}).get("methods_reproducing"),
+                                 "where": f"figure {acc.get('figure')} (g1/forest-reader {str(acc.get('commit'))[:9]}, dual-model)",
+                                 "control_basis": f"FOREST_READER_ACCEPTANCE ({(acc.get('acceptance') or {}).get('pooled_anchor')})"}
+    return n
+
+
 def lane_comparator_rows(slug, comp, ours):
     """The COMPARATOR's own per-trial rows read by another lane (outputs/k_gap/g1_comparator_rows.json lists the
     sources: g1/forest-reader's dual-model figure reads), taken only where that lane ACCEPTED the figure for THIS
@@ -920,6 +998,9 @@ def lane_comparator_rows(slug, comp, ours):
             r.family_id = fam(r)
             out.append(r)
         used.append({"branch": src["branch"], "commit": commit, "path": src["path"],
+                     "acceptance": {k: (res.get("acceptance") or {}).get(k) for k in ("state", "methods_reproducing",
+                                                                                     "pooled_anchor", "problems")},
+                     "figure": (res.get("figure") or {}).get("fig_id"), "pooled_agreed": res.get("pooled_agreed"),
                      "sha256": hashlib.sha256(b).hexdigest(), "rows": len(res.get("secondary_rows") or []),
                      "joined": sum(1 for r in out if r.family_id)})
     return out, used
@@ -1247,6 +1328,16 @@ def topic(slug, T):
                          "held_registry": len(src[2])}
     out["served_pool_lags"] = sorted(pooled_ids - served_ids)
     out["g1r_reproduction"] = g1r_reproduction((S.get("metas") or {}).get(comp) or {}, comp, rows)
+    lane_acc = next((u for u in comparator_rows_source or [] if (u.get("acceptance") or {}).get("state") == "ACCEPTED"), None)
+    if out["g1r_reproduction"].get("state") == "NO_PER_TRIAL_ROWS" and lane_acc:
+        # the comparator's rows were read by the forest-reader lane's TWO models; that lane ACCEPTED the figure only
+        # when its rows reproduce the figure's own printed pool (its acceptance.methods_reproducing): that IS the
+        # comparator's self-reproduction, on the whole figure (not the subset joined to comparator trials)
+        out["g1r_reproduction"] = {"state": "REPRODUCED", "rows": lane_acc.get("rows"),
+                                   "methods": (lane_acc.get("acceptance") or {}).get("methods_reproducing"),
+                                   "where": f"figure {lane_acc.get('figure')} (g1/forest-reader {str(lane_acc.get('commit'))[:9]}, dual-model)",
+                                   "control_basis": f"FOREST_READER_ACCEPTANCE ({(lane_acc.get('acceptance') or {}).get('pooled_anchor')})",
+                                   "pooled": lane_acc.get("pooled_agreed")}
     if out["g1r_reproduction"].get("state") == "NO_PER_TRIAL_ROWS":
         out["g1r_reproduction"] = g1r_from_trials(out)
     apply_coverage(out)
