@@ -104,8 +104,17 @@ TARGETS: dict = {
                               "refuse": "NO_PER_TRIAL_TOPIC_FIGURE: the comparator's figures are CKD-progression / eGFR "
                                         "outcomes by baseline eGFR or UACR SUBGROUP, not per-trial rows of the "
                                         "trial-defined cardiorenal composite"},
-    "dapagliflozin-hfpef-hosp": {"fig_id": "fig1", "caption_has": "Risk of composite cardiovascular outcomes of "
-                                                                  "CVD/HHF in patients with HFpEF"},
+    # the comparator's pooled HR 0.80 (0.74, 0.86) is its six-RCT HFmrEF/HFpEF analysis -- panel A of fig 1 (its text);
+    # the first two pairs mixed panels A-C
+    "dapagliflozin-hfpef-hosp": {
+        "fig_id": "fig1", "caption_has": "Risk of composite cardiovascular outcomes of CVD/HHF in patients with HFpEF",
+        "instruction": "The figure has three panels: A (patients with HFmrEF or HFpEF, EF >=40%), B (HFpEF, EF >=50%) and "
+                       "C (HFmrEF). Transcribe ONLY panel A: every study row of panel A, once each, and panel A's own "
+                       "Total (95% CI) row as the pooled row. Ignore panels B and C entirely."},
+    "tranexamic-acid-pph": {"fig_id": "F2", "caption_has": "Effect of tranexamic acid on life-threatening bleeding",
+                            "refuse": "NO_TOPIC_OUTCOME_FIGURE: the comparator's figures are life-threatening bleeding (a "
+                                      "composite of death or surgical intervention) and thromboembolic events; none is "
+                                      "death due to bleeding"},
     "empagliflozin-hfpef-hosp": {"fig_id": "F2", "caption_has": "Primary composite outcome (composite of first HFH or "
                                                                 "cardiovascular death)"},
     "esketamine-trd-madrs": {"fig_id": "f4", "caption_has": "Acute induction: MADRS change from baseline to day 28"},
@@ -709,7 +718,9 @@ def revman_label(model_printed):
     if not m:
         return None
     meth = "IV" if m.group(1).upper() in ("IV", "INVERSE VARIANCE") else "M-H"
-    return _REVMAN[(meth, m.group(2).upper())]
+    # 'M-H, Fixed + Random' prints BOTH pools: both are the stated model (the gate checks the printed one reproduces)
+    kinds = {k.upper() for k in re.findall(r"\b(Fixed|Random)\b", model_printed[m.start():], re.I)}
+    return sorted(x for k in kinds for x in _REVMAN[(meth, k)])
 
 
 def stated_model(text, model_printed=None, measure=None):
@@ -993,7 +1004,9 @@ def ref_text(pmid):
     jp = jats_path(pmid)
     if jp and jp.endswith("_kgap_jats.xml"):
         root = ET.parse(jp).getroot()
-        return " ".join("".join(r.itertext()) for r in root.iter("ref-list"))
+        # every text node separated: JATS writes <surname>Mewton</surname><given-names>N</given-names>, which a plain
+        # join fuses into 'MewtonN' -- and then no surname is ever found as a word (the label rule was inert)
+        return " ".join(" ".join(r.itertext()) for r in root.iter("ref-list"))
     hp = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_pmcpage.html")
     if os.path.exists(hp):
         h = open(hp, encoding="utf-8", errors="replace").read()
@@ -1446,7 +1459,10 @@ def main(argv):
                 r = f.result()
                 old = runs.get(_key(it, rd))
                 if old and old.get("state") == "RAN_OK" and old.get("prompt_sha256") != r["prompt_sha256"]:
-                    runs.setdefault(_key(it, rd) + "::attempt1", old)      # the earlier attempt stays on record
+                    n = 1                                                  # every earlier attempt stays on record
+                    while _key(it, rd) + f"::attempt{n}" in runs:
+                        n += 1
+                    runs[_key(it, rd) + f"::attempt{n}"] = old
                 runs[_key(it, rd)] = r
                 _save(RUNS, runs)
                 print(_key(it, rd), r["state"], r["record_id"], r.get("error") or "", flush=True)

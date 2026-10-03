@@ -2,17 +2,17 @@
 
 Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Mantel-Haenszel from counts) reproduce each comparator's printed pooled result from the comparator's OWN per-trial rows, under the comparator's STATED model? A separate metric from G1.
 
-- tally: {'REPRODUCED': 19, 'NO_COMPARATOR_ROWS': 13}
+- tally: {'REPRODUCED': 21, 'NO_COMPARATOR_ROWS': 11}
 
 | topic | comparator | rows (source) | stated model | printed pool | our engine (stated) | verdict | note |
 |---|---|---|---|---|---|---|---|
 | balanced-crystalloids-vs-saline-mortality | PMID 30140441 | 5 (DUAL_READ Fig3) | ['DL', 'PM', 'REML'] | 0.929 (0.851-1.014) | DL [0.9284, 0.8505, 1.0136]; PM [0.9284, 0.8505, 1.0136] | **REPRODUCED** | by DL, PM |
 | colchicine-postop-af | PMID 36050741 | 9 (DUAL_READ Fig2) | ['MH-RE'] | 0.62 (0.52-0.74) | MH-RE [0.6198, 0.5204, 0.7383] | **REPRODUCED** | by MH-RE |
 | colchicine-recurrent-pericarditis | PMID 22442198 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: NO_JATS |
-| colchicine-secondary-cv-prevention | PMID 36176989 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_DISAGREE:1 |
+| colchicine-secondary-cv-prevention | PMID 36176989 | 7 (DUAL_READ F3) | ['MH-FE', 'MH-RE'] | 0.54 (0.38-0.77) | MH-FE [0.6496, 0.5609, 0.7524]; MH-RE [0.5373, 0.3768, 0.7661] | **REPRODUCED** | by MH-RE |
 | corticosteroids-cap-mortality | PMID 38128217 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: NO_JATS |
 | corticosteroids-covid19-mortality | PMID 32876694 | 7 (DUAL_READ joi200104f2) | ['FE', 'PM', 'PM+HK'] | 0.66 (0.53-0.82) | FE [0.6628, 0.5346, 0.8218]; PM [0.6956, 0.5216, 0.9276]; PM+HK [0.6956, 0.4856, 0.9963] | **REPRODUCED** | by FE |
-| dapagliflozin-hfpef-hosp | PMID 36914068 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_DISAGREE:5 |
+| dapagliflozin-hfpef-hosp | PMID 36914068 | 6 (DUAL_READ fig1) | ['FE'] | 0.80 (0.74-0.86) | FE [0.7976, 0.7377, 0.8624] | **REPRODUCED** | by FE |
 | denosumab-vertebral-fracture | PMID 36852077 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: REFUSED_BEFORE_READING:NETWORK_META_ANALYSIS_FIGURE: direct and indirect head-to-head estimates (treatments), not trial rows |
 | doac-vte-recurrence | PMID 24963045 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: NO_JATS |
 | dpp4-mace-t2d | PMID 34754403 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel |
@@ -37,4 +37,4 @@ Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Man
 | statins-primary-prevention-elderly | PMID 39076238 | 11 (DUAL_READ S3.F2) | ['DL', 'FE'] | 0.75 (0.66-0.85) | DL [0.7488, 0.6603, 0.8493]; FE [0.8751, 0.8566, 0.8941] | **REPRODUCED** | by DL |
 | ticagrelor-vs-clopidogrel-acs | PMID 28545073 | 5 (DUAL_READ pone.0177872.g004) | ['MH-FE'] | 0.83 (0.77-0.90) | MH-FE [0.8338, 0.7748, 0.8972] | **REPRODUCED** | by MH-FE |
 | tocilizumab-covid19-mortality | PMID 34228774 | 29 (DUAL_READ joi210079f1) | ['FE', 'REML', 'REML+HK'] | 0.86 (0.79-0.95) | FE [0.8696, 0.7901, 0.9571] | **REPRODUCED** | by FE |
-| tranexamic-acid-pph | PMID 39461793 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_ARE_NOT_STUDIES:mixed/mixed |
+| tranexamic-acid-pph | PMID 39461793 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_FIGURE: the comparator's figures are life-threatening bleeding (a composite of death or surgical intervention) and thromboembolic events; none is death due to bleeding |
