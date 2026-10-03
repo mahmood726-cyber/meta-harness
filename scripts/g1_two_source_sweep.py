@@ -24,8 +24,11 @@ concurrency 3, replayable), planned greedily so each unmatched trial gets two ca
 the SAME gate as the tier (secondary_meta_build.figure_rows: rows consistent, pooled row printed, rows reproduce it).
 A model-read row is a PROPOSAL: it counts only after verify_typed (found in the trial's own text / posted results) or
 two_source (an independent meta prints the same tuple). Posted results alone are one source (AACT_ONLY_SINGLE_SOURCE,
-recorded, not counted). A trial is SWEEP-VERIFIED only through a counted route (SWEEP_*); its tuple is then compared
-with the comparator's own printed row (agreement), which is reported, never used as a source.
+recorded, not counted). SWEEP_SECONDARY_SINGLE (Mahmood decision 3 Oct): with no OPEN primary held (no open full
+text, no bindable posted results) and nothing contradicting it, ONE typed-admitted row from a self-reproducing
+non-comparator meta (controlled table or gated figure read; never an uncontrolled table) counts, queued for primary
+verification. A trial is SWEEP-VERIFIED only through a counted route (SWEEP_*); its tuple is then compared with the
+comparator's own printed row (agreement), which is reported, never used as a source.
 
     python scripts/g1_two_source_sweep.py [--run] [SLUG ...]   -> outputs/k_gap/sweep/<slug>.json + sweep_summary.json
         --run   network allowed (Europe PMC search, JATS fetch); without it, only recorded searches / held JATS are used
@@ -50,7 +53,7 @@ from harness import secondary_meta as sm  # noqa: E402
 OUT = os.path.join(ROOT, "outputs", "k_gap")
 SWEEP = os.path.join(OUT, "sweep")
 SEARCH = os.path.join(SWEEP, "search")
-MAX_METAS_PER_TRIAL = 6
+MAX_METAS_PER_TRIAL = 10
 META_TITLE = '(TITLE:"meta-analysis" OR TITLE:"meta analysis" OR TITLE:"meta-analyses" OR TITLE:"systematic review")'
 
 
@@ -284,6 +287,12 @@ def prepare_figures(slug, metas, run):
     return items, state
 
 
+def ss_rows(rows):
+    """Rows admissible for SECONDARY_SINGLE: typed-admitted (state SECONDARY_UNVERIFIED) and from a SELF-REPRODUCING
+    source -- a controlled typed table or a gated figure read (an uncontrolled table never counts alone)."""
+    return [r for r in rows if r.state == sm.UNVERIFIED and r.provenance != "TYPED_TABLE_UNCONTROLLED"]
+
+
 def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=None):
     import secondary_meta_build as smb
     spec = smb.spec_of(slug)
@@ -360,6 +369,16 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
                                                    "events_c", "n_c")}
             basis = {"meta": best.meta_pmid, "table": (best.location or {}).get("id"),
                      "row_label": best.trial_label, "verification": best.verification}
+        elif ss_rows(mine) and not any(r.state in (sm.MISMATCH, sm.BLOCKED) for r in mine) and not gt.primary_open(
+                slug, {"pmid": t["report_pmid"]}, {"pmids": t["pmids"], "ncts": t["ncts"]}):
+            # SECONDARY_SINGLE (Mahmood 3 Oct): ONE self-reproducing non-comparator meta, typed-admitted row, no open
+            # primary, nothing contradicting it; queued for primary verification
+            best = ss_rows(mine)[0]
+            route = "SWEEP_SECONDARY_SINGLE"
+            value = {k: getattr(best, k) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t",
+                                                   "events_c", "n_c")}
+            basis = {"meta": best.meta_pmid, "where": best.location, "row_label": best.trial_label,
+                     "digest": best.source_digest, "provenance": best.provenance, "queued_for_primary": True}
         elif bind and len(bind.get("arms") or []) == 2:
             a = bind["arms"]
             # posted results ALONE are one source: recorded, never counted (SMART's posted counts cover 5,381 patients,
