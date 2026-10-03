@@ -187,7 +187,10 @@ def _body_says_rct(rec) -> bool:
 # Protocol (31712614) and an Editorial (39529940) into probiotics.)
 _NONPRIMARY_PT = ("comment", "editorial", "letter", "news", "erratum", "review", "meta-analysis",
                   "meta analysis", "protocol", "guideline", "biography", "retracted publication",
-                  "retraction of publication", "systematic review")
+                  "retraction of publication", "systematic review",
+                  # Consensus Statement / Consensus Development Conference: the ESPGHAN position paper 36219218 was
+                  # screened INCLUDE as an RCT via its eligibility sentence (2026-10-03; 1 of 227 included PMID records)
+                  "consensus")
 
 
 def _quasi_or_nonprimary(rec, pts) -> bool:

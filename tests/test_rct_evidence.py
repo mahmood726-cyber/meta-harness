@@ -82,3 +82,17 @@ def test_rct_pubtype_overrides_pooled_analysis_title():
              ["Clinical Trial, Phase III", "Journal Article", "Randomized Controlled Trial"])
     from harness.screen import _is_review
     assert _is_review(r) is False and _is_rct(r) is True
+
+
+def test_PLANT_a_consensus_statement_is_not_a_trial_even_with_eligibility_language():
+    # probiotics 36219218 (ESPGHAN position paper, pubtype 'Consensus Statement') was screened INCLUDE as an RCT:
+    # its abstract's eligibility sentence ("randomised ... placebo ... were eligible") tripped the body-RCT signal and
+    # 'consensus' was not a non-primary type. Corpus: 1 of 227 included PMID records carried such a type (this one).
+    import json, os
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    recs = json.load(open(os.path.join(root, "cache", "probiotics-aad-prevention", "records.json"), encoding="utf-8"))
+    rec = next(r for r in recs["records"] if str(r["id"]) == "36219218")
+    assert "Consensus Statement" in rec["pubtypes"]
+    assert _is_rct(rec) is False
+    assert _is_rct(_rec("Position paper", "randomized placebo-controlled trials were eligible",
+                        ["Consensus Development Conference"])) is False
