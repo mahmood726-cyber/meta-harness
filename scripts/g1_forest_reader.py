@@ -564,7 +564,10 @@ def agree_value(a, b):
         return None
     if abs(x - y) > 0.5 * 10 ** (-max(fp._dec(a), fp._dec(b))) + 1e-9:
         return None
-    return a if fp._dec(a) >= fp._dec(b) else b
+    v = a if fp._dec(a) >= fp._dec(b) else b
+    # the agreed NUMBER with an ASCII sign: a figure printing U+2212 ('−0.22') keeps its digits and precision, and
+    # every later float() of it works (the evaluation of PMID-sweep figures crashed on it, 3 Oct)
+    return re.sub(r"^\s*[−‒–—]", "-", _nfkc(v)).strip()
 
 
 def agree_count(a, b):
