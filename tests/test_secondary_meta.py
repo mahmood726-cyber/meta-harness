@@ -405,3 +405,42 @@ def test_PLANT_SECONDARY_SINGLE_never_from_the_comparator_an_open_primary_or_a_n
     # anti-circularity holds even if a comparator row were somehow marked SECONDARY_SINGLE
     comp.state = sm.SECONDARY_SINGLE
     assert sm.g1_countable([comp], {"999"}) == []
+
+
+# ------------------------------------------------------------------ Mantel-Haenszel in our engine (pool_mh)
+# PMID 34385227 Fig 3 (42 trials), counts as the dual-model reader agreed them; references computed with R 4.6.0:
+# meta::metabin(a,n1,c,n2,sm="RR",method="MH",method.tau="DL",Q.Cochrane=TRUE) and metafor::rma.mh (no zero cells)
+PROBIOTICS_COUNTS = [(159, 1470, 153, 1471), (7, 44, 16, 45), (13, 105, 23, 97), (4, 41, 5, 45), (1, 73, 7, 78), (19, 176, 26, 167), (1, 13, 5, 10), (9, 62, 19, 62), (4, 30, 5, 58), (14, 204, 28, 185), (21, 246, 19, 231), (21, 80, 29, 80), (37, 171, 34, 84), (3, 36, 9, 43), (16, 44, 14, 41), (7, 57, 19, 56), (16, 181, 23, 90), (3, 26, 0, 20), (1, 12, 3, 7), (1, 20, 5, 20), (9, 19, 17, 21), (7, 33, 5, 36), (6, 80, 5, 83), (7, 97, 14, 96), (54, 336, 41, 167), (17, 340, 63, 338), (23, 65, 38, 65), (15, 69, 15, 69), (13, 106, 16, 98), (106, 549, 103, 577), (4, 23, 6, 16), (47, 216, 70, 221), (0, 61, 7, 61), (1, 18, 2, 17), (9, 103, 16, 111), (11, 116, 14, 64), (39, 133, 40, 134), (50, 247, 14, 67), (2, 34, 8, 29), (13, 76, 44, 82), (5, 41, 4, 46), (27, 132, 15, 32)]
+
+
+def _count_rows(counts, measure="RR"):
+    out = []
+    for a, n1, c, n2 in counts:
+        r = _row(measure=measure)
+        r.effect = r.lower = r.upper = None
+        r.events_t, r.n_t, r.events_c, r.n_c = a, n1, c, n2
+        out.append(r)
+    return out
+
+
+def test_pool_mh_matches_R_meta_metabin_revman_mode_on_42_trials():
+    import math
+    rows = _count_rows(PROBIOTICS_COUNTS)
+    fe = [math.exp(x) for x in sm.pool_mh(rows, "RR")]
+    re_ = [math.exp(x) for x in sm.pool_mh(rows, "RR", random=True)]
+    assert all(abs(a - b) < 2e-6 for a, b in zip(fe, (0.7035394, 0.6471383, 0.7648562)))
+    assert all(abs(a - b) < 2e-5 for a, b in zip(re_, (0.6255739, 0.5356020, 0.7306596)))
+
+
+def test_pool_mh_matches_metafor_rma_mh_without_zero_cells_and_refuses_without_counts():
+    import math
+    c3 = [(12, 100, 18, 100), (8, 90, 15, 92), (20, 150, 24, 148)]
+    rr = [math.exp(x) for x in sm.pool_mh(_count_rows(c3), "RR")]
+    orr = [math.exp(x) for x in sm.pool_mh(_count_rows(c3, "OR"), "OR")]
+    assert all(abs(a - b) < 2e-6 for a, b in zip(rr, (0.700988, 0.481530, 1.020465)))
+    assert all(abs(a - b) < 2e-6 for a, b in zip(orr, (0.661155, 0.427577, 1.022333)))
+    assert sm.pool_mh(_count_rows(c3), "HR") is None                    # M-H needs a 2x2 measure
+    no_counts = _count_rows(c3)
+    no_counts[0].events_t = None
+    assert sm.pool_mh(no_counts, "RR") is None
+    assert sm.pool_mh(_count_rows([(0, 30, 0, 30)] + c3[:1]), "RR") is None   # double-zero not estimable -> < 2 rows
