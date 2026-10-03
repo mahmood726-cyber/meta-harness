@@ -44,7 +44,10 @@ def unverified_targets():
         sp = os.path.join(OUT, "sweep", f)
         sw = {t["label"]: t for t in (_j(sp).get("trials") or [])} if os.path.exists(sp) else {}
         for x in g.get("trials") or []:
-            if x.get("route") != "UNVERIFIED":
+            # a row THIS lane's hook flipped is still a target: the tracker file the binder reads may already carry the
+            # previous run's flip, and dropping it would make a re-run unbind what it bound (3 Oct, Safdar)
+            if x.get("route") != "UNVERIFIED" and \
+                    not str(x.get("reclassified_by") or "").startswith("g1/confirm-unverified"):
                 continue
             fam = str(x.get("family") or "")
             t = tab.get((slug, x["label"])) or {}
