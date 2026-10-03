@@ -659,10 +659,13 @@ def revman_label(model_printed):
     return _REVMAN[(meth, m.group(2).upper())]
 
 
-def stated_model(text, model_printed=None):
+def stated_model(text, model_printed=None, measure=None):
     """{methods: [...], quotes: {...}, state}. State NOT_RECONSTRUCTABLE for a one-stage IPD model; NOT_STATED when the
     text names no pooling model. Methods: the figure's own RevMan label when both readers agree on one; else the
-    estimators the text names; a random-effects model with no named estimator is {DL, PM, REML} (each in the record)."""
+    estimators the text names; a random-effects model with no named estimator is {DL, PM, REML} (each in the record).
+    measure (when known): with Mantel-Haenszel named and a 2x2 measure (RR/OR), the text's fixed/random wording names
+    the M-H variants ONLY (Cochrane: 'Mantel-Haenszel method ... fixed-effect model' is M-H fixed, not IV fixed); for
+    any other measure M-H cannot apply (it needs counts) and is dropped."""
     # typographic hyphens folded first: Cochrane prints 'Mantel‐Haenszel' and 'fixed‐effect' (U+2010)
     t = re.sub(r"\s+", " ", re.sub(r"[\u2010-\u2015\u2212]", "-", text or ""))
     ipd0 = _ipd_sentence(t)
@@ -699,9 +702,14 @@ def stated_model(text, model_printed=None):
         quotes["FE"] = t[max(0, iv.start() - 80): iv.end() + 80]
         methods.add("FE")
     if "MH" in quotes:
-        methods.add("MH-FE" if "RE" not in quotes else "MH-RE")
-        if "FE" in quotes:
-            methods.add("MH-FE")
+        mh = {"MH-FE" if "RE" not in quotes else "MH-RE"} | ({"MH-FE"} if "FE" in quotes else set())
+        m = (measure or "").upper()
+        if m in ("RR", "OR"):
+            methods = mh                     # the fixed/random wording names the M-H variants, never plain IV
+        elif m:
+            pass                             # HR / MD ...: no 2x2 counts, M-H cannot be the model for this figure
+        else:
+            methods |= mh                    # measure unknown: both readings kept (the record shows them)
     if "HK" in quotes:
         methods |= {m + "+HK" for m in list(methods) if m in ("DL", "PM", "REML")}
     if not methods:
@@ -989,7 +997,7 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
         agreed_not_trials, proposed = proposed, []
     measure = measure_code(reading_a.get("measure"))
     model = stated_model(mtext if mtext is not None else held, reading_a.get("model_printed") if reading_a.get("model_printed") ==
-                         reading_b.get("model_printed") else None)
+                         reading_b.get("model_printed") else None, measure=measure)
     # the reconstruction runs on the AGREED rows even when other rows disagree: the record shows what they alone give
     acc = accept(proposed, pooled, model, measure, held) if pooled else \
         {"state": "REFUSED", "problems": [], "recomputed": {}, "methods_reproducing": [], "pooled_anchor": None}
