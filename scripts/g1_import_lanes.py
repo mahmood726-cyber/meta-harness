@@ -155,6 +155,9 @@ def main(argv):
         gt.cite_or_demote(o, slug)
         gt.apply_sweep(o, slug)           # trials the two-source sweep verified count as matched, by route
         gt.apply_single_primary(o)        # ONE_SOURCE rows bound to a single PRIMARY source, typed (2 Oct decision)
+        if not (o.get("g1r_reproduction") or {}).get("state"):
+            o["g1r_reproduction"] = gt.g1r_from_trials(o)
+        gt.apply_coverage(o)              # COVERAGE (incl. COMPARATOR_SOURCED) beside INDEPENDENTLY CONFIRMED
         bad = gt.scope_citation_violations(o)
         if bad:
             raise SystemExit(f"{slug}: lane artefact non-eligible without rule + span: {bad}")
