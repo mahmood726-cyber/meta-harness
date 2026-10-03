@@ -191,3 +191,43 @@ Both readers verified all four axes MET. It is a probiotic RCT for AAD preventio
    `intervention_any` (plus its own agent) and `"without probiotic"` to `comparator_any` changes **exactly 1 of 780**
    probiotics decisions: this record, exclude (X3) → include, for both screeners. That is a served inclusion, so it needs
    your signature.
+
+## 15. Tocilizumab 5 of 19 after the 2 Oct and 3 Oct decisions; the 5→3 regression explained; three items for you
+**Regression.** Upstream counted 5 after `9fce2c10`, which applied the 2 Oct decision (one bound primary verifies a row)
+to RECOVERY. `b9333817` then imported this lane's "a percentage is never a count" rule, and CORIMUNO-TOCI-1 and EMPACTA
+dropped out: their primaries print day-28 percentages and only metas print counts. That left 3. This lane's own label said
+2, because it had not applied the 2 Oct decision.
+
+**Now 5 of 19, 64% of REACT's participants.**
+- PRIMARY 2: COVACTA (AACT + text); RECOVERY (one bound open primary that states 621/2022 vs 729/2094).
+- TWO_SOURCE 1: TOCIBRAS.
+- SECONDARY_SINGLE 2: EMPACTA 26/249 vs 11/128; CORIMUNO-TOCI-1 7/63 vs 8/67.
+
+All five agree with REACT's row.
+
+SECONDARY_SINGLE requires a REACT-independent meta that reproduces its own printed pool, with two readers printing the
+same counts for the same trial. Neither meta states a per-row timepoint (35657993: "14 to 28 days"), so a row is typed
+day 28 only by the trial's **own primary**: day-28 percentages it reproduces (text or AACT). It is refused when it equals a
+count the primary states at another timepoint, or when another non-comparator meta contradicts it.
+
+**For you:**
+1. **`secondary_single()` refuses on `PRIMARY_OPENLY_AVAILABLE`.** That rule would refuse EMPACTA and CORIMUNO-TOCI-1,
+   whose open primaries were extracted and state day-28 percentages only, never counts. Proposal: refuse only when an
+   open primary **states the per-arm counts**. Where it states percentages, use them to *type* the meta row's timepoint
+   (as this lane does).
+2. **The Sao Paulo meta (36102463) prints REMAP-CAP control 10/45.** That is the sarilumab arm: the trial's control is
+   142/397. Both readers transcribed it faithfully, and its pooled control still reproduced. It shows that a
+   self-reproducing pool does not check per-row arm identity. This lane refuses the row because the two metas contradict.
+3. **Q16 (fixed here).** A registration shared by two REACT rows (NCT04331808) bound the TOCI-1 paper to
+   CORIMUNO-TOCI-ICU on held cache papers, so Hermine meta rows reached the ICU trial. One title-population rule now
+   covers cache and acquired papers. Any shared binding that resolves papers by registration alone has the same class.
+
+**REMAP-CAP and RECOVERY through the captain's cascade** (`scripts/fulltext_cascade.py`, imported unmodified from main):
+- Both are FETCHED. RECOVERY's text is held (CC BY) and bound.
+- The REMAP-CAP NEJM text (PMC7953461) carries the PMC COVID licence ("except commercial resale"), so it is
+  VERIFIED_NOT_HELD (`g1/data/verified_not_held.json`: sha256, span).
+- REMAP-CAP states **in-hospital** death 98/350 vs 142/397. REACT's 85/353 vs 116/358 is trialist-supplied day-28 data
+  that no open source states, so REMAP-CAP stays an open gap with its reasons logged.
+
+**Not merged:** origin/main into this branch. It conflicts on 30 generated files plus `harness/source_hierarchy.py` and
+`regex_layer/specs.py`; that integration is the captain's.
