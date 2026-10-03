@@ -241,8 +241,13 @@ def test_source_hierarchy_does_not_offer_a_covariate_model_effect_as_a_candidate
           "developed AAD compared with 14/96 (14.6%) receiving placebo. Using a multivariate model to adjust for two "
           "independent risk factors for AAD (age and days of cephalosporin use), the adjusted relative risk was "
           "significantly protective for S. boulardii (RR = 0.29, 95% CI = 0.08, 0.98).")
-    c = source_hierarchy._effect_candidates_in_outcome(ab, ["aad", "antibiotic-associated diarr"])
+    # Asserted at the entry point the build calls: the guard moved from a SILENT skip inside the private harvester to
+    # candidate_scope_refusal (acq/k-gap integration, 2026-10-03), so the requirement is unchanged -- 0.29 is never
+    # OFFERED -- and the refusal must now also be recorded.
+    refused: list[str] = []
+    c = source_hierarchy.effect_candidates_for_outcome({"keywords": ["aad", "antibiotic-associated diarr"]}, ab, refused)
     assert all(x["effect"] != 0.29 for x in c)
+    assert any("multivariable model" in r for r in refused), refused
 
 
 def test_ctgov_rung_refuses_a_registry_composite_with_extra_components():

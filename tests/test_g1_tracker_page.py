@@ -73,6 +73,6 @@ def test_the_committed_page_is_current():
 
 
 def test_committed_snapshot_matches_its_declared_tracker_blob():
-    src = json.loads((ROOT / g1.SRC / "SOURCE.json").read_text(encoding="utf-8"))
+    src = json.loads((ROOT / g1.SOURCE).read_text(encoding="utf-8"))
     data = (ROOT / "outputs" / "k_gap" / "G1_TRACKER.md").read_bytes().replace(b"\r\n", b"\n")
     assert hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest() == src["tracker_blob"]
