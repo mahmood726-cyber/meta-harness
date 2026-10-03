@@ -218,6 +218,18 @@ def entries_for(slug):
         pm = (t.get("pmids") or [None])[0]
         out.append({"id": t["label"][:60], "label": t["label"][:60], "acronyms": acr,
                     "author_year": ra.first_author_year(pm) if pm else None})
+    # a LANE-owned topic (tocilizumab, sglt2-hfref, noac) has no k-gap rows: its comparator trials are the tracker file's
+    # (else no meta row can ever join one of them -- 'CORIMUNO-TOCI-1' joined nothing, 3 Oct)
+    seen = {e["id"] for e in out}
+    gp = os.path.join(OUT, "g1", f"{slug}.json")
+    for x in (_j(gp).get("trials") or []) if os.path.exists(gp) else []:
+        if x["label"] in seen:
+            continue
+        idn = x.get("identity") if isinstance(x.get("identity"), dict) else {}
+        pm = str(idn.get("pmid") or "") or (str(x.get("family") or "").replace("PMID ", "")
+                                             if str(x.get("family") or "").startswith("PMID ") else "")
+        out.append({"id": x["label"], "label": x["label"], "acronyms": [],
+                    "author_year": ra.first_author_year(pm) if pm.isdigit() else None})
     return out
 
 
@@ -346,9 +358,72 @@ def referenced_figures(slug, pmid, spec, run):
 def read_ref(it):
     """One recorded forest read of a text-linked figure, ledgered under its own key (slug::meta::fig)."""
     import secondary_meta_build as smb
+    if it.get("counts_read"):
+        return read_counts(it)
     r = smb.read_one(it)
     r["key"] = it["key"]
     return r
+
+
+COUNTS_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["rows", "notes"],
+    "properties": {
+        "notes": {"type": "string"},
+        "rows": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["label", "events_t", "n_t", "events_c", "n_c"],
+            "properties": {"label": {"type": "string"},
+                           **{k: {"type": ["string", "null"]} for k in ("events_t", "n_t", "events_c", "n_c")}}}},
+    },
+}
+COUNTS_INSTR = """You are reading ONE forest-plot figure from a published meta-analysis. For every study row, in the order
+printed, transcribe the study label exactly as printed and, if the figure PRINTS them, the number of events and the
+total in the experimental (intervention) arm and in the control arm, exactly as printed (events_t, n_t, events_c, n_c).
+Use null for anything not printed. Never compute, infer or correct a number. notes: which columns you read as the
+intervention arm and which as the control arm, as the figure labels them.
+"""
+
+
+def read_counts(it):
+    """A SECOND recorded read of a figure, for its per-arm counts only (when the figure's measure differs from the
+    registered estimand and counts -> RR/OR is the only assumption-free route). Ledger key <key>::counts."""
+    import secondary_meta_build as smb
+    import k_gap_forest_plot as fp
+    from reproducible_ai import model_call_live as mcl
+    from reproducible_ai import model_source as ms
+    p = (COUNTS_INSTR + f"\nFIGURE CAPTION (from the article): {it['figure']['caption']}\n").encode("utf-8")
+    rec = mcl.call(p, schema=COUNTS_SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
+                   caller={"file": "scripts/g1_two_source_sweep.py", "line": "read_counts",
+                           "purpose": f"per-arm counts of meta {it['pmid']} {it['figure']['fig_id']} ({it['slug']}; acq/k-gap lane)"},
+                   input_digests=[{"ref": it["image_ref"], "sha256": it["image_sha256"], "what": "forest-plot figure, -i"}],
+                   timeout_s=900, images=(it["image_path"],))
+    ms.write_record(rec, smb.REC_DIR)
+    return {"key": it["key"] + "::counts", "record_id": rec["record_id"], "state": rec["state"],
+            "prompt_sha256": hashlib.sha256(p).hexdigest(), "image_sha256": it["image_sha256"]}
+
+
+def attach_counts(rows, rec_counts):
+    """Per-arm counts from the counts read, attached to a row ONLY when they reproduce that row's PRINTED effect (the
+    RR, or the OR, implied by the counts equals the printed point estimate at its printed precision) -- a transcription
+    check against the figure's own numbers; the label must match exactly. Returns the number attached."""
+    from harness import extract
+    by = {str(x.get("label") or "").strip(): x for x in rec_counts.get("rows") or []}
+    n = 0
+    for r in rows:
+        x = by.get(r.trial_label.strip())
+        try:
+            c = [int(str(x[k]).replace(",", "")) for k in ("events_t", "n_t", "events_c", "n_c")] if x else None
+        except (TypeError, ValueError):
+            c = None
+        if not c or min(c[1], c[3]) <= 0 or c[0] > c[1] or c[2] > c[3]:
+            continue
+        est = (extract._rr_from_counts(*c) if r.measure.upper() == "RR" else
+               extract._or_from_counts(*c) if r.measure.upper() == "OR" else None)
+        if est is None or not sm._eq_printed(f"{est:.{max(sm._decimals(r.effect), 0)}f}", r.effect):
+            continue
+        r.events_t, r.n_t, r.events_c, r.n_c = c
+        n += 1
+    return n
 
 
 def ref_rows(slug, it, rr, spec, comp_pmid):
@@ -364,11 +439,25 @@ def ref_rows(slug, it, rr, spec, comp_pmid):
     pool = resp.get("pooled") or {}
     hit = any(sm._eq_printed(m.group(1), pool.get("effect")) and sm._eq_printed(m.group(2), pool.get("lower"))
               and sm._eq_printed(m.group(3), pool.get("upper")) for m in sm._TEXT_TRIPLE.finditer(it["link_sentence"]))
-    if not hit:
-        return [], "POOLED_NOT_IN_LINKING_SENTENCE"
+    ident = it["link_sentence"] if hit else None
+    if not ident:
+        # the sentence CITING the figure printed another number (a sub-analysis, the text's own rounding): the figure's
+        # outcome is then established exactly as a typed table's -- a sentence of the meta that prints THIS figure's
+        # pooled triple with a registered outcome term governing it (sm.pooled_sentence); else refused
+        terms = [k for k in (spec.get("keywords") or []) if k] + list(spec.get("core") or [])
+        ident = sm.pooled_sentence(it.get("held") or "", pool, terms)
+        if not ident:
+            return [], "POOLED_NOT_IN_LINKING_SENTENCE"
+    # TIMEPOINT FROM THE FIGURE'S OWN WORDS: exactly one stated in its caption or identity sentence ('Forest plot of the
+    # 28-day mortality risk ratios'); else the meta-wide rule (one timepoint in the whole text, or none)
+    tps = {next(g for g in m.groups() if g) for m in smb._TP.finditer(it["figure"].get("caption", "") + " " + ident)}
+    fig_tp = f"{tps.pop()} days" if len(tps) == 1 else None
     for r in rows:
-        r.outcome_definition = it["link_sentence"][:300]
-    return rows, f"TEXT_LINKED_FIGURE {it['figure']['fig_id']} ({len(rows)} rows)"
+        r.outcome_definition = ident[:300]
+        if fig_tp and spec.get("core"):
+            r.timepoint = fig_tp
+    return rows, f"TEXT_LINKED_FIGURE {it['figure']['fig_id']} ({len(rows)} rows; identity: " \
+                 f"{'linking sentence' if hit else 'pooled sentence'})"
 
 
 def prepare_figures(slug, metas, run):
@@ -445,6 +534,12 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
         except Exception as exc:  # noqa: BLE001
             frows, why = [], f"ERROR:{type(exc).__name__}"
         meta_state[it["pmid"]] = (meta_state.get(it["pmid"], "") + f" | {why}").strip(" |")
+        rc = (runs or {}).get(it["key"] + "::counts")
+        if frows and rc and rc.get("state") == "RAN_OK" and rc.get("image_sha256") == it["image_sha256"]:
+            from reproducible_ai import model_source as ms
+            got = json.loads(ms.replay(ms.load_record(os.path.join(smb.REC_DIR, rc["record_id"] + ".json"))).decode("utf-8"))
+            n_att = attach_counts(frows, got)
+            meta_state[it["pmid"]] += f" | counts attached to {n_att}/{len(frows)} rows (each reproduces its printed effect)"
         for r in frows:
             r = sm.admit(r, spec, fam)
             if r.family_id in want:
@@ -575,6 +670,19 @@ def main(argv):
         ref[s] = [it for m in ms_all for it in referenced_figures(s, m, spec_s, run)]
         todo += [it for it in ref[s] if not ((runs.get(it["key"]) or {}).get("state") == "RAN_OK"
                                              and runs[it["key"]]["image_sha256"] == it["image_sha256"])]
+        # COUNTS READS: a figure that passed every gate, on an RR/OR topic, whose rows print another ratio measure
+        if (spec_s.get("estimand") or "").upper() in ("RR", "OR"):
+            for it in ref[s]:
+                rr = runs.get(it["key"])
+                ck = runs.get(it["key"] + "::counts")
+                if not rr or rr.get("state") != "RAN_OK" or (ck and ck.get("state") == "RAN_OK"):
+                    continue
+                try:
+                    fr, _w = ref_rows(s, it, rr, spec_s, smb.comparator_pmid(s))
+                except Exception:  # noqa: BLE001
+                    fr = []
+                if fr and any(r.measure.upper() != spec_s["estimand"].upper() for r in fr):
+                    todo.append(dict(it, counts_read=True))
     todo = todo[:max_reads] if run else []
     if todo:
         with cf.ThreadPoolExecutor(max_workers=3) as ex:              # codex concurrency 3

@@ -2,22 +2,20 @@
  "schema_version": 1,
  "slug": "tocilizumab-covid19-mortality",
  "comparator_pmid": "34228774",
- "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials whose 28-day deaths per arm are ESTABLISHED by two independent sources (at least one primary: posted AACT results or the trial's own open text; a second meta, 34019122, may confirm counts but never supply them) and equal REACT's row. REACT's rows are the comparator only (anti-circularity).",
+ "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials with a VERIFIED typed day-28 tuple (k-gap 9abe38d3), by route: PRIMARY (two primaries, or one bound primary that STATES the counts -- 2 Oct), TWO_SOURCE (a primary + a REACT-independent meta), SECONDARY_SINGLE (a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary -- 3 Oct; queued for primary verification). Agreement with REACT's row is reported per trial, not required. REACT's rows are the comparator only (anti-circularity).",
  "N_comparator_trials": 19,
- "k_matched": 3,
+ "k_matched": 5,
  "N_eligible": 19,
  "named_differences": [],
  "open_gaps": [
   "ARCHITECTS",
   "BACC-Bay",
-  "CORIMUNO-TOCI-1",
   "CORIMUNO-TOCI-ICU",
   "COV-AID",
   "COVIDOSE2-SS-A",
   "COVIDSTORM",
   "COVINTOC",
   "COVITOZ",
-  "EMPACTA",
   "HMO-020-0224",
   "ImmCoVA",
   "PreToVid",
@@ -52,7 +50,8 @@
  "k_ours_total": null,
  "routes": {
   "NO_ROW": 12,
-  "UNVERIFIED": 4,
+  "SECONDARY_SINGLE": 2,
+  "UNVERIFIED": 2,
   "PRIMARY": 2,
   "TWO_SOURCE": 1
  },
@@ -62,7 +61,7 @@
    "family": "NCT04412772",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = ARCHITECTS",
    "comparator_row": {
@@ -80,6 +79,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:44:36Z",
     "discovery": {
@@ -113,14 +116,53 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "ARCHITECTS"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "ARCHITECTS",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 0,
+     "n_t": 10,
+     "events_c": 2,
+     "n_c": 11
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "ARCHITECTS"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "ARCHITECTS",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "BACC-Bay",
    "family": "NCT04356937",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; its open report states deaths only at: adverse-event table (SAFETY population; no timepoint stated) (PMID 33085857). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; its open report states deaths only at: adverse-event table (SAFETY population; no timepoint stated) (PMID 33085857). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: TIMEPOINT_NOT_TYPED: AACT posts DAY-28 mortality as percentages and the row does not reproduce every arm (Placebo: posted 3.8% of 81; the row's 3/81 = 3.7%) -- a posted rate no count gives is a Kaplan-Meier estimate",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "our family NCT04356937 holds Stone 2020 (PMID 33085857), the BACC Bay trial",
    "comparator_row": {
@@ -180,6 +222,10 @@
     }
    ],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "TIMEPOINT_NOT_TYPED: AACT posts DAY-28 mortality as percentages and the row does not reproduce every arm (Placebo: posted 3.8% of 81; the row's 3/81 = 3.7%) -- a posted rate no count gives is a Kaplan-Meier estimate"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:45:04Z",
     "discovery": {
@@ -253,14 +299,69 @@
     "R4_AACT": "POSTED_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "secondary_single_flag": {
+    "state": "CONTRADICTED_BY_PRIMARY",
+    "meta_counts": [
+     9,
+     161,
+     3,
+     82
+    ],
+    "primary_counts": [
+     9,
+     161,
+     4,
+     82
+    ],
+    "meta": "33745918"
+   },
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "BACC-Bay"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "BACC-Bay",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 9,
+     "n_t": 161,
+     "events_c": 4,
+     "n_c": 82
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "BACC-Bay"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "BACC-Bay",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "CORIMUNO-TOCI-1",
    "family": "NCT04331808",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "counts printed only by a meta (META 35657993 (prints events/total); META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15)",
+   "route": "SECONDARY_SINGLE",
+   "basis": "SECONDARY_SINGLE: 2 REACT-independent meta row(s) 'Hermine 2020', 'Hermine et al.⁷' (metas 35657993, 36102463; each reproduces its own printed pooled result; two readers agree) print (7, 63, 8, 67); the trial's open primary states day-28 PERCENTAGES these counts reproduce, never the counts -- queued for primary verification",
    "g1_state": "SECONDARY_COUNT_PRIMARY_CONSISTENT",
    "identity": "AACT acronym CORIMUNO-TOC; its 'Severe COVID Population (WHO-CPS =5)' groups",
    "comparator_row": {
@@ -323,7 +424,11 @@
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
+   "secondary_single": {
+    "state": "ADMITTED",
+    "why": null
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:45:55Z",
     "discovery": {
@@ -437,14 +542,28 @@
     "R4_AACT": "POSTED_NO_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "CORIMUNO-TOCI-1"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "CORIMUNO-TOCI-1",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "CORIMUNO-TOCI-ICU",
    "family": "NCT04331808",
    "in_our_pool": null,
    "route": "UNVERIFIED",
-   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths",
+   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT acronym CORIMUNO-TOC; its 'Critical COVID Population (WHO-CPS >5)' groups",
    "comparator_row": {
@@ -520,6 +639,10 @@
     }
    ],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T21:05:27Z",
     "discovery": {
@@ -637,6 +760,45 @@
    "primary_single_source": {
     "admitted": false,
     "why": "NOT_A_SINGLE_SOURCE_ROW"
+   },
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "CORIMUNO-TOCI-ICU"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "CORIMUNO-TOCI-ICU",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 8,
+     "n_t": 49,
+     "events_c": 10,
+     "n_c": 43
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "CORIMUNO-TOCI-ICU"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "CORIMUNO-TOCI-ICU",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
    }
   },
   {
@@ -644,7 +806,7 @@
    "family": "NCT04330638",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 34756178 (acquired: NCT04330638[si]))",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 34756178 (acquired: NCT04330638[si])) | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = COV-AID",
    "comparator_row": {
@@ -662,6 +824,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:50:22Z",
     "discovery": {
@@ -695,7 +861,46 @@
     "R4_AACT": "POSTED_DAY28_COMPOSITES_ONLY",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "COV-AIDᵃ"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "COV-AIDᵃ",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 9,
+     "n_t": 81,
+     "events_c": 7,
+     "n_c": 72
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "COV-AIDᵃ"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "COV-AIDᵃ",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "COVACTA",
@@ -813,6 +1018,9 @@
     }
    ],
    "g1_countable": true,
+   "secondary_single": {
+    "state": "NOT_NEEDED (a primary verifies the row)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:03:54Z",
     "discovery": {
@@ -1037,14 +1245,28 @@
     "R4_AACT": "POSTED_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "COVACTA"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "COVACTA",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "COVIDOSE2-SS-A",
    "family": "NCT04479358",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT acronym COVIDOSE-2; its 'Sub-study A' groups",
    "comparator_row": {
@@ -1062,6 +1284,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:05:47Z",
     "discovery": {
@@ -1095,14 +1321,53 @@
     "R4_AACT": "POSTED_NO_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "COVIDOSE2-SS-A"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "COVIDOSE2-SS-A",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 0,
+     "n_t": 19,
+     "events_c": 2,
+     "n_c": 8
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "COVIDOSE2-SS-A"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "COVIDOSE2-SS-A",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "COVIDSTORM",
    "family": "NCT04577534",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = COVIDSTORM",
    "comparator_row": {
@@ -1120,6 +1385,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:05:56Z",
     "discovery": {
@@ -1144,14 +1413,53 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "COVIDSTORM"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "COVIDSTORM",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 0,
+     "n_t": 26,
+     "events_c": 0,
+     "n_c": 13
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "COVIDSTORM"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "COVIDSTORM",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "COVINTOC",
    "family": null,
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 33676589 (acquired: COVINTOC[tiab])); its open report states deaths only at: during the study (PMID 33676589). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 33676589 (acquired: COVINTOC[tiab])); its open report states deaths only at: during the study (PMID 33676589). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: TIMEPOINT_NOT_TYPED: the meta states only a 14-28 day window and no primary states day-28 figures this row reproduces (primary states: during the study)",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "registered with CTRI (India), not in AACT; its own abstract (PMID 33676589, acquired by its name) names COVINTOC",
    "comparator_row": {
@@ -1169,6 +1477,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "TIMEPOINT_NOT_TYPED: the meta states only a 14-28 day window and no primary states day-28 figures this row reproduces (primary states: during the study)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:07Z",
     "discovery": {
@@ -1191,14 +1503,53 @@
     "R4_AACT": "NO_AACT_REGISTRATION",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "COVINTOC"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "COVINTOC",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 11,
+     "n_t": 91,
+     "events_c": 15,
+     "n_c": 88
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "COVINTOC"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "COVINTOC",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "COVITOZ",
    "family": "NCT04435717",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = COVITOZ-01",
    "comparator_row": {
@@ -1216,6 +1567,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:10Z",
     "discovery": {
@@ -1228,14 +1583,53 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "COVITOZ"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "COVITOZ",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 0,
+     "n_t": 17,
+     "events_c": 0,
+     "n_c": 9
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "COVITOZ"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "COVITOZ",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "EMPACTA",
    "family": "NCT04372186",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "counts printed only by a meta (META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15)",
+   "route": "SECONDARY_SINGLE",
+   "basis": "SECONDARY_SINGLE: 1 REACT-independent meta row(s) 'Salama et al.¹⁸' (metas 36102463; each reproduces its own printed pooled result; two readers agree) print (26, 249, 11, 128); the trial's open primary states day-28 PERCENTAGES these counts reproduce, never the counts -- queued for primary verification",
    "g1_state": "SECONDARY_COUNT_PRIMARY_CONSISTENT",
    "identity": "AACT studies.acronym = EMPACTA",
    "comparator_row": {
@@ -1299,7 +1693,11 @@
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
+   "secondary_single": {
+    "state": "ADMITTED",
+    "why": null
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:23Z",
     "discovery": {
@@ -1343,14 +1741,28 @@
     "R4_AACT": "POSTED_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "EMPACTA"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "EMPACTA",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "HMO-020-0224",
    "family": "NCT04377750",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT id_information secondary id '0224-20-HMO-CTIL'",
    "comparator_row": {
@@ -1368,6 +1780,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:29Z",
     "discovery": {
@@ -1380,14 +1796,53 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "HMO-020-0224"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "HMO-020-0224",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 11,
+     "n_t": 37,
+     "events_c": 8,
+     "n_c": 17
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "HMO-020-0224"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "HMO-020-0224",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "ImmCoVA",
    "family": "NCT04412291",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 38157348 + acquired full text); its open report states deaths only at: day 29 (PMID 38157348 + acquired full text). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 38157348 + acquired full text); its open report states deaths only at: day 29 (PMID 38157348 + acquired full text). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT official title names ImmCoVA; our family holds its 2023 paper (PMID 38157348)",
    "comparator_row": {
@@ -1405,6 +1860,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:37Z",
     "discovery": {
@@ -1439,14 +1898,53 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "ImmCoVA"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "ImmCoVA",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 2,
+     "n_t": 22,
+     "events_c": 2,
+     "n_c": 27
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "ImmCoVA"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "ImmCoVA",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "PreToVid",
    "family": null,
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "registered in the Netherlands Trial Register, not in AACT",
    "comparator_row": {
@@ -1464,6 +1962,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:44Z",
     "discovery": {
@@ -1475,14 +1977,53 @@
     "R4_AACT": "NO_AACT_REGISTRATION",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "PreToVidᶜ"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "PreToVidᶜ",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 21,
+     "n_t": 174,
+     "events_c": 34,
+     "n_c": 180
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "PreToVidᶜ"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "PreToVidᶜ",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "RECOVERY",
    "family": "NCT04381936",
    "in_our_pool": null,
    "route": "PRIMARY",
-   "basis": "single PRIMARY source: trial's own text, counts verbatim in span (TEXT PMID 33933206 + acquired full text)",
+   "basis": "one bound primary that STATES the counts (TEXT PMID 33933206 + acquired full text + TEXT PMID 33933206 + acquired full text): a verified row (Mahmood 2 Oct); a non-comparator meta prints RECOVERY Collaborative Group¹⁶ (596, 2022, 694, 2094) (another data cut), not used",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT studies.acronym = RECOVERY",
    "comparator_row": {
@@ -1542,6 +2083,9 @@
     }
    ],
    "g1_countable": true,
+   "secondary_single": {
+    "state": "NOT_NEEDED (a primary verifies the row)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:07:45Z",
     "discovery": {
@@ -1628,18 +2172,27 @@
     "R5_ISRCTN": "RECORD_FOUND"
    },
    "agreement_with_comparator_row": "AGREE",
-   "primary_single_source": {
-    "admitted": true,
-    "why": "single PRIMARY source: trial's own text, counts verbatim in span (TEXT PMID 33933206 + acquired full text)"
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "RECOVERY"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "RECOVERY",
+    "verified": "the forest-reader dual read prints the same counts"
    },
-   "reclassified_by": "acq/k-gap single_primary_source"
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "REMAP-CAP",
    "family": "NCT02735707",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: cascade:D1+D2+D3)); its open report states deaths only at: In-hospital (PMID 40360262); 90 days (PMID 40360262). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: cascade:D1+D2+D3)); its open report states deaths only at: In-hospital (PMID 40360262); 90 days (PMID 40360262). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: CONTRADICTED: meta 35657993 'Gordon 2021' (98, 350, 142, 397); meta 36102463 'REMAP-CAP Investigators et al.¹⁷' (98, 350, 10, 45) | TIMEPOINT: the meta rows' tocilizumab arm (98, 350) is the primary's IN-HOSPITAL count (PMID 33631065, PMC7953461, VERIFIED_NOT_HELD sha256 2be1b62eee18: 'In-hospital death — no./total no. (%) 98/350 (28) 10/45 (22) 142/397 (36)'), not day 28",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = REMAP-CAP",
    "comparator_row": {
@@ -1657,6 +2210,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "CONTRADICTED: meta 35657993 'Gordon 2021' (98, 350, 142, 397); meta 36102463 'REMAP-CAP Investigators et al.¹⁷' (98, 350, 10, 45) | TIMEPOINT: the meta rows' tocilizumab arm (98, 350) is the primary's IN-HOSPITAL count (PMID 33631065, PMC7953461, VERIFIED_NOT_HELD sha256 2be1b62eee18: 'In-hospital death — no./total no. (%) 98/350 (28) 10/45 (22) 142/397 (36)'), not day 28"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:00Z",
     "discovery": {
@@ -1692,14 +2249,53 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "REMAP-CAPᵈ"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "REMAP-CAPᵈ",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 85,
+     "n_t": 353,
+     "events_c": 116,
+     "n_c": 358
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "REMAP-CAPᵈ"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "REMAP-CAPᵈ",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   },
   {
    "label": "REMDACTA",
    "family": "NCT04409262",
    "in_our_pool": null,
    "route": "UNVERIFIED",
-   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths",
+   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT studies.acronym = REMDACTA",
    "comparator_row": {
@@ -1750,6 +2346,10 @@
     }
    ],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:07Z",
     "discovery": {
@@ -1788,6 +2388,45 @@
    "primary_single_source": {
     "admitted": false,
     "why": "AACT_COUNTS_DERIVED_FROM_PERCENTAGE"
+   },
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "REMDACTA"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "REMDACTA",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 78,
+     "n_t": 430,
+     "events_c": 41,
+     "n_c": 210
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "REMDACTA"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "REMDACTA",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
    }
   },
   {
@@ -1863,6 +2502,9 @@
     }
    ],
    "g1_countable": true,
+   "secondary_single": {
+    "state": "NOT_NEEDED (a primary verifies the row)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:17Z",
     "discovery": {
@@ -1906,14 +2548,28 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "TOCIBRAS"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "TOCIBRAS",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "TOCOVID",
    "family": "NCT04332094",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = TOCOVID",
    "comparator_row": {
@@ -1931,6 +2587,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:23Z",
     "discovery": {
@@ -1954,24 +2614,65 @@
     "R4_AACT": "NO_POSTED_RESULTS",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "comparator_row_provenance": {
+    "meta_pmid": "34228774",
+    "location": {
+     "id": "joi210079f1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "TOCOVID"
+    },
+    "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+    "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+    "row_label": "TOCOVID",
+    "verified": "the forest-reader dual read prints the same counts"
+   },
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "OR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
+     "events_t": 0,
+     "n_t": 136,
+     "events_c": 0,
+     "n_c": 134
+    },
+    "provenance": {
+     "meta_pmid": "34228774",
+     "location": {
+      "id": "joi210079f1",
+      "kind": "figure",
+      "panel": null,
+      "row_label": "TOCOVID"
+     },
+     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+     "row_label": "TOCOVID",
+     "verified": "the forest-reader dual read prints the same counts"
+    }
+   }
   }
  ],
  "per_trial_agreement": {
-  "AGREE": 2
+  "AGREE": 5
  },
  "coverage": {
+  "k_matched": 5,
+  "k_matched_by_route": {
+   "PRIMARY": 2,
+   "TWO_SOURCE": 1,
+   "SECONDARY_SINGLE": 2
+  },
   "k_established": 2,
   "k_comparator": 19,
+  "participants_matched": 5190,
   "participants_established": 567,
   "participants_comparator": 8048,
-  "participant_share": 0.07,
-  "largest_trials_not_established": [
-   {
-    "trial": "RECOVERY",
-    "n": 4116,
-    "state": "ONE_SOURCE"
-   },
+  "participant_share": 0.645,
+  "largest_trials_not_matched": [
    {
     "trial": "REMAP-CAP",
     "n": 711,
@@ -1983,17 +2684,22 @@
     "state": "ONE_SOURCE"
    },
    {
-    "trial": "EMPACTA",
-    "n": 377,
-    "state": "SECONDARY_COUNT_PRIMARY_CONSISTENT"
+    "trial": "PreToVid",
+    "n": 354,
+    "state": "NO_PRIMARY_SOURCE"
+   },
+   {
+    "trial": "TOCOVID",
+    "n": 270,
+    "state": "NO_PRIMARY_SOURCE"
    }
   ]
  },
- "result_label": "COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 2 of 19 trials, 7% of REACT's participants; missing RECOVERY (n=4116), REMAP-CAP (n=711)",
+ "result_label": "COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)",
  "same_trials": {
   "state": "POOLED",
   "k": 2,
-  "measure": "OR [COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 2 of 19 trials, 7% of REACT's participants; missing RECOVERY (n=4116), REMAP-CAP (n=711)]",
+  "measure": "OR [COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)]",
   "is_a_finding": false,
   "method": "FE",
   "ours": {
@@ -2035,7 +2741,7 @@
   "ci_low": null,
   "ci_high": null,
   "scale": "OR",
-  "state": "NOT_STATED: COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 2 of 19 trials, 7% of REACT's participants; missing RECOVERY (n=4116), REMAP-CAP (n=711)"
+  "state": "NOT_STATED: COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)"
  },
  "comparator": {
   "outcome": "28-day all-cause mortality (Figure 1, tocilizumab)",
@@ -2073,13 +2779,46 @@
  "lane_source": {
   "lane": "Evidence lane two (g1/tocilizumab)",
   "branch": "g1/tocilizumab",
-  "commit": "7b7f45cbe18e7cd57e7df32c5c313b9b102c5e9b",
+  "commit": "fff17d61a1bc7ddbd7d926af4d7133fcbd986416",
   "path": "outputs/k_gap/g1/tocilizumab-covid19-mortality.json",
-  "sha256": "a0bcbf95c1e8eff496244898c57d4d85218b3d3d31b8095105a585f291fdc3ac",
+  "sha256": "1e993d210e5494d3aaa6fec96a22c4d162061dba631f26be8a7cc227b97ccd9a",
   "format": "tracker_v1"
  },
- "k_matched_of_comparator_N": "3 of 19",
- "single_primary_reclassified": [
-  "RECOVERY"
+ "g1r_reproduction": {
+  "state": "REPRODUCED",
+  "rows": 29,
+  "methods": [
+   "FE"
+  ],
+  "where": "figure joi210079f1 (g1/forest-reader b56179dc2, dual-model)",
+  "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 1 patients randomized to usual care or placebo (summary OR, 0.86 [95% CI, 0.79-0.95]; P = .003 based on)"
+ },
+ "comparator_orientation": {
+  "state": "ESTABLISHED",
+  "why": "5 shared trial(s) AGREE"
+ },
+ "k_independent": 5,
+ "k_comparator_sourced": 14,
+ "k_covered": 19,
+ "coverage_complete": true,
+ "discrepancy_findings": [
+  {
+   "trial": "BACC-Bay",
+   "kind": "SECONDARY_META_CONTRADICTED_BY_PRIMARY",
+   "meta": "33745918",
+   "meta_counts": [
+    9,
+    161,
+    3,
+    82
+   ],
+   "primary_counts": [
+    9,
+    161,
+    4,
+    82
+   ],
+   "side": "SECONDARY_META_WRONG (the trial's own report states the counts)"
+  }
  ]
 }
