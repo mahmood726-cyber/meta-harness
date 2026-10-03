@@ -3,8 +3,8 @@
 Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY rows: never pool inputs, never counted toward agreement with their own meta; another meta's rows feed the two-source rule.
 
 - comparators of 32 tracker topics; other metas selected by the two-source sweep: 612
-- ALL: figures read by both models 205; ACCEPTED 96, REFUSED 109 (pooled-reconstruction pass rate 96 of 205); rows proposed 1502, refused (readings disagree) 899, accepted as secondary 801
-- comparators: figures read by both models 24; ACCEPTED 21, REFUSED 3 (pooled-reconstruction pass rate 21 of 24); rows proposed 225, refused (readings disagree) 0, accepted as secondary 225
+- ALL: figures read by both models 206; ACCEPTED 98, REFUSED 108 (pooled-reconstruction pass rate 98 of 206); rows proposed 1516, refused (readings disagree) 899, accepted as secondary 815
+- comparators: figures read by both models 25; ACCEPTED 23, REFUSED 2 (pooled-reconstruction pass rate 23 of 25); rows proposed 239, refused (readings disagree) 0, accepted as secondary 239
 - other metas (two-source sweep): figures read by both models 181; ACCEPTED 75, REFUSED 106 (pooled-reconstruction pass rate 75 of 181); rows proposed 1277, refused (readings disagree) 899, accepted as secondary 576
 
 ## Comparators
@@ -16,6 +16,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | colchicine-secondary-cv-prevention | PMID 36176989 | F3 | **ACCEPTED** | 7 / 0 | STATED ['MH-FE', 'MH-RE'] | 0.54 (0.38-0.77) | MH-FE 0.6496 (0.5609-0.7524); MH-RE 0.5373 (0.3768-0.7661) | - |
 | corticosteroids-covid19-mortality | PMID 32876694 | joi200104f2 | **ACCEPTED** | 7 / 0 | STATED ['FE', 'PM', 'PM+HK'] | 0.66 (0.53-0.82) | FE 0.6593 (0.5323-0.8167); PM 0.6962 (0.5183-0.9350); PM+HK 0.6962 (0.4817-1.0061) | - |
 | dapagliflozin-hfpef-hosp | PMID 36914068 | fig1 | **ACCEPTED** | 6 / 0 | STATED ['FE'] | 0.80 (0.74-0.86) | FE 0.7976 (0.7377-0.8624) | - |
+| denosumab-vertebral-fracture | PMID 36852077 | mmc1.pdf#p43 | **ACCEPTED** | 2 / 0 | STATED ['REML'] | 0.32 (0.26-0.41) | REML 0.3201 (0.2550-0.4017) | - |
 | empagliflozin-hfpef-hosp | PMID 37773799 | F2 | **ACCEPTED** | 6 / 0 | STATED ['DL'] | 0.80 (0.74-0.87) | DL 0.7981 (0.7360-0.8654) | - |
 | esketamine-trd-madrs | PMID 42490943 | f4 | **ACCEPTED** | 4 / 0 | STATED ['DL', 'DL+HK', 'FE', 'REML', 'REML+HK'] | -2.99 (-5.10--0.89) | DL -2.9921 (-5.0972--0.8870); DL+HK -2.9921 (-6.6035-0.6193); FE -3.2159 (-4.6809--1.7508); REML -2.9989 (-5.0763--0.9215); REML+HK -2.9989 (-6.6022-0.6044) | - |
 | finerenone-ckd-t2d-renal | PMID 36742404 | f2 | **ACCEPTED** | 2 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.84 (0.77-0.92) | DL 0.8404 (0.7660-0.9219); FE 0.8404 (0.7660-0.9219); PM 0.8404 (0.7660-0.9219); REML 0.8404 (0.7660-0.9219) | - |
@@ -25,7 +26,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | metformin-pcos-ovulation | PMID 31845767 | CD013505-fig-0024 | **ACCEPTED** | 21 / 0 | STATED ['MH-FE'] | 1.65 (1.35-2.03) | MH-FE 1.6547 (1.3485-2.0305) | - |
 | noac-vs-warfarin-af-stroke | PMID 34985309 | F1 | **REFUSED** | 0 / 0 | NOT_RECONSTRUCTABLE [] | 0.81 (0.74-0.89) |  | ROWS_ARE_NOT_STUDIES:outcome/outcome, STATED_MODEL_NOT_RECONSTRUCTABLE, FEWER_THAN_2_AGREED_ROWS |
 | omega3-cardiovascular-events | PMID 35905212 | F2 | **ACCEPTED** | 22 / 0 | STATED ['DL', 'PM', 'REML'] | 0.94 (0.89-1.00) | DL 0.9439 (0.8909-1.0001); PM 0.9425 (0.8679-1.0237); REML 0.9439 (0.8923-0.9985) | - |
-| pcsk9-mace | PMID 36531722 | F2 | **REFUSED** | 0 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | NNTB 36 (NNTB 29-NNTB 47) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, FEWER_THAN_2_AGREED_ROWS |
+| pcsk9-mace | PMID 36531722 | Data_Sheet_1.PDF#p7 | **ACCEPTED** | 12 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.83 (0.79-0.87) | DL 0.8273 (0.7877-0.8690); FE 0.8292 (0.7961-0.8636); PM 0.8285 (0.7927-0.8658); REML 0.8224 (0.7675-0.8813) | - |
 | probiotics-aad-prevention | PMID 34385227 | F3 | **ACCEPTED** | 42 / 0 | STATED ['MH-RE'] | 0.63 (0.54-0.73) | MH-RE 0.6256 (0.5356-0.7307) | - |
 | semaglutide-obesity-mace | PMID 39345822 | fig2-17562864241281903 | **ACCEPTED** | 7 / 0 | STATED ['MH-RE'] | 0.79 (0.71-0.89) | MH-RE 0.7933 (0.7083-0.8884) | - |
 | semaglutide-obesity-weight | PMID 42536519 | F3 | **REFUSED** | 0 / 0 | STATED ['MH-RE'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, POOLED_ROW_DISAGREES |
@@ -292,7 +293,6 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - dapagliflozin-hfpef-hosp::41517628: PMID 41517628: NO_OUTCOME_FOREST_FIGURE
 - dapagliflozin-hfpef-hosp::41523725: PMID 41523725: AMBIGUOUS_FIGURE:FIG4,FIG6,FIG7
 - dapagliflozin-hfpef-hosp::41767694: PMID 41767694: NO_OUTCOME_FOREST_FIGURE
-- denosumab-vertebral-fracture: PMID 36852077: REFUSED_BEFORE_READING:NETWORK_META_ANALYSIS_FIGURE: direct and indirect head-to-head estimates (treatments), not trial rows
 - doac-vte-recurrence: PMID 24963045: NO_JATS -- no PMC full text; OPEN_BUT_NOT_SCRIPT_READABLE (bronze, https://ashpublications.org/blood/article-pdf/124/12/1968/1379490/1968.pdf: REFUSED_BY_HOST (GET failed after 1 tries: https://ashpublications.org/blood/): a bot challenge is not solved)
 - doac-vte-recurrence::26383245: PMID 26383245: AMBIGUOUS_FIGURE:pone.0137444.g002,pone.0137444.g004,pone.0137444.g005
 - dpp4-mace-t2d: PMID 34754403: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel

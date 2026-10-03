@@ -2,7 +2,7 @@
 
 Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Mantel-Haenszel from counts) reproduce each comparator's printed pooled result from the comparator's OWN per-trial rows, under the comparator's STATED model? A separate metric from G1.
 
-- tally: {'REPRODUCED': 22, 'NO_COMPARATOR_ROWS': 10}
+- tally: {'REPRODUCED': 23, 'NO_COMPARATOR_ROWS': 8, 'ENGINE_LACKS_METHOD': 1}
 
 | topic | comparator | rows (source) | stated model | printed pool | our engine (stated) | verdict | note |
 |---|---|---|---|---|---|---|---|
@@ -13,7 +13,7 @@ Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Man
 | corticosteroids-cap-mortality | PMID 38128217 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: NO_JATS |
 | corticosteroids-covid19-mortality | PMID 32876694 | 7 (DUAL_READ joi200104f2) | ['FE', 'PM', 'PM+HK'] | 0.66 (0.53-0.82) | FE [0.6628, 0.5346, 0.8218]; PM [0.6956, 0.5216, 0.9276]; PM+HK [0.6956, 0.4856, 0.9963] | **REPRODUCED** | by FE |
 | dapagliflozin-hfpef-hosp | PMID 36914068 | 6 (DUAL_READ fig1) | ['FE'] | 0.80 (0.74-0.86) | FE [0.7976, 0.7377, 0.8624] | **REPRODUCED** | by FE |
-| denosumab-vertebral-fracture | PMID 36852077 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: REFUSED_BEFORE_READING:NETWORK_META_ANALYSIS_FIGURE: direct and indirect head-to-head estimates (treatments), not trial rows |
+| denosumab-vertebral-fracture | PMID 36852077 | 2 (DUAL_READ mmc1.pdf#p43) | ['REML'] | 0.32 (0.26-0.41) |  | **ENGINE_LACKS_METHOD** | stated ['REML']; our engine implements FE/DL/PM (+HK) and Mantel-Haenszel (from counts) |
 | doac-vte-recurrence | PMID 24963045 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: NO_JATS |
 | dpp4-mace-t2d | PMID 34754403 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel |
 | empagliflozin-hfpef-hosp | PMID 37773799 | 6 (DUAL_READ F2) | ['DL'] | 0.80 (0.74-0.87) | DL [0.7981, 0.736, 0.8654] | **REPRODUCED** | by DL |
@@ -25,7 +25,7 @@ Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Man
 | metformin-pcos-ovulation | PMID 31845767 | 21 (DUAL_READ CD013505-fig-0024) | ['MH-FE'] | 1.65 (1.35-2.03) | MH-FE [1.6547, 1.3485, 2.0305] | **REPRODUCED** | by MH-FE |
 | noac-vs-warfarin-af-stroke | PMID 34985309 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_ARE_NOT_STUDIES:outcome/outcome |
 | omega3-cardiovascular-events | PMID 35905212 | 22 (DUAL_READ F2) | ['DL', 'PM', 'REML'] | 0.94 (0.89-1.00) | DL [0.9439, 0.8909, 1.0001]; PM [0.9425, 0.8679, 1.0237] | **REPRODUCED** | by DL |
-| pcsk9-mace | PMID 36531722 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | ROWS_NOT_AGREED_AS_TRIALS: ROWS_ARE_NOT_STUDIES:subgroup/subgroup |
+| pcsk9-mace | PMID 36531722 | 12 (DUAL_READ Data_Sheet_1.PDF#p7) | ['DL', 'FE', 'PM', 'REML'] | 0.83 (0.79-0.87) | DL [0.8298, 0.7866, 0.8753]; FE [0.8333, 0.7995, 0.8686]; PM [0.8319, 0.7943, 0.8712] | **REPRODUCED** | by DL, FE, PM |
 | probiotics-aad-prevention | PMID 34385227 | 42 (DUAL_READ F3) | ['MH-RE'] | 0.63 (0.54-0.73) | MH-RE [0.6256, 0.5356, 0.7307] | **REPRODUCED** | by MH-RE |
 | sacubitril-valsartan-hfref | PMID 36722326 | - (-) |  |  (-) |  | **NO_COMPARATOR_ROWS** | NOT_READ: REFUSED_BEFORE_READING:NETWORK_META_ANALYSIS_FIGURE: rows are treatments (network estimates), not trials |
 | semaglutide-obesity-mace | PMID 39345822 | 7 (DUAL_READ fig2-17562864241281903) | ['MH-RE'] | 0.79 (0.71-0.89) | MH-RE [0.7933, 0.7083, 0.8884] | **REPRODUCED** | by MH-RE |
