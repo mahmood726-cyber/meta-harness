@@ -469,3 +469,15 @@ def test_a_typographic_minus_agrees_and_comes_back_as_an_ascii_number():
     assert g.agree_value("−0.22", "-0.22") == "-0.22"
     assert g.agree_value("−0.22", "−0.22") == "-0.22"
     assert g.agree_value("−0.22", "-0.23") is None
+
+
+def test_a_label_naming_fixed_and_random_states_both_and_jats_references_keep_word_boundaries(tmp_path, monkeypatch):
+    assert g.revman_label("MH, Fixed + Random, 95% CI") == ["MH-FE", "MH-RE"]
+    assert g.revman_label("IV, Random, 95% CI") == ["DL"]
+    monkeypatch.setattr(g, "COMP", str(tmp_path))
+    d = tmp_path / "33333333"
+    d.mkdir()
+    (d / "2026-10-02_kgap_jats.xml").write_text(
+        "<article><back><ref-list><ref><person-group><name><surname>Mewton</surname><given-names>N</given-names>"
+        "</name></person-group></ref></ref-list></back></article>", encoding="utf-8")
+    assert g.label_from_references("Newton N–2019", "Mewton N-2019", g.ref_text("33333333"))["label"] == "Mewton N-2019"
