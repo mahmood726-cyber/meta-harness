@@ -187,7 +187,10 @@ def _body_says_rct(rec) -> bool:
 # Protocol (31712614) and an Editorial (39529940) into probiotics.)
 _NONPRIMARY_PT = ("comment", "editorial", "letter", "news", "erratum", "review", "meta-analysis",
                   "meta analysis", "protocol", "guideline", "biography", "retracted publication",
-                  "retraction of publication", "systematic review")
+                  "retraction of publication", "systematic review",
+                  # Consensus Statement / Consensus Development Conference: the ESPGHAN position paper 36219218 was
+                  # screened INCLUDE as an RCT via its eligibility sentence (2026-10-03; 1 of 227 included PMID records)
+                  "consensus")
 
 
 def _quasi_or_nonprimary(rec, pts) -> bool:
@@ -259,6 +262,20 @@ def _poptext(rec) -> str:
 def _arm_object_screening_enabled(config) -> bool:
     """Only topics with an executable arm-object declaration enforce the contract."""
     return bool((config or {}).get("arm_object"))
+
+
+# A sentence describing PRIOR work, not this trial: "has previously exerted positive effects in people with
+# antibiotic-associated diarrhoea" (probiotics 41707673, an IBS-D trial, was included for AAD prevention on it).
+# Only a CLAIM ABOUT EARLIER FINDINGS counts: a bare 'previously' also describes this trial's own participants
+# ("adults who had not previously taken probiotics" -- codex review 2026-10-03), so it is not a cue.
+_PRIOR_WORK = _re.compile(r"\bha(?:s|ve) previously\b|\bpreviously (?:shown|reported|demonstrated|exerted)\b|"
+                          r"\bha(?:s|ve) been (?:shown|reported|demonstrated)\b|"
+                          r"\b(?:prior|previous|earlier) (?:studies|research|trials|work)\b", _re.I)
+
+
+def _own_sentences(abstract: str) -> list[str]:
+    """The abstract's sentences, minus those that describe prior work (each kept sentence is verbatim)."""
+    return [x for x in _re.split(r"(?<=[.!?])\s+", abstract or "") if x and not _PRIOR_WORK.search(x)]
 
 
 def _span(raw: str, term: str, width: int = 48) -> str:
@@ -419,8 +436,12 @@ def screen_record(rec, inc, neg_pmids):
     # `prevention` a positive population signal in the STRUCTURED conditions or ABSTRACT overrides a
     # negative title signal. The intervention-in-title anchor below still applies, so an incidental
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
-    pop_haystack = _text(rec) if inc.get("prevention") else poptext
-    pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
+    # The widened signal reads the trial's OWN sentences: a population named only in a prior-work sentence is not
+    # this trial's population (2026-10-03; corpus: 1 of 19 abstract-admitted inclusions, probiotics 41707673).
+    own = _own_sentences(rec.get("abstract", "")) if inc.get("prevention") else []
+    rec_own = dict(rec, abstract=" ".join(own))
+    pop_haystack = _text(rec_own) if inc.get("prevention") else poptext
+    pop_haystack_raw = _text_raw(rec_own) if inc.get("prevention") else raw_pop
     # ...but only the POSITIVE population signal widens to the abstract. The exclusion terms stay on title/conditions,
     # as the reason text says: read over the abstract they fired on incidental words -- 'a multivariate model' (the term
     # means animal models), 'Subgroup analysis of subjects' (it means secondary reports), 'interest in probiotics for the
@@ -487,6 +508,9 @@ def screen_record(rec, inc, neg_pmids):
                 f"examined: â€œ{_quote(raw_all)}â€")
     # include: quote the actual matched population and comparator words
     pop_span = _span(pop_haystack_raw, popok) if popok else ""
+    if pop_span and pop_span.strip("…") not in raw_all:
+        # a window that crossed the join between two kept sentences is not verbatim: quote the one kept part instead
+        pop_span = next((sp for part in [raw_pop] + own if (sp := _span(part, popok))), "")
     comp_span = _span(raw_all, comp_term) if comp_term else ""
     ev = "; ".join(s for s in (f"population “{pop_span}”" if pop_span else "",
                                f"comparator “{comp_span}”" if comp_span else "") if s)
