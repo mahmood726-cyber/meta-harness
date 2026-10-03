@@ -2,26 +2,23 @@
  "schema_version": 1,
  "slug": "tocilizumab-covid19-mortality",
  "comparator_pmid": "34228774",
- "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials whose 28-day deaths per arm are ESTABLISHED by two independent sources (at least one primary: posted AACT results or the trial's own open text; a second meta, 34019122, may confirm counts but never supply them) and equal REACT's row. REACT's rows are the comparator only (anti-circularity).",
+ "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials with a VERIFIED typed day-28 tuple (k-gap 9abe38d3), by route: PRIMARY (two primaries, or one bound primary that STATES the counts -- 2 Oct), TWO_SOURCE (a primary + a REACT-independent meta), SECONDARY_SINGLE (a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary -- 3 Oct; queued for primary verification). Agreement with REACT's row is reported per trial, not required. REACT's rows are the comparator only (anti-circularity).",
  "N_comparator_trials": 19,
- "k_matched": 2,
+ "k_matched": 5,
  "N_eligible": 19,
  "named_differences": [],
  "open_gaps": [
   "ARCHITECTS",
   "BACC-Bay",
-  "CORIMUNO-TOCI-1",
   "CORIMUNO-TOCI-ICU",
   "COV-AID",
   "COVIDOSE2-SS-A",
   "COVIDSTORM",
   "COVINTOC",
   "COVITOZ",
-  "EMPACTA",
   "HMO-020-0224",
   "ImmCoVA",
   "PreToVid",
-  "RECOVERY",
   "REMAP-CAP",
   "REMDACTA",
   "TOCOVID"
@@ -53,8 +50,9 @@
  "k_ours_total": null,
  "routes": {
   "NO_ROW": 12,
-  "UNVERIFIED": 5,
-  "PRIMARY": 1,
+  "SECONDARY_SINGLE": 2,
+  "UNVERIFIED": 2,
+  "PRIMARY": 2,
   "TWO_SOURCE": 1
  },
  "trials": [
@@ -63,7 +61,7 @@
    "family": "NCT04412772",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = ARCHITECTS",
    "comparator_row": {
@@ -81,6 +79,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:44:36Z",
     "discovery": {
@@ -121,7 +123,7 @@
    "family": "NCT04356937",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; its open report states deaths only at: adverse-event table (SAFETY population; no timepoint stated) (PMID 33085857). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "only a SAFETY-population count is held (SECONDARY meta 34019122: Stone (BACC) OR 1.15 (0.34-3.87) reproduced from these counts; TEXT PMID 33085857 (safety-population table)); no efficacy-population 28-day count stated; its open report states deaths only at: adverse-event table (SAFETY population; no timepoint stated) (PMID 33085857). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: TIMEPOINT_NOT_TYPED: AACT posts DAY-28 mortality as percentages and the row does not reproduce every arm (Placebo: posted 3.8% of 81; the row's 3/81 = 3.7%) -- a posted rate no count gives is a Kaplan-Meier estimate",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "our family NCT04356937 holds Stone 2020 (PMID 33085857), the BACC Bay trial",
    "comparator_row": {
@@ -181,6 +183,10 @@
     }
    ],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "TIMEPOINT_NOT_TYPED: AACT posts DAY-28 mortality as percentages and the row does not reproduce every arm (Placebo: posted 3.8% of 81; the row's 3/81 = 3.7%) -- a posted rate no count gives is a Kaplan-Meier estimate"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:45:04Z",
     "discovery": {
@@ -260,8 +266,8 @@
    "label": "CORIMUNO-TOCI-1",
    "family": "NCT04331808",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "counts printed only by a meta (META 35657993 (prints events/total); META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15)",
+   "route": "SECONDARY_SINGLE",
+   "basis": "SECONDARY_SINGLE: 2 REACT-independent meta row(s) 'Hermine 2020', 'Hermine et al.⁷' (metas 35657993, 36102463; each reproduces its own printed pooled result; two readers agree) print (7, 63, 8, 67); the trial's open primary states day-28 PERCENTAGES these counts reproduce, never the counts -- queued for primary verification",
    "g1_state": "SECONDARY_COUNT_PRIMARY_CONSISTENT",
    "identity": "AACT acronym CORIMUNO-TOC; its 'Severe COVID Population (WHO-CPS =5)' groups",
    "comparator_row": {
@@ -324,7 +330,11 @@
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
+   "secondary_single": {
+    "state": "ADMITTED",
+    "why": null
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:45:55Z",
     "discovery": {
@@ -445,7 +455,7 @@
    "family": "NCT04331808",
    "in_our_pool": null,
    "route": "UNVERIFIED",
-   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths",
+   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT acronym CORIMUNO-TOC; its 'Critical COVID Population (WHO-CPS >5)' groups",
    "comparator_row": {
@@ -521,6 +531,10 @@
     }
    ],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T21:05:27Z",
     "discovery": {
@@ -641,7 +655,7 @@
    "family": "NCT04330638",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 34756178 (acquired: NCT04330638[si]))",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 34756178 (acquired: NCT04330638[si])) | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = COV-AID",
    "comparator_row": {
@@ -659,6 +673,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:50:22Z",
     "discovery": {
@@ -810,6 +828,9 @@
     }
    ],
    "g1_countable": true,
+   "secondary_single": {
+    "state": "NOT_NEEDED (a primary verifies the row)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:03:54Z",
     "discovery": {
@@ -1041,7 +1062,7 @@
    "family": "NCT04479358",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT acronym COVIDOSE-2; its 'Sub-study A' groups",
    "comparator_row": {
@@ -1059,6 +1080,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:05:47Z",
     "discovery": {
@@ -1099,7 +1124,7 @@
    "family": "NCT04577534",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = COVIDSTORM",
    "comparator_row": {
@@ -1117,6 +1142,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:05:56Z",
     "discovery": {
@@ -1148,7 +1177,7 @@
    "family": null,
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 33676589 (acquired: COVINTOC[tiab])); its open report states deaths only at: during the study (PMID 33676589). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 33676589 (acquired: COVINTOC[tiab])); its open report states deaths only at: during the study (PMID 33676589). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: TIMEPOINT_NOT_TYPED: the meta states only a 14-28 day window and no primary states day-28 figures this row reproduces (primary states: during the study)",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "registered with CTRI (India), not in AACT; its own abstract (PMID 33676589, acquired by its name) names COVINTOC",
    "comparator_row": {
@@ -1166,6 +1195,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "TIMEPOINT_NOT_TYPED: the meta states only a 14-28 day window and no primary states day-28 figures this row reproduces (primary states: during the study)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:07Z",
     "discovery": {
@@ -1195,7 +1228,7 @@
    "family": "NCT04435717",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = COVITOZ-01",
    "comparator_row": {
@@ -1213,6 +1246,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:10Z",
     "discovery": {
@@ -1231,8 +1268,8 @@
    "label": "EMPACTA",
    "family": "NCT04372186",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "counts printed only by a meta (META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15)",
+   "route": "SECONDARY_SINGLE",
+   "basis": "SECONDARY_SINGLE: 1 REACT-independent meta row(s) 'Salama et al.¹⁸' (metas 36102463; each reproduces its own printed pooled result; two readers agree) print (26, 249, 11, 128); the trial's open primary states day-28 PERCENTAGES these counts reproduce, never the counts -- queued for primary verification",
    "g1_state": "SECONDARY_COUNT_PRIMARY_CONSISTENT",
    "identity": "AACT studies.acronym = EMPACTA",
    "comparator_row": {
@@ -1296,7 +1333,11 @@
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
+   "secondary_single": {
+    "state": "ADMITTED",
+    "why": null
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:23Z",
     "discovery": {
@@ -1347,7 +1388,7 @@
    "family": "NCT04377750",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT id_information secondary id '0224-20-HMO-CTIL'",
    "comparator_row": {
@@ -1365,6 +1406,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:29Z",
     "discovery": {
@@ -1384,7 +1429,7 @@
    "family": "NCT04412291",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 38157348 + acquired full text); its open report states deaths only at: day 29 (PMID 38157348 + acquired full text). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 38157348 + acquired full text); its open report states deaths only at: day 29 (PMID 38157348 + acquired full text). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT official title names ImmCoVA; our family holds its 2023 paper (PMID 38157348)",
    "comparator_row": {
@@ -1402,6 +1447,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:37Z",
     "discovery": {
@@ -1443,7 +1492,7 @@
    "family": null,
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "registered in the Netherlands Trial Register, not in AACT",
    "comparator_row": {
@@ -1461,6 +1510,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:44Z",
     "discovery": {
@@ -1478,8 +1531,8 @@
    "label": "RECOVERY",
    "family": "NCT04381936",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "one primary source: TEXT; no independent second source held",
+   "route": "PRIMARY",
+   "basis": "one bound primary that STATES the counts (TEXT PMID 33933206 + acquired full text + TEXT PMID 33933206 + acquired full text): a verified row (Mahmood 2 Oct); a non-comparator meta prints RECOVERY Collaborative Group¹⁶ (596, 2022, 694, 2094) (another data cut), not used",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT studies.acronym = RECOVERY",
    "comparator_row": {
@@ -1538,7 +1591,10 @@
      "denominator_kind": "UNSTATED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
+   "secondary_single": {
+    "state": "NOT_NEEDED (a primary verifies the row)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:07:45Z",
     "discovery": {
@@ -1631,7 +1687,7 @@
    "family": "NCT02735707",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no held primary source states 28-day deaths per arm (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: cascade:D1+D2+D3)); its open report states deaths only at: In-hospital (PMID 40360262); 90 days (PMID 40360262). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources",
+   "basis": "no held primary source states 28-day deaths per arm (PMID 33631065 (acquired: NCT02735707[si] AND (tocilizumab OR interleukin-6)); PMID 40360262 (acquired: cascade:D1+D2+D3)); its open report states deaths only at: In-hospital (PMID 40360262); 90 days (PMID 40360262). REACT's rows are trialist-supplied day-28 data ('All trials supplied data until 28 days after randomization'), so this row cannot be matched from open sources | SECONDARY_SINGLE refused: CONTRADICTED: meta 35657993 'Gordon 2021' (98, 350, 142, 397); meta 36102463 'REMAP-CAP Investigators et al.¹⁷' (98, 350, 10, 45) | TIMEPOINT: the meta rows' tocilizumab arm (98, 350) is the primary's IN-HOSPITAL count (PMID 33631065, PMC7953461, VERIFIED_NOT_HELD sha256 2be1b62eee18: 'In-hospital death — no./total no. (%) 98/350 (28) 10/45 (22) 142/397 (36)'), not day 28",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = REMAP-CAP",
    "comparator_row": {
@@ -1649,6 +1705,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "CONTRADICTED: meta 35657993 'Gordon 2021' (98, 350, 142, 397); meta 36102463 'REMAP-CAP Investigators et al.¹⁷' (98, 350, 10, 45) | TIMEPOINT: the meta rows' tocilizumab arm (98, 350) is the primary's IN-HOSPITAL count (PMID 33631065, PMC7953461, VERIFIED_NOT_HELD sha256 2be1b62eee18: 'In-hospital death — no./total no. (%) 98/350 (28) 10/45 (22) 142/397 (36)'), not day 28"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:00Z",
     "discovery": {
@@ -1691,7 +1751,7 @@
    "family": "NCT04409262",
    "in_our_pool": null,
    "route": "UNVERIFIED",
-   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths",
+   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "ONE_SOURCE",
    "identity": "AACT studies.acronym = REMDACTA",
    "comparator_row": {
@@ -1742,6 +1802,10 @@
     }
    ],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:07Z",
     "discovery": {
@@ -1851,6 +1915,9 @@
     }
    ],
    "g1_countable": true,
+   "secondary_single": {
+    "state": "NOT_NEEDED (a primary verifies the row)"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:17Z",
     "discovery": {
@@ -1901,7 +1968,7 @@
    "family": "NCT04332094",
    "in_our_pool": null,
    "route": "NO_ROW",
-   "basis": "no primary report held after the full cascade",
+   "basis": "no primary report held after the full cascade | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
    "g1_state": "NO_PRIMARY_SOURCE",
    "identity": "AACT studies.acronym = TOCOVID",
    "comparator_row": {
@@ -1919,6 +1986,10 @@
    "our_denominator_kind": null,
    "readings": [],
    "g1_countable": false,
+   "secondary_single": {
+    "state": "REFUSED",
+    "why": "NO_NON_COMPARATOR_META_ROW"
+   },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:23Z",
     "discovery": {
@@ -1946,20 +2017,22 @@
   }
  ],
  "per_trial_agreement": {
-  "AGREE": 2
+  "AGREE": 5
  },
  "coverage": {
+  "k_matched": 5,
+  "k_matched_by_route": {
+   "PRIMARY": 2,
+   "TWO_SOURCE": 1,
+   "SECONDARY_SINGLE": 2
+  },
   "k_established": 2,
   "k_comparator": 19,
+  "participants_matched": 5190,
   "participants_established": 567,
   "participants_comparator": 8048,
-  "participant_share": 0.07,
-  "largest_trials_not_established": [
-   {
-    "trial": "RECOVERY",
-    "n": 4116,
-    "state": "ONE_SOURCE"
-   },
+  "participant_share": 0.645,
+  "largest_trials_not_matched": [
    {
     "trial": "REMAP-CAP",
     "n": 711,
@@ -1971,17 +2044,22 @@
     "state": "ONE_SOURCE"
    },
    {
-    "trial": "EMPACTA",
-    "n": 377,
-    "state": "SECONDARY_COUNT_PRIMARY_CONSISTENT"
+    "trial": "PreToVid",
+    "n": 354,
+    "state": "NO_PRIMARY_SOURCE"
+   },
+   {
+    "trial": "TOCOVID",
+    "n": 270,
+    "state": "NO_PRIMARY_SOURCE"
    }
   ]
  },
- "result_label": "COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 2 of 19 trials, 7% of REACT's participants; missing RECOVERY (n=4116), REMAP-CAP (n=711)",
+ "result_label": "COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)",
  "same_trials": {
   "state": "POOLED",
   "k": 2,
-  "measure": "OR [COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 2 of 19 trials, 7% of REACT's participants; missing RECOVERY (n=4116), REMAP-CAP (n=711)]",
+  "measure": "OR [COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)]",
   "is_a_finding": false,
   "method": "FE",
   "ours": {
@@ -2023,7 +2101,7 @@
   "ci_low": null,
   "ci_high": null,
   "scale": "OR",
-  "state": "NOT_STATED: COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 2 of 19 trials, 7% of REACT's participants; missing RECOVERY (n=4116), REMAP-CAP (n=711)"
+  "state": "NOT_STATED: COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)"
  },
  "comparator": {
   "outcome": "28-day all-cause mortality (Figure 1, tocilizumab)",
