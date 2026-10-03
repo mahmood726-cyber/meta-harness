@@ -266,8 +266,11 @@ def _arm_object_screening_enabled(config) -> bool:
 
 # A sentence describing PRIOR work, not this trial: "has previously exerted positive effects in people with
 # antibiotic-associated diarrhoea" (probiotics 41707673, an IBS-D trial, was included for AAD prevention on it).
-_PRIOR_WORK = _re.compile(r"\bpreviously\b|\bha(?:s|ve) been (?:shown|reported|demonstrated)\b|"
-                          r"\bhave (?:shown|reported|demonstrated)\b|\bprior (?:studies|research|trials)\b", _re.I)
+# Only a CLAIM ABOUT EARLIER FINDINGS counts: a bare 'previously' also describes this trial's own participants
+# ("adults who had not previously taken probiotics" -- codex review 2026-10-03), so it is not a cue.
+_PRIOR_WORK = _re.compile(r"\bha(?:s|ve) previously\b|\bpreviously (?:shown|reported|demonstrated|exerted)\b|"
+                          r"\bha(?:s|ve) been (?:shown|reported|demonstrated)\b|"
+                          r"\b(?:prior|previous|earlier) (?:studies|research|trials|work)\b", _re.I)
 
 
 def _own_sentences(abstract: str) -> list[str]:

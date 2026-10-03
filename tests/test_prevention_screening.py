@@ -156,3 +156,16 @@ def test_PLANT_a_population_named_only_in_a_prior_work_sentence_does_not_widen()
     d, rule, reason, span = S.screen_record(own, inc, [])
     assert d == "include", (d, rule, reason)
     assert "previously" not in span  # the span quotes the trial's own sentence
+
+
+def test_PLANT_codex_a_trials_own_previously_sentence_still_counts():
+    # codex review 2026-10-03: a bare 'previously' also describes THIS trial's participants; that sentence is the
+    # trial's own population statement and must still widen the prevention signal.
+    inc = {"prevention": True, "population_any": ["antibiotic-associated diarr*"], "intervention_any": ["probiotic"],
+           "comparator_any": ["placebo"]}
+    rec = _rec("Probiotics for prevention in hospitalized adults: a randomized placebo-controlled trial",
+               "We randomly assigned 200 adults receiving antibiotics who had not previously taken probiotics to "
+               "receive probiotics or placebo for prevention of antibiotic-associated diarrhoea. The primary outcome "
+               "occurred less frequently in the probiotic group.")
+    d, rule, reason, span = S.screen_record(rec, inc, [])
+    assert d == "include", (d, rule, reason)
