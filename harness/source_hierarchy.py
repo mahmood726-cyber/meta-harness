@@ -61,14 +61,6 @@ def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 26
     kl = [str(k).lower() for k in kws or []]
     candidates: list[dict[str, Any]] = []
     for sentence in extract._sentences(text):
-        # the extractor's own sentence guard: a subgroup / per-protocol / post-hoc effect is not the trial's
-        # result (PMID 34541475: the PPI-subgroup RR 0.53 was selected over the refused ITT extraction)
-        if extract._is_subgroup_sentence(sentence):
-            continue
-        # ... nor is an effect from a risk-factor / multivariable model (McFarland 1995, PMID 7872284: the adjusted RR
-        # 0.29 was ranked above the randomised counts 7/97 vs 14/96, RR 0.49 -- the comparator's value)
-        if extract._covariate_model_sentence(sentence):
-            continue
         low = sentence.lower()
         prev_end = 0
         for m in _EFFECT_CANDIDATE.finditer(sentence):
@@ -164,7 +156,12 @@ def candidate_scope_refusal(candidate: dict[str, Any]) -> str | None:
     when held full texts were enabled. The sentence the number came from is checked, falling back to the snippet.
     """
     text = candidate.get("sentence") or candidate.get("source") or ""
-    return (extract.subgroup_refusal(text) or extract.table_role_refusal(text)) or None
+    # An effect from a risk-factor / multivariable MODEL is not the randomised contrast (McFarland 1995, PMID 7872284:
+    # the adjusted RR 0.29 was ranked above the randomised counts 7/97 vs 14/96 -- acq/k-gap). Refused HERE, with its
+    # reason recorded, not skipped silently inside the harvester (where it also hid the recorded subgroup refusal).
+    covariate = ("an effect from a risk-factor / multivariable model is not the randomised contrast"
+                 if extract._covariate_model_sentence(text) else "")
+    return (extract.subgroup_refusal(text) or extract.table_role_refusal(text) or covariate) or None
 
 
 def effect_candidates_for_outcome(spec: dict[str, Any], text: str,
