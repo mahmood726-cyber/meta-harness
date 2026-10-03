@@ -27,9 +27,14 @@ def _item(slug, pmid, rule):
             "recorded_rule": rule, "rec": rec, "via_decision": None}
 
 
-def _refine(slug, pmid, rule):
+def _refine(slug, pmid, rule, shared=None):
+    """shared=(class, subclass): the SHARED classifier's output the lane guard is tested against, given SYNTHETICALLY.
+    The shared classifier keeps improving (k-gap 2bf32a50 / f2fde38c now decide WOMAN-2, SOLOIST-WHF and 24081972
+    themselves), and a plant anchored to its live output retires itself the day it is fixed."""
     it = _item(slug, pmid, rule)
     cls, sc, base = xa.classify(it["rec"], xa._cfg(slug))
+    if shared:
+        cls, sc, base = shared[0], shared[1], {"rule_id": rule}
     return (cls, sc), t.refine(it, cls, sc, base)
 
 
@@ -74,13 +79,15 @@ def test_plant_randomized_controlled_study_is_a_self_described_rct():
 
 
 def test_plant_a_repair_flip_never_overrides_a_stated_protocol_exclusion():
-    shared, refined = _refine("tranexamic-acid-pph", "39461792", "X2")    # WOMAN-2: 'prevent postpartum haemorrhage'
+    shared, refined = _refine("tranexamic-acid-pph", "39461792", "X2",      # WOMAN-2: 'prevent postpartum haemorrhage'
+                              ("SCREENER_ERROR", "CONDITION_AS_OUTCOME (population term shared with the outcome)"))
     assert shared[0] == "SCREENER_ERROR"                                    # fires with the lane guard removed
     assert refined[0] == "TRUE_SCOPE_DIFFERENCE" and "'prevent'" in refined[1]
 
 
 def test_plant_a_repair_flip_with_an_unstated_axis_is_insufficient_not_an_error():
-    shared, refined = _refine("sglt2-hfref-hosp-cvdeath", "33200892", "X3")  # SOLOIST-WHF: X3 misfired, EF unstated
+    shared, refined = _refine("sglt2-hfref-hosp-cvdeath", "33200892", "X3",  # SOLOIST-WHF as the OLD shared audit read it
+                              ("SCREENER_ERROR", "INTERVENTION_ONLY_IN_ABSTRACT"))
     assert shared[0] == "SCREENER_ERROR" and refined[0] == "INSUFFICIENT_RECORD" and "POPULATION_NOT_STATED" in refined[1]
 
 
@@ -101,11 +108,12 @@ def test_plant_a_single_reader_never_decides_where_two_disagree():
     """24081972 (doac-vte, a pooled bleeding analysis): gpt-6-astra reads design NOT_MET, gpt-5.5 MET. With the second
     reader removed it would be a TRUE_SCOPE_DIFFERENCE on one model's word; as built it stays INSUFFICIENT_RECORD."""
     t.load_axes2()
-    built = _refine("doac-vte-recurrence", "24081972", "X1")[1]
+    old = ("INSUFFICIENT_RECORD", "DESIGN_NOT_ESTABLISHED_BY_RECORD")
+    built = _refine("doac-vte-recurrence", "24081972", "X1", old)[1]
     saved = dict(t.AXES2)
     t.AXES2.clear()                                   # guard removed: no second reader
     try:
-        removed = _refine("doac-vte-recurrence", "24081972", "X1")[1]
+        removed = _refine("doac-vte-recurrence", "24081972", "X1", old)[1]
     finally:
         t.AXES2.update(saved)
     assert built[0] == "INSUFFICIENT_RECORD" and "readers disagree on design" in built[1]
@@ -113,8 +121,13 @@ def test_plant_a_single_reader_never_decides_where_two_disagree():
 
 
 def test_no_exclusion_is_left_inconsistent_and_non_record_rules_are_resolved_by_what_they_are():
-    rows = {(r["slug"], str(r["pmid"])): r for r in A["rows"]}
     assert not [r for r in A["rows"] if r["class"] == "INCONSISTENT"]
-    assert rows[("esketamine-trd-madrs", "31734084")]["class"] == "NOT_AN_EXCLUSION"       # X-DEDUP: pooled elsewhere
-    pal = rows[("metformin-pcos-ovulation", "15472166")]                                   # X-CONTRAST, stated
-    assert pal["class"] == "TRUE_SCOPE_DIFFERENCE" and "versus laparoscopic ovarian diathermy" in pal["span"]["text"]
+    # the non-record rules (X-DEDUP, X-CONTRAST) are resolved by what they are, whichever audit now holds the row: the
+    # shared audit's population grew (k-gap 2bf32a50) and these two left this lane's
+    for slug, pmid, rule in (("esketamine-trd-madrs", "31734084", "X-DEDUP"), ("metformin-pcos-ovulation", "15472166", "X-CONTRAST")):
+        it = _item(slug, pmid, rule)
+        cls, sc, base = t.resolve_inconsistent(it, xa.classify(it["rec"], xa._cfg(slug)))
+        if rule == "X-DEDUP":
+            assert cls == "NOT_AN_EXCLUSION"                                               # pooled elsewhere
+        else:
+            assert cls == "TRUE_SCOPE_DIFFERENCE" and "versus laparoscopic ovarian diathermy" in base["span"]["text"]

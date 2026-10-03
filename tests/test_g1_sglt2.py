@@ -22,19 +22,16 @@ def test_every_earlier_attempt_stays_on_record():
 
 
 def test_tracker_verdict_and_named_differences_cite_our_screen():
-    # a scope difference is NAMED only when the exclusion audit classifies the excluded record TRUE_SCOPE_DIFFERENCE
-    # (scripts/g1_exclusion_audit_tracker.py). SOLOIST-WHF's X3 exclusion MISFIRED (sotagliflozin is an SGLT2 inhibitor
-    # under the registered criteria) and its abstract does not state the HFrEF population: an open gap, not a name.
-    assert (O["k_matched"], O["N_eligible"], O["N_comparator_trials"]) == (2, 3, 4)
+    # a scope difference is NAMED only when an exclusion audit classifies the excluded record TRUE_SCOPE_DIFFERENCE with
+    # the record's own words (span). SOLOIST-WHF: the shared audit (k-gap f2fde38c) now reads its ALLOCATION sentence and
+    # names X3 (sotagliflozin is not on the protocol's registered intervention list) -- the disagreement this lane raised
+    # (dispatch section 9) resolved by the audit's owner. Every comparator trial is matched or named.
+    assert (O["k_matched"], O["N_eligible"], O["N_comparator_trials"]) == (2, 2, 4)
     nd = {d["trial"].split(" ")[0]: d for d in O["named_differences"]}
-    assert list(nd) == ["EMPEROR‐Preserved"] and nd["EMPEROR‐Preserved"]["rule_id"] == "X2"
-    assert nd["EMPEROR‐Preserved"]["audit"]["class"] == "TRUE_SCOPE_DIFFERENCE"
-    assert [g.split(" ")[0] for g in O["open_gaps"]] == ["SOLOIST‐WHF"]
-    sol = next(x for x in O["trials"] if x["label"].startswith("SOLOIST"))
-    # its blocker is an AUDIT class (shared audit: SCREENER_ERROR; this lane's: INSUFFICIENT_RECORD -- the two disagree
-    # on whether the record states enough, and both keep it ELIGIBLE), never SCREENED_OUT_UNAUDITED
-    assert sol["blocker"].split(":")[0] in ("SCREENER_ERROR", "INSUFFICIENT_RECORD")
-    assert (nd["EMPEROR‐Preserved"].get("span") or {}).get("text")                  # named only with the record's words
+    assert set(nd) == {"EMPEROR‐Preserved", "SOLOIST‐WHF"}
+    assert (nd["EMPEROR‐Preserved"]["rule_id"], nd["SOLOIST‐WHF"]["rule_id"]) == ("X2", "X3")
+    assert all(d["audit"]["class"] == "TRUE_SCOPE_DIFFERENCE" and (d.get("span") or {}).get("text") for d in nd.values())
+    assert O["open_gaps"] == []
 
 
 def test_same_trials_verdict_holds_under_each_reader():
