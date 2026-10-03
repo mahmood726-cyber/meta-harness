@@ -1375,8 +1375,8 @@ def oa_probe(slug, pmid, run):
     """A comparator with no PMC full text: is it open anywhere? Unpaywall's best OA location, and ONE plain request for
     its PDF. A bot challenge (403 HTML) is recorded as such and never worked around. Cached; offline reads the cache."""
     p = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_oa_probe.json")
-    if os.path.exists(p):
-        return _j(p)
+    if os.path.exists(p) and ("locations" in _j(p) or not run):
+        return _j(p)                            # a probe without 'locations' (best location only) is redone when run
     if not run:
         return None
     from harness import http
@@ -1398,6 +1398,23 @@ def oa_probe(slug, pmid, run):
             out["fetch"] = "PDF" if b2[:4] == b"%PDF" else f"NOT_A_PDF (HTTP {st2})"
         except Exception as exc:  # noqa: BLE001 - a 403 bot challenge lands here
             out["fetch"] = f"REFUSED_BY_HOST ({str(exc)[:60]}): a bot challenge is not solved"
+    # EVERY open location, not only the best: a repository copy (author manuscript) may be readable where the
+    # publisher's is not. One plain request each; a challenge is recorded, never solved.
+    out["locations"] = []
+    for loc in d.get("oa_locations") or []:
+        u = loc.get("url_for_pdf") or loc.get("url_for_landing_page")
+        r = {"host_type": loc.get("host_type"), "version": loc.get("version"), "license": loc.get("license"), "url": u}
+        if u and u != out["url"]:
+            try:
+                st3, b3 = http.get_raw(u, tries=1, timeout=60)
+                r["fetch"] = "PDF" if b3[:4] == b"%PDF" else f"NOT_A_PDF (HTTP {st3})"
+            except Exception as exc:  # noqa: BLE001 - a 403 bot challenge lands here
+                r["fetch"] = f"REFUSED_BY_HOST ({str(exc)[:60]}): a bot challenge is not solved"
+        elif u:
+            r["fetch"] = out.get("fetch")
+        out["locations"].append(r)
+    if any(x.get("fetch") == "PDF" for x in out["locations"]):
+        out["fetch"] = "PDF"
     out["state"] = ("OPEN_BUT_NOT_SCRIPT_READABLE" if out.get("is_oa") and out.get("fetch") != "PDF" else
                     "OPEN_PDF" if out.get("fetch") == "PDF" else "NOT_OPEN")
     _save(p, out)
