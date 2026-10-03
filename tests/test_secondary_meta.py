@@ -444,3 +444,21 @@ def test_pool_mh_matches_metafor_rma_mh_without_zero_cells_and_refuses_without_c
     no_counts[0].events_t = None
     assert sm.pool_mh(no_counts, "RR") is None
     assert sm.pool_mh(_count_rows([(0, 30, 0, 30)] + c3[:1]), "RR") is None   # double-zero not estimable -> < 2 rows
+
+
+def test_reml_pool_matches_metafor_on_dat_bcg():
+    # metafor 5.0.1 (R 4.6.0): escalc("RR", dat.bcg); rma(method="REML") and rma(method="REML", test="knha")
+    yi = [-0.889311333920, -1.585388657201, -1.348073148300, -1.441551190021, -0.217547322211, -0.786115585819,
+          -1.620898223598, 0.011952333524, -0.469417648738, -1.371344803473, -0.339358828338, 0.445913400571,
+          -0.017313948217]
+    vi = [0.325584765004, 0.194581121398, 0.415367965368, 0.020010031902, 0.051210172170, 0.006905618456,
+          0.223017247572, 0.003961579298, 0.056434210463, 0.073024793613, 0.012412213972, 0.532505845200,
+          0.071404659684]
+    assert abs(sm.reml_tau2(yi, vi) - 0.313243325981) < 1e-6
+    mu, lo, hi = sm.pool(yi, vi, "REML")
+    assert max(abs(mu + 0.714532348365), abs(lo + 1.066897675740), abs(hi + 0.362167020990)) < 1e-6
+    _, lo, hi = sm.pool(yi, vi, "REML", hk=True)
+    assert max(abs(lo + 1.108443723000), abs(hi + 0.320620973730)) < 1e-6
+    # homogeneous pair: tau^2 truncated at 0 and the pool is the fixed-effect mean (metafor: 0, 0.108888888889)
+    assert sm.reml_tau2([0.1, 0.12], [0.04, 0.05]) == 0.0
+    assert abs(sm.pool([0.1, 0.12], [0.04, 0.05], "REML")[0] - 0.108888888889) < 1e-9

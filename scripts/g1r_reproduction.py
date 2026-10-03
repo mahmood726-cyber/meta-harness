@@ -11,9 +11,9 @@ comparator's printed pool.
   printed the comparator's printed pooled estimate + CI: its span-quoted text value, else the typed table's pooled row,
           else the figure's agreed pooled row (whether that triple is also printed in the meta's text is recorded)
   model   the comparator's STATED model (g1_forest_reader.stated_model: the figure's RevMan label, else its own text)
-  engine  harness.secondary_meta.row_yi_vi + pool (FE / DL / PM, +/- Hartung-Knapp) -- the engine the tracker uses --
+  engine  harness.secondary_meta.row_yi_vi + pool (FE / DL / PM / REML, +/- Hartung-Knapp) -- the engine the tracker uses --
           and pool_mh (Mantel-Haenszel fixed / RevMan random from the printed counts; checked against R meta::metabin
-          and metafor::rma.mh). A stated method the engine does not implement (REML) is reported ENGINE_LACKS_METHOD,
+          and metafor::rma.mh). A stated method the engine does not implement is reported ENGINE_LACKS_METHOD,
           never substituted; what the implemented methods give is shown beside it.
   verdict REPRODUCED (a stated method, in our engine, gives the printed estimate AND CI within printed rounding + one
           half-unit of row-rounding propagation -- the tier's tolerance) / NOT_REPRODUCED / ENGINE_LACKS_METHOD /
@@ -39,7 +39,7 @@ from harness import secondary_meta as sm  # noqa: E402
 OUT = os.path.join(ROOT, "outputs", "k_gap", "G1R_REPRODUCTION.json")
 MD = os.path.join(ROOT, "outputs", "k_gap", "G1R_REPRODUCTION.md")
 ENGINE = {"FE": ("FE", False), "DL": ("DL", False), "PM": ("PM", False), "FE+HK": ("FE", True),
-          "DL+HK": ("DL", True), "PM+HK": ("PM", True),
+          "DL+HK": ("DL", True), "PM+HK": ("PM", True), "REML": ("REML", False), "REML+HK": ("REML", True),
           # Mantel-Haenszel from the printed counts (harness.secondary_meta.pool_mh, RevMan 5 / meta::metabin)
           "MH-FE": ("MH", False), "MH-RE": ("MH", True)}
 
@@ -146,7 +146,7 @@ def g1r(slug, fr):
     if ok:
         return dict(out, verdict="REPRODUCED", by=ok)
     if not in_engine and lacks:
-        return dict(out, verdict="ENGINE_LACKS_METHOD", why=f"stated {lacks}; our engine implements FE/DL/PM (+HK) and Mantel-Haenszel (from counts)")
+        return dict(out, verdict="ENGINE_LACKS_METHOD", why=f"stated {lacks}; our engine implements FE/DL/PM/REML (+HK) and Mantel-Haenszel (from counts)")
     if not stated:
         return dict(out, verdict="NOT_REPRODUCED", why="no pooling model stated by the comparator")
     return dict(out, verdict="NOT_REPRODUCED", why=f"stated {stated}: our engine gives "
@@ -161,7 +161,7 @@ def main():
         json.dump({"metric": "G1-R", "tally": tally, "topics": res}, fh, indent=1, ensure_ascii=False)
         fh.write("\n")
     md = ["# G1-R reproduction (derived: scripts/g1r_reproduction.py)", "",
-          "Does OUR engine (harness.secondary_meta.pool: FE / DL / PM, +/- HK; pool_mh: Mantel-Haenszel from counts) reproduce each comparator's printed pooled "
+          "Does OUR engine (harness.secondary_meta.pool: FE / DL / PM / REML, +/- HK; pool_mh: Mantel-Haenszel from counts) reproduce each comparator's printed pooled "
           "result from the comparator's OWN per-trial rows, under the comparator's STATED model? A separate metric from G1.",
           "", f"- tally: {tally}", "",
           "| topic | comparator | rows (source) | stated model | printed pool | our engine (stated) | verdict | note |",

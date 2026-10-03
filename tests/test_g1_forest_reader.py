@@ -511,3 +511,11 @@ def test_oa_probe_tries_every_open_location_and_takes_a_repository_pdf(tmp_path,
     o = g.oa_probe("t", "1", True)
     assert [x["fetch"][:7] for x in o["locations"]] == ["REFUSED", "PDF"]
     assert o["state"] == "OPEN_PDF"
+
+
+def test_topic_retry_note_names_the_review_and_suggests_no_value():
+    n = g.topic_note("colchicine-secondary-cv-prevention::40889093")
+    assert "Colchicine vs placebo for secondary prevention of cardiovascular events" in n
+    assert "legible=false" in n and not any(ch.isdigit() for ch in n.replace("Colchicine", ""))
+    # every frozen key names a topic file (a missing one would crash the run, not silently drop the note)
+    assert all(os.path.exists(os.path.join(g.ROOT, "topics", k.split("::")[0] + ".json")) for k in g.TOPIC_RETRY)
