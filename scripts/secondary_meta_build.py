@@ -525,6 +525,11 @@ def family_of_factory(ours):
             names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
             if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
                 hits[t["id"]] = t
+        if len(hits) > 1:
+            # two trials share an acronym ('CORIMUNO' names CORIMUNO-TOCI-1 and CORIMUNO-TOCI-ICU): the ONE whose full
+            # label tokens EQUAL the row's label wins; anything less stays ambiguous (None)
+            exact = [i for i, t in hits.items() if t["label"] and toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", t["label"])) == lt]
+            return exact[0] if len(exact) == 1 else None
         return next(iter(hits)) if len(hits) == 1 else None
     return family_of
 
