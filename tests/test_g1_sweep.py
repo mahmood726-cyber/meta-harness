@@ -222,3 +222,32 @@ def test_a_sweep_row_never_replaces_a_matched_trial_and_is_flagged_when_the_prim
     assert gt.sweep_merge("t", [lane_matched, contradicted]) == []
     assert lane_matched["route"] == "PRIMARY"
     assert contradicted["secondary_single_flag"]["state"] == "CONTRADICTED_BY_PRIMARY"
+
+
+def _cs_topic(g1r="REPRODUCED", state="SECONDARY_UNVERIFIED"):
+    cr = {"measure": "RR", "effect": "0.80", "lower": "0.60", "upper": "1.05", "events_t": None, "n_t": None,
+          "events_c": None, "n_c": None}
+    return {"g1r_reproduction": {"state": g1r},
+            "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "comparator_row": cr},
+                       {"label": "B", "in_our_pool": False, "route": "UNVERIFIED", "comparator_row": cr,
+                        "comparator_row_state": state, "scope_difference": None, "g1_countable": False}],
+            "N_eligible": 2, "k_matched": 1, "open_gaps": ["B"], "named_differences": [],
+            "same_trials": {"verdict": {"verdict": "AGREE"}}}
+
+
+def test_a_comparator_sourced_row_never_counts_toward_independently_confirmed():
+    # Mahmood decision 3 Oct: comparator-sourced rows FILL coverage; INDEPENDENTLY CONFIRMED and G1_MATCHED ignore them
+    o = gt.apply_coverage(_cs_topic())
+    b = o["trials"][1]
+    assert b["coverage"] == "COMPARATOR_SOURCED" and not gt.is_matched(b)
+    assert (o["k_independent"], o["k_comparator_sourced"], o["k_covered"]) == (1, 1, 2) and o["coverage_complete"]
+    assert gt.g1_status(o)["state"] == "NOT_YET"            # strict G1: B is not independently confirmed
+
+
+def test_a_non_self_reproducing_comparators_rows_are_never_admitted():
+    for g1r in ("NOT_REPRODUCED", "NO_PER_TRIAL_ROWS", None):
+        o = gt.apply_coverage(_cs_topic(g1r=g1r))
+        assert o["trials"][1]["coverage"] is None and o["k_comparator_sourced"] == 0
+        assert o["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_DOES_NOT_SELF_REPRODUCE")
+    for st in ("REFUSED", "MISMATCH", "BLOCKED_CROSSCHECK"):           # an untyped / contradicted row neither
+        assert gt.apply_coverage(_cs_topic(state=st))["trials"][1]["coverage"] is None

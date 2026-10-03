@@ -371,6 +371,38 @@ def primary_open(slug, mine, t):
 SWEEP_DIR = os.path.join(OUT, "sweep")
 
 
+def comparator_rows_of(trials, measure):
+    """The comparator's own per-trial rows as the tracker holds them (x['comparator_row']), as SecondaryRows."""
+    out = []
+    for x in trials:
+        cr = x.get("comparator_row") or {}
+        if not cr:
+            continue
+        out.append(sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                   provenance="COMPARATOR_ROW", trial_label=x["label"],
+                                   measure=(cr.get("measure") or measure or ""), outcome_definition="",
+                                   **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}))
+    return out
+
+
+def g1r_from_trials(o):
+    """G1-R when the comparator's rows come from the forest-reader lane or a lane file (no per-meta control in our
+    secondary tier): ALL the comparator rows the tracker holds, pooled by our engine, against the comparator's printed
+    pooled result for the outcome (o['comparator']). Reproduced only if every row is usable and a standard estimator
+    (FE / DL / PM, +/- HK) lands within the printed rounding."""
+    comp = o.get("comparator") or {}
+    if comp.get("estimate") is None or comp.get("ci_low") is None:
+        return {"state": "NO_PRINTED_POOL", "rows": 0}
+    crow = comparator_rows_of(o.get("trials") or [], comp.get("scale"))
+    if len(crow) < 2:
+        return {"state": "NO_PER_TRIAL_ROWS", "rows": len(crow)}
+    printed = {"effect": str(comp["estimate"]), "lower": str(comp["ci_low"]), "upper": str(comp["ci_high"])}
+    pc = sm.positive_control(crow, printed, (comp.get("scale") or crow[0].measure or ""))
+    return {"state": "REPRODUCED" if pc.get("reproduced") else "NOT_REPRODUCED", "rows": len(crow),
+            "methods": pc.get("methods"), "why": pc.get("why"), "where": "comparator rows held by the tracker",
+            "control_basis": "COMPARATOR_PRINTED_POOL (served review comparator.reported)"}
+
+
 def g1r_reproduction(comp_meta, comp, rows):
     """G1-R (Mahmood 3 Oct), DISTINCT FROM G1: taking the comparator's OWN per-trial rows for this outcome, does our engine
     reproduce its printed pooled result? (positive control: harness.secondary_meta.positive_control.) It says nothing
@@ -535,6 +567,80 @@ def primary_counts(x):
         if by_primary and all(isinstance(v.get(k), int) for k in ("deaths_t", "n_t", "deaths_c", "n_c")):
             return (v["deaths_t"], v["n_t"], v["deaths_c"], v["n_c"])
     return None
+
+
+CS_OK_STATES = (None, sm.UNVERIFIED, sm.VERIFIED, sm.TWO_SOURCE)
+
+
+def comparator_sourced(x, g1r_state):
+    """COMPARATOR_SOURCED (Mahmood decision 3 Oct) -- COVERAGE ONLY, never independent confirmation: a comparator trial
+    not independently confirmed (and not named out of scope) is filled from the comparator meta's OWN per-trial row when
+      - the comparator self-reproduces its pooled result from its rows (G1-R REPRODUCED),
+      - the row passed the typed admission (state not REFUSED / MISMATCH / BLOCKED_CROSSCHECK) and, read by two
+        models, the readers agree (comparator_row_readings not READERS_DIFFER).
+    Returns ({"value", "provenance"}, None) or (None, why)."""
+    cr = x.get("comparator_row")
+    if not cr:
+        return None, "NO_COMPARATOR_ROW"
+    if g1r_state != "REPRODUCED":
+        return None, f"COMPARATOR_DOES_NOT_SELF_REPRODUCE ({g1r_state})"
+    if x.get("comparator_row_state") not in CS_OK_STATES:
+        return None, f"COMPARATOR_ROW_{x.get('comparator_row_state')}"
+    if (x.get("comparator_row_readings") or {}).get("state") == "READERS_DIFFER":
+        return None, "COMPARATOR_ROW_READERS_DIFFER"
+    return {"value": {k: cr.get(k) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")},
+            "provenance": x.get("comparator_row_provenance") or {}}, None
+
+
+def discrepancy_findings(o):
+    """Typed DISCREPANCY FINDINGS (never a silent overwrite of either side): every trial where our own value (pool /
+    primary) and the comparator's row DISAGREE, every comparator row our primary verification contradicted (MISMATCH),
+    and every non-comparator meta row a trial's own report contradicts (CONTRADICTED_BY_PRIMARY)."""
+    out = []
+    for x in o.get("trials") or []:
+        ag = str(x.get("agreement_with_comparator_row") or "")
+        if ag.startswith("DISAGREE"):
+            out.append({"trial": x["label"], "kind": "OURS_VS_COMPARATOR_ROW", "detail": ag,
+                        "ours": x.get("our_value"), "ours_source": (x.get("basis") or "")[:200],
+                        "comparator_row": x.get("comparator_row"), "side": x.get("disagreement_side") or "UNRESOLVED"})
+        if x.get("comparator_row_state") == sm.MISMATCH:
+            out.append({"trial": x["label"], "kind": "COMPARATOR_ROW_CONTRADICTED_BY_PRIMARY",
+                        "comparator_row": x.get("comparator_row"), "side": x.get("disagreement_side") or "UNRESOLVED"})
+        f = x.get("secondary_single_flag")
+        if f:
+            out.append({"trial": x["label"], "kind": "SECONDARY_META_CONTRADICTED_BY_PRIMARY", "meta": f.get("meta"),
+                        "meta_counts": f.get("meta_counts"), "primary_counts": f.get("primary_counts"),
+                        "side": "SECONDARY_META_WRONG (the trial's own report states the counts)"})
+    return out
+
+
+def apply_coverage(o):
+    """The SCOREBOARD's second number. Per trial: coverage INDEPENDENT (is_matched) / COMPARATOR_SOURCED / None, with
+    the refusal reason; per topic: k_covered, coverage_complete, discrepancy_findings. G1_MATCHED is untouched."""
+    g1r = (o.get("g1r_reproduction") or {}).get("state")
+    for x in o.get("trials") or []:
+        x.pop("comparator_sourced", None)
+        x.pop("comparator_sourced_refusal", None)
+        if is_matched(x):
+            x["coverage"] = "INDEPENDENT"
+            continue
+        if x.get("scope_difference"):
+            x["coverage"] = None
+            continue
+        cs, why = comparator_sourced(x, g1r)
+        x["coverage"] = "COMPARATOR_SOURCED" if cs else None
+        if cs:
+            x["comparator_sourced"] = cs
+        else:
+            x["comparator_sourced_refusal"] = why
+    tr = o.get("trials") or []
+    o["k_independent"] = sum(1 for x in tr if x.get("coverage") == "INDEPENDENT")
+    o["k_comparator_sourced"] = sum(1 for x in tr if x.get("coverage") == "COMPARATOR_SOURCED")
+    o["k_covered"] = o["k_independent"] + o["k_comparator_sourced"]
+    elig = [x for x in tr if not x.get("scope_difference")]
+    o["coverage_complete"] = bool(elig) and all(x.get("coverage") for x in elig)
+    o["discrepancy_findings"] = discrepancy_findings(o)
+    return o
 
 
 def apply_sweep(o, slug):
@@ -997,6 +1103,9 @@ def topic(slug, T):
                                                                            "events_c", "n_c", "measure")}
                                           if theirs else None),
                        "comparator_row_findings": theirs.findings if theirs else [],
+                       "comparator_row_provenance": ({"meta_pmid": theirs.meta_pmid, "location": theirs.location,
+                                                      "digest": theirs.source_digest, "read": theirs.provenance,
+                                                      "row_label": theirs.trial_label} if theirs else None),
                        "disagreement_side": ((theirs.verification or {}).get("which_side")
                                              if theirs and theirs.state == sm.MISMATCH else None),
                        "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
@@ -1138,6 +1247,9 @@ def topic(slug, T):
                          "held_registry": len(src[2])}
     out["served_pool_lags"] = sorted(pooled_ids - served_ids)
     out["g1r_reproduction"] = g1r_reproduction((S.get("metas") or {}).get(comp) or {}, comp, rows)
+    if out["g1r_reproduction"].get("state") == "NO_PER_TRIAL_ROWS":
+        out["g1r_reproduction"] = g1r_from_trials(out)
+    apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
     if bad:
@@ -1164,7 +1276,12 @@ def headline(out):
     rt.update(route_group(x_["route"]) for o in out for x_ in o["trials"] if is_matched(x_))
     g1r = Counter(((o.get("g1r_reproduction") or {}).get("state") or "NOT_COMPUTED") for o in out)
     x = N - E
-    return (f"**Matched {k} of {N} comparator trials ({100 * k / N:.0f}%)** | matched {k} of {E} eligible | "
+    cov = sum(o.get("k_covered", o["k_matched"]) for o in out)
+    cs = sum(o.get("k_comparator_sourced", 0) for o in out)
+    cc = sum(1 for o in out if o.get("coverage_complete"))
+    return (f"**COVERAGE {cov} of {N} comparator trials ({100 * cov / N:.0f}%; {cs} comparator-sourced)** | "
+            f"**INDEPENDENTLY CONFIRMED {k} of {N} ({100 * k / N:.0f}%)** = PRIMARY + TWO_SOURCE + SECONDARY_SINGLE | "
+            f"COVERAGE_COMPLETE topics {cc} | matched {k} of {E} eligible | "
             f"{x} comparator trials excluded by named scope/estimand difference, each with rule ID + source span (listed "
             f"per topic below) | matched by route: " + ", ".join(f"{r} {rt[r]}" for r in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE")) +
             " | G1-R (comparator's own rows reproduce its pool, NOT G1): " + ", ".join(f"{s} {n}" for s, n in sorted(g1r.items())) +
@@ -1187,8 +1304,8 @@ def table():
           "comparator-only) AND the result agrees on the same trials AND every divergence is named (rule / gate / side cited, "
           "with the source span establishing it).",
           "", headline(out), "",
-          "| topic | G1 status | matched / comparator N | matched / eligible | excluded by scope (of N) | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |",
-          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+          "| topic | G1 status | COVERAGE / N (comparator-sourced) | coverage complete | INDEPENDENTLY CONFIRMED / N | matched / eligible | excluded by scope (of N) | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for o in out:
         r, st = o["routes"], o["same_trials"]
         same = (f"{st['measure']} {_fmt(st['ours'])} vs {_fmt(st['theirs'])}, k={st['k']}, {st['method']}: "
@@ -1198,7 +1315,9 @@ def table():
         src = o.get("lane_source")
         md.append(f"| {o['slug']} | **{gs.get('state')}**" + (f" (unmet: {', '.join(gs.get('unmet') or [])})"
                                                               if gs.get("unmet") else "") +
-                  f" | {o['k_matched']} / {o['N_comparator_trials']} | "
+                  f" | {o.get('k_covered', o['k_matched'])} / {o['N_comparator_trials']} ({o.get('k_comparator_sourced', 0)}) | "
+                  f"{'yes' if o.get('coverage_complete') else 'no'} | "
+                  f"{o['k_matched']} / {o['N_comparator_trials']} | "
                   f"{o['k_matched']} / {o.get('N_eligible', o['N_comparator_trials'])} | "
                   f"{len(nd)} of {o['N_comparator_trials']} | "
                   f"{len(nd)}: " + ", ".join(f"{d['trial']} ({d['kind']})" for d in nd) + f" | {len(o.get('open_gaps') or [])} | "
@@ -1251,7 +1370,8 @@ CANONICAL_SCHEMA = "g1_tracker_canonical_v1"
 TOPIC_KEYS = ("slug", "g1_status", "unmet", "k_matched", "N_comparator_trials", "N_eligible", "excluded_by_scope",
               "open_gaps", "matched_by_route", "named_differences", "same_trials_verdict", "readers_agree_on_verdict",
               "top_blocker", "blockers", "comparator_pmid", "source", "matched_by_route_group", "g1r_reproduction",
-              "secondary_single")
+              "secondary_single", "k_independent", "k_comparator_sourced", "k_covered", "coverage_complete",
+              "discrepancy_findings", "comparator_sourced")
 
 
 def canonical(out):
@@ -1279,6 +1399,14 @@ def canonical(out):
             "comparator_pmid": o.get("comparator_pmid"),
             "matched_by_route_group": dict(Counter(route_group(x["route"]) for x in o["trials"] if is_matched(x))),
             "g1r_reproduction": o.get("g1r_reproduction"),
+            "k_independent": o.get("k_independent", o["k_matched"]),
+            "k_comparator_sourced": o.get("k_comparator_sourced", 0),
+            "k_covered": o.get("k_covered", o["k_matched"]),
+            "coverage_complete": bool(o.get("coverage_complete")),
+            "discrepancy_findings": o.get("discrepancy_findings") or [],
+            "comparator_sourced": [{"trial": x["label"], **((x.get("comparator_sourced") or {}).get("value") or {}),
+                                    "from": (x.get("comparator_sourced") or {}).get("provenance")}
+                                   for x in o["trials"] if x.get("coverage") == "COMPARATOR_SOURCED"],
             "secondary_single": [{"trial": x["label"], **((x.get("secondary_single") or {}).get("provenance") or {})}
                                  for x in o["trials"] if is_matched(x) and route_group(x["route"]) == "SECONDARY_SINGLE"],
             "source": {"branch": src["branch"], "commit": src["commit"]} if src else {"branch": "acq/k-gap", "commit": None}}
@@ -1291,6 +1419,11 @@ def canonical(out):
                        "matched_by_route_group": dict(sum((Counter(t["matched_by_route_group"]) for t in topics.values()), Counter())),
                        "g1r_reproduction": dict(Counter(((t["g1r_reproduction"] or {}).get("state") or "NOT_COMPUTED")
                                                         for t in topics.values())),
+                       "INDEPENDENTLY_CONFIRMED": sum(t["k_independent"] for t in topics.values()),
+                       "COMPARATOR_SOURCED": sum(t["k_comparator_sourced"] for t in topics.values()),
+                       "COVERAGE": sum(t["k_covered"] for t in topics.values()),
+                       "coverage_complete_topics": sum(1 for t in topics.values() if t["coverage_complete"]),
+                       "discrepancy_findings": sum(len(t["discrepancy_findings"]) for t in topics.values()),
                        "topics_by_status": dict(Counter(t["g1_status"] for t in topics.values()))},
             "topics": topics}
 
