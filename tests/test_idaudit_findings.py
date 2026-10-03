@@ -209,3 +209,14 @@ def test_negative_real_smart_two_registrations_stay_refused(monkeypatch):
     r = kt.resolve_unit(unit("Semler (SMART trial)", [{"pmid": "29485925"}]), None, idx, None)
     assert r["ncts"] == []
     assert "pmid_nct_paper_lists_several:NCT02444988,NCT02547779" in r["basis"]
+
+
+def test_cache_save_is_atomic_and_keeps_a_concurrent_writers_entries(tmp_path):
+    import json as _json
+    cp = str(tmp_path / "c.json")
+    kt._save_cache(cp, {"a": 1})
+    # another process adds 'b' after we loaded our copy; our save must not drop it, and ours wins on a shared key
+    _json.dump({"a": 0, "b": 2}, open(cp, "w", encoding="utf-8"))
+    kt._save_cache(cp, {"a": 1, "c": 3})
+    assert _json.load(open(cp, encoding="utf-8")) == {"a": 1, "b": 2, "c": 3}
+    assert not list(tmp_path.glob("*.tmp"))
