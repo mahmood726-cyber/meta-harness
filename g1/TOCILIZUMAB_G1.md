@@ -2,9 +2,9 @@
 
 - **Comparator**: REACT (PMID 34228774), 19 tocilizumab trials, FE OR 0.83 (0.74-0.92). Its rows are the TARGET only: never a source, never in k matched.
 - **Positive control**: REACT's own 19 rows -> FE OR 0.8253 (0.7424-0.9174).
-- **k matched: 5 of 19** -- a verified typed day-28 tuple, by route PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2; 64% of REACT's participants. PRIMARY = two primaries, or one bound primary that STATES the counts (2 Oct); TWO_SOURCE = a primary + a REACT-independent meta; SECONDARY_SINGLE = a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary (3 Oct). Matcher states ESTABLISHED by two sources: 2.
-- **States**: {'ESTABLISHED': 2, 'SECONDARY_COUNT_PRIMARY_CONSISTENT': 2, 'ONE_SOURCE': 3, 'CONFLICT': 0, 'NO_PRIMARY_SOURCE': 12}. REACT rows that are a paper's SAFETY-population count: ['BACC-Bay'].
-- **Coverage-limited reconciliation, NOT a finding.** On the 2 established trials only, our rows pool to OR 1.2251 (0.7799-1.9245) and REACT's rows for the same trials to OR 1.2251 (0.7799-1.9245): this checks that our rows reproduce REACT's on those trials. It is not an estimate of tocilizumab's effect: the largest trials not matched (REMAP-CAP n=711, REMDACTA n=640) are open gaps, so no topic-level result is stated.
+- **k matched: 6 of 19** -- a verified typed day-28 tuple, by route PRIMARY 3, TWO_SOURCE 1, SECONDARY_SINGLE 2; 72% of REACT's participants. PRIMARY = two primaries, or one bound primary that STATES the counts (2 Oct); TWO_SOURCE = a primary + a REACT-independent meta; SECONDARY_SINGLE = a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary (3 Oct). Matcher states ESTABLISHED by two sources: 3.
+- **States**: {'ESTABLISHED': 3, 'SECONDARY_COUNT_PRIMARY_CONSISTENT': 2, 'ONE_SOURCE': 2, 'CONFLICT': 0, 'NO_PRIMARY_SOURCE': 12}. REACT rows that are a paper's SAFETY-population count: ['BACC-Bay'].
+- **Coverage-limited reconciliation, NOT a finding.** On the 3 established trials only, our rows pool to OR 1.0467 (0.7695-1.4237) and REACT's rows for the same trials to OR 1.0467 (0.7695-1.4237): this checks that our rows reproduce REACT's on those trials. It is not an estimate of tocilizumab's effect: the largest trials not matched (REMAP-CAP n=711, PreToVid n=354) are open gaps, so no topic-level result is stated.
 
 | REACT trial | registration | state | route | sources (independent) | our row | REACT row | verdict | why not matched |
 |---|---|---|---|---|---|---|---|---|
@@ -24,6 +24,6 @@
 | PreToVid | - | NO_PRIMARY_SOURCE | NO_ROW | - | - | 21/174 vs 34/180 | NO_PRIMARY_ROW | NO_NON_COMPARATOR_META_ROW |
 | RECOVERY | NCT04381936 | ONE_SOURCE | PRIMARY | TEXT | 621/2022 vs 729/2094 (UNSTATED) | 621/2022 vs 729/2094 | AGREE |  |
 | REMAP-CAP | NCT02735707 | NO_PRIMARY_SOURCE | NO_ROW | - | - | 85/353 vs 116/358 | NO_PRIMARY_ROW | CONTRADICTED: meta 35657993 'Gordon 2021' (98, 350, 142, 397); meta 36102463 'REMAP-CAP Investigators et al.¹⁷' (98, 350, 10, 45) / TIMEPOINT: the meta rows' tocilizumab arm (98, 350) is the primary's IN-HOSPITAL count ( |
-| REMDACTA | NCT04409262 | ONE_SOURCE | UNVERIFIED | AACT | 78/430 vs 41/210 (ANALYSED) | 78/430 vs 41/210 | AGREE | NO_NON_COMPARATOR_META_ROW |
+| REMDACTA | NCT04409262 | ESTABLISHED | PRIMARY | AACT+TEXT | 78/430 vs 41/210 (ANALYSED) | 78/430 vs 41/210 | AGREE |  |
 | TOCIBRAS | NCT04403685 | ESTABLISHED | TWO_SOURCE | META+TEXT | 14/65 vs 6/64 (UNSTATED) | 14/65 vs 6/64 | AGREE |  |
 | TOCOVID | NCT04332094 | NO_PRIMARY_SOURCE | NO_ROW | - | - | 0/136 vs 0/134 | NO_PRIMARY_ROW | NO_NON_COMPARATOR_META_ROW |

@@ -31,7 +31,9 @@ def test_one_bound_primary_that_states_the_counts_is_primary_a_converted_percent
     rec = T["RECOVERY"]
     best = next(x for x in rec["readings"] if x["values"] == {k: rec["row"][k] for k in g._KEY})
     assert rec["state"] == g.ONE_SOURCE and tr._route(rec, best) == "PRIMARY"
-    rem = T["REMDACTA"]                                                # AACT percentage converted to counts
+    # AACT percentage converted to counts, no source stating them: never PRIMARY. (REMDACTA was this example until its
+    # open text's Table 2 was read -- 78/430 vs 41/210 STATED, now ESTABLISHED; tests/test_g1_toci_remdacta.py)
+    rem = T["CORIMUNO-TOCI-ICU"]
     bestr = next(x for x in rem["readings"] if x["values"] == {k: rem["row"][k] for k in g._KEY})
     assert rem["state"] == g.ONE_SOURCE and not bestr.get("counts_stated_by") and tr._route(rem, bestr) == "UNVERIFIED"
 
