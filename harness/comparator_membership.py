@@ -28,7 +28,7 @@ _WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eig
 _K = r"(?P<k>\d{1,3}|" + "|".join(_WORDS) + r")"
 # '6 phase 3 trials including a total of 27,023 patients' / 'eight randomized controlled trials involving 10,000 participants'
 STATED_K = re.compile(r"(?<![\d-])" + _K + r"\s+(?:phase\s+(?:3|III|three)\s+)?(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
-                      r"(?:clinical\s+)?(?:trials|RCTs|studies)\s+(?:including|enrolling|involving|with|of|comprising)\s+"
+                      r"(?:clinical\s+)?(?:trials|RCTs|studies)\s+(?:including|enrolling|involving|with|of|comprising|in)\s+"
                       r"(?:a\s+total\s+of\s+)?(?P<n>\d{1,3}(?:,\d{3})+|\d{2,7})\s+(?:patients|participants|subjects)\b",
                       re.I)
 # a count sentence that is NOT this review's own inclusion count (NR-C22)
