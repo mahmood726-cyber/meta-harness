@@ -585,7 +585,22 @@ def orientation(o):
                 and _mirrors(x.get("our_value") or {}, x.get("comparator_row") or {})]
     if mirrored:
         return "DISPUTED", f"{len(mirrored)} shared trial(s) mirror our orientation"
-    return ("ESTABLISHED", f"{len(agree)} shared trial(s) AGREE") if agree else ("UNKNOWN", "no shared trial agrees")
+    if agree:
+        return "ESTABLISHED", f"{len(agree)} shared trial(s) AGREE"
+    # measures differ (our HR vs their RR / OR): orientation is DIRECTION, not value -- a shared pair of ratio
+    # estimates both clearly off the null (beyond +/-10%) on the SAME side establishes it (omega-3: REDUCE-IT HR 0.74
+    # vs RR 0.78; ticagrelor HR 0.84 vs OR 0.83); a near-null pair says nothing
+    same_side = []
+    for x in shared:
+        a, b = sm._num((x.get("our_value") or {}).get("effect")), sm._num((x.get("comparator_row") or {}).get("effect"))
+        ma, mb = ((x.get("our_value") or {}).get("measure") or "").upper(), ((x.get("comparator_row") or {}).get("measure") or "").upper()
+        if a and b and a > 0 and b > 0 and ma in sm.RATIO and mb in sm.RATIO:
+            la, lb = math.log(a), math.log(b)
+            if min(abs(la), abs(lb)) >= math.log(1.1) and la * lb > 0:
+                same_side.append(x["label"])
+    if same_side:
+        return "ESTABLISHED", f"{len(same_side)} shared trial(s) on the same side of the null ({', '.join(same_side[:3])})"
+    return "UNKNOWN", "no shared trial agrees or shows the direction"
 
 
 def _mirrors(ours, theirs):
@@ -1131,6 +1146,26 @@ def topic(slug, T):
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
     kw_all = list((cfg.get("primary_outcome") or {}).get("keywords") or [])
     trials, routes, pairs, matched_ids = [], Counter(), [], set()
+    # COMPARATOR ROWS BY THE COMPARATOR'S OWN LABELS: a comparator trial with no identity of ours (no PMID/NCT resolved)
+    # has no family, so its row in the comparator's own figure could never attach (metformin, 3 Oct: 'Ben Ayed 2009',
+    # 'Legro 2007', ... read and accepted, never joined). Every comparator row is ALSO joined to the comparator's trial
+    # list by label / acronym / author-year (secondary_meta_build.family_of_factory, unique or nothing); used only where
+    # the family route found no row, and never for two trials.
+    import secondary_meta_build as _smb
+    import k_gap_result_agreement as _ra
+    _ents = [{"id": t["label"][:60], "label": t["label"][:60],
+              "acronyms": sorted({v["acronym"] for v in (t.get("study") or {}).values() if (v or {}).get("acronym")}),
+              "author_year": _ra.first_author_year(t["pmids"][0]) if t.get("pmids") else None} for t in comp_rows]
+    _cfam = _smb.family_of_factory(_ents)
+    comp_by_label = {}
+    for r in rows:
+        if r.meta_pmid != comp:
+            continue
+        lab = _cfam(r)
+        if lab:
+            comp_by_label.setdefault(lab, []).append(r)
+    comp_by_label = {k: v[0] for k, v in comp_by_label.items() if len(v) == 1}
+    used_rows = set()
     for t in comp_rows:
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
                      or o["pmid"] in (t.get("pmids") or [])), None)
@@ -1144,6 +1179,12 @@ def topic(slug, T):
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
         theirs = next((r for r in sec if r.meta_pmid == comp), None)
+        if theirs is None:
+            cand = comp_by_label.get(t["label"][:60])
+            if cand is not None and id(cand) not in used_rows:
+                theirs = cand
+        if theirs is not None:
+            used_rows.add(id(theirs))
         if in_pool:
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
