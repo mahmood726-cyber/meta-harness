@@ -231,3 +231,7 @@ count the primary states at another timepoint, or when another non-comparator me
 
 **Not merged:** origin/main into this branch. It conflicts on 30 generated files plus `harness/source_hierarchy.py` and
 `regex_layer/specs.py`; that integration is the captain's.
+4. **The pinned per-file route set** (`kgap/G1_INTERFACES.md` §4, `tests/test_g1_interfaces.py`) did not include
+   SECONDARY_SINGLE, although `g1_tracker.is_matched` / `ROUTE_GROUP` already count it. The first lane file to emit it
+   failed the pin (CI 37111343681: 17 failed against the inherited 16). I widened the set and the doc line, and changed
+   nothing else. Please confirm or replace with your own wording.

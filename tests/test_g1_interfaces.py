@@ -115,7 +115,8 @@ def test_committed_tracker_files_carry_the_pinned_schema():
         with open(os.path.join(d, f), encoding="utf-8") as fh:
             o = json.load(fh)
         assert keys <= set(o), (f, keys - set(o))
-        assert set(o["routes"]) <= {"PRIMARY", "TWO_SOURCE", "UNVERIFIED", "NO_ROW"}
+        # SECONDARY_SINGLE joins the pinned set with the 3 Oct decision (g1_tracker.is_matched / ROUTE_GROUP count it)
+        assert set(o["routes"]) <= {"PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE", "UNVERIFIED", "NO_ROW"}
         assert sum(o["routes"].values()) == o["N_comparator_trials"] == len(o["trials"])
 
 
