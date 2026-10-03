@@ -1244,6 +1244,17 @@ def topic(slug, T):
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}
     rp = {id(t): report_pmid(t) for t in comp_rows}
+    # a comparator reference that is a LETTER / COMMENT about a trial is that trial: PubMed's own CommentOn link (one
+    # PMID, a report we hold) names it, never its title (sglt2-primary-prevention-hf 'Isreb (19)' = letter 31509682 on
+    # CREDENCE 30990260). registry/comment_on.json: request + response sha256, fetched by scripts/g1_comment_on.py
+    cop = os.path.join(ROOT, "registry", "comment_on.json")
+    co_map = _j(cop) if os.path.exists(cop) else {}
+    for x, t in zip(trials, comp_rows):
+        co = (co_map.get(str(rp[id(t)])) or {}).get("comment_on") or []
+        if not x["in_our_pool"] and len(co) == 1 and co[0] in screened and co[0] != rp[id(t)]:
+            x["cited_as"] = {"pmid": rp[id(t)], "kind": "LETTER_OR_COMMENT", "comment_on": co[0],
+                             "source": "registry/comment_on.json (PubMed CommentsCorrections CommentOn)"}
+            rp[id(t)] = co[0]
     for x, t in zip(trials, comp_rows):
         p = rp[id(t)]
         r = screened.get(p) if p else None
