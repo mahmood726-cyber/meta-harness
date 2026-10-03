@@ -366,11 +366,18 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
     #      NO primary source is open for the trial. 'Open' = the trial's full text (PMC OA / held / Unpaywall) or its
     #      posted results; its PubMed abstract alone is not (had it printed the number, verify_typed would have matched).
     def primary_open(r):
+        # FAIL-CLOSED: the report the comparator CITES when it cites one; otherwise EVERY PMID linked to the trial (the
+        # shown-report choice reads a local identity store that a clone may lack -- checking the wrong paper must never
+        # make a trial look 'no primary open'), and every NCT's posted results
         t = by_label[r.family_id]
-        if not (t["report_pmid"] or t["ncts"]):
-            return None
-        srcs = smb.primary_sources(slug, t["report_pmid"] or "", (t["ncts"] or [None])[0])
-        return next((ref for kind, ref, _ in srcs if not ref.endswith(" abstract")), None)
+        pmids = [str(p) for p in (t.get("cited_pmids") or [])[:1]] or [str(p) for p in t.get("pmids") or []]
+        for pm in pmids or [""]:
+            for n in (t.get("ncts") or [None]):
+                srcs = smb.primary_sources(slug, pm, n)
+                hit = next((ref for kind, ref, _ in srcs if not ref.endswith(" abstract")), None)
+                if hit:
+                    return hit
+        return None
     sm.secondary_single(rows, comp_ids, primary_open, lambda r: r.meta_pmid in repro)
     countable = {id(r) for r in sm.g1_countable(rows, comp_ids)}
     import g1_tracker as gt
