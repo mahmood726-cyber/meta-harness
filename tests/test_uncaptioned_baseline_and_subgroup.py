@@ -118,3 +118,18 @@ def test_PLANT_an_incomplete_harms_outcome_still_states_that_its_pool_is_suppres
     html = page._outcome_block(o, show_inputs=False)
     assert "Pooled result SUPPRESSED (estimand-incompatible)" in html
     assert "HARMS" in html or "harm" in html.lower()
+
+
+def test_PLANT_a_covariate_model_effect_is_refused_with_its_reason_recorded():
+    """acq/k-gap integration (2026-10-03): McFarland 1995's (PMID 7872284) adjusted RR 0.29 was skipped SILENTLY inside
+    the harvester, and the same silent skip hid the recorded subgroup refusal. Both are now refused where the reason
+    is recorded. Read from the held abstract, as the build reads it."""
+    import json
+    recs = json.load(open(os.path.join(ROOT, "cache", "probiotics-aad-prevention", "records.json"), encoding="utf-8"))
+    abstract = next(r["abstract"] for r in recs["records"] if str(r["id"]) == "7872284")
+    spec = {"name": "Antibiotic-associated diarrhoea",
+            "keywords": ["antibiotic-associated diarrhea", "antibiotic-associated diarrhoea", "AAD", "diarrhea"]}
+    refused: list[str] = []
+    got = source_hierarchy.effect_candidates_for_outcome(spec, abstract, refused)
+    assert 0.29 not in [round(float(c["effect"]), 2) for c in got if c.get("effect") is not None], got
+    assert any("multivariable model" in r for r in refused), refused
