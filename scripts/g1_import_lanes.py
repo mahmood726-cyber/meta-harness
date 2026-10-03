@@ -154,6 +154,7 @@ def main(argv):
         # the lane's named scope differences must carry rule + span like ours; unspanned ones go back to eligible
         gt.cite_or_demote(o, slug)
         gt.apply_sweep(o, slug)           # trials the two-source sweep verified count as matched, by route
+        gt.apply_single_primary(o)        # ONE_SOURCE rows bound to a single PRIMARY source, typed (2 Oct decision)
         bad = gt.scope_citation_violations(o)
         if bad:
             raise SystemExit(f"{slug}: lane artefact non-eligible without rule + span: {bad}")

@@ -162,3 +162,20 @@ def test_every_served_topic_has_a_tracker_row():
         assert (o.get("g1_status") or {}).get("state"), s
         if not o["N_comparator_trials"]:
             assert o["g1_status"]["state"] == "COMPARATOR_NOT_ENUMERATED" and o["g1_status"].get("why"), s
+
+
+def test_the_canonical_tracker_json_is_keyed_not_positional():
+    """outputs/k_gap/G1_TRACKER.json is the canonical machine-readable output: every topic carries exactly TOPIC_KEYS;
+    totals equal the sums of the topics; no consumer parses the markdown table by column position."""
+    import json as _json
+    import sys as _sys
+    _sys.path.append(os.path.join(ROOT, "scripts"))
+    import g1_tracker as _gt
+    p = os.path.join(ROOT, "outputs", "k_gap", "G1_TRACKER.json")
+    d = _json.load(open(p, encoding="utf-8"))
+    assert d["schema"] == _gt.CANONICAL_SCHEMA and d["topic_keys"] == list(_gt.TOPIC_KEYS)
+    assert set(d["topics"]) == set(_gt.served_topics())
+    for slug, t in d["topics"].items():
+        assert set(t) == set(_gt.TOPIC_KEYS), slug
+        assert t["N_comparator_trials"] - t["N_eligible"] == t["excluded_by_scope"], slug
+    assert d["totals"]["k_matched"] == sum(t["k_matched"] for t in d["topics"].values())

@@ -53,6 +53,13 @@ OTHER_COMP = re.compile(r"\b(?:usual care|standard (?:of )?care|standard therapy
 OBSERVATIONAL = re.compile(r"\bassociation of\b|\bcohort\b|\bobservational\b|\bretrospective\b|\bregistry\b|"
                            r"\bcase series\b|\bcross-sectional\b|population-based|case-control|nationwide", re.I)
 ORDER = ("SCREENER_ERROR", "INSUFFICIENT_RECORD", "TRUE_SCOPE_DIFFERENCE", "INCONSISTENT")
+# a record that STATES it analyses data from several trials (pooled / post hoc / secondary analysis), not one trial
+SECONDARY_ANALYSIS = re.compile(r"\bpooled analys[ie]s\b|\bpost[- ]hoc analys[ie]s\b|\bsecondary analys[ie]s\b|"
+                                r"\bsub-?analys[ie]s\b|"
+                                # a COUNTED set of trials ('enrolled in 5 phase III trials'), never 'enrolled in the
+                                # trials' (DELIVER's background sentence)
+                                r"\b(?:enrolled in|across|from|of) (?:\d+|two|three|four|five|six|seven|eight|nine|ten) "
+                                r"(?:phase (?:I{1,3}|[1-3]) )?(?:randomi[sz]ed )?(?:controlled )?trials\b", re.I)
 SPAN_FIELDS = ("title", "conditions", "abstract")
 SPAN_CAP = 240
 
@@ -70,12 +77,31 @@ def record_field_texts(rec, fields=SPAN_FIELDS):
                 yield f, s
 
 
-def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None):
-    """The first verbatim span of `rec` (the sentence around a match of `rx`, at most SPAN_CAP chars either side of
-    the match) in which `avoid` does not occur: {field, text, match}. None when the record never states it."""
+_SECTION = re.compile(r"(?:^|(?<=[.\s]))([A-Z][A-Z &/]{2,40}):\s")
+_BACKGROUND_LABELS = re.compile(r"^(?:BACKGROUND|INTRODUCTION|CONTEXT|RATIONALE|BACKGROUND AND (?:AIMS?|PURPOSE|OBJECTIVES?))$")
+
+
+def _background_ranges(ab):
+    """[start, end) character ranges of a structured abstract's BACKGROUND / INTRODUCTION / CONTEXT / RATIONALE
+    sections (label to the next label). An unstructured abstract has none."""
+    labs = list(_SECTION.finditer(ab or ""))
+    out = []
+    for i, m in enumerate(labs):
+        if _BACKGROUND_LABELS.match(m.group(1).strip()):
+            out.append((m.start(), labs[i + 1].start() if i + 1 < len(labs) else len(ab)))
+    return out
+
+
+def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None):
+    """Every verbatim span of `rec`: the sentence around each match of `rx` (at most SPAN_CAP chars either side of the
+    match) in which `avoid` does not occur, as {field, text, match}, in record order."""
+    out = []
     for f, s in record_field_texts(rec, fields):
         ends = [e.start() for e in _SENT_END.finditer(s)]
+        bg = _background_ranges(s) if f == "abstract" else []
         for m in rx.finditer(s):
+            if any(a0 <= m.start() < b0 for a0, b0 in bg):
+                continue                 # a BACKGROUND sentence says nothing about what THIS trial did (CORE, DELIVER)
             i = max((e for e in ends if e < m.start()), default=-1)
             a = max(0 if i < 0 else i + 2, m.start() - SPAN_CAP)
             b = min((e for e in ends if e >= m.end()), default=-1)
@@ -84,8 +110,14 @@ def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None):
             txt = s[a:b].strip()
             if avoid is not None and avoid.search(txt):
                 continue
-            return {"field": f, "text": txt, "match": m.group(0)}
-    return None
+            out.append({"field": f, "text": txt, "match": m.group(0)})
+    return out
+
+
+def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None):
+    """The first verbatim span (see _all_spans), or None when the record never states it."""
+    sp = _all_spans(rec, rx, fields, avoid)
+    return sp[0] if sp else None
 
 
 def _terms_rx(terms):
@@ -117,7 +149,9 @@ def population():
     pinned = {}
     out = []
     for r in T["trials"]:
-        if r["gap_class"] != "IDENTIFICATION" or r["unit_source"] == "REFERENCE_SEED" or r["drug"] == "OTHER_AGENT":
+        # REFERENCE_SEED units are audited too: where the comparator prints no trial table, its reference list IS the
+        # unit list, and a reference our screen excluded is as much a claim as a table row (doac-vte 24081972)
+        if r["gap_class"] != "IDENTIFICATION" or r["drug"] == "OTHER_AGENT":
             continue
         seeds = r["cited_pmids"] if set(r.get("cited_pmids") or []) & set(r["pmids"]) else r["pmids"]
         fn = (cfm.get(r["slug"]) or {}).get("funnel") or {}
@@ -166,9 +200,17 @@ def population_in_screen():
             # a lane-owned topic: the lane NAMED these exclusions; each still needs a span from its record, so the
             # same classifier runs on them (origin LANE_NAMED) -- the tracker demotes an unspanned one to an open gap
             slug = o["slug"]
-            for d in o.get("named_differences") or []:
-                if d.get("kind") != "PROTOCOL_SCOPE_DIFFERENCE" or not d.get("pmid"):
-                    continue
+            # named by the lane, OR screened out with a rule (a lane-named exclusion this audit once demoted must stay
+            # in the audit's population, or a later fix of the audit can never re-examine it -- SOLOIST-WHF, 3 Oct)
+            lane_items = [d for d in o.get("named_differences") or []
+                          if d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE" and d.get("pmid")]
+            seen_lane = {d["trial"] for d in lane_items}
+            lane_items += [{"trial": x["label"], "pmid": (x.get("seeded_funnel") or {}).get("pmid"),
+                            "rule_id": (x.get("seeded_funnel") or {}).get("rule_id")}
+                           for x in o.get("trials") or [] if x["label"] not in seen_lane
+                           and (x.get("seeded_funnel") or {}).get("stage") == "SCREENED_OUT"
+                           and (x.get("seeded_funnel") or {}).get("pmid")]
+            for d in lane_items:
                 if slug not in pinned:
                     rp = os.path.join(ROOT, "cache", slug, "records.json")
                     rj = _j(rp) if os.path.exists(rp) else {}
@@ -179,14 +221,18 @@ def population_in_screen():
             continue
         for x in o.get("trials") or []:
             fn = x.get("seeded_funnel") or {}
-            if not (fn.get("already_in_screen") and fn.get("stage") == "SCREENED_OUT"):
+            # every comparator trial the tracker saw screened out -- in our screen already, or seeded in memory from a
+            # held member record (doac-vte 24081972 was the latter and was never audited)
+            if fn.get("stage") != "SCREENED_OUT" or not fn.get("pmid") or x.get("in_our_pool"):
                 continue
             slug = o["slug"]
             if slug not in pinned:
                 rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
                 pinned[slug] = {str(r.get("id")): r for r in rj.get("records", []) + rj.get("ctgov", [])}
-            out.append({"slug": slug, "label": x["label"], "pmid": fn["pmid"], "rec": pinned[slug].get(str(fn["pmid"])),
-                        "stage": "SCREENED_OUT", "recorded_rule": fn.get("rule_id"), "origin": "IN_SCREEN"})
+            rec = pinned[slug].get(str(fn["pmid"])) or _member_records().get(str(fn["pmid"]))
+            out.append({"slug": slug, "label": x["label"], "pmid": fn["pmid"], "rec": rec,
+                        "stage": "SCREENED_OUT", "recorded_rule": fn.get("rule_id"),
+                        "origin": "IN_SCREEN" if fn.get("already_in_screen") else "SEEDED_IN_MEMORY"})
     return out
 
 
@@ -269,13 +315,21 @@ def _classify(rec, cfg):
         rep = dict(inc, comparator_any=list(inc.get("comparator_any") or []) + heads)
         if decide(rec, rep)["decision"] == "include":
             return "SCREENER_ERROR", "COMPARATOR_WORDING", base
-    if rule == "X2" and not inc.get("prevention"):
+    # the 'prevention' repair turns the protocol into a prevention protocol: never for a protocol that EXCLUDES prevention
+    # (tranexamic-acid-pph lists 'prevent' / 'prophylaxis' in population_none; WOMAN-2 is a prophylaxis trial)
+    excludes_prevention = any(re.match(r"prevent|prophyla", str(t).strip(), re.I) for t in inc.get("population_none") or [])
+    if rule == "X2" and not inc.get("prevention") and not excludes_prevention:
         if decide(rec, dict(inc, prevention=True))["decision"] == "include":
             return ("SCREENER_ERROR", "CONDITION_AS_OUTCOME (population term shared with the outcome)" if condition_is_outcome(cfg)
                     else "POPULATION_ONLY_IN_ABSTRACT",
                     base)
     if rule == "X3" and inc.get("intervention_in_title"):
-        if decide(rec, dict(inc, intervention_in_title=False))["decision"] == "include":
+        # the repair counts only when OUR intervention is what THIS study randomised: a term in the abstract's
+        # allocation sentence. A background mention is not one -- SOLOIST-WHF: 'SGLT2 inhibitors reduce the risk ...'
+        # (background) vs 'randomly assigned to receive sotagliflozin or placebo' (what was randomised).
+        av = _terms_rx(inc.get("intervention_any"))
+        alloc = av is not None and any(av.search(s["text"]) for s in _all_spans(rec, THIS_STUDY_RANDOMISED, ("abstract",)))
+        if alloc and decide(rec, dict(inc, intervention_in_title=False))["decision"] == "include":
             return "SCREENER_ERROR", "INTERVENTION_ONLY_IN_ABSTRACT", base
     # --- no repair flips it: does the record STATE the excluding fact, or simply not say?
     if not ab.strip():
@@ -283,6 +337,11 @@ def _classify(rec, cfg):
     if OBSERVATIONAL.search((rec.get("title") or "") + " " + ab) and not RANDOMISED_HERE.search((rec.get("title") or "") + " " + ab):
         return ("TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)",
                 _with_span(base, span_of(rec, OBSERVATIONAL, ("title", "abstract"))))
+    if rule == "X1" and SECONDARY_ANALYSIS.search((rec.get("title") or "") + " " + ab):
+        # the record states it is an analysis ACROSS / OF trials, not a trial's report (doac-vte PMID 24081972:
+        # 'bleeding reports from 1034 individuals ... enrolled in 5 phase III trials')
+        return ("TRUE_SCOPE_DIFFERENCE", "SECONDARY_ANALYSIS_OF_TRIALS_STATED (protocol includes trial reports)",
+                _with_span(base, span_of(rec, SECONDARY_ANALYSIS, ("title", "abstract"))))
     if rule == "X1":
         return (("TRUE_SCOPE_DIFFERENCE", "NOT_RANDOMISED_STATED",
                  _with_span(base, span_of(rec, re.compile(r"non-?randomi[sz]ed", re.I), ("title", "abstract"))))
@@ -305,9 +364,15 @@ def _classify(rec, cfg):
         # ANOTHER agent randomised must be STATED: a sentence saying what was studied / randomised that names none of
         # the protocol's intervention terms. The screen's 'is not [...]' is an ABSENCE, never on its own a scope fact.
         av = _terms_rx(inc.get("intervention_any"))
-        # a record that names OUR intervention anywhere (title or abstract) does not establish that another agent was
-        # randomised -- metformin 15498183 randomised metformin under a generic title ('[Clinical study on ...]')
-        named_ours = av is not None and any(av.search(t) for _, t in record_field_texts(rec, ("title", "abstract")))
+        # a record that names OUR intervention as what it studied does not establish that another agent was randomised
+        # -- metformin 15498183 randomised metformin under a generic title ('[Clinical study on ...]'). 'As what it
+        # studied' = the title or an allocation sentence; a BACKGROUND sentence does not count (SOLOIST-WHF: 'SGLT2
+        # inhibitors reduce ...', then 'randomly assigned to receive sotagliflozin or placebo'). With no allocation
+        # sentence in the abstract, any mention counts (fail closed: no span).
+        alloc = _all_spans(rec, THIS_STUDY_RANDOMISED, ("abstract",))
+        where = [t for _, t in record_field_texts(rec, ("title",))] + [s["text"] for s in alloc] if alloc else \
+            [t for _, t in record_field_texts(rec, ("title", "abstract"))]
+        named_ours = av is not None and any(av.search(t) for t in where)
         sp = None if named_ours else (span_of(rec, TITLE_STUDY_STATED, ("title",), av) or
                                       span_of(rec, THIS_STUDY_RANDOMISED, ("abstract",), av))
         return "TRUE_SCOPE_DIFFERENCE", "OTHER_INTERVENTION_OR_FORM_RANDOMISED", _with_span(base, sp)

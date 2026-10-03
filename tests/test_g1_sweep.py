@@ -77,7 +77,9 @@ def test_every_committed_sweep_file_counts_only_two_source_verdicts():
             continue
         for t in json.load(open(os.path.join(d, f), encoding="utf-8"))["trials"]:
             if str(t["verdict"]).startswith("SWEEP_"):
-                rows = [r for r in t["rows"] if r["state"] in ("PRIMARY_VERIFIED", "TWO_SOURCE_VERIFIED")]
+                ok = ("PRIMARY_VERIFIED", "TWO_SOURCE_VERIFIED") + (
+                    ("SECONDARY_UNVERIFIED",) if t["verdict"] == "SWEEP_SECONDARY_SINGLE" else ())
+                rows = [r for r in t["rows"] if r["state"] in ok]
                 if not rows or t["value"] is None:
                     bad.append(f"{f}::{t['label']}")
     assert not bad, bad
@@ -94,3 +96,75 @@ def test_a_lane_file_without_pool_membership_counts_its_verified_routes():
     assert o["open_gaps"] == ["RECOVERY"] and gt.scope_citation_violations(o) == []
     o["k_matched"] = 3
     assert gt.scope_citation_violations(o) == ["k_matched 3 != matched trials 2"]
+
+
+def test_a_reader_disagreement_is_never_a_silent_pick():
+    # sglt2-hfref EMPEROR-Reduced: the forest reader's two readings of the comparator row are 0.75 (0.65-0.87) and
+    # 0.75 (0.65-0.86). RESULT_AGREES holds only if the same-trials verdict is the same under BOTH readings.
+    o = {"N_eligible": 1, "k_matched": 1, "open_gaps": [], "named_differences": [],
+         "same_trials": {"verdict": {"verdict": "AGREE"}},
+         "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "agreement_with_comparator_row": "READERS_DIFFER",
+                     "comparator_row_readings": {"state": "READERS_DIFFER"}}]}
+    assert "RESULT_AGREES" in gt.g1_status(o)["unmet"]
+    o["same_trials"]["readers_agree_on_verdict"] = True
+    assert gt.g1_status(o)["state"] == "G1_MATCHED"
+
+
+def _one_source(source, **kw):
+    return {"label": "T", "route": "UNVERIFIED", "g1_state": "ONE_SOURCE", "in_our_pool": None,
+            "readings": [{"values": {"deaths_t": 621, "n_t": 2022, "deaths_c": 729, "n_c": 2094},
+                          "sources": [dict(source=source, **kw)]}]}
+
+
+def test_one_primary_source_is_primary_when_typed_and_never_when_reconstructed():
+    # 2 Oct decision: ONE bound PRIMARY source verifies a row; the two-source rule is for metas. RECOVERY's own text
+    # prints all four counts verbatim -> PRIMARY. Posted percentages turned into counts are a reconstruction -> no.
+    span = ("Overall, 621 (31%) of the 2022 patients allocated tocilizumab and 729 (35%) of the 2094 patients "
+            "allocated to usual care died within 28 days")
+    assert gt.single_primary_source(_one_source("TEXT PMID 33933206", span=span))[0] is True
+    assert gt.single_primary_source(_one_source("TEXT PMID 33933206", span=span.replace("729", "7290")))[1] == "COUNTS_NOT_IN_SPAN"
+    pct = _one_source("AACT", derivation="survival 84% of 49 -> 8 deaths", time_frame="28 days")
+    assert gt.single_primary_source(pct) == (False, "AACT_COUNTS_DERIVED_FROM_PERCENTAGE")
+    multi = _one_source("AACT", derivation="posted participant counts", time_frame="Days 14, 28, and 60")
+    assert gt.single_primary_source(multi) == (False, "AACT_MULTIPLE_TIME_FRAMES")
+    o = {"trials": [_one_source("TEXT PMID 33933206", span=span)], "open_gaps": ["T"]}
+    assert gt.apply_single_primary(o) == ["T"] and o["k_matched"] == 1 and o["open_gaps"] == []
+
+
+def _srow(meta, state="SECONDARY_UNVERIFIED", prov="MODEL_PROPOSAL:mc-1"):
+    from harness import secondary_meta as _sm
+    r = _sm.SecondaryRow(meta_pmid=meta, meta_doi="", location={"kind": "figure", "id": "f1"}, source_digest="d" * 64,
+                         provenance=prov, trial_label="T", measure="RR", outcome_definition="", effect="0.8",
+                         lower="0.6", upper="1.0")
+    r.state = state
+    return r
+
+
+def test_secondary_single_counts_one_self_reproducing_non_comparator_meta_only(monkeypatch):
+    # Mahmood 3 Oct: with no open primary, ONE non-comparator meta's typed-admitted row counts (route SECONDARY_SINGLE);
+    # the comparator's own row never does; a contradiction, an uncontrolled table or an open primary refuses it
+    monkeypatch.setattr(gt, "primary_open", lambda slug, mine, t: [])
+    metas = {"M": {"usable": True, "positive_control": {"reproduced": True}, "figure": "f1", "record_id": "mc-1"},
+             "N": {"usable": False, "positive_control": {"reproduced": False}}}
+    assert gt.secondary_single([_srow("C")], metas, {"C"}, "t", {}, {}) is None                 # comparator only
+    ok = gt.secondary_single([_srow("M")], metas, {"C"}, "t", {}, {})
+    assert ok["row"].meta_pmid == "M" and ok["provenance"]["meta_pmid"] == "M" and "queued for primary" in ok["basis"]
+    assert gt.secondary_single([_srow("N")], metas, {"C"}, "t", {}, {})["why"] == "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
+    assert gt.secondary_single([_srow("M"), _srow("N", "MISMATCH")], metas, {"C"}, "t", {}, {})["why"].startswith("CONTRADICTED")
+    assert "row" not in gt.secondary_single([_srow("M", prov="TYPED_TABLE_UNCONTROLLED")], metas, {"C"}, "t", {}, {})
+    monkeypatch.setattr(gt, "primary_open", lambda slug, mine, t: ["OPEN_FULL_TEXT"])
+    assert gt.secondary_single([_srow("M")], metas, {"C"}, "t", {}, {})["why"].startswith("PRIMARY_OPENLY_AVAILABLE")
+
+
+def test_a_named_trial_is_never_matched_and_secondary_single_is_its_own_route_group():
+    x = {"in_our_pool": False, "g1_countable": True, "route": "SECONDARY_SINGLE", "scope_difference": None}
+    assert gt.is_matched(x) and gt.route_group("SWEEP_SECONDARY_SINGLE") == "SECONDARY_SINGLE"
+    assert not gt.is_matched(dict(x, scope_difference={"kind": "PROTOCOL_SCOPE_DIFFERENCE"}))
+    assert gt.route_group("SWEEP_META+AACT") == "PRIMARY" and gt.route_group("SWEEP_TWO_INDEPENDENT_METAS") == "TWO_SOURCE"
+
+
+def test_g1r_reproduction_is_separate_from_g1():
+    assert gt.g1r_reproduction({}, "C", [])["state"] == "NO_PER_TRIAL_ROWS"
+    meta = {"positive_control": {"reproduced": True, "methods": ["FE"]}, "figure": "f2", "record_id": "mc-x"}
+    assert gt.g1r_reproduction(meta, "C", [_srow("C")])["state"] == "REPRODUCED"
+    assert gt.g1r_reproduction(dict(meta, positive_control={"reproduced": False}), "C", [_srow("C")])["state"] == "NOT_REPRODUCED"
