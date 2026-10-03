@@ -1,7 +1,7 @@
 """Render the G1 scoreboard (docs/g1/index.html) from the topic tracker files in outputs/k_gap/g1/.
 
 GOAL 1: match published open-access meta-analyses trial-for-trial. The tracker files are written by the k-gap lane's
-scripts/g1_tracker.py (schema 1, kgap/G1_INTERFACES.md section 4); outputs/k_gap/g1/SOURCE.json records which commit
+scripts/g1_tracker.py (schema 1, kgap/G1_INTERFACES.md section 4); outputs/k_gap/G1_SOURCE.json (kept OUTSIDE the tracker directory, whose every file is a tracker record) records which commit
 and blobs this tree's copy came from. This page is GENERATED from those files and nothing else; `--check` refuses a
 committed page that differs from a fresh render.
 
@@ -29,6 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = Path("outputs") / "k_gap" / "g1"
+SOURCE = Path("outputs") / "k_gap" / "G1_SOURCE.json"
 OUT = Path("docs") / "g1" / "index.html"
 # The four G1 focus topics (decision 2026-10-02); every other topic file present is shown after them.
 G1_FOCUS = ("glp1-ra-mace-t2d", "semaglutide-obesity-weight", "noac-vs-warfarin-af-stroke",
@@ -127,8 +128,6 @@ def load(root: Path = ROOT) -> dict[str, dict]:
     d = root / SRC
     recs = {}
     for p in sorted(d.glob("*.json")) if d.is_dir() else []:
-        if p.name == "SOURCE.json":
-            continue
         rec = json.loads(p.read_text(encoding="utf-8"))
         recs[rec.get("slug") or p.stem] = rec
     order = [s for s in G1_FOCUS if s in recs] + sorted(s for s in recs if s not in G1_FOCUS)
@@ -151,7 +150,7 @@ def matched_topics(recs: dict[str, dict]) -> list[str]:
 
 def render(root: Path = ROOT) -> str:
     recs = load(root)
-    src = root / SRC / "SOURCE.json"
+    src = root / SOURCE
     source = json.loads(src.read_text(encoding="utf-8")) if src.is_file() else {}
     summ = {s: recompute(r) for s, r in recs.items()}
     lane = {s: (r.get("g1_status") or {}).get("state") for s, r in recs.items()}
