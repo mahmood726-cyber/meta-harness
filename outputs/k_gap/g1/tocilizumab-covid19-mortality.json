@@ -4,20 +4,18 @@
  "comparator_pmid": "34228774",
  "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials whose 28-day deaths per arm are ESTABLISHED by two independent sources (at least one primary: posted AACT results or the trial's own open text; a second meta, 34019122, may confirm counts but never supply them) and equal REACT's row. REACT's rows are the comparator only (anti-circularity).",
  "N_comparator_trials": 19,
- "k_matched": 3,
+ "k_matched": 5,
  "N_eligible": 19,
  "named_differences": [],
  "open_gaps": [
   "ARCHITECTS",
   "BACC-Bay",
-  "CORIMUNO-TOCI-1",
   "CORIMUNO-TOCI-ICU",
   "COV-AID",
   "COVIDOSE2-SS-A",
   "COVIDSTORM",
   "COVINTOC",
   "COVITOZ",
-  "EMPACTA",
   "HMO-020-0224",
   "ImmCoVA",
   "PreToVid",
@@ -52,7 +50,8 @@
  "k_ours_total": null,
  "routes": {
   "NO_ROW": 12,
-  "UNVERIFIED": 4,
+  "SWEEP_SECONDARY_SINGLE": 2,
+  "UNVERIFIED": 2,
   "PRIMARY": 2,
   "TWO_SOURCE": 1
  },
@@ -253,14 +252,30 @@
     "R4_AACT": "POSTED_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "NO_PRIMARY_ROW"
+   "agreement_with_comparator_row": "NO_PRIMARY_ROW",
+   "secondary_single_flag": {
+    "state": "CONTRADICTED_BY_PRIMARY",
+    "meta_counts": [
+     9,
+     161,
+     3,
+     82
+    ],
+    "primary_counts": [
+     9,
+     161,
+     4,
+     82
+    ],
+    "meta": "33745918"
+   }
   },
   {
    "label": "CORIMUNO-TOCI-1",
    "family": "NCT04331808",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "counts printed only by a meta (META 35657993 (prints events/total); META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15)",
+   "route": "SWEEP_SECONDARY_SINGLE",
+   "basis": "two-source sweep: SWEEP_SECONDARY_SINGLE",
    "g1_state": "SECONDARY_COUNT_PRIMARY_CONSISTENT",
    "identity": "AACT acronym CORIMUNO-TOC; its 'Severe COVID Population (WHO-CPS =5)' groups",
    "comparator_row": {
@@ -275,10 +290,10 @@
    },
    "comparator_row_findings": [],
    "our_value": {
-    "measure": "OR",
-    "effect": null,
-    "lower": null,
-    "upper": null,
+    "measure": "RR",
+    "effect": "0.93",
+    "lower": "0.34",
+    "upper": "2.57",
     "events_t": 7,
     "n_t": 63,
     "events_c": 8,
@@ -323,7 +338,7 @@
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
    "acquisition_cascade": {
     "run_utc": "2026-10-02T15:45:55Z",
     "discovery": {
@@ -437,7 +452,35 @@
     "R4_AACT": "POSTED_NO_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "matched_by": "SWEEP",
+   "sweep": {
+    "value": {
+     "measure": "RR",
+     "effect": "0.93",
+     "lower": "0.34",
+     "upper": "2.57",
+     "events_t": 7,
+     "n_t": 63,
+     "events_c": 8,
+     "n_c": 67
+    },
+    "basis": {
+     "meta": "33745918",
+     "where": {
+      "kind": "figure",
+      "id": "fig0002",
+      "panel": null,
+      "row_label": "CORIMUNO-TOCI-1"
+     },
+     "row_label": "CORIMUNO-TOCI-1",
+     "digest": "0fb3edb8e32caa8b41b263ced66021da3ebc678a0f9e4056bc028d17b8ed99fc",
+     "provenance": "MODEL_PROPOSAL:mc-3880a19b63db027956ca9d6e57d7be31",
+     "queued_for_primary": true
+    },
+    "agreement_with_comparator_row": "AGREE"
+   },
+   "blocker": null
   },
   {
    "label": "CORIMUNO-TOCI-ICU",
@@ -1234,8 +1277,8 @@
    "label": "EMPACTA",
    "family": "NCT04372186",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "counts printed only by a meta (META 36102463 (prints events/total)); every primary gives a percentage consistent with them (a registry rate / Kaplan-Meier estimate, or text percentages) -- a primary must state the counts (plant Q15)",
+   "route": "SWEEP_SECONDARY_SINGLE",
+   "basis": "two-source sweep: SWEEP_SECONDARY_SINGLE",
    "g1_state": "SECONDARY_COUNT_PRIMARY_CONSISTENT",
    "identity": "AACT studies.acronym = EMPACTA",
    "comparator_row": {
@@ -1250,10 +1293,10 @@
    },
    "comparator_row_findings": [],
    "our_value": {
-    "measure": "OR",
-    "effect": null,
-    "lower": null,
-    "upper": null,
+    "measure": "RR",
+    "effect": "1.22",
+    "lower": "0.60",
+    "upper": "2.46",
     "events_t": 26,
     "n_t": 249,
     "events_c": 11,
@@ -1299,7 +1342,7 @@
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:06:23Z",
     "discovery": {
@@ -1343,7 +1386,35 @@
     "R4_AACT": "POSTED_DAY28_DEATH_OUTCOME",
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
-   "agreement_with_comparator_row": "AGREE"
+   "agreement_with_comparator_row": "AGREE",
+   "matched_by": "SWEEP",
+   "sweep": {
+    "value": {
+     "measure": "RR",
+     "effect": "1.22",
+     "lower": "0.60",
+     "upper": "2.46",
+     "events_t": 26,
+     "n_t": 249,
+     "events_c": 11,
+     "n_c": 128
+    },
+    "basis": {
+     "meta": "33745918",
+     "where": {
+      "kind": "figure",
+      "id": "fig0002",
+      "panel": null,
+      "row_label": "EMPACTA"
+     },
+     "row_label": "EMPACTA",
+     "digest": "0fb3edb8e32caa8b41b263ced66021da3ebc678a0f9e4056bc028d17b8ed99fc",
+     "provenance": "MODEL_PROPOSAL:mc-3880a19b63db027956ca9d6e57d7be31",
+     "queued_for_primary": true
+    },
+    "agreement_with_comparator_row": "AGREE"
+   },
+   "blocker": null
   },
   {
    "label": "HMO-020-0224",
@@ -1628,6 +1699,22 @@
     "R5_ISRCTN": "RECORD_FOUND"
    },
    "agreement_with_comparator_row": "AGREE",
+   "secondary_single_flag": {
+    "state": "CONTRADICTED_BY_PRIMARY",
+    "meta_counts": [
+     596,
+     2022,
+     694,
+     2094
+    ],
+    "primary_counts": [
+     621,
+     2022,
+     729,
+     2094
+    ],
+    "meta": "33745918"
+   },
    "primary_single_source": {
     "admitted": true,
     "why": "single PRIMARY source: trial's own text, counts verbatim in span (TEXT PMID 33933206 + acquired full text)"
@@ -2078,7 +2165,16 @@
   "sha256": "a0bcbf95c1e8eff496244898c57d4d85218b3d3d31b8095105a585f291fdc3ac",
   "format": "tracker_v1"
  },
- "k_matched_of_comparator_N": "3 of 19",
+ "k_matched_of_comparator_N": "5 of 19",
+ "blockers": {},
+ "top_blocker": null,
+ "sweep_merged": {
+  "trials": [
+   "CORIMUNO-TOCI-1",
+   "EMPACTA"
+  ],
+  "same_trials_recomputed": false
+ },
  "single_primary_reclassified": [
   "RECOVERY"
  ]

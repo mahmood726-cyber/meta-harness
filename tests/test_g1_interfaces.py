@@ -115,7 +115,11 @@ def test_committed_tracker_files_carry_the_pinned_schema():
         with open(os.path.join(d, f), encoding="utf-8") as fh:
             o = json.load(fh)
         assert keys <= set(o), (f, keys - set(o))
-        assert set(o["routes"]) <= {"PRIMARY", "TWO_SOURCE", "UNVERIFIED", "NO_ROW"}
+        # + SECONDARY_SINGLE (Mahmood decision 3 Oct) and the two-source sweep's routes (each maps to one headline group)
+        import sys as _sys
+        _sys.path.append(os.path.join(ROOT, "scripts"))
+        import g1_tracker as _gt
+        assert set(o["routes"]) <= {"PRIMARY", "TWO_SOURCE", "UNVERIFIED", "NO_ROW", "SECONDARY_SINGLE"} | set(_gt.ROUTE_GROUP)
         assert sum(o["routes"].values()) == o["N_comparator_trials"] == len(o["trials"])
 
 
