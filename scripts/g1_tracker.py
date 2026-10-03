@@ -68,6 +68,13 @@ def agreement(ours, theirs):
     """Our pooled value vs the comparator's printed row for the same trial: AGREE / DISAGREE / NOT_COMPARABLE[:why]."""
     if not ours or not theirs:
         return "NOT_COMPARABLE:NO_COMPARATOR_ROW" if ours else "NOT_COMPARABLE"
+    # two 2x2 tables compare as counts when both sides label a COUNT-derived ratio (RR / OR): the counts carry no
+    # measure. Never across an HR (a time-to-event row's counts are not its estimate's data)
+    if ours.get("events_t") is not None and theirs.events_t is not None and \
+            {(ours.get("measure") or "").upper(), (theirs.measure or "").upper()} <= {"RR", "OR"}:
+        same = (ours["events_t"], ours["n_t"], ours["events_c"], ours["n_c"]) == \
+               (theirs.events_t, theirs.n_t, theirs.events_c, theirs.n_c)
+        return "AGREE" if same else "DISAGREE"
     if (ours.get("measure") or "").upper() and theirs.measure and (ours.get("measure") or "").upper() != theirs.measure.upper():
         return f"NOT_COMPARABLE:{ours.get('measure')}_VS_{theirs.measure}"
     if ours.get("events_t") is not None and theirs.events_t is not None:
@@ -426,6 +433,17 @@ def sweep_merge(slug, trials, routes=None, pairs=None):
         r = sw.get(x["label"])
         if x.get("in_our_pool") or x.get("scope_difference") or not r or not str(r.get("verdict")).startswith("SWEEP_"):
             continue
+        if is_matched(x):
+            continue        # never replace a trial already matched (a lane's PRIMARY / TWO_SOURCE row: in_our_pool null)
+        v = r.get("value") or {}
+        prim = primary_counts(x)
+        if prim and v.get("events_t") is not None and tuple(prim) != (v["events_t"], v["n_t"], v["events_c"], v["n_c"]):
+            # the trial's OWN primary states other counts: the meta row is flagged, never admitted (RECOVERY, 3 Oct: the
+            # meta prints 596/2022 vs 694/2094; the trial's report 621/2022 vs 729/2094)
+            x["secondary_single_flag"] = {"state": "CONTRADICTED_BY_PRIMARY", "meta_counts": [v["events_t"], v["n_t"],
+                                          v["events_c"], v["n_c"]], "primary_counts": list(prim),
+                                          "meta": (r.get("basis") or {}).get("meta")}
+            continue
         if routes is not None:
             routes[x["route"]] -= 1
             routes[r["verdict"]] += 1
@@ -505,6 +523,18 @@ def apply_single_primary(o):
         o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g not in flipped]
         o["single_primary_reclassified"] = flipped
     return flipped
+
+
+def primary_counts(x):
+    """Counts a trial's OWN primary states (a lane reading whose counts are printed by a primary -- TEXT or posted
+    results -- not only by a meta), as (events_t, n_t, events_c, n_c), or None."""
+    for rd in x.get("readings") or []:
+        v = rd.get("values") or {}
+        by_primary = [s for s in rd.get("sources") or [] if str(s.get("source") or "").split()[0] in ("TEXT",)
+                      and s.get("span")]
+        if by_primary and all(isinstance(v.get(k), int) for k in ("deaths_t", "n_t", "deaths_c", "n_c")):
+            return (v["deaths_t"], v["n_t"], v["deaths_c"], v["n_c"])
+    return None
 
 
 def apply_sweep(o, slug):

@@ -189,3 +189,36 @@ def test_text_linked_figures_need_the_outcome_sentence_and_its_pooled_triple(mon
             assert rows[0].outcome_definition.startswith("Mortality was lower")
         else:
             assert why == "POOLED_NOT_IN_LINKING_SENTENCE"
+
+
+def test_counts_attach_only_when_they_reproduce_the_printed_effect():
+    # tocilizumab: the figure prints RR, the protocol registers OR; counts read from the same figure are attached ONLY
+    # when the RR they imply equals the row's printed RR (CORIMUNO-TOCI-1 7/63 vs 8/67 -> 0.93)
+    ok, bad = _srow("M"), _srow("M")
+    ok.trial_label, ok.effect = "CORIMUNO-TOCI-1", "0.93"
+    bad.trial_label, bad.effect = "BACC Bay", "1.53"
+    got = {"rows": [{"label": "CORIMUNO-TOCI-1", "events_t": "7", "n_t": "63", "events_c": "8", "n_c": "67"},
+                    {"label": "BACC Bay", "events_t": "9", "n_t": "161", "events_c": "9", "n_c": "82"}]}
+    assert sw.attach_counts([ok, bad], got) == 1
+    assert (ok.events_t, ok.n_t, ok.events_c, ok.n_c) == (7, 63, 8, 67) and bad.events_t is None
+
+
+def test_two_2x2_tables_compare_as_counts_whatever_ratio_label():
+    theirs = _srow("C")
+    theirs.measure, theirs.events_t, theirs.n_t, theirs.events_c, theirs.n_c = "OR", 26, 249, 11, 128
+    assert gt.agreement({"measure": "RR", "events_t": 26, "n_t": 249, "events_c": 11, "n_c": 128}, theirs) == "AGREE"
+
+
+def test_a_sweep_row_never_replaces_a_matched_trial_and_is_flagged_when_the_primary_contradicts(monkeypatch):
+    v = {"measure": "RR", "effect": "0.89", "lower": "0.80", "upper": "0.99", "events_t": 596, "n_t": 2022,
+         "events_c": 694, "n_c": 2094}
+    monkeypatch.setattr(gt, "sweep_results", lambda slug: {
+        "RECOVERY": {"label": "RECOVERY", "verdict": "SWEEP_SECONDARY_SINGLE", "value": v, "basis": {"meta": "33745918"}},
+        "OPEN": {"label": "OPEN", "verdict": "SWEEP_SECONDARY_SINGLE", "value": v, "basis": {"meta": "33745918"}}})
+    lane_matched = {"label": "RECOVERY", "in_our_pool": None, "g1_countable": True, "route": "PRIMARY"}
+    contradicted = {"label": "OPEN", "in_our_pool": None, "route": "NO_ROW", "scope_difference": None,
+                    "readings": [{"values": {"deaths_t": 621, "n_t": 2022, "deaths_c": 729, "n_c": 2094},
+                                  "sources": [{"source": "TEXT PMID 33933206", "span": "621 ... 729"}]}]}
+    assert gt.sweep_merge("t", [lane_matched, contradicted]) == []
+    assert lane_matched["route"] == "PRIMARY"
+    assert contradicted["secondary_single_flag"]["state"] == "CONTRADICTED_BY_PRIMARY"
