@@ -1134,9 +1134,19 @@ def topic(slug, T):
                    for a in prim.get("declared_absent_trials", [])}
     rows = [_row(d) for d in S["rows"]]
     comparator_rows_source = None
-    if not any(r.meta_pmid == comp for r in rows):
+    own_comp = ((S.get("metas") or {}).get(comp) or {})
+    own_ok = own_comp.get("usable") and (own_comp.get("positive_control") or {}).get("reproduced")
+    if not any(r.meta_pmid == comp for r in rows) or not own_ok:
+        # no comparator rows of our own, or our own SINGLE-model read of the comparator failed its control: the
+        # forest-reader lane's DUAL-model read of the comparator, where that lane ACCEPTED it, replaces it (Mahmood 3 Oct:
+        # forest plots via the dual-model recorded reader). balanced-crystalloids: our read NOT_REPRODUCED; the lane's
+        # dual read of the same comparator reproduces its pool (DL / PM / REML).
         lane_rows, comparator_rows_source = lane_comparator_rows(slug, comp, ours)
-        rows += lane_rows
+        if lane_rows and any((u.get("acceptance") or {}).get("state") == "ACCEPTED" for u in comparator_rows_source or []):
+            rows = [r for r in rows if r.meta_pmid != comp] + lane_rows
+            S = dict(S, metas={k: v for k, v in (S.get("metas") or {}).items() if k != comp})
+        elif not any(r.meta_pmid == comp for r in rows):
+            rows += lane_rows
     by_fam = {}
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
