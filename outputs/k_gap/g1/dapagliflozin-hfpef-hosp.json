@@ -5,12 +5,31 @@
  "N_comparator_trials": 6,
  "k_matched": 0,
  "k_in_our_pool": 0,
- "N_eligible": 6,
- "named_differences": [],
+ "N_eligible": 5,
+ "named_differences": [
+  {
+   "trial": "DECLARE-TIMI 58",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+   "span": {
+    "field": "title",
+    "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+    "match": "Type 2 Diabetes"
+   },
+   "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+   },
+   "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+   "registered_eligibility": null,
+   "pmid": "30415602"
+  }
+ ],
  "open_gaps": [
   "SOLOIST-WHF",
   "SCORED",
-  "DECLARE-TIMI 58",
   "VERTIS-CV",
   "EMPEROR-Preserved",
   "DELIVER"
@@ -33,7 +52,7 @@
  },
  "blockers": {
   "IDENTITY_UNRESOLVED": 4,
-  "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 2
+  "EXTRACTION:EXTRACTION_NOT_PERFORMED": 1
  },
  "top_blocker": "IDENTITY_UNRESOLVED",
  "other_agent_units": [],
@@ -94,11 +113,11 @@
   },
   {
    "label": "DECLARE-TIMI 58",
-   "family": "PMID 27009868",
+   "family": "PMID 30415602",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "SEEDED PMID 27009868: SCREENED_OUT X1: not a randomized controlled trial (record: 27009868).",
+   "our_refusal": "IN SCREEN PMID 30415602: SCREENED_OUT X2: wrong population: title/conditions mention 'type 2 diabetes'.",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -193,14 +212,31 @@
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
-    "rule_id": "X1",
-    "reason": "not a randomized controlled trial (record: 27009868).",
-    "pmid": "27009868"
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "pmid": "30415602",
+    "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "span": {
+     "field": "title",
+     "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+     "match": "Type 2 Diabetes"
+    },
+    "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+    },
+    "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+    "registered_eligibility": null,
+    "pmid": "30415602"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "VERTIS-CV",
@@ -272,13 +308,13 @@
   },
   {
    "label": "DELIVER",
-   "family": "PMID 31081589",
+   "family": "PMID 36027570",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "SEEDED PMID 31081589: SCREENED_OUT X1: not a randomized controlled trial (record: 31081589).",
+   "our_refusal": "The result previously published on this page for its primary outcome was a cardiovascular-death-only registry measure served as the composite outcome. It is withdrawn.",
    "gap_class": "EXTRACTION_FROM_TABLE",
-   "absent_code": null,
+   "absent_code": "EXTRACTION_NOT_PERFORMED",
    "comparator_row": {
     "effect": "0.63",
     "lower": "0.45",
@@ -395,14 +431,8 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
-   "seeded_funnel": {
-    "stage": "SCREENED_OUT",
-    "rule_id": "X1",
-    "reason": "not a randomized controlled trial (record: 31081589).",
-    "pmid": "31081589"
-   },
    "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD",
+   "blocker": "EXTRACTION:EXTRACTION_NOT_PERFORMED",
    "coverage": null,
    "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
   }
@@ -510,10 +540,14 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 6,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "DECLARE-TIMI 58 [X2]"
+   ]
   }
  }
 }
