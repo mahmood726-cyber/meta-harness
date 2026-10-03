@@ -487,3 +487,27 @@ def test_a_typographic_minus_in_a_printed_row_value_is_compared_as_a_number():
     # the PMID sweep crashed in printed_matches on '−0.22' (fp._close floats the raw string)
     assert g.printed_matches(-0.22, "−0.22")
     assert not g.printed_matches(0.22, "−0.22")
+
+
+def test_oa_probe_tries_every_open_location_and_takes_a_repository_pdf(tmp_path, monkeypatch):
+    # the publisher copy is bot-gated (recorded, not solved); the repository's author copy is a plain PDF
+    from harness import http
+    os.makedirs(tmp_path / "cache" / "t", exist_ok=True)
+    (tmp_path / "cache" / "t" / "comparators.json").write_text(json.dumps([{"citation": "X (2020); J; DOI 10.1/x; PMID 1"}]))
+    monkeypatch.setattr(g, "ROOT", str(tmp_path))
+    monkeypatch.setattr(g, "COMP", str(tmp_path / "comp"))
+    upw = {"is_oa": True, "oa_status": "bronze",
+           "best_oa_location": {"host_type": "publisher", "url_for_pdf": "https://pub/x.pdf"},
+           "oa_locations": [{"host_type": "publisher", "url_for_pdf": "https://pub/x.pdf"},
+                            {"host_type": "repository", "url_for_pdf": "https://repo/x.pdf"}]}
+
+    def get_raw(url, *a, **k):
+        if "unpaywall" in url:
+            return 200, json.dumps(upw).encode()
+        if url.startswith("https://pub"):
+            raise RuntimeError("403 challenge")
+        return 200, b"%PDF-1.7 ..."
+    monkeypatch.setattr(http, "get_raw", get_raw)
+    o = g.oa_probe("t", "1", True)
+    assert [x["fetch"][:7] for x in o["locations"]] == ["REFUSED", "PDF"]
+    assert o["state"] == "OPEN_PDF"
