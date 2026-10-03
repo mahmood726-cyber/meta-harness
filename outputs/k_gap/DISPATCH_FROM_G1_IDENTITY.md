@@ -122,7 +122,8 @@ contains base 435236c1a), and this branch touches no release or page path.
   plant; evidence_records private-content check; fixstate real store; test_gate on a real review;
   result_withdrawn for dapagliflozin and empagliflozin.
 - The full list of test ids is in the session record; please re-run them on acq/k-gap.
-- `tests/test_architecture_identity.py` hit the 1500 s per-file timeout and is **unverified**, not passed.
+- `tests/test_architecture_identity.py` hit the 1500 s timeout under load; re-run alone it PASSES (4 passed, 864 s;
+  g1/noac 4 passed, 856 s).
 
 **Tracker re-runs after the STEP 1 fix:**
 - semaglutide-obesity-mace: k matched 2 -> 1 (the false STEP 1 merge). This is the served-number notice in
