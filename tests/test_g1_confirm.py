@@ -217,3 +217,16 @@ def test_counts_among_those_who_completed_the_study_are_refused(monkeypatch):
                               "development ratio in placebo group was 9% (7/78) and in the study group 1.4% (1/73).",
                  trial(events_t="1", n_t="73", events_c="7", n_c="78", measure="RR"))
     assert b is None and why.startswith("SUBGROUP_OR_POST_HOC_SPAN")
+
+
+def test_a_rerun_keeps_rows_this_lane_already_flipped(tmp_path, monkeypatch):
+    import g1_confirm_acquire as acq
+    (tmp_path / "g1").mkdir()
+    (tmp_path / "g1" / "topic.json").write_text(json.dumps({"trials": [
+        {"label": "Flipped", "route": "PRIMARY", "reclassified_by": "g1/confirm-unverified primary binding",
+         "family": "PMID 111"},
+        {"label": "Ours", "route": "PRIMARY", "family": "PMID 222"},
+        {"label": "Open", "route": "UNVERIFIED", "family": "PMID 333"}]}), encoding="utf-8")
+    (tmp_path / "k_gap_table.json").write_text(json.dumps({"trials": []}), encoding="utf-8")
+    monkeypatch.setattr(acq, "OUT", str(tmp_path))
+    assert [t["label"] for t in acq.unverified_targets()] == ["Flipped", "Open"]
