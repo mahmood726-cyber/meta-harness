@@ -81,6 +81,22 @@ def aact_day28_percentages(label):
     return [x for x in out if x[0]]
 
 
+def _side(t, route, verdict):
+    """Which side a per-trial disagreement falls on (g1_tracker DIVERGENCES_NAMED): a verified PRIMARY row whose counts
+    the trial's OWN text states, in a recorded verbatim span, against a comparator row that differs. The comparator row
+    is then not the report's count -- what it is instead (another data cut, another population) is not inferred."""
+    if route not in ("PRIMARY", "TWO_SOURCE") or verdict not in ("DIFFER", "DENOMINATOR_KIND_DIFFERS") or not t["row"]:
+        return None
+    rd = next((r for r in t["readings"] if r["values"] == {k: t["row"][k] for k in g._KEY}), None)
+    src = next((x for x in (rd or {}).get("sources") or [] if x.get("source", "").startswith("TEXT") and x.get("span")), None)
+    if not src:
+        return None
+    rr = t["react_row"]
+    return (f"SECONDARY_WRONG (primary numbers are in the primary's own span: {src['source']}: '{src['span'][-160:]}'; "
+            f"the comparator's row {rr['deaths_t']}/{rr['n_t']} vs {rr['deaths_c']}/{rr['n_c']} is not the report's "
+            f"{t['row']['deaths_t']}/{t['row']['n_t']} vs {t['row']['deaths_c']}/{t['row']['n_c']})")
+
+
 def secondary_single(t):
     """SECONDARY_SINGLE (Mahmood decision 3 Oct), for a trial with no primary that STATES its day-28 per-arm deaths after
     the cascade: a row from a published meta that is NOT the comparator counts when
@@ -211,7 +227,8 @@ def build():
                                                if verdict in ("DIFFER", "DENOMINATOR_KIND_DIFFERS") else verdict)
                                               if route != "SECONDARY_SINGLE" else
                                               ("AGREE" if ss["row"] == {k: rv[k] for k in g._KEY} else "DISAGREE"))
-            if value else "NO_PRIMARY_ROW"})
+            if value else "NO_PRIMARY_ROW",
+            "disagreement_side": _side(t, route, verdict)})
     est = [t for t in trials if t["g1_state"] == g.ESTABLISHED]
     mat = [t for t in trials if t["route"] in COUNTABLE]          # matched = a verified typed tuple (k-gap 9abe38d3)
     pe, pr = r["pool_ours_established"], r["pool_react_same_trials"]

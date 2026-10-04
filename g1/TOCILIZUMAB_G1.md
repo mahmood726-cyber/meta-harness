@@ -2,8 +2,8 @@
 
 - **Comparator**: REACT (PMID 34228774), 19 tocilizumab trials, FE OR 0.83 (0.74-0.92). Its rows are the TARGET only: never a source, never in k matched.
 - **Positive control**: REACT's own 19 rows -> FE OR 0.8253 (0.7424-0.9174).
-- **k matched: 6 of 19** -- a verified typed day-28 tuple, by route PRIMARY 3, TWO_SOURCE 1, SECONDARY_SINGLE 2; 72% of REACT's participants. PRIMARY = two primaries, or one bound primary that STATES the counts (2 Oct); TWO_SOURCE = a primary + a REACT-independent meta; SECONDARY_SINGLE = a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary (3 Oct). Matcher states ESTABLISHED by two sources: 3.
-- **States**: {'ESTABLISHED': 3, 'SECONDARY_COUNT_PRIMARY_CONSISTENT': 2, 'ONE_SOURCE': 2, 'CONFLICT': 0, 'NO_PRIMARY_SOURCE': 12}. REACT rows that are a paper's SAFETY-population count: ['BACC-Bay'].
+- **k matched: 7 of 19** -- a verified typed day-28 tuple, by route PRIMARY 4, TWO_SOURCE 1, SECONDARY_SINGLE 2; 73% of REACT's participants. PRIMARY = two primaries, or one bound primary that STATES the counts (2 Oct); TWO_SOURCE = a primary + a REACT-independent meta; SECONDARY_SINGLE = a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary (3 Oct). Matcher states ESTABLISHED by two sources: 3.
+- **States**: {'ESTABLISHED': 3, 'SECONDARY_COUNT_PRIMARY_CONSISTENT': 2, 'ONE_SOURCE': 3, 'CONFLICT': 0, 'NO_PRIMARY_SOURCE': 11}. REACT rows that are a paper's SAFETY-population count: ['BACC-Bay'].
 - **Coverage-limited reconciliation, NOT a finding.** On the 3 established trials only, our rows pool to OR 1.0467 (0.7695-1.4237) and REACT's rows for the same trials to OR 1.0467 (0.7695-1.4237): this checks that our rows reproduce REACT's on those trials. It is not an estimate of tocilizumab's effect: the largest trials not matched (REMAP-CAP n=711, PreToVid n=354) are open gaps, so no topic-level result is stated.
 
 | REACT trial | registration | state | route | sources (independent) | our row | REACT row | verdict | why not matched |
@@ -15,7 +15,7 @@
 | COV-AID | NCT04330638 | NO_PRIMARY_SOURCE | NO_ROW | - | - | 9/81 vs 7/72 | NO_PRIMARY_ROW | NO_NON_COMPARATOR_META_ROW |
 | COVACTA | NCT04320615 | ESTABLISHED | PRIMARY | AACT+META+TEXT; TEXT [SAFETY] | 58/294 vs 28/144 (ANALYSED) | 58/294 vs 28/144 | AGREE |  |
 | COVIDOSE2-SS-A | NCT04479358 | NO_PRIMARY_SOURCE | NO_ROW | - | - | 0/19 vs 2/8 | NO_PRIMARY_ROW | NO_NON_COMPARATOR_META_ROW |
-| COVIDSTORM | NCT04577534 | NO_PRIMARY_SOURCE | NO_ROW | - | - | 0/26 vs 0/13 | NO_PRIMARY_ROW | NO_NON_COMPARATOR_META_ROW |
+| COVIDSTORM | NCT04577534 | ONE_SOURCE | PRIMARY | TEXT | 1/57 vs 0/29 (UNSTATED) | 0/26 vs 0/13 | DISAGREE |  |
 | COVINTOC | - | NO_PRIMARY_SOURCE | NO_ROW | - | - | 11/91 vs 15/88 | NO_PRIMARY_ROW | TIMEPOINT_NOT_TYPED: the meta states only a 14-28 day window and no primary states day-28 figures this row reproduces (primary states: during the study) |
 | COVITOZ | NCT04435717 | NO_PRIMARY_SOURCE | NO_ROW | - | - | 0/17 vs 0/9 | NO_PRIMARY_ROW | NO_NON_COMPARATOR_META_ROW |
 | EMPACTA | NCT04372186 | SECONDARY_COUNT_PRIMARY_CONSISTENT | SECONDARY_SINGLE | AACT+META+TEXT | 26/249 vs 11/128 (meta row) | 26/249 vs 11/128 | AGREE |  |

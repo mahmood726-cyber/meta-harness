@@ -468,6 +468,33 @@ def second_meta_rows() -> dict:
 
 
 META2_FILE = os.path.join(ROOT, "g1", "data", "meta2_forest.json")
+VNH_READS_FILE = os.path.join(ROOT, "g1", "data", "vnh_reads.json")
+
+
+def vnh_candidates(label: str) -> list:
+    """Readings from the trial's NOT-HELD primary full texts (scripts/g1_toci_vnh_read.py): the body was fetched, its
+    sha256 matched the cascade's record, it was bound by g1_toci_cascade.binding over the BODY and read by this module's
+    own extractors; only counts + verbatim span + sha256 are committed. A primary text, so kind TEXT -- the same paper
+    seen through its held abstract is the same source (kinds are a set). Before this, a not-held paper was bound and
+    read from its abstract only: COVIDSTORM's report names its registration only in its body (plant V1)."""
+    if not os.path.exists(VNH_READS_FILE):
+        return []
+    out, seen = [], set()
+    for pmid, r in sorted(json.load(open(VNH_READS_FILE, encoding="utf-8")).items()):
+        if r.get("state") != "VERIFIED_NOT_HELD" or label not in (r.get("bound_labels") or []):
+            continue
+        for x in r.get("candidates") or []:
+            key = (pmid, x["extractor"] == "SAFETY_TABLE") + tuple(x[k] for k in _KEY)
+            if x["label"] != label or key in seen:
+                continue
+            seen.add(key)
+            dk = x["denominator_kind"]
+            if r.get("itt_stated") and dk == UNSTATED and re.search(r"randomi[sz]ed", x["span"], re.I):
+                dk = RANDOMISED
+            ref = f"PMID {pmid} (VERIFIED_NOT_HELD {r['pmcid']} sha256 {r['body_sha256'][:12]})"
+            src = f"TEXT {ref} (safety-population table)" if x["extractor"] == "SAFETY_TABLE" else f"TEXT {ref}"
+            out.append(dict({k: x[k] for k in _KEY}, denominator_kind=dk, span=x["span"], source=src))
+    return out
 _META2 = None          # run() caches meta2_rows() here
 
 
@@ -685,6 +712,7 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
                     and re.search(r"randomi[sz]ed", c["span"], re.I):
                 c["denominator_kind"] = RANDOMISED
             cands.append(dict(c, source=f"TEXT {ref}"))
+    cands += vnh_candidates(label)
     by_value = {}
     for c in cands:
         # a SAFETY reading never merges with an efficacy reading of the same numbers: they are different quantities
