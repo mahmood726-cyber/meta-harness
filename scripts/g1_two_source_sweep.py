@@ -71,6 +71,13 @@ def _save(p, obj):
 
 
 # ------------------------------------------------------------------ targets
+def _report_year(pmid):
+    """The trial report's publication year from the recorded PubMed years cache (outputs/k_gap/pubmed_years.json)."""
+    p = os.path.join(OUT, "pubmed_years.json")
+    y = (_j(p) if os.path.exists(p) else {}).get(str(pmid)) if pmid else None
+    return int(y) if isinstance(y, int) or (isinstance(y, str) and y.isdigit()) else None
+
+
 def targets(slugs=None, routes=None):
     """{slug: [trial dict]} for every unmatched, un-named comparator trial, with its identity (PMIDs, NCTs, acronyms)."""
     T = _j(os.path.join(OUT, "k_gap_table.json"))
@@ -95,6 +102,7 @@ def targets(slugs=None, routes=None):
             out.setdefault(o["slug"], []).append({
                 "slug": o["slug"], "label": x["label"], "pmids": list(t.get("pmids") or []),
                 "report_pmid": report_pmid(t),
+                "report_year": _report_year(report_pmid(t)),
                 "cited_pmids": list(t.get("cited_pmids") or []), "ncts": list(t.get("ncts") or []), "acronyms": acr,
                 "comparator_row": x.get("comparator_row"), "registry_binding": x.get("registry_binding"),
                 "lane_owned": bool(o.get("lane_source"))})
@@ -199,6 +207,9 @@ def discover(t, comp_ids, run, agents=()):
         for h in r.get("hits") or []:
             if h["pmid"] in comp_ids or (h.get("doi") and h["doi"] in comp_ids) or h["pmid"] in t["pmids"] + pm:
                 continue                                       # the comparator never verifies itself; nor the trial
+            ry = t.get("report_year")
+            if ry and str(h.get("year") or "").isdigit() and int(h["year"]) < int(ry):
+                continue                                       # published before the trial's result: cannot print it
             hits.setdefault(h["pmid"], h)
     ranked = sorted(hits.values(), key=lambda h: (-(h.get("cited") or 0), h["pmid"]))[:MAX_METAS_PER_TRIAL]
     return [h["pmid"] for h in ranked], recs
@@ -629,6 +640,13 @@ def main(argv):
     # --routes=UNVERIFIED: the trials that already HAVE one row (cheapest second-source wins) first (Mahmood 3 Oct)
     routes = next((set(a.split("=", 1)[1].split(",")) for a in argv if a.startswith("--routes=")), None)
     tg = targets(slugs, routes)
+    if run:
+        # every report's publication year, so discovery can drop metas published before the trial's result
+        import k_gap_table as _kt
+        _kt.pub_years([t["report_pmid"] for ts in tg.values() for t in ts if t.get("report_pmid")])
+        for ts in tg.values():
+            for t in ts:
+                t["report_year"] = _report_year(t.get("report_pmid"))
     n_nct = add_registry_ncts(tg)
     # discovery: per trial, in parallel (network bound; Europe PMC returns 503 above ~2 concurrent)
     metas_by = {}
