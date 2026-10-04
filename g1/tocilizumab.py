@@ -65,7 +65,9 @@ SUBPOP = {"CORIMUNO-TOCI-1": r"Severe COVID", "CORIMUNO-TOCI-ICU": r"Critical CO
 _DEATH_WORDS = re.compile(r"\b(?:died|deaths?|dead|fatal(?: events?)?|mortality|death from any cause|all-cause mortality)\b",
                           re.I)
 _DAY28 = re.compile(r"\b(?:day\s*28|28\s*days?|28-day|by day 28|week\s*4|within 28)\b", re.I)
-_OTHER_DAY = re.compile(r"\b(?:day\s*(?:14|21|30|60|90)|(?:14|21|30|60|90)\s*days?|(?:30|60|90)-day)\b", re.I)
+# day 29 is another day (codex NR-C27: 'deaths up to day 29' passed this guard); a window the report itself closes before
+# day 29 is typed separately (window_candidates, TIMEPOINT_EXCLUSIVE_BOUND)
+_OTHER_DAY = re.compile(r"\b(?:day\s*(?:14|21|29|30|60|90)|(?:14|21|29|30|60|90)\s*days?|(?:29|30|60|90)-day)\b", re.I)
 _TOCI = re.compile(r"toci|tcz|actemra|il-6|interleukin", re.I)
 _CONTROL = re.compile(r"placebo|standard of care|standard care|usual care|\bsoc\b|control", re.I)
 _SURVIV = re.compile(r"surviv|alive", re.I)
@@ -371,6 +373,74 @@ def table_candidates(text: str) -> list:
     return out
 
 
+_NUMW = {"no": 0, "none": 0, "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+         "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+# 'There were 6 deaths up to day 29, two in each arm' (ImmCoVA, PMID 38157348)
+_EACH_ARM = re.compile(r"\b(\d{1,3}|[a-z]+) deaths? (?:up to|before|prior to) day (\d{1,3}),?\s*(\d{1,3}|[a-z]+) in each "
+                       r"(?:arm|group)\b", re.I)
+_ARM_WORD = r"(usual care|\buc\b|standard (?:of )?care|placebo|control|tocilizumab|anakinra|sarilumab|siltuximab)"
+
+
+def _num(w: str) -> Optional[int]:
+    return int(w) if w.isdigit() else _NUMW.get(w.lower())
+
+
+def _allocations(t: str) -> list:
+    """Every arm-size statement of a randomisation sentence, as {arm: n}: '27 to UC, 28 to anakinra and 22 to
+    tocilizumab' and '27 to usual care and 28 and 22 to anakinra and tocilizumab, respectively'."""
+    out = []
+    for snt in re.split(r"(?<=[.;])\s+", t):
+        if not re.search(r"randomi[sz]ed|allocated|assigned", snt, re.I):
+            continue
+        d = {}
+        # a number glued to a ratio ('randomized ... 1:2 to anakinra', 'allocated 1:1:1 to UC') is not an arm size
+        resp = re.search(r"(?<![\d:])(\d{1,5}) and (\d{1,5}) to " + _ARM_WORD + r" and " + _ARM_WORD + r",? respectively",
+                         snt, re.I)
+        if resp:
+            d[resp.group(3).lower()], d[resp.group(4).lower()] = int(resp.group(1)), int(resp.group(2))
+            snt = snt[:resp.start()] + snt[resp.end():]
+        for n, arm in re.findall(r"(?<![\d:])(\d{1,5}) to " + _ARM_WORD, snt, re.I):
+            d.setdefault(arm.lower(), int(n))
+        # only a statement sizing BOTH a tocilizumab arm and a control arm is this trial's allocation (a sentence about
+        # another trial's anakinra / siltuximab arms is not)
+        if "tocilizumab" in d and set(d) & set(_CONTROL_KEYS):
+            out.append(d)
+    return out
+
+
+_CONTROL_KEYS = ("usual care", "uc", "standard care", "standard of care", "placebo", "control")
+
+
+def window_candidates(text: str) -> list:
+    """Deaths stated per arm over a window the report ITSELF closes before day 29: 'There were 6 deaths up to day 29,
+    two in each arm. Two additional patients died on or after d29' -- the day-29 death is excluded by the report's own
+    words, so the window is days <= 28 (a day-28 count, not another day's). Emitted ONLY when (a) the report states
+    the boundary day is excluded ('on or after d<D>' / 'on or after day <D>') and D - 1 == 28; (b) every arm-size
+    statement of the randomisation agrees on the tocilizumab and control arm sizes; (c) the per-arm deaths and the
+    total agree with the number of arms. Typing rule TIMEPOINT_EXCLUSIVE_BOUND (plant W1-W5)."""
+    t = _fold(text)
+    out = []
+    for m in _EACH_ARM.finditer(t):
+        tot, day, each = _num(m.group(1)), int(m.group(2)), _num(m.group(3))
+        if None in (tot, each) or day - 1 != 28:
+            continue
+        excl = re.search(r"\b(?:died|deaths?)\b[^.]{0,60}\bon or after (?:day\s*|d)\s*" + str(day) + r"\b", t, re.I)
+        if not excl:
+            continue                                  # 'up to day 29' alone may include day 29: another day
+        allocs = _allocations(t)
+        tz = {d.get("tocilizumab") for d in allocs if "tocilizumab" in d}
+        cz = {next((d[k] for k in _CONTROL_KEYS if k in d), None) for d in allocs}
+        cz.discard(None)
+        n_arms = {len(d) for d in allocs}
+        if len(tz) != 1 or len(cz) != 1 or len(n_arms) != 1 or each * n_arms.pop() != tot:
+            continue                                  # arm sizes unstated or inconsistent, or the per-arm split does not add up
+        out.append({"deaths_t": each, "n_t": tz.pop(), "deaths_c": each, "n_c": cz.pop(), "denominator_kind": RANDOMISED,
+                    "timepoint_typing": f"TIMEPOINT_EXCLUSIVE_BOUND: 'up to day {day}' with the report's own exclusion "
+                                        f"'{excl.group(0)}' -> days <= {day - 1}",
+                    "span": (m.group(0) + " ... " + excl.group(0))[:400]})
+    return out
+
+
 _PAIR = re.compile(r"(?<![\d.,])(\d{1,4})\s*(?:patients?\s*|participants?\s*)?(?:\(\s*\d+(?:\.\d+)?\s*%\s*\)\s*)?"
                    r"(?:of|/|out of)\s*(?:the\s+)?(\d{1,3}(?:,\d{3})|\d{1,5})(?![\d])", re.I)
 
@@ -484,7 +554,9 @@ def vnh_candidates(label: str) -> list:
         if r.get("state") != "VERIFIED_NOT_HELD" or label not in (r.get("bound_labels") or []):
             continue
         for x in r.get("candidates") or []:
-            key = (pmid, x["extractor"] == "SAFETY_TABLE") + tuple(x[k] for k in _KEY)
+            # the denominator kind is part of identity: the same counts over ANALYSED and RANDOMISED populations are two
+            # readings, never one (codex NR-C26)
+            key = (pmid, x["extractor"] == "SAFETY_TABLE", x["denominator_kind"]) + tuple(x[k] for k in _KEY)
             if x["label"] != label or key in seen:
                 continue
             seen.add(key)
@@ -707,6 +779,8 @@ def assess(label: str, extract: dict, metas: Optional[dict] = None) -> dict:
     for ref, txt in texts:
         for c in safety_candidates(txt):
             cands.append(dict(c, source=f"TEXT {ref} (safety-population table)"))
+        for c in window_candidates(txt):
+            cands.append(dict(c, source=f"TEXT {ref} ({c['timepoint_typing']})"))
         for c in text_candidates(txt) + table_candidates(txt):
             if re.search(r"intention[- ]to[- ]treat|all randomi[sz]ed", _fold(txt), re.I) and c["denominator_kind"] == UNSTATED \
                     and re.search(r"randomi[sz]ed", c["span"], re.I):

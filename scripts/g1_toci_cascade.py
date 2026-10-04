@@ -382,6 +382,8 @@ def run_trial(label, A):
 # is bound to ONE of them only when its title states the population ('...Moderate or Severe Pneumonia' / 'critically
 # ill'); otherwise to neither (codex review cascade#3: a unique winning registration had bound a report to both)
 TITLE_LABEL = g.TITLE_LABEL          # one rule with held_texts (g1/tocilizumab.py)
+NON_RCT_TITLE = re.compile(r"\b(?:uncontrolled|single[- ]arm|non-?randomi[sz]ed|cohort|case series|case report|"
+                           r"retrospective|observational|propensity)\b", re.I)
 
 
 def binding(a):
@@ -392,6 +394,10 @@ def binding(a):
     applies to held cache papers -- independent of which search found it. A trial with no AACT registration binds a
     paper only by its name in the paper's title. Returns (labels, reason)."""
     text = g._fold((a.get("fulltext") or "") + "\n" + (a.get("abstract") or "") + "\n" + (a.get("title") or ""))
+    # a title that DECLARES a non-randomised design is no REACT trial's report, on every binding path (codex NR-C26: the
+    # title-population path returned before the trial-type screen)
+    if NON_RCT_TITLE.search(a.get("title") or ""):
+        return [], "UNBOUND: the title declares a non-randomised design"
     by_name = [l for l, (n, _) in g.IDENTITY.items() if not n and re.search(re.escape(l), a.get("title") or "", re.I)]
     if by_name:
         return by_name, "BOUND_BY_NAME_IN_TITLE"
@@ -403,6 +409,7 @@ def binding(a):
     # the paper's STATED registration ('Trial registration: NCT...') decides before frequency: a references list can
     # outvote it (codex review toci_match#10 -- the same rule as g1.tocilizumab.own_registration)
     stated = set(g._REG_STATED.findall(text))
+    stated_own = len(stated) == 1
     if len(stated) == 1:
         top, tied = stated.pop(), []
     if len(tied) > 1:
@@ -424,12 +431,20 @@ def binding(a):
     # ... AND it is a TRIAL report: PubMed types it a randomised/clinical trial, or its title/abstract names the trial.
     # A case report, a mechanism paper or a cohort that cites the registration once is not the trial's report (a
     # cohort's own day-28 deaths would otherwise read as a conflicting trial row).
-    trial_type = re.search(r"Randomized Controlled Trial|Clinical Trial", " ".join(a.get("pub_types") or []))
+    rct_type = re.search(r"Randomized Controlled Trial", " ".join(a.get("pub_types") or []))
+    trial_type = rct_type or re.search(r"Clinical Trial", " ".join(a.get("pub_types") or []))
     named = [l for l in labels if re.search(re.escape(l.split("-TOCI")[0]), (a.get("title") or "") + " " +
                                              (a.get("abstract") or ""), re.I)]
     if not (trial_type or named):
         return [], f"UNBOUND: names {top} most but is not a trial report (types {a.get('pub_types')})"
-    return labels, "BOUND_BY_REGISTRATION_MAJORITY" + (" + RCT type" if trial_type else " + trial named")
+    # a GENERIC 'Clinical Trial' type is any trial, including another, uncontrolled one: it binds by frequency only when
+    # the paper states the registration as its own or names the trial (codex NR-C26: PMID 33075713, an uncontrolled
+    # study citing CORIMUNO's NCT04331808 twice in its discussion, had bound to CORIMUNO-TOCI-1 '+ RCT type')
+    if not rct_type and not named and not stated_own:
+        return [], (f"UNBOUND: names {top} most, but only a generic 'Clinical Trial' type, no registration stated as its "
+                    f"own and the trial is not named")
+    return labels, "BOUND_BY_REGISTRATION_MAJORITY" + (" + RCT type" if rct_type else " + trial type, registration stated"
+                                                       if stated_own else " + trial named")
 
 
 def rebind():

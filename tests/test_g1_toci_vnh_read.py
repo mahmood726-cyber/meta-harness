@@ -67,11 +67,14 @@ def test_v4_an_unverified_or_foreign_record_is_never_read(tmp_path, monkeypatch)
 
 
 def test_v5_covidstorm_is_a_verified_primary_that_disagrees_with_its_side_named():
-    o = json.load(open(TRACK, encoding="utf-8"))
+    import g1_toci_tracker as tr
+    o = tr.build()                                     # in memory: the lane's verdict, not a committed snapshot
     x = next(t for t in o["trials"] if t["label"] == "COVIDSTORM")
     assert x["route"] == "PRIMARY" and x["g1_countable"]
     assert x["agreement_with_comparator_row"] == "DISAGREE"
-    assert x["disagreement_side"].startswith("SECONDARY_WRONG") and "Death at day 28, n (%) 1 (1.8) 0 (0)" in x["disagreement_side"]
+    # the OBSERVED difference, never an assertion that the comparator erred (codex NR-C27)
+    assert x["disagreement_side"].startswith("DIFFERENT_REPORTED_TUPLE") and "Death at day 28, n (%) 1 (1.8) 0 (0)" in x["disagreement_side"]
+    assert "not inferred" in x["disagreement_side"] and "WRONG" not in x["disagreement_side"]
     # every per-trial disagreement carries its side (g1_tracker DIVERGENCES_NAMED)
     assert all(t.get("disagreement_side") for t in o["trials"] if str(t["agreement_with_comparator_row"]).startswith("DISAGREE"))
     assert not any(t.get("disagreement_side") for t in o["trials"] if t["agreement_with_comparator_row"] == "AGREE")

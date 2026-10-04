@@ -42,10 +42,16 @@ def fetch(pmcid: str, want: str):
         if st != 200:
             tried.append(f"{route} http {st}")
             continue
-        x = b.decode("utf-8", "replace")
-        for sha in (hashlib.sha256(b).hexdigest(), hashlib.sha256(x.encode("utf-8")).hexdigest()):
-            if sha == want:
-                return x, route
+        # the RAW bytes' digest, or (records the cascade hashed as text) the digest of a STRICT decode: a lossy decode
+        # ('replace') maps different bytes to the same U+FFFD text and would pass a body that is not the recorded one
+        # (codex NR-C26)
+        try:
+            x = b.decode("utf-8")
+        except UnicodeDecodeError:
+            tried.append(f"{route} not valid UTF-8 (refused)")
+            continue
+        if want in (hashlib.sha256(b).hexdigest(), hashlib.sha256(x.encode("utf-8")).hexdigest()):
+            return x, route
         tried.append(f"{route} sha256 {hashlib.sha256(b).hexdigest()[:12]}")
     return None, tried
 
