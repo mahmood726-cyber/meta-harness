@@ -114,7 +114,7 @@ def pmc_fulltext_cached(pmid, offline=False):
     idx = _j(idx_p) if os.path.exists(idx_p) else {}
     if os.path.exists(fp) and os.path.getsize(fp) > 0:
         return open(fp, encoding="utf-8").read()
-    if (idx.get(pmid) or {}).get("state") == "NO_PMCID" or offline:
+    if (idx.get(pmid) or {}).get("state") in ("NO_PMCID", "PUBLISHER_DISALLOWS_XML") or offline:
         return ""
     from harness import fetch, http
     pmcid = None
@@ -143,6 +143,10 @@ def pmc_fulltext_cached(pmid, offline=False):
             idx[pmid] = {"state": "HELD", "pmcid": pmcid, "bytes": len(txt.encode("utf-8")),
                          "sha256": hashlib.sha256(txt.encode("utf-8")).hexdigest(),
                          "source": "harness.fetch._pmc_fulltext(with_supplements=True)"}
+        elif fetch.LAST_PMC_STATE.get(pmid) == "PUBLISHER_DISALLOWS_XML":
+            idx[pmid] = {"state": "PUBLISHER_DISALLOWS_XML", "pmcid": pmcid,
+                         "note": "PMC efetch serves front matter only: 'The publisher of this article does not allow "
+                                 "downloading of the full text in XML form.' Not an open machine-readable source"}
         else:
             idx[pmid] = {"state": "FETCH_EMPTY", "pmcid": pmcid,
                          "note": "PMCID exists but harness.fetch._pmc_fulltext returned '' (it swallows errors); not cached"}
