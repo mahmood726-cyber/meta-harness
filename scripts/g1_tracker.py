@@ -754,18 +754,34 @@ def orientation(o):
 
 
 def _mirrors(ours, theirs):
-    """theirs looks like ours with the arms swapped: counts swapped, a ratio ~ 1/ours, or a difference ~ -ours."""
+    """theirs IS ours with the arms swapped: counts exactly swapped, or every printed number (point and both bounds)
+    the reciprocal (ratio) / negation (difference) of ours within the printed rounding (3 half-units, as the positive
+    control). Merely landing on the other side of the null is NOT a mirror: Pozzoni (probiotics, 4 Oct) -- 1.14 vs 0.75,
+    whose reciprocal is 1.33 -- is a discrepancy, and calling it a mirror DISPUTED an orientation 13 trials establish."""
     ot = tuple(ours.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
     tt = tuple(theirs.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
     if None not in ot and None not in tt:
         return (tt[2], tt[3], tt[0], tt[1]) == ot and tt != ot
+    pairs = [("effect", "effect"), ("lower", "upper"), ("upper", "lower")]
+    ratio = (ours.get("measure") or "").upper() in sm.RATIO
+    seen = 0
+    for ko, kt in pairs:
+        a, b = sm._num(ours.get(ko)), sm._num(theirs.get(kt))
+        if a is None or b is None:
+            if ko == "effect":
+                return False
+            continue
+        ha, hb = sm._half(str(ours.get(ko))) * 3, sm._half(str(theirs.get(kt))) * 3
+        if ratio:
+            if a <= 0 or b <= 0:
+                return False
+            if abs(math.log(a) + math.log(b)) > ha / a + hb / b + 1e-9:
+                return False
+        elif abs(a + b) > ha + hb + 1e-9:
+            return False
+        seen += 1
     a, b = sm._num(ours.get("effect")), sm._num(theirs.get("effect"))
-    if a is None or b is None:
-        return False
-    if (ours.get("measure") or "").upper() in sm.RATIO and a > 0 and b > 0:
-        la, lb = math.log(a), math.log(b)
-        return la * lb < 0 and abs(la + lb) < abs(la - lb)
-    return a * b < 0 and abs(a + b) < abs(a - b)
+    return seen >= 1 and ((math.log(a) * math.log(b) < 0) if ratio else (a * b < 0))
 
 
 def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
@@ -973,6 +989,13 @@ def cite_or_demote(o, slug):
     o["top_blocker"] = bl.most_common(1)[0][0] if bl else None
     o["scope_demoted"] = demoted
     return o
+
+
+def needs_seed(x):
+    """A comparator trial whose record our own screen must see: not in our pool and not yet funnelled. Never keyed on
+    the route: a COMPARATOR-only row (route UNVERIFIED) says nothing about what our screen does with the record
+    (OSLER-1, pcsk9-mace 3 Oct: its spanned X3 exclusion vanished when the dual read gave it a comparator row)."""
+    return not x.get("in_our_pool") and not x.get("seeded_funnel")
 
 
 def scope_difference(x, cfg, slug=None):
@@ -1414,9 +1437,19 @@ def topic(slug, T):
                    for a in prim.get("declared_absent_trials", [])}
     rows = [_row(d) for d in S["rows"]]
     comparator_rows_source = None
-    if not any(r.meta_pmid == comp for r in rows):
+    own_comp = ((S.get("metas") or {}).get(comp) or {})
+    own_ok = own_comp.get("usable") and (own_comp.get("positive_control") or {}).get("reproduced")
+    if not any(r.meta_pmid == comp for r in rows) or not own_ok:
+        # no comparator rows of our own, or our own SINGLE-model read of the comparator failed its control: the
+        # forest-reader lane's DUAL-model read of the comparator, where that lane ACCEPTED it, replaces it (Mahmood 3 Oct:
+        # forest plots via the dual-model recorded reader). balanced-crystalloids: our read NOT_REPRODUCED; the lane's
+        # dual read of the same comparator reproduces its pool (DL / PM / REML).
         lane_rows, comparator_rows_source = lane_comparator_rows(slug, comp, ours)
-        rows += lane_rows
+        if lane_rows and any((u.get("acceptance") or {}).get("state") == "ACCEPTED" for u in comparator_rows_source or []):
+            rows = [r for r in rows if r.meta_pmid != comp] + lane_rows
+            S = dict(S, metas={k: v for k, v in (S.get("metas") or {}).items() if k != comp})
+        elif not any(r.meta_pmid == comp for r in rows):
+            rows += lane_rows
     by_fam = {}
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
@@ -1532,8 +1565,7 @@ def topic(slug, T):
             x["seeded_funnel"] = {"stage": "SCREENED_OUT", "rule_id": r.get("rule_id"),
                                   "reason": (r.get("reason") or "")[:140], "pmid": p, "already_in_screen": True}
             x["our_refusal"] = f"IN SCREEN PMID {p}: SCREENED_OUT {r.get('rule_id')}: {(r.get('reason') or '')[:140]}"
-    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if x["route"] == "NO_ROW" and not x.get("seeded_funnel")
-              and rp[id(t)] and rp[id(t)] not in screened}
+    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if needs_seed(x) and rp[id(t)] and rp[id(t)] not in screened}
     if unseen:
         mp = os.path.join(OUT, "member_records.json")
         held = _j(mp) if os.path.exists(mp) else {}
@@ -1541,13 +1573,13 @@ def topic(slug, T):
         fun = cfm.funnel(cfm.build(slug, extra_records=recs), [r["id"] for r in recs], recs) if recs else {}
         for x, t in zip(trials, comp_rows):
             p = rp[id(t)] if rp[id(t)] in fun else None
-            if p and x["route"] == "NO_ROW" and not x.get("seeded_funnel"):
+            if p and needs_seed(x):
                 f = fun[p]
                 x["seeded_funnel"] = dict(f, pmid=p)
                 x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (
                     f" {f.get('rule_id')}: {f.get('reason')}" if f.get("rule_id") else
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
-            elif x["route"] == "NO_ROW" and not x.get("seeded_funnel") and rp[id(t)] in unseen:
+            elif needs_seed(x) and rp[id(t)] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
     # SAME TRIAL, OTHER REPORT: the comparator cites a secondary report (Radholm 2018, CANVAS heart-failure outcomes) whose
     # registered trial (the funnel's NCT link) we pool under its main report (Neal 2017, same NCT). The comparator trial

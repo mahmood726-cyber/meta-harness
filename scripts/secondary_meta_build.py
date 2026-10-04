@@ -518,6 +518,27 @@ def family_of_factory(ours):
         """the acronym as a contiguous run anywhere in the label ('Rosas (COVACTA)'), distinctive only"""
         return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
 
+    def core(label):
+        """(surname core, year) of an author label: tokens up to 'et al' / a reference number / the year, single-letter
+        initials dropped, spacing folded ('Helps et al52' -> helps; 'Mewton N-2019' -> mewton, 2019; 'Re faie 2005' ->
+        refaie). None unless it is a short (<= 3 token) name of >= 4 letters."""
+        tt = toks(label)
+        yr = next((m.group(0) for x in tt for m in [re.match(r"(?:19|20)\d\d", x)] if m), None)
+        name = []
+        for x in tt:
+            if x == "et" or x[0].isdigit() or re.fullmatch(r"al\d*", x):
+                break
+            if len(x) > 1:
+                name.append(x)
+        c = "".join(name)
+        return (c, yr) if 1 <= len(name) <= 3 and len(c) >= 4 else (None, yr)
+
+    def same_author(row_label, t_label):
+        # a comparator's trial list labelled 'Helps et al52' and its forest row 'Helps 2015' name one trial; never when
+        # both carry a year and the years differ ('Palomba 2004' / 'Palomba 2005a')
+        (a, ya), (b, yb) = core(row_label), core(t_label)
+        return bool(a) and a == b and not (ya and yb and ya != yb)
+
     def family_of(row):
         lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
         hits = {}
@@ -525,6 +546,13 @@ def family_of_factory(ours):
             names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
             if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
                 hits[t["id"]] = t
+        if not hits:
+            # FALLBACK tier only: the surname core never adds a hit to (and so never dilutes or overrides) a join the
+            # rules above already made ('Young [10]' / 'Young [17]' by their PMIDs' author-year, 4 Oct)
+            for t in ours:
+                yr = (t.get("author_year") or (None, None))[1]
+                if t["label"] and same_author(row.trial_label, t["label"] + (f" {yr}" if yr and not core(t["label"])[1] else "")):
+                    hits[t["id"]] = t
         if len(hits) > 1:
             # two trials share an acronym ('CORIMUNO' names CORIMUNO-TOCI-1 and CORIMUNO-TOCI-ICU): the ONE whose full
             # label tokens EQUAL the row's label wins; anything less stays ambiguous (None)
@@ -596,7 +624,9 @@ def figure_rows(slug, it, run_r, spec, comp):
             outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
             timepoint=meta_timepoint(it["held"]) if spec.get("core") else None,   # mortality/death outcomes only
             effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
-    pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
+    pc = sm.positive_control(mrows, g["printed_pool"], measure,
+                             stated_model=" ".join(str(resp.get(k) or "") for k in ("measure", "notes", "model"))) \
+        if g.get("printed_pool") and mrows else \
         {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}
     usable = g["state"] == "PASS" and pc["reproduced"]
     entry = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
