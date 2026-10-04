@@ -55,13 +55,13 @@
   ]
  },
  "blockers": {
-  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 3,
   "EXTRACTION:outcome_post_hoc_not_pooled": 1,
-  "IDENTIFICATION": 2,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
   "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY": 1,
   "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 1,
-  "SCREENED_VIA_OTHER_REPORT": 1
+  "NO_RECORD_HELD": 1,
+  "EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT": 1
  },
  "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
@@ -75,8 +75,8 @@
  ],
  "k_ours_total": 2,
  "routes": {
-  "UNVERIFIED": 8,
-  "NO_ROW": 2,
+  "UNVERIFIED": 9,
+  "NO_ROW": 1,
   "PRIMARY": 2
  },
  "trials": [
@@ -379,7 +379,7 @@
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": null,
+   "our_refusal": "SEEDED PMID 26330422: DECLARED_ABSENT OUTCOME_NOT_IN_SOURCE",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -445,8 +445,13 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "DECLARED_ABSENT",
+    "reason_code": "OUTCOME_NOT_IN_SOURCE",
+    "pmid": "26330422"
+   },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -786,11 +791,11 @@
   },
   {
    "label": "DESCARTES NCT01516879",
-   "family": null,
+   "family": "PMID 24678979",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "NO_RECORD_HELD",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -857,7 +862,7 @@
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "NO_RECORD_HELD",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1051,8 +1056,14 @@
     "via_rule_id": "INCLUDE",
     "pmid": "27264224"
    },
+   "via_report_absent": {
+    "id": "PMID 27846344",
+    "code": "outcome_not_reported",
+    "reason": "GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect.",
+    "full_text_held": false
+   },
    "scope_difference": null,
-   "blocker": "SCREENED_VIA_OTHER_REPORT",
+   "blocker": "EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1137,12 +1148,60 @@
   "NOT_COMPARABLE:HR_VS_RR": 2
  },
  "same_trials": {
-  "state": "MIXED_MEASURES",
-  "measures": [
-   "HR",
-   "RR"
-  ],
+  "state": "MEASURE_DIFFERENCE",
   "k": 2,
+  "ours": {
+   "measure": "HR",
+   "estimate": 0.8261,
+   "ci_low": 0.7749,
+   "ci_high": 0.8808
+  },
+  "theirs": {
+   "measure": "RR",
+   "estimate": 0.8351,
+   "ci_low": 0.7692,
+   "ci_high": 0.9066
+  },
+  "verdict": {
+   "verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
+   "basis": "our verified values are HRs; the comparator pooled a ratio of risks/odds: never converted"
+  },
+  "measure_differences": [
+   {
+    "trial": "ODYSSEY OUTCOME",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 0.85,
+     "ci_low": 0.78,
+     "ci_high": 0.93
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 0.87,
+     "ci_low": 0.82,
+     "ci_high": 0.92
+    },
+    "same_conclusion": true
+   },
+   {
+    "trial": "FOURIER",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 0.8,
+     "ci_low": 0.73,
+     "ci_high": 0.88
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 0.8,
+     "ci_low": 0.75,
+     "ci_high": 0.85
+    },
+    "same_conclusion": true
+   }
+  ],
   "method_basis": "comparator positive control not reproduced: PM default",
   "excluded_named_scope_differences": []
  },
@@ -1164,7 +1223,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "521ed499f5eab3ec6507c535d063c721a1542117",
+   "commit": "14fca27b029cbf1d6b4243f16b464eb758528577",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -1184,7 +1243,7 @@
    },
    "sha256": "a182b823687b5b31df468b2865d6c2781600ff451f3c5c11573e189d6512a218",
    "rows": 12,
-   "joined": 9
+   "joined": 10
   }
  ],
  "ours_not_in_comparator": [],
@@ -1229,7 +1288,7 @@
    "FE",
    "PM"
   ],
-  "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader 521ed499f, dual-model)",
+  "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader 14fca27b0, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT:  PCSK9 inhibitors on MACE was statistically significant (RR 0.83, 95% CI 0.79-0.87) (Supplementary Fig)",
   "pooled": {
    "effect": "0.83",
@@ -1251,12 +1310,11 @@
   "criteria": {
    "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
-   "RESULT_AGREES": false,
+   "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
   "unmet": [
-   "ALL_ELIGIBLE_MATCHED",
-   "RESULT_AGREES"
+   "ALL_ELIGIBLE_MATCHED"
   ],
   "excluded_by_scope": {
    "n": 1,
@@ -1268,15 +1326,7 @@
     "OSLER-1 NCT01439880 [X3]"
    ]
   },
-  "result_blocker": {
-   "code": "MEASURE_DIFFERS_PER_TRIAL",
-   "measures": [
-    "HR",
-    "RR"
-   ],
-   "k_pairs": 2,
-   "comparator_rows_contradicted_by_primary": []
-  }
+  "result_blocker": null
  },
  "removed_comparator_rows": [],
  "added_comparator_rows": []
