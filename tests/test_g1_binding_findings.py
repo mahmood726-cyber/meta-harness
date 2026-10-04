@@ -66,3 +66,26 @@ def test_components_restricted_to_the_trials_own_declared_components():
     state, d = bf.component_sum(r, ROW, allowed=ok)
     assert state == "COMPARATOR_COUNTS_EQUAL_SUM_OF_COMPONENTS"
     assert sorted(c["outcome_id"] for c in d["components"]) == ["d", "m", "s"]
+
+
+# ---- F2 / F3 (melatonin: ours -17.4 vs theirs +11.2) -------------------------------------------------------------------
+def test_f2_reads_the_comparators_own_reduction_convention():
+    t = ("Our primary outcome measure was mean improvement in sleep onset latency, total sleep time and quality. "
+         "Melatonin demonstrated significant efficacy in reducing sleep latency (weighted mean difference (WMD) = 7.06 "
+         "minutes [95% CI 4.37 to 9.75]).")
+    conv, spans = bf.orientation_stated(t)
+    assert conv == "POSITIVE_IS_REDUCTION_WITH_INTERVENTION" and len(spans) == 2
+
+
+def test_f2_silent_when_the_comparator_states_no_convention():
+    assert bf.orientation_stated("Melatonin was compared with placebo; MD and 95% CI were pooled.") == (None, [])
+
+
+def test_f3_cited_report_and_same_registration():
+    jats = ('<ref id="r1">21 Smith A ( 2010 ) Other trial. 11111111</ref>'
+            '<ref id="r2">22 Wade AG , Crawford G ( 2011 ) Prolonged release melatonin: age cut-off . 21091391</ref>')
+    assert bf.cited_report(jats, "Wade AG, 2011 [21]") == "21091391"
+    db = {"21091391": {"databank": ["NCT00397189"]}, "20712869": {"databank": ["NCT00397189"]}}
+    assert bf.same_trial_different_report("21091391", "20712869", db)["registration"] == ["NCT00397189"]
+    assert bf.same_trial_different_report("21091391", "21091391", db) is None
+    assert bf.same_trial_different_report("21091391", "99999999", {**db, "99999999": {"databank": ["NCT01111111"]}}) is None
