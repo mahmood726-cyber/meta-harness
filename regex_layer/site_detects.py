@@ -779,7 +779,7 @@ DETECTS.update({
                             "trigger": r"week", "text_source": _REC_TA, "lowercased": False},
     "arm_object.py:_AGE_RANGE": {"detects": "the text states the entry age range in years",
                                  "trigger": r"aged?\b", "text_source": _REC_TA, "lowercased": False},
-    "arm_object.py:search:1543b331b8": {"detects": "the text states the semaglutide dose of the contrast",
+    "arm_object.py:_REF_DOSE": {"detects": "the text states the semaglutide dose of the contrast",
                                         "trigger": r"semaglutide", "text_source": _REC_TA, "lowercased": False},
     # ---- harness/claimgraph.py ---------------------------------------------------------------------------------------
     "claimgraph.py:_PMID_RE": {"detects": "the text carries a PMID", "trigger": r"\d{7}|pmid", "text_source": _IDS4,
