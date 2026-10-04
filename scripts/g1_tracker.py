@@ -793,7 +793,9 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
     flipped = []
     for x in o.get("trials") or []:
         b = by.get(x["label"])
-        if not b or x.get("route") != "UNVERIFIED":
+        # an OWN-TUPLE binding (the trial's own printed tuple, not the comparator's) may also bind a NO_ROW trial: it
+        # needs no comparator row (g1/binding lane, scripts/g1_binding_bind.py)
+        if not b or not (x.get("route") == "UNVERIFIED" or (b.get("own_tuple") and x.get("route") == "NO_ROW")):
             continue
         v, span = b.get("values") or {}, b.get("span") or ""
         src = f"{'TEXT' if b.get('source_kind') == 'TEXT' else 'AACT'} {b.get('source')}"
@@ -1755,6 +1757,7 @@ def topic(slug, T):
     if out["g1r_reproduction"].get("state") == "NO_PER_TRIAL_ROWS":
         out["g1r_reproduction"] = g1r_from_trials(out)
     apply_confirm_bindings(out)
+    apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings.json"))
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
