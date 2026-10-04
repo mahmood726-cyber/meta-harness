@@ -309,3 +309,17 @@ def test_a_forest_plot_caption_need_not_say_forest():
           "Figure 4 Trial sequential analysis of mortality", "Dose-response curve"]
     assert all(fpl.is_forest_caption(c) for c in yes)
     assert not any(fpl.is_forest_caption(c) for c in no)
+
+
+def test_a_meta_published_before_the_trials_result_is_never_a_candidate(monkeypatch):
+    # dapagliflozin-hfpef 5 Oct: DELIVER (result 2022) got ten highly-cited 2020-2021 metas (they cite its design
+    # paper / name its NCT) -- none can print its result; the 2022+ metas that do never made the top ten
+    hits = [{"pmid": "34308311", "cited": 900, "year": "2021", "doi": ""},
+            {"pmid": "36041474", "cited": 300, "year": "2022", "doi": ""},
+            {"pmid": "37000000", "cited": 5, "year": "2023", "doi": ""}]
+    monkeypatch.setattr(sw, "search", lambda q, run: {"state": "SEARCHED", "hits": hits})
+    t = {"report_pmid": "36027570", "cited_pmids": [], "ncts": [], "acronyms": [], "pmids": ["36027570"], "report_year": 2022}
+    got, _ = sw.discover(t, set(), run=False)
+    assert got == ["36041474", "37000000"]
+    t.pop("report_year")                                       # no known year: unchanged behaviour
+    assert sw.discover(t, set(), run=False)[0][0] == "34308311"
