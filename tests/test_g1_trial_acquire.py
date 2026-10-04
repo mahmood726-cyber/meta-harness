@@ -77,3 +77,17 @@ def test_an_admitted_row_matches_the_trial_and_promotes_a_secondary_single(monke
     assert len(pairs) == 1 and routes == Counter({"PRIMARY": 1})
     named = dict(x, route="UNVERIFIED", scope_difference={"kind": "X"})
     assert gt.acquired_merge("iv-iron-hfref-hosp", [named], None, None, "39727669") == []
+
+
+def test_comparator_counts_that_are_posted_events_are_named(monkeypatch):
+    det = {"NCT02937454": {"measurements": {
+        "ev": [{"title": "HF Hospitalisations", "units": "Events", "param_value": "217"},
+               {"title": "HF Hospitalisations", "units": "Events", "param_value": "294"}],
+        "pp": [{"title": "HF Hospitalisations", "units": "Participants", "param_value": "142"},
+               {"title": "HF Hospitalisations", "units": "Participants", "param_value": "178"}]}}}
+    monkeypatch.setattr(ga, "aact_detail", lambda ncts: det)
+    f = ga.comparator_counts_are_events({"events_t": 217, "n_t": 558, "events_c": 294, "n_c": 550}, ["NCT02937454"])
+    assert f["finding"] == "COMPARATOR_COUNTS_ARE_POSTED_EVENTS" and f["units"] == ["Events"]
+    # the participant outcome's own counts are never named
+    assert ga.comparator_counts_are_events({"events_t": 142, "n_t": 558, "events_c": 178, "n_c": 550},
+                                           ["NCT02937454"]) is None
