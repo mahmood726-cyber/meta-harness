@@ -47,7 +47,12 @@ RANDOMISED_HERE = re.compile(r"\b(?:were|was|been|are|is)\s+(?:\w+\s+)?randomi[s
 # a comparison is STATED (an active or non-placebo comparator), even when no placebo is named
 COMPARISON_STATED = re.compile(r"\bversus\b|\bvs\.?\s|compared (?:with|to)|\bcombination\b|with (?:and|or) without|added to", re.I)
 BLIND = re.compile(r"\b(?:double|single|triple)[- ]?blind\w*|\bblinded\b|\bmasked\b|open[- ]label|unblinded|not blinded", re.I)
-OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded", re.I)
+# a design LIST states open-label without the word: colchicine-postop Zarpelon [20] (PMC4976950) is "a prospective,
+# randomized, open, single-center clinical assay" and read BLINDING_NOT_STATED. "open" counts only beside a design word
+# ("open heart surgery" never). Corpus abstracts: 4 new matches, all open-label designs.
+OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded|"
+                  r"\brandomi[sz]ed,?\s+open\b(?![- ]heart)|"
+                  r"\bopen,?\s+(?:randomi[sz]ed|controlled|parallel|single[- ]cent|multi-?cent|prospective)", re.I)
 OTHER_COMP = re.compile(r"\b(?:usual care|standard (?:of )?care|standard therapy|no treatment|untreated|"
                         r"conventional (?:care|therapy|treatment)|control group received no|best supportive care)\b", re.I)
 OBSERVATIONAL = re.compile(r"\bassociation of\b|\bcohort\b|\bobservational\b|\bretrospective\b|\bregistry\b|"
