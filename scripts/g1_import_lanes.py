@@ -132,6 +132,56 @@ def from_g1_noac(slug, d, spec, T):
     return o
 
 
+RESOLUTIONS = os.path.join(OUT, "g1_readers_differ_resolutions.json")
+
+
+def apply_resolutions(slug, o, path=RESOLUTIONS):
+    """A lane trial whose two readers of the comparator's figure differ (READERS_DIFFER:...) takes the comparator row
+    that scripts/g1_forest_adjudicate.py RESOLVED (two new model families + the row's own printed arithmetic / row
+    identity), and its agreement is recomputed against it by the tracker's own rule. The resolution is attached; an
+    unresolved or refused case leaves the lane's READERS_DIFFER untouched."""
+    import re
+    import g1_tracker as gt
+    from collections import Counter
+    if not os.path.exists(path):
+        return o
+    res = json.load(open(path, encoding="utf-8")).get("resolutions") or {}
+    fold = lambda s: re.sub(r"[^a-z0-9]", "", str(s or "").lower())  # noqa: E731
+    for x in o.get("trials") or []:
+        if not str(x.get("agreement_with_comparator_row") or "").startswith("READERS_DIFFER"):
+            continue
+        hit = next((v for v in res.values() if str(v.get("state", "")).startswith("RESOLVED")
+                    and (v.get("case") or {}).get("slug") == slug and "probe_for" not in (v.get("case") or {})
+                    and fold((v.get("case") or {}).get("row")) and fold(v["case"]["row"]) in fold(x.get("label"))), None)
+        if not hit:
+            continue
+        c = hit["case"]
+        row = dict(c["undisputed"], **hit["resolved"])
+        theirs = gt._row({"meta_pmid": c["pmid"], "meta_doi": "", "location": {"kind": "figure", "id": c["fig_id"]},
+                          "source_digest": c["image_sha256"], "provenance": "READERS_DIFFER_RESOLVED",
+                          "trial_label": x.get("label"), "measure": (x.get("our_value") or {}).get("measure") or "HR",
+                          "outcome_definition": "", **row})
+        prev = x["agreement_with_comparator_row"]
+        x["comparator_row"] = dict(row, measure=theirs.measure)
+        x["agreement_with_comparator_row"] = gt.agreement(x.get("our_value"), theirs)
+        dk = next(iter(hit["resolved"]))
+        admits = ((hit.get("rounded") or {}).get(dk)) or []
+        ours_v = str((x.get("our_value") or {}).get(dk) or "")
+        if x["agreement_with_comparator_row"].startswith("DISAGREE") and ours_v in admits:
+            # the comparator's OWN printed log[HR]/SE admit our printed value too: a one-unit rounding boundary, on
+            # neither side -- named so, never called a comparator error
+            x["disagreement_side"] = (f"ROUNDING_BOUNDARY: comparator {dk} {hit['resolved'][dk]} vs trial report "
+                                      f"{ours_v}; the comparator's printed log[HR] {hit.get('log_hr')} / SE "
+                                      f"{hit.get('se')} admit {admits} at printed precision -- neither side wrong")
+        x["readers_differ_resolution"] = {"was": prev, "state": hit["state"], "resolved": hit["resolved"],
+                                          "records": hit.get("records"), "basis": hit.get("basis"),
+                                          "wrong_row_readers": hit.get("wrong_row_readers"),
+                                          "source": "outputs/k_gap/g1_readers_differ_resolutions.json"}
+    o["per_trial_agreement"] = dict(Counter(x["agreement_with_comparator_row"] for x in o.get("trials") or []
+                                            if x.get("in_our_pool")))
+    return o
+
+
 def main(argv):
     import g1_tracker as gt
     lanes = json.load(open(LANES, encoding="utf-8"))
@@ -141,7 +191,7 @@ def main(argv):
             continue
         b, src = lane_artefact(spec)
         if spec["format"] == "tracker_v1":
-            o = json.loads(b.decode("utf-8"))
+            o = apply_resolutions(slug, json.loads(b.decode("utf-8")))
             try:
                 o["g1_status"] = gt.g1_status(o)
             except (KeyError, TypeError) as exc:

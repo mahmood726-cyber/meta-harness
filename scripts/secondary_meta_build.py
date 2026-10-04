@@ -709,6 +709,30 @@ def build(slug, run, runs):
         mrows, metas_out[it["pmid"]] = figure_rows(slug, it, run_r, spec, comp)
         for r in mrows:
             rows.append(sm.admit(r, spec, fam))
+    # DUAL-MODEL figure rows (scripts/g1_forest_reader.py; its replayed output, no model here): a meta whose own route
+    # above gave no usable row contributes the rows two model families (codex + agy) agreed on, from a figure whose
+    # printed pool the meta's STATED model reproduced from those rows. They are the meta's own numbers -- SECONDARY,
+    # verified like any row below, and never counted toward G1 agreement with that meta (sm.g1_countable).
+    import g1_forest_reader as gfr
+    dual = {}
+    for d in gfr.accepted_rows(slug):
+        dual.setdefault(d["meta_pmid"], []).append(d)
+    for pm, ds in sorted(dual.items()):
+        if (metas_out.get(pm) or {}).get("usable"):
+            continue
+        # the timepoint the FIGURE's own caption states ('28-Day All-Cause Mortality in Each Trial', REACT) is the most
+        # specific statement of it; else, as for every figure row, the meta's text for a core (mortality) outcome
+        tp_text = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
+        for d in ds:
+            r = sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
+            r.timepoint = meta_timepoint(r.outcome_definition) or tp_text
+            rows.append(sm.admit(r, spec, fam))
+        metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
+                         "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
+                         "rows_read": len(ds), "record_ids": ds[0]["provenance"].split(":", 1)[1].split("+"),
+                         "positive_control": {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"},
+                         "is_comparator": pm == comp, "earlier_route": metas_out.get(pm) or skipped.get(pm)}
+        skipped.pop(pm, None)
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
@@ -759,7 +783,9 @@ def build(slug, run, runs):
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
-    sm.two_source(rows, refs_of, [meta_aliases(m) for m in metas])
+    # every meta that contributed a row is a KNOWN meta of the topic (incl. dual-read metas beyond the search's top N):
+    # the common-cited-meta independence check must see all of them
+    sm.two_source(rows, refs_of, [meta_aliases(m) for m in dict.fromkeys(list(metas) + sorted({r.meta_pmid for r in rows}))])
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "
