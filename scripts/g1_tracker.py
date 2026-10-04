@@ -25,6 +25,7 @@ import json
 import math
 import re
 import os
+import re
 import sys
 from collections import Counter
 
@@ -263,6 +264,16 @@ def definition_gate(spec_name, registry_title):
     return extract.composite_component_mismatch(spec_name, "composite outcome definition: " + (registry_title or ""))
 
 
+_STOP = {"of", "for", "the", "and", "or", "with", "in", "to", "a", "due", "by"}
+
+
+def _name_words(x):
+    """Content words of an outcome name or registry title, plural and British -isation folded."""
+    import re as _r
+    w = _r.findall(r"[a-z]+", (x or "").lower().replace("hospitalis", "hospitaliz"))
+    return {_r.sub(r"s$", "", v) for v in w if v not in _STOP}
+
+
 def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     """One registry outcome through the binding gates, in order:
       OUTCOME_NOT_NAMED  the title names no topic keyword (generic anchors like 'primary outcome' do not count): being
@@ -273,6 +284,12 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     from harness import extract
     t = (title or "").lower()
     named = [k for k in keywords if k and k.lower() not in extract.GENERIC_ANCHORS and k.lower() in t]
+    # ...or the topic's OWN outcome NAME, when every content word of it (plural / British spelling folded) is in the
+    # title: iv-iron's keywords all say 'worsening', so HEART-FID's primary 'Number of Hospitalizations for Heart
+    # Failure' (the topic's 'Heart-failure hospitalization') was never named. Corpus: 2 candidates newly named --
+    # HEART-FID, and DAPA-HF's composite, which the ESTIMAND gate below still refuses.
+    if not named and spec_name and _name_words(spec_name) and _name_words(spec_name) <= _name_words(title):
+        named = [spec_name]
     if not named:
         return {"gate": "OUTCOME_NOT_NAMED", "verdict": "REFUSED",
                 "reason": "registry title names none of the topic's outcome keywords" + (" (it is the trial's PRIMARY "
@@ -1036,6 +1053,17 @@ def cite_or_demote(o, slug):
     return o
 
 
+def resolve_cited_letters(trials, comp_rows, rp, screened, co_map):
+    """A comparator reference that is a LETTER / COMMENT about a trial is that trial: PubMed's own CommentOn link (ONE
+    PMID, a report we hold) replaces the cited PMID in rp, with the letter kept as cited_as. Never by title."""
+    for x, t in zip(trials, comp_rows):
+        co = (co_map.get(str(rp[id(t)])) or {}).get("comment_on") or []
+        if not x["in_our_pool"] and len(co) == 1 and co[0] in screened and co[0] != rp[id(t)]:
+            x["cited_as"] = {"pmid": rp[id(t)], "kind": "LETTER_OR_COMMENT", "comment_on": co[0],
+                             "source": "registry/comment_on.json (PubMed CommentsCorrections CommentOn)"}
+            rp[id(t)] = co[0]
+
+
 def needs_seed(x):
     """A comparator trial whose record our own screen must see: not in our pool and not yet funnelled. Never keyed on
     the route: a COMPARATOR-only row (route UNVERIFIED) says nothing about what our screen does with the record
@@ -1275,6 +1303,31 @@ def report_pmid(t, shown=None):
     return str(p) if p else None
 
 
+_NUMW = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+         "eleven": 11, "twelve": 12}
+_STATED_K = re.compile(r"\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:phase\s*(?:3|III)\s+|"
+                       r"randomi[sz]ed\s+(?:controlled\s+)?|placebo-controlled\s+|eligible\s+)*(?:clinical\s+)?trials\b", re.I)
+
+
+def comparator_stated_k(comp):
+    """(k, span) when the comparator's OWN held abstract states how many trials its pooled analysis has ('6 phase 3
+    trials including a total of 27,023 patients'), else (None, None). Read from cache/comparators/<pmid>/*pubmed_efetch.xml
+    or the held JATS abstract; the FIRST such statement only, never a sum."""
+    import glob
+    import html
+    d = os.path.join(ROOT, "cache", "comparators", str(comp or ""))
+    for fp in sorted(glob.glob(os.path.join(d, "*pubmed_efetch.xml")) + glob.glob(os.path.join(d, "*jats.xml"))):
+        x = open(fp, encoding="utf-8", errors="replace").read()
+        ab = " ".join(re.findall(r"<(?:Abstract|abstract)[^>]*>.*?</(?:Abstract|abstract)>", x, re.S))
+        t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", ab)))
+        m = _STATED_K.search(t)
+        if m:
+            w = m.group(1).lower()
+            return (int(w) if w.isdigit() else _NUMW[w]), {"field": "comparator abstract", "text": m.group(0),
+                                                           "source": os.path.relpath(fp, ROOT).replace(os.sep, "/")}
+    return None, None
+
+
 def whole_pool_comparison(o, printed_k=None):
     """When EVERY comparator trial is matched and the comparator prints no per-trial rows (an IPD / network meta), the
     'same trials' ARE both whole pools: compare our pooled result with the comparator's printed one, labelled as such,
@@ -1357,7 +1410,49 @@ def g1_status(o):
                              and all(x.get("disagreement_side") for x in dis),
     }
     return {"state": "G1_MATCHED" if all(crit.values()) else "NOT_YET", "criteria": crit,
-            "unmet": [k for k, ok in crit.items() if not ok], "excluded_by_scope": excl}
+            "unmet": [k for k, ok in crit.items() if not ok], "excluded_by_scope": excl,
+            "result_blocker": None if crit["RESULT_AGREES"] else result_blocker(o, readers_differ)}
+
+
+def result_blocker(o, readers_differ=()):
+    """WHY RESULT_AGREES is unmet, typed (never a bare NOT_YET): the comparator prints no result for the outcome; the
+    measures differ (per trial or whole pool); fewer than two comparable pairs (and why each pair is missing); a
+    different result -- with the comparator rows our primaries contradict, which would cause it; or readers differ."""
+    st = o.get("same_trials") or {}
+    comp = o.get("comparator") or {}
+    tr = o.get("trials") or []
+    wrong = [x["label"] for x in tr if str(x.get("disagreement_side") or "").startswith("SECONDARY_WRONG")]
+    if comp.get("estimate") is None:
+        return {"code": "COMPARATOR_PRINTS_NO_RESULT_FOR_OUTCOME",
+                "detail": "the comparator's typed result for this outcome is empty: nothing to agree with"}
+    if readers_differ:
+        return {"code": "READERS_DIFFER", "trials": list(readers_differ)}
+    state = st.get("state")
+    v = (st.get("verdict") or {}).get("verdict")
+    if state == "MEASURE_DIFFERENCE":
+        # upstream f34580f9: our HRs vs their RR/OR pass only on the SAME conclusion about the null
+        return {"code": "MEASURE_DIFFERENCE:" + str(v), "basis": st.get("basis"), "k": st.get("k"),
+                "ours": st.get("ours"), "theirs": st.get("theirs"),
+                "pairs_with_a_different_conclusion": [d["trial"] for d in st.get("measure_differences") or []
+                                                      if not d.get("same_conclusion")]}
+    if state in ("ONE_SHARED_TRIAL", "ONE_COMPARABLE_TRIAL"):
+        return {"code": "ONE_TRIAL_RESULT:" + str(v), "trial": st.get("trial"), "ours": st.get("ours"),
+                "theirs": st.get("theirs"), "comparator_rows_contradicted_by_primary": wrong}
+    if state == "ROW_NOT_COMPARABLE":
+        return {"code": "ONE_SHARED_TRIAL_NOT_COMPARABLE", "k": st.get("k")}
+    if state == "MIXED_MEASURES":
+        return {"code": "MEASURE_DIFFERS_PER_TRIAL", "measures": st.get("measures"), "k_pairs": st.get("k"),
+                "comparator_rows_contradicted_by_primary": wrong}
+    if state == "FEWER_THAN_2_SHARED_TRIALS":
+        why = Counter(str(x.get("agreement_with_comparator_row") or "")
+                      for x in tr if is_matched(x) and not str(x.get("agreement_with_comparator_row") or "").startswith("AGREE"))
+        return {"code": "FEWER_THAN_2_COMPARABLE_PAIRS", "k_pairs": st.get("k"), "matched_without_a_pair": dict(why)}
+    if state == "POOLED":
+        v = (st.get("verdict") or {}).get("verdict")
+        return {"code": "RESULT_DIFFERS:" + str(v), "verdict": st.get("verdict"),
+                "comparator_rows_contradicted_by_primary": wrong,
+                "note": ("the comparator rows our primaries contradict are in the same-trials pool" if wrong else None)}
+    return {"code": str(state or "NO_SAME_TRIALS_COMPARISON")}
 
 
 def topic(slug, T):
@@ -1511,6 +1606,11 @@ def topic(slug, T):
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}
     rp = {id(t): report_pmid(t) for t in comp_rows}
+    # a comparator reference that is a LETTER / COMMENT about a trial is that trial: PubMed's own CommentOn link (one
+    # PMID, a report we hold) names it, never its title (sglt2-primary-prevention-hf 'Isreb (19)' = letter 31509682 on
+    # CREDENCE 30990260). registry/comment_on.json: request + response sha256, fetched by scripts/g1_comment_on.py
+    cop = os.path.join(ROOT, "registry", "comment_on.json")
+    resolve_cited_letters(trials, comp_rows, rp, screened, _j(cop) if os.path.exists(cop) else {})
     for x, t in zip(trials, comp_rows):
         p = rp[id(t)]
         r = screened.get(p) if p else None
@@ -1577,6 +1677,15 @@ def topic(slug, T):
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
+    # a registration the comparator cites that does not exist in the snapshot cannot identify its trial: say so
+    # (pcsk9 ODYSSEY JAPAN: cited NCT02017898, not in AACT 2026-08-30; registry/comparator_nct_check.json)
+    ncp = os.path.join(ROOT, "registry", "comparator_nct_check.json")
+    bad_nct = set((_j(ncp) if os.path.exists(ncp) else {}).get("not_in_snapshot") or [])
+    nct_of = {t["label"][:60]: [n for n in (t.get("ncts") or []) if n in bad_nct] for t in comp_rows}
+    for x in trials:
+        if nct_of.get(x["label"]) and x.get("blocker") == "IDENTIFICATION":
+            x["blocker"] = "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY"
+            x["comparator_cites_unknown_nct"] = nct_of[x["label"]]
     _rep0 = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
                             compared=_rep0 or None, accounted_other=accounted_other)
@@ -1616,7 +1725,10 @@ def topic(slug, T):
                                     for tp in T["topics"] if tp["slug"] == slug), None),
             "blockers": dict(blockers), "top_blocker": (blockers.most_common(1)[0][0] if blockers else None),
             "other_agent_units": other_agent,
-            "comparator_findings": comparator_findings(trials, comp),
+            "comparator_findings": comparator_findings(trials, comp) + [
+                {"finding": "COMPARATOR_CITES_NCT_NOT_IN_REGISTRY", "trial": x["label"], "comparator": comp,
+                 "basis": f"{', '.join(x['comparator_cites_unknown_nct'])} is not in the AACT snapshot "
+                          "(registry/comparator_nct_check.json)"} for x in trials if x.get("comparator_cites_unknown_nct")],
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if is_matched(x))),
             "same_trials": dict(same_trials_compare(pairs, method),
@@ -1627,6 +1739,16 @@ def topic(slug, T):
             "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
+    sk, sspan = comparator_stated_k(comp)
+    out["comparator_stated_k"] = {"k": sk, "span": sspan}
+    if sk is not None and sk > out["N_comparator_trials"]:
+        # the comparator's own abstract states MORE trials than its enumerated list holds. Either our enumeration missed
+        # a trial (dpp4: '6 trials'; CAROLINA is in its references, absent from ours) or the comparator's count is wrong
+        # (iv-iron: 'six randomized controlled trials', and both of its own tables list five). Stated, never resolved here.
+        out["comparator_findings"].append({"finding": "COMPARATOR_STATED_K_ABOVE_ENUMERATED_N", "trial": "(the comparator set)",
+                                           "comparator": comp, "stated_k": sk, "enumerated_N": out["N_comparator_trials"],
+                                           "span": sspan, "basis": "check the comparator's own trial table: a trial "
+                                           "missing from our enumeration, or a wrong count in the comparator"})
     _abs = _j(os.path.join(OUT, "comparator_abstracts.json")) if os.path.exists(os.path.join(OUT, "comparator_abstracts.json")) else {}
     _ab = _abs.get(str(comp))
     wp = whole_pool_comparison(out, printed_k=printed_trial_count(_ab if isinstance(_ab, str) else json.dumps(_ab or "")))
@@ -1752,7 +1874,7 @@ def table():
                           + (f", {an.get('param_type')} {an.get('param_value')} ({an.get('ci_lower')}-{an.get('ci_upper')})"
                              if an else "") + f"; the comparator pooled it as {d.get('comparator_pooled_it_as')}")
         for f in o.get("comparator_findings") or []:
-            md.append(f"- COMPARATOR FINDING {f['finding']}: {f['trial']} -- comparator row {f.get('comparator_row')}"
+            md.append(f"- COMPARATOR FINDING {f['finding']}: {f.get('trial') or '(the comparator set)'} -- comparator row {f.get('comparator_row')}"
                       + (f" vs trial report {f['trial_report']}" if f.get("trial_report") else "")
                       + (f"; {f['detail']}" if f.get("detail") else "") + (f" ({f['basis']})" if f.get("basis") else ""))
         for e in o.get("ours_not_in_comparator_detail") or []:
