@@ -67,6 +67,13 @@ def as_row(primary, label, measure_hint=None):
                            sd_t=primary.get("sd_t"), mean_c=primary.get("mean_c"), sd_c=primary.get("sd_c"))
 
 
+def row_value(r):
+    """A SecondaryRow as the value dict agreement() compares (None for no row)."""
+    if r is None:
+        return None
+    return {k: getattr(r, k, None) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}
+
+
 def agreement(ours, theirs):
     """Our pooled value vs the comparator's printed row for the same trial: AGREE / DISAGREE / NOT_COMPARABLE[:why]."""
     if not ours or not theirs:
@@ -1744,6 +1751,7 @@ def topic(slug, T):
         theirs = pick_comparator_row(sec, comp, t["label"][:60], row_owner, used_rows, comp_by_label.get(t["label"][:60]))
         if theirs is not None:
             used_rows.add(id(theirs))
+        vrow = None                       # the verified non-pool row that enters the same-trials pair
         if in_pool:
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
@@ -1760,10 +1768,12 @@ def topic(slug, T):
             if best:
                 route = sm.route_of(best[0])
                 basis = f"meta {best[0].meta_pmid} {best[0].state} {(best[0].verification or {}).get('route') or ''}".strip()
+                vrow = best[0]
                 if theirs is not None:
                     pairs.append((best[0], theirs))
             elif ss and ss.get("row") is not None:
                 route, basis = "SECONDARY_SINGLE", ss["basis"]
+                vrow = ss["row"]
                 if theirs is not None:
                     pairs.append((ss["row"], theirs))
             elif any(r.state != sm.REFUSED for r in sec):
@@ -1791,14 +1801,17 @@ def topic(slug, T):
                                              if theirs and theirs.state == sm.MISMATCH else None),
                        "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
                                                                           "events_t", "n_t", "events_c", "n_c")}
-                                     if in_pool and mine.get("primary") else None),
+                                     if in_pool and mine.get("primary") else row_value(vrow)),
                        "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all)
                                             if not in_pool and (t.get("ncts") or []) else None),
                        "g1_countable": (in_pool and route == "PRIMARY") or bool(sm.g1_countable(sec, {comp}))
                                        or route == "SECONDARY_SINGLE",
                        "secondary_single": ({k: v for k, v in ss.items() if k != "row"} if (not in_pool and ss) else None),
+                       # a trial matched through a VERIFIED non-pool row is compared on that row -- the same row its
+                       # same-trials pair uses (empagliflozin-hfpef EMPEROR-Preserved, meta 35338608 PRIMARY_VERIFIED,
+                       # read NOT_IN_OUR_POOL while its pair was in the comparison)
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
-                       else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None,
+                       else (agreement(row_value(vrow), theirs) if vrow is not None else "NOT_IN_OUR_POOL"), "comparator_row_state": theirs.state if theirs else None,
                        "comparator_row_reasons": list(theirs.reasons or []) if theirs else []})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
