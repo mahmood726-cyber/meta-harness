@@ -287,8 +287,27 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     # a cited PMID, adding every other paper registered to its NCT is association, not identity.
     if not pmid_resolved:
         for n in list(ncts):
-            pmids |= set(idx.get("nct_pmids", {}).get(n, []))
+            cand = set(idx.get("nct_pmids", {}).get(n, []))
+            # a paper published BEFORE the trial started cannot report it: a registration may type its own background
+            # literature as RESULT (PACMAN-AMI, started 2017, lists ODYSSEY LONG TERM 2015 and FH I/II 2015 as RESULT and
+            # so inherited LONG TERM's identity). Kept when either year is unknown.
+            ys = dict(pub_years(sorted(q for q in cand if q not in YEARS), _OFFLINE), **YEARS) if cand else {}
+            early = {q for q in cand if published_before_start(q, n, idx, ys)}
+            if early:
+                basis.append(f"nct_pmids_published_before_trial_start:{len(early)}")
+            pmids |= cand - early
     return {"pmids": sorted(pmids), "ncts": sorted(ncts), "basis": basis}
+
+
+_OFFLINE = False
+
+
+def published_before_start(pmid, n, idx, years) -> bool:
+    """True only when we KNOW the paper's year precedes the trial's start year (AACT studies.start_date)."""
+    st = (idx.get("study") or {}).get(n) or {}
+    d = (st.get("start_date") or "")[:4]
+    y = years.get(pmid)
+    return d.isdigit() and bool(y) and int(str(y)[:4]) < int(d)
 
 
 def registry_acronyms_of(pmid, idx):
@@ -733,6 +752,8 @@ def pubmed_author_year(author, year, agents, offline):
 def main(argv=None):
     argv = argv or sys.argv[1:]
     offline = "--offline" in argv
+    global _OFFLINE
+    _OFFLINE = offline
     log = lambda m: print(m, flush=True)  # noqa: E731
     os.makedirs(OUT, exist_ok=True)
     topics = []
