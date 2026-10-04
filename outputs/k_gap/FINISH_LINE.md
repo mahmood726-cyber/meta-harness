@@ -32,6 +32,39 @@ trial (5 copies in 4 topics fixed: pcsk9 FH II / FH I and PACMAN-AMI / LONG TERM
 ticagrelor two / PLATO, balanced Semler [15] / SMART); comparator-cited NCTs checked against AACT (137 cited, 1 invalid);
 letters resolved by CommentOn; registry outcomes named by the topic's outcome name.
 
+## Round 3 (4 Oct, "full bore"): harness classes fixed in code, no tracker regeneration
+Each takes effect on the next table/tracker build in the full-cache environment; measured here in memory or on the corpus.
+
+| commit | class | trials it moves | corpus impact |
+|---|---|---|---|
+| 1ddd89c3 | a reference published before the trial STARTED is not its result (`k_gap_table.published_before_start`) | pcsk9 PACMAN-AMI: its registration types ODYSSEY LONG TERM / FH I-II (2015) as RESULT; it started 2017 | 1 trial, 11 refs dropped, 9 kept (JAMA 35368058 kept) |
+| 0853c324 | a trial reached through ANOTHER report inherits that report's declaration (`via_report_absent`) | pcsk9 GLAGOV: blocker SCREENED_VIA_OTHER_REPORT -> EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT (JAMA 27846344 declared from its abstract, no full text held) | label only |
+| af4972d2 | report pick never falls back to a paper its own main-report test rejects (`shown_pmid`) | pcsk9 FH II: design-and-rationale 24842558 -> joint results paper 26330422 (pubmed_ncts keeps ONE NCT per PMID); blocker IDENTIFICATION -> EXTRACTION:OUTCOME_NOT_IN_SOURCE | 1 of 307 picks |
+| be3efe3e | 'ACRONYM YYYY' normalises to the acronym (`k_gap.norm_acronym`) | omega3 ASCEND (NCT00135226), ORIGIN (NCT00069784), GISSI-HF (NCT00336336); metformin PCOSMIC (NCT00795808) -- all were UNRESOLVED once the table's shifted xrefs were distrusted | 5 labels |
+| 247ae55c | a registration typing EVERY reference BACKGROUND keeps those whose own PubMed record names its NCT (`ensure_background_refs`, `background_self_reports`) | pcsk9 DESCARTES: 12 refs all BACKGROUND, NEJM report 24678979 among them | 1 NCT |
+| 2f8c0a72 | X-DESIGN audit: 'randomized, open, single-center' states open-label (`OPEN`) | colchicine-postop Zarpelon [20]: full text PMC4976950 says "randomized, open, single-center" -> TRUE_SCOPE_DIFFERENCE once `k_gap_exclusion_fulltext.py` reruns (its last run predates this row) | 4 abstracts newly match, all open-label |
+
+Named, NOT fixed (each needs a decision or a source, not code):
+- **POPULATION_VOCABULARY is a protocol decision, not a screener bug** (codex's recorded class, reproduced here). X2 does
+  what the protocol says; the vocabulary is the question. probiotics `population_any` lists only OUTCOME phrases
+  ('antibiotic-associated diarr*'); Cindoruk, Plomer, Shimbo (H. pylori eradication) and Plummer (patients on
+  antibiotics) never say them. Adding 'antibiotic therapy/treatment', 'eradication therapy', 'Helicobacter pylori'
+  flips **20 of 449** records to INCLUDE (most are H. pylori trials with GI-symptom outcomes) -- a scope change.
+  omega3: adding 'angina', 'reinfarction' moves DART (2571009) and DART-2 (12571649) from X2 to **X3** (dietary advice is
+  not the protocol intervention): they stay excluded either way, and X3 is the honest reason.
+- **omega3 'Risk & Prevention 2013'**: no acronym; AACT has TWO n-3 registrations titled 'Risk and Prevention Study'
+  (NCT00317707, NCT02103517) -- a name route would be AMBIGUOUS, so it stays IDENTITY_UNRESOLVED. GISSI-P (1999) predates
+  registries.
+- **pcsk9 ODYSSEY LONG TERM**: MACE is post hoc in its report; our rule does not pool a post-hoc outcome as the primary.
+  Codex calls this gate unsupported by the protocol; it is a stated rule, so changing it is a decision.
+- **iv-iron AFFIRM-AHF**: its effect is a RATE ratio (total hospitalisations), not a risk ratio -- a true estimand
+  difference. HEART-FID needs decision (3).
+- **spironolactone RALES**: our row is labelled RR because the NEJM text says "relative risk", but it is a Cox estimate
+  (an HR) -- it belongs under decision (1), not a separate fix.
+
+Decisions now open for Mahmood (none applied): (1)-(3) above, plus **(4)** may the probiotics population include patients
+on antibiotic / H. pylori eradication therapy whose record never names AAD (20 records flip)?
+
 ## Closed on this branch
 | topic | what closed | how |
 |---|---|---|
@@ -103,9 +136,7 @@ letters resolved by CommentOn; registry outcomes named by the topic's outcome na
 - 5 of 19 independently confirmed. The other 14 are trialist-supplied data, a contradicted meta, or posted percentages.
 
 ## Found while closing (not fixed on this branch)
-- **pcsk9-mace, ODYSSEY FH II (NCT01709500):** reads blocker IDENTIFICATION. Yet it is in our own build (family
-  PMID 26330422) and not pooled, with no refusal recorded. A missing refusal falls through to IDENTIFICATION: a
-  pre-existing class, distinct from the seeding fix below.
+- **pcsk9-mace, ODYSSEY FH II (NCT01709500):** fixed in round 3 (af4972d2): the identity reader picked the design paper.
 - **Rebuild environment:** a fresh worktree lacks the gitignored caches (`outputs/k_gap/_aact_results.json`, `_ctgov/`,
   `_ft/`, `_upw/`, `_reg/`, `_aact_store.json`). A tracker rebuild here silently loses pool rows that rest on them:
   probiotics Ehrhardt, corticosteroids-covid19 CoDEX, and one non-comparator pool trial in colchicine-postop-af. Those
