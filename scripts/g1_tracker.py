@@ -361,9 +361,11 @@ _STOP = {"of", "for", "the", "and", "or", "with", "in", "to", "a", "due", "by"}
 
 
 def _name_words(x):
-    """Content words of an outcome name or registry title, plural and British -isation folded."""
+    """Content words of an outcome name or registry title, plural and British -isation folded, and the registry's 'HF'
+    read as 'heart failure' (AFFIRM-AHF NCT02937454 posts 'HF Hospitalisations' in participants: never named)."""
     import re as _r
     w = _r.findall(r"[a-z]+", (x or "").lower().replace("hospitalis", "hospitaliz"))
+    w = [y for v in w for y in (("heart", "failure") if v == "hf" else (v,))]
     return {_r.sub(r"s$", "", v) for v in w if v not in _STOP}
 
 
@@ -394,7 +396,40 @@ def keyword_named(keyword, title):
     return len(kt) >= 2 and all(w in tt for w in kt)
 
 
-def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
+_PER_PROTOCOL = re.compile(r"\bper[- ]protocol\b|\bPP (?:population|set|analysis)\b", re.I)
+_EXTENDED_COMPOSITE = re.compile(r"\bplus\b|\bexpanded\b|\bextended\b|\b(?:4|four|5|five)[- ]point\b", re.I)
+_THREE_POINT = re.compile(r"\b(?:3|three)[- ]point\b", re.I)
+_RECURRENT = re.compile(r"\brecurrent\b|\btotal (?:number of )?(?:events|hospitali[sz]ations)\b|first and subsequent", re.I)
+_DEATH = re.compile(r"\bdeaths?\b|\bmortality\b|\bdied\b|\bfatal\b", re.I)
+# a protocol outcome that is itself a set of events ('Major vascular events' includes vascular death; not flagged composite)
+_EVENTS_SPEC = re.compile(r"\bevents?\b|composite|\bMACE\b", re.I)
+
+
+def analysis_set_or_extension_differs(spec_name, title, population):
+    """A registry outcome that names our outcome but is ANOTHER analysis set or an EXTENDED composite (dpp4 TECOS
+    NCT00790205 posts 'MACE Plus' -- its 4-point composite -- and '(Per Protocol Population)' beside the ITT 3-point
+    MACE; both reached the ARMS gate and only the missing counts refused them). None when neither applies."""
+    t = title or ""
+    pop = (population or "").lower()
+    if _PER_PROTOCOL.search(t) and ("intention" in pop or "itt" in pop.split() or "all randomi" in pop):
+        return f"analysis set: the registry outcome is per-protocol ('{t}'); the protocol's population is '{population}'"
+    if _THREE_POINT.search(spec_name or "") and _EXTENDED_COMPOSITE.search(t):
+        return f"extended composite: the registry outcome '{t}' extends the protocol's '{spec_name}'"
+    # first AND recurrent events (a total-events analysis) is not time to the first event (sglt2-pp EMPEROR-Preserved:
+    # 'Occurrence of Adjudicated Hospitalisation for Heart Failure (HHF) (First and Recurrent)')
+    if _RECURRENT.search(t) and not _RECURRENT.search(spec_name or ""):
+        return f"recurrent-event analysis: the registry outcome '{t}' counts recurrent events; the protocol's is first event"
+    # a protocol outcome without death, a registry outcome that adds it ('HF Hospitalizations and CV Death', AFFIRM-AHF):
+    # a different composite even when no 'composite' / 'or' word says so
+    from harness import extract
+    single = not extract.declared_is_composite(spec_name or "") and not _EVENTS_SPEC.search(spec_name or "")
+    if single and _DEATH.search(t) and not _DEATH.search(spec_name or ""):
+        return f"composite with death: the registry outcome '{t}' adds death to the protocol's '{spec_name}'"
+    return None
+
+
+def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False, analysis=None, estimand=None,
+                    population=None):
     """One registry outcome through the binding gates, in order:
       OUTCOME_NOT_NAMED  the title names no topic keyword (generic anchors like 'primary outcome' do not count): being
                          the trial's PRIMARY outcome is not identity with OUR outcome
@@ -417,15 +452,46 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     mm = definition_gate(spec_name, title)
     if not mm and not extract.declared_is_composite(spec_name) and extract._names_composite(title):
         mm = f"declared single outcome '{spec_name}' but the registry outcome is a composite: '{title}'"
+    if not mm:
+        mm = analysis_set_or_extension_differs(spec_name, title, population)
     if mm:
         return {"gate": "ESTIMAND", "verdict": "REFUSED", "reason": mm, "named_by": named}
     if n_groups < 2:
-        return {"gate": "ARMS", "verdict": "REFUSED", "reason": "fewer than two result groups with people-unit counts",
-                "named_by": named}
+        # an effect ESTIMAND needs no arm counts: the registry's own analysis between exactly two groups, on the
+        # protocol's measure, with BOTH CI bounds, is its result (dpp4 TECOS NCT00790205: 'First Confirmed CV Event of
+        # MACE (Intent to Treat Population)', HR 0.99 (0.89, 1.1), refused for lacking people-unit counts). A one-sided
+        # bound is no CI (EXAMINE NCT00968708: HR 0.962, upper 1.16 only) and is refused AS such.
+        ok, why = posted_effect_on_estimand(analysis, estimand)
+        if ok:
+            return {"gate": None, "verdict": "BINDABLE", "reason": None, "named_by": named,
+                    "basis": "POSTED_EFFECT_ON_PROTOCOL_ESTIMAND"}
+        return {"gate": "ARMS", "verdict": "REFUSED", "named_by": named,
+                "reason": why or "fewer than two result groups with people-unit counts"}
     return {"gate": None, "verdict": "BINDABLE", "reason": None, "named_by": named}
 
 
-def registry_binding(nct, spec_name, keywords):
+_PARAM_OF = {"HR": "hazard ratio", "RR": "risk ratio", "OR": "odds ratio", "MD": "mean difference"}
+
+
+def posted_effect_on_estimand(analysis, estimand):
+    """(True, None) when a posted analysis is the protocol's estimand between two groups with a two-sided CI;
+    (False, reason) when it is the estimand but not usable as such; (False, None) when it says nothing."""
+    want = _PARAM_OF.get((estimand or "").upper())
+    if not (want and analysis and want in (analysis.get("param_type") or "").lower()):
+        return False, None
+    if len(set(analysis.get("groups") or [])) != 2:
+        return False, f"posted {analysis.get('param_type')} is not between exactly two groups"
+    vals = [sm._num(analysis.get(k)) for k in ("param_value", "ci_lower", "ci_upper")]
+    if None in vals:
+        return False, (f"posted {analysis.get('param_type')} {analysis.get('param_value')} has a one-sided bound only "
+                       f"(lower '{analysis.get('ci_lower')}', upper '{analysis.get('ci_upper')}'): no two-sided CI")
+    lo, pt, hi = vals[1], vals[0], vals[2]
+    if not lo < pt < hi:
+        return False, f"posted {analysis.get('param_type')} {pt} lies outside its CI ({lo}, {hi})"
+    return True, None
+
+
+def registry_binding(nct, spec_name, keywords, estimand=None, population=None):
     """BIND A COMPARATOR TRIAL WE DO NOT POOL VIA THE AACT SNAPSHOT (source hierarchy 2a), through the same gates.
     Candidates: the trial's PRIMARY posted outcomes and any outcome whose title names a topic keyword. Gates, in order:
       ESTIMAND  extract.composite_component_mismatch(topic outcome, registry outcome title) -- a different composite
@@ -441,10 +507,15 @@ def registry_binding(nct, spec_name, keywords):
     if not reg:
         return {"state": "NO_POSTED_RESULTS", "nct": nct}
     kws = [k.lower() for k in keywords if k]
+    sw = _name_words(spec_name)
     cands = []
     for oid, o in reg["outcomes"].items():
         t = o.get("title") or ""
-        if (o.get("type") or "").upper() != "PRIMARY" and not any(k in t.lower() for k in kws):
+        # a candidate is named the SAME way the binding gate names it -- a keyword substring OR the topic's outcome name
+        # (AFFIRM-AHF: 'HF Hospitalisations', its participant outcome, was never a candidate while its composite primary
+        # was; with only the composite refused at ESTIMAND, scope_difference named the trial an ESTIMAND_DIFFERENCE)
+        if (o.get("type") or "").upper() != "PRIMARY" and not any(k in t.lower() for k in kws) \
+                and not (sw and sw <= _name_words(t)):
             continue
         groups = reg["groups"].get(oid) or []
         an = next((a for a in reg["analyses"] if a["outcome_id"] == oid), None)
@@ -452,7 +523,8 @@ def registry_binding(nct, spec_name, keywords):
              "arms": [dict(g, title=reg["group_titles"].get(str(g["group"]))) for g in groups], "analysis": an,
              "snapshot": reg["_snapshot"]}
         c.update(binding_verdict(spec_name, keywords, t, len({g["group"] for g in groups}),
-                                 is_primary=(o.get("type") or "").upper() == "PRIMARY"))
+                                 is_primary=(o.get("type") or "").upper() == "PRIMARY", analysis=an, estimand=estimand,
+                                 population=population))
         cands.append(c)
     if not cands:
         return {"state": "NO_CANDIDATE_OUTCOME", "nct": nct}
@@ -922,6 +994,70 @@ def sweep_merge(slug, trials, routes=None, pairs=None):
                                      provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
                                      outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
                                                                                        "n_t", "events_c", "n_c")})
+            pairs.append((as_row(v, x["label"], theirs.measure), theirs))
+        got.append(x["label"])
+    if routes is not None:
+        for k in [k for k, n in routes.items() if n <= 0]:
+            del routes[k]
+    return got
+
+
+def acquired_rows(slug):
+    """ADMITTED rows of scripts/g1_trial_acquire.py for a topic (registry/g1_acquired/<slug>.json), by trial label."""
+    p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
+    if not os.path.exists(p):
+        return {}
+    return {r["label"]: r for r in _j(p).get("rows") or [] if r.get("verdict") == "ADMITTED" and r.get("admitted")}
+
+
+def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
+    """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
+    through scripts/g1_trial_acquire.py's gates is PRIMARY-verified (2 Oct decision, restated 3 Oct; the rule of
+    single_primary_source): matched, countable, compared on that tuple. A SECONDARY_SINGLE trial is PROMOTED -- its meta
+    pair in the same-trials comparison is replaced by the primary tuple. Never a pooled, named or already-PRIMARY trial.
+    Returns the labels merged."""
+    acq = acquired_rows(slug)
+    got = []
+    for x in trials:
+        a = acq.get(x["label"])
+        if not a or x.get("in_our_pool") or x.get("scope_difference"):
+            continue
+        promote = x.get("route") == "SECONDARY_SINGLE"
+        if is_matched(x) and not promote:
+            continue
+        ad = a["admitted"]
+        v = ad.get("value") or {}
+        cr = x.get("comparator_row")
+        theirs = None
+        if cr:
+            theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                     provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
+                                     outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
+                                                                                       "n_t", "events_c", "n_c")})
+        if pairs is not None and promote and cr:
+            same = [i for i, (_o, t) in enumerate(pairs)
+                    if t.meta_pmid == str(comp) and all(str(getattr(t, k)) == str(cr.get(k)) for k in
+                                                        ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"))]
+            for i in reversed(same):
+                pairs.pop(i)
+        if routes is not None:
+            routes[x["route"]] -= 1
+            routes["PRIMARY"] += 1
+        x.update(route="PRIMARY", g1_countable=True, blocker=None, our_value=v, matched_by="ACQUIRED_PRIMARY",
+                 basis=f"single PRIMARY source (2 Oct decision): {ad['kind']} {ad['source']}; model-read (record "
+                       f"{a.get('record_id')}), gate-verified (scripts/g1_trial_acquire.py)",
+                 acquired={"kind": ad["kind"], "source": ad["source"], "span": ad.get("span"), "quote": ad.get("quote"),
+                           "record_id": a.get("record_id"), "promoted_from": "SECONDARY_SINGLE" if promote else None},
+                 agreement_with_comparator_row=agreement(v, theirs) if theirs is not None else
+                 "NOT_COMPARABLE:NO_COMPARATOR_ROW")
+        chk = ad.get("comparator_counts_check")
+        if chk and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
+            # the comparator's counts are the trial's posted EVENT counts (AFFIRM-AHF 217 vs 294, units Events) pooled over
+            # participant denominators: the disagreement falls on the comparator's side
+            x["disagreement_side"] = (f"SECONDARY_WRONG (the comparator's counts {chk['comparator_counts']} are the posted "
+                                      f"'{chk['title']}' measurements in {chk['units']}, not participants; "
+                                      f"{chk['nct']} outcome {chk['outcome_id']})")
+        if pairs is not None and theirs is not None:
             pairs.append((as_row(v, x["label"], theirs.measure), theirs))
         got.append(x["label"])
     if routes is not None:
@@ -2265,7 +2401,9 @@ def topic(slug, T):
                        "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
                                                                           "events_t", "n_t", "events_c", "n_c")}
                                      if in_pool and mine.get("primary") else row_value(vrow)),
-                       "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all)
+                       "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all,
+                                                             estimand=(cfg.get("primary_outcome") or {}).get("estimand"),
+                                                             population=(cfg.get("primary_outcome") or {}).get("population"))
                                             if not in_pool and (t.get("ncts") or []) else None),
                        "g1_countable": (in_pool and route == "PRIMARY") or bool(sm.g1_countable(sec, {comp}))
                                        or route == "SECONDARY_SINGLE",
@@ -2388,6 +2526,7 @@ def topic(slug, T):
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)
     name_letter_units_by_comment_on(slug, cfg, trials, rev)
+    acquired_merge(slug, trials, routes, pairs, comp)
     side_from_trial_text(trials, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]

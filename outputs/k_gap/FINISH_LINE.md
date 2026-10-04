@@ -66,6 +66,14 @@ Named, NOT fixed (each needs a decision or a source, not code):
 Decisions now open for Mahmood (none applied): (1)-(3) above, plus **(4)** may the probiotics population include patients
 on antibiotic / H. pylori eradication therapy whose record never names AAD (20 records flip)?
 
+## Round 4 (4-5 Oct): named-divergence gaps from the live page (main 3733b80a); rebased on acq/k-gap f34580f9
+| topic | live state (main) | what this branch did | expected at the captain's next union |
+|---|---|---|---|
+| semaglutide-obesity-weight | O'Neil 2018 SCREENED_OUT_UNAUDITED:X-DOSE (the exclusion audit cannot reproduce an arm-object rule) | `arm_object_difference` (0ad16e87) + X-DOSE route (df7fa4d7): named PROTOCOL_SCOPE_DIFFERENCE from O'Neil's own abstract -- "semaglutide [0·05 mg, 0·1 mg, 0·2 mg, 0·3 mg, or 0·4 mg" once daily (protocol: 2.4 mg weekly) and "The primary endpoint was percentage weight loss at week 52." (protocol: Week 68 +/- 8). Corpus: 1 trial named | **G1_MATCHED** (in memory on this branch: yes), on 2 eligible of the comparator's 4 (O'Neil ARM_OBJECT, Rubino X2) |
+| empagliflozin-hfpef-hosp | only RESULT_AGREES unmet: FEWER_THAN_2_COMPARABLE_PAIRS, k = 1 | upstream f34580f9's k = 1 rule compares the one shared trial; checked on the consolidated input: EMPEROR-Preserved meta 35338608 PRIMARY_VERIFIED HR 0.79 (0.69-0.90) vs comparator 0.79 (0.69-0.90) -> ONE_SHARED_TRIAL AGREE. 915c1840 makes its per-trial label AGREE (was NOT_IN_OUR_POOL while its pair was compared) | **G1_MATCHED**, on 1 eligible of 2 (SOLOIST-WHF named X2). MATCHED_ARE_VERIFIED and DIVERGENCES_NAMED were already met on main |
+| colchicine-recurrent-pericarditis | Finkelstein (12574898), COPE (16186437): NO_RECORD_HELD | records fetched here (not committed: PubMed abstracts are not open-licensed): our screen excludes both and the audit gives TRUE_SCOPE_DIFFERENCE with title spans -- Finkelstein X2 'postpericardiotomy' (title "Colchicine for the prevention of postpericardiotomy syndrome."), COPE X3 non-placebo comparator ("Colchicine in addition to conventional therapy for acute pericarditis..."). Both real: the protocol is recurrent pericarditis, placebo-controlled | named once the members step fetches the two records (they are IDENTIFICATION members on main); still NOT matched: only CORP stays eligible and it has no comparator row (RESULT_AGREES cannot be met) |
+| dpp4-mace-t2d | COMPARATOR_NO_PRIMARY_RESULT; EXAMINE OUTCOME_NOT_IN_SOURCE, TECOS ESTIMAND_CLASS_MISMATCH | 75f69adb: TECOS's posted ITT 3-point MACE HR 0.99 (0.89, 1.1) now binds (one source); EXAMINE refused as 'one-sided bound only' (HR 0.962, upper 1.16). A second source for either is a forest read: the sweep found 10 OA metas, all figures only | cannot reach G1: the comparator prints no pooled MACE result |
+
 ## Closed on this branch
 | topic | what closed | how |
 |---|---|---|

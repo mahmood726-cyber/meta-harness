@@ -47,9 +47,6 @@ RANDOMISED_HERE = re.compile(r"\b(?:were|was|been|are|is)\s+(?:\w+\s+)?randomi[s
 # a comparison is STATED (an active or non-placebo comparator), even when no placebo is named
 COMPARISON_STATED = re.compile(r"\bversus\b|\bvs\.?\s|compared (?:with|to)|\bcombination\b|with (?:and|or) without|added to", re.I)
 BLIND = re.compile(r"\b(?:double|single|triple)[- ]?blind\w*|\bblinded\b|\bmasked\b|open[- ]label|unblinded|not blinded", re.I)
-# (the bare design adjective 'randomized, open,' is NOT here: unattributed it fires on a background line about ANOTHER
-# study -- 'Unlike the earlier randomized, open, single-center study' (NR-C21); THIS study's open design is
-# OPEN_DESIGN_SELF, which requires the self-attribution)
 # a design LIST states open-label without the word (g1/finish-line: Zarpelon [20], PMC4976950 'a prospective, randomized,
 # open, single-center clinical assay'); "open" counts only beside a design word ('open heart' never) and never when the
 # list is attributed to ANOTHER study ('Unlike the earlier randomized, open, single-center study', NR-C21) -- both plants
