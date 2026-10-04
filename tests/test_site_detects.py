@@ -22,12 +22,13 @@ def _files_with_detects():
 FILES = _files_with_detects()
 # regex-layer files 42 + other lane: batch 1 70, batch 2 69, batch 3 56, batch 4 59, batch 5 71
 N_SITES = 42 + 70 + 69 + 56 + 59 + 71 + 8      # + harness/whole_numbers.py (R4)
+N_SITES += 8 + 2         # + harness/analysis_set.py (g1/sglt2 lane) + 2 NR-C23 arm_object (consolidation 2026-10-04)
 SITE_KEYS = sorted(k for k in INLINE_SPECS if k.split(":", 1)[0] in FILES)
 
 
 def test_keys_are_exactly_the_planted_sites():
     assert len(FILES) >= 50, "the inventory found too few files -- the key set would be vacuous"
-    assert len(SITE_KEYS) == N_SITES == 375, "every non-extract.py site planted in this landing carries a labelling spec"
+    assert len(SITE_KEYS) == N_SITES == 385, "every non-extract.py site planted in this landing carries a labelling spec"
     assert sorted(DETECTS) == SITE_KEYS
 
 

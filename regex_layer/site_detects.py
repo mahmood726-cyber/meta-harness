@@ -779,8 +779,10 @@ DETECTS.update({
                             "trigger": r"week", "text_source": _REC_TA, "lowercased": False},
     "arm_object.py:_AGE_RANGE": {"detects": "the text states the entry age range in years",
                                  "trigger": r"aged?\b", "text_source": _REC_TA, "lowercased": False},
-    "arm_object.py:_REF_DOSE": {"detects": "the text states the semaglutide dose of the contrast",
-                                        "trigger": r"semaglutide", "text_source": _REC_TA, "lowercased": False},
+    "arm_object.py:_REF_DOSE": {"detects": "a semaglutide clause states a reference dose of the contrast",
+                                "trigger": r"\d\s*mg",
+                                "text_source": "a semaglutide clause: up to 160 characters after 'semaglutide' in the "
+                                               "record title + abstract (NR-C23 parser)", "lowercased": False},
     # ---- harness/claimgraph.py ---------------------------------------------------------------------------------------
     "claimgraph.py:_PMID_RE": {"detects": "the text carries a PMID", "trigger": r"\d{7}|pmid", "text_source": _IDS4,
                                "lowercased": False},
@@ -1074,3 +1076,36 @@ for _site in ("whole_numbers.py:_GROUPED_BEFORE", "whole_numbers.py:_GROUPED_AFT
                       "lowercased": False,
                       "why_not_labellable": "reads a character window around a number, not text a labeller can judge; "
                                             "its effect is measured through the extractors it guards"}
+
+# ---- consolidation 2026-10-04: harness/analysis_set.py (g1/sglt2-primary-prevention-hf lane) + 2 NR-C23 arm_object sites
+_AS_SRC = "a trial report's abstract sentence stating per-arm counts (harness/analysis_set.py; colchicine-postop-af COPPS-2)"
+DETECTS.update({
+    "analysis_set.py:_ARM_N": {"detects": "an arm's randomised size stated as 'arm (...; n=N)'",
+                               "trigger": r"n\s*=\s*\d", "text_source": _AS_SRC, "lowercased": False},
+    "analysis_set.py:_COUNT": {"detects": "one arm's events (and n) inside a count group ('arm, E patients' / 'E/N patients')",
+                               "trigger": r",\s*\d+(?:\s*/\s*\d+)?\s+patients", "text_source": _AS_SRC,
+                               "lowercased": False},
+    "analysis_set.py:_N_TO_GROUP": {"detects": "an arm size stated as 'N to the X group'",
+                                    "trigger": r"\d+\s+to\s+the\b", "text_source": _AS_SRC, "lowercased": False},
+    "analysis_set.py:_PAREN": {"detects": None, "text_source": _AS_SRC, "lowercased": False,
+                               "why_not_labellable": "delimits a parenthetical group for the count parser; matches "
+                                                     "punctuation structure, not meaning"},
+    "analysis_set.py:_PCT_PAIR": {"detects": "a percentage pair for two arms ('7.04% versus 13.04%')",
+                                  "trigger": r"\d%\s*(?:versus|vs\.?)\s*\d", "text_source": _AS_SRC,
+                                  "lowercased": False},
+    "analysis_set.py:_SENT": {"detects": None, "text_source": _AS_SRC, "lowercased": False,
+                              "why_not_labellable": "a sentence boundary for splitting; matches punctuation, not meaning"},
+    "analysis_set.py:_SET": {"detects": "the analysis set named before a count group (on-treatment / per-protocol / "
+                                        "intention-to-treat / ITT)",
+                             "trigger": r"on-treatment|per-protocol|intention-to-treat|\bITT\b", "text_source": _AS_SRC,
+                             "lowercased": False},
+    "analysis_set.py:_WS": {"detects": None, "text_source": _AS_SRC, "lowercased": False,
+                            "why_not_labellable": "whitespace normalisation; matches formatting, not meaning"},
+    "arm_object.py:_RUNIN_OR_TARGET": {"detects": "a run-in, or a titration TO a target dose (never the randomised dose)",
+                                       "trigger": r"run-?in|lead-?in|escalat|titrat|increas",
+                                       "text_source": "one sentence of a semaglutide trial record around its dose list",
+                                       "lowercased": False},
+    "arm_object.py:_SEMA_DOSE_LIST": {"detects": "the dose list stated immediately after 'semaglutide'",
+                                      "trigger": r"semaglutide", "text_source": "a semaglutide+placebo trial record's "
+                                      "title + abstract (middle-dot decimals normalised)", "lowercased": False},
+})
