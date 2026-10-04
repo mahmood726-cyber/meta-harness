@@ -32,9 +32,108 @@ NOT_A_REPORT = re.compile(r"\bprotocol\b|rationale and design|\bdesign and ratio
                           r"\bbaseline characteristics\b|\bstudy design\b", re.I)
 
 
+def k_gap_fold(x):
+    from kgap import k_gap as _kg
+    return _kg.fold_dashes(str(x or ""))
+
+
 def _j(p):
     with open(p, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+_STOP = {"and", "of", "the", "in", "for", "with", "on", "a", "an", "to", "or", "by", "at", "after", "versus", "vs"}
+
+
+def spells_out(acr, text, max_skip=3):
+    """Does TEXT spell the acronym out? In order, each acronym letter taken from a word-start prefix of a CAPITALISED
+    word ('Randomized ALdactone Evaluation Study' -> RALES), at most `max_skip` words skipped between two used words
+    (EPHESUS skips 'Acute Myocardial Infarction'), at least 3 words used. Lower-case words are never used: a sentence-case
+    title can spell almost anything."""
+    a = re.sub(r"[^A-Z]", "", (acr or "").upper())
+    words = re.findall(r"[A-Za-z]+", text or "")
+    if len(a) < 4 or not words:
+        return False
+
+    def go(ai, wi, used, skipped):
+        if ai == len(a):
+            return used >= 3
+        for j in range(wi, len(words)):
+            if used and j - wi > max_skip:
+                return False
+            w = words[j]
+            if w[0].isupper() and w[0].upper() == a[ai]:
+                for k in range(min(len(w), len(a) - ai), 0, -1):
+                    if w[:k].upper() == a[ai:ai + k] and go(ai + k, j + 1, used + 1, 0):
+                        return True
+            if not used and j - wi > 40:
+                return False
+        return False
+    return go(0, 0, 0, 0)
+
+
+def expansion_hits(acr, titles):
+    """PMIDs whose title or study-group CollectiveName spells the acronym out. titles: {pmid: (title, collective)}."""
+    return sorted(p for p, (ti, co) in titles.items() if spells_out(acr, ti) or spells_out(acr, co))
+
+
+def comment_target(rec):
+    """The article a Letter / Comment record comments on (PubMed CommentOn), when it is ONLY a letter / comment and
+    links exactly one; else None."""
+    pt = set(rec.get("pubtypes") or [])
+    if not pt & {"Letter", "Comment", "Editorial"} or pt & {"Randomized Controlled Trial", "Clinical Trial"}:
+        return None
+    on = rec.get("comment_on") or []
+    return on[0] if len(on) == 1 else None
+
+
+def pubmed_records(pmids, offline):
+    """PMID -> {title, collective, pubtypes, comment_on} from PubMed efetch XML; cached in outputs/k_gap/
+    pubmed_records_identity.json so a rerun replays them (a failed fetch is never cached)."""
+    import xml.etree.ElementTree as ET
+    cp = os.path.join(OUT, "pubmed_records_identity.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({p for p in pmids if p and str(p).isdigit() and p not in cache})
+    if todo:
+        from harness import http
+        for i in range(0, len(todo), 100):
+            chunk = todo[i:i + 100]
+            try:
+                body = http.get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                                     {"db": "pubmed", "id": ",".join(chunk), "retmode": "xml"})
+                root = ET.fromstring(body.encode("utf-8") if isinstance(body, str) else body)
+            except Exception as exc:  # noqa: BLE001
+                print("efetch failed", exc)
+                continue
+            for art in root.iter("PubmedArticle"):
+                pm = (art.findtext(".//MedlineCitation/PMID") or "").strip()
+                cache[pm] = {"title": "".join(art.find(".//ArticleTitle").itertext()) if art.find(".//ArticleTitle") is not None else "",
+                             "collective": " | ".join((c.text or "") for c in art.iter("CollectiveName")),
+                             "pubtypes": [x.text for x in art.iter("PublicationType") if x.text],
+                             "comment_on": [c.findtext("PMID") for c in art.iter("CommentsCorrections")
+                                            if c.get("RefType") == "CommentOn" and c.findtext("PMID")]}
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def expansion_candidates(year, agents, offline):
+    """PubMed: the year's RCT-typed papers naming a topic agent (cached query -> ids, outputs/k_gap/pubmed_expansion.json)."""
+    cp = os.path.join(OUT, "pubmed_expansion.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
+    q = f"{year}[dp] AND ({ag}) AND randomized controlled trial[pt]"
+    if q not in cache and not offline:
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                              {"db": "pubmed", "term": q, "retmode": "json", "retmax": 400})
+            cache[q] = d.get("esearchresult", {}).get("idlist", [])
+            with open(cp, "w", encoding="utf-8") as fh:
+                json.dump(cache, fh, indent=1, sort_keys=True)
+        except Exception as exc:  # noqa: BLE001
+            print("esearch failed", exc)
+    return q, cache.get(q) if isinstance(cache.get(q), list) else []
 
 
 def main(argv):
@@ -120,6 +219,38 @@ def main(argv):
             if v["state"] == "RESOLVED":
                 v["scope"] = "IN_SCOPE"            # the candidate already had to name a topic agent
             results[f"{slug}::{label}"] = v
+    # ---- acronym-EXPANSION route: an acronym + year label still unresolved ('RALES1999', 'EPHESUS2003'): the year's
+    # RCT-typed papers naming a topic agent whose title or study-group name SPELLS THE ACRONYM OUT; exactly one
+    for t in items:
+        key = f"{t['slug']}::{t['label']}"
+        if (results.get(key) or {}).get("state") == "RESOLVED":
+            continue
+        m = re.match(r"^\s*([A-Z][A-Z0-9-]{3,})\s*,?\s*\(?((?:19|20)\d\d)\)?", k_gap_fold(t["label"]))
+        if not m:
+            continue
+        acr, year = m.group(1), m.group(2)
+        agents = kt.topic_agents(topics[t["slug"]])
+        q, ids = expansion_candidates(year, agents, offline)
+        recs = pubmed_records(ids, offline)
+        hits = expansion_hits(acr, {p: (recs.get(p, {}).get("title", ""), recs.get(p, {}).get("collective", ""))
+                                    for p in ids if p in recs})
+        if len(hits) == 1:
+            p = hits[0]
+            link = ic.pmid_to_ncts([p], snap).get(p) or {}
+            results[key] = {"state": "RESOLVED", "basis": "ACRONYM_EXPANSION", "pmid": p,
+                            "nct": next(iter(link), None) if len(link) == 1 else None, "scope": "IN_SCOPE",
+                            "span": (recs[p]["title"] if spells_out(acr, recs[p]["title"]) else recs[p]["collective"])[:300],
+                            "query": q}
+        elif len(hits) > 1:
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_EXPANSION", "pmids": hits, "query": q}
+    # ---- COMMENT-ON route: a unit whose only report is a Letter / Comment is the article it comments on
+    T_all = [t for t in T["trials"] if len(t.get("pmids") or []) == 1 and t.get("status") != "POOLED"]
+    recs = pubmed_records([t["pmids"][0] for t in T_all], offline)
+    for t in T_all:
+        tgt = comment_target(recs.get(t["pmids"][0]) or {})
+        if tgt:
+            results[f"{t['slug']}::{t['label']}"] = {"state": "COMMENT_ON", "basis": "PUBMED_COMMENT_ON",
+                                                     "from": t["pmids"][0], "pmid": tgt}
     from collections import Counter
     out = {"n": len(items), "by_state": dict(Counter(v["state"] for v in results.values())),
            "by_scope": dict(Counter(v.get("scope") for v in results.values() if v["state"] == "RESOLVED")),
