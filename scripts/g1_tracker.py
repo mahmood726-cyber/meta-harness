@@ -428,10 +428,14 @@ def registry_binding(nct, spec_name, keywords, estimand=None, population=None):
     if not reg:
         return {"state": "NO_POSTED_RESULTS", "nct": nct}
     kws = [k.lower() for k in keywords if k]
+    sw = _name_words(spec_name)
     cands = []
     for oid, o in reg["outcomes"].items():
         t = o.get("title") or ""
-        if not binding_candidate(t, keywords, (o.get("type") or "").upper() == "PRIMARY"):
+        # a candidate is named the SAME way the binding gate names it -- upstream's keyword rule OR the topic's outcome
+        # name (AFFIRM-AHF: 'HF Hospitalisations', its participant outcome, was never a candidate while its composite
+        # primary was; with only the composite refused at ESTIMAND, scope_difference named the trial an ESTIMAND_DIFFERENCE)
+        if not binding_candidate(t, keywords, (o.get("type") or "").upper() == "PRIMARY")                 and not (sw and sw <= _name_words(t)):
             continue
         groups = reg["groups"].get(oid) or []
         an = next((a for a in reg["analyses"] if a["outcome_id"] == oid), None)
@@ -881,6 +885,13 @@ def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
                            "record_id": a.get("record_id"), "promoted_from": "SECONDARY_SINGLE" if promote else None},
                  agreement_with_comparator_row=agreement(v, theirs) if theirs is not None else
                  "NOT_COMPARABLE:NO_COMPARATOR_ROW")
+        chk = ad.get("comparator_counts_check")
+        if chk and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
+            # the comparator's counts are the trial's posted EVENT counts (AFFIRM-AHF 217 vs 294, units Events) pooled over
+            # participant denominators: the disagreement falls on the comparator's side
+            x["disagreement_side"] = (f"SECONDARY_WRONG (the comparator's counts {chk['comparator_counts']} are the posted "
+                                      f"'{chk['title']}' measurements in {chk['units']}, not participants; "
+                                      f"{chk['nct']} outcome {chk['outcome_id']})")
         if pairs is not None and theirs is not None:
             pairs.append((as_row(v, x["label"], theirs.measure), theirs))
         got.append(x["label"])
