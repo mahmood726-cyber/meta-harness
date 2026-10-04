@@ -39,3 +39,12 @@ def test_a_silent_record_is_not_named(monkeypatch):
 def test_a_pooled_trial_is_never_named():
     assert gt.arm_object_difference({"in_our_pool": True, "family": "PMID 30122305"}, CFG,
                                     "semaglutide-obesity-weight") is None
+
+
+def test_an_x_dose_screen_out_is_named_from_the_record_not_the_audit():
+    # main 3733b80a: O'Neil SCREENED_OUT by the arm-object stage's X-DOSE read SCREENED_OUT_UNAUDITED:X-DOSE
+    x = {"in_our_pool": False, "family": "PMID 30122305", "label": "O'Neil, 2018",
+         "seeded_funnel": {"stage": "SCREENED_OUT", "rule_id": "X-DOSE", "pmid": "30122305",
+                           "reason": "X-DOSE: randomised semaglutide dose is 0.4 mg, but the protocol requires 2.4 mg."}}
+    d = gt.scope_difference(x, CFG, "semaglutide-obesity-weight")
+    assert d and d["rule_id"] == "X-DOSE" and d["kind"] == "PROTOCOL_SCOPE_DIFFERENCE" and d["span"]["text"]

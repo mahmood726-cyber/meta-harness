@@ -1192,6 +1192,11 @@ def scope_difference(x, cfg, slug=None):
     if f.get("stage") == "SCREENED_OUT":
         if not f.get("rule_id"):
             return None                     # a screen-out with no rule cited is a blocker, never a named difference
+        if f["rule_id"] == "X-DOSE":
+            # the ARM-OBJECT stage's rule: the exclusion audit re-runs screen_record only and cannot reproduce it (main
+            # 3733b80a: O'Neil 2018 read SCREENED_OUT_UNAUDITED:X-DOSE). The trial's own record must state the dose.
+            ad = arm_object_difference(x, cfg, slug)
+            return dict(ad, rule_id="X-DOSE", screen_reason=f.get("reason")) if ad else None
         # NAMED only when the deterministic exclusion audit says the record STATES the excluding fact; a screener error
         # or a thin record is a BLOCKER to fix, never a scope difference (6 of the first audit's 57 were screener errors)
         cls, sub = exclusion_audit_class(slug, f.get("pmid"))
@@ -1247,7 +1252,7 @@ def arm_object_difference(x, cfg, slug):
     if x.get("in_our_pool"):
         return None
     fam = str(x.get("family") or "")
-    pmid = fam.replace("PMID ", "") if fam.startswith("PMID ") else (x.get("seeded_funnel") or {}).get("pmid")
+    pmid = (x.get("seeded_funnel") or {}).get("pmid") or (fam.replace("PMID ", "") if fam.startswith("PMID ") else None)
     rec = held_record(slug, pmid) if pmid else None
     if not rec:
         return None
