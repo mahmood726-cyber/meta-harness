@@ -57,3 +57,19 @@ def test_adding_death_is_another_composite_only_for_a_single_outcome():
     mve = gt.binding_verdict("Major vascular events", ["major vascular events"],
                              "Major vascular events (vascular death, myocardial infarction, stroke)", 2)
     assert "adds death" not in str(mve.get("reason"))
+
+
+def test_a_name_ruled_outcome_is_a_candidate_so_a_refused_composite_never_names_the_trial(monkeypatch):
+    # AFFIRM-AHF: primary 'HF Hospitalizations and CV Death' (refused: adds death) + 'HF Hospitalisations' (participants)
+    reg = {"outcomes": {"p": {"title": "HF Hospitalizations and CV Death", "type": "PRIMARY", "time_frame": "52 weeks"},
+                        "s": {"title": "HF Hospitalisations", "type": "SECONDARY", "time_frame": "52 weeks"}},
+           "groups": {"s": [{"group": "a", "count": 142, "n": 558}, {"group": "b", "count": 178, "n": 550}], "p": []},
+           "analyses": [], "group_titles": {}, "_snapshot": {"id": "AACT 2026-08-30"}}
+    from kgap import aact_adapter
+    monkeypatch.setattr(aact_adapter, "ensure", lambda ncts: None)
+    monkeypatch.setattr(aact_adapter, "registry_for", lambda nct: reg)
+    rb = gt.registry_binding("NCT02937454", "Heart-failure hospitalization", ["hospitalization for worsening HF"],
+                             estimand="RR", population="intention-to-treat")
+    v = {c["title"]: c["verdict"] for c in rb["candidates"]}
+    assert v == {"HF Hospitalizations and CV Death": "REFUSED", "HF Hospitalisations": "BINDABLE"}
+    assert gt.scope_difference({"registry_binding": rb, "in_our_pool": False}, {}, "iv-iron-hfref-hosp") is None
