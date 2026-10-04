@@ -2,10 +2,10 @@
 
 Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY rows: never pool inputs, never counted toward agreement with their own meta; another meta's rows feed the two-source rule.
 
-- comparators of 32 tracker topics; other metas selected by the two-source sweep: 624
-- ALL: figures read by both models 221; ACCEPTED 114, REFUSED 107 (pooled-reconstruction pass rate 114 of 221); rows proposed 1599, refused (readings disagree) 279, accepted as secondary 908
+- comparators of 32 tracker topics; other metas selected by the two-source sweep: 625
+- ALL: figures read by both models 222; ACCEPTED 115, REFUSED 107 (pooled-reconstruction pass rate 115 of 222); rows proposed 1609, refused (readings disagree) 279, accepted as secondary 918
 - comparators: figures read by both models 25; ACCEPTED 23, REFUSED 2 (pooled-reconstruction pass rate 23 of 25); rows proposed 239, refused (readings disagree) 0, accepted as secondary 239
-- other metas (two-source sweep): figures read by both models 196; ACCEPTED 91, REFUSED 105 (pooled-reconstruction pass rate 91 of 196); rows proposed 1360, refused (readings disagree) 279, accepted as secondary 669
+- other metas (two-source sweep): figures read by both models 197; ACCEPTED 92, REFUSED 105 (pooled-reconstruction pass rate 92 of 197); rows proposed 1370, refused (readings disagree) 279, accepted as secondary 679
 
 ## Comparators
 
@@ -149,6 +149,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | omega3-cardiovascular-events | PMID 29387889 | hoi170076f2 | **ACCEPTED** | 10 / 0 | STATED ['FE'] | 0.97 (0.93-1.01) | FE 0.9672 (0.9292-1.0066) | - |
 | omega3-cardiovascular-events | PMID 31567003 | jah34435-fig-0003 | **ACCEPTED** | 13 / 0 | STATED ['MH-FE'] | 0.95 (0.93-0.98) | MH-FE 0.9520 (0.9261-0.9787) | - |
 | omega3-cardiovascular-events | PMID 35187035 | F4 | **ACCEPTED** | 9 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.95 (0.90-1.00) | DL 0.9505 (0.9020-1.0016); FE 0.9499 (0.9085-0.9932); PM 0.9505 (0.9020-1.0018); REML 0.9506 (0.9011-1.0029) | - |
+| omega3-cardiovascular-events | PMID 37031750 | mmc1.docx#image3.png | **ACCEPTED** | 10 / 0 | STATED ['DL', 'DL+HK', 'PM', 'PM+HK', 'REML', 'REML+HK'] | 0.96 (0.89-1.04) | DL 0.9636 (0.8892-1.0443); DL+HK 0.9636 (0.8815-1.0533); PM 0.9628 (0.8913-1.0400); PM+HK 0.9628 (0.8808-1.0524); REML 0.9637 (0.8889-1.0447); REML+HK 0.9637 (0.8816-1.0534) | - |
 | omega3-cardiovascular-events | PMID 37121469 | fig3 | **ACCEPTED** | 8 / 0 | STATED ['MH-FE'] | 0.93 (0.90-0.97) | MH-FE 0.9328 (0.8953-0.9719) | - |
 | omega3-cardiovascular-events | PMID 38323514 | jah39225-fig-0001 | **REFUSED** | 37 / 0 | STATED ['MH-FE', 'MH-RE'] |  (-) |  | POOLED_ROW_DISAGREES |
 | omega3-cardiovascular-events | PMID 39076869 | S3.F2 | **REFUSED** | 12 / 1 | STATED ['DL'] | 0.98 (0.91-1.06) | DL 0.9821 (0.9079-1.0623) | ROWS_DISAGREE:1 |
