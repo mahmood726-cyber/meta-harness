@@ -75,8 +75,14 @@ def test_the_committed_full_text_verdict_reaches_the_tracker():
 def test_substudy_of_an_rct_is_a_screener_error_and_a_protocol_paper_is_not():
     body = ("BACKGROUND: x. METHODS: 300 patients undergoing cardiac surgery in a multicenter, double-blind, randomized "
             "trial received colchicine or placebo. RESULTS: postoperative atrial fibrillation fell.")
-    cls, sub, _ = audit.classify(_rec("Colchicine and postoperative atrial fibrillation: the X substudy", body), CFG)
-    assert (cls, sub.split(":")[0]) == ("SCREENER_ERROR", "SECONDARY_REPORT_OF_RCT")
+    # the screener error this audit found was FIXED in the screen (g1/tocilizumab-finish: the substudy-title exception
+    # for a typed RCT whose abstract states the randomised comparison), so the audit now reports that the served ruleset
+    # INCLUDES such a report -- the requirement (a substudy of an RCT is not excluded as a non-trial) holds by the fix
+    from harness import screen
+    sub_rec = _rec("Colchicine and postoperative atrial fibrillation: the X substudy", body)
+    assert screen._is_rct(sub_rec)
+    cls, sub, _ = audit.classify(sub_rec, CFG)
+    assert (cls, sub.split(":")[0]) == ("INCONSISTENT", "RULESET_INCLUDES")
     cls, sub, _ = audit.classify(_rec("Rationale and design of the X trial of colchicine after cardiac surgery", body), CFG)
     assert (cls, sub.split(":")[0]) == ("INSUFFICIENT_RECORD", "DESIGN_PAPER_ONLY")      # the trial stays eligible
 

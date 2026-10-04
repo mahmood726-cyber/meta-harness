@@ -48,6 +48,11 @@ def test_every_tracker_exclusion_is_audited_by_one_of_the_two_audits():
     for f in os.listdir(t.G1):
         d = json.load(open(os.path.join(t.G1, f), encoding="utf-8"))
         for x in d.get("trials") or []:
+            if x.get("in_our_pool"):
+                # a POOLED trial is not shown as screened out, whatever funnel record one of its reports carries (esketamine
+                # Trial D: TRANSFORM-3's publication, X-DEDUP of the pooled NCT02422186 row); the audit's population skips
+                # pooled trials (k_gap_exclusion_audit.population_in_screen), so this check does too (consolidation 2026-10-04)
+                continue
             sf = x.get("seeded_funnel") or {}
             m = t.PMID_IN.search(x.get("our_refusal") or "")
             pm = m.group(1) if m else sf.get("pmid")
