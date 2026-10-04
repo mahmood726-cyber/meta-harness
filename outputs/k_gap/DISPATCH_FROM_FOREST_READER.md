@@ -174,3 +174,21 @@ others. It is open through Europe PMC `/PMC9978750/supplementaryFiles`.
 - Its only pooled values are Bayesian network-meta-analysis direct estimates, given as credible intervals.
 - None of our gate's methods (FE / DL / PM / REML / MH) is expected to reproduce those, so it was **not read**.
 - If a rule allowing arm counts without a pooled anchor is ever adopted, this is the source.
+
+### Third sweep, 5 Oct: wide search (systematic reviews and PUB_TYPE meta-analyses, any title)
+
+**Search.** `g1_ss_targets.py --wide` records its own queries and keeps a separate frozen selection
+(`g1_ss_selection_wide.json`, up to 15 unread candidates per topic). Every candidate's figure captions were scanned
+for a per-trial plot of the topic outcome. Read:
+
+| figure | result |
+|---|---|
+| ticagrelor 40051435 F3 panel b (MACE, ACS with CKD) | **ACCEPTED**: 5 rows (Chien-Ho 2019, Ji 2021, Stefan 2010, Yun 2022, Yun-S 2022); FE reproduces 0.89 (0.80–0.99). The meta mixes cohort studies and RCTs. |
+| ticagrelor 38371311 f0015, ticagrelor subgroup 3.1.3 | refused: 11 of 12 rows agree, but 1 disagrees. The 11 agreed rows are ALPHEUS, ESTATE, Li et al., PHILO, PLATO, POPular AGE, TAILOR-PCI, TALOS-AMI, TICAKOREA, Turgeon 2020 and Yun et al. MH-FE on them reproduces the subtotal 0.96 (0.91–1.01). |
+| probiotics 30078376 Fig3 (AAD by composition) | refused: the readers split on whether the multi-study rows are studies. |
+
+**Not read** (each checked):
+- omega3 37031750 fig3 is an outcome summary, not trials.
+- ticagrelor 40489021 is prasugrel.
+- pcsk9: none of the 15 wide candidates has a per-trial MACE plot (they are pooled ODYSSEY analyses, network meta-analyses and LDL figures).
+- metformin and tocilizumab: no per-trial topic-outcome plot among the wide candidates.

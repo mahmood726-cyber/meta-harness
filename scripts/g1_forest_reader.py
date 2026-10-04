@@ -286,6 +286,19 @@ TARGETS: dict = {
     "ticagrelor-vs-clopidogrel-acs::31000178": {
         "fig_id": "fig2", "caption_has": "ticagrelor versus clopidogrel for primary efficacy (A)",
         "refuse": "NOT_TOPIC_TRIALS: a meta-analysis of observational studies (its abstract); no trial rows"},
+    "probiotics-aad-prevention::30078376": {
+        "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
+        "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
+                       "name more than one study, e.g. 'Beausoleil 2007, Sampalis 2010': keep that label whole), and "
+                       "its diarrhoea counts per group and risk ratio. Never give the 'dairy product' or 'food "
+                       "supplement' subtotal rows as rows. Pooled: the 'Combined effect size' row."},
+    "ticagrelor-vs-clopidogrel-acs::40051435": {"fig_id": "F3", "caption_has": "(b) MACE", "panel": "b",
+                                                "panel_title": "MACE"},
+    "ticagrelor-vs-clopidogrel-acs::38371311": {
+        "fig_id": "f0015", "caption_has": "primary efficacy end point of composite thrombotic cardiovascular events",
+        "instruction": "Transcribe ONLY the subgroup '3.1.3 Ticagrelor' (ticagrelor versus clopidogrel): its study rows, "
+                       "with events and totals per group, and that subgroup's own Subtotal (95% CI) row as pooled. "
+                       "Ignore the cangrelor and prasugrel subgroups and the overall Total."},
     "tocilizumab-covid19-mortality::34026583": {"fig_id": "F2", "caption_has": "mortality was reduced in patients treated "
                                                 "with tocilizumab"},
     "tocilizumab-covid19-mortality::39633779": {
@@ -671,7 +684,9 @@ SS_READ = {
     "metformin-pcos-ovulation::28630466", "ticagrelor-vs-clopidogrel-acs::30013323",
     "ticagrelor-vs-clopidogrel-acs::42524293", "ticagrelor-vs-clopidogrel-acs::30412125",
     "pcsk9-mace::39259104", "pcsk9-mace::41235335", "ticagrelor-vs-clopidogrel-acs::31000178",
-    "tocilizumab-covid19-mortality::34026583", "tocilizumab-covid19-mortality::39633779"}
+    "tocilizumab-covid19-mortality::34026583", "tocilizumab-covid19-mortality::39633779",
+    "probiotics-aad-prevention::30078376", "ticagrelor-vs-clopidogrel-acs::40051435",
+    "ticagrelor-vs-clopidogrel-acs::38371311"}
 
 
 def topic_note(key):
