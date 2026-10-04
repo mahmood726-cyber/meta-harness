@@ -186,6 +186,76 @@ def orientation_findings(slug):
     return rows
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Rule F4 MULTI_ARM_COMPARATOR_VALUE_NOT_POSTED -- the registry shows >= 2 EXPERIMENTAL arms against one comparator (fixed
+#   doses), the trial posts one contrast per dose, and the comparator's single value equals NONE of them: the comparator
+#   pooled or chose arms in a way the trial does not report. The harness refuses such trials by rule
+#   (harness/ctgov_results.py MULTI-ARM GUARD: 'esketamine 56 mg / 84 mg / placebo ... the CANTOS/TRANSFORM-1 class').
+# Rule F5 SINGLE_ARM_REGISTERED -- AACT designs: allocation NA / intervention model SINGLE_GROUP: no randomised comparator
+#   exists, so no between-arm effect can come from this trial (protocol design requirement). Span: the designs row.
+AACT_DIR = os.environ.get("AACT_SNAPSHOT_DIR", "F:/AACT-storage/AACT/2026-08-30")
+
+
+def aact_design(nct, root=AACT_DIR):
+    """(row_id, allocation, intervention_model, masking) from AACT designs.txt, or None."""
+    p = os.path.join(root, "designs.txt")
+    if not os.path.exists(p):
+        return None
+    with open(p, encoding="utf-8", errors="replace") as fh:
+        for ln in fh:
+            if f"|{nct}|" in ln:
+                c = ln.rstrip("\n").split("|")
+                return {"row_id": c[0], "allocation": c[2], "intervention_model": c[3], "masking": c[7]}
+    return None
+
+
+def multi_arm_value(groups, analyses, cr):
+    """F4 state for one comparator row: groups = design_groups [{group_type,title}], analyses = posted analyses."""
+    exp = [g for g in groups or [] if (g.get("group_type") or "").upper() == "EXPERIMENTAL"]
+    if len(exp) < 2 or cr.get("effect") in (None, ""):
+        return None
+    from harness import secondary_meta as sm
+    posted = [a for a in analyses or [] if a.get("param_value") not in (None, "")]
+    if not posted:
+        return None
+    same = [a for a in posted if sm._eq_printed(a.get("param_value"), cr.get("effect"))
+            and sm._eq_printed(a.get("ci_lower"), cr.get("lower")) and sm._eq_printed(a.get("ci_upper"), cr.get("upper"))]
+    if same:
+        return None
+    return {"experimental_arms": [g.get("title") for g in exp],
+            "posted_contrasts": [(a.get("param_type"), a.get("param_value"), a.get("ci_lower"), a.get("ci_upper"))
+                                 for a in posted][:6],
+            "rule": "harness/ctgov_results.py MULTI-ARM GUARD (fixed-dose multi-arm: the dose/arm to pool is ambiguous)"}
+
+
+def design_findings(slug):
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
+    T = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"), encoding="utf-8"))
+    tab = {(t["slug"], t["label"]): t for t in T["trials"]}
+    sp = os.path.join(ROOT, "outputs", "k_gap", "_aact_store.json")
+    store = json.load(open(sp, encoding="utf-8")) if os.path.exists(sp) else {}
+    rows = []
+    for x in o["trials"]:
+        if x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"):
+            continue
+        cr = x.get("comparator_row") or {}
+        for nct in sorted(set((tab.get((slug, x["label"])) or {}).get("ncts") or [])):
+            d = aact_design(nct)
+            if d and (d["allocation"] in ("NA", "NON_RANDOMIZED") or d["intervention_model"] == "SINGLE_GROUP"):
+                rows.append({"rule": "F5", "slug": slug, "label": x["label"], "nct": nct, "verdict": "SINGLE_ARM_REGISTERED",
+                             "span": d, "span_source": f"AACT {os.path.basename(AACT_DIR)} designs.txt row {d['row_id']}"})
+                continue
+            aact_adapter.ensure([nct])
+            reg = aact_adapter.registry_for(nct) or {}
+            f4 = multi_arm_value((store.get("design_groups") or {}).get(nct), reg.get("analyses"), cr)
+            if f4:
+                rows.append({"rule": "F4", "slug": slug, "label": x["label"], "nct": nct,
+                             "verdict": "MULTI_ARM_COMPARATOR_VALUE_NOT_POSTED",
+                             "comparator_row": {k: cr.get(k) for k in ("measure", "effect", "lower", "upper")}, **f4,
+                             "span_source": f"AACT {(reg.get('_snapshot') or {}).get('id')} design_groups + outcome_analyses"})
+    return rows
+
+
 def topic(slug):
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
     T = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"), encoding="utf-8"))
@@ -218,7 +288,7 @@ def topic(slug):
 def main(argv):
     os.makedirs(OUT, exist_ok=True)
     for slug in argv:
-        rows = topic(slug) + orientation_findings(slug)
+        rows = topic(slug) + orientation_findings(slug) + design_findings(slug)
         p = os.path.join(OUT, f"findings_{slug}.json")
         with open(p + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
             json.dump({"slug": slug, "findings": rows}, fh, indent=1, ensure_ascii=False)

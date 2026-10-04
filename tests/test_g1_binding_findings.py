@@ -89,3 +89,37 @@ def test_f3_cited_report_and_same_registration():
     assert bf.same_trial_different_report("21091391", "20712869", db)["registration"] == ["NCT00397189"]
     assert bf.same_trial_different_report("21091391", "21091391", db) is None
     assert bf.same_trial_different_report("21091391", "99999999", {**db, "99999999": {"databank": ["NCT01111111"]}}) is None
+
+
+# ---- F4 / F5 (esketamine Trial B = TRANSFORM-1, Trial E = SUSTAIN-2) ---------------------------------------------------
+TRANSFORM1_GROUPS = [{"group_type": "EXPERIMENTAL", "title": "Intranasal Esketamine 84mg plus Oral Antidepressant"},
+                     {"group_type": "EXPERIMENTAL", "title": "Esketamine 56 mg plus Oral Antidepressant"},
+                     {"group_type": "ACTIVE_COMPARATOR", "title": "Placebo plus Oral Antidepressant"}]
+TRANSFORM1_AN = [{"param_type": "Difference of Least Square (LS) Means", "param_value": "-3.2", "ci_lower": "-6.88",
+                  "ci_upper": "0.45"},
+                 {"param_type": "Difference of Least Square (LS) Means", "param_value": "-4.1", "ci_lower": "-7.67",
+                  "ci_upper": "-0.49"}]
+
+
+def test_f4_comparator_value_matching_no_posted_dose_contrast():
+    f = bf.multi_arm_value(TRANSFORM1_GROUPS, TRANSFORM1_AN, {"measure": "MD", "effect": "-5.00", "lower": "-8.10",
+                                                              "upper": "-1.90"})
+    assert f and len(f["experimental_arms"]) == 2 and "MULTI-ARM GUARD" in f["rule"]
+
+
+def test_f4_silent_when_the_comparator_uses_a_posted_contrast():
+    assert bf.multi_arm_value(TRANSFORM1_GROUPS, TRANSFORM1_AN, {"effect": "-4.1", "lower": "-7.67", "upper": "-0.49"}) is None
+
+
+def test_f4_silent_for_a_two_arm_trial():
+    assert bf.multi_arm_value(TRANSFORM1_GROUPS[1:], TRANSFORM1_AN, {"effect": "-5.0", "lower": "-8.1", "upper": "-1.9"}) is None
+
+
+def test_f5_reads_the_aact_designs_row(tmp_path):
+    (tmp_path / "designs.txt").write_text(
+        "id|nct_id|allocation|intervention_model|observational_model|primary_purpose|time_perspective|masking\n"
+        "227554268|NCT02497287|NA|SINGLE_GROUP||TREATMENT||NONE\n"
+        "1|NCT02417064|RANDOMIZED|PARALLEL||TREATMENT||QUADRUPLE\n", encoding="utf-8")
+    d = bf.aact_design("NCT02497287", str(tmp_path))
+    assert d == {"row_id": "227554268", "allocation": "NA", "intervention_model": "SINGLE_GROUP", "masking": "NONE"}
+    assert bf.aact_design("NCT02417064", str(tmp_path))["allocation"] == "RANDOMIZED"
