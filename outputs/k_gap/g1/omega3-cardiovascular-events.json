@@ -5,7 +5,7 @@
  "N_comparator_trials": 28,
  "k_matched": 4,
  "k_in_our_pool": 4,
- "N_eligible": 18,
+ "N_eligible": 19,
  "named_differences": [
   {
    "trial": "Eritsland 1996 [24]",
@@ -149,25 +149,6 @@
    "protocol_rule": "include.design_double_blind = True",
    "registered_eligibility": null,
    "pmid": "25305703"
-  },
-  {
-   "trial": "Alfaddagh 2017 [46]",
-   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-   "rule_id": "X3",
-   "screen_reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
-   "span": {
-    "field": "title",
-    "text": "Effect of Eicosapentaenoic and Docosahexaenoic Acids Added to Statin Therapy on Coronary Artery Plaque in Patients With Coronary Artery Disease: A Randomized Clinical Trial.",
-    "match": "Added to"
-   },
-   "span_source": "PMID 29246960 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
-   "audit": {
-    "class": "TRUE_SCOPE_DIFFERENCE",
-    "subclass": "NON_PROTOCOL_COMPARATOR_STATED (protocol requires placebo, control, corn oil, olive oil)"
-   },
-   "protocol_rule": "include.comparator_any = ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard'] (none met)",
-   "registered_eligibility": null,
-   "pmid": "29246960"
   }
  ],
  "open_gaps": [
@@ -183,6 +164,7 @@
   "Macchia 2013 [41]",
   "Risk & Prevention 2013 [42]",
   "Nigam 2014 [43]",
+  "Alfaddagh 2017 [46]",
   "ASCEND 2018 [47]",
   "Pahor 2019 [48]"
  ],
@@ -204,21 +186,22 @@
  },
  "blockers": {
   "SCREENER_ERROR:POPULATION_VOCABULARY (recorded reader: population MET, quoted)": 1,
-  "SCREENED_OUT_UNAUDITED:X-DESIGN": 1,
+  "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 2,
   "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 5,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 2,
-  "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
   "EXTRACTION:ENDPOINT_UNBOUND": 1,
-  "SCREENED_OUT_UNAUDITED:X2": 2,
-  "EXTRACTION:RESULT_INCOMPATIBLE": 1
+  "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 1,
+  "SCREENED_OUT_UNAUDITED:X-DESIGN": 1,
+  "EXTRACTION:RESULT_INCOMPATIBLE": 1,
+  "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]": 1
  },
  "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 6,
  "routes": {
-  "UNVERIFIED": 13,
-  "NO_ROW": 11,
+  "UNVERIFIED": 18,
+  "NO_ROW": 6,
   "PRIMARY": 4
  },
  "trials": [
@@ -340,8 +323,8 @@
    "label": "GISSI-P 1999 [25]",
    "family": "PMID 10465168",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "SCREEN_OR_ELIGIBILITY",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "IN SCREEN PMID 10465168: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 10465168).",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
@@ -372,9 +355,11 @@
    "our_value": null,
    "registry_binding": null,
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X-DESIGN",
@@ -383,9 +368,32 @@
     "already_in_screen": true
    },
    "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_REFUSED"
+   "blocker": "INSUFFICIENT_RECORD:BLINDING_NOT_STATED",
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "RR",
+     "effect": "0.91",
+     "lower": "0.83",
+     "upper": "1.00",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null
+    },
+    "provenance": {
+     "meta_pmid": "35905212",
+     "location": {
+      "kind": "figure",
+      "id": "F2",
+      "panel": null,
+      "row_label": "GISSI–P 1999"
+     },
+     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
+     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
+     "row_label": "GISSI–P 1999"
+    }
+   }
   },
   {
    "label": "Nilsen 2001 [26]",
@@ -703,7 +711,7 @@
    "family": "PMID 17398308",
    "in_our_pool": false,
    "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK",
    "our_refusal": "IN SCREEN PMID 17398308: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 17398308).",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
@@ -737,9 +745,11 @@
     "nct": "NCT00231738"
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "SECONDARY_UNVERIFIED",
+   "comparator_row_state": "BLOCKED_CROSSCHECK",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X-DESIGN",
@@ -749,38 +759,15 @@
    },
    "scope_difference": null,
    "blocker": "INSUFFICIENT_RECORD:BLINDING_NOT_STATED",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "RR",
-     "effect": "0.81",
-     "lower": "0.69",
-     "upper": "0.95",
-     "events_t": null,
-     "n_t": null,
-     "events_c": null,
-     "n_c": null
-    },
-    "provenance": {
-     "meta_pmid": "35905212",
-     "location": {
-      "kind": "figure",
-      "id": "F2",
-      "panel": null,
-      "row_label": "Yokoyama 2007"
-     },
-     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
-     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
-     "row_label": "Yokoyama 2007"
-    }
-   }
+   "coverage": null,
+   "comparator_sourced_refusal": "COMPARATOR_ROW_BLOCKED_CROSSCHECK"
   },
   {
    "label": "GISSI-HF 2008 [33]",
    "family": "PMID 18757090",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "ACQUISITION",
+   "route": "UNVERIFIED",
+   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "ACQUISITION",
    "absent_code": "OUTCOME_NOT_IN_SOURCE",
@@ -814,13 +801,15 @@
     "nct": "NCT00336336"
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "BLOCKED_CROSSCHECK",
    "scope_difference": null,
    "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_REFUSED"
+   "comparator_sourced_refusal": "COMPARATOR_ROW_BLOCKED_CROSSCHECK"
   },
   {
    "label": "Tuttle 2008 [34]",
@@ -1130,7 +1119,9 @@
     "nct": "NCT00251134"
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
@@ -1208,7 +1199,7 @@
    "g1_countable": true,
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
-   "comparator_row_state": "SECONDARY_UNVERIFIED",
+   "comparator_row_state": "TWO_SOURCE_VERIFIED",
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -1217,8 +1208,8 @@
    "label": "ORIGIN 2012 [40]",
    "family": "PMID 22686415",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "EXTRACTION_FROM_TABLE",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
    "our_refusal": "the hand-extracted number is not bound to an endpoint in the held document (named endpoint has no definition span in the held text); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
    "gap_class": "EXTRACTION_FROM_TABLE",
    "absent_code": "ENDPOINT_UNBOUND",
@@ -1309,13 +1300,38 @@
     ]
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": "EXTRACTION:ENDPOINT_UNBOUND",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_REFUSED"
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "RR",
+     "effect": "1.01",
+     "lower": "0.94",
+     "upper": "1.10",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null
+    },
+    "provenance": {
+     "meta_pmid": "35905212",
+     "location": {
+      "kind": "figure",
+      "id": "F2",
+      "panel": null,
+      "row_label": "ORIGIN 2012"
+     },
+     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
+     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
+     "row_label": "ORIGIN 2012"
+    }
+   }
   },
   {
    "label": "Macchia 2013 [41]",
@@ -1366,7 +1382,7 @@
     "pmid": "23265344"
    },
    "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2",
+   "blocker": "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1397,8 +1413,8 @@
    "label": "Risk & Prevention 2013 [42]",
    "family": "PMID 23656645",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "ACQUISITION",
+   "route": "UNVERIFIED",
+   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 MISMATCH",
    "our_refusal": "declared absent (definition mismatch, cross-family definition audit): the stored 733/6239 vs 745/6266 is Rischio e Prevenzione's REVISED primary endpoint 'death from cardiovascular causes or admission to hospital for cardiovascular causes' ",
    "gap_class": "ACQUISITION",
    "absent_code": "OUTCOME_NOT_IN_SOURCE",
@@ -1432,13 +1448,38 @@
     "nct": "NCT00317707"
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "CONTRADICTED: meta 35187035 MISMATCH"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "PRIMARY_VERIFIED",
    "scope_difference": null,
    "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_REFUSED"
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "RR",
+     "effect": "0.99",
+     "lower": "0.90",
+     "upper": "1.09",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null
+    },
+    "provenance": {
+     "meta_pmid": "35905212",
+     "location": {
+      "kind": "figure",
+      "id": "F2",
+      "panel": null,
+      "row_label": "Risk & Prevention 2013"
+     },
+     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
+     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
+     "row_label": "Risk & Prevention 2013"
+    }
+   }
   },
   {
    "label": "Nigam 2014 [43]",
@@ -1489,7 +1530,7 @@
     "pmid": "25277614"
    },
    "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X2",
+   "blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1521,7 +1562,7 @@
    "family": "PMID 24638908",
    "in_our_pool": false,
    "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK",
    "our_refusal": "IN SCREEN PMID 24638908: SCREENED_OUT X2: wrong population: title/conditions mention 'eye disease'.",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
@@ -1584,9 +1625,11 @@
     ]
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "SECONDARY_UNVERIFIED",
+   "comparator_row_state": "BLOCKED_CROSSCHECK",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X2",
@@ -1688,7 +1731,7 @@
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "IN SCREEN PMID 29246960: SCREENED_OUT X3: no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
+   "our_refusal": "IN SCREEN PMID 29246960: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 29246960).",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -1726,38 +1769,45 @@
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
-    "rule_id": "X3",
-    "reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 29246960).",
     "pmid": "29246960",
     "already_in_screen": true
    },
-   "scope_difference": {
-    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-    "rule_id": "X3",
-    "screen_reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
-    "span": {
-     "field": "title",
-     "text": "Effect of Eicosapentaenoic and Docosahexaenoic Acids Added to Statin Therapy on Coronary Artery Plaque in Patients With Coronary Artery Disease: A Randomized Clinical Trial.",
-     "match": "Added to"
+   "scope_difference": null,
+   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN",
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "RR",
+     "effect": "1.06",
+     "lower": "0.73",
+     "upper": "1.54",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null
     },
-    "span_source": "PMID 29246960 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
-    "audit": {
-     "class": "TRUE_SCOPE_DIFFERENCE",
-     "subclass": "NON_PROTOCOL_COMPARATOR_STATED (protocol requires placebo, control, corn oil, olive oil)"
-    },
-    "protocol_rule": "include.comparator_any = ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard'] (none met)",
-    "registered_eligibility": null,
-    "pmid": "29246960"
-   },
-   "blocker": null,
-   "coverage": null
+    "provenance": {
+     "meta_pmid": "35905212",
+     "location": {
+      "kind": "figure",
+      "id": "F2",
+      "panel": null,
+      "row_label": "Alfaddagh 2017"
+     },
+     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
+     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
+     "row_label": "Alfaddagh 2017"
+    }
+   }
   },
   {
    "label": "ASCEND 2018 [47]",
    "family": "PMID 30146932",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "MEASURE_MISMATCH",
+   "route": "UNVERIFIED",
+   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 MISMATCH",
    "our_refusal": "the bound endpoint span adds component(s) to the declared composite (transient ischemic attack): a different composite is not 'Major vascular events / MACE' and this outcome declares no near-match permission (allow_near_match / component_co",
    "gap_class": "MEASURE_MISMATCH",
    "absent_code": "RESULT_INCOMPATIBLE",
@@ -1784,7 +1834,7 @@
     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
     "row_label": "ASCEND 2018"
    },
-   "disagreement_side": null,
+   "disagreement_side": "UNDETERMINED (primary value not anchored in a primary span)",
    "our_value": null,
    "registry_binding": {
     "state": "BINDABLE",
@@ -1946,13 +1996,15 @@
     ]
    },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "CONTRADICTED: meta 35187035 MISMATCH"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "REFUSED",
+   "comparator_row_state": "MISMATCH",
    "scope_difference": null,
    "blocker": "EXTRACTION:RESULT_INCOMPATIBLE",
    "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_REFUSED"
+   "comparator_sourced_refusal": "COMPARATOR_ROW_MISMATCH"
   },
   {
    "label": "Pahor 2019 [48]",
@@ -2086,7 +2138,7 @@
     "already_in_screen": true
    },
    "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
+   "blocker": "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -2212,7 +2264,7 @@
    "g1_countable": true,
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
-   "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -2228,7 +2280,8 @@
    "RR"
   ],
   "k": 4,
-  "method_basis": "comparator positive control reproduced DL"
+  "method_basis": "comparator positive control reproduced DL",
+  "excluded_named_scope_differences": []
  },
  "ours": {
   "k": 6,
@@ -2266,8 +2319,11 @@
  ],
  "secondary_tally": {
   "SECONDARY_UNVERIFIED": 16,
-  "REFUSED": 5,
-  "PRIMARY_VERIFIED": 1
+  "BLOCKED_CROSSCHECK": 6,
+  "TWO_SOURCE_VERIFIED": 2,
+  "PRIMARY_VERIFIED": 2,
+  "MISMATCH": 4,
+  "REFUSED": 22
  },
  "secondary_skipped": {
   "28673352": "NO_OUTCOME_FOREST_FIGURE",
@@ -2289,13 +2345,11 @@
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
   "held_records": 7,
-  "held_fulltext": 5,
-  "held_unpaywall": 2,
+  "held_fulltext": 0,
+  "held_unpaywall": 0,
   "held_registry": 0
  },
- "served_pool_lags": [
-  "PMID 38199870"
- ],
+ "served_pool_lags": [],
  "g1r_reproduction": {
   "state": "REPRODUCED",
   "rows": 22,
@@ -2312,10 +2366,26 @@
   "why": "1 shared trial(s) on the same side of the null (Bhatt 2019 [49])"
  },
  "k_independent": 4,
- "k_comparator_sourced": 9,
- "k_covered": 13,
+ "k_comparator_sourced": 12,
+ "k_covered": 16,
  "coverage_complete": false,
- "discrepancy_findings": [],
+ "discrepancy_findings": [
+  {
+   "trial": "ASCEND 2018 [47]",
+   "kind": "COMPARATOR_ROW_CONTRADICTED_BY_PRIMARY",
+   "comparator_row": {
+    "effect": "0.99",
+    "lower": "0.91",
+    "upper": "1.09",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "RR"
+   },
+   "side": "UNDETERMINED (primary value not anchored in a primary span)"
+  }
+ ],
  "g1_status": {
   "state": "NOT_YET",
   "criteria": {
@@ -2329,11 +2399,11 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 10,
+   "n": 9,
    "of_comparator_N": 28,
    "by_kind": {
     "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS": 4,
-    "PROTOCOL_SCOPE_DIFFERENCE": 6
+    "PROTOCOL_SCOPE_DIFFERENCE": 5
    },
    "trials": [
     "Eritsland 1996 [24] [G1-OUTCOME-SET]",
@@ -2344,8 +2414,7 @@
     "Tuttle 2008 [34] [X3]",
     "Quinn 2010 [35] [X2]",
     "AREDS2 2014 [44] [X2]",
-    "Doi 2014 [45] [X-DESIGN]",
-    "Alfaddagh 2017 [46] [X3]"
+    "Doi 2014 [45] [X-DESIGN]"
    ]
   }
  }

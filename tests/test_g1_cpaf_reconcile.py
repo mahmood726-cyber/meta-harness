@@ -30,7 +30,9 @@ def test_every_comparator_trial_has_a_class_and_a_reason():
         "Deftereos [16]": "TRUE_SCOPE_DIFFERENCE:PROTOCOL_EXCLUDES_POPULATION",
         "Tabbalat [22]": "TRUE_SCOPE_DIFFERENCE:OPEN_LABEL_STATED",
         "Zarpelon [20]": "TRUE_SCOPE_DIFFERENCE:OPEN_DESIGN_STATED_FOR_THIS_STUDY",    # from its PMC full text
-        "Imazio [19]": "SCREENER_ERROR:SECONDARY_REPORT_OF_RCT",                        # COPPS POAF substudy
+        # COPPS POAF substudy: the screener error was FIXED (the screen includes it since the substudy exception);
+        # what remains is extraction -- its POAF counts are not in the held abstract (consolidation 2026-10-04)
+        "Imazio [19]": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
         # COPPS-2: no held analysis set reproduces the comparator's 0.66 (0.45-0.96); on-treatment is only NEAREST (NR-C20)
         "Imazio [18]": "COMPARATOR_ROW_UNREPRODUCED:NEAREST_HELD_SET_NAMED",
         "Tabbalat [21]": "SAME_NUMBER",                                                  # END-AF low dose
@@ -62,8 +64,13 @@ def test_the_comparators_conclusion_does_not_survive_on_the_shared_trials():
     assert s["B_shared_trials_our_rows_ITT"]["conclusion"] == "NULL_INCLUDED"
     assert s["C_shared_trials_held_set_nearest_the_comparator_row"]["conclusion"] == "BENEFIT"
     assert r["comparator_conclusion"]["on_shared_trials"] == "DOES_NOT_SURVIVE"
-    # within protocol scope the benefit returns only with the COPPS substudy's comparator-only, unverified row
-    assert s["F_protocol_scope_only_with_ITT_where_held"]["comparator_only_rows"] == ["Imazio [19]"]
+    # within protocol scope the benefit returns only with comparator-only, unverified rows: the COPPS substudy's and --
+    # since the consolidated label join attaches the comparator's row to it -- Sarzaeem [23]'s (eligible, not indexed in
+    # the registered sources). Neither is a row of ours (consolidation 2026-10-04)
+    F = s["F_protocol_scope_only_with_ITT_where_held"]
+    assert "Imazio [19]" in F["comparator_only_rows"] and set(F["comparator_only_rows"]) <= {"Imazio [19]", "Sarzaeem [23]"}
+    ours = {t["trial"] for t in r["trials"] if t.get("cls") == "SAME_NUMBER"}
+    assert not (set(F["comparator_only_rows"]) & ours)
 
 
 def test_pre_fix_tracker_left_zarpelon_and_the_substudy_unresolved():

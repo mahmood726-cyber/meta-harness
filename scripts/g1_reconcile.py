@@ -198,7 +198,11 @@ def reconcile(slug):
                 row.update(cls="IDENTITY_UNRESOLVED", verdict="the comparator's label resolves to no held record",
                            searches=IDENTITY_SEARCHES.get((slug, x["label"])))
         else:
-            row.update(cls=x.get("blocker") or "UNCLASSIFIED")
+            # every trial carries a verdict: an eligible trial with an open blocker says so, with the blocker (COPPS-POAF
+            # reached this branch once the screen fix included it and its blocker became extraction -- 2026-10-04)
+            row.update(cls=x.get("blocker") or "UNCLASSIFIED",
+                       verdict=(f"eligible and open: {x.get('blocker') or 'unclassified'}"
+                                + (f" ({str(x.get('our_refusal'))[:160]})" if x.get("our_refusal") else "")))
         rows.append(row)
 
     # --- does the comparator's conclusion survive?

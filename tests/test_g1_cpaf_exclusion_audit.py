@@ -24,14 +24,22 @@ def _rows():
 
 
 def test_every_colchicine_exclusion_is_audited_with_its_class():
-    rows = _rows()
-    want = {"29237033": ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION:'lung resection'"),
-            "23040570": ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"),
-            "24508207": ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"),
-            "27502857": ("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED (protocol requires double-blind)"),
-            "27223641": ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED"),
-            "22090167": ("SCREENER_ERROR", "SECONDARY_REPORT_OF_RCT:'substudy' (route to its trial family)")}
-    assert {p: (rows[p]["class"], rows[p]["subclass"]) for p in want} == want
+    # keyed by the comparator TRIAL (label), not the report PMID: the consolidated identity chain lists all six reports
+    # linked to Bessissow's NCT03310125 and selects the lung-resection pleural-effusion report (29186389) where the
+    # comparator cites the AF report (29237033) -- report selection is the identity lane's (finding recorded,
+    # consolidation 2026-10-04); the trial's class is the requirement here and is the same for either report
+    by_label = {r.get("label"): r for r in _rows().values()}
+    want = {"Bessissow [17]": ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION:'lung resection'"),
+            "Deftereos [15]": ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"),
+            "Deftereos [16]": ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION:'pulmonary vein'"),
+            "Tabbalat [22]": ("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED (protocol requires double-blind)"),
+            "Zarpelon [20]": ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED")}
+    assert {t: (by_label[t]["class"], by_label[t]["subclass"]) for t in want} == want
+    # COPPS-POAF (22090167) is no longer an exclusion to audit: the screener error this audit found was fixed in the
+    # screen (substudy exception), and our served screen INCLUDES it
+    assert "22090167" not in _rows()
+    rev = json.load(open(os.path.join(ROOT, "docs", "reviews", CPAF, "review.json"), encoding="utf-8"))
+    assert next(r for r in rev["screening"]["records"] if r["id"] == "22090167")["decision"] == "include"
 
 
 def test_pre_fix_audit_missed_the_substudy_screener_error():
