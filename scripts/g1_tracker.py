@@ -1166,6 +1166,12 @@ def with_identity_chain(T):
     T = copy.deepcopy(T)
     for t in T["trials"]:
         v = res.get(f"{t['slug']}::{t['label']}")
+        if v and v.get("state") == "COMMENT_ON" and t.get("pmids") == [v.get("from")]:
+            # the unit's only report is a Letter / Comment: it names the article it comments on (PubMed CommentOn)
+            t["pmids"] = [v["pmid"]]
+            t["identity_basis"] = list(t.get("identity_basis") or []) + [f"IDENTITY_CHAIN:COMMENT_ON:{v['from']}->{v['pmid']}"]
+            t["status"] = "RESOLVED_BY_CHAIN"
+            continue
         if not v or v.get("state") != "RESOLVED" or t.get("ncts") or t.get("pmids"):
             continue
         t["ncts"] = [v["nct"]] if v.get("nct") else []

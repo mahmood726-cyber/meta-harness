@@ -178,3 +178,47 @@ def test_outcome_set_names_only_when_the_comparators_analysis_is_complete_and_co
     assert gt.outcome_set_differences(trials(), dict(meta, positive_control={"reproduced": False}), "C",
                                       [_crow("A"), _crow("B")]) == []
     assert gt.outcome_set_differences(trials(), meta, "C", [_crow("A"), _crow("B"), _crow("Z")]) == []
+
+
+def test_a_study_aim_inside_the_background_section_states_the_excluded_population():
+    # tranexamic-acid-pph 5 Oct: WOMAN-2's structured abstract states its aim INSIDE 'BACKGROUND:' -- 'We examined
+    # whether giving tranexamic acid shortly after birth can prevent postpartum haemorrhage in women with ... anaemia'.
+    # The protocol (treatment of diagnosed PPH) excludes 'prevent'; the background filter skipped the sentence and the
+    # trial stayed INSUFFICIENT_RECORD with no span.
+    import json
+    import k_gap_exclusion_audit as xa
+    cfg = json.load(open(os.path.join(ROOT, "topics", "tranexamic-acid-pph.json"), encoding="utf-8"))
+    rec = {"id": "39461792", "title": "The effect of tranexamic acid on postpartum bleeding in women with moderate and "
+                                       "severe anaemia (WOMAN-2): an international, randomised, double-blind, "
+                                       "placebo-controlled trial.",
+           "abstract": "BACKGROUND: Tranexamic acid, given within 3 h of birth, reduces bleeding deaths in women with "
+                       "postpartum haemorrhage. We examined whether giving tranexamic acid shortly after birth can prevent "
+                       "postpartum haemorrhage in women with moderate or severe anaemia. METHODS: This international, "
+                       "randomised, double-blind, placebo-controlled trial recruited women in active labour with "
+                       "anaemia. We randomly assigned women (1:1) who had given birth vaginally to receive 1 g of "
+                       "tranexamic acid or matching placebo.", "conditions": [], "id_type": "pmid", "doi": "",
+           "journal": "Lancet", "year": "2024", "nct": "", "pubtypes": ["Randomized Controlled Trial"]}
+    cls, sub, base = xa._classify(rec, cfg)
+    assert cls == "TRUE_SCOPE_DIFFERENCE" and "prevent" in sub
+    assert "We examined whether" in (base.get("span") or {}).get("text", "")
+    # a BACKGROUND sentence that is NOT this study's aim still never counts
+    rec2 = dict(rec, abstract="BACKGROUND: Prophylactic tranexamic acid is widely used to prevent haemorrhage. METHODS: "
+                              "We randomly assigned women with postpartum haemorrhage to tranexamic acid or placebo.")
+    assert xa._classify(rec2, cfg)[0] != "TRUE_SCOPE_DIFFERENCE"
+
+
+def test_a_negated_excluded_term_in_the_aim_is_not_a_scope_difference():
+    # semaglutide-obesity-mace 5 Oct: OASIS 1 'We assessed ... in adults with overweight or obesity WITHOUT type 2
+    # diabetes' and STEP 6 '... with or without type 2 diabetes' were named PROTOCOL_EXCLUDES_POPULATION:'type 2
+    # diabetes' by the aim rule -- the excluded term is negated there
+    import json
+    import k_gap_exclusion_audit as xa
+    cfg = json.load(open(os.path.join(ROOT, "topics", "semaglutide-obesity-mace.json"), encoding="utf-8"))
+    base = {"id": "1", "conditions": [], "id_type": "pmid", "doi": "", "journal": "J", "year": "2023", "nct": "",
+            "pubtypes": ["Randomized Controlled Trial"], "title": "Oral semaglutide 50 mg taken once per day (OASIS 1)"}
+    for aim in ("We assessed the efficacy and safety of oral semaglutide in adults with overweight or obesity without "
+                "type 2 diabetes.",
+                "In the STEP 6 trial, we assessed the effect of semaglutide in east Asian adults with overweight or "
+                "obesity, with or without type 2 diabetes."):
+        rec = dict(base, abstract="BACKGROUND: " + aim + " METHODS: We randomly assigned adults to semaglutide or placebo.")
+        assert xa._classify(rec, cfg)[1].find("this study's stated aim") < 0

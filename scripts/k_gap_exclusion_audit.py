@@ -294,6 +294,10 @@ def classify(rec, cfg):
     return cls, sub, base
 
 
+_AIM_OF_THIS_STUDY = re.compile(r"\b(?:we|this (?:trial|study))\s+(?:examined|aimed|assessed|evaluated|investigated|"
+                                r"sought|tested|asked|determined)\b", re.I)
+
+
 def _with_span(base, span):
     return dict(base, span=span)
 
@@ -381,6 +385,20 @@ def _classify(rec, cfg):
         return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION:'{term}'",
                 _with_span(base, span_of(rec, _terms_rx([term]), ("title", "conditions", "abstract")) if term else None))
     if rule == "X2":
+        # THIS STUDY'S STATED AIM names a population the protocol EXCLUDES: a structured abstract often states its aim
+        # inside BACKGROUND (WOMAN-2: 'We examined whether giving tranexamic acid shortly after birth can prevent
+        # postpartum haemorrhage in women with ... anaemia'), which the background filter skips wholesale. Only an aim
+        # sentence about THIS study counts ('we examined / aimed / assessed whether ...'), never other background prose.
+        none_rx = _terms_rx(inc.get("population_none"))
+        if none_rx is not None:
+            for sent in re.split(r"(?<=[.!?])\s+", ab):
+                body = re.sub(r"^\s*[A-Z][A-Z /]{2,}:\s*", "", sent)
+                # a NEGATED term ('without type 2 diabetes', 'with or without ...') is not the population (screen._has)
+                from harness.screen import _has as _screen_has
+                term = _screen_has(body, inc.get("population_none") or []) if _AIM_OF_THIS_STUDY.search(body) else None
+                if term:
+                    return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION:'{term}' (this study's stated aim)",
+                            _with_span(base, {"field": "abstract", "text": body.strip(), "match": term}))
         # 'population term absent' cannot tell a vocabulary gap from a different population from an unstated one. The
         # tie-break is the RECORDED second reader's population axis on this same record (scripts/k_gap_screen_recheck.py,
         # quote-verified by model_source.verify_screening): MET -> our wording missed it; NOT_MET -> the record states
