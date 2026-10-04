@@ -281,6 +281,17 @@ TARGETS: dict = {
     "ticagrelor-vs-clopidogrel-acs::30412125": {"fig_id": "F2", "caption_has": "Comparing the efficacy (primary outcomes)"},
     "pcsk9-mace::39259104": {"fig_id": "F7", "caption_has": "Forest plot showing MACEs"},
     "pcsk9-mace::41235335": {"fig_id": "F4", "caption_has": "Forest plots: (A) MACE", "panel": "A", "panel_title": "MACE"},
+    # read once (4 Oct; the pair agreed and reproduced its pool), then refused on what its rows ARE: its abstract --
+    # 'Asian observational studies' -- so no row is a randomised trial of the topic contrast
+    "ticagrelor-vs-clopidogrel-acs::31000178": {
+        "fig_id": "fig2", "caption_has": "ticagrelor versus clopidogrel for primary efficacy (A)",
+        "refuse": "NOT_TOPIC_TRIALS: a meta-analysis of observational studies (its abstract); no trial rows"},
+    "tocilizumab-covid19-mortality::34026583": {"fig_id": "F2", "caption_has": "mortality was reduced in patients treated "
+                                                "with tocilizumab"},
+    "tocilizumab-covid19-mortality::39633779": {
+        "fig_id": "fig4", "caption_has": "mortality in immunomodulators group",
+        "instruction": "Rows: every trial row of the figure, once each, whatever the immunomodulator. Pooled: the "
+                       "figure's overall pooled row."},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
@@ -659,7 +670,8 @@ SS_READ = {
     "omega3-cardiovascular-events::29387889", "omega3-cardiovascular-events::42144851",
     "metformin-pcos-ovulation::28630466", "ticagrelor-vs-clopidogrel-acs::30013323",
     "ticagrelor-vs-clopidogrel-acs::42524293", "ticagrelor-vs-clopidogrel-acs::30412125",
-    "pcsk9-mace::39259104", "pcsk9-mace::41235335"}
+    "pcsk9-mace::39259104", "pcsk9-mace::41235335", "ticagrelor-vs-clopidogrel-acs::31000178",
+    "tocilizumab-covid19-mortality::34026583", "tocilizumab-covid19-mortality::39633779"}
 
 
 def topic_note(key):

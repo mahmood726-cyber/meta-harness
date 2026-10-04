@@ -151,3 +151,26 @@ accepted.
 | probiotics-aad | every open meta of antibiotic-associated diarrhoea that cites the targets is already read. The higher-coverage metas plot *C. difficile* diarrhoea, a different outcome. |
 | metformin-pcos | the high-coverage metas plot other outcomes (endometrium, metabolic markers) or are network metas. |
 | pcsk9 | the high-coverage metas are network meta-analyses, or plot dementia, neurocognitive outcomes or LDL. |
+
+### Second sweep, same night (all ranked candidates, not just the top 15)
+
+| figure | outcome |
+|---|---|
+| ticagrelor 31000178 fig2 panel A | read; the readers agreed and the pool reproduced. Then **refused** on what it is: a meta of observational studies (its abstract), so it has no trial rows. Same precedent as the CAPA plot. |
+| tocilizumab 34026583 F2 | refused: 5 rows disagree. Its rows are observational cohorts anyway. |
+| tocilizumab 39633779 fig4 (immunomodulators) | refused: 1 of 17 rows disagrees. |
+
+**Study design of the accepted figures.** Of the four accepted SECONDARY_SINGLE figures, only omega3 29387889 is
+all-RCT. The other three mix designs:
+- pcsk9 39259104: RCTs, retrospective studies and prospective studies;
+- ticagrelor 30013323: 14 RCTs and 1 observational study;
+- ticagrelor 30412125: the abstract does not say.
+
+Use only the rows that your identity check joins to a comparator RCT.
+
+**Arm-level source for tocilizumab's NCT-only trials.** BMJ Medicine 2022 (PMID 36936570) supplement 1 prints
+arm-level death counts by steroid stratum for COVIDOSE2, HMO-020-0224, COVITOZ, ImmCoVA, PreToVid, COVIDSTORM and
+others. It is open through Europe PMC `/PMC9978750/supplementaryFiles`.
+- Its only pooled values are Bayesian network-meta-analysis direct estimates, given as credible intervals.
+- None of our gate's methods (FE / DL / PM / REML / MH) is expected to reproduce those, so it was **not read**.
+- If a rule allowing arm counts without a pooled anchor is ever adopted, this is the source.
