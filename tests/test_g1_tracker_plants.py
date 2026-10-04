@@ -193,3 +193,30 @@ def test_a_different_number_on_the_other_side_of_the_null_is_not_a_mirrored_orie
                        {"measure": "MD", "effect": "17.4", "lower": "9.8", "upper": "25.0"})
     assert not gt._mirrors({"measure": "MD", "effect": "-17.4", "lower": "-25.0", "upper": "-9.8"},
                            {"measure": "MD", "effect": "8.9", "lower": "1.0", "upper": "16.8"})
+
+
+def _r(label, comp="C"):
+    return sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="", trial_label=label,
+                           measure="OR", outcome_definition="", effect="1.2", lower="0.9", upper="1.6")
+
+
+def test_outcome_set_naming_needs_the_figure_to_be_the_compared_analysis():
+    # metformin 4 Oct: the accepted figure pools OR 1.65 [1.35, 2.03] (21 studies) while the compared comparator result
+    # is OR 2.64 [1.85, 3.75] -- another analysis; its trial set says nothing about the compared result's. A lane-read
+    # comparator (forest-reader ACCEPTED) whose figure IS the compared result names the trials it does not contain.
+    src = [{"branch": "g1/forest-reader", "commit": "e1543f18e8", "sha256": "d6937e9dbe7a", "figure": "F1",
+            "acceptance": {"state": "ACCEPTED", "methods_reproducing": ["MH-FE"], "pooled_anchor": "PRINTED_IN_META_TEXT"},
+            "pooled_agreed": {"effect": "1.65", "lower": "1.35", "upper": "2.03"}}]
+    cm = gt.lane_comp_meta(src)
+    assert cm["usable"] and cm["positive_control"]["reproduced"] and cm["pooled"]["effect"] == "1.65"
+
+    def trials():
+        return [{"label": "A", "in_our_pool": False, "comparator_row": {"effect": "1.2"}},
+                {"label": "B", "in_our_pool": False, "comparator_row": None}]
+    rows = [_r("A")]
+    t = trials()
+    assert gt.outcome_set_differences(t, cm, "C", rows, compared={"estimate": 1.65, "ci_low": 1.35, "ci_high": 2.03}) == ["B"]
+    assert t[1]["scope_difference"]["rule_id"] == "G1-OUTCOME-SET"
+    t = trials()
+    assert gt.outcome_set_differences(t, cm, "C", rows, compared={"estimate": 2.64, "ci_low": 1.85, "ci_high": 3.75}) == []
+    assert not t[1].get("scope_difference")

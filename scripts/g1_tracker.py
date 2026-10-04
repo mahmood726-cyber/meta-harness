@@ -418,7 +418,33 @@ def g1r_reproduction(comp_meta, comp, rows):
             "control_basis": comp_meta.get("control_basis") or "TYPED_TABLE"}
 
 
-def outcome_set_differences(trials, comp_meta, comp, rows):
+def lane_comp_meta(comparator_rows_source):
+    """The comparator's per-trial analysis as the forest-reader lane ACCEPTED it (dual-model read, rows reproduce the
+    printed pool) in the shape outcome_set_differences / g1r read; {} when the lane accepted nothing. Without it, a topic
+    whose rows come from the lane had NO comparator entry and its outcome-set rule never ran (metformin, 4 Oct)."""
+    u = next((u for u in comparator_rows_source or [] if (u.get("acceptance") or {}).get("state") == "ACCEPTED"), None)
+    if not u:
+        return {}
+    acc = u.get("acceptance") or {}
+    return {"usable": True, "provenance": "FOREST_READER_DUAL", "figure": u.get("figure"), "panel": None,
+            "positive_control": {"reproduced": True, "methods": acc.get("methods_reproducing")},
+            "record_id": f"g1/forest-reader {str(u.get('commit'))[:9]}, figure sha256 {str(u.get('sha256'))[:12]}",
+            "control_basis": f"FOREST_READER_ACCEPTANCE ({acc.get('pooled_anchor')})", "pooled": u.get("pooled_agreed")}
+
+
+def pools_agree(pooled, compared):
+    """The analysis's printed pool IS the compared comparator result (point and both bounds, 2-decimal printing)."""
+    try:
+        got = [sm._num(pooled[k]) for k in ("effect", "lower", "upper")]
+        want = [float(compared[k]) for k in ("estimate", "ci_low", "ci_high")]
+    except (KeyError, TypeError, ValueError):
+        return None
+    if None in got:
+        return None
+    return all(abs(a - b) <= 0.0151 for a, b in zip(got, want))
+
+
+def outcome_set_differences(trials, comp_meta, comp, rows, compared=None):
     """NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: G1 matches the comparator's RESULT for this outcome. When the comparator's own
     per-trial analysis of the outcome is COMPLETE and CONTROLLED -- a typed table or a gated figure read for THIS
     outcome, its rows reproducing its printed pooled result (positive control), and EVERY one of its rows joined to a
@@ -428,6 +454,10 @@ def outcome_set_differences(trials, comp_meta, comp, rows):
     when the control did not reproduce, the read is not usable, or any comparator row is unjoined."""
     pc = comp_meta.get("positive_control") or {}
     if not (comp_meta.get("usable") and pc.get("reproduced")):
+        return []
+    # the analysis must BE the compared result: a figure pooling another analysis (metformin: 1.65 vs the compared
+    # 2.64; tocilizumab: all IL-6 agents 0.86 vs tocilizumab 0.83) says nothing about which trials the compared one used
+    if compared and pools_agree(comp_meta.get("pooled") or {}, compared) is not True:
         return []
     crow = [r for r in rows if r.meta_pmid == comp]
     joined = [x for x in trials if x.get("comparator_row")]
@@ -1343,7 +1373,9 @@ def topic(slug, T):
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
-    outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or {}, comp, rows)
+    _rep0 = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
+    outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
+                            compared=_rep0 or None)
     sweep_merge(slug, trials, routes, pairs)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
