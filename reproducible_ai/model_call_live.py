@@ -108,6 +108,23 @@ _READ_CMD = re.compile(r"(?:Get-Content|cat|type|more|head|tail|sed -n|rg|grep|S
                        r"(?P<path>[\w.\\/:-]+\.(?:md|txt|json|py|csv|html|toml|yaml|yml))", re.I)
 
 
+_ABS_PATH = re.compile(r"^(?:[A-Za-z]:[\\/]|/(?:home|Users|mnt)/)")
+_ABS_ANY = re.compile(r"[A-Za-z]:(?:\\+|/)(?!/)[^\s'\"`,;|)]*")
+
+
+def _red_path(f):
+    """An absolute path keeps only its file name; a relative one (inside the work directory) is unchanged."""
+    if not _ABS_PATH.match(f or "") or "mcall-" in f:
+        return f
+    return "<outside-workdir>/" + re.split(r"[\\/]+", f.rstrip("\\/"))[-1]
+
+
+def _red_paths(s):
+    """Every absolute path inside a command or outcome string, reduced to its file name (the work dir is kept)."""
+    return _ABS_ANY.sub(lambda m: m.group(0) if "mcall-" in m.group(0) else
+                        "<outside-workdir>/" + re.split(r"[\\/]+", m.group(0).rstrip("\\/"))[-1], s or "")
+
+
 def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
     """Tokens, tool calls (with outcome) and files read, parsed from the client's stderr; plus the redacted transcript."""
     t = stderr_text.replace("\r\n", "\n")
@@ -121,9 +138,22 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
     if p and p in red:
         red = red.replace(p, f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>")
     red = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", red)
+    # a read OUTSIDE the call's work directory (the client's global instructions sent it to a user's private files,
+    # 4 Oct: <outside-workdir>/INDEX.md was read and its head landed in a committed lane log): every absolute path keeps
+    # only its file name, and the transcript -- which may echo what was read -- is WITHHELD, its digest kept
+    outside = sorted({f for f in files if _ABS_PATH.match(f) and "mcall-" not in f})
+    files = sorted({_red_path(f) for f in files})
+    calls = [{"command": _red_paths(c["command"]) if c["command"] else c["command"], "outcome": _red_paths(c["outcome"])}
+             for c in calls]
+    if outside:
+        red = (f"<withheld: the client read outside its work directory ({len(outside)} file(s)); transcript sha256 "
+               f"{hashlib.sha256(red.encode('utf-8')).hexdigest()}>")
+    else:
+        # attempted (blocked) reads still NAME the user's paths in the transcript: reduce them too
+        red = _red_paths(red)
     return {"tokens_used": tokens, "tool_calls": calls, "tool_calls_n": len(calls),
             "tool_calls_rejected_n": sum(1 for c in calls if c["outcome"].startswith("REJECTED")),
-            "files_read": files, "transcript_redacted": red}
+            "files_read": files, "transcript_redacted": red, "outside_workdir_reads": len(outside)}
 
 
 def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
@@ -137,7 +167,7 @@ def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
             "response_sha256": (record.get("response") or {}).get("sha256"),
             "workdir_files": (record.get("params") or {}).get("workdir_files"),
             **{k: facts[k] for k in ("tokens_used", "tool_calls_n", "tool_calls_rejected_n", "tool_calls", "files_read",
-                                     "transcript_redacted")}}
+                                     "transcript_redacted", "outside_workdir_reads")}}
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(line, sort_keys=True, ensure_ascii=True) + "\n")
@@ -258,6 +288,7 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
                          "stderr_sha256": hashlib.sha256(se).hexdigest(), "stderr_bytes": len(se),
                          "tokens_used": facts["tokens_used"], "tool_calls_n": facts["tool_calls_n"],
                          "tool_calls_rejected_n": facts["tool_calls_rejected_n"], "files_read": facts["files_read"],
+                         "outside_workdir_reads": facts["outside_workdir_reads"],
                          "transcript_redacted_sha256": hashlib.sha256(facts["transcript_redacted"].encode("utf-8")).hexdigest(),
                          "lane_log": f"registry/model_calls/lane_log/{lane_log_name(lane_of(caller))}",
                          "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work "

@@ -67,6 +67,13 @@ def as_row(primary, label, measure_hint=None):
                            sd_t=primary.get("sd_t"), mean_c=primary.get("mean_c"), sd_c=primary.get("sd_c"))
 
 
+def row_value(r):
+    """A SecondaryRow as the value dict agreement() compares (None for no row)."""
+    if r is None:
+        return None
+    return {k: getattr(r, k, None) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}
+
+
 def agreement(ours, theirs):
     """Our pooled value vs the comparator's printed row for the same trial: AGREE / DISAGREE / NOT_COMPARABLE[:why]."""
     if not ours or not theirs:
@@ -1171,6 +1178,63 @@ def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
             "provenance": x.get("comparator_row_provenance") or {}}, None
 
 
+def count_stated(text, a, n):
+    """The span where the text STATES a events of n ('13/98', '4 (3.9%) of 103', '9 of 103'), else None."""
+    m = re.search(rf"(?<![\d.]){a}\s*/\s*{n}(?![\d.])|(?<![\d.]){a}\s*\(\s*[\d.]+\s*%\s*\)\s*of\s*{n}(?![\d.])|"
+                  rf"(?<![\d.]){a}\s+of\s+(?:the\s+)?{n}(?![\d.])", text or "")
+    return m.group(0) if m else None
+
+
+def disagreement_side(ours, theirs, text):
+    """Which side of an ours-vs-comparator DISAGREE the trial's OWN held text supports, or None:
+      COMPARATOR_ARMS_SWAPPED            the comparator's numerators appear stated with their denominators exchanged
+                                         (Pozzoni: report '16/106' S. boulardii, '13/98' placebo; comparator 13/106 vs 16/98)
+      COMPARATOR_ROW_NOT_IN_TRIAL_REPORT  our counts are stated in the report, the comparator's are not
+                                         (Song: report '4 (3.9%) of 103' and '8 (7.2%) of 111'; comparator 9/103 vs 16/111)"""
+    if not text or None in (theirs.get("events_t"), theirs.get("n_t"), theirs.get("events_c"), theirs.get("n_c")):
+        return None
+    a, n1, b, n2 = (theirs[k] for k in ("events_t", "n_t", "events_c", "n_c"))
+    direct = count_stated(text, a, n1) and count_stated(text, b, n2)
+    sw = (count_stated(text, b, n1), count_stated(text, a, n2))
+    if not direct and all(sw) and (a, n1) != (b, n2):
+        return f"COMPARATOR_ARMS_SWAPPED (the trial's report states '{sw[0]}' and '{sw[1]}')"
+    if ours and ours.get("events_t") is not None:
+        s1, s2 = count_stated(text, ours["events_t"], ours["n_t"]), count_stated(text, ours["events_c"], ours["n_c"])
+        if s1 and s2 and not direct:
+            return f"COMPARATOR_ROW_NOT_IN_TRIAL_REPORT (the trial's report states '{s1}' and '{s2}'; the comparator's counts appear nowhere in it)"
+        if s1 and s2 and direct:
+            # the report states BOTH: two definitions of the outcome (Song: 'AAD-1' 4/103 vs 8/111 is the abstract's
+            # primary, 'AAD-2' 9/103 vs 16/111 is what the comparator pooled) -- neither side is wrong
+            d1, d2 = count_stated(text, a, n1), count_stated(text, b, n2)
+            return (f"BOTH_STATED_DIFFERENT_DEFINITIONS (the trial's report states ours '{s1}' / '{s2}' and the "
+                    f"comparator's '{d1}' / '{d2}')")
+    return None
+
+
+def side_from_trial_text(trials, slug):
+    """A per-trial DISAGREE with no side yet takes the side the trial's own held record supports (title + abstract +
+    held full text), so DIVERGENCES_NAMED can be met by evidence rather than left open."""
+    recs = {}
+    for f in (os.path.join(ROOT, "cache", slug, "records.json"), os.path.join(OUT, "member_records.json")):
+        if os.path.exists(f):
+            d = _j(f)
+            for v in (d.values() if isinstance(d, dict) else [d]):
+                for r in (v if isinstance(v, list) else [v]):
+                    if isinstance(r, dict) and r.get("id"):
+                        recs[str(r["id"])] = r
+    for x in trials:
+        if not str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE") or x.get("disagreement_side"):
+            continue
+        pm = str(x.get("family") or "").replace("PMID ", "")
+        r = recs.get(pm) or {}
+        ft = os.path.join(ROOT, "cache", slug, f"ft_{pm}.txt")
+        text = " ".join([r.get("title") or "", r.get("abstract") or "",
+                         open(ft, encoding="utf-8", errors="replace").read() if os.path.exists(ft) else ""])
+        side = disagreement_side(x.get("our_value"), x.get("comparator_row") or {}, text)
+        if side:
+            x["disagreement_side"] = side
+
+
 def discrepancy_findings(o):
     """Typed DISCREPANCY FINDINGS (never a silent overwrite of either side): every trial where our own value (pool /
     primary) and the comparator's row DISAGREE, every comparator row our primary verification contradicted (MISMATCH),
@@ -1362,6 +1426,61 @@ def resolve_cited_letters(trials, comp_rows, rp, screened, co_map):
             rp[id(t)] = co[0]
 
 
+_CITE_CACHE: dict = {}
+
+
+def comparator_acronym_citations(comp):
+    """{ACRONYM: {pmid, ...}} from the comparator's OWN held JATS: an acronym the text DEFINES with a citation -- 'RALES
+    (The Effect of Spironolactone on Morbidity ...) (<xref rid="B1">1</xref>)' -- names the cited reference, whose
+    <pub-id pub-id-type="pmid"> is in the comparator's own reference list."""
+    import glob
+    if comp in _CITE_CACHE:
+        return _CITE_CACHE[comp]
+    out = {}
+    d = os.path.join(ROOT, "cache", "comparators", str(comp or ""))
+    fs = sorted(glob.glob(os.path.join(d, "*jats*.xml")) + glob.glob(os.path.join(d, "*europepmc_fulltext.xml")))
+    for f in fs:
+        if out:
+            break
+        x = open(f, encoding="utf-8", errors="replace").read()
+        refs = {}
+        for rid, body in re.findall(r'<ref id="([^"]+)"[^>]*>(.*?)</ref>', x, re.S):
+            pm = re.findall(r'pub-id-type="pmid">\s*(\d+)', body)
+            if len(pm) == 1:
+                refs[rid] = pm[0]
+        body = x.split("<ref-list", 1)[0]
+        for m in re.finditer(r'(?<![A-Za-z0-9-])([A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*)(?:\s*\([^()<]{0,300}\))?\s*\(?\s*'
+                             r'<xref rid="([^"]+)" ref-type="bibr"', body):
+            if refs.get(m.group(2)):
+                out.setdefault(m.group(1), set()).add(refs[m.group(2)])
+    _CITE_CACHE[comp] = out
+    return out
+
+
+def _smb_comparator(slug):
+    import secondary_meta_build as smb
+    return smb.comparator_pmid(slug)
+
+
+def resolve_by_comparator_citation(comp_rows, comp):
+    """A comparator trial with NO identity (pre-registry, acronym label: 'RALES1999', 'EPHESUS2003') takes the PMID its
+    comparator's own text cites where it DEFINES that acronym -- exactly one cited reference, else nothing. Basis kept."""
+    cites = comparator_acronym_citations(comp)
+    if not cites:
+        return
+    for t in comp_rows:
+        if t.get("pmids") or t.get("ncts"):
+            continue
+        core = t["label"].strip()
+        for _ in range(3):        # trailing reference number, year, or a year glued to the acronym ('RALES1999')
+            core = re.sub(r"\s*(?:[\[(]\s*\d+\s*[\])]|,?\s+(?:19|20)\d\d[a-z]?)\s*$", "", core)
+            core = re.sub(r"(?<=[A-Za-z])(?:19|20)\d\d$", "", core)
+        pm = cites.get(core.upper()) if core.upper() == core else cites.get(core)
+        if pm and len(pm) == 1:
+            t["pmids"] = sorted(pm)
+            t["identity_basis"] = (t.get("identity_basis") or []) + [f"COMPARATOR_TEXT_DEFINES_ACRONYM_WITH_CITATION:{core}"]
+
+
 def needs_seed(x):
     """A comparator trial whose record our own screen must see: not in our pool and not yet funnelled. Never keyed on
     the route: a COMPARATOR-only row (route UNVERIFIED) says nothing about what our screen does with the record
@@ -1378,6 +1497,11 @@ def scope_difference(x, cfg, slug=None):
     if f.get("stage") == "SCREENED_OUT":
         if not f.get("rule_id"):
             return None                     # a screen-out with no rule cited is a blocker, never a named difference
+        if f["rule_id"] == "X-DOSE":
+            # the ARM-OBJECT stage's rule: the exclusion audit re-runs screen_record only and cannot reproduce it (main
+            # 3733b80a: O'Neil 2018 read SCREENED_OUT_UNAUDITED:X-DOSE). The trial's own record must state the dose.
+            ad = arm_object_difference(x, cfg, slug)
+            return dict(ad, rule_id="X-DOSE", screen_reason=f.get("reason")) if ad else None
         # NAMED only when the deterministic exclusion audit says the record STATES the excluding fact; a screener error
         # or a thin record is a BLOCKER to fix, never a scope difference (6 of the first audit's 57 were screener errors)
         cls, sub = exclusion_audit_class(slug, f.get("pmid"))
@@ -1392,6 +1516,9 @@ def scope_difference(x, cfg, slug=None):
                 "audit": {"class": cls, "subclass": sub},
                 "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")),
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
+    ad = arm_object_difference(x, cfg, slug)
+    if ad:
+        return ad
     rb = x.get("registry_binding") or {}
     cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
     ref = [c for c in cands if c.get("gate") == "ESTIMAND"]
@@ -1410,6 +1537,65 @@ def scope_difference(x, cfg, slug=None):
     return None
 
 
+_DOSE = re.compile(r"(\d+(?:[.·]\d+)?)\s*mg\b", re.I)
+_PRIMARY_AT_WEEK = re.compile(r"primary (?:end ?point|outcome|efficacy end ?point)\b[^.]{0,120}?\bweeks? (\d{1,3})\b", re.I)
+
+
+def _sentences(text):
+    return [s.strip() for s in re.split(r"(?<=\.)\s+(?=[A-Z])", text or "") if s.strip()]
+
+
+def arm_object_difference(x, cfg, slug):
+    """A comparator trial whose OWN held record states a different DOSE or a different primary TIMEPOINT than the
+    protocol's registered arm object (cfg.arm_object.dose.required; primary_outcome.timepoint_weeks +/- tolerance):
+    semaglutide-obesity-weight O'Neil 2018 (30122305) -- 'All treatment doses were delivered once-daily' at 0.05-0.4 mg
+    (the protocol's estimand is 2.4 mg weekly) and 'The primary endpoint was percentage weight loss at week 52' (Week 68
+    +/- 8). Named only when (a) the protocol states the requirement, (b) the record states the trial's own value in a
+    verbatim sentence, and for dose (c) the required dose appears NOWHERE in the record and every stated dose of the
+    drug differs. A record that is silent stays an open gap: silence is never a difference."""
+    if x.get("in_our_pool"):
+        return None
+    fam = str(x.get("family") or "")
+    pmid = (x.get("seeded_funnel") or {}).get("pmid") or (fam.replace("PMID ", "") if fam.startswith("PMID ") else None)
+    rec = held_record(slug, pmid) if pmid else None
+    if not rec:
+        return None
+    ab = rec.get("abstract") or ""
+    ao = (cfg or {}).get("arm_object") or {}
+    po = (cfg or {}).get("primary_outcome") or {}
+    found = []
+    dose = ao.get("dose") or {}
+    req, drug = str(dose.get("required") or ""), str(dose.get("drug") or "")
+    if req and drug and _DOSE.search(req):
+        want = float(_DOSE.search(req).group(1).replace("·", "."))
+        text = (rec.get("title") or "") + " " + ab
+        stated = [(s, [float(m.group(1).replace("·", ".")) for m in _DOSE.finditer(s)])
+                  for s in _sentences(ab) if drug.lower() in s.lower()]
+        stated = [(s, ds) for s, ds in stated if ds]
+        alld = [d for _s, ds in stated for d in ds]
+        req_rx = re.escape(req).replace(r"\.", "[.·]").replace(r"\ ", r"\s*")
+        if alld and want not in alld and not re.search(req_rx, text, re.I):
+            s = max(stated, key=lambda t: len(t[1]))[0]
+            found.append({"rule": f"arm_object.dose.required = {req} {drug}", "span": {"field": "abstract", "text": s},
+                          "stated": sorted(set(alld))})
+    tw, tol = po.get("timepoint_weeks"), po.get("timepoint_tolerance_weeks") or 0
+    if tw:
+        for s in _sentences(ab):
+            m = _PRIMARY_AT_WEEK.search(s)
+            if m and abs(int(m.group(1)) - int(tw)) > int(tol):
+                found.append({"rule": f"primary_outcome.timepoint = Week {tw} (tolerance {tol} weeks)",
+                              "span": {"field": "abstract", "text": s}, "stated": f"week {m.group(1)}"})
+                break
+    found = [f for f in found if span_is_verbatim(slug, pmid, f["span"])]
+    if not found:
+        return None
+    return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": "ARM_OBJECT", "gate": "g1_tracker.arm_object_difference",
+            "protocol_rule": "; ".join(f["rule"] for f in found), "span": found[0]["span"],
+            "also": [{"rule": f["rule"], "span": f["span"]} for f in found[1:]],
+            "span_source": f"PMID {pmid} record abstract (held)", "stated": [f["stated"] for f in found],
+            "registered_eligibility": (cfg or {}).get("eligibility_summary"), "pmid": pmid}
+
+
 def blocker_class(x, slug):
     """WHY a comparator trial is an OPEN gap, as a class that can be fixed once for every topic it blocks:
       SCREENER_ERROR:<sub> / INSUFFICIENT_RECORD:<sub>   seeded record screened out; audit says our screen is wrong / thin
@@ -1426,6 +1612,10 @@ def blocker_class(x, slug):
         return f"SCREENED_OUT_UNAUDITED:{f.get('rule_id')}"
     if f.get("stage") == "DECLARED_ABSENT":
         return f"EXTRACTION:{f.get('reason_code')}"
+    va = x.get("via_report_absent")
+    if f.get("stage") == "SCREENED_VIA_OTHER_REPORT" and va:
+        held = {True: "", False: ":DECLARED_WITHOUT_FULL_TEXT", None: ""}[va.get("full_text_held")]
+        return f"EXTRACTION:{va['code']}:VIA_OTHER_REPORT{held}"
     if f.get("stage") in ("NOT_IN_SCREEN", "INCLUDED_NOT_IN_PRIMARY", "SCREENED_VIA_OTHER_REPORT"):
         return f["stage"]
     if x.get("our_refusal") == "NO_RECORD_HELD":
@@ -1435,6 +1625,20 @@ def blocker_class(x, slug):
     if x["family"] is None:
         return "IDENTITY_UNRESOLVED" if (x.get("gap_class") or "").startswith("UNRESOLVED") else (x.get("gap_class") or "UNKNOWN")
     return x.get("gap_class") or "UNKNOWN"
+
+
+_FT_INDEX = None
+
+
+def full_text_held(pmid):
+    """True/False from outputs/k_gap/fulltext_index.json (bytes > 0); None when the index is absent -- unknown, not 'no'."""
+    global _FT_INDEX
+    if _FT_INDEX is None:
+        p = os.path.join(OUT, "fulltext_index.json")
+        _FT_INDEX = _j(p) if os.path.exists(p) else {}
+    if not _FT_INDEX:
+        return None
+    return bool((_FT_INDEX.get(str(pmid)) or {}).get("bytes"))
 
 
 def comparator_findings(trials, comp):
@@ -1850,9 +2054,19 @@ def result_blocker(o, readers_differ=()):
     if readers_differ:
         return {"code": "READERS_DIFFER", "trials": list(readers_differ)}
     state = st.get("state")
+    v = (st.get("verdict") or {}).get("verdict")
     if state == "MEASURE_DIFFERENCE":
-        return {"code": "MEASURE_DIFFERS_DIFFERENT_CONCLUSION", "ours": st.get("ours"), "theirs": st.get("theirs"),
-                "basis": st.get("basis"), "stated_k_span": st.get("stated_k_span"), "outcome_check": st.get("outcome_check")}
+        # upstream f34580f9: our HRs vs their RR/OR pass only on the SAME conclusion about the null
+        return {"code": "MEASURE_DIFFERENCE:" + str(v), "basis": st.get("basis"), "k": st.get("k"),
+                "ours": st.get("ours"), "theirs": st.get("theirs"),
+                "pairs_with_a_different_conclusion": [d["trial"] for d in st.get("measure_differences") or []
+                                                      if not d.get("same_conclusion")],
+                "stated_k_span": st.get("stated_k_span"), "outcome_check": st.get("outcome_check")}
+    if state in ("ONE_SHARED_TRIAL", "ONE_COMPARABLE_TRIAL"):
+        return {"code": "ONE_TRIAL_RESULT:" + str(v), "trial": st.get("trial"), "ours": st.get("ours"),
+                "theirs": st.get("theirs"), "comparator_rows_contradicted_by_primary": wrong}
+    if state == "ROW_NOT_COMPARABLE":
+        return {"code": "ONE_SHARED_TRIAL_NOT_COMPARABLE", "k": st.get("k")}
     if state == "WHOLE_POOL_MEASURE_DIFFERS":
         return {"code": "MEASURE_DIFFERS_WHOLE_POOL", "ours": st.get("ours"), "theirs": st.get("theirs"),
                 "ours_result": st.get("ours_result"), "theirs_result": st.get("theirs_result"), "basis": st.get("basis"),
@@ -1916,6 +2130,7 @@ def topic(slug, T):
     # a DUPLICATE_UNIT is the same comparator trial listed in a second table (k_gap_table.mark_duplicate_units): never twice
     comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"
                  and t.get("status") != "DUPLICATE_UNIT"]
+    resolve_by_comparator_citation(comp_rows, S.get("comparator_pmid") or _smb_comparator(slug))
     other_agent = [t["label"][:60] for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
@@ -1965,6 +2180,7 @@ def topic(slug, T):
         theirs = pick_comparator_row(sec, comp, t["label"][:60], row_owner, used_rows, comp_by_label.get(t["label"][:60]))
         if theirs is not None:
             used_rows.add(id(theirs))
+        vrow = None                       # the verified non-pool row that enters the same-trials pair
         if in_pool:
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
@@ -1981,10 +2197,12 @@ def topic(slug, T):
             if best:
                 route = sm.route_of(best[0])
                 basis = f"meta {best[0].meta_pmid} {best[0].state} {(best[0].verification or {}).get('route') or ''}".strip()
+                vrow = best[0]
                 if theirs is not None:
                     pairs.append((best[0], theirs))
             elif ss and ss.get("row") is not None:
                 route, basis = "SECONDARY_SINGLE", ss["basis"]
+                vrow = ss["row"]
                 if theirs is not None:
                     pairs.append((ss["row"], theirs))
             elif any(r.state != sm.REFUSED for r in sec):
@@ -2012,14 +2230,17 @@ def topic(slug, T):
                                              if theirs and theirs.state == sm.MISMATCH else None),
                        "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
                                                                           "events_t", "n_t", "events_c", "n_c")}
-                                     if in_pool and mine.get("primary") else None),
+                                     if in_pool and mine.get("primary") else row_value(vrow)),
                        "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all)
                                             if not in_pool and (t.get("ncts") or []) else None),
                        "g1_countable": (in_pool and route == "PRIMARY") or bool(sm.g1_countable(sec, {comp}))
                                        or route == "SECONDARY_SINGLE",
                        "secondary_single": ({k: v for k, v in ss.items() if k != "row"} if (not in_pool and ss) else None),
+                       # a trial matched through a VERIFIED non-pool row is compared on that row -- the same row its
+                       # same-trials pair uses (empagliflozin-hfpef EMPEROR-Preserved, meta 35338608 PRIMARY_VERIFIED,
+                       # read NOT_IN_OUR_POOL while its pair was in the comparison)
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
-                       else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None,
+                       else (agreement(row_value(vrow), theirs) if vrow is not None else "NOT_IN_OUR_POOL"), "comparator_row_state": theirs.state if theirs else None,
                        "comparator_row_reasons": list(theirs.reasons or []) if theirs else []})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
@@ -2075,6 +2296,12 @@ def topic(slug, T):
                 f = dict(f, stage="SCREENED_VIA_OTHER_REPORT", via=nct_pool[m.group(1)].replace("PMID ", ""),
                          via_decision="include", nct=m.group(1))
         via = (f.get("via") if str(f.get("via") or "").startswith("NCT") else f"PMID {f.get('via')}") if f.get("via") else None
+        if (not x["in_our_pool"] and f.get("stage") == "SCREENED_VIA_OTHER_REPORT" and via and via not in pooled_ids
+                and via in absent_code):
+            # the report we include for this trial is itself declared absent for the outcome (pcsk9 GLAGOV: JAMA 2016,
+            # 27846344, declared from its abstract; no full text held) -- that declaration, not the screen, is the blocker
+            x["via_report_absent"] = {"id": via, "code": absent_code[via], "reason": absent_by_id.get(via),
+                                      "full_text_held": full_text_held(via.replace("PMID ", ""))}
         if (x["in_our_pool"] or f.get("stage") != "SCREENED_VIA_OTHER_REPORT" or f.get("via_decision") != "include"
                 or not via or via not in pooled_ids or via in matched_ids or not f.get("nct")):
             continue
@@ -2127,6 +2354,7 @@ def topic(slug, T):
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)
     name_letter_units_by_comment_on(slug, cfg, trials, rev)
+    side_from_trial_text(trials, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))

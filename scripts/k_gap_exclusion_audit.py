@@ -50,7 +50,14 @@ BLIND = re.compile(r"\b(?:double|single|triple)[- ]?blind\w*|\bblinded\b|\bmaske
 # (the bare design adjective 'randomized, open,' is NOT here: unattributed it fires on a background line about ANOTHER
 # study -- 'Unlike the earlier randomized, open, single-center study' (NR-C21); THIS study's open design is
 # OPEN_DESIGN_SELF, which requires the self-attribution)
-OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded", re.I)
+# a design LIST states open-label without the word (g1/finish-line: Zarpelon [20], PMC4976950 'a prospective, randomized,
+# open, single-center clinical assay'); "open" counts only beside a design word ('open heart' never) and never when the
+# list is attributed to ANOTHER study ('Unlike the earlier randomized, open, single-center study', NR-C21) -- both plants
+# (tests/test_open_design_list.py, tests/test_g1_cpaf_exclusion_audit.py) hold (consolidation 2026-10-04)
+OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded|"
+                  r"(?<!earlier )(?<!previous )(?<!prior )(?<!another )(?<!other )\brandomi[sz]ed,?\s+open\b(?![- ]heart)|"
+                  r"(?<!randomized, )(?<!randomised, )(?<!randomized )(?<!randomised )"
+                  r"\bopen,?\s+(?:randomi[sz]ed|controlled|parallel|single[- ]cent|multi-?cent|prospective)", re.I)
 # THIS study self-described as open ('This is a prospective, randomized, open, single-center clinical assay') -- narrow on
 # purpose: never 'open-label extension' (a double-blind trial can have one), never 'open heart'
 OPEN_DESIGN_SELF = re.compile(r"\b(?:this|the present|our)\s+(?:is\s+an?\s+|was\s+an?\s+)?(?:\w+\s*,\s*){0,3}?"
@@ -537,7 +544,9 @@ def _classify(rec, cfg):
     if rule == "X-DESIGN":
         return (("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED (protocol requires double-blind)",
                  _with_span(base, span_of(rec, OPEN, ("title", "abstract"))))
-                if OPEN.search(ab)
+                # the TITLE states it too: omega3 JELIS (17398308) 'a randomised open-label, blinded endpoint analysis'
+                # read BLINDING_NOT_STATED while the span search already covered the title
+                if OPEN.search((rec.get("title") or "") + " " + ab)
                 else ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED", base))
     if rule == "X3" and "no eligible comparator" in reason:
         # the span must state ANOTHER comparator: a sentence naming a protocol comparator proves nothing

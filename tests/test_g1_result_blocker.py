@@ -34,13 +34,23 @@ def test_whole_pools_compare_when_the_stated_count_equals_our_matched_set():
     # negative: the comparator excludes the null, ours does not -> a different conclusion, typed as the blocker
     diff = gt.whole_pool_comparison(dict(o, comparator={"estimate": 0.80, "ci_low": 0.70, "ci_high": 0.92, "scale": "RR"}))
     assert diff["verdict"]["verdict"] == "DIFFERENT_CONCLUSION"
-    assert gt.result_blocker(dict(o, same_trials=diff))["code"] == "MEASURE_DIFFERS_DIFFERENT_CONCLUSION"
+    assert gt.result_blocker(dict(o, same_trials=diff))["code"] == "MEASURE_DIFFERENCE:DIFFERENT_CONCLUSION"
     # controls: an open gap, or a stated count that differs from ours, never compares whole pools
     assert gt.whole_pool_comparison(dict(o, open_gaps=["X"])) is None
     assert gt.whole_pool_comparison(dict(o, k_matched=5, N_eligible=5)) is None
     # same measure -> a real verdict
     same = dict(o, comparator={"estimate": 0.90, "ci_low": 0.77, "ci_high": 1.06, "scale": "HR"})
     assert gt.whole_pool_comparison(same)["verdict"]["verdict"] == "AGREE"
+
+
+def test_whole_pools_compare_when_the_printed_count_equals_our_matched_set():
+    # upstream f34580f9 owns the whole-pool rule (printed_k); our HR vs their RR is a MEASURE_DIFFERENCE, never converted
+    o = _o(N_comparator_trials=7, named_differences=[{"trial": "a pooled bleeding analysis"}], comparator_pmid="24963045")
+    wp = gt.whole_pool_comparison(o, printed_k=6)
+    assert wp["state"] == "MEASURE_DIFFERENCE" and wp["verdict"]["verdict"] == "MEASURE_DIFFERENCE_SAME_CONCLUSION"
+    assert gt.whole_pool_comparison(dict(o, k_matched=5, N_eligible=5), printed_k=6) is None
+    same = dict(o, comparator={"estimate": 0.90, "ci_low": 0.77, "ci_high": 1.06, "scale": "HR"})
+    assert gt.whole_pool_comparison(same, printed_k=6)["verdict"]["verdict"] == "AGREE"
 
 
 def test_every_unmet_result_names_its_blocker():
@@ -50,6 +60,11 @@ def test_every_unmet_result_names_its_blocker():
         "MEASURE_DIFFERS_PER_TRIAL"
     assert gt.result_blocker(_o(same_trials={"state": "WHOLE_POOL_MEASURE_DIFFERS", "ours": "HR", "theirs": "RR"}))["code"] == \
         "MEASURE_DIFFERS_WHOLE_POOL"
+    md = {"state": "MEASURE_DIFFERENCE", "k": 2, "verdict": {"verdict": "DIFFERENT_CONCLUSION"},
+          "measure_differences": [{"trial": "A", "same_conclusion": False}]}
+    assert gt.result_blocker(_o(same_trials=md))["code"] == "MEASURE_DIFFERENCE:DIFFERENT_CONCLUSION"
+    one = {"state": "ONE_SHARED_TRIAL", "trial": "T", "verdict": {"verdict": "DISAGREE"}}
+    assert gt.result_blocker(_o(same_trials=one))["code"] == "ONE_TRIAL_RESULT:DISAGREE"
     tr = [{"label": "Imazio [18]", "route": "PRIMARY", "in_our_pool": True, "g1_countable": True,
            "disagreement_side": "SECONDARY_WRONG (primary numbers are in the primary's own span)",
            "agreement_with_comparator_row": "DISAGREE:x"}]

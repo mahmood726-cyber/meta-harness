@@ -877,8 +877,39 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     # a cited PMID, adding every other paper registered to its NCT is association, not identity.
     if not pmid_resolved:
         for n in list(ncts):
-            pmids |= set(idx.get("nct_pmids", {}).get(n, []))
+            cand = set(idx.get("nct_pmids", {}).get(n, []))
+            if not cand:
+                cand = background_self_reports(n, idx)
+                if cand:
+                    basis.append(f"background_ref_names_its_nct:{len(cand)}")
+            # a paper published BEFORE the trial started cannot report it: a registration may type its own background
+            # literature as RESULT (PACMAN-AMI, started 2017, lists ODYSSEY LONG TERM 2015 and FH I/II 2015 as RESULT and
+            # so inherited LONG TERM's identity). Kept when either year is unknown.
+            ys = dict(pub_years(sorted(q for q in cand if q not in YEARS), _OFFLINE), **YEARS) if cand else {}
+            early = {q for q in cand if published_before_start(q, n, idx, ys)}
+            if early:
+                basis.append(f"nct_pmids_published_before_trial_start:{len(early)}")
+            pmids |= cand - early
     return {"pmids": sorted(pmids), "ncts": sorted(ncts), "basis": basis}
+
+
+_OFFLINE = False
+
+
+def background_self_reports(n, idx) -> set:
+    """A registration with NO RESULT/DERIVED reference: its BACKGROUND references whose OWN PubMed record names this NCT
+    (pubmed_ncts). Background literature names other trials' registrations or none; a trial's own report names its own."""
+    bg = (idx.get("background_pmids") or {}).get(n) or []
+    nc = pubmed_ncts(bg, _OFFLINE) if bg else {}
+    return {p for p in bg if (nc.get(p) or "").upper() == n.upper()}
+
+
+def published_before_start(pmid, n, idx, years) -> bool:
+    """True only when we KNOW the paper's year precedes the trial's start year (AACT studies.start_date)."""
+    st = (idx.get("study") or {}).get(n) or {}
+    d = (st.get("start_date") or "")[:4]
+    y = years.get(pmid)
+    return d.isdigit() and bool(y) and int(str(y)[:4]) < int(d)
 
 
 def registry_acronyms_of(pmid, idx):
@@ -1477,6 +1508,8 @@ def pubmed_author_year(author, year, agents, offline):
 def main(argv=None):
     argv = argv or sys.argv[1:]
     offline = "--offline" in argv
+    global _OFFLINE
+    _OFFLINE = offline
     log = lambda m: print(m, flush=True)  # noqa: E731
     os.makedirs(OUT, exist_ok=True)
     topics = []
@@ -1661,6 +1694,7 @@ def main(argv=None):
         need |= {x for x in o["pooled_fam"] | set(o["absent"]) if x.startswith("NCT")}
     store.ensure_ncts(need, log=log)
     store.ensure_design_groups(log=log)
+    store.ensure_background_refs(need, log=log)
     cited = {c.get("pmid") for P in per.values() for _src, inc in P["cands"] for u in inc["units"]
              for c in u["cited"] if c.get("pmid")}
     YEARS.update(pub_years(cited, offline))
@@ -1697,6 +1731,7 @@ def main(argv=None):
         need |= prep(P, su)
     store.ensure_ncts(need, log=log)
     store.ensure_design_groups(log=log)
+    store.ensure_background_refs(need, log=log)
     cited2 = {c.get("pmid") for P in per.values() if P.get("seed") for u in P["seed"]["units"] for c in u["cited"]
               if c.get("pmid")}
     YEARS.update(pub_years(cited2, offline))
