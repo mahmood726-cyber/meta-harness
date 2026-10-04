@@ -25,7 +25,11 @@ def test_a_registry_title_is_named_by_the_topics_outcome_name():
 
 
 def test_the_name_rule_needs_every_content_word_and_keeps_the_estimand_gate():
-    assert gt.binding_verdict("Heart-failure hospitalization", KW, "HF Hospitalizations and CV Death", 2)["gate"] == "OUTCOME_NOT_NAMED"
+    # 'HF' now reads as heart failure (AFFIRM-AHF's participant outcome 'HF Hospitalisations'), so this composite IS
+    # named -- and must still never bind: refused at ESTIMAND as a composite that adds death
+    v = gt.binding_verdict("Heart-failure hospitalization", KW, "HF Hospitalizations and CV Death", 2)
+    assert v["verdict"] == "REFUSED" and v["gate"] == "ESTIMAND"
+    assert gt.binding_verdict("Heart-failure hospitalization", KW, "HF Hospitalisations", 2)["verdict"] == "BINDABLE"
     assert gt.binding_verdict("Heart-failure hospitalization", KW, "Number of Participants With Heart Failure", 2)["gate"] == "OUTCOME_NOT_NAMED"
     v = gt.binding_verdict("Hospitalization for heart failure", [], "Composite of CV Death or Hospitalization for Heart Failure", 2)
     assert v["gate"] == "ESTIMAND"                                   # named, then refused as a different composite

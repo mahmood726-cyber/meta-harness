@@ -302,9 +302,11 @@ _STOP = {"of", "for", "the", "and", "or", "with", "in", "to", "a", "due", "by"}
 
 
 def _name_words(x):
-    """Content words of an outcome name or registry title, plural and British -isation folded."""
+    """Content words of an outcome name or registry title, plural and British -isation folded, and the registry's 'HF'
+    read as 'heart failure' (AFFIRM-AHF NCT02937454 posts 'HF Hospitalisations' in participants: never named)."""
     import re as _r
     w = _r.findall(r"[a-z]+", (x or "").lower().replace("hospitalis", "hospitaliz"))
+    w = [y for v in w for y in (("heart", "failure") if v == "hf" else (v,))]
     return {_r.sub(r"s$", "", v) for v in w if v not in _STOP}
 
 
@@ -312,6 +314,9 @@ _PER_PROTOCOL = re.compile(r"\bper[- ]protocol\b|\bPP (?:population|set|analysis
 _EXTENDED_COMPOSITE = re.compile(r"\bplus\b|\bexpanded\b|\bextended\b|\b(?:4|four|5|five)[- ]point\b", re.I)
 _THREE_POINT = re.compile(r"\b(?:3|three)[- ]point\b", re.I)
 _RECURRENT = re.compile(r"\brecurrent\b|\btotal (?:number of )?(?:events|hospitali[sz]ations)\b|first and subsequent", re.I)
+_DEATH = re.compile(r"\bdeaths?\b|\bmortality\b|\bdied\b|\bfatal\b", re.I)
+# a protocol outcome that is itself a set of events ('Major vascular events' includes vascular death; not flagged composite)
+_EVENTS_SPEC = re.compile(r"\bevents?\b|composite|\bMACE\b", re.I)
 
 
 def analysis_set_or_extension_differs(spec_name, title, population):
@@ -328,6 +333,12 @@ def analysis_set_or_extension_differs(spec_name, title, population):
     # 'Occurrence of Adjudicated Hospitalisation for Heart Failure (HHF) (First and Recurrent)')
     if _RECURRENT.search(t) and not _RECURRENT.search(spec_name or ""):
         return f"recurrent-event analysis: the registry outcome '{t}' counts recurrent events; the protocol's is first event"
+    # a protocol outcome without death, a registry outcome that adds it ('HF Hospitalizations and CV Death', AFFIRM-AHF):
+    # a different composite even when no 'composite' / 'or' word says so
+    from harness import extract
+    single = not extract.declared_is_composite(spec_name or "") and not _EVENTS_SPEC.search(spec_name or "")
+    if single and _DEATH.search(t) and not _DEATH.search(spec_name or ""):
+        return f"composite with death: the registry outcome '{t}' adds death to the protocol's '{spec_name}'"
     return None
 
 
@@ -795,6 +806,63 @@ def sweep_merge(slug, trials, routes=None, pairs=None):
                                      provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
                                      outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
                                                                                        "n_t", "events_c", "n_c")})
+            pairs.append((as_row(v, x["label"], theirs.measure), theirs))
+        got.append(x["label"])
+    if routes is not None:
+        for k in [k for k, n in routes.items() if n <= 0]:
+            del routes[k]
+    return got
+
+
+def acquired_rows(slug):
+    """ADMITTED rows of scripts/g1_trial_acquire.py for a topic (registry/g1_acquired/<slug>.json), by trial label."""
+    p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
+    if not os.path.exists(p):
+        return {}
+    return {r["label"]: r for r in _j(p).get("rows") or [] if r.get("verdict") == "ADMITTED" and r.get("admitted")}
+
+
+def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
+    """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
+    through scripts/g1_trial_acquire.py's gates is PRIMARY-verified (2 Oct decision, restated 3 Oct; the rule of
+    single_primary_source): matched, countable, compared on that tuple. A SECONDARY_SINGLE trial is PROMOTED -- its meta
+    pair in the same-trials comparison is replaced by the primary tuple. Never a pooled, named or already-PRIMARY trial.
+    Returns the labels merged."""
+    acq = acquired_rows(slug)
+    got = []
+    for x in trials:
+        a = acq.get(x["label"])
+        if not a or x.get("in_our_pool") or x.get("scope_difference"):
+            continue
+        promote = x.get("route") == "SECONDARY_SINGLE"
+        if is_matched(x) and not promote:
+            continue
+        ad = a["admitted"]
+        v = ad.get("value") or {}
+        cr = x.get("comparator_row")
+        theirs = None
+        if cr:
+            theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                     provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
+                                     outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
+                                                                                       "n_t", "events_c", "n_c")})
+        if pairs is not None and promote and cr:
+            same = [i for i, (_o, t) in enumerate(pairs)
+                    if t.meta_pmid == str(comp) and all(str(getattr(t, k)) == str(cr.get(k)) for k in
+                                                        ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"))]
+            for i in reversed(same):
+                pairs.pop(i)
+        if routes is not None:
+            routes[x["route"]] -= 1
+            routes["PRIMARY"] += 1
+        x.update(route="PRIMARY", g1_countable=True, blocker=None, our_value=v, matched_by="ACQUIRED_PRIMARY",
+                 basis=f"single PRIMARY source (2 Oct decision): {ad['kind']} {ad['source']}; model-read (record "
+                       f"{a.get('record_id')}), gate-verified (scripts/g1_trial_acquire.py)",
+                 acquired={"kind": ad["kind"], "source": ad["source"], "span": ad.get("span"), "quote": ad.get("quote"),
+                           "record_id": a.get("record_id"), "promoted_from": "SECONDARY_SINGLE" if promote else None},
+                 agreement_with_comparator_row=agreement(v, theirs) if theirs is not None else
+                 "NOT_COMPARABLE:NO_COMPARATOR_ROW")
+        if pairs is not None and theirs is not None:
             pairs.append((as_row(v, x["label"], theirs.measure), theirs))
         got.append(x["label"])
     if routes is not None:
@@ -1993,6 +2061,7 @@ def topic(slug, T):
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
                             compared=_rep0 or None, accounted_other=accounted_other)
     sweep_merge(slug, trials, routes, pairs)
+    acquired_merge(slug, trials, routes, pairs, comp)
     side_from_trial_text(trials, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
