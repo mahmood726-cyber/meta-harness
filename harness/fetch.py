@@ -192,6 +192,10 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         return ""
 
 
+PUBLISHER_DISALLOWS_XML = "does not allow downloading of the full text in XML form"
+LAST_PMC_STATE: dict = {}
+
+
 def _pmc_fulltext(pmid: str, with_supplements: bool = False) -> str:
     """Resolve PubMed->PMC and return body prose + STRUCTURED tables (per-arm values keep their row),
     optionally + supplementary spreadsheet/CSV text. Falls back to '' (abstract path) on any failure.
@@ -204,6 +208,12 @@ def _pmc_fulltext(pmid: str, with_supplements: bool = False) -> str:
                            {"db": "pmc", "id": pmcid, "retmode": "xml",
                             "tool": "meta-harness", "email": "meta-harness@example.org"})
         time.sleep(0.34)
+        if PUBLISHER_DISALLOWS_XML in xml[:4000]:
+            # PMC holds the article but serves only its front matter: 'The publisher of this article does not allow
+            # downloading of the full text in XML form.' (JAMA's COVID-19 trials: CoDEX, CAPE COVID, REMAP-CAP). Not an
+            # open machine-readable source -- recorded as such, never retried as a transient empty
+            LAST_PMC_STATE[pmid] = "PUBLISHER_DISALLOWS_XML"
+            return ""
         parsed = _ft.parse_pmc_xml(xml)
         text = _ft.combined_text(parsed)
         if with_supplements and parsed.get("supplements"):
