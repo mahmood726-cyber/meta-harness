@@ -108,6 +108,84 @@ def component_sum(reg, cr, max_k=4, allowed=None):
     return "COMPARATOR_COUNTS_EQUAL_SUM_OF_COMPONENTS", {"components": comps, "trial_composites_posted": own}
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Rule F2 ORIENTATION_STATED_BY_COMPARATOR -- the comparator's OWN words fix its MD direction: 'mean improvement in X' /
+#   'efficacy in reducing X (weighted mean difference = <positive>)' state that a POSITIVE difference is a REDUCTION with
+#   the intervention (control minus intervention). Ours is intervention minus control (harness/secondary_meta.py,
+#   md = mean_t - mean_c). Mirrored conventions are NOT a sign error on either side: the finding says which convention
+#   each uses, with the comparator's sentence as span; a value only flips sign when compared.
+# Rule F3 SAME_TRIAL_DIFFERENT_REPORT -- the comparator's row cites a report (its own reference list, joined by first
+#   author + year to the row label) that differs from our pooled report, while both reports' PubMed DataBank lists name
+#   the SAME registration: a population / analysis-set difference between two reports of one trial, not a value error.
+_IMPROVE = re.compile(r"mean improvement in ([a-z ]{3,60}?)(?:[,.;]| and )", re.I)
+_REDUCE = re.compile(r"(?:efficacy|effect)[^.]{0,40}? in reducing ([a-z ]{3,60}?) \((?:weighted )?mean difference[^=]{0,30}=\s*"
+                     r"(\d+(?:\.\d+)?)", re.I)
+
+
+def orientation_stated(comparator_text):
+    """(convention, spans) from the comparator's own sentences, or (None, [])."""
+    t = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", comparator_text or ""))
+    spans = [t[max(0, m.start() - 40): m.end() + 40] for m in _REDUCE.finditer(t)]
+    spans += [t[max(0, m.start() - 20): m.end() + 20] for m in _IMPROVE.finditer(t)]
+    return ("POSITIVE_IS_REDUCTION_WITH_INTERVENTION", spans) if spans else (None, [])
+
+
+def cited_report(comparator_text, row_label):
+    """PMID of the comparator's reference whose first author and year are the row label's ('Wade AG, 2011 [21]')."""
+    m = re.match(r"\s*([A-Z][A-Za-z'\-]+)\b.*?\b((?:19|20)\d\d)\b", row_label or "")
+    if not m:
+        return None
+    sur, yr = m.groups()
+    hits = []
+    for r in re.finditer(r"<ref\b[^>]*>(.*?)</ref>", comparator_text or "", re.S):
+        body = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", r.group(1))).strip()
+        if re.match(rf"(?:\d+\s+)?{re.escape(sur)}\b", body) and re.search(rf"\(\s*{yr}\s*\)|\b{yr}\b", body):
+            pm = re.search(r"\b(\d{7,8})\b", body)
+            hits.append(pm.group(1) if pm else None)
+    return hits[0] if len(hits) == 1 else None
+
+
+def same_trial_different_report(cited_pmid, our_pmid, databank):
+    if not cited_pmid or not our_pmid or cited_pmid == our_pmid:
+        return None
+    a = set((databank.get(cited_pmid) or {}).get("databank") or []) | set((databank.get(cited_pmid) or {}).get("abstract") or [])
+    b = set((databank.get(our_pmid) or {}).get("databank") or []) | set((databank.get(our_pmid) or {}).get("abstract") or [])
+    common = sorted(a & b)
+    return {"cited_pmid": cited_pmid, "our_pmid": our_pmid, "registration": common} if len(common) == 1 else None
+
+
+def orientation_findings(slug):
+    """F2 / F3 for every comparator row of an MD topic that disagrees in sign with ours, or is UNKNOWN orientation."""
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
+    comp = str(o.get("comparator_pmid"))
+    d = os.path.join(ROOT, "cache", "comparators", comp)
+    jats = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None) if os.path.isdir(d) else None
+    if not jats:
+        return []
+    ct = open(jats, encoding="utf-8", errors="replace").read()
+    conv, spans = orientation_stated(ct)
+    dbp = os.path.join(ROOT, "outputs", "k_gap", "pubmed_databank_ncts.json")
+    databank = json.load(open(dbp, encoding="utf-8")) if os.path.exists(dbp) else {}
+    rows = []
+    for x in o["trials"]:
+        cr = x.get("comparator_row") or {}
+        if (cr.get("measure") or "").upper() != "MD" or not str(x.get("family") or "").startswith("PMID "):
+            continue
+        prov = x.get("comparator_row_provenance") or {}
+        cited = cited_report(ct, prov.get("row_label") or x["label"])
+        st = same_trial_different_report(cited, str(x["family"])[5:], databank)
+        rows.append({"rule": "F2" + ("+F3" if st else ""), "slug": slug, "label": x["label"],
+                     "comparator_convention": conv, "comparator_spans": spans[:3],
+                     "our_convention": "INTERVENTION_MINUS_CONTROL (harness/secondary_meta.py: md = mean_t - mean_c)",
+                     "comparator_row": {k: cr.get(k) for k in ("measure", "effect", "lower", "upper")},
+                     "comparator_row_label": prov.get("row_label"), "comparator_cited_report": cited,
+                     "same_trial_different_report": st,
+                     "verdict": ("CONVENTIONS_MIRRORED_NOT_A_SIGN_ERROR" if conv else "COMPARATOR_CONVENTION_NOT_STATED")
+                                + ("; DIFFERENT_REPORT_OF_THE_SAME_TRIAL" if st else ""),
+                     "span_source": f"comparator JATS {os.path.basename(jats)}; PubMed DataBank (outputs/k_gap/pubmed_databank_ncts.json)"})
+    return rows
+
+
 def topic(slug):
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
     T = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"), encoding="utf-8"))
@@ -140,12 +218,12 @@ def topic(slug):
 def main(argv):
     os.makedirs(OUT, exist_ok=True)
     for slug in argv:
-        rows = topic(slug)
+        rows = topic(slug) + orientation_findings(slug)
         p = os.path.join(OUT, f"findings_{slug}.json")
         with open(p + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
             json.dump({"slug": slug, "findings": rows}, fh, indent=1, ensure_ascii=False)
         os.replace(p + ".tmp", p)
-        print(slug, [(r["label"], r["state"]) for r in rows])
+        print(slug, [(r["label"], r.get("state") or r.get("verdict")) for r in rows])
 
 
 if __name__ == "__main__":
