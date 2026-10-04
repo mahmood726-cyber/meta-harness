@@ -330,8 +330,10 @@ def included_trials(parsed: dict, agent_terms: list[str], other_agents: list[str
 # ------------------------------------------------------------------------------------ AACT local index
 
 def norm_acronym(a: str) -> str:
-    """'RALES1999' -> 'RALES'; 'EMPEROR-Preserved' -> 'EMPERORPRESERVED'; 'PIONEER 6' -> 'PIONEER6'."""
-    a = re.sub(r"(?<=[A-Za-z])((?:19|20)\d\d)$", "", _flat(a))
+    """'RALES1999' -> 'RALES'; 'ASCEND 2018' -> 'ASCEND'; 'EMPEROR-Preserved' -> 'EMPERORPRESERVED'; 'PIONEER 6' ->
+    'PIONEER6'. A year after a SPACE is a year too: omega3's table labels 'ASCEND 2018', 'ORIGIN 2012', 'GISSI-HF 2008'
+    normalised to 'ASCEND2018'... and never met AACT's acronym 'ASCEND' (corpus: 5 labels, all 'ACRONYM YYYY')."""
+    a = re.sub(r"(?<=[A-Za-z])\s*((?:19|20)\d\d)$", "", _flat(a))
     return re.sub(r"[^A-Z0-9]", "", a.upper().replace("‐", "-"))
 
 
