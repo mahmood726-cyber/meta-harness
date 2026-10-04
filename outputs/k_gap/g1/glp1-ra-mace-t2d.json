@@ -149,8 +149,8 @@
  ],
  "k_ours_total": 8,
  "routes": {
-  "UNVERIFIED": 1,
-  "PRIMARY": 7
+  "PRIMARY": 7,
+  "UNVERIFIED": 1
  },
  "trials": [
   {
@@ -158,10 +158,10 @@
    "family": "PMID 26630143",
    "in_our_pool": false,
    "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "the bound endpoint span adds component(s) to the declared composite (unstable angina): a different composite is not '3-point major adverse cardiovascular events' and this outcome declares no near-match permission (allow_near_match / compone",
+   "basis": "named out of scope (ESTIMAND_DIFFERENCE): a verified value is held (meta 42529614 PRIMARY_VERIFIED PRIMARY_TEXT) but never gives an out-of-scope trial a counted route",
+   "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "ACQUISITION",
-   "absent_code": "RESULT_INCOMPATIBLE",
+   "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": {
     "effect": "1.02",
     "lower": "0.89",
@@ -304,6 +304,7 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": {
     "kind": "ESTIMAND_DIFFERENCE",
     "gate": "harness.extract.composite_component_mismatch",
@@ -409,6 +410,7 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -460,7 +462,10 @@
    "g1_countable": true,
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
-   "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_state": "REFUSED",
+   "comparator_row_reasons": [
+    "FAMILY_NOT_RESOLVED"
+   ],
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -513,6 +518,7 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -565,6 +571,7 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -617,6 +624,7 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -669,8 +677,17 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "DISAGREE",
    "comparator_row_state": "MISMATCH",
+   "comparator_row_reasons": [
+    "CROSSCHECK_DISAGREES:['34526024', '42529614']"
+   ],
    "scope_difference": null,
    "blocker": null,
+   "analysis_set_attribution": {
+    "state": "NOT_COMPARABLE",
+    "per_set": [],
+    "ours": null,
+    "report_pmid": "31185157"
+   },
    "coverage": "INDEPENDENT"
   },
   {
@@ -721,6 +738,7 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -750,7 +768,10 @@
    "conclusion": "BENEFIT",
    "estimate_gap_over_ci_halfwidth": 0.0014
   },
-  "method_basis": "comparator positive control reproduced DL"
+  "method_basis": "comparator positive control reproduced DL",
+  "excluded_named_scope_differences": [
+   "ELIXA"
+  ]
  },
  "ours": {
   "k": 8,
@@ -780,7 +801,8 @@
   }
  ],
  "secondary_tally": {
-  "PRIMARY_VERIFIED": 7,
+  "PRIMARY_VERIFIED": 14,
+  "REFUSED": 12,
   "MISMATCH": 1
  },
  "secondary_skipped": {
@@ -798,12 +820,16 @@
    "rules": 3
   }
  },
+ "comparator_stated_k": {
+  "k": null,
+  "span": null
+ },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
   "held_records": 0,
   "held_fulltext": 0,
   "held_unpaywall": 0,
-  "held_registry": 1
+  "held_registry": 0
  },
  "served_pool_lags": [],
  "g1r_reproduction": {
@@ -889,6 +915,7 @@
    "trials": [
     "ELIXA [GATE:composite_component_mismatch]"
    ]
-  }
+  },
+  "result_blocker": null
  }
 }

@@ -147,3 +147,27 @@ def test_PLANT_codex_review_2026_10_03_four_miscount_inputs_are_refused():
     # 4. a 'comparator-sourced' row read from ANOTHER meta is not comparator coverage
     r4 = g1.recompute(_rec([_t("A"), _cs("B", meta="33745918")], k=1, named=("B",)))
     assert (r4["covered"], r4["comparator_sourced"]) == (1, 0)
+
+
+def test_PLANT_secondary_single_provenance_recorded_under_secondary_single_counts():
+    # the tracker's non-sweep SECONDARY_SINGLE route records its meta / location / digest under
+    # secondary_single.provenance (probiotics Cimperman: meta 24348885, figure2 panel A); the renderer read only
+    # sweep.basis and refused 11 such rows as 'unrecorded' (consolidation 2026-10-04)
+    t = _t("A", route="SECONDARY_SINGLE", secondary_single={"provenance": {
+        "meta_pmid": "24348885", "where": "figure figure2 panel A", "digest": "8" * 64}})
+    assert g1.recompute(_rec([t]))["g1_count"] == 1
+    circ = _t("A", route="SECONDARY_SINGLE", secondary_single={"provenance": {
+        "meta_pmid": COMP, "where": "figure 2", "digest": "8" * 64}})
+    assert g1.recompute(_rec([circ]))["g1_count"] == 0
+    bare = _t("A", route="SECONDARY_SINGLE", secondary_single={"provenance": {"meta_pmid": "24348885"}})
+    assert g1.recompute(_rec([bare]))["g1_count"] == 0
+
+
+def test_PLANT_a_trial_named_out_of_scope_is_neither_covered_nor_confirmed():
+    # a comparator trial NAMED out of scope (rule + span) leaves the eligible set: it is not a coverage or a
+    # confirmation of the comparator's N even when its own report verifies it (glp1 ELIXA: PRIMARY-verified, an
+    # ESTIMAND_DIFFERENCE). The renderer counted 3 such trials the tracker does not (consolidation 2026-10-04).
+    t = _t("A", route="PRIMARY", pooled=False, scope_difference={"kind": "ESTIMAND_DIFFERENCE", "rule_id": "GATE:x"})
+    r = g1.recompute(_rec([_t("B"), t], named=("A",)))
+    assert (r["g1_count"], r["covered"]) == (1, 1)
+    assert "named out of scope" in r["rows"][1]["why"]
