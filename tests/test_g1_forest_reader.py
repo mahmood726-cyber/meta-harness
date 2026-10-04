@@ -529,3 +529,71 @@ def test_comparator_extra_figures_are_comparator_role_with_their_own_keys():
     assert all(it["role"] == "comparator" and it["pmid"] == g.comparator_of(it["slug"]) for it in its)
     # an extra never shadows the topic's main comparator result (keyed by the bare slug)
     assert not keys & set(g.COMPARATOR_EXTRA)
+
+
+def test_a_second_concurrent_run_is_refused_by_the_ledger_lock(tmp_path):
+    ledger = str(tmp_path / "runs.json")
+    with g.RunLock(ledger):
+        with pytest.raises(SystemExit):
+            with g.RunLock(ledger):
+                pass
+    with g.RunLock(ledger):                  # released on exit: a later run proceeds
+        pass
+
+
+def test_trial_rows_printed_at_99_percent_reconstruct_only_when_the_level_is_declared():
+    # two trials (log SE 0.09, 0.08) printed with 99% CIs (z=2.576): fixed effect gives 0.80 (0.71-0.90) at 95%
+    import math
+    rows = []
+    for e, se in ((0.78, 0.09), (0.82, 0.08)):
+        y = math.log(e)
+        rows.append({"label": f"T{e}", "effect": f"{e:.2f}", "lower": f"{math.exp(y - 2.5758 * se):.2f}",
+                     "upper": f"{math.exp(y + 2.5758 * se):.2f}"})
+    fe = g.reconstruct(rows, True, "RR", ["FE"], row_z=2.5758293035489004)["FE"]
+    assert abs(fe[1] - 0.713) < 0.006 and abs(fe[2] - 0.902) < 0.006
+    wrong = g.reconstruct(rows, True, "RR", ["FE"])["FE"]          # read as 95%: too wide (log width x 1.31)
+    assert wrong[1] < 0.69 and wrong[2] > 0.93
+
+
+def test_a_row_ci_level_is_refused_unless_the_caption_states_it(monkeypatch):
+    t = dict(g.TARGETS["omega3-cardiovascular-events::29387889"], row_ci_level=90)
+    monkeypatch.setitem(g.TARGETS, "omega3-cardiovascular-events::29387889", t)
+    assert g.figure_for("omega3-cardiovascular-events", "29387889")[1] == "TARGET_ROW_CI_LEVEL_NOT_IN_CAPTION"
+
+
+def _docx(paras):
+    """A minimal Word file: paras = [('text', None) | ('', image_bytes)]."""
+    import io as _io
+    import zipfile
+    body, rels, media = [], [], {}
+    for i, (tx, img) in enumerate(paras):
+        if img is None:
+            body.append(f"<w:p><w:r><w:t>{tx}</w:t></w:r></w:p>")
+        else:
+            rid = f"rId{100 + i}"
+            rels.append(f'<Relationship Id="{rid}" Type="image" Target="media/image{i}.png"/>')
+            media[f"word/media/image{i}.png"] = img
+            body.append(f'<w:p><w:r><w:drawing><a:blip r:embed="{rid}"/></w:drawing></w:r></w:p>')
+    b = _io.BytesIO()
+    with zipfile.ZipFile(b, "w") as z:
+        z.writestr("word/document.xml", "<w:document><w:body>" + "".join(body) + "</w:body></w:document>")
+        z.writestr("word/_rels/document.xml.rels", "<Relationships>" + "".join(rels) + "</Relationships>")
+        for k, v in media.items():
+            z.writestr(k, v)
+    return b.getvalue()
+
+
+def test_a_word_supplement_figure_is_the_image_under_its_caption_and_nothing_else(tmp_path, monkeypatch):
+    monkeypatch.setattr(g, "COMP", str(tmp_path))
+    os.makedirs(tmp_path / "1")
+    sp = str(tmp_path / "1" / "x_forest_supp_s.docx")
+    open(sp + ".meta.json", "w").write(json.dumps({"url": "u", "sha256": "h"}))
+    t = {"supplement": "s.docx", "caption_has": "Figure S3 MACE by trial"}
+    good = _docx([("Figure S3 MACE by trial", None), ("", b"\x89PNG-one"), ("Figure S4 other", None), ("", b"\x89PNG-two")])
+    fig, why = g.docx_figure("1", t, sp, good)
+    assert why == "SELECTED" and open(os.path.join(str(tmp_path), "1", next(
+        f for f in os.listdir(tmp_path / "1") if f.endswith(fig["href"]))), "rb").read() == b"\x89PNG-one"
+    # another figure's caption before any image: the image is not this figure's
+    bad = _docx([("Figure S3 MACE by trial", None), ("Figure S4 other", None), ("", b"\x89PNG-two")])
+    assert g.docx_figure("1", t, sp, bad)[1] == "TARGET_IMAGE_NOT_UNDER_CAPTION"
+    assert g.docx_figure("1", dict(t, caption_has="absent words"), sp, good)[1] == "TARGET_CAPTION_MISMATCH"

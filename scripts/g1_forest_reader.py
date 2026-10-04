@@ -244,6 +244,73 @@ TARGETS: dict = {
         "fig_id": "Fig4", "caption_has": "divided into CAPA versus non-CAPA",
         "refuse": "NOT_TOPIC_TRIALS: observational CAPA vs non-CAPA cohorts; the rows are odds of corticosteroid "
                   "exposure, not randomised corticosteroid-vs-control effects on mortality"},
+    # SECONDARY_SINGLE supply (4 Oct): non-comparator metas that cite the tracker's uncovered trials
+    # (scripts/g1_ss_targets.py, registry/model_proposals/g1_ss_selection.json); figure chosen by its caption naming
+    # the topic outcome, checked here like every target. Read with --ss-read (SS_READ below).
+    "tocilizumab-covid19-mortality::35802687": {
+        "fig_id": "pone.0270668.g003", "caption_has": "all-cause mortality 28 days after randomisation",
+        "instruction": "Rows: every trial row comparing TOCILIZUMAB with usual care or placebo, once each (skip "
+                       "sarilumab rows). Pooled: the pooled row of the tocilizumab-versus-usual-care/placebo "
+                       "comparison only -- never a sarilumab or overall row."},
+    "tocilizumab-covid19-mortality::34768455": {"fig_id": "jcm-10-04935-f002",
+                                               "caption_has": "Overall meta-analysis of 28/30-day mortality"},
+    "tocilizumab-covid19-mortality::35038318": {"fig_id": "f1", "caption_has": "Association of tocilizumab with all-cause mortality, discharge",
+                                               "panel": "A", "panel_title": "All-cause mortality"},
+    "omega3-cardiovascular-events::39076869": {"fig_id": "S3.F2", "caption_has": "Forrest plots and subgroup analyses "
+                                               "for MACE", "panel": "A", "panel_title": "Forest plot of main result on MACE"},
+    "omega3-cardiovascular-events::29387889": {
+        "fig_id": "hoi170076f2", "caption_has": "Subtypes of Coronary Heart Disease and Major Vascular Events, by Trial",
+        "instruction": "Transcribe ONLY the block for MAJOR VASCULAR EVENTS (all major vascular events): one row per "
+                       "trial, once each, and that block's own total row as pooled. Ignore the coronary heart disease "
+                       "subtype blocks.",
+        # its methods: trial rows carry 99% CIs ('replacing 1.96 ... by 2.58'); totals 95%
+        "row_ci_level": 99},
+    "omega3-cardiovascular-events::42144851": {"fig_id": "prp270265-fig-0002",
+                                              "caption_has": "major cardiovascular events in patients with cardiovascular"},
+    "metformin-pcos-ovulation::28630466": {
+        "fig_id": "Fig4", "caption_has": "ovulation rate per cycle", "panel": "c", "panel_title": "ovulation rate",
+        "instruction": "Transcribe ONLY panel (c) (ovulation rate), and within it ONLY the comparison of metformin "
+                       "combined with clomiphene citrate (MET+CC) versus clomiphene citrate (CC) alone: its study rows "
+                       "and its own pooled row. Ignore every other comparison block and panel."},
+    "ticagrelor-vs-clopidogrel-acs::30013323": {"fig_id": "f7-dddt-12-2039", "caption_has": "MACE within 180 days"},
+    "ticagrelor-vs-clopidogrel-acs::42524293": {
+        "fig_id": "F2", "caption_has": "Forest plot of major adverse cardiovascular events", "panel": "b",
+        "panel_title": "Pairwise meta-analysis",
+        "instruction": "Transcribe ONLY panel (b) (pairwise meta-analysis), and within it ONLY the ticagrelor versus "
+                       "clopidogrel comparison: its study rows and its own pooled row."},
+    "ticagrelor-vs-clopidogrel-acs::30412125": {"fig_id": "F2", "caption_has": "Comparing the efficacy (primary outcomes)"},
+    "pcsk9-mace::39259104": {"fig_id": "F7", "caption_has": "Forest plot showing MACEs"},
+    "pcsk9-mace::41235335": {"fig_id": "F4", "caption_has": "Forest plots: (A) MACE", "panel": "A", "panel_title": "MACE"},
+    # read once (4 Oct; the pair agreed and reproduced its pool), then refused on what its rows ARE: its abstract --
+    # 'Asian observational studies' -- so no row is a randomised trial of the topic contrast
+    "ticagrelor-vs-clopidogrel-acs::31000178": {
+        "fig_id": "fig2", "caption_has": "ticagrelor versus clopidogrel for primary efficacy (A)",
+        "refuse": "NOT_TOPIC_TRIALS: a meta-analysis of observational studies (its abstract); no trial rows"},
+    # 3-point MACE per trial, in the meta's OWN Word supplement (listed in its JATS; PMC OA bucket)
+    "omega3-cardiovascular-events::37031750": {
+        "supplement": "mmc1.docx", "image_index": 1,
+        "caption_has": "Supplemental Figure 3 Meta-analysis of the effects of long-chain omega-3",
+        "instruction": "Rows: every study row of every group (EPA plus DHA; EPA), once each, with events and "
+                       "participants per arm -- never a Subtotal row. Pooled: the 'Random effects model' row."},
+    "probiotics-aad-prevention::30078376": {
+        "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
+        "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
+                       "name more than one study, e.g. 'Beausoleil 2007, Sampalis 2010': keep that label whole), and "
+                       "its diarrhoea counts per group and risk ratio. Never give the 'dairy product' or 'food "
+                       "supplement' subtotal rows as rows. Pooled: the 'Combined effect size' row."},
+    "ticagrelor-vs-clopidogrel-acs::40051435": {"fig_id": "F3", "caption_has": "(b) MACE", "panel": "b",
+                                                "panel_title": "MACE"},
+    "ticagrelor-vs-clopidogrel-acs::38371311": {
+        "fig_id": "f0015", "caption_has": "primary efficacy end point of composite thrombotic cardiovascular events",
+        "instruction": "Transcribe ONLY the subgroup '3.1.3 Ticagrelor' (ticagrelor versus clopidogrel): its study rows, "
+                       "with events and totals per group, and that subgroup's own Subtotal (95% CI) row as pooled. "
+                       "Ignore the cangrelor and prasugrel subgroups and the overall Total."},
+    "tocilizumab-covid19-mortality::34026583": {"fig_id": "F2", "caption_has": "mortality was reduced in patients treated "
+                                                "with tocilizumab"},
+    "tocilizumab-covid19-mortality::39633779": {
+        "fig_id": "fig4", "caption_has": "mortality in immunomodulators group",
+        "instruction": "Rows: every trial row of the figure, once each, whatever the immunomodulator. Pooled: the "
+                       "figure's overall pooled row."},
     "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
@@ -388,7 +455,7 @@ def held_supplement(pmid, name):
 
 def fetch_supplement(pmid, pmcid, name):
     """A comparator's OWN supplementary PDF, from the PMC OA bucket (the same open source as its figures), stored with
-    URL + sha256. Only a file that starts '%PDF' is kept."""
+    URL + sha256. Only a PDF ('%PDF') or a Word file (a zip, 'PK', named .docx) is kept."""
     if held_supplement(pmid, name) or not pmcid:
         return held_supplement(pmid, name)
     from harness import http
@@ -398,7 +465,7 @@ def fetch_supplement(pmid, pmcid, name):
             st, b = http.get_raw(url, tries=2, timeout=120)
         except Exception:  # noqa: BLE001 - try the next article version
             continue
-        if b[:4] == b"%PDF":
+        if b[:4] == b"%PDF" or (b[:2] == b"PK" and name.lower().endswith(".docx")):
             out = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_supp_{name}")
             os.makedirs(os.path.dirname(out), exist_ok=True)
             with open(out, "wb") as fh:
@@ -408,6 +475,47 @@ def fetch_supplement(pmid, pmcid, name):
                                        "via": "PMC OA bucket: the comparator's own supplementary material"})
             return out
     return None
+
+
+def docx_figure(pmid, t, sp, b):
+    """A figure embedded in a supplementary Word file: the paragraph whose text contains the caption words, then the
+    t.get('image_index', 1)-th embedded image after it (a caption is printed above its figure), extracted UNCHANGED
+    from word/media. Refused if the caption is absent or another caption intervenes before that image."""
+    import zipfile
+    z = zipfile.ZipFile(io.BytesIO(b))
+    x = z.read("word/document.xml").decode("utf-8", "replace")
+    rels = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="([^"]+)"', z.read("word/_rels/document.xml.rels").decode("utf-8")))
+    paras = re.findall(r"<w:p[ >].*?</w:p>", x, re.S)
+    txt = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", p)).strip() for p in paras]
+    hits = [i for i, tx in enumerate(txt) if t["caption_has"].lower() in tx.lower()]
+    if not hits:
+        return None, "TARGET_CAPTION_MISMATCH"
+    i0, want, seen = hits[-1], t.get("image_index", 1), 0          # the LAST mention: a caption list may come first
+    for j in range(i0 + 1, len(paras)):
+        if j != i0 and re.match(r"(Supplement\w*\s+)?Fig(ure)?\.?\s*S?\d", txt[j]) and txt[j]:
+            return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
+        for rid in re.findall(r'r:embed="(rId\d+)"', paras[j]):
+            seen += 1
+            if seen == want:
+                member = "word/" + rels[rid]
+                ib = z.read(member)
+                ext = os.path.splitext(member)[1].lower().lstrip(".") or "png"
+                href = f"supp_{t['supplement']}_{os.path.basename(member)}"
+                ip = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_{href}")
+                if not os.path.exists(ip):
+                    with open(ip, "wb") as fh:
+                        fh.write(ib)
+                    smeta = _j(sp + ".meta.json")
+                    _save(ip + ".meta.json", {"url": smeta.get("url"), "sha256": hashlib.sha256(ib).hexdigest(),
+                                              "bytes": len(ib), "supplement_sha256": smeta.get("sha256"),
+                                              "via": f"supplementary Word file {t['supplement']}: embedded {member}, "
+                                                     f"extracted unchanged (image {want} under the caption)"})
+                return {"fig_id": f"{t['supplement']}#{os.path.basename(member)}", "href": href,
+                        "caption": txt[i0][:300], "panel": t.get("panel"), "panel_title": t.get("panel_title"),
+                        "instruction": t.get("instruction"),
+                        "selected_by": f"TARGETS supplement Word figure (caption contains {t['caption_has']!r})"}, \
+                    "SELECTED"
+    return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
 
 
 def supplement_figure(slug, pmid, t):
@@ -426,6 +534,8 @@ def supplement_figure(slug, pmid, t):
         return None, "SUPPLEMENT_NOT_HELD"
     with open(sp, "rb") as fh:
         b = fh.read()
+    if t["supplement"].lower().endswith(".docx"):
+        return docx_figure(pmid, t, sp, b)
     doc = fitz.open(stream=b, filetype="pdf")
     if not 1 <= t["page"] <= doc.page_count:
         return None, "TARGET_SUPPLEMENT_PAGE_ABSENT"
@@ -476,8 +586,14 @@ def figure_for(slug, pmid, target=None):
                 return None, "TARGET_CAPTION_MISMATCH"
             if t.get("refuse"):
                 return None, "REFUSED_BEFORE_READING:" + t["refuse"]
+            # a figure whose TRIAL rows print a non-95% interval (Aung 2018 prints 99% CIs for trials, 95% for totals):
+            # the level is honoured only when the figure's own caption states it
+            lvl = t.get("row_ci_level")
+            if lvl and f"{lvl}% ci" not in re.sub(r"\s+", " ", cap).lower():
+                return None, "TARGET_ROW_CI_LEVEL_NOT_IN_CAPTION"
             return {"fig_id": t["fig_id"], "href": g.get(fp.XL), "caption": cap.strip()[:300], "panel": t.get("panel"),
                     "panel_title": t.get("panel_title"), "instruction": t.get("instruction"),
+                    **({"row_ci_level": lvl} if lvl else {}),
                     "selected_by": f"TARGETS (caption contains {t['caption_has']!r})"}, "SELECTED"
         return None, "TARGET_FIGURE_ABSENT"
     # a caption that says "forest" first; the broader pooled/ratio captions only when no forest caption qualifies (a
@@ -607,6 +723,19 @@ TOPIC_RETRY = {
     "spironolactone-hfref-mortality::35332595", "spironolactone-hfref-mortality::36348348",
     "spironolactone-hfref-mortality::40410293", "ticagrelor-vs-clopidogrel-acs::24614630",
     "ticagrelor-vs-clopidogrel-acs::28619104", "tocilizumab-covid19-mortality::33161150"}
+
+
+# the SECONDARY_SINGLE supply reads (TARGETS above); each also gets the topic note (one review outcome only)
+SS_READ = {
+    "tocilizumab-covid19-mortality::35802687", "tocilizumab-covid19-mortality::34768455",
+    "tocilizumab-covid19-mortality::35038318", "omega3-cardiovascular-events::39076869",
+    "omega3-cardiovascular-events::29387889", "omega3-cardiovascular-events::42144851",
+    "metformin-pcos-ovulation::28630466", "ticagrelor-vs-clopidogrel-acs::30013323",
+    "ticagrelor-vs-clopidogrel-acs::42524293", "ticagrelor-vs-clopidogrel-acs::30412125",
+    "pcsk9-mace::39259104", "pcsk9-mace::41235335", "ticagrelor-vs-clopidogrel-acs::31000178",
+    "tocilizumab-covid19-mortality::34026583", "tocilizumab-covid19-mortality::39633779",
+    "probiotics-aad-prevention::30078376", "ticagrelor-vs-clopidogrel-acs::40051435",
+    "ticagrelor-vs-clopidogrel-acs::38371311", "omega3-cardiovascular-events::37031750"}
 
 
 def topic_note(key):
@@ -979,7 +1108,7 @@ def _mh(rows, measure):
     return est, var
 
 
-def reconstruct(rows, ratio, measure, methods, z=1.959963984540054):
+def reconstruct(rows, ratio, measure, methods, z=1.959963984540054, row_z=None):
     """{method: (est, lo, hi)} for every stated method that can be computed from the agreed rows."""
     from scipy import stats
     from harness.synth import _paule_mandel_tau2
@@ -990,7 +1119,7 @@ def reconstruct(rows, ratio, measure, methods, z=1.959963984540054):
         rows = [r for r in rows if counts_yv(r, measure.upper()) is not None]
         yv = [counts_yv(r, measure.upper()) for r in rows]
     else:
-        yv = [_yv(r, ratio) for r in rows]
+        yv = [_yv(r, ratio, row_z or z) for r in rows]          # row_z: the trials' printed interval level
     if any(x is None for x in yv) or len(rows) < 2:
         return {}
     y, v = [a for a, _ in yv], [b for _, b in yv]
@@ -1083,7 +1212,7 @@ def row_problems(r, ratio, measure=None):
     return p
 
 
-def accept(proposed, pooled, model, measure, held=None):
+def accept(proposed, pooled, model, measure, held=None, row_ci_level=None):
     """The deterministic acceptance check over AGREED rows: every row consistent, the stated model reconstructable,
     and the stated model reproducing the printed pooled estimate AND CI within rounding. Any failure refuses the
     WHOLE figure. Returns {state, problems, recomputed, methods_reproducing, pooled_anchor}."""
@@ -1099,7 +1228,8 @@ def accept(proposed, pooled, model, measure, held=None):
     anchor = fp.pooled_in_text(pooled, held) if pooled and held else None
     rec, matched = {}, []
     if pooled and model["state"] == "STATED" and len(proposed) >= 2:
-        rec = reconstruct(proposed, ratio, measure, model["methods"])
+        row_z = {99: 2.5758293035489004, 90: 1.6448536269514722}.get(row_ci_level) if row_ci_level else None
+        rec = reconstruct(proposed, ratio, measure, model["methods"], row_z=row_z)
         extra = fp._half_unit(pooled["effect"])
         for name, (m, lo, hi) in rec.items():
             if fp._close(m, pooled["effect"], extra) and fp._close(lo, pooled["lower"], extra) and \
@@ -1188,7 +1318,7 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
     model = stated_model(mtext if mtext is not None else held, reading_a.get("model_printed") if reading_a.get("model_printed") ==
                          reading_b.get("model_printed") else None, measure=measure)
     # the reconstruction runs on the AGREED rows even when other rows disagree: the record shows what they alone give
-    acc = accept(proposed, pooled, model, measure, held) if pooled else \
+    acc = accept(proposed, pooled, model, measure, held, item["figure"].get("row_ci_level")) if pooled else \
         {"state": "REFUSED", "problems": [], "recomputed": {}, "methods_reproducing": [], "pooled_anchor": None}
     problems = probs + acc["problems"]
     state = "ACCEPTED" if not problems else "REFUSED"
@@ -1201,7 +1331,11 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
                          "provenance": f"MODEL_PROPOSAL_DUAL:{rid_a}+{rid_b}", "trial_label": r["label"],
                          "measure": measure, "outcome_definition": (fig.get("panel_title") or fig["caption"])[:300],
                          "effect": r["effect"], "lower": r["lower"], "upper": r["upper"],
-                         **{k: r[k] for k in ("events_t", "n_t", "events_c", "n_c")}})
+                         **{k: r[k] for k in ("events_t", "n_t", "events_c", "n_c")},
+                         **({"ci_level": f"{fig['row_ci_level']}%",
+                             "findings": [f"ROW_CI_IS_{fig['row_ci_level']}_PERCENT: the meta prints this trial's interval "
+                                          f"at {fig['row_ci_level']}% (its caption); not a 95% CI"]}
+                            if fig.get("row_ci_level") else {})})
     return {"state": state, "problems": problems, "measure": measure, "stated_model": model,
             "proposed_rows": proposed, "refused_rows": refused, "pooled_agreed": pooled,
             "agreed_rows_not_trials": agreed_not_trials, "agreed_rows_not_estimable": not_estimable,
@@ -1289,7 +1423,7 @@ def items(slugs, run, pairs=None, extras=None):
             continue
         with open(ip, "rb") as fh:
             b = fh.read()
-        note = topic_note(key) if key in TOPIC_RETRY else RETRY_NOTE if key in RETRY else None
+        note = topic_note(key) if key in TOPIC_RETRY or key in SS_READ else RETRY_NOTE if key in RETRY else None
         fig = dict(fig, image_name=os.path.basename(ip), **({"retry_note": note} if note else {}))
         out.append({"slug": slug, "pmid": pmid, "pmcid": pmcid, "key": key, "role": role, "figure": fig,
                     "image_path": ip, "image_ref": os.path.relpath(ip, ROOT).replace(os.sep, "/"),
@@ -1591,6 +1725,30 @@ def report(out):
         fh.write("\n".join(md) + "\n")
 
 
+class RunLock:
+    """ONE live --run at a time: each run rewrites the whole run ledger after every call, so a second concurrent run
+    would overwrite the first's entries (4 Oct: a run left alive behind a closed pipe ran beside its restart). The lock
+    is an exclusively created file beside the ledger; a held lock refuses the run -- it is never broken silently."""
+
+    def __init__(self, path=None):
+        self.path = (path or RUNS) + ".lock"
+
+    def __enter__(self):
+        try:
+            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            raise SystemExit(f"REFUSED: another --run holds {self.path} (remove it only if no reader process is alive)")
+        with os.fdopen(fd, "w") as fh:
+            fh.write(str(os.getpid()))
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            os.remove(self.path)
+        except FileNotFoundError:
+            pass
+
+
 def main(argv):
     """SLUG ... reads each topic's comparator; --metas reads instead the OTHER metas the two-source sweep selects for
     those topics (--all: every topic in the tracker)."""
@@ -1600,7 +1758,9 @@ def main(argv):
         slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1"))
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    if "--comparator-extra" in argv:           # the COMPARATOR_EXTRA figures (further comparator figures)
+    if "--ss-read" in argv:                    # the SECONDARY_SINGLE supply figures (SS_READ)
+        its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(SS_READ)])
+    elif "--comparator-extra" in argv:           # the COMPARATOR_EXTRA figures (further comparator figures)
         its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
     elif "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
@@ -1629,7 +1789,7 @@ def main(argv):
                 or runs[_key(it, rd)]["image_sha256"] != it["image_sha256"]
                 or runs[_key(it, rd)]["prompt_sha256"] != hashlib.sha256(prompt_bytes(it["figure"], rd)).hexdigest()]
         print(f"figures {len(its)}, calls to run {len(todo)}, skipped {len(skipped)}", flush=True)
-        with cf.ThreadPoolExecutor(max_workers=3) as cx, cf.ThreadPoolExecutor(max_workers=3) as ag:
+        with RunLock(), cf.ThreadPoolExecutor(max_workers=3) as cx, cf.ThreadPoolExecutor(max_workers=3) as ag:
             futs = {(cx if rd == "codex" else ag).submit(run_reader, it, rd): (it, rd) for it, rd in todo}
             for f in cf.as_completed(futs):
                 it, rd = futs[f]

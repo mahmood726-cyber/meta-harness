@@ -86,3 +86,153 @@ of these papers in the cache, for example by downloading them himself from the o
 
 Both appear in `meta_results` with role `comparator` and key `<slug>::<pmid>::<fig>`. `accepted_rows(slug)` returns
 them with `meta_pmid` set to the comparator's PMID.
+
+## 4 Oct (night): SECONDARY_SINGLE supply for six topics
+
+These are non-comparator metas covering the tracker's UNVERIFIED / NO_ROW trials.
+
+**How they were selected.** `scripts/g1_ss_targets.py` read the targets at acq/k-gap `f34580f9`. It then searched
+Europe PMC for open-access, in-EPMC meta-analyses:
+- for a target with a PMID, metas whose reference list cites it (`CITES:<pmid>_MED`);
+- for a target with only an NCT number, metas whose full text contains it.
+
+Every query is recorded in `registry/model_proposals/g1_ss_search/<slug>.json`. Candidates are ranked by how many
+targets they cite (`g1_ss_selection.json`).
+
+**How they were read.** The figure is the one whose caption names the topic outcome, caption-checked in `TARGETS`.
+Both readers also got the topic-outcome note. Two recorded readings were taken for each figure, followed by the
+pooled-reconstruction gate. The comparator is never used.
+
+### Accepted (rows in `meta_results`; `accepted_rows(slug)` returns them)
+
+| figure | rows | gate |
+|---|---|---|
+| omega3 29387889 hoi170076f2 (major vascular events, by trial) | 10 | FE 0.967 (0.929–1.007) reproduces 0.97 (0.93–1.01) |
+| pcsk9 39259104 F7 (MACE) | 12 | MH-FE reproduces 0.87 (0.83–0.91) |
+| ticagrelor 30013323 f7 (MACE at 180 days) | 5 | FE reproduces 0.27 (0.15–0.46) |
+| ticagrelor 30412125 F2 (primary efficacy) | 5 | MH-RE reproduces 0.64 (0.41–1.01) |
+
+- **omega3 29387889:** the 10 rows are DOIT, AREDS-2, SU.FOL.OM3, JELIS, Alpha Omega, OMEGA, R&P, GISSI-HF, ORIGIN and
+  GISSI-P, which covers about 8 of omega3's targets by acronym.
+  - **Caution:** these trial rows print **99% CIs**. The caption and methods say so, and the totals are 95%. Each row
+    carries `ci_level: "99%"` and a finding `ROW_CI_IS_99_PERCENT`.
+  - `SecondaryRow` has no interval-level field, so derive no SE from these rows as if they were 95%.
+- **pcsk9 39259104:** its rows are labelled by surname, so the join to the ODYSSEY targets is for you to judge.
+- **ticagrelor:** the five Chinese trials in 30013323 and Bonello/Park/Tang/Vercellino/Xia in 30412125 may not be the
+  numbered targets. Their join is yours.
+
+### Refused, with the reason
+
+| figure | agreed rows | why refused |
+|---|---|---|
+| tocilizumab 35802687 g003 | 14 | the figure prints **no pooled row** (see below) |
+| tocilizumab 35038318 f1 panel A | 9 | 1 row disagrees, so the whole figure is refused |
+| tocilizumab 34768455 f002 | 8 | 1 row disagrees, and the pool is not reproduced |
+| omega3 39076869 S3.F2 panel A | 12 | 1 row disagrees (DL reproduces on the agreed rows) |
+| omega3 42144851 | 11 log-ORs | DL 0.015 (−0.131 to 0.162) vs printed 0.04 (−0.06 to 0.14) |
+| pcsk9 41235335 F4 panel A | — | 7 rows disagree, and the counts do not give 3 printed rows |
+| ticagrelor 42524293 F2 panel b | — | the readers disagree on the pooled row |
+| metformin 28630466 Fig4 panel c | — | the readers disagree on the rows and the pool |
+
+**tocilizumab 35802687, for the captain and Mahmood.** Both readers agree on all 14 tocilizumab-vs-usual-care trial
+rows: ARCHITECTS, CORIMUNO-TOCI-ICU, COV-AID, COVACTA, COVIDOSE2-SS-A, COVIDSTORM, EMPACTA, HMO-020-0224, ImmCoVA,
+PreToVid, RECOVERY, REMAP-CAP (a), REMDACTA and TOCIBRAS. These are the NO_NON_COMPARATOR_META_ROW trials. But the
+figure is a network meta-analysis's direct-evidence plot: it prints per-trial ORs and % weights, and **no pooled
+row**. The paper's text prints no pairwise pool either. So the reconstruction gate cannot run, and the rows are NOT
+accepted.
+- **A possible decision:** let the printed % weights serve as the gate (inverse-variance weights recomputed from the
+  rows must reproduce them).
+- That is a rule change, so it is not taken here.
+
+### No source found
+
+| topic | why |
+|---|---|
+| probiotics-aad | every open meta of antibiotic-associated diarrhoea that cites the targets is already read. The higher-coverage metas plot *C. difficile* diarrhoea, a different outcome. |
+| metformin-pcos | the high-coverage metas plot other outcomes (endometrium, metabolic markers) or are network metas. |
+| pcsk9 | the high-coverage metas are network meta-analyses, or plot dementia, neurocognitive outcomes or LDL. |
+
+### Second sweep, same night (all ranked candidates, not just the top 15)
+
+| figure | outcome |
+|---|---|
+| ticagrelor 31000178 fig2 panel A | read; the readers agreed and the pool reproduced. Then **refused** on what it is: a meta of observational studies (its abstract), so it has no trial rows. Same precedent as the CAPA plot. |
+| tocilizumab 34026583 F2 | refused: 5 rows disagree. Its rows are observational cohorts anyway. |
+| tocilizumab 39633779 fig4 (immunomodulators) | refused: 1 of 17 rows disagrees. |
+
+**Study design of the accepted figures.** Of the four accepted SECONDARY_SINGLE figures, only omega3 29387889 is
+all-RCT. The other three mix designs:
+- pcsk9 39259104: RCTs, retrospective studies and prospective studies;
+- ticagrelor 30013323: 14 RCTs and 1 observational study;
+- ticagrelor 30412125: the abstract does not say.
+
+Use only the rows that your identity check joins to a comparator RCT.
+
+**Arm-level source for tocilizumab's NCT-only trials.** BMJ Medicine 2022 (PMID 36936570) supplement 1 prints
+arm-level death counts by steroid stratum for COVIDOSE2, HMO-020-0224, COVITOZ, ImmCoVA, PreToVid, COVIDSTORM and
+others. It is open through Europe PMC `/PMC9978750/supplementaryFiles`.
+- Its only pooled values are Bayesian network-meta-analysis direct estimates, given as credible intervals.
+- None of our gate's methods (FE / DL / PM / REML / MH) is expected to reproduce those, so it was **not read**.
+- If a rule allowing arm counts without a pooled anchor is ever adopted, this is the source.
+
+### Third sweep, 5 Oct: wide search (systematic reviews and PUB_TYPE meta-analyses, any title)
+
+**Search.** `g1_ss_targets.py --wide` records its own queries and keeps a separate frozen selection
+(`g1_ss_selection_wide.json`, up to 15 unread candidates per topic). Every candidate's figure captions were scanned
+for a per-trial plot of the topic outcome. Read:
+
+| figure | result |
+|---|---|
+| ticagrelor 40051435 F3 panel b (MACE, ACS with CKD) | **ACCEPTED**: 5 rows (Chien-Ho 2019, Ji 2021, Stefan 2010, Yun 2022, Yun-S 2022); FE reproduces 0.89 (0.80–0.99). The meta mixes cohort studies and RCTs. |
+| ticagrelor 38371311 f0015, ticagrelor subgroup 3.1.3 | refused: 11 of 12 rows agree, but 1 disagrees. The 11 agreed rows are ALPHEUS, ESTATE, Li et al., PHILO, PLATO, POPular AGE, TAILOR-PCI, TALOS-AMI, TICAKOREA, Turgeon 2020 and Yun et al. MH-FE on them reproduces the subtotal 0.96 (0.91–1.01). |
+| probiotics 30078376 Fig3 (AAD by composition) | refused: the readers split on whether the multi-study rows are studies. |
+
+**Not read** (each checked):
+- omega3 37031750 fig3 is an outcome summary, not trials.
+- ticagrelor 40489021 is prasugrel.
+- pcsk9: none of the 15 wide candidates has a per-trial MACE plot (they are pooled ODYSSEY analyses, network meta-analyses and LDL figures).
+- metformin and tocilizumab: no per-trial topic-outcome plot among the wide candidates.
+
+### Fourth sweep, 5 Oct: candidates' open supplements
+
+**Scan.** Supplement bundles of the top candidates per topic were taken from Europe PMC `supplementaryFiles`. Their
+PDF and Word text was searched for forest-plot captions naming the topic outcome.
+
+**Read: omega3 37031750, Supplemental Figure 3 (3-point MACE by trial). ACCEPTED.**
+- **Where:** an image embedded in the meta's own Word supplement `mmc1.docx`. The file is listed in its JATS and held
+  in the PMC OA bucket; the image was extracted unchanged.
+- **Rows:** 10 with counts — GISSI-Prevenzione, OMEGA, SU.FOL.OM3, ORIGIN, Risk & Prevention, COS, VITAL, STRENGTH,
+  JELIS and REDUCE-IT.
+- **Gate:** DL 0.964 (0.889–1.044) reproduces 0.96 (0.89–1.04), and so do PM and REML.
+- **Value:** a second independent meta, beside 29387889, for GISSI-P, OMEGA (Rauch), ORIGIN, R&P and JELIS
+  (Yokoyama).
+
+**Not read:**
+- omega3 29387889 eFigure 3: the same trials without JELIS.
+- tocilizumab 33915284 / 33161150: sensitivity plots of adjusted (observational) estimates.
+- tocilizumab 34019122: an ICU subgroup.
+- tocilizumab 39633779: drug-class plots.
+- No pcsk9, metformin, ticagrelor or probiotics supplement had a per-trial topic-outcome plot.
+
+**SECONDARY_SINGLE running total:** 19 figures read, 6 ACCEPTED (47 rows).
+
+### Single-number disagreements: refusals stand (5 Oct)
+
+**The trial.** Five refused figures fail on exactly one disputed value. I tried a deterministic rule: take the
+candidate value that makes the row's own printed numbers consistent. It was **reverted**.
+- The rule contradicts the goal's requirement that "a row is PROPOSED only if both readings agree within printed
+  rounding".
+- The planted test `test_REAL_FIGURE_PLANT_one_perturbed_reading_refuses` (RALES upper 0.82 perturbed to 0.84) went
+  from REFUSED to ACCEPTED under it. That test defends the requirement, so the rule went, not the test.
+
+**For information only.** None of these rows is accepted:
+
+| figure | disputed row | readings | which value the row's own numbers support |
+|---|---|---|---|
+| tocilizumab 35038318 | NCT04320615 | 28 vs 29 control deaths | 28 (58/294 vs 28/144 gives the printed RR 1.01) |
+| tocilizumab 39633779 | Lescure (sarilumab 400 mg) | upper 2.32 vs "232" | 2.32 (a dropped decimal) |
+| tocilizumab 34768455 | REMAP-CAP | lower 0.49 vs 0.48 | 0.48 (87/353 vs 134/402 gives 0.476) |
+| omega3 39076869 | Einvik 2010 | upper 1.45 vs 1.44 | both consistent: undecidable |
+| ticagrelor 38371311 | KAMIR-NIH | label "2016" vs "2018", all values equal | the reference list does not resolve it |
+
+If Mahmood wants these resolved, the rule needs his decision.
