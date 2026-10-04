@@ -505,8 +505,14 @@ def refs_of(pmid):
 
 def family_of_factory(ours):
     # a year glued to its acronym ('RALES2000', 'EPHESUS2003') is split before tokenising, or the acronym never leads
+    import unicodedata
+
+    def _fold(x):
+        # accents folded ('Alpérovitch' -> alperovitch), so an accented letter never splits a name into two tokens
+        return "".join(c for c in unicodedata.normalize("NFKD", k_gap.fold_dashes(str(x or ""))) if not unicodedata.combining(c))
+
     toks = lambda x: re.findall(r"[a-z0-9]+", re.sub(r"(?<=[a-z])(?=(?:19|20)\d\d\b)", " ",   # noqa: E731
-                                                       k_gap.fold_dashes(str(x or "")).lower()))
+                                                       _fold(x).lower()))
 
     def prefix(a, b):
         """a and b name the same trial when one's tokens lead the other's ('HARMONY' / 'Harmony Outcomes'), with a
@@ -533,11 +539,32 @@ def family_of_factory(ours):
         c = "".join(name)
         return (c, yr) if 1 <= len(name) <= 3 and len(c) >= 4 else (None, yr)
 
+    def cores(label, forename_first=False):
+        """Every surname core a label can carry: as printed (accents folded), with non-ASCII letters DROPPED (a reader
+        that lost the 'ö' of 'Lönnermark' printed 'Lnnermark'), and -- for a row only -- each single name token
+        ('Mehdi Akrami-2012': forename first)."""
+        out = set()
+        for lab in (label, re.sub(r"[^\x00-\x7f]", "", str(label or ""))):
+            c, _ = core(lab)
+            if c:
+                out.add(c)
+            if forename_first:
+                tt = [x for x in toks(lab) if not x[0].isdigit()]
+                if len(tt) == 2 and all(len(x) >= 4 for x in tt):
+                    out |= set(tt)
+        return out
+
+    def acronym(label):
+        return bool(re.match(r"\s*[A-Z][A-Z0-9-]{3,}", str(label or "")))
+
     def same_author(row_label, t_label):
         # a comparator's trial list labelled 'Helps et al52' and its forest row 'Helps 2015' name one trial; never when
-        # both carry a year and the years differ ('Palomba 2004' / 'Palomba 2005a')
-        (a, ya), (b, yb) = core(row_label), core(t_label)
-        return bool(a) and a == b and not (ya and yb and ya != yb)
+        # both carry a year and the years differ ('Palomba 2004' / 'Palomba 2005a') -- except by ONE year for an
+        # all-caps acronym ('RALES2000' / 'RALES1999': an acronym names the trial, its year is a publication date)
+        ya, yb = core(row_label)[1], core(t_label)[1]
+        if ya and yb and ya != yb and not (abs(int(ya) - int(yb)) == 1 and acronym(row_label) and acronym(t_label)):
+            return False
+        return bool(cores(row_label, forename_first=True) & cores(t_label))
     ref_rx = re.compile(r"\s*[\[(]\s*(\d+)\s*[\])]\s*$")
 
     def family_of(row):
@@ -574,6 +601,11 @@ def family_of_factory(ours):
             exact = [i for i, (t, _, _) in hits.items() if t["label"] and toks(ref_rx.sub("", t["label"])) == lt]
             if len(exact) == 1:
                 return exact[0]
+            # a bare family acronym ('ODYSSEY') hits every trial of the family: the ONE label the row's tokens LEAD
+            # ('ODYSSEY FH II' -> 'ODYSSEY FH II NCT01709500') wins (acq/k-gap 63119c57; consolidated 2026-10-04)
+            lead = [i for i, (t, _, _) in hits.items() if len(lt) >= 2 and t["label"] and toks(t["label"])[:len(lt)] == lt]
+            if len(lead) == 1:
+                return lead[0]
             # ...and only when every other hit's name LEADS the winner's (a bare 'Semler' inside 'Semler (SALT trial)'):
             # a row naming two different trials ('SOLOIST-WHF/SCORED') is a combined row and binds to neither
             top = max(s for _, s, _ in hits.values())
@@ -656,7 +688,7 @@ def figure_rows(slug, it, run_r, spec, comp):
     usable = g["state"] == "PASS" and pc["reproduced"]
     entry = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
                              "gate": g["state"], "gate_problems": g["problems"][:6], "positive_control": pc,
-                             "control_basis": control_basis,
+                             "control_basis": control_basis, "pooled": g.get("printed_pool"),
                              "rows_read": len(mrows), "usable": usable, "record_id": run_r["record_id"],
                              "is_comparator": it["pmid"] == comp}
     return (mrows if usable else []), entry

@@ -498,6 +498,21 @@ def _paper_registration(cands, pmids, u, idx, basis):
     return None
 
 
+def nct_tiebreak(mapped, pmids, our_fams, pubnct):
+    """Several registrations link the paper as RESULT (STEP 1's PMID 33567185 is listed by its own NCT03548935 AND by
+    SELECT's NCT03574597). The paper's OWN PubMed record names its registration: that wins. Only when it names none of
+    the candidates, the one candidate in our pool's families (the older tie-break -- which, alone, made STEP 1 inherit
+    SELECT's identity because SELECT is pooled). Returns (candidates kept, basis note or None)."""
+    own = sorted({(pubnct.get(p) or "").upper() for p in pmids} & set(mapped))
+    if len(own) == 1:
+        return own, f"pmid_nct_tiebreak_paper_record:{own[0]}"
+    if our_fams:
+        ours = [n for n in mapped if n in our_fams]
+        if len(ours) == 1:
+            return ours, f"pmid_nct_tiebreak_our_family:{ours[0]}"
+    return mapped, None
+
+
 def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     """Identity: cited ref PMID > NCT written in the unit > Author-Year against the comparator's own
     ref-list > acronym against AACT studies.acronym restricted to NCTs whose interventions name a topic
@@ -650,6 +665,13 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             else:
                 paper_lists_several = True
                 basis.append(f"pmid_nct_paper_lists_several:{','.join(own[:4])}")
+    if len(mapped) > 1 and not paper_lists_several and not [p for p in pmids if p in DATABANK]:
+        # acq/k-gap f21c0aa4 (STEP 1 inherited SELECT's identity): the paper's own PubMed record names its registration --
+        # used only when its FULL accession list is not held (a first accession cannot tell a multi-trial paper)
+        mapped2, note = nct_tiebreak(mapped, pmids, None, PUBNCT)
+        if note:
+            basis.append(note)
+            mapped = mapped2
     if len(mapped) > 1 and our_fams and not paper_lists_several:
         ours = [n for n in mapped if n in our_fams]
         if len(ours) == 1:

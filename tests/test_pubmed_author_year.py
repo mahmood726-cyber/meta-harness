@@ -44,3 +44,14 @@ def test_the_widened_query_still_needs_exactly_one_hit_and_an_error_is_never_a_h
     _cache(tmp_path, monkeypatch, {_strict("Ko", "2001"): [],
                                    kt.author_year_wide_query("Ko", "2001", ["metformin"]): {"error": "503"}})
     assert kt.pubmed_author_year("Ko", "2001", ["metformin"], offline=True)[0] is None
+
+
+def test_the_papers_own_registration_breaks_an_nct_tie_before_our_pool_does():
+    # STEP 1 (PMID 33567185) is RESULT-linked by its own NCT03548935 and by SELECT's NCT03574597; SELECT is in our pool,
+    # so the pool tie-break gave STEP 1 SELECT's identity (and SELECT's comparator row)
+    m = ["NCT03548935", "NCT03574597"]
+    kept, note = kt.nct_tiebreak(m, {"33567185"}, {"NCT03574597"}, {"33567185": "NCT03548935"})
+    assert kept == ["NCT03548935"] and "paper_record" in note
+    # the paper names no candidate: the old tie-break, unchanged
+    assert kt.nct_tiebreak(m, {"1"}, {"NCT03574597"}, {"1": ""})[0] == ["NCT03574597"]
+    assert kt.nct_tiebreak(m, {"1"}, set(), {})[0] == m

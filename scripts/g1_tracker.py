@@ -584,7 +584,46 @@ def g1r_reproduction(comp_meta, comp, rows):
             "control_basis": comp_meta.get("control_basis") or "TYPED_TABLE"}
 
 
-def outcome_set_differences(trials, comp_meta, comp, rows):
+def pick_comparator_row(sec, comp, label, row_owner, used_rows, label_row):
+    """The comparator's OWN row for one comparator trial: ONE row joins ONE trial. The family route (our identity: a
+    shared NCT) offers the family's comparator row; it is taken only when the comparator's own labels do not assign that
+    row to ANOTHER of its trials and no trial took it already (ticagrelor: PLATO's row 'Wallentin 2009' was handed to
+    PLATO and to its substudy Cannon 2010, whose own row then never joined). Else the trial's own label row, unused."""
+    for r in sec:
+        if r.meta_pmid == comp and row_owner.get(id(r), label) == label and id(r) not in used_rows:
+            return r
+    if label_row is not None and id(label_row) not in used_rows:
+        return label_row
+    return None
+
+
+def lane_comp_meta(comparator_rows_source):
+    """The comparator's per-trial analysis as the forest-reader lane ACCEPTED it (dual-model read, rows reproduce the
+    printed pool) in the shape outcome_set_differences / g1r read; {} when the lane accepted nothing. Without it, a topic
+    whose rows come from the lane had NO comparator entry and its outcome-set rule never ran (metformin, 4 Oct)."""
+    u = next((u for u in comparator_rows_source or [] if (u.get("acceptance") or {}).get("state") == "ACCEPTED"), None)
+    if not u:
+        return {}
+    acc = u.get("acceptance") or {}
+    return {"usable": True, "provenance": "FOREST_READER_DUAL", "figure": u.get("figure"), "panel": None,
+            "positive_control": {"reproduced": True, "methods": acc.get("methods_reproducing")},
+            "record_id": f"g1/forest-reader {str(u.get('commit'))[:9]}, figure sha256 {str(u.get('sha256'))[:12]}",
+            "control_basis": f"FOREST_READER_ACCEPTANCE ({acc.get('pooled_anchor')})", "pooled": u.get("pooled_agreed")}
+
+
+def pools_agree(pooled, compared):
+    """The analysis's printed pool IS the compared comparator result (point and both bounds, 2-decimal printing)."""
+    try:
+        got = [sm._num(pooled[k]) for k in ("effect", "lower", "upper")]
+        want = [float(compared[k]) for k in ("estimate", "ci_low", "ci_high")]
+    except (KeyError, TypeError, ValueError):
+        return None
+    if None in got:
+        return None
+    return all(abs(a - b) <= 0.0151 for a, b in zip(got, want))
+
+
+def outcome_set_differences(trials, comp_meta, comp, rows, compared=None):
     """NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: G1 matches the comparator's RESULT for this outcome. When the comparator's own
     per-trial analysis of the outcome is COMPLETE and CONTROLLED -- a typed table or a gated figure read for THIS
     outcome, its rows reproducing its printed pooled result (positive control), and EVERY one of its rows joined to a
@@ -594,6 +633,10 @@ def outcome_set_differences(trials, comp_meta, comp, rows):
     when the control did not reproduce, the read is not usable, or any comparator row is unjoined."""
     pc = comp_meta.get("positive_control") or {}
     if not (comp_meta.get("usable") and pc.get("reproduced")):
+        return []
+    # the analysis must BE the compared result: a figure pooling another analysis (metformin: 1.65 vs the compared
+    # 2.64; tocilizumab: all IL-6 agents 0.86 vs tocilizumab 0.83) says nothing about which trials the compared one used
+    if compared and pools_agree(comp_meta.get("pooled") or {}, compared) is not True:
         return []
     crow = [r for r in rows if r.meta_pmid == comp]
     joined = [x for x in trials if x.get("comparator_row")]
@@ -605,8 +648,14 @@ def outcome_set_differences(trials, comp_meta, comp, rows):
     span = (f"comparator PMID {comp} {where}: rows {[r.trial_label for r in crow]}; positive control reproduced "
             f"({pc.get('methods')}) against its printed pooled result ({comp_meta.get('control_basis') or 'TYPED_TABLE'})")
     named = []
+    # a trial whose REPORT (family) is one a joined trial carries IS in the analysis, listed twice by the comparator
+    # (balanced-crystalloids: SMART as 'Semler (SMART trial)' and 'Semler [15]', both PMID 29485925): never named absent
+    in_analysis = {x.get("family"): x["label"] for x in trials if x.get("comparator_row") and x.get("family")}
     for x in trials:
         if x.get("in_our_pool") or x.get("scope_difference") or x.get("comparator_row"):
+            continue
+        if x.get("family") and x["family"] in in_analysis:
+            x["same_report_as"] = in_analysis[x["family"]]
             continue
         x["scope_difference"] = {"kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS", "rule_id": "G1-OUTCOME-SET",
                                  "protocol_rule": "G1 matches the comparator's result for this outcome",
@@ -908,7 +957,11 @@ def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
         return None, f"COMPARATOR_DOES_NOT_SELF_REPRODUCE ({g1r_state})"
     if orient != "ESTABLISHED":
         return None, f"COMPARATOR_ARM_ORIENTATION_{orient}"
-    if x.get("comparator_row_state") not in CS_OK_STATES:
+    # a row refused ONLY because OUR identity of the trial is unresolved (FAMILY_NOT_RESOLVED) passed every typed check;
+    # it is the comparator's own row for the comparator's own trial, joined by the comparator's labels (omega3, 4 Oct)
+    bookkeeping_only = (x.get("comparator_row_state") == "REFUSED"
+                        and set(x.get("comparator_row_reasons") or []) == {"FAMILY_NOT_RESOLVED"})
+    if x.get("comparator_row_state") not in CS_OK_STATES and not bookkeeping_only:
         return None, f"COMPARATOR_ROW_{x.get('comparator_row_state')}"
     if (x.get("comparator_row_readings") or {}).get("state") == "READERS_DIFFER":
         return None, "COMPARATOR_ROW_READERS_DIFFER"
@@ -1591,6 +1644,7 @@ def topic(slug, T):
         if lab:
             comp_by_label.setdefault(lab, []).append(r)
     comp_by_label = {k: v[0] for k, v in comp_by_label.items() if len(v) == 1}
+    row_owner = {id(r): k for k, r in comp_by_label.items()}
     used_rows = set()
     for t in comp_rows:
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
@@ -1604,11 +1658,7 @@ def topic(slug, T):
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
-        theirs = next((r for r in sec if r.meta_pmid == comp), None)
-        if theirs is None:
-            cand = comp_by_label.get(t["label"][:60])
-            if cand is not None and id(cand) not in used_rows:
-                theirs = cand
+        theirs = pick_comparator_row(sec, comp, t["label"][:60], row_owner, used_rows, comp_by_label.get(t["label"][:60]))
         if theirs is not None:
             used_rows.add(id(theirs))
         if in_pool:
@@ -1665,7 +1715,8 @@ def topic(slug, T):
                                        or route == "SECONDARY_SINGLE",
                        "secondary_single": ({k: v for k, v in ss.items() if k != "row"} if (not in_pool and ss) else None),
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
-                       else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None})
+                       else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None,
+                       "comparator_row_reasons": list(theirs.reasons or []) if theirs else []})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}
@@ -1763,7 +1814,9 @@ def topic(slug, T):
             x["analysis_set_attribution"] = analysis_set_attribution(slug, cfg, x)
     for k in [k for k, n in routes.items() if n <= 0]:
         del routes[k]
-    outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or {}, comp, rows)
+    _rep0 = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
+    outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
+                            compared=_rep0 or None)
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)
     name_letter_units_by_comment_on(slug, cfg, trials, rev)
