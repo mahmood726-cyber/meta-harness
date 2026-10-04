@@ -680,10 +680,27 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
                                 "search_key": b.get("search_key")}
         if not ok:
             continue
-        x.update(route="PRIMARY", g1_countable=True, basis=f"{why} ({b.get('source')}); search key: comparator row",
-                 reclassified_by="g1/confirm-unverified primary binding",
-                 agreement_with_comparator_row="NOT_INDEPENDENT:SEARCH_KEYED_BY_COMPARATOR_ROW",
-                 blocker=None)
+        if b.get("own_tuple"):
+            # the trial's OWN printed counts for the topic outcome (Mahmood 3 Oct: matched = any verified typed tuple for
+            # the comparator's trial): NOT searched by the comparator's numbers, so agreement is COMPUTED, never assumed
+            cr = x.get("comparator_row") or {}
+            ours = {"measure": (cr.get("measure") or "").upper(), "effect": None, "lower": None, "upper": None,
+                    **{k: v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}}
+            theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                     provenance="COMPARATOR_ROW", trial_label=x["label"],
+                                     measure=(cr.get("measure") or "").upper(), outcome_definition="",
+                                     **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t",
+                                                               "events_c", "n_c")}) if cr else None
+            x.update(route="PRIMARY", g1_countable=True, our_value=ours,
+                     basis=f"{why} ({b.get('source')}); the trial's own tuple (reading lane proposal, gated)",
+                     reclassified_by="g1/confirm-unverified primary binding (own tuple)",
+                     agreement_with_comparator_row=agreement(ours, theirs) if theirs else "NOT_COMPARABLE:NO_COMPARATOR_ROW",
+                     blocker=None)
+        else:
+            x.update(route="PRIMARY", g1_countable=True, basis=f"{why} ({b.get('source')}); search key: comparator row",
+                     reclassified_by="g1/confirm-unverified primary binding",
+                     agreement_with_comparator_row="NOT_INDEPENDENT:SEARCH_KEYED_BY_COMPARATOR_ROW",
+                     blocker=None)
         flipped.append(x["label"])
     if flipped:
         tr = o["trials"]
