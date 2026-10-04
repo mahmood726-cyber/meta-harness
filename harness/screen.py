@@ -243,9 +243,12 @@ def _is_rct(rec) -> bool:
         # is the exception when the record is typed 'Randomized Controlled Trial' AND its abstract describes this
         # study's randomised comparison: COPPS-POAF (22090167) is the COPPS trial's only report of postoperative AF,
         # and the veto excluded it (G1 tracker exclusion audit, 2026-10-02; plant tests/test_g1_exclusion_audit.py).
-        veto = _TITLE_RCT_NOT.search(rec.get("title", "") or "")
-        if veto and not (veto.group(0).lower() in ("substudy", "sub-study")
-                         and any("randomized controlled trial" in p for p in pts) and _body_says_rct(rec)):
+        # EVERY veto term in the title, not the first: 'Substudy design and protocol of a randomized trial' is a protocol
+        # paper -- the first match ('Substudy') opened the exception and the 'protocol' veto was never seen (consolidation
+        # 2026-10-04; plant tests/test_g1_cpaf_exclusion_audit.py::test_c21_a_protocol_paper_titled_substudy...)
+        vetoes = {m.group(0).lower() for m in _TITLE_RCT_NOT.finditer(rec.get("title", "") or "")}
+        if vetoes and not (vetoes <= {"substudy", "sub-study"}
+                           and any("randomized controlled trial" in p for p in pts) and _body_says_rct(rec)):
             return False
         if any("randomized controlled trial" in p for p in pts):
             return True
