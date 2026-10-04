@@ -43,6 +43,7 @@ Each takes effect on the next table/tracker build in the full-cache environment;
 | be3efe3e | 'ACRONYM YYYY' normalises to the acronym (`k_gap.norm_acronym`) | omega3 ASCEND (NCT00135226), ORIGIN (NCT00069784), GISSI-HF (NCT00336336); metformin PCOSMIC (NCT00795808) -- all were UNRESOLVED once the table's shifted xrefs were distrusted | 5 labels |
 | 247ae55c | a registration typing EVERY reference BACKGROUND keeps those whose own PubMed record names its NCT (`ensure_background_refs`, `background_self_reports`) | pcsk9 DESCARTES: 12 refs all BACKGROUND, NEJM report 24678979 among them | 1 NCT |
 | 2f8c0a72 | X-DESIGN audit: 'randomized, open, single-center' states open-label (`OPEN`) | colchicine-postop Zarpelon [20]: full text PMC4976950 says "randomized, open, single-center" -> TRUE_SCOPE_DIFFERENCE once `k_gap_exclusion_fulltext.py` reruns (its last run predates this row) | 4 abstracts newly match, all open-label |
+| f5f5c223 | X-DESIGN audit reads the TITLE too | omega3 JELIS [32] (17398308): title "a randomised open-label, blinded endpoint analysis" -> TRUE_SCOPE_DIFFERENCE with a title span (was BLINDING_NOT_STATED) | 1 of 11 X-DESIGN rows |
 
 Named, NOT fixed (each needs a decision or a source, not code):
 - **POPULATION_VOCABULARY is a protocol decision, not a screener bug** (codex's recorded class, reproduced here). X2 does
