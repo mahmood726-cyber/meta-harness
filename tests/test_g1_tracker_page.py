@@ -132,8 +132,30 @@ def test_the_committed_page_shows_both_numbers_recomputed_from_the_trial_rows():
     cov = sum(g1.recompute(r)["covered"] for r in recs.values())
     n = g1.trial_totals(recs)["comparator_n"]
     page = (ROOT / g1.OUT).read_text(encoding="utf-8")
-    assert f"<strong>{cov} of {n}</strong>" in page and f"<strong>{conf} of {n}</strong>" in page
-    assert "COVERAGE" in page and "INDEPENDENTLY CONFIRMED" in page and cov >= conf
+    # two SEPARATE, labelled lines (dispatch 2026-10-04: the side-by-side cells read as 'COVERAGE INDEPENDENTLY
+    # CONFIRMED 124 of 367', one run-on label) -- each label sits in its own paragraph next to its own number
+    import re as _re
+    lines = _re.findall(r"<p class='hl[^']*'>(.*?)</p>", page)
+    assert any(l.startswith(f"<strong>COVERAGE:</strong> {cov} of {n} ") for l in lines), lines
+    assert any(l.startswith(f"<strong>INDEPENDENTLY CONFIRMED:</strong> {conf} of {n} ") for l in lines), lines
+    assert not any("COVERAGE" in l and "INDEPENDENTLY CONFIRMED" in l for l in lines)
+    assert any(l.startswith(f"<strong>DENOMINATOR:</strong> {n} comparator rows;") for l in lines), lines
+    assert cov >= conf
+
+
+def test_PLANT_without_a_sound_ledger_the_page_says_the_justification_is_pending(tmp_path, monkeypatch):
+    import json as _json
+    import shutil
+    for d in ("outputs/k_gap/g1", "scripts"):
+        shutil.copytree(ROOT / d, tmp_path / d)
+    (tmp_path / "outputs/k_gap/G1_SOURCE.json").write_text("{}", encoding="utf-8")
+    page = g1.render(tmp_path)                                   # no ledger at all
+    assert "per-trial justification pending" in page
+    led = _json.loads((ROOT / "outputs/k_gap/G1_DENOMINATOR.json").read_text(encoding="utf-8"))
+    led["removed"][0]["rule_id"] = None                           # a ledger with one unexplained removal
+    (tmp_path / "outputs/k_gap/G1_DENOMINATOR.json").write_text(_json.dumps(led), encoding="utf-8")
+    page = g1.render(tmp_path)
+    assert "per-trial justification pending" in page and "id='denominator'" not in page
 
 
 def test_PLANT_codex_review_2026_10_03_four_miscount_inputs_are_refused():

@@ -227,14 +227,36 @@ def render(root: Path = ROOT) -> str:
     csrc = sum(x["comparator_sourced"] for x in summ.values())
     n = tot["comparator_n"]
     pct = (lambda a: f" ({100 * a / n:.0f}%)") if n else (lambda a: "")
-    head += (f".</p><table class='two'><tr><th>COVERAGE</th><th>INDEPENDENTLY CONFIRMED</th></tr><tr>"
-             f"<td><strong>{cov} of {n}</strong> comparator trials{pct(cov)}<br><span class='muted'>a typed row for the "
-             f"trial from any admitted source, INCLUDING {csrc} taken from the comparator meta itself (figure/table "
-             f"location, digest and read record on each row); coverage only, never counted as confirmation</span></td>"
-             f"<td><strong>{conf} of {n}</strong> comparator trials{pct(conf)}<br><span class='muted'>a primary source, "
-             f"two independent sources, or one non-comparator meta row queued for primary verification; the comparator "
-             f"is never one of the sources (recomputed here, fail-closed on an unrecorded source)</span></td></tr></table>"
-             f"<p>")
+    led_p = root / "outputs" / "k_gap" / "G1_DENOMINATOR.json"
+    led = json.loads(led_p.read_text(encoding="utf-8")) if led_p.is_file() else None
+    led_bad = None
+    if led is not None:
+        import importlib.util as _ilu
+        _sp = _ilu.spec_from_file_location("g1_denominator_ledger", root / "scripts" / "g1_denominator_ledger.py")
+        if _sp and (root / "scripts" / "g1_denominator_ledger.py").is_file():
+            _m = _ilu.module_from_spec(_sp)
+            _sp.loader.exec_module(_m)
+            led_bad = _m.problems(led)
+    # TWO SEPARATE, LABELLED LINES (dispatch 2026-10-04: the side-by-side table read as one run-on label)
+    head += (f".</p><p class='hl'><strong>COVERAGE:</strong> {cov} of {n} comparator rows{pct(cov)} -- a typed row "
+             f"for the trial from any admitted source, INCLUDING {csrc} taken from the comparator meta itself (figure/"
+             f"table location, digest and read record on each row). Coverage only; never counted as confirmation.</p>"
+             f"<p class='hl'><strong>INDEPENDENTLY CONFIRMED:</strong> {conf} of {n} comparator rows{pct(conf)} -- a "
+             f"primary source, two independent sources, or one non-comparator meta row queued for primary verification; "
+             f"the comparator is never one of the sources (recomputed here, fail-closed on an unrecorded source).</p>")
+    if led is not None and not led_bad and led.get("current", {}).get("N") == n:
+        kinds = {}
+        for r in led.get("removed") or []:
+            kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
+        rem = ", ".join(f"{v} {k.replace('_', ' ').lower()}" for k, v in sorted(kinds.items()) if k != "RELABELLED")
+        head += (f"<p class='hl'><strong>DENOMINATOR:</strong> {n} comparator rows; {led['removed_n']} removed "
+                 f"({rem}), {led['relabelled_n']} relabelled and {led['added_n']} added since the "
+                 f"{led['baseline']['N']}-row baseline (main {str(led['baseline']['commit'])[:8]}) -- every change is "
+                 f"listed <a href='#denominator'>below</a> with its rule ID and a span quoted from a held source.</p><p>")
+    else:
+        b0 = (led or {}).get("baseline", {}).get("N", 367)
+        head += (f"<p class='hl no'><strong>DENOMINATOR:</strong> {n} comparator rows -- denominator reduced "
+                 f"{b0}&rarr;{n}; per-trial justification pending.</p><p>")
     head += (f"Trials matched: <strong>{tot['matched']} of {tot['eligible']} eligible</strong> and "
              f"<strong>{tot['matched']} of {tot['comparator_n']} comparator trials</strong> (the comparators' own N; the "
              f"difference, {tot['comparator_n'] - tot['eligible']}, is comparator trials outside our registered scope or "
@@ -245,7 +267,7 @@ def render(root: Path = ROOT) -> str:
         "<style>body{font-family:system-ui,sans-serif;max-width:1180px;margin:24px auto;padding:0 16px;color:#1d2b33}"
         "table{border-collapse:collapse;width:100%;margin:8px 0 20px}th,td{border:1px solid #dbe3e8;padding:5px 7px;"
         "font-size:13px;vertical-align:top;text-align:left}th{background:#f2f6f8}.no{color:#8a3b12}.ok{color:#1d6b3a}"
-        ".muted{color:#5b6b75;font-size:13px}.focus{font-weight:600}.two td{width:50%;font-size:15px}</style></head><body>",
+        ".muted{color:#5b6b75;font-size:13px}.focus{font-weight:600}.hl{font-size:15px;margin:6px 0}</style></head><body>",
         "<h1>G1 scoreboard: trial-for-trial against published open-access meta-analyses</h1>",
         head + ".</p>",
         "<p class='muted'>G1 MATCHED = every eligible comparator trial matched AND every matched trial verified from a "
@@ -305,6 +327,31 @@ def render(root: Path = ROOT) -> str:
                          f"{_e(d.get('reason'))}</p>")
         for f in rec.get("comparator_findings") or []:
             parts.append(f"<p><strong>Comparator-side finding</strong> {_e(f.get('finding'))}: {_e(f.get('trial'))}</p>")
+    if led is not None and not led_bad:
+        parts.append(f"<h2 id='denominator'>Denominator ledger: {led['baseline']['N']} -> {led['current']['N']} "
+                     f"comparator rows</h2><p class='muted'>Every row that left the pinned baseline "
+                     f"({_e(led['baseline']['fixture'])}) and every row that joined, from outputs/k_gap/G1_DENOMINATOR.json "
+                     f"(scripts/g1_denominator_ledger.py --check refuses a removal without rule + verbatim span).</p>")
+        parts.append("<table><tr><th>topic</th><th>comparator row</th><th>change</th><th>rule</th><th>quoted source span"
+                     "</th><th>source</th></tr>")
+        for r in led.get("removed") or []:
+            sp = r.get("span") or {}
+            rows = sp.get("rows") if "rows" in sp else [sp]
+            txt = " | ".join((x or {}).get("text", "") for x in rows)
+            if r["kind"] == "DUPLICATE_UNIT":
+                txt += " | duplicate of: " + ((r.get("span_duplicate_of") or {}).get("text") or "")
+            if r["kind"] == "RELABELLED":
+                txt = f"now '{r.get('now_label')}': " + txt
+            ctx = sp.get("context_before") if isinstance(sp, dict) else None
+            parts.append(f"<tr><td>{_e(r['slug'])}</td><td>{_e(r['label'])}</td><td>{_e(r['kind'])}</td>"
+                         f"<td>{_e(r['rule_id'])}</td><td>{_e(txt)}"
+                         + (f"<br><span class='muted'>preceded by: ...{_e(ctx[-160:])}</span>" if ctx else "")
+                         + f"</td><td class='muted'>{_e((rows[0] or {}).get('source'))}</td></tr>")
+        for a_ in led.get("added") or []:
+            parts.append(f"<tr><td>{_e(a_['slug'])}</td><td>{_e(a_['label'])}</td><td>ADDED</td><td>{_e(a_['basis'])}"
+                         f"</td><td>{_e((a_.get('span') or {}).get('text'))}</td><td class='muted'>"
+                         f"{_e((a_.get('span') or {}).get('source'))}</td></tr>")
+        parts.append("</table>")
     parts.append("</body></html>\n")
     return "".join(parts)
 
