@@ -9,7 +9,9 @@ The new reading does not need that rule relaxed.
 What ImmCoVA's open report states (PMID 38157348, PLoS One, CC BY 4.0, held):
 - "There were 6 deaths up to day 29, two in each arm."
 - "Two additional patients died on or after d29."
-  - The S3 supplement places one of these deaths on d29, in the usual-care arm.
+  - The trial's supplement, as posted on the EU Clinical Trials Register (2020-001748-24, attachment 48622, a .docx;
+    read, not held), places one of these deaths on d29, in the usual-care arm. The rule does not depend on this: it
+    needs only the paper's own "on or after d29".
   - So the report itself counts the day-29 death OUTSIDE "up to day 29", and its window is days ≤ 28.
 - Arm sizes: "27 to UC, 28 to anakinra and 22 to tocilizumab". A second sentence repeats the same sizes.
 
