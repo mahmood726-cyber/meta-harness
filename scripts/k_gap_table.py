@@ -695,13 +695,10 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
             else:
                 paper_lists_several = True
                 basis.append(f"pmid_nct_paper_lists_several:{','.join(own[:4])}")
-    if len(mapped) > 1 and not paper_lists_several and not [p for p in pmids if p in DATABANK]:
-        # acq/k-gap f21c0aa4 (STEP 1 inherited SELECT's identity): the paper's own PubMed record names its registration --
-        # used only when its FULL accession list is not held (a first accession cannot tell a multi-trial paper)
-        mapped2, note = nct_tiebreak(mapped, pmids, None, PUBNCT)
-        if note:
-            basis.append(note)
-            mapped = mapped2
+    # (acq/k-gap f21c0aa4's first-accession tie-break, nct_tiebreak with PUBNCT, is NOT applied: PUBNCT holds only the
+    # FIRST DataBank NCT and picked SMART-MED for SMART -> OTHER_AGENT; the identity lane's rule (test_idaudit_findings::
+    # test_single_nct_cache_is_not_used_as_the_papers_full_list) is that it never decides. STEP 1 resolves by the paper's
+    # full accession list (DATABANK). Consolidation 2026-10-04.)
     if len(mapped) > 1 and our_fams and not paper_lists_several:
         ours = [n for n in mapped if n in our_fams]
         if len(ours) == 1:

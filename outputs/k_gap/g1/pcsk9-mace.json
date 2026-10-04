@@ -57,14 +57,22 @@
  "blockers": {
   "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
   "EXTRACTION:outcome_post_hoc_not_pooled": 1,
-  "IDENTIFICATION": 3,
+  "IDENTIFICATION": 2,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
+  "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY": 1,
   "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 1,
   "SCREENED_VIA_OTHER_REPORT": 1
  },
- "top_blocker": "IDENTIFICATION",
+ "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
- "comparator_findings": [],
+ "comparator_findings": [
+  {
+   "finding": "COMPARATOR_CITES_NCT_NOT_IN_REGISTRY",
+   "trial": "ODYSSEY JAPAN NCT02017898",
+   "comparator": "36531722",
+   "basis": "NCT02017898 is not in the AACT snapshot (registry/comparator_nct_check.json)"
+  }
+ ],
  "k_ours_total": 2,
  "routes": {
   "UNVERIFIED": 8,
@@ -616,7 +624,10 @@
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY",
+   "comparator_cites_unknown_nct": [
+    "NCT02017898"
+   ],
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1198,6 +1209,10 @@
    "rules": 3
   }
  },
+ "comparator_stated_k": {
+  "k": null,
+  "span": null
+ },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
   "held_records": 9,
@@ -1252,6 +1267,15 @@
    "trials": [
     "OSLER-1 NCT01439880 [X3]"
    ]
+  },
+  "result_blocker": {
+   "code": "MEASURE_DIFFERS_PER_TRIAL",
+   "measures": [
+    "HR",
+    "RR"
+   ],
+   "k_pairs": 2,
+   "comparator_rows_contradicted_by_primary": []
   }
  }
 }
