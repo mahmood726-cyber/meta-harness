@@ -37,4 +37,5 @@ def test_remdacta_is_primary_by_two_independent_sources():
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "tocilizumab-covid19-mortality.json"), encoding="utf-8"))
     x = next(t for t in o["trials"] if t["label"] == "REMDACTA")
     assert x["route"] == "PRIMARY" and "AACT + TEXT" in x["basis"] and x["agreement_with_comparator_row"] == "AGREE"
-    assert o["k_matched"] == 6
+    # the requirement is that REMDACTA COUNTS, not the topic's running total (which other trials move)
+    assert x["g1_countable"] and o["k_matched"] == sum(1 for t in o["trials"] if t["g1_countable"])

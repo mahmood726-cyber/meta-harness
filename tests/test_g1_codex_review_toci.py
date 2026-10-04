@@ -23,7 +23,7 @@ def test_1_a_survival_estimate_never_establishes_a_count():
     ex = _o("Kaplan-Meier survival", "Day 28", [("Tocilizumab", "", "90"), ("Placebo", "", "80")], "NUMBER", "percent")
     rows = t.aact_28d("COVACTA", ex)
     assert all("%" in r["derivation"] for r in rows)              # labelled a derivation, never a stated count
-    with patch.object(t, "held_texts", return_value=[]), patch.object(t, "_META2", {}):
+    with patch.object(t, "held_texts", return_value=[]), patch.object(t, "vnh_candidates", return_value=[]), patch.object(t, "_META2", {}):
         assert t.assess("COVACTA", ex, metas={})["state"] != t.ESTABLISHED
 
 
@@ -42,7 +42,7 @@ def test_4_swapped_arms_in_the_text_conflict_with_the_registry():
     c = {"source": "AACT", "deaths_t": 10, "n_t": 100, "deaths_c": 20, "n_c": 100, "denominator_kind": t.RANDOMISED,
          "derivation": "count posted"}
     s = "By day 28, 20 of 100 patients died in the tocilizumab group and 10 of 100 patients died in the placebo group."
-    with patch.object(t, "aact_28d", return_value=[c]), patch.object(t, "held_texts", return_value=[("PMID 1", s)]), \
+    with patch.object(t, "aact_28d", return_value=[c]), patch.object(t, "held_texts", return_value=[("PMID 1", s)]), patch.object(t, "vnh_candidates", return_value=[]), \
             patch.object(t, "_META2", {}):
         r = t.assess("COVACTA", {}, metas={})
     assert (r["state"], r["row"]) == (t.CONFLICT, None)
@@ -72,7 +72,7 @@ def test_9_equal_numbers_over_different_denominator_kinds_are_not_agreement():
     c = {"source": "AACT", "deaths_t": 10, "n_t": 100, "deaths_c": 20, "n_c": 100, "denominator_kind": t.ANALYSED,
          "derivation": "count posted"}
     s = "By day 28, 10 of 100 tocilizumab patients and 20 of 100 placebo patients died among all randomised patients."
-    with patch.object(t, "aact_28d", return_value=[c]), patch.object(t, "held_texts", return_value=[("PMID 1", s)]), \
+    with patch.object(t, "aact_28d", return_value=[c]), patch.object(t, "held_texts", return_value=[("PMID 1", s)]), patch.object(t, "vnh_candidates", return_value=[]), \
             patch.object(t, "_META2", {}):
         r = t.assess("COVACTA", {}, metas={})
     assert r["state"] != t.ESTABLISHED
