@@ -153,8 +153,8 @@ def aact_detail(ncts):
     from harness import aact
     snap = aact.snapshot_dir(None)
     d = json.load(open(DETAIL, encoding="utf-8")) if os.path.exists(DETAIL) else {}
-    if d.get("snapshot") != snap:
-        d = {"snapshot": snap, "ncts": {}}
+    if d.get("snapshot") != snap or d.get("v") != 2:
+        d = {"snapshot": snap, "v": 2, "ncts": {}}
     want = {n for n in ncts if n and n not in d["ncts"]}
     if want and snap:
         got = {n: {"outcomes": {}, "analyses": {}} for n in want}
@@ -167,6 +167,12 @@ def aact_detail(ncts):
             if n in want:
                 got[n]["analyses"].setdefault(str(r.get("outcome_id")), []).append(
                     {k: (r.get(k) or "")[:400] for k in _AN_COLS})
+        for r in aact._iter_rows(os.path.join(snap, "outcome_measurements.txt")):
+            n = r.get("nct_id")
+            if n in want:
+                got[n].setdefault("measurements", {}).setdefault(str(r.get("outcome_id")), []).append(
+                    {k: (r.get(k) or "")[:200] for k in ("result_group_id", "title", "units", "param_type", "param_value",
+                                                         "classification", "category")})
         d["ncts"].update(got)
         json.dump(d, open(DETAIL, "w", encoding="utf-8"), ensure_ascii=False)
     return {n: d["ncts"].get(n) or {} for n in ncts}
@@ -346,6 +352,30 @@ def gate(resp, held, cfg, slug):
     return "REFUSED:UNKNOWN_SOURCE", None
 
 
+_PEOPLE = re.compile(r"^\s*(?:number of |count of )?(?:participants?|subjects?|patients?|people|persons?)", re.I)
+
+
+def _comparator_row(o, label):
+    return next((x.get("comparator_row") for x in o.get("trials") or [] if x.get("label") == label), None)
+
+
+def comparator_counts_are_events(cr, ncts):
+    """When the comparator's own per-arm counts for this trial are the posted measurements of an outcome whose units are
+    NOT participants (AFFIRM-AHF: 217 vs 294 = 'HF Hospitalisations', units Events), name it: the comparator pooled
+    event counts over participant denominators. Deterministic, at replay; the reader never saw the comparator row."""
+    if not cr or cr.get("events_t") is None or cr.get("events_c") is None:
+        return None
+    want = {str(cr["events_t"]), str(cr["events_c"])}
+    for n, d in aact_detail(ncts).items():
+        for oid, ms_ in ((d or {}).get("measurements") or {}).items():
+            vals = {str(m.get("param_value") or "").split(".")[0] for m in ms_}
+            units = {m.get("units") or "" for m in ms_}
+            if want <= vals and units and not any(_PEOPLE.search(u) for u in units):
+                return {"finding": "COMPARATOR_COUNTS_ARE_POSTED_EVENTS", "nct": n, "outcome_id": oid,
+                        "title": ms_[0].get("title"), "units": sorted(units), "comparator_counts": sorted(want)}
+    return None
+
+
 def comparator_pmid(slug, o):
     return str(o.get("comparator_pmid") or "")
 
@@ -416,6 +446,9 @@ def replay(slugs, ref):
                                                                          "lower", "upper", "outcome_as_stated",
                                                                          "timepoint_as_stated", "population_as_stated",
                                                                          "scope_rule_key", "scope_span", "why")}}
+        if adm and adm.get("kind") == "AACT":
+            adm["comparator_counts_check"] = comparator_counts_are_events(
+                _comparator_row(o, r["label"]), r.get("ncts") or [])
         if adm:
             rw = adm.pop("row")
             row["admitted"] = dict(adm, value={k_: getattr(rw, k_) for k_ in ("measure", "effect", "lower", "upper",
