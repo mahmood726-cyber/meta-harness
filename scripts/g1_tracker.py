@@ -696,18 +696,34 @@ def orientation(o):
 
 
 def _mirrors(ours, theirs):
-    """theirs looks like ours with the arms swapped: counts swapped, a ratio ~ 1/ours, or a difference ~ -ours."""
+    """theirs IS ours with the arms swapped: counts exactly swapped, or every printed number (point and both bounds)
+    the reciprocal (ratio) / negation (difference) of ours within the printed rounding (3 half-units, as the positive
+    control). Merely landing on the other side of the null is NOT a mirror: Pozzoni (probiotics, 4 Oct) -- 1.14 vs 0.75,
+    whose reciprocal is 1.33 -- is a discrepancy, and calling it a mirror DISPUTED an orientation 13 trials establish."""
     ot = tuple(ours.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
     tt = tuple(theirs.get(k) for k in ("events_t", "n_t", "events_c", "n_c"))
     if None not in ot and None not in tt:
         return (tt[2], tt[3], tt[0], tt[1]) == ot and tt != ot
+    pairs = [("effect", "effect"), ("lower", "upper"), ("upper", "lower")]
+    ratio = (ours.get("measure") or "").upper() in sm.RATIO
+    seen = 0
+    for ko, kt in pairs:
+        a, b = sm._num(ours.get(ko)), sm._num(theirs.get(kt))
+        if a is None or b is None:
+            if ko == "effect":
+                return False
+            continue
+        ha, hb = sm._half(str(ours.get(ko))) * 3, sm._half(str(theirs.get(kt))) * 3
+        if ratio:
+            if a <= 0 or b <= 0:
+                return False
+            if abs(math.log(a) + math.log(b)) > ha / a + hb / b + 1e-9:
+                return False
+        elif abs(a + b) > ha + hb + 1e-9:
+            return False
+        seen += 1
     a, b = sm._num(ours.get("effect")), sm._num(theirs.get("effect"))
-    if a is None or b is None:
-        return False
-    if (ours.get("measure") or "").upper() in sm.RATIO and a > 0 and b > 0:
-        la, lb = math.log(a), math.log(b)
-        return la * lb < 0 and abs(la + lb) < abs(la - lb)
-    return a * b < 0 and abs(a + b) < abs(a - b)
+    return seen >= 1 and ((math.log(a) * math.log(b) < 0) if ratio else (a * b < 0))
 
 
 def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
