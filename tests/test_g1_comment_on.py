@@ -33,13 +33,18 @@ def test_registry_records_the_request_and_response_digest():
     assert all(len(v["response_sha256"]) == 64 and v["request"].startswith("https://eutils") for v in reg.values())
 
 
-def test_isreb_19_is_credence_named_out_of_scope_and_an_unlinked_letter_is_not_resolved():
-    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-primary-prevention-hf.json"), encoding="utf-8"))
-    x = next(t for t in o["trials"] if t["label"].startswith("Isreb"))
-    assert x["cited_as"]["pmid"] == "31509682" and x["cited_as"]["comment_on"] == "30990260"
-    sd = x["scope_difference"]
-    assert sd["rule_id"] == "X2" and "Nephropathy" in sd["span"]["text"] and sd["pmid"] == "30990260"
-    assert "Isreb (19)" not in o["open_gaps"]
-    # control: a cited letter with NO CommentOn link (24820749) is never resolved by guesswork
+def test_a_cited_letter_resolves_to_the_one_trial_it_comments_on_and_never_otherwise():
+    import g1_tracker as gt
     reg = json.load(open(os.path.join(ROOT, "registry", "comment_on.json"), encoding="utf-8"))
-    assert reg["24820749"]["comment_on"] == []
+    trials = [{"label": "Isreb (19)", "in_our_pool": False}, {"label": "letter, no link", "in_our_pool": False},
+              {"label": "pooled", "in_our_pool": True}]
+    comp_rows = [{"label": x["label"]} for x in trials]
+    rp = {id(comp_rows[0]): "31509682", id(comp_rows[1]): "24820749", id(comp_rows[2]): "31509682"}
+    gt.resolve_cited_letters(trials, comp_rows, rp, {"30990260": {}}, reg)
+    assert rp[id(comp_rows[0])] == "30990260" and trials[0]["cited_as"]["pmid"] == "31509682"
+    assert rp[id(comp_rows[1])] == "24820749" and "cited_as" not in trials[1]      # no CommentOn: unresolved
+    assert rp[id(comp_rows[2])] == "31509682"                                      # a pooled trial is never touched
+    # the commented trial must be a report we hold
+    rp2 = {id(comp_rows[0]): "31509682"}
+    gt.resolve_cited_letters(trials[:1], comp_rows[:1], rp2, {}, reg)
+    assert rp2[id(comp_rows[0])] == "31509682"

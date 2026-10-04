@@ -1,10 +1,6 @@
-"""secondary_meta_build.family_of_factory: a comparator's figure row joins its trial-list entry by label. The trial
-list's trailing reference number is stripped like the row's ('Zinman (8)' leads 'Zinman 2016'; before, 8 accepted rows
-of sglt2-primary-prevention-hf's figure joined none); reference numbers are not compared (a figure may be numbered differently from the list); a first
-author + year confirmation outranks a bare name; and a
-tie is broken only by a LONGER name the others lead ('Semler (SALT trial)' over 'Semler [15]'), never across two
-different trials (a combined 'SOLOIST-WHF/SCORED' row binds to neither). Each case fails as built before the fix or is
-the control that must not change."""
+"""secondary_meta_build.family_of_factory: regression cases found on g1/finish-line (the class itself was fixed upstream in
+e89dfe86, surname-core join): a reference-numbered list label joins the figure row; first author + year outranks a bare
+name; the longer name wins only when the shorter leads it; a combined row naming two trials binds to neither."""
 import os
 import sys
 
