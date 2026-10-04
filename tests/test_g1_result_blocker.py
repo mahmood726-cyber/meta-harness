@@ -27,7 +27,14 @@ def test_the_stated_count_is_read_from_the_comparators_own_abstract():
 def test_whole_pools_compare_when_the_stated_count_equals_our_matched_set():
     o = _o(N_comparator_trials=7, named_differences=[{"trial": "a pooled bleeding analysis"}], comparator_pmid="24963045")
     wp = gt.whole_pool_comparison(o)
-    assert wp["state"] == "WHOLE_POOL_MEASURE_DIFFERS" and wp["basis"].startswith("COMPARATOR_STATES_ITS_POOL_K")
+    # our HR vs their RR is a NAMED measure difference (acq/k-gap class): never converted, it passes only on the same
+    # conclusion about the null -- both include 1 here
+    assert wp["state"] == "MEASURE_DIFFERENCE" and wp["basis"].startswith("COMPARATOR_STATES_ITS_POOL_K")
+    assert wp["verdict"]["verdict"] == "MEASURE_DIFFERENCE_SAME_CONCLUSION"
+    # negative: the comparator excludes the null, ours does not -> a different conclusion, typed as the blocker
+    diff = gt.whole_pool_comparison(dict(o, comparator={"estimate": 0.80, "ci_low": 0.70, "ci_high": 0.92, "scale": "RR"}))
+    assert diff["verdict"]["verdict"] == "DIFFERENT_CONCLUSION"
+    assert gt.result_blocker(dict(o, same_trials=diff))["code"] == "MEASURE_DIFFERS_DIFFERENT_CONCLUSION"
     # controls: an open gap, or a stated count that differs from ours, never compares whole pools
     assert gt.whole_pool_comparison(dict(o, open_gaps=["X"])) is None
     assert gt.whole_pool_comparison(dict(o, k_matched=5, N_eligible=5)) is None
