@@ -140,7 +140,9 @@ def select_figure(slug, pmid, jats_date="2026-09-28", caption_re=None):
     for f in ET.parse(jp).getroot().iter("fig"):
         cap = " ".join("".join(x.itertext()) for x in f.iter("caption"))
         g = f.find(".//graphic")
-        if g is None or not (caption_re.search(cap) if caption_re else is_forest_caption(cap)) or SUBGROUP.search(cap):
+        # a tier's own caption regex WIDENS the predicate, never replaces it; a flow / funnel / bias figure is never one
+        forest_like = is_forest_caption(cap) or bool(caption_re and caption_re.search(cap))
+        if g is None or not forest_like or _NOT_FOREST_CAP.search(cap) or SUBGROUP.search(cap):
             continue
         # The gate anchors the plot's pool to the comparator's TEXT, but a wrong-outcome figure's pool is printed there
         # too, so a figure whose outcome is not unambiguous is refused here, before any model call: a multi-panel
