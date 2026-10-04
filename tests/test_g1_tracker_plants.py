@@ -149,8 +149,11 @@ def test_a_comparator_citing_another_report_of_a_trial_we_pool_is_matched_to_tha
     import json
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-primary-prevention-hf.json"), encoding="utf-8"))
     x = next(t for t in o["trials"] if t["label"].startswith("Radholm"))
-    assert x["in_our_pool"] and x["route"] == "PRIMARY"
-    assert x["matched_via_other_report"] == {"nct": "NCT01032629", "pool_row": "PMID 28605608", "comparator_cites": "29526832"}
+    # the REQUIREMENT: matched, once, to the CANVAS pool row. The route may be direct (since 4 Oct Radholm's own PubMed
+    # record supplies NCT01032629) or via the other-report join; when it is the latter, its record must say so exactly.
+    assert x["in_our_pool"] and x["route"] == "PRIMARY" and x["family"] == "PMID 28605608"
+    if "matched_via_other_report" in x:
+        assert x["matched_via_other_report"] == {"nct": "NCT01032629", "pool_row": "PMID 28605608", "comparator_cites": "29526832"}
     assert "PMID 28605608" not in o["ours_not_in_comparator"]
     fams = [t.get("family") for t in o["trials"] if t["in_our_pool"]]
     assert len(fams) == len(set(fams))                 # one pool row never matches two comparator trials
@@ -193,3 +196,72 @@ def test_a_different_number_on_the_other_side_of_the_null_is_not_a_mirrored_orie
                        {"measure": "MD", "effect": "17.4", "lower": "9.8", "upper": "25.0"})
     assert not gt._mirrors({"measure": "MD", "effect": "-17.4", "lower": "-25.0", "upper": "-9.8"},
                            {"measure": "MD", "effect": "8.9", "lower": "1.0", "upper": "16.8"})
+
+
+def _r(label, comp="C"):
+    return sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="", trial_label=label,
+                           measure="OR", outcome_definition="", effect="1.2", lower="0.9", upper="1.6")
+
+
+def test_outcome_set_naming_needs_the_figure_to_be_the_compared_analysis():
+    # metformin 4 Oct: the accepted figure pools OR 1.65 [1.35, 2.03] (21 studies) while the compared comparator result
+    # is OR 2.64 [1.85, 3.75] -- another analysis; its trial set says nothing about the compared result's. A lane-read
+    # comparator (forest-reader ACCEPTED) whose figure IS the compared result names the trials it does not contain.
+    src = [{"branch": "g1/forest-reader", "commit": "e1543f18e8", "sha256": "d6937e9dbe7a", "figure": "F1",
+            "acceptance": {"state": "ACCEPTED", "methods_reproducing": ["MH-FE"], "pooled_anchor": "PRINTED_IN_META_TEXT"},
+            "pooled_agreed": {"effect": "1.65", "lower": "1.35", "upper": "2.03"}}]
+    cm = gt.lane_comp_meta(src)
+    assert cm["usable"] and cm["positive_control"]["reproduced"] and cm["pooled"]["effect"] == "1.65"
+
+    def trials():
+        return [{"label": "A", "in_our_pool": False, "comparator_row": {"effect": "1.2"}},
+                {"label": "B", "in_our_pool": False, "comparator_row": None}]
+    rows = [_r("A")]
+    t = trials()
+    assert gt.outcome_set_differences(t, cm, "C", rows, compared={"estimate": 1.65, "ci_low": 1.35, "ci_high": 2.03}) == ["B"]
+    assert t[1]["scope_difference"]["rule_id"] == "G1-OUTCOME-SET"
+    t = trials()
+    assert gt.outcome_set_differences(t, cm, "C", rows, compared={"estimate": 2.64, "ci_low": 1.85, "ci_high": 3.75}) == []
+    assert not t[1].get("scope_difference")
+
+
+def test_one_comparator_row_joins_one_comparator_trial():
+    # ticagrelor 4 Oct: 'Wallentin 2009' (PLATO) was the row of BOTH '9 [28]' (PLATO) and '1 [21]' (Cannon 2010, a PLATO
+    # substudy sharing its NCT): the family route handed the family's row to both, 'Cannon 2010' stayed unjoined.
+    plato, cannon = _r("Wallentin 2009"), _r("Cannon 2010")
+    owner = {id(plato): "9 [28]", id(cannon): "1 [21]"}
+    used = set()
+    assert gt.pick_comparator_row([plato], "C", "9 [28]", owner, used, None) is plato
+    used.add(id(plato))
+    # '1 [21]' shares PLATO's family: the family row is owned by another trial and used -> its own label row
+    assert gt.pick_comparator_row([plato], "C", "1 [21]", owner, used, cannon) is cannon
+    # no label row of its own: nothing, never the other trial's row
+    assert gt.pick_comparator_row([plato], "C", "1 [21]", owner, used, None) is None
+
+
+def test_a_trial_whose_report_is_in_the_analysis_is_never_named_absent_from_it():
+    # balanced-crystalloids 4 Oct: the comparator lists SMART twice ('Semler (SMART trial)', 'Semler [15]', both PMID
+    # 29485925); the SMART row joins the first, and G1-OUTCOME-SET named the second 'not in the analysis'
+    cm = {"usable": True, "positive_control": {"reproduced": True, "methods": ["DL"]}, "figure": "F", "pooled": None}
+    t = [{"label": "Semler (SMART trial)", "family": "PMID 29485925", "in_our_pool": False, "comparator_row": {"e": 1}},
+         {"label": "Semler [15]", "family": "PMID 29485925", "in_our_pool": False, "comparator_row": None},
+         {"label": "Ratanarat [18]", "family": None, "in_our_pool": False, "comparator_row": None}]
+    assert gt.outcome_set_differences(t, cm, "C", [_r("Semler (SMART trial) 2018")]) == ["Ratanarat [18]"]
+    assert not t[1].get("scope_difference") and t[1]["same_report_as"] == "Semler (SMART trial)"
+
+
+def test_a_row_refused_only_for_our_identity_bookkeeping_is_admissible_comparator_coverage():
+    # omega3 4 Oct: GISSI-P, GISSI-HF, ORIGIN, Risk & Prevention, ASCEND -- the comparator's own rows, joined to the
+    # comparator's own trials by its labels, refused ONLY 'FAMILY_NOT_RESOLVED' (our identity, not the typed tuple)
+    base = {"label": "ORIGIN 2012 [40]", "in_our_pool": False, "route": "UNVERIFIED",
+            "comparator_row": {"measure": "RR", "effect": "1.01", "lower": "0.94", "upper": "1.10"},
+            "comparator_row_provenance": {"meta_pmid": "C", "location": {"kind": "figure", "id": "F2"}, "digest": "d",
+                                          "read": "MODEL_PROPOSAL:mc-x", "row_label": "ORIGIN 2012"}}
+    ok, why = gt.comparator_sourced(dict(base, comparator_row_state="REFUSED", comparator_row_reasons=["FAMILY_NOT_RESOLVED"]),
+                                    "REPRODUCED", "ESTABLISHED")
+    assert ok and why is None
+    # any TYPED refusal (measure / outcome / timepoint) still refuses
+    ok, why = gt.comparator_sourced(dict(base, comparator_row_state="REFUSED",
+                                         comparator_row_reasons=["FAMILY_NOT_RESOLVED", "OUTCOME_NOT_THE_TOPICS"]),
+                                    "REPRODUCED", "ESTABLISHED")
+    assert ok is None and why == "COMPARATOR_ROW_REFUSED"
