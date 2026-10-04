@@ -418,6 +418,19 @@ def g1r_reproduction(comp_meta, comp, rows):
             "control_basis": comp_meta.get("control_basis") or "TYPED_TABLE"}
 
 
+def pick_comparator_row(sec, comp, label, row_owner, used_rows, label_row):
+    """The comparator's OWN row for one comparator trial: ONE row joins ONE trial. The family route (our identity: a
+    shared NCT) offers the family's comparator row; it is taken only when the comparator's own labels do not assign that
+    row to ANOTHER of its trials and no trial took it already (ticagrelor: PLATO's row 'Wallentin 2009' was handed to
+    PLATO and to its substudy Cannon 2010, whose own row then never joined). Else the trial's own label row, unused."""
+    for r in sec:
+        if r.meta_pmid == comp and row_owner.get(id(r), label) == label and id(r) not in used_rows:
+            return r
+    if label_row is not None and id(label_row) not in used_rows:
+        return label_row
+    return None
+
+
 def lane_comp_meta(comparator_rows_source):
     """The comparator's per-trial analysis as the forest-reader lane ACCEPTED it (dual-model read, rows reproduce the
     printed pool) in the shape outcome_set_differences / g1r read; {} when the lane accepted nothing. Without it, a topic
@@ -469,8 +482,14 @@ def outcome_set_differences(trials, comp_meta, comp, rows, compared=None):
     span = (f"comparator PMID {comp} {where}: rows {[r.trial_label for r in crow]}; positive control reproduced "
             f"({pc.get('methods')}) against its printed pooled result ({comp_meta.get('control_basis') or 'TYPED_TABLE'})")
     named = []
+    # a trial whose REPORT (family) is one a joined trial carries IS in the analysis, listed twice by the comparator
+    # (balanced-crystalloids: SMART as 'Semler (SMART trial)' and 'Semler [15]', both PMID 29485925): never named absent
+    in_analysis = {x.get("family"): x["label"] for x in trials if x.get("comparator_row") and x.get("family")}
     for x in trials:
         if x.get("in_our_pool") or x.get("scope_difference") or x.get("comparator_row"):
+            continue
+        if x.get("family") and x["family"] in in_analysis:
+            x["same_report_as"] = in_analysis[x["family"]]
             continue
         x["scope_difference"] = {"kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS", "rule_id": "G1-OUTCOME-SET",
                                  "protocol_rule": "G1 matches the comparator's result for this outcome",
@@ -1228,6 +1247,7 @@ def topic(slug, T):
         if lab:
             comp_by_label.setdefault(lab, []).append(r)
     comp_by_label = {k: v[0] for k, v in comp_by_label.items() if len(v) == 1}
+    row_owner = {id(r): k for k, r in comp_by_label.items()}
     used_rows = set()
     for t in comp_rows:
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
@@ -1241,11 +1261,7 @@ def topic(slug, T):
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
-        theirs = next((r for r in sec if r.meta_pmid == comp), None)
-        if theirs is None:
-            cand = comp_by_label.get(t["label"][:60])
-            if cand is not None and id(cand) not in used_rows:
-                theirs = cand
+        theirs = pick_comparator_row(sec, comp, t["label"][:60], row_owner, used_rows, comp_by_label.get(t["label"][:60]))
         if theirs is not None:
             used_rows.add(id(theirs))
         if in_pool:
