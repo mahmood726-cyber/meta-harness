@@ -911,6 +911,13 @@ def cite_or_demote(o, slug):
     return o
 
 
+def needs_seed(x):
+    """A comparator trial whose record our own screen must see: not in our pool and not yet funnelled. Never keyed on
+    the route: a COMPARATOR-only row (route UNVERIFIED) says nothing about what our screen does with the record
+    (OSLER-1, pcsk9-mace 3 Oct: its spanned X3 exclusion vanished when the dual read gave it a comparator row)."""
+    return not x.get("in_our_pool") and not x.get("seeded_funnel")
+
+
 def scope_difference(x, cfg, slug=None):
     """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
     cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
@@ -1354,8 +1361,7 @@ def topic(slug, T):
             x["seeded_funnel"] = {"stage": "SCREENED_OUT", "rule_id": r.get("rule_id"),
                                   "reason": (r.get("reason") or "")[:140], "pmid": p, "already_in_screen": True}
             x["our_refusal"] = f"IN SCREEN PMID {p}: SCREENED_OUT {r.get('rule_id')}: {(r.get('reason') or '')[:140]}"
-    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if x["route"] == "NO_ROW" and not x.get("seeded_funnel")
-              and rp[id(t)] and rp[id(t)] not in screened}
+    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if needs_seed(x) and rp[id(t)] and rp[id(t)] not in screened}
     if unseen:
         mp = os.path.join(OUT, "member_records.json")
         held = _j(mp) if os.path.exists(mp) else {}
@@ -1363,13 +1369,13 @@ def topic(slug, T):
         fun = cfm.funnel(cfm.build(slug, extra_records=recs), [r["id"] for r in recs], recs) if recs else {}
         for x, t in zip(trials, comp_rows):
             p = rp[id(t)] if rp[id(t)] in fun else None
-            if p and x["route"] == "NO_ROW" and not x.get("seeded_funnel"):
+            if p and needs_seed(x):
                 f = fun[p]
                 x["seeded_funnel"] = dict(f, pmid=p)
                 x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (
                     f" {f.get('rule_id')}: {f.get('reason')}" if f.get("rule_id") else
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
-            elif x["route"] == "NO_ROW" and not x.get("seeded_funnel") and rp[id(t)] in unseen:
+            elif needs_seed(x) and rp[id(t)] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
     # SAME TRIAL, OTHER REPORT: the comparator cites a secondary report (Radholm 2018, CANVAS heart-failure outcomes) whose
     # registered trial (the funnel's NCT link) we pool under its main report (Neal 2017, same NCT). The comparator trial

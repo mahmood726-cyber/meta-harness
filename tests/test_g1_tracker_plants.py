@@ -164,3 +164,14 @@ def test_the_screens_own_dedup_verdict_joins_a_comparator_trial_to_the_pooled_re
     x = next(t for t in o["trials"] if t["label"].startswith("Trial D"))
     assert x["in_our_pool"] and x["matched_via_other_report"]["pool_row"] == "NCT02422186"
     assert "NCT02422186" not in o["ours_not_in_comparator"]
+
+
+def test_a_comparator_only_row_never_stops_our_screen_from_seeing_the_trials_record():
+    # OSLER-1 (pcsk9-mace, 3 Oct): the forest-reader dual read gave it a COMPARATOR-only row (route UNVERIFIED); the
+    # seeding pass ran only for route NO_ROW, so our screen never saw its record and its spanned X3 exclusion vanished
+    # (eligible 11 -> 12). Whether our screen sees a record is independent of what the comparator printed.
+    unverified = {"in_our_pool": False, "route": "UNVERIFIED", "seeded_funnel": None}
+    assert gt.needs_seed(unverified)
+    assert gt.needs_seed({"in_our_pool": False, "route": "NO_ROW", "seeded_funnel": None})
+    assert not gt.needs_seed({"in_our_pool": True, "route": "PRIMARY", "seeded_funnel": None})
+    assert not gt.needs_seed({"in_our_pool": False, "route": "NO_ROW", "seeded_funnel": {"stage": "SCREENED_OUT"}})
