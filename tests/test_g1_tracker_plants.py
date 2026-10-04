@@ -149,8 +149,11 @@ def test_a_comparator_citing_another_report_of_a_trial_we_pool_is_matched_to_tha
     import json
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-primary-prevention-hf.json"), encoding="utf-8"))
     x = next(t for t in o["trials"] if t["label"].startswith("Radholm"))
-    assert x["in_our_pool"] and x["route"] == "PRIMARY"
-    assert x["matched_via_other_report"] == {"nct": "NCT01032629", "pool_row": "PMID 28605608", "comparator_cites": "29526832"}
+    # the REQUIREMENT: matched, once, to the CANVAS pool row. The route may be direct (since 4 Oct Radholm's own PubMed
+    # record supplies NCT01032629) or via the other-report join; when it is the latter, its record must say so exactly.
+    assert x["in_our_pool"] and x["route"] == "PRIMARY" and x["family"] == "PMID 28605608"
+    if "matched_via_other_report" in x:
+        assert x["matched_via_other_report"] == {"nct": "NCT01032629", "pool_row": "PMID 28605608", "comparator_cites": "29526832"}
     assert "PMID 28605608" not in o["ours_not_in_comparator"]
     fams = [t.get("family") for t in o["trials"] if t["in_our_pool"]]
     assert len(fams) == len(set(fams))                 # one pool row never matches two comparator trials
@@ -220,3 +223,28 @@ def test_outcome_set_naming_needs_the_figure_to_be_the_compared_analysis():
     t = trials()
     assert gt.outcome_set_differences(t, cm, "C", rows, compared={"estimate": 2.64, "ci_low": 1.85, "ci_high": 3.75}) == []
     assert not t[1].get("scope_difference")
+
+
+def test_one_comparator_row_joins_one_comparator_trial():
+    # ticagrelor 4 Oct: 'Wallentin 2009' (PLATO) was the row of BOTH '9 [28]' (PLATO) and '1 [21]' (Cannon 2010, a PLATO
+    # substudy sharing its NCT): the family route handed the family's row to both, 'Cannon 2010' stayed unjoined.
+    plato, cannon = _r("Wallentin 2009"), _r("Cannon 2010")
+    owner = {id(plato): "9 [28]", id(cannon): "1 [21]"}
+    used = set()
+    assert gt.pick_comparator_row([plato], "C", "9 [28]", owner, used, None) is plato
+    used.add(id(plato))
+    # '1 [21]' shares PLATO's family: the family row is owned by another trial and used -> its own label row
+    assert gt.pick_comparator_row([plato], "C", "1 [21]", owner, used, cannon) is cannon
+    # no label row of its own: nothing, never the other trial's row
+    assert gt.pick_comparator_row([plato], "C", "1 [21]", owner, used, None) is None
+
+
+def test_a_trial_whose_report_is_in_the_analysis_is_never_named_absent_from_it():
+    # balanced-crystalloids 4 Oct: the comparator lists SMART twice ('Semler (SMART trial)', 'Semler [15]', both PMID
+    # 29485925); the SMART row joins the first, and G1-OUTCOME-SET named the second 'not in the analysis'
+    cm = {"usable": True, "positive_control": {"reproduced": True, "methods": ["DL"]}, "figure": "F", "pooled": None}
+    t = [{"label": "Semler (SMART trial)", "family": "PMID 29485925", "in_our_pool": False, "comparator_row": {"e": 1}},
+         {"label": "Semler [15]", "family": "PMID 29485925", "in_our_pool": False, "comparator_row": None},
+         {"label": "Ratanarat [18]", "family": None, "in_our_pool": False, "comparator_row": None}]
+    assert gt.outcome_set_differences(t, cm, "C", [_r("Semler (SMART trial) 2018")]) == ["Ratanarat [18]"]
+    assert not t[1].get("scope_difference") and t[1]["same_report_as"] == "Semler (SMART trial)"
