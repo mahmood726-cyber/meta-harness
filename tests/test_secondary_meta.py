@@ -462,3 +462,21 @@ def test_reml_pool_matches_metafor_on_dat_bcg():
     # homogeneous pair: tau^2 truncated at 0 and the pool is the fixed-effect mean (metafor: 0, 0.108888888889)
     assert sm.reml_tau2([0.1, 0.12], [0.04, 0.05]) == 0.0
     assert abs(sm.pool([0.1, 0.12], [0.04, 0.05], "REML")[0] - 0.108888888889) < 1e-9
+
+
+
+def test_a_forest_reads_measure_wording_is_normalised_typed():
+    # omega3 5 Oct: GISSI-P's row was refused 'MEASURE_FIXED EFFECT RELATIVE RISK (95% CI)_IS_NOT_ESTIMAND_RR' -- the
+    # reader wrote the measure as 'Fixed effect relative risk (95% CI)'; and 'Std. Mean Difference' became MD
+    import secondary_meta_build as smb
+    assert smb.normalize_measure("Fixed effect relative risk (95% CI)") == "RR"
+    assert smb.normalize_measure("Risk Ratio, M-H, Random, 95% CI") == "RR"
+    assert smb.normalize_measure("RELATIVE RISK (95% CI)") == "RR"
+    assert smb.normalize_measure("Odds Ratio (M-H, Fixed)") == "OR"
+    assert smb.normalize_measure("Hazard ratio") == "HR"
+    assert smb.normalize_measure("Rate ratio") == "IRR"                 # never a ratio of risks
+    assert smb.normalize_measure("Std. Mean Difference, IV, Random") == "SMD"
+    assert smb.normalize_measure("Standardised mean difference") == "SMD"
+    assert smb.normalize_measure("Mean Difference IV, Fixed") == "MD"
+    assert smb.normalize_measure("WMD") == "MD"
+    assert smb.normalize_measure("ES (95% CI)") == "ES (95% CI)"         # unknown wording stays as printed

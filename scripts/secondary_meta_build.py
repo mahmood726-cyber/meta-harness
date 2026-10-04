@@ -694,6 +694,26 @@ def meta_timepoint(held):
 
 # ------------------------------------------------------------------ driver
 
+def normalize_measure(text):
+    """A forest read's measure wording as a typed measure. 'Fixed effect relative risk (95% CI)' is RR (it was left as
+    printed and refused as 'not the estimand RR'); a RATE ratio is IRR, never a ratio of risks; a STANDARDISED mean
+    difference is SMD, never MD. Unknown wording stays as printed (and is refused downstream)."""
+    m = (text or "").upper().strip()
+    if "HAZARD" in m or re.fullmatch(r"HRS?", m):
+        return "HR"
+    if "RATE RATIO" in m or "INCIDENCE RATE" in m or re.fullmatch(r"IRR", m):
+        return "IRR"
+    if "RISK RATIO" in m or "RELATIVE RISK" in m or re.fullmatch(r"RRS?", m) or re.match(r"RR\b", m):
+        return "RR"
+    if "ODDS" in m or re.fullmatch(r"ORS?", m) or re.match(r"OR\b", m):
+        return "OR"
+    if re.search(r"STD\.?\s*MEAN|STANDARDI[SZ]ED MEAN|\bSMD\b", m):
+        return "SMD"
+    if "MEAN" in m or m in ("MD", "WMD"):
+        return "MD"
+    return (text or "").upper().strip()
+
+
 def figure_rows(slug, it, run_r, spec, comp):
     """The rows of ONE recorded forest-plot read of a meta (secondary tier), through its deterministic gates: rows
     consistent, the pool printed in the meta's text (or, failing that, in the figure), and the rows reproducing it
@@ -713,9 +733,7 @@ def figure_rows(slug, it, run_r, spec, comp):
         g = fp.gate(resp, {"effect": fig_pool.get("effect"), "lower": fig_pool.get("lower"),
                            "upper": fig_pool.get("upper"), "k": None, "quote": None, "method": None}, it["held"])
         control_basis = "POOL_PRINTED_IN_FIGURE"
-    measure = (resp.get("measure") or "").upper().strip()
-    measure = "HR" if "HAZARD" in measure else "RR" if ("RISK R" in measure or measure == "RR") else \
-              "OR" if ("ODDS" in measure or measure == "OR") else "MD" if ("MEAN" in measure or measure in ("MD", "WMD")) else measure
+    measure = normalize_measure(resp.get("measure"))
     mrows = []
     for x in (g.get("rows") or []):
         pr = x.get("printed") or {}
