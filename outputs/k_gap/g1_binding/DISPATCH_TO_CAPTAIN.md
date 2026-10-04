@@ -136,3 +136,52 @@ F:/claude-temp/held_records; the captain decides.
 | Mewton | mc-01fa07f5 |
 | Hennessy | mc-9983ab25 |
 | Trial B | mc-339ccd01 |
+
+## Update (overnight, 5 Oct): all 29 unmatched in-scope trials of the 4 topics worked
+
+### n of N: unmatched in-scope trials newly verified
+
+| Topic | Newly verified | Matched before → after | Remaining blocked, named |
+|---|---|---|---|
+| colchicine-secondary-cv-prevention | **3 of 9** | 2 → 5 of 15 | Section below |
+| melatonin-primary-insomnia-sol | **0 of 11** | — | All paywalled (abstract only); no AACT; sweep finds no outcome forest figure in the citing metas; 4 have no citing open meta |
+| esketamine-trd-madrs | **0 of 2** | — | Trial B (F4 multi-arm rule), Trial E (F5 single-arm) |
+| corticosteroids-cap-mortality | **0 of 7** | — | Paywalled; abstracts do not report deaths by arm; no AACT results |
+
+### colchicine: the 3 new rows
+
+| Trial | Value | How it binds (`scripts/g1_binding_bind.py`, deterministic) |
+|---|---|---|
+| **Shah 2020 (COLCHICINE-PCI)** | 30-day MACE 24/206 vs 25/194 | PMC OA Table 3 "Outcomes in patients undergoing PCI …". The header gives Colchicine (n=206) / Placebo (n=194), and the % equal e/N. |
+| **Akrami 2021** | Total MACE 8/120 vs 28/129 | BMC CC BY Table 2 "Major clinical end points (ITT)". The N comes from Table 1's header for the identical arm labels (rule T3b, cited in the span). The row's printed HR 3.52 (1.60–7.74) contradicts its own counts and is NOT bound. |
+| **Nidorf 2013 (LoDoCo)** | 15/282 vs 40/250 | Rule P1: the topic outcome is declared "Trial-defined …", and the abstract defines the primary as the composite of acute coronary syndrome / cardiac arrest / stroke. Arm-labelled "e of n (p%)". |
+
+**Agreement with the comparator, computed:**
+- **Nidorf 2013: DISAGREE.** The comparator's row 14/282 vs 48/250 is not the trial's own primary (15/282 vs 40/250).
+- **Shah, Akrami:** the comparator prints no row for them.
+
+**Measured.** A/B on the colchicine tracker, restored afterwards: k 2 → 5. All 3 are routed PRIMARY via
+single_primary_source.
+
+### Tracker hook
+
+An OWN-TUPLE binding (the trial's own tuple, not the comparator's) may bind a NO_ROW trial. The comparator-keyed kind
+still binds UNVERIFIED rows only (plant).
+
+### Recorded codex locate (12 new calls, 29 replayed through gate_table_location)
+
+0 accepted:
+- NOT_REPORTED: 23.
+- INCOMPLETE: 3 (events without N).
+- Nidorf (13): OUTCOME_DOES_NOT_GOVERN_THE_NUMBERS. The P1 rule above binds it deterministically instead.
+- Luthringer: MD 9 min without CI.
+- Wade [28]: group means only.
+
+**Records.** 23 are committed. 5 embedding non-CC-BY full texts are held locally and git-excluded.
+
+### Still blocked in colchicine, each with its reason
+
+- **O'Keefe, Deftereos ×2:** paywalled; the abstracts do not report it by arm.
+- **Tong (COPS):** prints "24 events … 38 events": events, not patients.
+- **Hennessy:** Unpaywall copy, NOT_REPORTED.
+- **Mewton (COVERT-MI):** its primary is infarct size; MACE is not printed by arm.
