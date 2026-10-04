@@ -37,6 +37,6 @@ source: CoDEX, CAPE COVID, REMAP-CAP, Metcovid, FAIR-HF, EFFECT-HF -- none has p
 
 ## Still open on your side
 
-- The privacy leak reported to Mahmood (INDEX.md head, rewrite-workbook text and his email in committed codex logs: 44
-  files on main since aa8ed28a, 5 more records on acq/k-gap in 90478bed). This branch's `model_call_live` withholds
-  outside reads; acq/k-gap's does not yet.
+- A privacy issue in committed codex call logs, reported to Mahmood directly (not detailed here). This branch's
+  `reproducible_ai/model_call_live.py` withholds a call's transcript when the client read files outside its work
+  directory; please carry that into the union.
