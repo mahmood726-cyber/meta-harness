@@ -148,6 +148,16 @@ def definition_gate(spec_name, registry_title):
     return extract.composite_component_mismatch(spec_name, "composite outcome definition: " + (registry_title or ""))
 
 
+_STOP = {"of", "for", "the", "and", "or", "with", "in", "to", "a", "due", "by"}
+
+
+def _name_words(x):
+    """Content words of an outcome name or registry title, plural and British -isation folded."""
+    import re as _r
+    w = _r.findall(r"[a-z]+", (x or "").lower().replace("hospitalis", "hospitaliz"))
+    return {_r.sub(r"s$", "", v) for v in w if v not in _STOP}
+
+
 def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     """One registry outcome through the binding gates, in order:
       OUTCOME_NOT_NAMED  the title names no topic keyword (generic anchors like 'primary outcome' do not count): being
@@ -158,6 +168,12 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     from harness import extract
     t = (title or "").lower()
     named = [k for k in keywords if k and k.lower() not in extract.GENERIC_ANCHORS and k.lower() in t]
+    # ...or the topic's OWN outcome NAME, when every content word of it (plural / British spelling folded) is in the
+    # title: iv-iron's keywords all say 'worsening', so HEART-FID's primary 'Number of Hospitalizations for Heart
+    # Failure' (the topic's 'Heart-failure hospitalization') was never named. Corpus: 2 candidates newly named --
+    # HEART-FID, and DAPA-HF's composite, which the ESTIMAND gate below still refuses.
+    if not named and spec_name and _name_words(spec_name) and _name_words(spec_name) <= _name_words(title):
+        named = [spec_name]
     if not named:
         return {"gate": "OUTCOME_NOT_NAMED", "verdict": "REFUSED",
                 "reason": "registry title names none of the topic's outcome keywords" + (" (it is the trial's PRIMARY "
@@ -1369,6 +1385,17 @@ def topic(slug, T):
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}
     rp = {id(t): report_pmid(t) for t in comp_rows}
+    # a comparator reference that is a LETTER / COMMENT about a trial is that trial: PubMed's own CommentOn link (one
+    # PMID, a report we hold) names it, never its title (sglt2-primary-prevention-hf 'Isreb (19)' = letter 31509682 on
+    # CREDENCE 30990260). registry/comment_on.json: request + response sha256, fetched by scripts/g1_comment_on.py
+    cop = os.path.join(ROOT, "registry", "comment_on.json")
+    co_map = _j(cop) if os.path.exists(cop) else {}
+    for x, t in zip(trials, comp_rows):
+        co = (co_map.get(str(rp[id(t)])) or {}).get("comment_on") or []
+        if not x["in_our_pool"] and len(co) == 1 and co[0] in screened and co[0] != rp[id(t)]:
+            x["cited_as"] = {"pmid": rp[id(t)], "kind": "LETTER_OR_COMMENT", "comment_on": co[0],
+                             "source": "registry/comment_on.json (PubMed CommentsCorrections CommentOn)"}
+            rp[id(t)] = co[0]
     for x, t in zip(trials, comp_rows):
         p = rp[id(t)]
         r = screened.get(p) if p else None
@@ -1377,6 +1404,9 @@ def topic(slug, T):
             x["seeded_funnel"] = {"stage": "SCREENED_OUT", "rule_id": r.get("rule_id"),
                                   "reason": (r.get("reason") or "")[:140], "pmid": p, "already_in_screen": True}
             x["our_refusal"] = f"IN SCREEN PMID {p}: SCREENED_OUT {r.get('rule_id')}: {(r.get('reason') or '')[:140]}"
+    # EVERY comparator trial we do not pool, whatever its route: gating this on route NO_ROW skipped any trial that had
+    # a comparator row joined (route UNVERIFIED) -- 45 trials in 12 topics never saw our screen, and when the label join
+    # attached Radholm (9)'s row it lost its SCREENED_VIA_OTHER_REPORT match to the CANVAS pool row
     unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if needs_seed(x) and rp[id(t)] and rp[id(t)] not in screened}
     if unseen:
         mp = os.path.join(OUT, "member_records.json")
