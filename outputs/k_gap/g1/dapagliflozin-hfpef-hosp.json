@@ -5,12 +5,31 @@
  "N_comparator_trials": 6,
  "k_matched": 0,
  "k_in_our_pool": 0,
- "N_eligible": 6,
- "named_differences": [],
+ "N_eligible": 5,
+ "named_differences": [
+  {
+   "trial": "DECLARE-TIMI 58",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+   "span": {
+    "field": "title",
+    "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+    "match": "Type 2 Diabetes"
+   },
+   "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+   },
+   "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+   "registered_eligibility": null,
+   "pmid": "30415602"
+  }
+ ],
  "open_gaps": [
   "SOLOIST-WHF",
   "SCORED",
-  "DECLARE-TIMI 58",
   "VERTIS-CV",
   "EMPEROR-Preserved",
   "DELIVER"
@@ -33,8 +52,7 @@
  },
  "blockers": {
   "IDENTITY_UNRESOLVED": 4,
-  "IDENTIFICATION": 1,
-  "EXTRACTION_FROM_TABLE": 1
+  "EXTRACTION:EXTRACTION_NOT_PERFORMED": 1
  },
  "top_blocker": "IDENTITY_UNRESOLVED",
  "other_agent_units": [],
@@ -95,11 +113,11 @@
   },
   {
    "label": "DECLARE-TIMI 58",
-   "family": "PMID 27009868",
+   "family": "PMID 30415602",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": null,
+   "our_refusal": "IN SCREEN PMID 30415602: SCREENED_OUT X2: wrong population: title/conditions mention 'type 2 diabetes'.",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -192,10 +210,33 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
-   "scope_difference": null,
-   "blocker": "IDENTIFICATION",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "pmid": "30415602",
+    "already_in_screen": true
+   },
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "span": {
+     "field": "title",
+     "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+     "match": "Type 2 Diabetes"
+    },
+    "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+    },
+    "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+    "registered_eligibility": null,
+    "pmid": "30415602"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "VERTIS-CV",
@@ -267,13 +308,13 @@
   },
   {
    "label": "DELIVER",
-   "family": "PMID 31081589",
+   "family": "PMID 36027570",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": null,
+   "our_refusal": "The result previously published on this page for its primary outcome was a cardiovascular-death-only registry measure served as the composite outcome. It is withdrawn.",
    "gap_class": "EXTRACTION_FROM_TABLE",
-   "absent_code": null,
+   "absent_code": "EXTRACTION_NOT_PERFORMED",
    "comparator_row": {
     "effect": "0.63",
     "lower": "0.45",
@@ -391,7 +432,7 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "scope_difference": null,
-   "blocker": "EXTRACTION_FROM_TABLE",
+   "blocker": "EXTRACTION:EXTRACTION_NOT_PERFORMED",
    "coverage": null,
    "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
   }
@@ -420,7 +461,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "1a3af70385dc77d038c30cd9889e776c46d9e3b3",
+   "commit": "e1543f18e83e24a7ae766f7df882754502cb0ff6",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -436,7 +477,7 @@
     "lower": "0.74",
     "upper": "0.86"
    },
-   "sha256": "1f577ba83667a67e7f3925187e17c79fbf17782ae4427d990367837f6c3834cd",
+   "sha256": "d6937e9dbe7abcaf49d5e8ec731075ef51da3f34831ad108e5b07c06c9c721bb",
    "rows": 6,
    "joined": 3
   }
@@ -469,7 +510,7 @@
   "methods": [
    "FE"
   ],
-  "where": "figure fig1 (g1/forest-reader 1a3af7038, dual-model)",
+  "where": "figure fig1 (g1/forest-reader e1543f18e, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: d with improved CVD/HHF outcomes in HFmrEF/HFpEF (pooled HR 0.80, 95% CI: 0.74, 0.86, p < 0.001, I 2 = 0)",
   "pooled": {
    "effect": "0.80",
@@ -499,10 +540,14 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 6,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "DECLARE-TIMI 58 [X2]"
+   ]
   }
  }
 }

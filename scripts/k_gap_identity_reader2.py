@@ -88,7 +88,35 @@ def shown_pmid(r):
     for p in r["pmids"]:
         if any(n in ncts and t == "RESULT" for n, t in _STORE.get(p, [])):
             return p
+    # AACT types no RESULT reference for the NCT (DELIVER: 48 linked PMIDs, all DERIVED; the oldest is a review): the
+    # earliest PMID whose OWN PubMed record links the NCT, typed Randomized Controlled Trial, that is not a design /
+    # protocol / secondary-analysis paper. Caches only (pubmed_ncts.json, pubmed_pubtypes.json); else the old fallback.
+    nc, pt = _pubmed_caches()
+    for p in sorted(r["pmids"], key=lambda x: int(x) if str(x).isdigit() else 10 ** 12):
+        info = pt.get(p) or {}
+        if ((nc.get(p) or "").upper() in ncts and "Randomized Controlled Trial" in (info.get("pubtypes") or [])
+                and not NOT_A_MAIN_REPORT.search(info.get("title") or "")
+                and not IN_A_NAMED_TRIAL.search(info.get("title") or "")):
+            return p
     return r["pmids"][0]
+
+
+_PM = None
+NOT_A_MAIN_REPORT = re.compile(r"\bprotocol\b|rationale|\bdesign\b|statistical analysis plan|baseline characteristics|"
+                               r"post[- ]?hoc|secondary analys|subgroup|sub-?study|pre-?specified|exploratory analys|"
+                               r"according to|by baseline|insights from|\bpooled analys|participant-level", re.I)
+
+
+# 'Inflammatory and Cholesterol Risk in the FOURIER Trial': a paper set INSIDE a named trial is a secondary analysis
+IN_A_NAMED_TRIAL = re.compile(r"\b(?:in|from) the [A-Z][A-Z0-9-]{2,}(?:[ -][A-Z0-9-]+)? (?:[Tt]rial|[Ss]tudy)\b")
+
+
+def _pubmed_caches():
+    global _PM
+    if _PM is None:
+        nc_p, pt_p = os.path.join(OUT, "pubmed_ncts.json"), os.path.join(OUT, "pubmed_pubtypes.json")
+        _PM = (_j(nc_p) if os.path.exists(nc_p) else {}, _j(pt_p) if os.path.exists(pt_p) else {})
+    return _PM
 
 
 def report_text(r, titles):
