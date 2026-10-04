@@ -704,7 +704,11 @@ def main(argv):
                "topics": {}}
     for s, ts in sorted(tg.items()):
         o = sweep_topic(s, ts, run, comp[s], metas_by.get(s, {}), fig.get(s), runs, ref.get(s))
-        o["metas"].update({m: v for m, v in fig_state[s].items() if m not in o["metas"]})
+        # a planned figure that could not be prepared says WHY, also on a meta that already has a table state (the
+        # reason was dropped there: 222 of 296 planned figures on 4 Oct had no read and no recorded reason)
+        for m, v in fig_state[s].items():
+            prev = o["metas"].get(m)
+            o["metas"][m] = v if prev is None else (dict(prev, figure=v) if isinstance(prev, dict) else f"{prev} | {v}")
         for r in o["trials"]:
             r["searches"] = disc.get((s, r["label"]))
         sp = os.path.join(SWEEP, f"{s}.json")
