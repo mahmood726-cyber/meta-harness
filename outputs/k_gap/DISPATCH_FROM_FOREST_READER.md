@@ -192,3 +192,26 @@ for a per-trial plot of the topic outcome. Read:
 - ticagrelor 40489021 is prasugrel.
 - pcsk9: none of the 15 wide candidates has a per-trial MACE plot (they are pooled ODYSSEY analyses, network meta-analyses and LDL figures).
 - metformin and tocilizumab: no per-trial topic-outcome plot among the wide candidates.
+
+### Fourth sweep, 5 Oct: candidates' open supplements
+
+**Scan.** Supplement bundles of the top candidates per topic were taken from Europe PMC `supplementaryFiles`. Their
+PDF and Word text was searched for forest-plot captions naming the topic outcome.
+
+**Read: omega3 37031750, Supplemental Figure 3 (3-point MACE by trial). ACCEPTED.**
+- **Where:** an image embedded in the meta's own Word supplement `mmc1.docx`. The file is listed in its JATS and held
+  in the PMC OA bucket; the image was extracted unchanged.
+- **Rows:** 10 with counts — GISSI-Prevenzione, OMEGA, SU.FOL.OM3, ORIGIN, Risk & Prevention, COS, VITAL, STRENGTH,
+  JELIS and REDUCE-IT.
+- **Gate:** DL 0.964 (0.889–1.044) reproduces 0.96 (0.89–1.04), and so do PM and REML.
+- **Value:** a second independent meta, beside 29387889, for GISSI-P, OMEGA (Rauch), ORIGIN, R&P and JELIS
+  (Yokoyama).
+
+**Not read:**
+- omega3 29387889 eFigure 3: the same trials without JELIS.
+- tocilizumab 33915284 / 33161150: sensitivity plots of adjusted (observational) estimates.
+- tocilizumab 34019122: an ICU subgroup.
+- tocilizumab 39633779: drug-class plots.
+- No pcsk9, metformin, ticagrelor or probiotics supplement had a per-trial topic-outcome plot.
+
+**SECONDARY_SINGLE running total:** 19 figures read, 6 ACCEPTED (47 rows).

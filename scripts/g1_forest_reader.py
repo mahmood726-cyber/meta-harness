@@ -286,6 +286,12 @@ TARGETS: dict = {
     "ticagrelor-vs-clopidogrel-acs::31000178": {
         "fig_id": "fig2", "caption_has": "ticagrelor versus clopidogrel for primary efficacy (A)",
         "refuse": "NOT_TOPIC_TRIALS: a meta-analysis of observational studies (its abstract); no trial rows"},
+    # 3-point MACE per trial, in the meta's OWN Word supplement (listed in its JATS; PMC OA bucket)
+    "omega3-cardiovascular-events::37031750": {
+        "supplement": "mmc1.docx", "image_index": 1,
+        "caption_has": "Supplemental Figure 3 Meta-analysis of the effects of long-chain omega-3",
+        "instruction": "Rows: every study row of every group (EPA plus DHA; EPA), once each, with events and "
+                       "participants per arm -- never a Subtotal row. Pooled: the 'Random effects model' row."},
     "probiotics-aad-prevention::30078376": {
         "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
         "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
@@ -449,7 +455,7 @@ def held_supplement(pmid, name):
 
 def fetch_supplement(pmid, pmcid, name):
     """A comparator's OWN supplementary PDF, from the PMC OA bucket (the same open source as its figures), stored with
-    URL + sha256. Only a file that starts '%PDF' is kept."""
+    URL + sha256. Only a PDF ('%PDF') or a Word file (a zip, 'PK', named .docx) is kept."""
     if held_supplement(pmid, name) or not pmcid:
         return held_supplement(pmid, name)
     from harness import http
@@ -459,7 +465,7 @@ def fetch_supplement(pmid, pmcid, name):
             st, b = http.get_raw(url, tries=2, timeout=120)
         except Exception:  # noqa: BLE001 - try the next article version
             continue
-        if b[:4] == b"%PDF":
+        if b[:4] == b"%PDF" or (b[:2] == b"PK" and name.lower().endswith(".docx")):
             out = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_supp_{name}")
             os.makedirs(os.path.dirname(out), exist_ok=True)
             with open(out, "wb") as fh:
@@ -469,6 +475,47 @@ def fetch_supplement(pmid, pmcid, name):
                                        "via": "PMC OA bucket: the comparator's own supplementary material"})
             return out
     return None
+
+
+def docx_figure(pmid, t, sp, b):
+    """A figure embedded in a supplementary Word file: the paragraph whose text contains the caption words, then the
+    t.get('image_index', 1)-th embedded image after it (a caption is printed above its figure), extracted UNCHANGED
+    from word/media. Refused if the caption is absent or another caption intervenes before that image."""
+    import zipfile
+    z = zipfile.ZipFile(io.BytesIO(b))
+    x = z.read("word/document.xml").decode("utf-8", "replace")
+    rels = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="([^"]+)"', z.read("word/_rels/document.xml.rels").decode("utf-8")))
+    paras = re.findall(r"<w:p[ >].*?</w:p>", x, re.S)
+    txt = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", p)).strip() for p in paras]
+    hits = [i for i, tx in enumerate(txt) if t["caption_has"].lower() in tx.lower()]
+    if not hits:
+        return None, "TARGET_CAPTION_MISMATCH"
+    i0, want, seen = hits[-1], t.get("image_index", 1), 0          # the LAST mention: a caption list may come first
+    for j in range(i0 + 1, len(paras)):
+        if j != i0 and re.match(r"(Supplement\w*\s+)?Fig(ure)?\.?\s*S?\d", txt[j]) and txt[j]:
+            return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
+        for rid in re.findall(r'r:embed="(rId\d+)"', paras[j]):
+            seen += 1
+            if seen == want:
+                member = "word/" + rels[rid]
+                ib = z.read(member)
+                ext = os.path.splitext(member)[1].lower().lstrip(".") or "png"
+                href = f"supp_{t['supplement']}_{os.path.basename(member)}"
+                ip = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_{href}")
+                if not os.path.exists(ip):
+                    with open(ip, "wb") as fh:
+                        fh.write(ib)
+                    smeta = _j(sp + ".meta.json")
+                    _save(ip + ".meta.json", {"url": smeta.get("url"), "sha256": hashlib.sha256(ib).hexdigest(),
+                                              "bytes": len(ib), "supplement_sha256": smeta.get("sha256"),
+                                              "via": f"supplementary Word file {t['supplement']}: embedded {member}, "
+                                                     f"extracted unchanged (image {want} under the caption)"})
+                return {"fig_id": f"{t['supplement']}#{os.path.basename(member)}", "href": href,
+                        "caption": txt[i0][:300], "panel": t.get("panel"), "panel_title": t.get("panel_title"),
+                        "instruction": t.get("instruction"),
+                        "selected_by": f"TARGETS supplement Word figure (caption contains {t['caption_has']!r})"}, \
+                    "SELECTED"
+    return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
 
 
 def supplement_figure(slug, pmid, t):
@@ -487,6 +534,8 @@ def supplement_figure(slug, pmid, t):
         return None, "SUPPLEMENT_NOT_HELD"
     with open(sp, "rb") as fh:
         b = fh.read()
+    if t["supplement"].lower().endswith(".docx"):
+        return docx_figure(pmid, t, sp, b)
     doc = fitz.open(stream=b, filetype="pdf")
     if not 1 <= t["page"] <= doc.page_count:
         return None, "TARGET_SUPPLEMENT_PAGE_ABSENT"
@@ -686,7 +735,7 @@ SS_READ = {
     "pcsk9-mace::39259104", "pcsk9-mace::41235335", "ticagrelor-vs-clopidogrel-acs::31000178",
     "tocilizumab-covid19-mortality::34026583", "tocilizumab-covid19-mortality::39633779",
     "probiotics-aad-prevention::30078376", "ticagrelor-vs-clopidogrel-acs::40051435",
-    "ticagrelor-vs-clopidogrel-acs::38371311"}
+    "ticagrelor-vs-clopidogrel-acs::38371311", "omega3-cardiovascular-events::37031750"}
 
 
 def topic_note(key):

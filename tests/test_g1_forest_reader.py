@@ -559,3 +559,41 @@ def test_a_row_ci_level_is_refused_unless_the_caption_states_it(monkeypatch):
     t = dict(g.TARGETS["omega3-cardiovascular-events::29387889"], row_ci_level=90)
     monkeypatch.setitem(g.TARGETS, "omega3-cardiovascular-events::29387889", t)
     assert g.figure_for("omega3-cardiovascular-events", "29387889")[1] == "TARGET_ROW_CI_LEVEL_NOT_IN_CAPTION"
+
+
+def _docx(paras):
+    """A minimal Word file: paras = [('text', None) | ('', image_bytes)]."""
+    import io as _io
+    import zipfile
+    body, rels, media = [], [], {}
+    for i, (tx, img) in enumerate(paras):
+        if img is None:
+            body.append(f"<w:p><w:r><w:t>{tx}</w:t></w:r></w:p>")
+        else:
+            rid = f"rId{100 + i}"
+            rels.append(f'<Relationship Id="{rid}" Type="image" Target="media/image{i}.png"/>')
+            media[f"word/media/image{i}.png"] = img
+            body.append(f'<w:p><w:r><w:drawing><a:blip r:embed="{rid}"/></w:drawing></w:r></w:p>')
+    b = _io.BytesIO()
+    with zipfile.ZipFile(b, "w") as z:
+        z.writestr("word/document.xml", "<w:document><w:body>" + "".join(body) + "</w:body></w:document>")
+        z.writestr("word/_rels/document.xml.rels", "<Relationships>" + "".join(rels) + "</Relationships>")
+        for k, v in media.items():
+            z.writestr(k, v)
+    return b.getvalue()
+
+
+def test_a_word_supplement_figure_is_the_image_under_its_caption_and_nothing_else(tmp_path, monkeypatch):
+    monkeypatch.setattr(g, "COMP", str(tmp_path))
+    os.makedirs(tmp_path / "1")
+    sp = str(tmp_path / "1" / "x_forest_supp_s.docx")
+    open(sp + ".meta.json", "w").write(json.dumps({"url": "u", "sha256": "h"}))
+    t = {"supplement": "s.docx", "caption_has": "Figure S3 MACE by trial"}
+    good = _docx([("Figure S3 MACE by trial", None), ("", b"\x89PNG-one"), ("Figure S4 other", None), ("", b"\x89PNG-two")])
+    fig, why = g.docx_figure("1", t, sp, good)
+    assert why == "SELECTED" and open(os.path.join(str(tmp_path), "1", next(
+        f for f in os.listdir(tmp_path / "1") if f.endswith(fig["href"]))), "rb").read() == b"\x89PNG-one"
+    # another figure's caption before any image: the image is not this figure's
+    bad = _docx([("Figure S3 MACE by trial", None), ("Figure S4 other", None), ("", b"\x89PNG-two")])
+    assert g.docx_figure("1", t, sp, bad)[1] == "TARGET_IMAGE_NOT_UNDER_CAPTION"
+    assert g.docx_figure("1", dict(t, caption_has="absent words"), sp, good)[1] == "TARGET_CAPTION_MISMATCH"
