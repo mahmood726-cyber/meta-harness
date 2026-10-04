@@ -529,3 +529,33 @@ def test_comparator_extra_figures_are_comparator_role_with_their_own_keys():
     assert all(it["role"] == "comparator" and it["pmid"] == g.comparator_of(it["slug"]) for it in its)
     # an extra never shadows the topic's main comparator result (keyed by the bare slug)
     assert not keys & set(g.COMPARATOR_EXTRA)
+
+
+def test_a_second_concurrent_run_is_refused_by_the_ledger_lock(tmp_path):
+    ledger = str(tmp_path / "runs.json")
+    with g.RunLock(ledger):
+        with pytest.raises(SystemExit):
+            with g.RunLock(ledger):
+                pass
+    with g.RunLock(ledger):                  # released on exit: a later run proceeds
+        pass
+
+
+def test_trial_rows_printed_at_99_percent_reconstruct_only_when_the_level_is_declared():
+    # two trials (log SE 0.09, 0.08) printed with 99% CIs (z=2.576): fixed effect gives 0.80 (0.71-0.90) at 95%
+    import math
+    rows = []
+    for e, se in ((0.78, 0.09), (0.82, 0.08)):
+        y = math.log(e)
+        rows.append({"label": f"T{e}", "effect": f"{e:.2f}", "lower": f"{math.exp(y - 2.5758 * se):.2f}",
+                     "upper": f"{math.exp(y + 2.5758 * se):.2f}"})
+    fe = g.reconstruct(rows, True, "RR", ["FE"], row_z=2.5758293035489004)["FE"]
+    assert abs(fe[1] - 0.713) < 0.006 and abs(fe[2] - 0.902) < 0.006
+    wrong = g.reconstruct(rows, True, "RR", ["FE"])["FE"]          # read as 95%: too wide (log width x 1.31)
+    assert wrong[1] < 0.69 and wrong[2] > 0.93
+
+
+def test_a_row_ci_level_is_refused_unless_the_caption_states_it(monkeypatch):
+    t = dict(g.TARGETS["omega3-cardiovascular-events::29387889"], row_ci_level=90)
+    monkeypatch.setitem(g.TARGETS, "omega3-cardiovascular-events::29387889", t)
+    assert g.figure_for("omega3-cardiovascular-events", "29387889")[1] == "TARGET_ROW_CI_LEVEL_NOT_IN_CAPTION"
