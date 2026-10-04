@@ -215,3 +215,24 @@ PDF and Word text was searched for forest-plot captions naming the topic outcome
 - No pcsk9, metformin, ticagrelor or probiotics supplement had a per-trial topic-outcome plot.
 
 **SECONDARY_SINGLE running total:** 19 figures read, 6 ACCEPTED (47 rows).
+
+### Single-number disagreements: refusals stand (5 Oct)
+
+**The trial.** Five refused figures fail on exactly one disputed value. I tried a deterministic rule: take the
+candidate value that makes the row's own printed numbers consistent. It was **reverted**.
+- The rule contradicts the goal's requirement that "a row is PROPOSED only if both readings agree within printed
+  rounding".
+- The planted test `test_REAL_FIGURE_PLANT_one_perturbed_reading_refuses` (RALES upper 0.82 perturbed to 0.84) went
+  from REFUSED to ACCEPTED under it. That test defends the requirement, so the rule went, not the test.
+
+**For information only.** None of these rows is accepted:
+
+| figure | disputed row | readings | which value the row's own numbers support |
+|---|---|---|---|
+| tocilizumab 35038318 | NCT04320615 | 28 vs 29 control deaths | 28 (58/294 vs 28/144 gives the printed RR 1.01) |
+| tocilizumab 39633779 | Lescure (sarilumab 400 mg) | upper 2.32 vs "232" | 2.32 (a dropped decimal) |
+| tocilizumab 34768455 | REMAP-CAP | lower 0.49 vs 0.48 | 0.48 (87/353 vs 134/402 gives 0.476) |
+| omega3 39076869 | Einvik 2010 | upper 1.45 vs 1.44 | both consistent: undecidable |
+| ticagrelor 38371311 | KAMIR-NIH | label "2016" vs "2018", all values equal | the reference list does not resolve it |
+
+If Mahmood wants these resolved, the rule needs his decision.
