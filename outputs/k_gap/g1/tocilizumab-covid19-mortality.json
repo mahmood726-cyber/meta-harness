@@ -4,7 +4,7 @@
  "comparator_pmid": "34228774",
  "basis": "g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials with a VERIFIED typed day-28 tuple (k-gap 9abe38d3), by route: PRIMARY (two primaries, or one bound primary that STATES the counts -- 2 Oct), TWO_SOURCE (a primary + a REACT-independent meta), SECONDARY_SINGLE (a REACT-independent, self-reproducing meta row typed day 28 by the trial's own primary -- 3 Oct; queued for primary verification). Agreement with REACT's row is reported per trial, not required. REACT's rows are the comparator only (anti-circularity).",
  "N_comparator_trials": 19,
- "k_matched": 5,
+ "k_matched": 6,
  "N_eligible": 19,
  "named_differences": [],
  "open_gaps": [
@@ -20,7 +20,6 @@
   "ImmCoVA",
   "PreToVid",
   "REMAP-CAP",
-  "REMDACTA",
   "TOCOVID"
  ],
  "comparator_findings": [
@@ -51,8 +50,8 @@
  "routes": {
   "NO_ROW": 12,
   "SECONDARY_SINGLE": 2,
-  "UNVERIFIED": 2,
-  "PRIMARY": 2,
+  "UNVERIFIED": 1,
+  "PRIMARY": 3,
   "TWO_SOURCE": 1
  },
  "trials": [
@@ -2294,9 +2293,9 @@
    "label": "REMDACTA",
    "family": "NCT04409262",
    "in_our_pool": null,
-   "route": "UNVERIFIED",
-   "basis": "one primary source, and it does not STATE the counts: AACT gives a posted percentage converted to counts (a rate or a Kaplan-Meier estimate); no source states the per-arm deaths | SECONDARY_SINGLE refused: NO_NON_COMPARATOR_META_ROW",
-   "g1_state": "ONE_SOURCE",
+   "route": "PRIMARY",
+   "basis": "two independent sources: AACT + TEXT",
+   "g1_state": "ESTABLISHED",
    "identity": "AACT studies.acronym = REMDACTA",
    "comparator_row": {
     "measure": "OR",
@@ -2329,7 +2328,8 @@
       "n_c": 210
      },
      "independent_sources": [
-      "AACT"
+      "AACT",
+      "TEXT"
      ],
      "sources": [
       {
@@ -2338,17 +2338,32 @@
        "time_frame": "Days 14, 28, and 60",
        "derivation": "Remdesivir + Tocilizumab (RDV+TCZ) - mITT Population: 18.1% of 430 -> 78 deaths (row 1927057243); Remdesivir + Placebo (RDV+PBO) - mITT Population: 19.5% of 210 -> 41 deaths (row 1927057242)",
        "denominator_kind": "ANALYSED"
+      },
+      {
+       "source": "TEXT PMID 34609549 + acquired full text",
+       "span": "Tocilizumab + remdesivir N = 430 ... Placebo + remdesivir N = 210 ... Mortality at day 28, n (%) [95% CI] g 78 (18.1) [14.5–21.8] 41 (19.5)",
+       "denominator_kind": "UNSTATED"
+      },
+      {
+       "source": "TEXT PMID 34609549 + acquired full text",
+       "span": "Tocilizumab + remdesivir N = 430 ... Placebo + remdesivir N = 210 ... Mortality at day 28, n (%) [95% CI] g 78 (18.1) [14.5–21.8] 41 (19.5)",
+       "denominator_kind": "UNSTATED"
       }
      ],
-     "counts_stated_by": [],
-     "counts_stated_by_a_primary": [],
+     "counts_stated_by": [
+      "TEXT PMID 34609549 + acquired full text",
+      "TEXT PMID 34609549 + acquired full text"
+     ],
+     "counts_stated_by_a_primary": [
+      "TEXT PMID 34609549 + acquired full text",
+      "TEXT PMID 34609549 + acquired full text"
+     ],
      "denominator_kind": "ANALYSED"
     }
    ],
-   "g1_countable": false,
+   "g1_countable": true,
    "secondary_single": {
-    "state": "REFUSED",
-    "why": "NO_NON_COMPARATOR_META_ROW"
+    "state": "NOT_NEEDED (a primary verifies the row)"
    },
    "acquisition_cascade": {
     "run_utc": "2026-10-02T16:08:07Z",
@@ -2385,10 +2400,6 @@
     "R5_ISRCTN": "NO_ISRCTN_ID"
    },
    "agreement_with_comparator_row": "AGREE",
-   "primary_single_source": {
-    "admitted": false,
-    "why": "AACT_COUNTS_DERIVED_FROM_PERCENTAGE"
-   },
    "comparator_row_provenance": {
     "meta_pmid": "34228774",
     "location": {
@@ -2402,32 +2413,7 @@
     "row_label": "REMDACTA",
     "verified": "the forest-reader dual read prints the same counts"
    },
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "OR",
-     "effect": null,
-     "lower": null,
-     "upper": null,
-     "events_t": 78,
-     "n_t": 430,
-     "events_c": 41,
-     "n_c": 210
-    },
-    "provenance": {
-     "meta_pmid": "34228774",
-     "location": {
-      "id": "joi210079f1",
-      "kind": "figure",
-      "panel": null,
-      "row_label": "REMDACTA"
-     },
-     "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
-     "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
-     "row_label": "REMDACTA",
-     "verified": "the forest-reader dual read prints the same counts"
-    }
-   }
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "TOCIBRAS",
@@ -2657,31 +2643,26 @@
   }
  ],
  "per_trial_agreement": {
-  "AGREE": 5
+  "AGREE": 6
  },
  "coverage": {
-  "k_matched": 5,
+  "k_matched": 6,
   "k_matched_by_route": {
-   "PRIMARY": 2,
+   "PRIMARY": 3,
    "TWO_SOURCE": 1,
    "SECONDARY_SINGLE": 2
   },
-  "k_established": 2,
+  "k_established": 3,
   "k_comparator": 19,
-  "participants_matched": 5190,
-  "participants_established": 567,
+  "participants_matched": 5830,
+  "participants_established": 1207,
   "participants_comparator": 8048,
-  "participant_share": 0.645,
+  "participant_share": 0.724,
   "largest_trials_not_matched": [
    {
     "trial": "REMAP-CAP",
     "n": 711,
     "state": "NO_PRIMARY_SOURCE"
-   },
-   {
-    "trial": "REMDACTA",
-    "n": 640,
-    "state": "ONE_SOURCE"
    },
    {
     "trial": "PreToVid",
@@ -2692,25 +2673,30 @@
     "trial": "TOCOVID",
     "n": 270,
     "state": "NO_PRIMARY_SOURCE"
+   },
+   {
+    "trial": "BACC-Bay",
+    "n": 243,
+    "state": "NO_PRIMARY_SOURCE"
    }
   ]
  },
- "result_label": "COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)",
+ "result_label": "COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 6 of 19 trials matched (PRIMARY 3, TWO_SOURCE 1, SECONDARY_SINGLE 2), 72% of REACT's participants; missing REMAP-CAP (n=711), PreToVid (n=354)",
  "same_trials": {
   "state": "POOLED",
-  "k": 2,
-  "measure": "OR [COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)]",
+  "k": 3,
+  "measure": "OR [COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 6 of 19 trials matched (PRIMARY 3, TWO_SOURCE 1, SECONDARY_SINGLE 2), 72% of REACT's participants; missing REMAP-CAP (n=711), PreToVid (n=354)]",
   "is_a_finding": false,
   "method": "FE",
   "ours": {
-   "estimate": 1.2251,
-   "ci_low": 0.7799,
-   "ci_high": 1.9245
+   "estimate": 1.0467,
+   "ci_low": 0.7695,
+   "ci_high": 1.4237
   },
   "theirs": {
-   "estimate": 1.2251,
-   "ci_low": 0.7799,
-   "ci_high": 1.9245
+   "estimate": 1.0467,
+   "ci_low": 0.7695,
+   "ci_high": 1.4237
   },
   "verdict": {
    "verdict": "AGREE",
@@ -2736,12 +2722,12 @@
   "note": "established + one-source rows; one-source rows are NOT counted in k"
  },
  "ours": {
-  "k": 2,
+  "k": 3,
   "estimate": null,
   "ci_low": null,
   "ci_high": null,
   "scale": "OR",
-  "state": "NOT_STATED: COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 5 of 19 trials matched (PRIMARY 2, TWO_SOURCE 1, SECONDARY_SINGLE 2), 64% of REACT's participants; missing REMAP-CAP (n=711), REMDACTA (n=640)"
+  "state": "NOT_STATED: COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: 6 of 19 trials matched (PRIMARY 3, TWO_SOURCE 1, SECONDARY_SINGLE 2), 72% of REACT's participants; missing REMAP-CAP (n=711), PreToVid (n=354)"
  },
  "comparator": {
   "outcome": "28-day all-cause mortality (Figure 1, tocilizumab)",
@@ -2777,11 +2763,11 @@
   }
  },
  "lane_source": {
-  "lane": "Evidence lane two (g1/tocilizumab)",
-  "branch": "g1/tocilizumab",
-  "commit": "fff17d61a1bc7ddbd7d926af4d7133fcbd986416",
+  "lane": "g1/tocilizumab-finish (continues g1/tocilizumab)",
+  "branch": "g1/tocilizumab-finish",
+  "commit": "84798a33740e6b9b22a514a3e6488d06421d238e",
   "path": "outputs/k_gap/g1/tocilizumab-covid19-mortality.json",
-  "sha256": "1e993d210e5494d3aaa6fec96a22c4d162061dba631f26be8a7cc227b97ccd9a",
+  "sha256": "2e026f8a8478a15add2c0673e5bacf61b5d5720f9715c28c31e7effb698cf93d",
   "format": "tracker_v1"
  },
  "g1r_reproduction": {
@@ -2790,15 +2776,15 @@
   "methods": [
    "FE"
   ],
-  "where": "figure joi210079f1 (g1/forest-reader e1543f18e, dual-model)",
+  "where": "figure joi210079f1 (g1/forest-reader b56179dc2, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 1 patients randomized to usual care or placebo (summary OR, 0.86 [95% CI, 0.79-0.95]; P = .003 based on)"
  },
  "comparator_orientation": {
   "state": "ESTABLISHED",
-  "why": "5 shared trial(s) AGREE"
+  "why": "6 shared trial(s) AGREE"
  },
- "k_independent": 5,
- "k_comparator_sourced": 14,
+ "k_independent": 6,
+ "k_comparator_sourced": 13,
  "k_covered": 19,
  "coverage_complete": true,
  "discrepancy_findings": [
