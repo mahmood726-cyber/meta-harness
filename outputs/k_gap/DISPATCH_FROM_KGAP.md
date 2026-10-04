@@ -122,7 +122,7 @@ Found while gating the outcome-set rule on "the analysis IS the compared result"
 
 ## To the captain / Mahmood: three alerts (5 Oct)
 
-1. **Private paths in git history.** Four codex records added in 90478bedc listed `<private path removed>` and `<private path removed>` under `files_read` (paths only, no content).
+1. **Private paths in git history.** Four codex records added in 90478bedc listed `<outside-workdir>/rewrite-workbook.txt` and `<outside-workdir>/INDEX.md` under `files_read` (paths only, no content).
    - They were quarantined from HEAD in 4e9146610, and the private-content test passes again.
    - They remain in history at 90478bedc. Purging them needs a history rewrite (force-push), which this lane does not do.
    - Root cause is still open: codex reads the owner's global instructions; isolating CODEX_HOME needs a go-ahead.
