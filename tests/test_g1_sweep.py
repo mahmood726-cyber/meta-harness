@@ -258,7 +258,8 @@ def test_a_non_self_reproducing_comparators_rows_are_never_admitted():
 
 def test_comparator_rows_need_established_orientation_and_provenance():
     o = _cs_topic()
-    o["trials"][0]["agreement_with_comparator_row"] = "NOT_COMPARABLE"          # no shared trial agrees: UNKNOWN
+    o["trials"][0]["agreement_with_comparator_row"] = "NOT_COMPARABLE"          # no agreement, and a NEAR-NULL value
+    o["trials"][0]["our_value"] = {"measure": "RR", "effect": "1.02"}         # shows no direction: UNKNOWN
     assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"] == "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
     o = _cs_topic()
     o["trials"][1].pop("comparator_row_provenance")
@@ -266,3 +267,24 @@ def test_comparator_rows_need_established_orientation_and_provenance():
     # a MIRRORED shared row (reciprocal ratio) disputes orientation; a merely different number does not
     assert gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "1.25"})
     assert not gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "0.70"})
+
+
+def test_orientation_by_direction_when_measures_differ():
+    # omega-3: our HR 0.74 vs the comparator's RR 0.78 for REDUCE-IT -- same side of the null, clearly off it
+    base = _cs_topic()
+    a = base["trials"][0]
+    a.update(agreement_with_comparator_row="NOT_COMPARABLE:HR_VS_RR", our_value={"measure": "HR", "effect": "0.74"},
+             comparator_row=dict(a["comparator_row"], measure="RR", effect="0.78"))
+    assert gt.orientation(base)[0] == "ESTABLISHED"
+    a["comparator_row"]["effect"] = "1.02"                 # near the null: says nothing
+    assert gt.orientation(base)[0] == "UNKNOWN"
+
+
+def test_comparator_rows_join_by_the_comparators_own_labels():
+    # metformin: 'Legro 2007' (no identity of ours) has its row in the comparator's accepted figure: it must attach
+    import json as _json
+    o = _json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "metformin-pcos-ovulation.json"), encoding="utf-8"))
+    x = next(t for t in o["trials"] if t["label"] == "Legro 2007")
+    assert x["comparator_row"] and x["comparator_row_provenance"]["location"]["id"]
+    labs = [t["comparator_row_provenance"]["row_label"] for t in o["trials"] if t.get("comparator_row_provenance")]
+    assert len(labs) == len(set(labs))                      # a comparator row never serves two trials

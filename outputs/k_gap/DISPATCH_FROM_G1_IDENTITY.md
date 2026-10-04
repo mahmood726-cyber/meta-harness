@@ -133,3 +133,73 @@ contains base 435236c1a), and this branch touches no release or page path.
 
 **Table rebuild after the fallback guard (2ec493f00).** 0 identities added or moved; the committed table is
 byte-identical.
+
+## 6. INTEGRATION into acq/k-gap (4 Oct): integrate/g1-identity-2026-10-03
+
+**Branch.** `integrate/g1-identity-2026-10-03` = g1/identity (incl. 3a226cf13 and the integration fixes below) merged
+with acq/k-gap at 38d132d6a. It is fast-forwardable onto acq/k-gap at that tip.
+
+**Integration fixes, made while reconciling the two identity chains** (g1/identity's `k_gap_table.resolve_unit` and
+acq/k-gap's `kgap/identity_chain.py`):
+
+- **Disagreement: metformin "Legro 2007".**
+  - Ours took Cataldo 2008, the first citation listed under the Cochrane study ID, a secondary report.
+  - Fix in `study_id_citations`: take the one citation whose author and year are the study ID's. The row now
+    resolves to PMID 17287476 / NCT00068861, agreeing with acq's chain.
+- **Disagreement: "Semler (SMART trial)".**
+  - acq's chain gives NCT02444988 alone. AACT registers SMART twice (SMART-MED NCT02444988, SMART-SURG
+    NCT02547779), and the NEJM record lists both.
+  - Ours refuses a single NCT. **acq's chain is incomplete here; please review**, not copied.
+- **Chains 3 / 3b PMID→NCT** now use the same paper-registration rules (`_paper_registration`).
+  - SOLOIST-WHF → NCT03521934 in 3 topics.
+  - DELIVER → NCT03619213 in empagliflozin-hfpef.
+- **Shared PubMed caches are written atomically** (`_save_cache`: union with disk, temp file, os.replace).
+  - Merged into acq's restructured `pubmed_author_year`.
+  - **Still plain `open('w')`**, the same race class: `k_gap_result_agreement.first_author_year`.
+- **`tests/test_identity_chain.py` add/add.** acq's file is kept under that name; g1/identity's plants are now
+  `tests/test_k_gap_identity_chain.py`.
+
+**Table vs acq's own (38d132d6a).**
+- 4 identities moved, exactly the documented corrections: STEP 1, Shah, SCALE O&P, DELIVER in sglt2-ckd.
+- Every other difference is an identity acq's table lacked.
+- acq's own new identities are preserved: Ben Ayed POOLED; DECLARE / DELIVER report families.
+
+**Trackers regenerated (g1_batch --tracker-only, all served topics, 0 failures).**
+
+| Metric | acq/k-gap 38d132d6a | integrate |
+|---|---|---|
+| INDEPENDENTLY CONFIRMED | 80 | 80 |
+| COVERAGE | 157 | 157 |
+| k matched | 80 | 80 |
+| N eligible | 284 | 268 |
+| N comparator trials | 367 | 348 |
+
+Every per-topic difference is the identity class fix:
+- **Top blocker no longer IDENTITY_UNRESOLVED:** pericarditis, dapagliflozin, metformin, omega3, spironolactone,
+  statins, ticagrelor (the 7 assigned topics).
+- **k matched:** spironolactone 1→2; semaglutide-obesity-mace 2→1 (STEP 1 was matched only through its false merge
+  into SELECT).
+- **N comparator trials** (other-agent / observational rows now typed):
+  - dapagliflozin 6→3 (EMPEROR-Preserved, SCORED, VERTIS-CV are other agents);
+  - empagliflozin 3→2;
+  - statins 27→12.
+- **N eligible:** colchicine-postop-af 5→6 (Bessissow) and tranexamic 2→3 (TXA-MFMU). Their earlier exclusion had no
+  cited span; with identity resolved, cite_or_demote makes them eligible, blocked by unaudited screen exclusions.
+
+**NOTICE FOR MAHMOOD (served numbers; queued for signature, not landed).**
+- The G1 denominators change: N comparator trials 367→348, N eligible 284→268.
+- Topic k changes: spironolactone +1, semaglutide-obesity-mace −1.
+
+**Three silent environment dependencies, found while regenerating.** Each made a fresh worktree's tracker numbers
+LOWER with exit 0:
+1. Gitignored held caches (`outputs/k_gap/_ft`, `_ctgov`, `_upw`, `_reg`) were absent. Copied from the k-gap lane's
+   worktree; `_ctgov` was verified against `ctgov_index.json` sha256.
+2. A stale `origin/g1/forest-reader` ref: the tracker reads lane rows by `git show origin/<branch>`, and a clone that
+   has not fetched silently loses comparator rows (pcsk9 coverage 11→2 until fetched).
+3. AACT store fields: acq's `_aact_store.json` lacks study_first_submitted_date / start_date for 32 studies that an
+   earlier store had. Identities are unchanged, but `registered_before` then passes by default.
+
+Suggestion: a tracker preflight that refuses on (1) and (2).
+
+**Earlier g1/identity tracker files** (517c36233 and the 2 Oct re-runs) were computed WITHOUT those caches, so their
+absolute k values are understated. The integrate branch supersedes them.

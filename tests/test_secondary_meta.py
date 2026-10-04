@@ -374,3 +374,91 @@ def test_typed_table_reads_unicode_minus_signs_and_pools_md_from_the_arms():
     # no aligned header naming the control -> arm-level data are NOT taken (arm order unknown)
     bad = jats.replace(b"<th>Placebo mean (SD)</th>", b"<th>Mean (SD)</th>")
     assert sm.typed_rows_from_jats(bad, "x")[0]["rows"][3].mean_t is None
+
+
+# ------------------------------------------------------------------ SECONDARY_SINGLE (Mahmood decision, 3 Oct)
+def _single_row(meta="111", state=None):
+    r = _row(measure="HR", effect="0.80", lower="0.70", upper="0.91")
+    r.meta_pmid, r.family_id = meta, "PMID 1"
+    r.state = state or sm.UNVERIFIED
+    r.verification = {"result": "QUEUED", "queue_reason": "NO_PRIMARY_VALUE"}
+    return r
+
+
+def test_SECONDARY_SINGLE_counts_one_self_reproducing_non_comparator_meta_when_no_primary_is_open():
+    r = _single_row()
+    assert sm.secondary_single([r], {"999"}, lambda x: None, lambda x: True) == [r]
+    assert r.state == sm.SECONDARY_SINGLE and sm.route_of(r) == "SECONDARY_SINGLE"
+    assert sm.g1_countable([r], {"999"}) == [r]
+
+
+def test_PLANT_SECONDARY_SINGLE_never_from_the_comparator_an_open_primary_or_a_non_reproducing_meta():
+    comp = _single_row(meta="999")
+    assert sm.secondary_single([comp], {"999"}, lambda x: None, lambda x: True) == [] and comp.state == sm.UNVERIFIED
+    opened = _single_row()
+    assert sm.secondary_single([opened], {"999"}, lambda x: "PMID 1 PMC OA", lambda x: True) == []
+    assert opened.state == sm.UNVERIFIED and "PRIMARY_SOURCE_OPEN" in opened.verification["queue_reason"]
+    norep = _single_row()
+    assert sm.secondary_single([norep], {"999"}, lambda x: None, lambda x: False) == [] and norep.state == sm.UNVERIFIED
+    blocked = _single_row(state=sm.BLOCKED)
+    assert sm.secondary_single([blocked], {"999"}, lambda x: None, lambda x: True) == [] and blocked.state == sm.BLOCKED
+    # anti-circularity holds even if a comparator row were somehow marked SECONDARY_SINGLE
+    comp.state = sm.SECONDARY_SINGLE
+    assert sm.g1_countable([comp], {"999"}) == []
+
+
+# ------------------------------------------------------------------ Mantel-Haenszel in our engine (pool_mh)
+# PMID 34385227 Fig 3 (42 trials), counts as the dual-model reader agreed them; references computed with R 4.6.0:
+# meta::metabin(a,n1,c,n2,sm="RR",method="MH",method.tau="DL",Q.Cochrane=TRUE) and metafor::rma.mh (no zero cells)
+PROBIOTICS_COUNTS = [(159, 1470, 153, 1471), (7, 44, 16, 45), (13, 105, 23, 97), (4, 41, 5, 45), (1, 73, 7, 78), (19, 176, 26, 167), (1, 13, 5, 10), (9, 62, 19, 62), (4, 30, 5, 58), (14, 204, 28, 185), (21, 246, 19, 231), (21, 80, 29, 80), (37, 171, 34, 84), (3, 36, 9, 43), (16, 44, 14, 41), (7, 57, 19, 56), (16, 181, 23, 90), (3, 26, 0, 20), (1, 12, 3, 7), (1, 20, 5, 20), (9, 19, 17, 21), (7, 33, 5, 36), (6, 80, 5, 83), (7, 97, 14, 96), (54, 336, 41, 167), (17, 340, 63, 338), (23, 65, 38, 65), (15, 69, 15, 69), (13, 106, 16, 98), (106, 549, 103, 577), (4, 23, 6, 16), (47, 216, 70, 221), (0, 61, 7, 61), (1, 18, 2, 17), (9, 103, 16, 111), (11, 116, 14, 64), (39, 133, 40, 134), (50, 247, 14, 67), (2, 34, 8, 29), (13, 76, 44, 82), (5, 41, 4, 46), (27, 132, 15, 32)]
+
+
+def _count_rows(counts, measure="RR"):
+    out = []
+    for a, n1, c, n2 in counts:
+        r = _row(measure=measure)
+        r.effect = r.lower = r.upper = None
+        r.events_t, r.n_t, r.events_c, r.n_c = a, n1, c, n2
+        out.append(r)
+    return out
+
+
+def test_pool_mh_matches_R_meta_metabin_revman_mode_on_42_trials():
+    import math
+    rows = _count_rows(PROBIOTICS_COUNTS)
+    fe = [math.exp(x) for x in sm.pool_mh(rows, "RR")]
+    re_ = [math.exp(x) for x in sm.pool_mh(rows, "RR", random=True)]
+    assert all(abs(a - b) < 2e-6 for a, b in zip(fe, (0.7035394, 0.6471383, 0.7648562)))
+    assert all(abs(a - b) < 2e-5 for a, b in zip(re_, (0.6255739, 0.5356020, 0.7306596)))
+
+
+def test_pool_mh_matches_metafor_rma_mh_without_zero_cells_and_refuses_without_counts():
+    import math
+    c3 = [(12, 100, 18, 100), (8, 90, 15, 92), (20, 150, 24, 148)]
+    rr = [math.exp(x) for x in sm.pool_mh(_count_rows(c3), "RR")]
+    orr = [math.exp(x) for x in sm.pool_mh(_count_rows(c3, "OR"), "OR")]
+    assert all(abs(a - b) < 2e-6 for a, b in zip(rr, (0.700988, 0.481530, 1.020465)))
+    assert all(abs(a - b) < 2e-6 for a, b in zip(orr, (0.661155, 0.427577, 1.022333)))
+    assert sm.pool_mh(_count_rows(c3), "HR") is None                    # M-H needs a 2x2 measure
+    no_counts = _count_rows(c3)
+    no_counts[0].events_t = None
+    assert sm.pool_mh(no_counts, "RR") is None
+    assert sm.pool_mh(_count_rows([(0, 30, 0, 30)] + c3[:1]), "RR") is None   # double-zero not estimable -> < 2 rows
+
+
+def test_reml_pool_matches_metafor_on_dat_bcg():
+    # metafor 5.0.1 (R 4.6.0): escalc("RR", dat.bcg); rma(method="REML") and rma(method="REML", test="knha")
+    yi = [-0.889311333920, -1.585388657201, -1.348073148300, -1.441551190021, -0.217547322211, -0.786115585819,
+          -1.620898223598, 0.011952333524, -0.469417648738, -1.371344803473, -0.339358828338, 0.445913400571,
+          -0.017313948217]
+    vi = [0.325584765004, 0.194581121398, 0.415367965368, 0.020010031902, 0.051210172170, 0.006905618456,
+          0.223017247572, 0.003961579298, 0.056434210463, 0.073024793613, 0.012412213972, 0.532505845200,
+          0.071404659684]
+    assert abs(sm.reml_tau2(yi, vi) - 0.313243325981) < 1e-6
+    mu, lo, hi = sm.pool(yi, vi, "REML")
+    assert max(abs(mu + 0.714532348365), abs(lo + 1.066897675740), abs(hi + 0.362167020990)) < 1e-6
+    _, lo, hi = sm.pool(yi, vi, "REML", hk=True)
+    assert max(abs(lo + 1.108443723000), abs(hi + 0.320620973730)) < 1e-6
+    # homogeneous pair: tau^2 truncated at 0 and the pool is the fixed-effect mean (metafor: 0, 0.108888888889)
+    assert sm.reml_tau2([0.1, 0.12], [0.04, 0.05]) == 0.0
+    assert abs(sm.pool([0.1, 0.12], [0.04, 0.05], "REML")[0] - 0.108888888889) < 1e-9

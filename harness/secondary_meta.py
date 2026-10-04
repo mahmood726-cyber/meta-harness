@@ -298,6 +298,22 @@ def row_yi_vi(row: SecondaryRow, z=1.959963984540054):
     return math.log((a / n1) / (c / n2)), 1 / a - 1 / n1 + 1 / c - 1 / n2
 
 
+def reml_tau2(yi, vi, iters=200):
+    """REML tau^2 by the fixed-point (Fisher scoring) update metafor's rma(method="REML") converges to; checked against
+    metafor on dat.bcg (tests/test_secondary_meta.py). Truncated at 0."""
+    k = len(yi)
+    t2 = max(0.0, sum((a - sum(yi) / k) ** 2 for a in yi) / max(1, k - 1) - sum(vi) / k)
+    for _ in range(iters):
+        w = [1 / (v + t2) for v in vi]
+        mu = sum(a * b for a, b in zip(w, yi)) / sum(w)
+        sw2 = sum(x * x for x in w)
+        new = max(0.0, (sum(x * x * ((y - mu) ** 2 - v) for x, y, v in zip(w, yi, vi)) + sw2 / sum(w)) / sw2)
+        if abs(new - t2) < 1e-12:
+            return new
+        t2 = new
+    return t2
+
+
 def pool(yi, vi, method="FE", hk=False, z=1.959963984540054):
     from scipy import stats
     k = len(yi)
@@ -311,6 +327,8 @@ def pool(yi, vi, method="FE", hk=False, z=1.959963984540054):
     elif method == "PM":
         from .synth import _paule_mandel_tau2
         t2 = float(_paule_mandel_tau2(yi, vi))
+    elif method == "REML":
+        t2 = reml_tau2(yi, vi)
     ww = [1 / (v + t2) for v in vi]
     mu = sum(a * b for a, b in zip(ww, yi)) / sum(ww)
     if hk and k >= 2:
@@ -321,26 +339,130 @@ def pool(yi, vi, method="FE", hk=False, z=1.959963984540054):
     return mu, mu - q * se, mu + q * se
 
 
-def positive_control(rows: list, printed: dict, measure: str) -> dict:
+def pool_mh(rows: list, measure: str, random: bool = False, z=1.959963984540054):
+    """Mantel-Haenszel pooling from PRINTED 2x2 counts, as RevMan 5 and R meta::metabin(method="MH", MH.exact=FALSE):
+    0.5 added to every cell of a study with a zero cell (in the M-H estimate too); a study with no events in either arm
+    (or all events in both) is not estimable and carries no weight. Variance: Greenland-Robins (RR) / Robins-Breslow-
+    Greenland (OR). random=True is RevMan's 'M-H, Random': DerSimonian-Laird tau^2 with Q taken about the M-H estimate,
+    then inverse-variance weights. Returns (estimate, lower, upper) on the LOG scale, or None (no full counts, < 2 rows).
+    Checked against meta::metabin on PMID 34385227's 42 rows and metafor::rma.mh (tests/test_secondary_meta.py)."""
+    m = (measure or "").upper()
+    if m not in ("RR", "OR"):
+        return None
+    cells = []
+    for r in rows:
+        a, n1, c, n2 = r.events_t, r.n_t, r.events_c, r.n_c
+        if None in (a, n1, c, n2) or n1 <= 0 or n2 <= 0 or not (0 <= a <= n1 and 0 <= c <= n2):
+            return None
+        if (a == 0 and c == 0) or (a == n1 and c == n2):
+            continue                                            # not estimable
+        b, d = n1 - a, n2 - c
+        if 0 in (a, b, c, d):
+            a, b, c, d = a + .5, b + .5, c + .5, d + .5
+        cells.append((a, b, c, d))
+    if len(cells) < 2:
+        return None
+    num = den = pr = ps = qs = sr = ss = rr_v = 0.0
+    yi, vi = [], []
+    for a, b, c, d in cells:
+        n1, n2 = a + b, c + d
+        n = n1 + n2
+        if m == "OR":
+            R, S = a * d / n, b * c / n
+            P, Q = (a + d) / n, (b + c) / n
+            num, den = num + R, den + S
+            pr, ps, qs = pr + P * R, ps + P * S + Q * R, qs + Q * S
+            yi.append(math.log(a * d / (b * c)))
+            vi.append(1 / a + 1 / b + 1 / c + 1 / d)
+        else:
+            num, den = num + a * n2 / n, den + c * n1 / n
+            rr_v += (n1 * n2 * (a + c) - a * c * n) / n ** 2
+            yi.append(math.log((a / n1) / (c / n2)))
+            vi.append(1 / a - 1 / n1 + 1 / c - 1 / n2)
+    if num <= 0 or den <= 0:
+        return None
+    est = math.log(num / den)
+    var = (pr / (2 * num ** 2) + ps / (2 * num * den) + qs / (2 * den ** 2)) if m == "OR" else rr_v / (num * den)
+    if not random:
+        return est, est - z * math.sqrt(var), est + z * math.sqrt(var)
+    w = [1 / v for v in vi]
+    k = len(yi)
+    q = sum(a * (b - est) ** 2 for a, b in zip(w, yi))
+    c_ = sum(w) - sum(a * a for a in w) / sum(w)
+    t2 = max(0.0, (q - (k - 1)) / c_) if c_ > 0 else 0.0
+    ww = [1 / (v + t2) for v in vi]
+    mu = sum(a * b for a, b in zip(ww, yi)) / sum(ww)
+    se = math.sqrt(1 / sum(ww))
+    return mu, mu - z * se, mu + z * se
+
+
+_MH = re.compile(r"\bM\s*[-\u2013\u2010]\s*H\b|Mantel", re.I)
+
+
+def _perturbed(row, rng):
+    """One draw of a row's printed effect / CI within each printed number's rounding half-unit (log scale for ratios),
+    or None when the draw is not a valid interval."""
+    vals = []
+    for k in ("effect", "lower", "upper"):
+        v = _num(getattr(row, k))
+        if v is None:
+            return None
+        vals.append(v + rng.uniform(-1, 1) * _half(getattr(row, k)))
+    e, lo, hi = vals
+    ratio = row.measure.upper() in RATIO
+    if (ratio and min(vals) <= 0) or not (lo < hi and lo <= e <= hi):
+        return None
+    f = math.log if ratio else (lambda x: x)
+    return f(e), ((f(hi) - f(lo)) / (2 * 1.959963984540054)) ** 2
+
+
+def positive_control(rows: list, printed: dict, measure: str, stated_model: Optional[str] = None) -> dict:
     """Does the meta's own printed pooled result follow from the rows extracted from it? FE/DL/PM, each +/- HK; the
-    tolerance is the printed rounding plus one printed unit for row-rounding propagation. A meta that fails is unused."""
+    tolerance is the printed rounding plus one printed unit for row-rounding propagation. A meta that fails is unused.
+    When the single reconstruction from the ROUNDED rows misses, the rows' ROUNDING ENVELOPE is checked: seeded draws of
+    every printed row number within its half-unit; one draw must reproduce all three printed values jointly, same
+    tolerance (meta 35488485: sparse rows printed '0.01 to 4.00' -- our reconstruction error, not the meta's). A
+    misread row still fails. A meta stating Mantel-Haenszel whose rows carry no counts cannot be reconstructed from a
+    figure: typed refusal STATED_MODEL_MH_NEEDS_COUNTS."""
+    import random
     ratio = measure.upper() in RATIO
     g = math.exp if ratio else (lambda x: x)
     pairs = [row_yi_vi(r) for r in rows]
     if len(rows) < 2 or any(p is None for p in pairs):
         return {"reproduced": False, "why": "FEWER_THAN_2_USABLE_ROWS", "methods": []}
-    yi, vi = [p[0] for p in pairs], [p[1] for p in pairs]
     tol = lambda s: _half(s) * 3 + 1e-9                      # noqa: E731 - printed half-unit + one unit of propagation
-    ok = []
-    for m in ("FE", "DL", "PM"):
-        for hk in (False, True):
-            try:
-                mu, lo, hi = (g(x) for x in pool(yi, vi, m, hk))
-            except Exception:  # noqa: BLE001 - an estimator that fails to converge reproduces nothing
+    keys = ("effect", "lower", "upper")
+
+    def hits(yi, vi):
+        ok = []
+        for m in ("FE", "DL", "PM"):
+            for hk in (False, True):
+                try:
+                    est = [g(x) for x in pool(yi, vi, m, hk)]
+                except Exception:  # noqa: BLE001 - an estimator that fails to converge reproduces nothing
+                    continue
+                if all(abs(v - _num(printed[k])) <= tol(printed[k]) for v, k in zip(est, keys)):
+                    ok.append(m + ("+HK" if hk else ""))
+        return ok
+
+    ok = hits([p[0] for p in pairs], [p[1] for p in pairs])
+    if ok:
+        return {"reproduced": True, "methods": ok, "why": None}
+    # the rounding envelope (only rows whose numbers ARE their printed effect / CI; arm-derived MD rows are exact)
+    if not any(r.measure.upper() == "MD" and _has_arms(r) for r in rows):
+        rng = random.Random(20261004)
+        for _ in range(300):
+            d = [_perturbed(r, rng) for r in rows]
+            if any(x is None for x in d):
                 continue
-            if all(abs(v - _num(printed[k])) <= tol(printed[k]) for v, k in ((mu, "effect"), (lo, "lower"), (hi, "upper"))):
-                ok.append(m + ("+HK" if hk else ""))
-    return {"reproduced": bool(ok), "methods": ok, "why": None if ok else "PRINTED_POOL_NOT_REPRODUCED"}
+            ok = hits([x[0] for x in d], [x[1] for x in d])
+            if ok:
+                return {"reproduced": True, "methods": [m + "@ROUNDING_ENVELOPE" for m in ok], "why": None,
+                        "basis": "ROUNDING_ENVELOPE (seeded, 300 draws within each printed half-unit)"}
+    counts = all(None not in (r.events_t, r.n_t, r.events_c, r.n_c) for r in rows)
+    if stated_model and _MH.search(stated_model) and not counts:
+        return {"reproduced": False, "methods": [], "why": "STATED_MODEL_MH_NEEDS_COUNTS", "stated_model": stated_model[:120]}
+    return {"reproduced": False, "methods": [], "why": "PRINTED_POOL_NOT_REPRODUCED"}
 
 
 # ------------------------------------------------------------------ admission gate (the primary gate's questions)
@@ -359,7 +481,8 @@ def nested_subgroup(row: SecondaryRow, randomised_n: Optional[int]) -> Optional[
 def measure_identity(row: SecondaryRow, estimand: str) -> Optional[str]:
     """The row's measure must BE the topic's estimand, or be derivable without assumption (counts -> RR/OR)."""
     m, e = (row.measure or "").upper(), (estimand or "").upper()
-    if m == e:
+    # a topic whose estimand admits either ratio ('RR/HR': spironolactone, all-cause mortality) admits each named one
+    if m == e or (m and m in {x.strip() for x in e.split("/")}):
         return None
     counts = None not in (row.events_t, row.n_t, row.events_c, row.n_c)
     if e in ("RR", "OR") and counts:
@@ -876,7 +999,43 @@ def route_of(row: SecondaryRow) -> str:
         return "PRIMARY"
     if row.state == TWO_SOURCE:
         return "TWO_SOURCE"
+    if row.state == SECONDARY_SINGLE:
+        return "SECONDARY_SINGLE"
     return "UNVERIFIED"
+
+
+# ------------------------------------------------------------------ SECONDARY_SINGLE (Mahmood decision, 3 Oct)
+# Per-trial rows from ONE published meta that is NOT the comparator count toward G1 when NO primary source is open,
+# provided that meta SELF-REPRODUCES its pooled result (its own rows, pooled, give its printed pool: the positive
+# control of a typed table / the gate of a figure read / the dual-model reader's stated-model reconstruction).
+SECONDARY_SINGLE = "SECONDARY_SINGLE"
+
+
+def secondary_single(rows: list, comparator_meta_ids: set, primary_open, reproduces) -> list:
+    """Rows still SECONDARY_UNVERIFIED after primary verification and the two-source rule become SECONDARY_SINGLE when
+      * the meta is not the comparator (under any of its ids),
+      * reproduces(row) -- the meta self-reproduced its printed pooled result from its rows, and
+      * not primary_open(row) -- no open primary source exists for the trial (an open one must be extracted instead;
+        the row then stays queued with reason SECONDARY_SINGLE_REFUSED:PRIMARY_SOURCE_OPEN).
+    A BLOCKED row (two metas disagree), a MISMATCH and a REFUSED row are never eligible. Returns the rows changed."""
+    ids = {str(x).strip().lower() for x in comparator_meta_ids} - {""}
+    out = []
+    for r in rows:
+        if r.state != UNVERIFIED or (meta_ids(r) & ids) or not reproduces(r):
+            continue
+        prior = (r.verification or {}).get("queue_reason")
+        opened = primary_open(r)
+        if opened:
+            r.verification = dict(r.verification or {}, queue_reason=(prior or "NO_PRIMARY") +
+                                  f" | SECONDARY_SINGLE_REFUSED:PRIMARY_SOURCE_OPEN:{opened}")
+            continue
+        r.state = SECONDARY_SINGLE
+        r.verification = {"result": "SECONDARY_SINGLE", "route": "SECONDARY_SINGLE", "meta": r.meta_pmid,
+                          "prior_queue_reason": prior,
+                          "basis": "one non-comparator meta that self-reproduces its pooled result; no open primary "
+                                   "source for the trial (decision 3 Oct)"}
+        out.append(r)
+    return out
 
 
 def verify_typed(row: SecondaryRow, sources: list, outcome_terms: list) -> SecondaryRow:
@@ -905,7 +1064,7 @@ def g1_countable(rows: list, comparator_meta_ids: set) -> list:
     def ok(r):
         if meta_ids(r) & ids:
             return False
-        if r.state == VERIFIED:
+        if r.state in (VERIFIED, SECONDARY_SINGLE):      # SECONDARY_SINGLE: decision 3 Oct (comparator excluded above)
             return True
         v = r.verification or {}
         groups = v.get("independent_pair_ids") or v.get("independent_pairs") or []

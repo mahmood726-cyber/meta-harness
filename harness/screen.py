@@ -53,15 +53,31 @@ def _negated_at(text_lower: str, start: int) -> bool:
     return bool(_NEGATION.search(text_lower[max(0, start - 26):start]))
 
 
-def _has(text: str, terms) -> str | None:
+def _plural_re(term: str):
+    """Whole token, its plural allowed ('no probiotic' -> 'no probiotics'); a trailing '*' stays a stem."""
+    if term.endswith("*"):
+        return _boundary_re(term)
+    r = _PLURAL_CACHE.get(term)
+    if r is None:
+        r = _PLURAL_CACHE[term] = _re.compile(r"(?<![a-z0-9])" + _re.escape(term) + r"(?:e?s)?(?![a-z0-9])")
+    return r
+
+
+_PLURAL_CACHE: dict = {}
+
+
+def _has(text: str, terms, plural: bool = False) -> str | None:
     """Return the first exclusion term with a NON-negated occurrence in text (else None). A term that
-    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match."""
+    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match.
+    plural=True lets a POSITIVE (comparator) term match its plural: 'vitamin K antagonist' missed 'vitamin K
+    antagonists' and 'no probiotic' misses 'no probiotics' (found while auditing Imase 2008, 18402597, a probiotic RCT
+    X3-excluded; that record also needs topic vocabulary -- its organism and 'without probiotic' -- see the G1 dispatch)."""
     t = lexicon.fold(text)  # shared fold: British<->American spelling normalised on the haystack
     for term in terms or []:
         tl = lexicon.fold(term or "").strip()
         if not tl:
             continue
-        for m in _boundary_re(tl).finditer(t):
+        for m in (_plural_re(tl) if plural else _boundary_re(tl)).finditer(t):
             if not _negated_at(t, m.start()):
                 return term
     return None
@@ -87,21 +103,26 @@ def _all_occurrences_qualified(text: str, term: str, qualifiers) -> bool:
     return found
 
 
+_INTERVENTION_CACHE: dict = {}
+
+
 def _has_intervention(text: str, terms) -> str | None:
     """Like _has, but a mention that is only 'X-resistant/resistance/refractory/intolerant'
     is a POPULATION descriptor, not the randomised intervention, and does not count."""
     t = lexicon.fold(text)
     for term in terms or []:
-        tl = lexicon.fold(term)
-        start = 0
-        while True:
-            i = t.find(tl, start)
-            if i < 0:
-                break
-            after = t[i + len(tl): i + len(tl) + 12]
+        tl = lexicon.fold(term or "").strip()
+        if not tl:
+            continue
+        # a whole token: an unbounded substring let 'chloroquine' match 'hydroxychloroquine' (codex review
+        # exclusion_audit_and_screen#4). Its plural still matches ('probiotics', 'n-3 polyunsaturated fatty acids':
+        # the first whole-token cut lost 19 inclusions to plurals, 0 to the defect class); a trailing '*' is a stem
+        rx = _boundary_re(tl) if tl.endswith("*") else _INTERVENTION_CACHE.get(tl) or _INTERVENTION_CACHE.setdefault(
+            tl, _re.compile(r"(?<![a-z0-9])" + _re.escape(tl) + r"(?:e?s)?(?![a-z0-9])"))
+        for m in rx.finditer(t):
+            after = t[m.end(): m.end() + 12]
             if not any(w in after for w in ("resist", "refractory", "intoler", "-depend", " depend")):
                 return term
-            start = i + len(tl)
     return None
 
 
@@ -148,7 +169,10 @@ import re as _re
 # Trial", "A Randomised Controlled Trial of ..."). PubMed sometimes omits the "Randomized Controlled
 # Trial" PublicationType even for definitive RCTs (BaSICS 34375394 was tagged only "Journal Article"
 # and wrongly excluded X1). Guarded: NOT a protocol / secondary analysis / substudy / design paper.
-_TITLE_RCT = _re.compile(r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
+# Every self-description below starts at a WORD: 'nonrandomized', 'non-randomised' and 'not randomized' contain
+# 'randomized' and describe the opposite design (codex review exclusion_audit_and_screen#2)
+_NOT_NON = r"(?<![a-z])(?<!non-)(?<!non )(?<!not )"
+_TITLE_RCT = _re.compile(_NOT_NON + r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
 _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
                              r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
 
@@ -167,9 +191,9 @@ _QUASI = _re.compile(r"quasi[-\s]?random|pseudo[-\s]?random|alternat(?:e|ely|ing
 # The ABSTRACT BODY describing the paper itself as a randomised trial (a self-description, not a review
 # citing trials): 'randomized, double-blind', 'randomly assigned to', '1:1 randomisation', etc.
 _BODY_RCT = _re.compile(
-    r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
-    r"controlled trial|clinical trial|assigned|allocated|two groups|three groups)"
-    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)", _re.I)
+    _NOT_NON + r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
+    r"controlled trial|clinical trial|controlled study|assigned|allocated|two groups|three groups)"
+    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?" + _NOT_NON + r"random(?:i[sz]ed|ly)", _re.I)
 
 
 def _body_says_rct(rec) -> bool:
@@ -215,22 +239,36 @@ def _is_rct(rec) -> bool:
         # not a true RCT, even if the pubtype says "Randomized Controlled Trial".
         if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
             return False
-        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language).
-        if _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
+        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language). A SUBSTUDY title
+        # is the exception when the record is typed 'Randomized Controlled Trial' AND its abstract describes this
+        # study's randomised comparison: COPPS-POAF (22090167) is the COPPS trial's only report of postoperative AF,
+        # and the veto excluded it (G1 tracker exclusion audit, 2026-10-02; plant tests/test_g1_exclusion_audit.py).
+        veto = _TITLE_RCT_NOT.search(rec.get("title", "") or "")
+        if veto and not (veto.group(0).lower() in ("substudy", "sub-study")
+                         and any("randomized controlled trial" in p for p in pts) and _body_says_rct(rec)):
             return False
         if any("randomized controlled trial" in p for p in pts):
             return True
         # A missing RCT pubtype is UNKNOWN, not NOT-AN-RCT: accept an explicit self-declaration in the
         # TITLE or in the ABSTRACT BODY (full text/abstract overrules incomplete metadata).
         return _title_says_rct(rec) or _body_says_rct(rec)
-    return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
+    # A registry record states its allocation: RANDOMIZED is an RCT; NON_RANDOMIZED and NA (single group) are not,
+    # whatever the study type. Only an UNSTATED allocation falls back to the study type (codex review
+    # exclusion_audit_and_screen#1: 'INTERVENTIONAL' alone admitted 66 non-randomised / single-group registrations)
+    alloc = (rec.get("allocation", "") or "").upper()
+    return alloc == "RANDOMIZED" or (not alloc and rec.get("study_type", "") == "INTERVENTIONAL")
+
+
+_MASKED = _re.compile(r"(?<![a-z])(?<!un-)(?<!non-)(?<!not )masked\b", _re.I)
 
 
 def _double_blind(rec, text) -> bool:
     m = (rec.get("masking", "") or "").upper()
     if any(w in m for w in ("DOUBLE", "TRIPLE", "QUADRUPLE")):
         return True
-    if ("double-blind" in text) or ("double blind" in text) or ("masked" in text):
+    # whole words, never inside a negation: 'unmasked' contains 'masked' and states the opposite (codex review
+    # exclusion_audit_and_screen#3)
+    if ("double-blind" in text) or ("double blind" in text) or _MASKED.search(text):
         return True
     # A placebo-controlled RCT is inherently blinded (open-label trials do not use a placebo);
     # abstracts frequently omit the literal "double-blind". Accept placebo-controlled as evidence.
@@ -486,7 +524,7 @@ def screen_record(rec, inc, neg_pmids):
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
                 _span(itext_raw, bad_int))
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    comp = _has(text, comparator_any)
+    comp = _has(text, comparator_any, plural=True)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
@@ -527,7 +565,7 @@ def screen_record(rec, inc, neg_pmids):
             ev or _quote(raw_pop))
 
 
-_RANDOM_TEXT = _re.compile(r"randomi[sz]ed|randomly (?:assigned|allocated)", _re.I)
+_RANDOM_TEXT = _re.compile(_NOT_NON + r"(?:randomi[sz]ed|randomly (?:assigned|allocated))", _re.I)
 
 
 def screen_record_2(rec, inc):
@@ -559,7 +597,7 @@ def screen_record_2(rec, inc):
     if inc.get("intervention_any") and not _has_intervention(text, inc["intervention_any"]):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    if (comparator_any and not _has(text, comparator_any)
+    if (comparator_any and not _has(text, comparator_any, plural=True)
             and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):

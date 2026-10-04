@@ -518,18 +518,71 @@ def family_of_factory(ours):
         """the acronym as a contiguous run anywhere in the label ('Rosas (COVACTA)'), distinctive only"""
         return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
 
+    def core(label):
+        """(surname core, year) of an author label: tokens up to 'et al' / a reference number / the year, single-letter
+        initials dropped, spacing folded ('Helps et al52' -> helps; 'Mewton N-2019' -> mewton, 2019; 'Re faie 2005' ->
+        refaie). None unless it is a short (<= 3 token) name of >= 4 letters."""
+        tt = toks(label)
+        yr = next((m.group(0) for x in tt for m in [re.match(r"(?:19|20)\d\d", x)] if m), None)
+        name = []
+        for x in tt:
+            if x == "et" or x[0].isdigit() or re.fullmatch(r"al\d*", x):
+                break
+            if len(x) > 1:
+                name.append(x)
+        c = "".join(name)
+        return (c, yr) if 1 <= len(name) <= 3 and len(c) >= 4 else (None, yr)
+
+    def same_author(row_label, t_label):
+        # a comparator's trial list labelled 'Helps et al52' and its forest row 'Helps 2015' name one trial; never when
+        # both carry a year and the years differ ('Palomba 2004' / 'Palomba 2005a')
+        (a, ya), (b, yb) = core(row_label), core(t_label)
+        return bool(a) and a == b and not (ya and yb and ya != yb)
+    ref_rx = re.compile(r"\s*[\[(]\s*(\d+)\s*[\])]\s*$")
+
     def family_of(row):
-        lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
+        lt = toks(ref_rx.sub("", row.trial_label or ""))
         hits = {}
         for t in ours:
-            names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
-            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
-                hits[t["id"]] = t
+            # the TRIAL-LIST label's trailing reference number is stripped like the row's: 'Zinman (8)' tokenised to
+            # ['zinman', '8'] and could never lead the figure's 'Zinman 2016' (sglt2-primary-prevention-hf: 8 accepted
+            # rows read, none joined). Reference numbers are NOT compared: a comparator may number its figure and its
+            # list differently (melatonin: figure 'Wade AG, 2011 [21]' is list 'Wade AG [22]', consistently offset)
+            lab = ref_rx.sub("", t["label"] or "")
+            names = [toks(a) for a in t["acronyms"]] + ([toks(lab)] if lab and not lab.isdigit() else [])
+            matched = sorted((n for n in names if n and (prefix(lt, n) or within(lt, n))), key=len)
+            score, name = (len(matched[-1]), matched[-1]) if matched else (0, None)
+            if t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt:
+                # first author AND year confirmed outranks a bare name: two 'Young' entries both name-match 'Young 2015';
+                # the one whose own report is Young 2015 wins (balanced-crystalloids)
+                score, name = score + 10, (name or [t["author_year"][0]])
+            if score:
+                hits[t["id"]] = (t, score, name)
+        if not hits:
+            # FALLBACK tier only (acq/k-gap e89dfe86): the surname core never adds a hit to (and so never dilutes or
+            # overrides) a join the rules above already made ('Young [10]' / 'Young [17]' by their PMIDs' author-year).
+            # Consolidated 2026-10-04 with g1/finish-line's scored join: a fallback hit scores 1 and names its core, so
+            # two fallback hits on one surname tie and bind to neither.
+            for t in ours:
+                yr = (t.get("author_year") or (None, None))[1]
+                if t["label"] and same_author(row.trial_label, t["label"] + (f" {yr}" if yr and not core(t["label"])[1] else "")):
+                    hits[t["id"]] = (t, 1, [core(t["label"])[0]])
         if len(hits) > 1:
             # two trials share an acronym ('CORIMUNO' names CORIMUNO-TOCI-1 and CORIMUNO-TOCI-ICU): the ONE whose full
-            # label tokens EQUAL the row's label wins; anything less stays ambiguous (None)
-            exact = [i for i, t in hits.items() if t["label"] and toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", t["label"])) == lt]
-            return exact[0] if len(exact) == 1 else None
+            # label tokens EQUAL the row's label wins; else the one whose matching name is LONGEST ('Semler (SALT trial)'
+            # over a bare 'Semler'), unique or nothing
+            exact = [i for i, (t, _, _) in hits.items() if t["label"] and toks(ref_rx.sub("", t["label"])) == lt]
+            if len(exact) == 1:
+                return exact[0]
+            # ...and only when every other hit's name LEADS the winner's (a bare 'Semler' inside 'Semler (SALT trial)'):
+            # a row naming two different trials ('SOLOIST-WHF/SCORED') is a combined row and binds to neither
+            top = max(s for _, s, _ in hits.values())
+            best = [i for i, (_, s, _) in hits.items() if s == top]
+            if len(best) != 1 or hits[best[0]][2] is None:
+                return None
+            win = hits[best[0]][2]
+            ok = all(n is not None and win[:len(n)] == n for i, (_, _, n) in hits.items() if i != best[0])
+            return best[0] if ok else None
         return next(iter(hits)) if len(hits) == 1 else None
     return family_of
 
@@ -596,7 +649,9 @@ def figure_rows(slug, it, run_r, spec, comp):
             outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
             timepoint=meta_timepoint(it["held"]) if spec.get("core") else None,   # mortality/death outcomes only
             effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
-    pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
+    pc = sm.positive_control(mrows, g["printed_pool"], measure,
+                             stated_model=" ".join(str(resp.get(k) or "") for k in ("measure", "notes", "model"))) \
+        if g.get("printed_pool") and mrows else \
         {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}
     usable = g["state"] == "PASS" and pc["reproduced"]
     entry = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
@@ -654,6 +709,30 @@ def build(slug, run, runs):
         mrows, metas_out[it["pmid"]] = figure_rows(slug, it, run_r, spec, comp)
         for r in mrows:
             rows.append(sm.admit(r, spec, fam))
+    # DUAL-MODEL figure rows (scripts/g1_forest_reader.py; its replayed output, no model here): a meta whose own route
+    # above gave no usable row contributes the rows two model families (codex + agy) agreed on, from a figure whose
+    # printed pool the meta's STATED model reproduced from those rows. They are the meta's own numbers -- SECONDARY,
+    # verified like any row below, and never counted toward G1 agreement with that meta (sm.g1_countable).
+    import g1_forest_reader as gfr
+    dual = {}
+    for d in gfr.accepted_rows(slug):
+        dual.setdefault(d["meta_pmid"], []).append(d)
+    for pm, ds in sorted(dual.items()):
+        if (metas_out.get(pm) or {}).get("usable"):
+            continue
+        # the timepoint the FIGURE's own caption states ('28-Day All-Cause Mortality in Each Trial', REACT) is the most
+        # specific statement of it; else, as for every figure row, the meta's text for a core (mortality) outcome
+        tp_text = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
+        for d in ds:
+            r = sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
+            r.timepoint = meta_timepoint(r.outcome_definition) or tp_text
+            rows.append(sm.admit(r, spec, fam))
+        metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
+                         "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
+                         "rows_read": len(ds), "record_ids": ds[0]["provenance"].split(":", 1)[1].split("+"),
+                         "positive_control": {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"},
+                         "is_comparator": pm == comp, "earlier_route": metas_out.get(pm) or skipped.get(pm)}
+        skipped.pop(pm, None)
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
@@ -704,7 +783,9 @@ def build(slug, run, runs):
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
-    sm.two_source(rows, refs_of, [meta_aliases(m) for m in metas])
+    # every meta that contributed a row is a KNOWN meta of the topic (incl. dual-read metas beyond the search's top N):
+    # the common-cited-meta independence check must see all of them
+    sm.two_source(rows, refs_of, [meta_aliases(m) for m in dict.fromkeys(list(metas) + sorted({r.meta_pmid for r in rows}))])
     broken = sm.queue_complete(rows)
     if broken:
         raise RuntimeError(f"{slug}: {len(broken)} SECONDARY_UNVERIFIED row(s) with no queue entry: "

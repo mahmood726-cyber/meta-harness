@@ -1378,13 +1378,19 @@ def pubmed_acronym_ids(acr, agents, offline):
     return ids if isinstance(ids, list) else []
 
 
-def pubmed_author_year(author, year, agents, offline):
-    """PMID for 'Author Year' + topic agent via NCBI ESearch -- admitted only when EXACTLY one hit.
-    Queries and answers are cached (outputs/k_gap/pubmed_author_year.json) so a rerun replays them."""
-    cp = os.path.join(OUT, "pubmed_author_year.json")
-    cache = _j(cp) if os.path.exists(cp) else {}
+WIDE_DESIGN = ('(randomized controlled trial[pt] OR controlled clinical trial[pt] OR clinical trial[pt] OR '
+               'randomi*[tiab] OR randomly[tiab])')
+
+
+def author_year_wide_query(author, year, agents):
+    """The widened design filter: a pre-registry trial indexed only as 'Controlled Clinical Trial' whose abstract says
+    'randomly' (Nestler 1998, NEJM) is invisible to the RCT filter. Consulted only when the strict query finds nothing;
+    design is decided later by the screen, never by this query."""
     ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
-    q = f"{author}[1au] AND {year}[dp] AND ({ag}) AND (randomized controlled trial[pt] OR randomi*[tiab])"
+    return f"{author}[1au] AND {year}[dp] AND ({ag}) AND {WIDE_DESIGN}"
+
+
+def _esearch_cached(q, cache, offline):
     if q not in cache and not offline:
         import time
         from harness import http
@@ -1394,9 +1400,28 @@ def pubmed_author_year(author, year, agents, offline):
             cache[q] = d.get("esearchresult", {}).get("idlist", [])
         except Exception as exc:  # noqa: BLE001
             cache[q] = {"error": str(exc)[:200]}
-        _save_cache(cp, cache)
         time.sleep(0.4)
+        return True
+    return False
+
+
+def pubmed_author_year(author, year, agents, offline):
+    """PMID for 'Author Year' + topic agent via NCBI ESearch -- admitted only when EXACTLY one hit.
+    The strict RCT-filtered query first; only when it returns NO hit (an empty list, never an error), the widened design
+    filter (author_year_wide_query). Queries and answers are cached (outputs/k_gap/pubmed_author_year.json) so a rerun
+    replays them."""
+    cp = os.path.join(OUT, "pubmed_author_year.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
+    q = f"{author}[1au] AND {year}[dp] AND ({ag}) AND (randomized controlled trial[pt] OR randomi*[tiab])"
+    dirty = _esearch_cached(q, cache, offline)
     ids = cache.get(q)
+    if ids == []:
+        q = author_year_wide_query(author, year, agents)
+        dirty = _esearch_cached(q, cache, offline) or dirty
+        ids = cache.get(q)
+    if dirty:
+        _save_cache(cp, cache)            # atomic, union with disk (integrate: parallel trackers share this cache)
     return (ids[0] if isinstance(ids, list) and len(ids) == 1 else None), q, ids
 
 

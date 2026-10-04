@@ -168,7 +168,7 @@ _QUASI = _re.compile(r"quasi[-\s]?random|pseudo[-\s]?random|alternat(?:e|ely|ing
 # citing trials): 'randomized, double-blind', 'randomly assigned to', '1:1 randomisation', etc.
 _BODY_RCT = _re.compile(
     r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
-    r"controlled trial|clinical trial|assigned|allocated|two groups|three groups)"
+    r"controlled trial|clinical trial|controlled study|assigned|allocated|two groups|three groups)"
     r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)", _re.I)
 
 
@@ -215,8 +215,13 @@ def _is_rct(rec) -> bool:
         # not a true RCT, even if the pubtype says "Randomized Controlled Trial".
         if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
             return False
-        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language).
-        if _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
+        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language). A SUBSTUDY title
+        # is the exception when the record is typed 'Randomized Controlled Trial' AND its abstract describes this
+        # study's randomised comparison: COPPS-POAF (22090167) is the COPPS trial's only report of postoperative AF,
+        # and the veto excluded it (G1 tracker exclusion audit, 2026-10-02; plant tests/test_g1_exclusion_audit.py).
+        veto = _TITLE_RCT_NOT.search(rec.get("title", "") or "")
+        if veto and not (veto.group(0).lower() in ("substudy", "sub-study")
+                         and any("randomized controlled trial" in p for p in pts) and _body_says_rct(rec)):
             return False
         if any("randomized controlled trial" in p for p in pts):
             return True

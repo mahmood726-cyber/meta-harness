@@ -18,9 +18,14 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_CALL_SITES = {
     ("reproducible_ai/model_call_live.py", "shutil.which('codex')"): "the contract's single caller: resolves the client",
     ("reproducible_ai/model_call_live.py", "argv head 'codex'"): "the redacted argv stored IN the record (not a call)",
+    ("reproducible_ai/model_call_live.py", "shutil.which('agy')"): "the contract's single caller: resolves the second "
+                                                                  "client (agy, Gemini) for dual readings (2026-10-02)",
+    ("reproducible_ai/model_call_live.py", "argv head 'agy'"): "the redacted agy argv stored IN the record (prompt -> its "
+                                                             "digest; not a call)",
     # (scripts/outcome_judgments.py was a second, unrecorded codex caller until 2026-09-24; it now calls
     #  reproducible_ai.model_call_live and is no longer a call site of its own.)
     ("tests/test_no_model_call_in_pinned_path.py", "argv head 'codex'"): "a planted argv in a test fixture",
+    ("tests/test_g1_forest_reader.py", "argv head 'agy'"): "the fake agy runner's argv in a plant (no process is run)",
 }
 
 # (file, argv expression) -> what it runs. A subprocess whose program is not a literal cannot be classified by reading
@@ -28,7 +33,9 @@ MODEL_CALL_SITES = {
 UNRESOLVED_SUBPROCESS = {
     ("docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py", "cmd"): "python (cmd = [sys.executable, SELF, 'run-case', ...])",
     ("reproducible_ai/model_call_live.py", "[_codex_exe(), '--version']"): "codex --version (client version for the record)",
-    ("reproducible_ai/model_call_live.py", "argv"): "codex exec -- THE recorded model call",
+    ("reproducible_ai/model_call_live.py", "argv"): "codex exec / agy --print -- THE recorded model calls (codex_runner, "
+                                                     "agy_runner)",
+    ("reproducible_ai/model_call_live.py", "[_agy_exe(), '--version']"): "agy --version (client version for the record)",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
     ("scripts/g1_batch.py", "args"): "python scripts/secondary_meta_build.py SLUG (replay: no --run, no model) / "
                                      "python scripts/g1_tracker.py SLUG --no-table (the `steps` list)",

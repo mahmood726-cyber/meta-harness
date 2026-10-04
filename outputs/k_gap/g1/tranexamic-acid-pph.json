@@ -5,7 +5,7 @@
  "N_comparator_trials": 5,
  "k_matched": 1,
  "k_in_our_pool": 1,
- "N_eligible": 2,
+ "N_eligible": 3,
  "named_differences": [
   {
    "trial": "TRAAP11",
@@ -44,29 +44,11 @@
    "protocol_rule": "include.population_none[1] = 'prevention'",
    "registered_eligibility": null,
    "pmid": "33913639"
-  },
-  {
-   "trial": "TXA-MFMU13",
-   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-   "rule_id": "X2",
-   "screen_reason": "wrong population: title/conditions mention 'prevent'.",
-   "span": {
-    "field": "title",
-    "text": "Tranexamic Acid to Prevent Obstetrical Hemorrhage after Cesarean Delivery.",
-    "match": "Prevent"
-   },
-   "span_source": "PMID 37043652 record title (held: cache/tranexamic-acid-pph/records.json or outputs/k_gap/member_records.json)",
-   "audit": {
-    "class": "TRUE_SCOPE_DIFFERENCE",
-    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'prevent'"
-   },
-   "protocol_rule": "include.population_none[0] = 'prevent'",
-   "registered_eligibility": null,
-   "pmid": "37043652"
   }
  ],
  "open_gaps": [
-  "WOMAN-210"
+  "WOMAN-210",
+  "TXA-MFMU13"
  ],
  "k_matched_of_comparator_N": "1 of 5",
  "comparator_set": {
@@ -85,9 +67,10 @@
   ]
  },
  "blockers": {
-  "INSUFFICIENT_RECORD:POPULATION_OUTSIDE_PROTOCOL_NO_SPAN": 1
+  "NO_RECORD_HELD": 1,
+  "SCREENED_OUT_UNAUDITED:X1": 1
  },
- "top_blocker": "INSUFFICIENT_RECORD:POPULATION_OUTSIDE_PROTOCOL_NO_SPAN",
+ "top_blocker": "NO_RECORD_HELD",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 1,
@@ -130,11 +113,11 @@
   },
   {
    "label": "WOMAN-210",
-   "family": "PMID 39461792",
+   "family": "PMID 35303924",
    "in_our_pool": false,
    "route": "NO_ROW",
    "basis": "SCREEN_OR_ELIGIBILITY",
-   "our_refusal": "IN SCREEN PMID 39461792: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['post-partum haemorrhage', 'postpartum haemorrhage', 'post-partum hemorrhag",
+   "our_refusal": "NO_RECORD_HELD",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
    "comparator_row": null,
@@ -150,15 +133,8 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
-   "seeded_funnel": {
-    "stage": "SCREENED_OUT",
-    "rule_id": "X2",
-    "reason": "population not on-topic: title/conditions do not mention any of ['post-partum haemorrhage', 'postpartum haemorrhage', 'post-partum hemorrhag",
-    "pmid": "39461792",
-    "already_in_screen": true
-   },
    "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:POPULATION_OUTSIDE_PROTOCOL_NO_SPAN",
+   "blocker": "NO_RECORD_HELD",
    "coverage": null,
    "comparator_sourced_refusal": "NO_COMPARATOR_ROW"
   },
@@ -264,11 +240,11 @@
   },
   {
    "label": "TXA-MFMU13",
-   "family": "PMID 37043652",
+   "family": "PMID 36513435",
    "in_our_pool": false,
    "route": "NO_ROW",
    "basis": "SCREEN_OR_ELIGIBILITY",
-   "our_refusal": "IN SCREEN PMID 37043652: SCREENED_OUT X2: wrong population: title/conditions mention 'prevent'.",
+   "our_refusal": "IN SCREEN PMID 36513435: SCREENED_OUT X1: not a randomized controlled trial (record: 36513435).",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
    "comparator_row": null,
@@ -327,31 +303,15 @@
    "comparator_row_state": null,
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
-    "rule_id": "X2",
-    "reason": "wrong population: title/conditions mention 'prevent'.",
-    "pmid": "37043652",
+    "rule_id": "X1",
+    "reason": "not a randomized controlled trial (record: 36513435).",
+    "pmid": "36513435",
     "already_in_screen": true
    },
-   "scope_difference": {
-    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-    "rule_id": "X2",
-    "screen_reason": "wrong population: title/conditions mention 'prevent'.",
-    "span": {
-     "field": "title",
-     "text": "Tranexamic Acid to Prevent Obstetrical Hemorrhage after Cesarean Delivery.",
-     "match": "Prevent"
-    },
-    "span_source": "PMID 37043652 record title (held: cache/tranexamic-acid-pph/records.json or outputs/k_gap/member_records.json)",
-    "audit": {
-     "class": "TRUE_SCOPE_DIFFERENCE",
-     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'prevent'"
-    },
-    "protocol_rule": "include.population_none[0] = 'prevent'",
-    "registered_eligibility": null,
-    "pmid": "37043652"
-   },
-   "blocker": null,
-   "coverage": null
+   "scope_difference": null,
+   "blocker": "SCREENED_OUT_UNAUDITED:X1",
+   "coverage": null,
+   "comparator_sourced_refusal": "NO_COMPARATOR_ROW"
   }
  ],
  "per_trial_agreement": {
@@ -406,7 +366,7 @@
  },
  "comparator_orientation": {
   "state": "UNKNOWN",
-  "why": "no shared trial agrees"
+  "why": "no shared trial agrees or shows the direction"
  },
  "k_independent": 1,
  "k_comparator_sourced": 0,
@@ -426,15 +386,14 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 3,
+   "n": 2,
    "of_comparator_N": 5,
    "by_kind": {
-    "PROTOCOL_SCOPE_DIFFERENCE": 3
+    "PROTOCOL_SCOPE_DIFFERENCE": 2
    },
    "trials": [
     "TRAAP11 [X2]",
-    "TRAAP-212 [X2]",
-    "TXA-MFMU13 [X2]"
+    "TRAAP-212 [X2]"
    ]
   }
  }
