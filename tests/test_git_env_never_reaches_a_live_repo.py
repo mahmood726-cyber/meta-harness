@@ -2,9 +2,9 @@
 
 Under a pre-commit / pre-push hook git exports GIT_DIR (and GIT_INDEX_FILE, GIT_WORK_TREE). A test that runs
 `git init` + `git config user.name ...` in a temp dir while inheriting GIT_DIR re-initialises the repository the hook
-belongs to: C:\\mh-lanes\\acq/.git/config gained `core.bare = true` and `user.name = Heldout Test` at 18:11 on 4 Oct 2026
+belongs to: a lane clone's .git/config gained `core.bare = true` and `user.name = Heldout Test` at 18:11 on 4 Oct 2026
 (the g1/repro-ai-audit lane's `git commit` in the linked worktree rai-audit-commit ran this suite from its hook;
-tests/test_heldout.py::_init_repo is the only writer of that identity). Same class as 2026-09-19 (C:\\mh-int) and
+tests/test_heldout.py::_init_repo is the only writer of that identity). Same class as 2026-09-19 (an integration clone) and
 2026-09-27 (rai-land, 'Target Test').
 
 PLANT: run tests/test_heldout.py in a child pytest with GIT_DIR pointing at a sentinel repository and assert the
