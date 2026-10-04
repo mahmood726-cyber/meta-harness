@@ -186,9 +186,61 @@ def problems(led):
     return bad
 
 
+def annotate_tracker(led):
+    """The removal records live IN the tracker artefact too (dispatch 2026-10-04): every topic file carries its own
+    `removed_comparator_rows` (and `added_comparator_rows`), and G1_SOURCE.json the denominator summary. A tracker file
+    whose records differ from the ledger, or lack rule + span, fails tracker_problems() (plant: tests/test_g1_denominator.py)."""
+    by = {}
+    for r in led.get("removed") or []:
+        by.setdefault(r["slug"], {"removed": [], "added": []})["removed"].append(r)
+    for a in led.get("added") or []:
+        by.setdefault(a["slug"], {"removed": [], "added": []})["added"].append(a)
+    for path in sorted(glob.glob(os.path.join(OUT, "g1", "*.json"))):
+        d = _j(path)
+        rec = by.get(d["slug"]) or {"removed": [], "added": []}
+        d["removed_comparator_rows"] = rec["removed"]
+        d["added_comparator_rows"] = rec["added"]
+        with open(path, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(d, fh, indent=1, ensure_ascii=False)
+    sp = os.path.join(OUT, "G1_SOURCE.json")
+    src = _j(sp) if os.path.exists(sp) else {}
+    src["denominator"] = {"baseline_commit": led["baseline"]["commit"], "baseline_N": led["baseline"]["N"],
+                          "current_N": led["current"]["N"], "removed": led["removed_n"], "relabelled": led["relabelled_n"],
+                          "added": led["added_n"], "by_kind": _by_kind(led), "ledger": "outputs/k_gap/G1_DENOMINATOR.json"}
+    with open(sp, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(src, indent=1, ensure_ascii=False) + "\n")
+
+
+def _by_kind(led):
+    out = {}
+    for r in led.get("removed") or []:
+        out[r["kind"]] = out.get(r["kind"], 0) + 1
+    return out
+
+
+def tracker_problems(led):
+    """The tracker files must carry exactly the ledger's records for their topic, each with rule + span."""
+    bad = []
+    want = {}
+    for r in led.get("removed") or []:
+        want.setdefault(r["slug"], []).append((r["label"], r.get("kind"), r.get("rule_id")))
+    for path in sorted(glob.glob(os.path.join(OUT, "g1", "*.json"))):
+        d = _j(path)
+        got = [(r.get("label"), r.get("kind"), r.get("rule_id")) for r in d.get("removed_comparator_rows") or []]
+        if "removed_comparator_rows" not in d:
+            bad.append(f"{d['slug']}: tracker file carries no removed_comparator_rows")
+        elif sorted(got) != sorted(want.get(d["slug"], [])):
+            bad.append(f"{d['slug']}: tracker removal records differ from the ledger")
+        for r in d.get("removed_comparator_rows") or []:
+            if not r.get("rule_id") or not r.get("span"):
+                bad.append(f"{d['slug']}::{r.get('label')}: removal in the tracker without rule + span")
+    return bad
+
+
 def main(argv):
     if "--check" in argv:
-        bad = problems(_j(LEDGER))
+        led0 = _j(LEDGER)
+        bad = problems(led0) + tracker_problems(led0)
         for x in bad:
             print("REFUSED:", x)
         print("OK" if not bad else f"{len(bad)} problem(s)")
@@ -196,7 +248,8 @@ def main(argv):
     led = build()
     with open(LEDGER, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(led, fh, indent=1, ensure_ascii=False)
-    bad = problems(led)
+    annotate_tracker(led)
+    bad = problems(led) + tracker_problems(led)
     print(f"baseline {led['baseline']['N']} -> current {led['current']['N']}: removed {led['removed_n']}, relabelled "
           f"{led['relabelled_n']}, added {led['added_n']}; problems {len(bad)}")
     for x in bad:
