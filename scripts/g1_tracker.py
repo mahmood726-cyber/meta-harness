@@ -459,6 +459,40 @@ def span_is_verbatim(slug, pmid, span):
     return any(isinstance(s, str) and span["text"] in s for s in (v if isinstance(v, list) else [v]))
 
 
+
+def demote_unstructured_secondary_single(o):
+    """A lane-imported SECONDARY_SINGLE row counts only with STRUCTURED provenance -- a non-comparator meta, its figure /
+    table location and a digest (secondary_single.provenance or sweep.basis) -- the rule the page's renderer applies.
+    Prose-only provenance (tocilizumab CORIMUNO-TOCI-1 / EMPACTA: 'two readers agree' in a sentence) is demoted to
+    UNVERIFIED with the reason recorded, so the tracker and the page count the same trials (consolidation 2026-10-04)."""
+    comp = str(o.get("comparator_pmid") or "")
+    for x in o.get("trials") or []:
+        if x.get("route") != "SECONDARY_SINGLE" or x.get("in_our_pool"):
+            continue
+        cand = [(x.get("secondary_single") or {}).get("provenance"), (x.get("sweep") or {}).get("basis")]
+        ok = False
+        for b in cand:
+            if not isinstance(b, dict):
+                continue
+            meta = str(b.get("meta") or b.get("meta_pmid") or "")
+            if meta and meta != comp and b.get("digest") and (b.get("where") or b.get("location")):
+                ok = True
+        if ok:
+            continue
+        rt = o.setdefault("routes", {})
+        rt["SECONDARY_SINGLE"] = rt.get("SECONDARY_SINGLE", 0) - 1
+        rt["UNVERIFIED"] = rt.get("UNVERIFIED", 0) + 1
+        if rt["SECONDARY_SINGLE"] <= 0:
+            rt.pop("SECONDARY_SINGLE")
+        x["provenance_refusal"] = ("SECONDARY_SINGLE without structured provenance (meta + location + digest); the lane "
+                                   "file states it only as prose: " + str(x.get("basis") or "")[:200])
+        x["route"], x["g1_countable"] = "UNVERIFIED", False
+        if not x.get("scope_difference") and x.get("label") not in (o.get("open_gaps") or []):
+            o.setdefault("open_gaps", []).append(x.get("label"))     # unmatched and not named: an OPEN gap, visibly
+    if isinstance(o.get("k_matched"), int):
+        o["k_matched"] = sum(1 for x in o.get("trials") or [] if is_matched(x))
+    return o
+
 def is_matched(x):
     """A comparator trial is MATCHED when it is in our pool, or when the two-source sweep verified its typed tuple
     (route SWEEP_*: two sources agreeing -- a meta row + the trial's own text, + its posted results, or two independent

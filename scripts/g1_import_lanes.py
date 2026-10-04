@@ -208,6 +208,7 @@ def main(argv):
         gt.attach_forest_reader_provenance(o, slug)   # dual-read provenance for rows whose counts it prints identically
         if not (o.get("g1r_reproduction") or {}).get("state"):
             o["g1r_reproduction"] = gt.g1r_from_trials(o)
+        gt.demote_unstructured_secondary_single(o)   # prose-only provenance never counts (page rule)
         gt.apply_coverage(o)              # COVERAGE (incl. COMPARATOR_SOURCED) beside INDEPENDENTLY CONFIRMED
         bad = gt.scope_citation_violations(o)
         if bad:

@@ -1,0 +1,208 @@
+"""THE G1 DENOMINATOR LEDGER: every comparator row that left the pinned baseline (main 6efd9c00, 367 rows) and every row
+that joined it, as a TYPED record with a rule ID and a verbatim source span, so the drop in N can be audited from the
+artefact itself (dispatch 2026-10-04: a shrinking denominator is how a match score flatters itself).
+
+    python scripts/g1_denominator_ledger.py          -> outputs/k_gap/G1_DENOMINATOR.json
+    python scripts/g1_denominator_ledger.py --check  -> exit 1 on any removal without rule + a span found in its source
+
+Kinds (removed): NOT_A_TRIAL (a comparator table row that names no study: a subgroup row of another study's line),
+DUPLICATE_UNIT (one trial listed in two of the comparator's tables), OTHER_AGENT (the trial's registered arms name another
+agent), RELABELLED (the same trial, now labelled by the comparator's own table), NOT_IN_COMPARATOR_TABLE (a unit the
+older reference-title enumeration listed that the comparator's own trial table does not contain). Anything else is
+UNEXPLAINED and fails --check. Spans are copied VERBATIM from the cited held file (sha256 recorded); the check re-reads
+the file and finds the span (whitespace-insensitive, as the files differ only in line breaks).
+"""
+from __future__ import annotations
+
+import glob
+import hashlib
+import html
+import json
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, "outputs", "k_gap")
+BASE = os.path.join(ROOT, "docs", "evidence", "g1-denominator", "baseline-6efd9c00.json")
+LEDGER = os.path.join(OUT, "G1_DENOMINATOR.json")
+EVID = os.path.join(ROOT, "docs", "evidence", "g1-denominator")
+
+
+def _j(p):
+    with open(p, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _sha(p):
+    return hashlib.sha256(open(p, "rb").read()).hexdigest()
+
+
+def _squash(t):
+    return re.sub(r"\s+", "", html.unescape(t or ""))
+
+
+def find_span(path, needle):
+    """The VERBATIM substring of the file at `path` that equals `needle` up to whitespace, or None."""
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    target = _squash(needle)
+    if not target:
+        return None
+    # map squashed positions back to raw positions
+    idx, keep = [], []
+    for i, ch in enumerate(raw):
+        if not ch.isspace():
+            idx.append(i)
+            keep.append(ch)
+    hay = "".join(keep)
+    k = hay.find(target)
+    if k < 0:
+        return None
+    return raw[idx[k]: idx[k + len(target) - 1] + 1]
+
+
+def comparator_sources(cpmid):
+    d = os.path.join(ROOT, "cache", "comparators", str(cpmid))
+    return sorted(p for p in glob.glob(os.path.join(d, "*")) if p.endswith((".txt", ".xml")))
+
+
+def span_in_sources(cpmid, needle):
+    for p in comparator_sources(cpmid):
+        v = find_span(p, needle)
+        if v:
+            return {"text": v, "source": os.path.relpath(p, ROOT).replace(os.sep, "/"), "source_sha256": _sha(p)}
+    return None
+
+
+def current_rows():
+    out = {}
+    for p in sorted(glob.glob(os.path.join(OUT, "g1", "*.json"))):
+        d = _j(p)
+        out[d["slug"]] = d
+    return out
+
+
+def build():
+    base = _j(BASE)
+    cur = current_rows()
+    T = _j(os.path.join(OUT, "k_gap_table.json"))
+    topics = {t["slug"]: t for t in T["topics"]}
+    units = {(t["slug"], t["label"]): t for t in T["trials"]}
+    removed, added = [], []
+    for slug, b in sorted(base["topics"].items()):
+        d = cur.get(slug) or {}
+        now = {t["label"]: t for t in d.get("trials") or []}
+        cpmid = d.get("comparator_pmid")
+        top = topics.get(slug) or {}
+        nat = {u["label"]: u for u in top.get("not_a_trial_units") or []}
+        old_rows = b["rows"]
+        gone = [l for l in old_rows if l not in now]
+        new = [l for l in now if l not in old_rows]
+        for lab in gone:
+            u = units.get((slug, lab)) or {}
+            rec = {"slug": slug, "label": lab, "comparator_pmid": cpmid}
+            if lab in nat:
+                rec.update(kind="NOT_A_TRIAL", rule_id="K-GAP:NOT_A_TRIAL:" + nat[lab]["why"],
+                           detail=f"a row of the comparator's {nat[lab]['table']} that names no study (a subgroup row "
+                                  "of another study's line, with its group size)", span=span_in_sources(cpmid, lab))
+                if rec["span"]:
+                    raw = open(os.path.join(ROOT, rec["span"]["source"]), encoding="utf-8", errors="replace").read()
+                    i = raw.find(rec["span"]["text"])
+                    rec["span"]["context_before"] = " ".join(raw[max(0, i - 400):i].split())[-300:]
+            elif u.get("status") == "DUPLICATE_UNIT":
+                rec.update(kind="DUPLICATE_UNIT", rule_id="K-GAP:DUPLICATE_UNIT:SAME_IDENTITY_SAME_FIRST_AUTHOR",
+                           duplicate_of=u.get("duplicate_of"), identity={"pmids": u.get("pmids"), "ncts": u.get("ncts")},
+                           detail="the same trial listed in two of the comparator's tables; counted once",
+                           span=span_in_sources(cpmid, lab),
+                           span_duplicate_of=span_in_sources(cpmid, u.get("duplicate_of") or ""))
+            elif u.get("drug") == "OTHER_AGENT" and u.get("ncts"):
+                ev = os.path.join(EVID, f"aact_interventions_{u['ncts'][0]}.txt")
+                sp = None
+                if os.path.exists(ev):
+                    lines = [l for l in open(ev, encoding="utf-8").read().splitlines() if f"|{u['ncts'][0]}|" in l]
+                    if lines:
+                        sp = {"text": "\n".join(lines), "source": os.path.relpath(ev, ROOT).replace(os.sep, "/"),
+                              "source_sha256": _sha(ev)}
+                rec.update(kind="OTHER_AGENT", rule_id="K-GAP:OTHER_AGENT:REGISTRY_INTERVENTIONS",
+                           identity={"pmids": (u.get("pmids") or [])[:3], "ncts": u.get("ncts")},
+                           detail="the trial's registered arms (AACT) name another agent than the topic's", span=sp)
+            else:
+                fam = (b.get("families") or {}).get(lab)
+                match = next((nl for nl in new if fam and (now[nl].get("family") == fam)), None)
+                if match:
+                    rec.update(kind="RELABELLED", rule_id="K-GAP:ENUMERATION:COMPARATOR_TABLE_LABEL", now_label=match,
+                               identity={"family": fam},
+                               detail="the same trial (same family), now labelled as the comparator's own trial table "
+                                      "labels it", span=span_in_sources(cpmid, match))
+                elif top.get("comparator_set_state") == "TABLE_ENUMERATED":
+                    table_rows = [t["label"] for t in T["trials"] if t["slug"] == slug]
+                    rec.update(kind="NOT_IN_COMPARATOR_TABLE", rule_id="K-GAP:ENUMERATION:COMPARATOR_TABLE",
+                               identity={"family": fam},
+                               detail="an older reference-title unit; the comparator's own included-studies table "
+                                      f"({', '.join(top.get('tables_used') or [])}) lists the {len(table_rows)} rows "
+                                      "quoted here, and this trial is not one of them",
+                               span={"rows": [span_in_sources(cpmid, l) for l in table_rows]})
+                else:
+                    rec.update(kind="UNEXPLAINED", rule_id=None, span=None)
+            removed.append(rec)
+        for lab in new:
+            if any(r.get("now_label") == lab for r in removed if r["slug"] == slug):     # a relabel, not an addition
+                continue
+            added.append({"slug": slug, "label": lab, "comparator_pmid": cpmid,
+                          "basis": "a row of the comparator's own trial table", "span": span_in_sources(cpmid, lab)})
+    n_now = sum((cur.get(s) or {}).get("N_comparator_trials") or 0 for s in base["topics"])
+    out = {"baseline": {"commit": base["pinned_commit"], "N": base["N"], "fixture": os.path.relpath(BASE, ROOT).replace(os.sep, "/")},
+           "current": {"N": n_now},
+           "removed_n": sum(1 for r in removed if r["kind"] != "RELABELLED"), "relabelled_n": sum(1 for r in removed if r["kind"] == "RELABELLED"),
+           "added_n": len(added), "removed": removed, "added": added}
+    return out
+
+
+def problems(led):
+    """Every removal names a rule and carries span(s) found verbatim (whitespace-insensitive) in the cited source, whose
+    sha256 matches; the arithmetic closes. Empty list = sound."""
+    bad = []
+    for r in led.get("removed") or []:
+        if not r.get("rule_id") or r.get("kind") in (None, "UNEXPLAINED"):
+            bad.append(f"{r.get('slug')}::{r.get('label')}: no rule")
+            continue
+        sp = r.get("span")
+        spans = (sp.get("rows") if isinstance(sp, dict) and "rows" in sp else [sp]) + (
+            [r.get("span_duplicate_of")] if r.get("kind") == "DUPLICATE_UNIT" else [])
+        for s in spans:
+            if not s or not s.get("text") or not s.get("source"):
+                bad.append(f"{r['slug']}::{r['label']}: no span")
+                continue
+            p = os.path.join(ROOT, s["source"])
+            if not os.path.exists(p):
+                bad.append(f"{r['slug']}::{r['label']}: span source missing {s['source']}")
+            elif _sha(p) != s.get("source_sha256"):
+                bad.append(f"{r['slug']}::{r['label']}: span source changed {s['source']}")
+            elif _squash(s["text"]) not in _squash(open(p, encoding="utf-8", errors="replace").read()):
+                bad.append(f"{r['slug']}::{r['label']}: span not in its source")
+    b = led.get("baseline", {}).get("N")
+    if isinstance(b, int) and b - led.get("removed_n", 0) + led.get("added_n", 0) != led.get("current", {}).get("N"):
+        bad.append(f"arithmetic: {b} - {led.get('removed_n')} + {led.get('added_n')} != {led.get('current', {}).get('N')}")
+    return bad
+
+
+def main(argv):
+    if "--check" in argv:
+        bad = problems(_j(LEDGER))
+        for x in bad:
+            print("REFUSED:", x)
+        print("OK" if not bad else f"{len(bad)} problem(s)")
+        return 1 if bad else 0
+    led = build()
+    with open(LEDGER, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(led, fh, indent=1, ensure_ascii=False)
+    bad = problems(led)
+    print(f"baseline {led['baseline']['N']} -> current {led['current']['N']}: removed {led['removed_n']}, relabelled "
+          f"{led['relabelled_n']}, added {led['added_n']}; problems {len(bad)}")
+    for x in bad:
+        print("  ", x)
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
