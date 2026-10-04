@@ -287,3 +287,17 @@ def test_a_row_of_the_comparators_other_agent_trial_is_accounted_for_in_complete
     rows = [_r("SELECT, 2023"), _r("SCALE Maintenance, 2013"), _r("SURMOUNT-1, 2022")]
     assert gt.outcome_set_differences([dict(x) for x in t], cm, "C", rows) == []
     assert gt.outcome_set_differences(t, cm, "C", rows, accounted_other=2) == ["STEP 3"]
+
+
+def test_a_registry_title_names_our_outcome_in_its_own_wording():
+    # dapagliflozin-hfpef 5 Oct: DELIVER's posted PRIMARY composite 'Subjects Included in the Composite Endpoint of CV
+    # Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure' (HR 0.82 [0.73, 0.92]) was
+    # refused OUTCOME_NOT_NAMED: the keywords say 'cardiovascular death or hospitalization for heart failure'
+    title = ("Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent "
+             "Visit Due to Heart Failure")
+    assert gt.keyword_named("cardiovascular death or hospitalization for heart failure", title)
+    assert gt.keyword_named("cardiovascular death or hospitalisation for heart failure", title)
+    # a COMPONENT-only title never names the composite keyword
+    assert not gt.keyword_named("cardiovascular death or hospitalization for heart failure",
+                                "Subjects With Hospitalization Due to Heart Failure")
+    assert not gt.keyword_named("primary outcome", title)          # generic anchors never name

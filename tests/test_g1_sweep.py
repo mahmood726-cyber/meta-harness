@@ -76,7 +76,14 @@ def test_every_committed_sweep_file_counts_only_two_source_verdicts():
         if not f.endswith(".json") or f == "sweep_summary.json":
             continue
         for t in json.load(open(os.path.join(d, f), encoding="utf-8"))["trials"]:
-            if str(t["verdict"]).startswith("SWEEP_"):
+            if t["verdict"] == "SWEEP_AACT_PRIMARY":
+                # the REQUIREMENT for this route: a posted registry binding (NCT + versioned snapshot) whose posted
+                # population passed the randomised-N guard, and a value -- not meta rows (5 Oct, decision (e))
+                b = t.get("basis") or {}
+                if t["value"] is None or not b.get("nct") or not (b.get("snapshot") or {}).get("id") \
+                        or not str(b.get("guard") or "").startswith("POSTED_N_EQUALS_RANDOMISED_N"):
+                    bad.append(f"{f}::{t['label']}")
+            elif str(t["verdict"]).startswith("SWEEP_"):
                 ok = ("PRIMARY_VERIFIED", "TWO_SOURCE_VERIFIED") + (
                     ("SECONDARY_UNVERIFIED",) if t["verdict"] == "SWEEP_SECONDARY_SINGLE" else ())
                 rows = [r for r in t["rows"] if r["state"] in ok]
@@ -323,3 +330,23 @@ def test_a_meta_published_before_the_trials_result_is_never_a_candidate(monkeypa
     assert got == ["36041474", "37000000"]
     t.pop("report_year")                                       # no known year: unchanged behaviour
     assert sw.discover(t, set(), run=False)[0][0] == "34308311"
+
+
+def test_posted_results_count_as_the_single_primary_only_for_the_randomised_population():
+    # Mahmood decision (e): ONE bound primary source (posted results) verifies a row -- the sweep never applied it, for
+    # a recorded reason: SMART's posted counts cover 5,381 patients, its report 15,802. Guard: the posted arms' total N
+    # must equal the randomised N the trial's own record prints. DELIVER: 3131 + 3132 = 6263 = 'randomly assigned 6263'.
+    bind = {"nct": "NCT03619213", "title": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to "
+                                           "Heart Failure or Urgent Visit Due to Heart Failure",
+            "arms": [{"title": "Placebo", "count": 610, "n": 3132}, {"title": "Dapa 10 mg", "count": 512, "n": 3131}],
+            "analysis": {"param_type": "Hazard Ratio (HR)", "param_value": "0.82", "ci_lower": "0.73", "ci_upper": "0.92"},
+            "snapshot": {"id": "AACT 2026-08-30"}}
+    text = "METHODS: In this randomized, controlled trial, we randomly assigned 6263 patients with heart failure ..."
+    v, why = sw.aact_single_primary(bind, text, "HR")
+    assert v and v["measure"] == "HR" and v["effect"] == "0.82" and why.startswith("POSTED_N_EQUALS_RANDOMISED_N")
+    smart = dict(bind, arms=[{"title": "Balanced", "count": 300, "n": 2700}, {"title": "Saline", "count": 330, "n": 2681}])
+    v, why = sw.aact_single_primary(smart, "we enrolled 15,802 adults in a cluster-randomized trial", "HR")
+    assert v is None and why == "POSTED_N_IS_NOT_THE_RANDOMISED_N"
+    # an HR topic with no posted HR analysis: never converted from counts
+    v, why = sw.aact_single_primary(dict(bind, analysis={"param_type": "Odds Ratio (OR)"}), text, "HR")
+    assert v is None and why == "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"

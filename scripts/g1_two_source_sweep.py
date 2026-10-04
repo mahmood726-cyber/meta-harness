@@ -71,6 +71,22 @@ def _save(p, obj):
 
 
 # ------------------------------------------------------------------ targets
+def _record_text(slug, pmid):
+    """The trial report's own held record (title + abstract): the topic's records, else the comparator members'."""
+    if not pmid:
+        return ""
+    for p in (os.path.join(ROOT, "cache", slug, "records.json"), os.path.join(OUT, "member_records.json")):
+        if not os.path.exists(p):
+            continue
+        d = _j(p)
+        recs = d.get("records") if isinstance(d, dict) and "records" in d else d
+        r = (next((x for x in recs if str(x.get("id")) == str(pmid)), None) if isinstance(recs, list)
+             else (recs or {}).get(str(pmid)))
+        if r:
+            return f"{r.get('title') or ''} {r.get('abstract') or ''}"
+    return ""
+
+
 def _report_year(pmid):
     """The trial report's publication year from the recorded PubMed years cache (outputs/k_gap/pubmed_years.json)."""
     p = os.path.join(OUT, "pubmed_years.json")
@@ -487,6 +503,45 @@ def prepare_figures(slug, metas, run):
     return items, state
 
 
+_RAND_N = re.compile(r"(?:randomly assigned|randomi[sz]ed|underwent randomi[sz]ation of|enrolled)\D{0,40}?"
+                     r"(\d{1,3}(?:,\d{3})+|\d{2,6})\s+(?:patients|participants|adults|women|men|subjects|people|individuals)"
+                     r"|(\d{1,3}(?:,\d{3})+|\d{2,6})\s+(?:patients|participants|adults|women|men|subjects)\s+(?:were|underwent)"
+                     r"\s+(?:randomly assigned|randomi[sz]ed|randomi[sz]ation)", re.I)
+_CONTROL_ARM = re.compile(r"placebo|control|usual care|standard care|saline|vehicle", re.I)
+
+
+def aact_single_primary(bind, record_text, estimand):
+    """Mahmood decision (e), applied to the sweep: ONE bound primary source -- posted CT.gov results -- verifies a row,
+    under the typed guard that kept the sweep from counting it (SMART: posted counts cover 5,381 patients, the report
+    15,802): the posted arms' TOTAL N must equal a randomised N printed in the trial's OWN record. The value is the
+    posting's own analysis on the topic's estimand (an HR topic needs a posted HR analysis -- never converted from
+    counts); a ratio-of-risks topic takes the posted participant counts. Returns (value, basis) or (None, why)."""
+    arms = bind.get("arms") or []
+    if len(arms) != 2 or not all(isinstance(a.get("count"), int) and isinstance(a.get("n"), int) for a in arms):
+        return None, "ARMS_NOT_TWO_TYPED_COUNTS"
+    ctrl = [a for a in arms if _CONTROL_ARM.search(a.get("title") or "")]
+    if len(ctrl) != 1:
+        return None, "CONTROL_ARM_NOT_IDENTIFIED"
+    trt = next(a for a in arms if a is not ctrl[0])
+    total = trt["n"] + ctrl[0]["n"]
+    ns = {int((m.group(1) or m.group(2)).replace(",", "")) for m in _RAND_N.finditer(record_text or "")}
+    if total not in ns:
+        return None, "POSTED_N_IS_NOT_THE_RANDOMISED_N"
+    counts = {"events_t": trt["count"], "n_t": trt["n"], "events_c": ctrl[0]["count"], "n_c": ctrl[0]["n"]}
+    est = (estimand or "").upper()
+    an = bind.get("analysis") or {}
+    pt = str(an.get("param_type") or "").upper()
+    if est == "HR":
+        if "HAZARD" not in pt or None in (an.get("param_value"), an.get("ci_lower"), an.get("ci_upper")):
+            return None, "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"
+        v = {"measure": "HR", "effect": str(an["param_value"]), "lower": str(an["ci_lower"]), "upper": str(an["ci_upper"]), **counts}
+    elif est in ("RR", "OR"):
+        v = {"measure": est, "effect": None, "lower": None, "upper": None, **counts}
+    else:
+        return None, "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"
+    return v, f"POSTED_N_EQUALS_RANDOMISED_N ({total}); {bind.get('nct')} '{str(bind.get('title'))[:120]}' ({(bind.get('snapshot') or {}).get('id')})"
+
+
 def ss_rows(rows):
     """Rows admissible for SECONDARY_SINGLE: typed-admitted (state SECONDARY_UNVERIFIED) and from a SELF-REPRODUCING
     source -- a controlled typed table or a gated figure read (an uncontrolled table never counts alone)."""
@@ -600,13 +655,20 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
                      "digest": best.source_digest, "provenance": best.provenance, "queued_for_primary": True}
         elif bind and len(bind.get("arms") or []) == 2:
             a = bind["arms"]
-            # posted results ALONE are one source: recorded, never counted (SMART's posted counts cover 5,381 patients,
-            # its report 15,802 -- one source cannot tell which population a number belongs to)
-            route = "AACT_ONLY_SINGLE_SOURCE"
-            value = {"measure": "COUNTS", "arms": [{"title": x.get("title"), "count": x.get("count"), "n": x.get("n")}
-                                                   for x in a]}
-            basis = {"nct": bind["nct"], "outcome": bind["title"], "snapshot": bind["snapshot"],
-                     "analysis": bind.get("analysis")}
+            # posted results ALONE count only when the posted population IS the randomised one (aact_single_primary):
+            # else recorded, never counted (SMART's posted counts cover 5,381 patients, its report 15,802)
+            rec_text = _record_text(slug, t.get("report_pmid"))
+            v1, why1 = aact_single_primary(bind, rec_text, spec.get("estimand"))
+            if v1:
+                route, value = "SWEEP_AACT_PRIMARY", v1
+                basis = {"nct": bind["nct"], "outcome": bind["title"], "snapshot": bind["snapshot"],
+                         "analysis": bind.get("analysis"), "guard": why1, "report_pmid": t.get("report_pmid")}
+            else:
+                route = "AACT_ONLY_SINGLE_SOURCE"
+                value = {"measure": "COUNTS", "arms": [{"title": x.get("title"), "count": x.get("count"), "n": x.get("n")}
+                                                       for x in a]}
+                basis = {"nct": bind["nct"], "outcome": bind["title"], "snapshot": bind["snapshot"],
+                         "analysis": bind.get("analysis"), "not_counted": why1}
         else:
             basis = None
         cr = t.get("comparator_row")
