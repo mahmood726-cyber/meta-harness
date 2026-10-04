@@ -60,3 +60,33 @@ def test_conflicting_borrowed_n_refused():
 def test_no_comparator_column_refused():
     t = SHAH.replace("Placebo (n=194)", "Overall (n=194)")
     assert own(t) == []
+
+
+# ---- P1: the trial-defined primary in prose (LoDoCo 2013, PMID 23265346 abstract) ---------------------------------------
+LODOCO = ("The primary outcome was the composite incidence of acute coronary syndrome, out-of-hospital cardiac arrest, or "
+          "noncardioembolic ischemic stroke. The primary outcome occurred in 15 of 282 patients (5.3%) who received "
+          "colchicine and 40 of 250 patients (16.0%) assigned no colchicine (hazard ratio: 0.33; 95% CI 0.18 to 0.59).")
+KW = ["coronary", "primary outcome", "MACE"]
+
+
+def test_p1_binds_the_defined_primary_with_arm_labels():
+    got = bb.prose_trial_defined(LODOCO, KW, ["colchicine"], ["placebo"])
+    assert [g[2] for g in got] == [(15, 282, 40, 250)]
+
+
+def test_p1_needs_a_definition_naming_a_non_generic_term():
+    t = LODOCO.replace("acute coronary syndrome, out-of-hospital cardiac arrest, or noncardioembolic ischemic stroke",
+                       "several events")
+    assert bb.prose_trial_defined(t, KW, ["colchicine"], ["placebo"]) == []
+
+
+def test_p1_refuses_an_on_treatment_analysis():
+    t = LODOCO.replace("The primary outcome occurred", "In a prespecified on-treatment analysis the primary outcome occurred")
+    assert bb.prose_trial_defined(t, KW, ["colchicine"], ["placebo"]) == []
+
+
+def test_p1_refuses_inconsistent_percent_and_swapped_labels():
+    assert bb.prose_trial_defined(LODOCO.replace("(5.3%)", "(9.3%)"), KW, ["colchicine"], ["placebo"]) == []
+    t = LODOCO.replace("who received colchicine and", "assigned no colchicine and").replace(
+        "(16.0%) assigned no colchicine", "(16.0%) who received colchicine")
+    assert bb.prose_trial_defined(t, KW, ["colchicine"], ["placebo"]) == []

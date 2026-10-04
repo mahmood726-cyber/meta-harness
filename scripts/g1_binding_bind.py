@@ -105,6 +105,74 @@ def table_own_tuples(text, terms, interv, comp):
     return out
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Rule P1 TRIAL_DEFINED_PRIMARY_IN_PROSE -- ONLY for a topic whose declared outcome is the TRIAL-DEFINED composite
+#   (topics/<slug>.json primary_outcome.name starting 'Trial-defined'): there, 'the primary outcome' IS the estimand, so
+#   it is not a generic anchor PROVIDED the same text DEFINES it ('The primary outcome was the composite of ...') with a
+#   NON-GENERIC topic term (e.g. 'coronary'). The result sentence must pair each 'e of n' with its own arm label (an
+#   intervention term after the treatment pair, a comparator term or 'no <intervention>' after the control pair), each
+#   printed % must equal e/n, and on-treatment / per-protocol / subgroup language refuses. Unique tuple, else nothing.
+_DEF = re.compile(r"(?:primary|main) (?:outcome|end ?point)\s+(?:was|were|is)\s+(?:the\s+)?(?:composite|combined)[^.]{5,300}\.",
+                  re.I)
+_RES = re.compile(r"primary (?:outcome|end ?point)\s+occurred in\s+(?P<et>\d+)\s+of\s+(?P<nt>[\d,]+)\s+(?:patients|participants)?"
+                  r"\s*\((?P<pt>\d+(?:\.\d+)?)%\)\s*(?P<lt>[^,;]{0,60}?)\s+and\s+(?:in\s+)?(?P<ec>\d+)\s+of\s+(?P<nc>[\d,]+)\s+"
+                  r"(?:patients|participants)?\s*\((?P<pc>\d+(?:\.\d+)?)%\)\s*(?P<lc>[^,;()]{0,60})", re.I)
+_ON_TREATMENT = re.compile(r"on[- ]treatment|per[- ]protocol|excluded \d+ patients|as[- ]treated", re.I)
+
+
+def prose_trial_defined(text, terms, interv, comp):
+    """[(definition, result_sentence, tuple)] for rule P1 in one held text."""
+    from harness import secondary_meta as sm
+    t = sm._fold_text(text or "")
+    named = [x.lower() for x in terms if x and len(x) > 3 and x.lower() not in extract.GENERIC_ANCHORS]
+    defs = [m.group(0) for m in _DEF.finditer(t) if any(w in m.group(0).lower() for w in named)]
+    if not defs:
+        return []
+    iv = [w.lower() for w in list(interv or []) if w]
+    cp = [w.lower() for w in list(comp or []) + cb.GENERIC_COMP if w] + [f"no {w}" for w in iv]
+    out = []
+    for m in _RES.finditer(t):
+        s0 = t.rfind(".", 0, m.start()) + 1
+        sent = t[s0: t.find(".", m.end()) + 1 if t.find(".", m.end()) > 0 else m.end()]
+        if _ON_TREATMENT.search(t[max(0, m.start() - 200): m.end()]) or extract._is_subgroup_sentence(sent):
+            continue
+        et, nt, ec, nc = (int(m.group(k).replace(",", "")) for k in ("et", "nt", "ec", "nc"))
+        if not (_pct_ok(et, nt, m.group("pt")) and _pct_ok(ec, nc, m.group("pc"))):
+            continue
+        lt, lc = m.group("lt").lower(), m.group("lc").lower()
+        t_ok = any(w in lt for w in iv) and not any(w in lt for w in cp)
+        c_ok = any(w in lc for w in cp)
+        if not (t_ok and c_ok):
+            continue
+        out.append((defs[0], sent.strip(), (et, nt, ec, nc)))
+    return out
+
+
+def bind_prose(t):
+    cfg = json.load(open(os.path.join(ROOT, "topics", t["slug"] + ".json"), encoding="utf-8"))
+    if not str((cfg.get("primary_outcome") or {}).get("name") or "").lower().startswith("trial-defined"):
+        return None, "P1_NOT_A_TRIAL_DEFINED_TOPIC"
+    spec = smb.spec_of(t["slug"])
+    terms = [k for k in (spec.get("keywords") or []) if k]
+    iv, cp = cb.arm_terms(t["slug"])
+    found = {}
+    for p in t["pmids"][:3]:
+        for kind, ref, pl in smb.primary_sources(t["slug"], p):
+            if kind == "text" and isinstance(pl, str):
+                for d, s, tup in prose_trial_defined(pl, terms, iv, cp):
+                    found.setdefault(tup, (p, ref, hashlib.sha256(pl.encode("utf-8")).hexdigest(), d, s))
+    if len(found) != 1:
+        return None, ("P1_NO_MATCH" if not found else "P1_AMBIGUOUS")
+    (tup, (p, ref, sha, d, s)), = found.items()
+    return {"slug": t["slug"], "label": t["label"], "pmid": p, "ncts": t.get("ncts"), "source_kind": "TEXT",
+            "source": ref, "source_sha256": sha, "route": "PRIMARY_TEXT_TRIAL_DEFINED_PRIMARY_OWN_TUPLE",
+            "span": d + " … " + s, "span_parts": [d, s], "tuple_kind": "COUNTS", "own_tuple": True,
+            "values": dict(zip(("events_t", "n_t", "events_c", "n_c"), tup)),
+            "named_by": "topic outcome declared 'Trial-defined' (topics/%s.json primary_outcome.name) + the trial's own "
+                        "definition sentence" % t["slug"],
+            "arm_check": "PROSE_ARM_LABELS", "search_key": "TRIAL_DEFINED_PRIMARY (regex)"}, "BOUND"
+
+
 def bind(t):
     spec = smb.spec_of(t["slug"])
     terms = [k for k in (spec.get("keywords") or []) if k] + list(spec.get("core") or [])
@@ -136,6 +204,9 @@ def main():
     res, nb = [], []
     for t in targets:
         b, why = bind(t)
+        if not b:
+            b2, why2 = bind_prose(t)
+            b, why = (b2, why2) if b2 else (None, f"{why} | {why2}")
         (res if b else nb).append(b or {"slug": t["slug"], "label": t["label"], "why": why})
         print(t["slug"][:14], "|", t["label"][:34], "|", (b or {}).get("values") or why, flush=True)
     out = {"bindings": res, "not_bound": nb}
