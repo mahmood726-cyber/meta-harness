@@ -525,6 +525,26 @@ class AactStore:
             self.d["study"][n].setdefault("study_first_submitted_date", "")
         self.save()
 
+    def ensure_background_refs(self, ncts, log=print):
+        """BACKGROUND-typed PMIDs for held NCTs that have NO RESULT/DERIVED reference at all (one study_references pass,
+        cached per NCT, empty list included). A registrant may type its own report BACKGROUND: every one of DESCARTES's
+        (NCT01516879) 12 references is BACKGROUND, the NEJM report 24678979 among them. The caller keeps only those
+        whose own PubMed record names the NCT."""
+        typed = {n for v in self.d["pmid"].values() for n, _t in v}
+        bg = self.d.setdefault("background", {})
+        want = {n.upper() for n in ncts if n} & set(self.d["study"]) - typed - set(bg)
+        if not want or not self.snap:
+            return
+        log(f"AACT: background references for {len(want)} NCTs with no RESULT/DERIVED reference")
+        for n in want:
+            bg[n] = []
+        for r in self.aact._iter_rows(self._t("study_references")):
+            n = (r.get("nct_id") or "").upper()
+            p = (r.get("pmid") or "").strip()
+            if n in want and p.isdigit() and (r.get("reference_type") or "").upper() == "BACKGROUND" and p not in bg[n]:
+                bg[n].append(p)
+        self.save()
+
     def ensure_ncts(self, ncts, log=print):
         want = {n.upper() for n in ncts if n} - set(self.d["study"])
         if not want or not self.snap:
@@ -575,7 +595,7 @@ class AactStore:
                 for n, _t in v:
                     self._rev.setdefault(n, []).append(p)
         return {"snapshot": self.snap, "acr_nct": self.d["acr"], "acr_title_nct": self.d["acr_title"],
-                "nct_pmids": self._rev,
+                "nct_pmids": self._rev, "background_pmids": self.d.get("background") or {},
                 "pmid_nct": {p: [tuple(x) for x in v] for p, v in self.d["pmid"].items()},
                 "study": self.d["study"], "interventions": self.d["interventions"], "outcomes": self.d["outcomes"],
                 "design_groups": self.d["design_groups"],
