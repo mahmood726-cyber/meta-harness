@@ -196,6 +196,21 @@ def registered_before(n, year, idx) -> bool:
     return not (year and d[:4].isdigit() and int(d[:4]) > int(year))
 
 
+def nct_tiebreak(mapped, pmids, our_fams, pubnct):
+    """Several registrations link the paper as RESULT (STEP 1's PMID 33567185 is listed by its own NCT03548935 AND by
+    SELECT's NCT03574597). The paper's OWN PubMed record names its registration: that wins. Only when it names none of
+    the candidates, the one candidate in our pool's families (the older tie-break -- which, alone, made STEP 1 inherit
+    SELECT's identity because SELECT is pooled). Returns (candidates kept, basis note or None)."""
+    own = sorted({(pubnct.get(p) or "").upper() for p in pmids} & set(mapped))
+    if len(own) == 1:
+        return own, f"pmid_nct_tiebreak_paper_record:{own[0]}"
+    if our_fams:
+        ours = [n for n in mapped if n in our_fams]
+        if len(ours) == 1:
+            return ours, f"pmid_nct_tiebreak_our_family:{ours[0]}"
+    return mapped, None
+
+
 def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     """Identity: cited ref PMID > NCT written in the unit > Author-Year against the comparator's own
     ref-list > acronym against AACT studies.acronym restricted to NCTs whose interventions name a topic
@@ -237,11 +252,10 @@ def resolve_unit(u, parsed, idx, agents_re, years=None, our_fams=None):
     dropped = sorted({n for p in pmids for n, _t in idx["pmid_nct"].get(p, [])} - set(mapped))
     if dropped:
         basis.append(f"pmid_nct_registered_after_publication:{','.join(dropped[:4])}")
-    if len(mapped) > 1 and our_fams:
-        ours = [n for n in mapped if n in our_fams]
-        if len(ours) == 1:
-            basis.append(f"pmid_nct_tiebreak_our_family:{ours[0]}")
-            mapped = ours
+    if len(mapped) > 1:
+        mapped, note = nct_tiebreak(mapped, pmids, our_fams, PUBNCT)
+        if note:
+            basis.append(note)
     if not mapped:
         own = sorted({PUBNCT.get(p) for p in pmids if PUBNCT.get(p)})
         if len(own) == 1:
