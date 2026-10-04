@@ -243,3 +243,17 @@ def test_extra_reports_of_the_trial_join_its_pmids(tmp_path, monkeypatch):
         {"topic::Open": [{"pmid": "44400001", "via": "cited in PMID 333 PMC OA"}, {"pmid": None}]}), encoding="utf-8")
     monkeypatch.setattr(acq, "OUT", str(tmp_path))
     assert acq.unverified_targets()[0]["pmids"] == ["33300001", "44400001"]
+
+
+def test_hook_own_tuple_binds_a_no_row_trial_and_computes_agreement(tmp_path):
+    x = {"label": "Trial A", "route": "NO_ROW", "g1_countable": False, "comparator_row": {}}
+    o = _topic(x)
+    p = _bindings(tmp_path, own_tuple=True, span="TABLE Outcomes … Colchicine (n=41) | Placebo (n=45) … diarrhoea | 4 (9.8) | 5 (11.1)")
+    assert gt.apply_confirm_bindings(o, p) == ["Trial A"]
+    assert o["trials"][0]["route"] == "PRIMARY"
+    assert not str(o["trials"][0]["agreement_with_comparator_row"]).startswith("NOT_INDEPENDENT")
+
+
+def test_hook_comparator_keyed_binding_never_binds_a_no_row_trial(tmp_path):
+    o = _topic({"label": "Trial A", "route": "NO_ROW", "g1_countable": False, "comparator_row": {}})
+    assert gt.apply_confirm_bindings(o, _bindings(tmp_path)) == []
