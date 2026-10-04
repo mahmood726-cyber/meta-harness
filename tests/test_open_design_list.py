@@ -19,3 +19,17 @@ def test_open_elsewhere_is_not():
     for s in ("randomized open heart surgery patients", "the trial was open to all patients", "open study visits",
               "patients undergoing open-heart surgery were randomized"):
         assert not ea.OPEN.search(s), s
+
+
+
+
+def test_an_open_label_title_decides_x_design():
+    # omega3 JELIS (17398308), the held record: the title says 'randomised open-label', the abstract does not
+    import json
+    cfg = json.load(open(os.path.join(ROOT, "topics", "omega3-cardiovascular-events.json"), encoding="utf-8"))
+    R = json.load(open(os.path.join(ROOT, "cache", "omega3-cardiovascular-events", "records.json"), encoding="utf-8"))
+    recs = R if isinstance(R, list) else R.get("records") or list(R.values())
+    rec = next(r for r in recs if str(r.get("id")) == "17398308")
+    assert ea.OPEN.search(rec["title"]) and not ea.OPEN.search(rec.get("abstract") or "")
+    cls, sub, base = ea.classify(rec, cfg)
+    assert (cls, sub.split(" ")[0]) == ("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED") and base["span"]["field"] == "title"

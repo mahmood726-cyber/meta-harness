@@ -359,7 +359,9 @@ def _classify(rec, cfg):
     if rule == "X-DESIGN":
         return (("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED (protocol requires double-blind)",
                  _with_span(base, span_of(rec, OPEN, ("title", "abstract"))))
-                if OPEN.search(ab)
+                # the TITLE states it too: omega3 JELIS (17398308) 'a randomised open-label, blinded endpoint analysis'
+                # read BLINDING_NOT_STATED while the span search already covered the title
+                if OPEN.search((rec.get("title") or "") + " " + ab)
                 else ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED", base))
     if rule == "X3" and "no eligible comparator" in reason:
         # the span must state ANOTHER comparator: a sentence naming a protocol comparator proves nothing
