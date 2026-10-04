@@ -265,3 +265,25 @@ def test_a_row_refused_only_for_our_identity_bookkeeping_is_admissible_comparato
                                          comparator_row_reasons=["FAMILY_NOT_RESOLVED", "OUTCOME_NOT_THE_TOPICS"]),
                                     "REPRODUCED", "ESTABLISHED")
     assert ok is None and why == "COMPARATOR_ROW_REFUSED"
+
+
+def test_a_reference_number_label_takes_its_author_year_from_the_comparators_own_reference_list():
+    # ticagrelor 4 Oct: the comparator's trial '10 [29]' has no PMID; its forest row 'Liu 2014' never joined, so the
+    # comparator's MACE analysis was never complete and its outcome-set rule never ran
+    refs = {"r29": {"label": "29", "ordinal": 29, "first_author": "Liu", "year": "2014", "pmid": None},
+            "r30": {"label": "30", "ordinal": 30, "first_author": "Wang", "year": "2014", "pmid": None}}
+    assert gt.ref_author_year("10 [29]", refs) == ("liu", "2014")
+    assert gt.ref_author_year("11 [30]", refs) == ("wang", "2014")
+    assert gt.ref_author_year("12 [99]", refs) is None              # a number the list does not carry: nothing
+
+
+def test_a_row_of_the_comparators_other_agent_trial_is_accounted_for_in_completeness():
+    # semaglutide-mace 4 Oct: the comparator's MACE figure (pool = the compared 0.79 [0.71, 0.89]) carries SCALE /
+    # SURMOUNT rows -- the comparator's own trials of OTHER agents, never in our trial list -- so 'every row joined'
+    # never held and the STEP trials absent from the figure were never named
+    cm = {"usable": True, "positive_control": {"reproduced": True, "methods": ["DL"]}, "figure": "F", "pooled": None}
+    t = [{"label": "SELECT", "family": "P1", "in_our_pool": False, "comparator_row": {"e": 1}},
+         {"label": "STEP 3", "family": "P3", "in_our_pool": False, "comparator_row": None}]
+    rows = [_r("SELECT, 2023"), _r("SCALE Maintenance, 2013"), _r("SURMOUNT-1, 2022")]
+    assert gt.outcome_set_differences([dict(x) for x in t], cm, "C", rows) == []
+    assert gt.outcome_set_differences(t, cm, "C", rows, accounted_other=2) == ["STEP 3"]

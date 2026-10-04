@@ -78,3 +78,41 @@ def test_a_bare_family_acronym_is_broken_by_the_one_label_the_row_leads():
     assert f(NS(trial_label="ODYSSEY FH II")) == "ODYSSEY FH II NCT01709500"
     assert f(NS(trial_label="PACMAN – AMI")) == "PACMAN - AMI NCT03067844"
     assert f(NS(trial_label="ODYSSEY")) is None
+
+
+def test_a_label_glued_by_table_extraction_joins_its_spaced_row():
+    # semaglutide-mace 4 Oct: the comparator's table gives 'SCALEMaintenance25,38', 'SURMOUNT-1 39'; its figure prints
+    # 'SCALE Maintenance, 2013', 'SURMOUNT-1, 2022' -- the same trials, spacing lost in extraction, ref numbers glued
+    f = _fam(["SCALEMaintenance25,38", "SCALEObesity and Prediabetes26,37", "SCALESleep Apnea 27",
+              "SURMOUNT-1 39", "SURMOUNT-3 17", "STEP 8 31", "STEP 1 29"])
+    assert f(NS(trial_label="SCALE Maintenance, 2013")) == "SCALEMaintenance25,38"
+    assert f(NS(trial_label="SCALE Obesity and Prediabetes, 2017")) == "SCALEObesity and Prediabetes26,37"
+    assert f(NS(trial_label="SCALE Sleep Apnea, 2016")) == "SCALESleep Apnea 27"
+    assert f(NS(trial_label="SURMOUNT-1, 2022")) == "SURMOUNT-1 39"
+    assert f(NS(trial_label="SURMOUNT-3, 2023")) == "SURMOUNT-3 17"
+    assert f(NS(trial_label="STEP 8")) == "STEP 8 31"                # a trial NUMBER is never stripped
+    assert f(NS(trial_label="SURMOUNT, 2022")) is None               # two SURMOUNTs: never a pick
+
+
+def test_the_compact_tier_keeps_the_year_rule_and_accented_authors_match_their_pmid_year():
+    # melatonin 4 Oct: the compact tier (no years) joined 'Nagtegaal JE, 1995 [34]' to the trial whose PMID is a 1998
+    # paper, and Almeida Montes 2002 / James 1989 to 2003 / 1990 papers -- an author's year is never relaxed
+    ents = [{"id": "Nagtegaal JE [36]", "label": "Nagtegaal JE [36]", "acronyms": [], "author_year": ("nagtegaal", "1998")},
+            {"id": "James SP [40]", "label": "James SP [40]", "acronyms": [], "author_year": ("james", "1990")},
+            {"id": "Garzón C [26]", "label": "Garzón C [26]", "acronyms": [], "author_year": ("garzón", "2009")}]
+    f = smb.family_of_factory(ents)
+    assert f(NS(trial_label="Nagtegaal JE, 1995 [34]")) is None
+    assert f(NS(trial_label="James SP, 1989 [39]")) is None
+    assert f(NS(trial_label="Nagtegaal JE, 1998 [34]")) == "Nagtegaal JE [36]"
+    assert f(NS(trial_label="Garzon C, 2009 [25]")) == "Garzón C [26]"
+
+
+def test_a_generic_clinical_abbreviation_is_never_a_trial_acronym_in_the_join():
+    # dapagliflozin-hfpef 4 Oct: our DELIVER entry carried acronyms ['DELIVER', 'HFPEF']; 'HFpEF' anywhere in a row
+    # ('SOLOIST-WHF/SCORED Bhatt et al (2021) HFpEF') joined it to DELIVER and filled DELIVER with SOLOIST/SCORED numbers
+    ents = [{"id": "D", "label": "DELIVER", "acronyms": ["DELIVER", "HFPEF"], "author_year": ("solomon", "2022")},
+            {"id": "E", "label": "EMPEROR-Preserved", "acronyms": ["EMPEROR-PRESERVED", "MACE"], "author_year": None}]
+    f = smb.family_of_factory(ents)
+    assert f(NS(trial_label="SOLOIST-WHF/SCORED Bhatt et al (2021) HFpEF")) is None
+    assert f(NS(trial_label="DELIVER Solomon et al (2022) HFmr/pEF")) == "D"
+    assert f(NS(trial_label="Overall MACE")) is None
