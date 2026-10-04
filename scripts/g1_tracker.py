@@ -699,7 +699,11 @@ def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
         return None, f"COMPARATOR_DOES_NOT_SELF_REPRODUCE ({g1r_state})"
     if orient != "ESTABLISHED":
         return None, f"COMPARATOR_ARM_ORIENTATION_{orient}"
-    if x.get("comparator_row_state") not in CS_OK_STATES:
+    # a row refused ONLY because OUR identity of the trial is unresolved (FAMILY_NOT_RESOLVED) passed every typed check;
+    # it is the comparator's own row for the comparator's own trial, joined by the comparator's labels (omega3, 4 Oct)
+    bookkeeping_only = (x.get("comparator_row_state") == "REFUSED"
+                        and set(x.get("comparator_row_reasons") or []) == {"FAMILY_NOT_RESOLVED"})
+    if x.get("comparator_row_state") not in CS_OK_STATES and not bookkeeping_only:
         return None, f"COMPARATOR_ROW_{x.get('comparator_row_state')}"
     if (x.get("comparator_row_readings") or {}).get("state") == "READERS_DIFFER":
         return None, "COMPARATOR_ROW_READERS_DIFFER"
@@ -1318,7 +1322,8 @@ def topic(slug, T):
                                        or route == "SECONDARY_SINGLE",
                        "secondary_single": ({k: v for k, v in ss.items() if k != "row"} if (not in_pool and ss) else None),
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
-                       else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None})
+                       else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None,
+                       "comparator_row_reasons": list(theirs.reasons or []) if theirs else []})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}

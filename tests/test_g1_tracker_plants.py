@@ -248,3 +248,20 @@ def test_a_trial_whose_report_is_in_the_analysis_is_never_named_absent_from_it()
          {"label": "Ratanarat [18]", "family": None, "in_our_pool": False, "comparator_row": None}]
     assert gt.outcome_set_differences(t, cm, "C", [_r("Semler (SMART trial) 2018")]) == ["Ratanarat [18]"]
     assert not t[1].get("scope_difference") and t[1]["same_report_as"] == "Semler (SMART trial)"
+
+
+def test_a_row_refused_only_for_our_identity_bookkeeping_is_admissible_comparator_coverage():
+    # omega3 4 Oct: GISSI-P, GISSI-HF, ORIGIN, Risk & Prevention, ASCEND -- the comparator's own rows, joined to the
+    # comparator's own trials by its labels, refused ONLY 'FAMILY_NOT_RESOLVED' (our identity, not the typed tuple)
+    base = {"label": "ORIGIN 2012 [40]", "in_our_pool": False, "route": "UNVERIFIED",
+            "comparator_row": {"measure": "RR", "effect": "1.01", "lower": "0.94", "upper": "1.10"},
+            "comparator_row_provenance": {"meta_pmid": "C", "location": {"kind": "figure", "id": "F2"}, "digest": "d",
+                                          "read": "MODEL_PROPOSAL:mc-x", "row_label": "ORIGIN 2012"}}
+    ok, why = gt.comparator_sourced(dict(base, comparator_row_state="REFUSED", comparator_row_reasons=["FAMILY_NOT_RESOLVED"]),
+                                    "REPRODUCED", "ESTABLISHED")
+    assert ok and why is None
+    # any TYPED refusal (measure / outcome / timepoint) still refuses
+    ok, why = gt.comparator_sourced(dict(base, comparator_row_state="REFUSED",
+                                         comparator_row_reasons=["FAMILY_NOT_RESOLVED", "OUTCOME_NOT_THE_TOPICS"]),
+                                    "REPRODUCED", "ESTABLISHED")
+    assert ok is None and why == "COMPARATOR_ROW_REFUSED"
