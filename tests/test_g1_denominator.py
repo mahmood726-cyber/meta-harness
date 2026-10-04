@@ -75,3 +75,25 @@ def test_the_denominator_reasons_are_the_ones_audited():
     assert "29485925" in smart["identity"]["pmids"]
     emp = next(r for r in LED["removed"] if r["kind"] == "OTHER_AGENT")
     assert "Empagliflozin" in emp["span"]["text"] and emp["slug"] == "dapagliflozin-hfpef-hosp"
+
+
+def test_the_tracker_artefact_itself_carries_every_removal_with_rule_and_span():
+    assert dl.tracker_problems(LED) == []
+    src = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "G1_SOURCE.json"), encoding="utf-8"))
+    assert src["denominator"]["baseline_N"] == 367 and src["denominator"]["current_N"] == LED["current"]["N"]
+    assert src["denominator"]["by_kind"]["NOT_A_TRIAL"] == 15
+
+
+def test_PLANT_a_tracker_removal_without_rule_or_span_is_refused(tmp_path, monkeypatch):
+    import shutil
+    d = tmp_path / "outputs" / "k_gap" / "g1"
+    shutil.copytree(os.path.join(ROOT, "outputs", "k_gap", "g1"), d)
+    p = d / "statins-primary-prevention-elderly.json"
+    o = json.load(open(p, encoding="utf-8"))
+    o["removed_comparator_rows"][0]["span"] = None
+    p.write_text(json.dumps(o), encoding="utf-8")
+    monkeypatch.setattr(dl, "OUT", str(tmp_path / "outputs" / "k_gap"))
+    assert any("without rule + span" in x for x in dl.tracker_problems(LED))
+    o["removed_comparator_rows"] = o["removed_comparator_rows"][1:]           # a removal missing from the tracker
+    p.write_text(json.dumps(o), encoding="utf-8")
+    assert any("differ from the ledger" in x for x in dl.tracker_problems(LED))
