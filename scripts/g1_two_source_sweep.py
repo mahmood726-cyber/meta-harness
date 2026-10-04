@@ -651,11 +651,15 @@ def main(argv):
     # concurrency 3, at most --max-reads per invocation (hourly batches); the ledger is the per-topic runs store
     from kgap import runs_store
     max_reads = next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--max-reads=")), 60)
+    # --need=N: candidate metas planned per unmatched trial (default 2, what TWO-SOURCE asks); a higher N reads more of
+    # the discovered open metas' forest plots (407 held on 4 Oct with no typed table and no figure ever read) -- every
+    # read is a recorded proposal through the same gate, capped by --max-reads, ledgered per read
+    need = next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--need=")), 2)
     runs = runs_store.load()
     fig, fig_state, todo = {}, {}, []
     for s, ts in sorted(tg.items()):
         typed_ok = set()          # typed tables are tried inside sweep_topic; a forest read is planned for every meta
-        plan = forest_plan(ts, metas_by.get(s, {}), typed_ok)
+        plan = forest_plan(ts, metas_by.get(s, {}), typed_ok, need=need)
         fig[s], fig_state[s] = prepare_figures(s, plan, run)
         for m in plan:
             it = fig[s].get(m)

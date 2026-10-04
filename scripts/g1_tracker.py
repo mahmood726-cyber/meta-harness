@@ -431,6 +431,38 @@ def pick_comparator_row(sec, comp, label, row_owner, used_rows, label_row):
     return None
 
 
+def ref_author_year(label, refs):
+    """(surname, year) of a reference-number label ('10 [29]') from the COMPARATOR'S OWN reference list, when exactly
+    one reference carries that number and states both; used only to join the comparator's rows to its trial list
+    (ticagrelor: row 'Liu 2014' never joined '10 [29]'), never as an identity of ours."""
+    from kgap import k_gap as _kg
+    hit = _kg.refs_by_number(label, refs or {})
+    if len(hit) != 1 or not hit[0].get("first_author") or not hit[0].get("year"):
+        return None
+    return (str(hit[0]["first_author"]).split()[0].lower(), str(hit[0]["year"]))
+
+
+_COMP_REFS = {}
+
+
+def comparator_refs(comp):
+    """The comparator's parsed reference list from its held JATS (cache/comparators/<pmid>/<DATE>_kgap_jats.xml), {}
+    when none is held."""
+    if comp not in _COMP_REFS:
+        import glob as _g
+        from kgap import k_gap as _kg
+        fs = sorted(_g.glob(os.path.join(ROOT, "cache", "comparators", str(comp), "*_kgap_jats.xml")))
+        refs = {}
+        if fs:
+            try:
+                with open(fs[-1], "rb") as fh:
+                    refs = _kg.parse_jats(fh.read()).get("refs") or {}
+            except Exception:  # noqa: BLE001 - an unparseable copy joins nothing
+                refs = {}
+        _COMP_REFS[comp] = refs
+    return _COMP_REFS[comp]
+
+
 def lane_comp_meta(comparator_rows_source):
     """The comparator's per-trial analysis as the forest-reader lane ACCEPTED it (dual-model read, rows reproduce the
     printed pool) in the shape outcome_set_differences / g1r read; {} when the lane accepted nothing. Without it, a topic
@@ -457,7 +489,7 @@ def pools_agree(pooled, compared):
     return all(abs(a - b) <= 0.0151 for a, b in zip(got, want))
 
 
-def outcome_set_differences(trials, comp_meta, comp, rows, compared=None):
+def outcome_set_differences(trials, comp_meta, comp, rows, compared=None, accounted_other=0):
     """NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: G1 matches the comparator's RESULT for this outcome. When the comparator's own
     per-trial analysis of the outcome is COMPLETE and CONTROLLED -- a typed table or a gated figure read for THIS
     outcome, its rows reproducing its printed pooled result (positive control), and EVERY one of its rows joined to a
@@ -474,7 +506,8 @@ def outcome_set_differences(trials, comp_meta, comp, rows, compared=None):
         return []
     crow = [r for r in rows if r.meta_pmid == comp]
     joined = [x for x in trials if x.get("comparator_row")]
-    if not crow or len(joined) != len(crow):
+    # a row joined to one of the comparator's OTHER-AGENT trials (never in our list) is accounted for, not unjoined
+    if not crow or len(joined) + accounted_other != len(crow):
         return []
     where = (f"table {comp_meta.get('table')}" if comp_meta.get("provenance") == "TYPED_TABLE" else
              f"figure {comp_meta.get('figure')}{(' panel ' + comp_meta['panel']) if comp_meta.get('panel') else ''} "
@@ -1241,8 +1274,16 @@ def topic(slug, T):
     import k_gap_result_agreement as _ra
     _ents = [{"id": t["label"][:60], "label": t["label"][:60],
               "acronyms": sorted({v["acronym"] for v in (t.get("study") or {}).values() if (v or {}).get("acronym")}),
-              "author_year": _ra.first_author_year(t["pmids"][0]) if t.get("pmids") else None} for t in comp_rows]
+              "author_year": (_ra.first_author_year(t["pmids"][0]) if t.get("pmids")
+                              else ref_author_year(t["label"], comparator_refs(comp)))} for t in comp_rows]
     _cfam = _smb.family_of_factory(_ents)
+    # the comparator's OTHER-AGENT trials: a row joining one of them is accounted for in the outcome-set completeness
+    _oth = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
+    _all = _smb.family_of_factory(_ents + [{"id": "__other__::" + t["label"][:60], "label": t["label"][:60],
+                                            "acronyms": sorted({v["acronym"] for v in (t.get("study") or {}).values()
+                                                                if (v or {}).get("acronym")}),
+                                            "author_year": None} for t in _oth])
+    accounted_other = sum(1 for r in rows if r.meta_pmid == comp and str(_all(r) or "").startswith("__other__::"))
     comp_by_label = {}
     for r in rows:
         if r.meta_pmid != comp:
@@ -1396,7 +1437,7 @@ def topic(slug, T):
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
     _rep0 = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
-                            compared=_rep0 or None)
+                            compared=_rep0 or None, accounted_other=accounted_other)
     sweep_merge(slug, trials, routes, pairs)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]

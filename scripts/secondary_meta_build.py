@@ -566,12 +566,45 @@ def family_of_factory(ours):
             return False
         return bool(cores(row_label, forename_first=True) & cores(t_label))
 
+    def compact(label):
+        """The label with spacing and punctuation gone and its trailing citation furniture removed -- reference numbers
+        glued or standalone ('SCALEMaintenance25,38', 'SURMOUNT-1 39'), a year (', 2013'), bracketed numbers -- so a
+        table cell that lost its spaces meets the figure row that kept them. A trial NUMBER stays ('STEP 8'): a
+        standalone trailing number is stripped only after another number."""
+        x = _fold(label)
+        x = re.sub(r"[\[(]\s*[\d,\s\u2013-]+\s*[\])]", " ", x)          # [12] (12) (19,20)
+        x = re.sub(r",?\s*(?:19|20)\d\d[a-z]?\b", " ", x)                    # a year
+        x = re.sub(r"(?<=[A-Za-z])\d+(?:,\d+)*\s*$", "", x.strip())          # glued ref numbers 'Maintenance25,38'
+        tt = x.split()
+        while len(tt) >= 2 and re.fullmatch(r"\d+(?:,\d+)*", tt[-1]) and re.search(r"\d$", tt[-2]):
+            tt.pop()                                                          # 'SURMOUNT-1 39' -> 'SURMOUNT-1'
+        c = re.sub(r"[^a-z0-9]", "", " ".join(tt).lower())
+        return c if len(c) >= 6 else None
+
+    def years_ok(row_label, t):
+        """the year rule of every tier: when both sides carry a year (the label's, else the entry's PMID year) they are
+        equal -- or one apart for an all-caps acronym; an author's year is never relaxed (Nagtegaal 1995 vs 1998)"""
+        ya = core(row_label)[1]
+        yb = core(t["label"])[1] or (t.get("author_year") or (None, None))[1]
+        if not (ya and yb) or ya == yb:
+            return True
+        return abs(int(ya) - int(yb)) == 1 and acronym(row_label) and acronym(t["label"])
+
+    def ay_hit(t, lt):
+        # the PMID's first author is accented ('garzón'); the row's tokens are folded ('garzon')
+        a = t.get("author_year")
+        sur = toks(a[0]) if a else []
+        return bool(sur) and sur[0] in lt and str(a[1]) in lt
+
     def family_of(row):
         lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
         hits = {}
         for t in ours:
-            names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
-            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
+            # a generic clinical abbreviation ('HFPEF', 'MACE') is never a trial's name: 'HFpEF' anywhere in a row joined
+            # it to DELIVER (k_gap's own label stop-list, applied to entries' acronyms too)
+            names = [toks(a) for a in t["acronyms"]
+                     if re.sub(r"[^A-Z0-9]", "", str(a).upper()) not in k_gap._NOT_ACRO] +                     ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
+            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or ay_hit(t, lt):
                 hits[t["id"]] = t
         if not hits:
             # FALLBACK tier only: the surname core never adds a hit to (and so never dilutes or overrides) a join the
@@ -580,6 +613,13 @@ def family_of_factory(ours):
                 yr = (t.get("author_year") or (None, None))[1]
                 if t["label"] and same_author(row.trial_label, t["label"] + (f" {yr}" if yr and not core(t["label"])[1] else "")):
                     hits[t["id"]] = t
+        if not hits:
+            # last tier: the compact label (spacing lost in table extraction: 'SCALEMaintenance25,38'), unique or nothing
+            rc = compact(row.trial_label)
+            if rc:
+                hits = {t["id"]: t for t in ours if t["label"] and compact(t["label"]) == rc and years_ok(row.trial_label, t)}
+                if len(hits) > 1:
+                    return None
         if len(hits) > 1:
             # two trials share an acronym ('CORIMUNO' names CORIMUNO-TOCI-1 and CORIMUNO-TOCI-ICU): the ONE whose full
             # label tokens EQUAL the row's label wins; anything less stays ambiguous (None)
@@ -589,7 +629,12 @@ def family_of_factory(ours):
             # a bare family acronym ('ODYSSEY') hits every trial of the family: the ONE label the row's tokens LEAD
             # ('ODYSSEY FH II' -> 'ODYSSEY FH II NCT01709500') wins; anything less stays ambiguous
             lead = [i for i, t in hits.items() if len(lt) >= 2 and t["label"] and toks(t["label"])[:len(lt)] == lt]
-            return lead[0] if len(lead) == 1 else None
+            if len(lead) == 1:
+                return lead[0]
+            # the compact label breaks a tie the surname tier made ('SURMOUNT-1, 2022' hits SURMOUNT-1 and SURMOUNT-3)
+            rc = compact(row.trial_label)
+            same = [i for i, t in hits.items() if rc and t["label"] and compact(t["label"]) == rc and years_ok(row.trial_label, t)]
+            return same[0] if len(same) == 1 else None
         return next(iter(hits)) if len(hits) == 1 else None
     return family_of
 

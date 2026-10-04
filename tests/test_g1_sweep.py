@@ -288,3 +288,11 @@ def test_comparator_rows_join_by_the_comparators_own_labels():
     assert x["comparator_row"] and x["comparator_row_provenance"]["location"]["id"]
     labs = [t["comparator_row_provenance"]["row_label"] for t in o["trials"] if t.get("comparator_row_provenance")]
     assert len(labs) == len(set(labs))                      # a comparator row never serves two trials
+
+
+def test_forest_plan_reads_more_metas_when_more_candidates_per_trial_are_asked():
+    ts = [{"label": "A"}, {"label": "B"}]
+    by = {"A": ["m1", "m2", "m3", "m4"], "B": ["m2", "m5"]}
+    two = sw.forest_plan(ts, by, set())
+    four = sw.forest_plan(ts, by, set(), need=4)
+    assert len(two) == 2 + 1 and set(two) < set(four) and len(four) == 5
