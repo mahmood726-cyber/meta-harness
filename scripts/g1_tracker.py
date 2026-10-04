@@ -1269,6 +1269,10 @@ def blocker_class(x, slug):
         return f"SCREENED_OUT_UNAUDITED:{f.get('rule_id')}"
     if f.get("stage") == "DECLARED_ABSENT":
         return f"EXTRACTION:{f.get('reason_code')}"
+    va = x.get("via_report_absent")
+    if f.get("stage") == "SCREENED_VIA_OTHER_REPORT" and va:
+        held = {True: "", False: ":DECLARED_WITHOUT_FULL_TEXT", None: ""}[va.get("full_text_held")]
+        return f"EXTRACTION:{va['code']}:VIA_OTHER_REPORT{held}"
     if f.get("stage") in ("NOT_IN_SCREEN", "INCLUDED_NOT_IN_PRIMARY", "SCREENED_VIA_OTHER_REPORT"):
         return f["stage"]
     if x.get("our_refusal") == "NO_RECORD_HELD":
@@ -1278,6 +1282,20 @@ def blocker_class(x, slug):
     if x["family"] is None:
         return "IDENTITY_UNRESOLVED" if (x.get("gap_class") or "").startswith("UNRESOLVED") else (x.get("gap_class") or "UNKNOWN")
     return x.get("gap_class") or "UNKNOWN"
+
+
+_FT_INDEX = None
+
+
+def full_text_held(pmid):
+    """True/False from outputs/k_gap/fulltext_index.json (bytes > 0); None when the index is absent -- unknown, not 'no'."""
+    global _FT_INDEX
+    if _FT_INDEX is None:
+        p = os.path.join(OUT, "fulltext_index.json")
+        _FT_INDEX = _j(p) if os.path.exists(p) else {}
+    if not _FT_INDEX:
+        return None
+    return bool((_FT_INDEX.get(str(pmid)) or {}).get("bytes"))
 
 
 def comparator_findings(trials, comp):
@@ -1794,6 +1812,12 @@ def topic(slug, T):
                 f = dict(f, stage="SCREENED_VIA_OTHER_REPORT", via=nct_pool[m.group(1)].replace("PMID ", ""),
                          via_decision="include", nct=m.group(1))
         via = (f.get("via") if str(f.get("via") or "").startswith("NCT") else f"PMID {f.get('via')}") if f.get("via") else None
+        if (not x["in_our_pool"] and f.get("stage") == "SCREENED_VIA_OTHER_REPORT" and via and via not in pooled_ids
+                and via in absent_code):
+            # the report we include for this trial is itself declared absent for the outcome (pcsk9 GLAGOV: JAMA 2016,
+            # 27846344, declared from its abstract; no full text held) -- that declaration, not the screen, is the blocker
+            x["via_report_absent"] = {"id": via, "code": absent_code[via], "reason": absent_by_id.get(via),
+                                      "full_text_held": full_text_held(via.replace("PMID ", ""))}
         if (x["in_our_pool"] or f.get("stage") != "SCREENED_VIA_OTHER_REPORT" or f.get("via_decision") != "include"
                 or not via or via not in pooled_ids or via in matched_ids or not f.get("nct")):
             continue
