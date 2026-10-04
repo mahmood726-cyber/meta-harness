@@ -1235,6 +1235,9 @@ def scope_difference(x, cfg, slug=None):
                 "audit": {"class": cls, "subclass": sub},
                 "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")),
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
+    ad = arm_object_difference(x, cfg, slug)
+    if ad:
+        return ad
     rb = x.get("registry_binding") or {}
     cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
     ref = [c for c in cands if c.get("gate") == "ESTIMAND"]
@@ -1251,6 +1254,65 @@ def scope_difference(x, cfg, slug=None):
                 "registry_analysis": c["analysis"], "snapshot": c["snapshot"],
                 "comparator_pooled_it_as": x.get("comparator_row")}
     return None
+
+
+_DOSE = re.compile(r"(\d+(?:[.·]\d+)?)\s*mg\b", re.I)
+_PRIMARY_AT_WEEK = re.compile(r"primary (?:end ?point|outcome|efficacy end ?point)\b[^.]{0,120}?\bweeks? (\d{1,3})\b", re.I)
+
+
+def _sentences(text):
+    return [s.strip() for s in re.split(r"(?<=\.)\s+(?=[A-Z])", text or "") if s.strip()]
+
+
+def arm_object_difference(x, cfg, slug):
+    """A comparator trial whose OWN held record states a different DOSE or a different primary TIMEPOINT than the
+    protocol's registered arm object (cfg.arm_object.dose.required; primary_outcome.timepoint_weeks +/- tolerance):
+    semaglutide-obesity-weight O'Neil 2018 (30122305) -- 'All treatment doses were delivered once-daily' at 0.05-0.4 mg
+    (the protocol's estimand is 2.4 mg weekly) and 'The primary endpoint was percentage weight loss at week 52' (Week 68
+    +/- 8). Named only when (a) the protocol states the requirement, (b) the record states the trial's own value in a
+    verbatim sentence, and for dose (c) the required dose appears NOWHERE in the record and every stated dose of the
+    drug differs. A record that is silent stays an open gap: silence is never a difference."""
+    if x.get("in_our_pool"):
+        return None
+    fam = str(x.get("family") or "")
+    pmid = fam.replace("PMID ", "") if fam.startswith("PMID ") else (x.get("seeded_funnel") or {}).get("pmid")
+    rec = held_record(slug, pmid) if pmid else None
+    if not rec:
+        return None
+    ab = rec.get("abstract") or ""
+    ao = (cfg or {}).get("arm_object") or {}
+    po = (cfg or {}).get("primary_outcome") or {}
+    found = []
+    dose = ao.get("dose") or {}
+    req, drug = str(dose.get("required") or ""), str(dose.get("drug") or "")
+    if req and drug and _DOSE.search(req):
+        want = float(_DOSE.search(req).group(1).replace("·", "."))
+        text = (rec.get("title") or "") + " " + ab
+        stated = [(s, [float(m.group(1).replace("·", ".")) for m in _DOSE.finditer(s)])
+                  for s in _sentences(ab) if drug.lower() in s.lower()]
+        stated = [(s, ds) for s, ds in stated if ds]
+        alld = [d for _s, ds in stated for d in ds]
+        req_rx = re.escape(req).replace(r"\.", "[.·]").replace(r"\ ", r"\s*")
+        if alld and want not in alld and not re.search(req_rx, text, re.I):
+            s = max(stated, key=lambda t: len(t[1]))[0]
+            found.append({"rule": f"arm_object.dose.required = {req} {drug}", "span": {"field": "abstract", "text": s},
+                          "stated": sorted(set(alld))})
+    tw, tol = po.get("timepoint_weeks"), po.get("timepoint_tolerance_weeks") or 0
+    if tw:
+        for s in _sentences(ab):
+            m = _PRIMARY_AT_WEEK.search(s)
+            if m and abs(int(m.group(1)) - int(tw)) > int(tol):
+                found.append({"rule": f"primary_outcome.timepoint = Week {tw} (tolerance {tol} weeks)",
+                              "span": {"field": "abstract", "text": s}, "stated": f"week {m.group(1)}"})
+                break
+    found = [f for f in found if span_is_verbatim(slug, pmid, f["span"])]
+    if not found:
+        return None
+    return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": "ARM_OBJECT", "gate": "g1_tracker.arm_object_difference",
+            "protocol_rule": "; ".join(f["rule"] for f in found), "span": found[0]["span"],
+            "also": [{"rule": f["rule"], "span": f["span"]} for f in found[1:]],
+            "span_source": f"PMID {pmid} record abstract (held)", "stated": [f["stated"] for f in found],
+            "registered_eligibility": (cfg or {}).get("eligibility_summary"), "pmid": pmid}
 
 
 def blocker_class(x, slug):
