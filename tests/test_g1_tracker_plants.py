@@ -175,3 +175,21 @@ def test_a_comparator_only_row_never_stops_our_screen_from_seeing_the_trials_rec
     assert gt.needs_seed({"in_our_pool": False, "route": "NO_ROW", "seeded_funnel": None})
     assert not gt.needs_seed({"in_our_pool": True, "route": "PRIMARY", "seeded_funnel": None})
     assert not gt.needs_seed({"in_our_pool": False, "route": "NO_ROW", "seeded_funnel": {"stage": "SCREENED_OUT"}})
+
+
+def test_a_different_number_on_the_other_side_of_the_null_is_not_a_mirrored_orientation():
+    # probiotics 4 Oct: Pozzoni -- another meta prints RR 1.14 [0.58, 2.24], the comparator 0.75 [0.38, 1.48] (13/106 vs
+    # 16/98; its reciprocal is 1.33 [0.68, 2.63]). A discrepancy, not swapped arms: it must not DISPUTE an orientation
+    # 13 shared trials establish (25 comparator rows were refused for it).
+    ours = {"measure": "RR", "effect": "1.14", "lower": "0.58", "upper": "2.24"}
+    theirs = {"measure": "RR", "effect": "0.75", "lower": "0.38", "upper": "1.48", "events_t": 13, "n_t": 106,
+              "events_c": 16, "n_c": 98}
+    assert not gt._mirrors(ours, theirs)
+    # a TRUE mirror: the comparator printed the reciprocal (arms swapped)
+    assert gt._mirrors({"measure": "RR", "effect": "1.33", "lower": "0.68", "upper": "2.63"}, theirs)
+    assert gt._mirrors({"measure": "RR", "events_t": 16, "n_t": 98, "events_c": 13, "n_c": 106}, theirs)
+    # differences: negated vs merely different
+    assert gt._mirrors({"measure": "MD", "effect": "-17.4", "lower": "-25.0", "upper": "-9.8"},
+                       {"measure": "MD", "effect": "17.4", "lower": "9.8", "upper": "25.0"})
+    assert not gt._mirrors({"measure": "MD", "effect": "-17.4", "lower": "-25.0", "upper": "-9.8"},
+                           {"measure": "MD", "effect": "8.9", "lower": "1.0", "upper": "16.8"})
