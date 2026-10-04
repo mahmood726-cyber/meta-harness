@@ -61,9 +61,14 @@ def targets(slug, ref):
     return out
 
 
-def query_of(kind, ident):
+# the WIDE pass (4-5 Oct): systematic reviews and anything Europe PMC types as a meta-analysis, whatever the title
+META_WIDE = ('(TITLE:"systematic review" OR TITLE:"pooled analysis" OR PUB_TYPE:"meta-analysis" OR '
+             'PUB_TYPE:"systematic-review")')
+
+
+def query_of(kind, ident, wide=False):
     q = f"CITES:{ident}_MED" if kind == "PMID" else f'"{ident}"'
-    return f"{q} AND OPEN_ACCESS:y AND IN_EPMC:y AND {META_TITLE}"
+    return f"{q} AND OPEN_ACCESS:y AND IN_EPMC:y AND {META_WIDE if wide else META_TITLE}"
 
 
 def search(q, run, rec):
@@ -102,7 +107,7 @@ def already_read():
            {k.split("::")[1] for k in (o.get("meta_skipped") or {}) if "::" in k}
 
 
-def select(slug, ref, run, per_topic=3):
+def select(slug, ref, run, per_topic=3, wide=False):
     comp = gfr.comparator_of(slug)
     rp = os.path.join(SEARCH_DIR, f"{slug}.json")
     rec = gfr._j(rp) if os.path.exists(rp) else {}
@@ -111,7 +116,8 @@ def select(slug, ref, run, per_topic=3):
     for label, kind, ident in tg:
         if not kind:
             continue
-        for pm, title in search(query_of(kind, ident), run, rec):
+        for pm, title in search(query_of(kind, ident), run, rec) + (search(query_of(kind, ident, True), run, rec)
+                                                                    if wide else []):
             cover.setdefault(pm, set()).add(label)
             titles[pm] = title
     os.makedirs(SEARCH_DIR, exist_ok=True)
@@ -132,6 +138,10 @@ def main(argv):
     run = "--run" in argv
     ref = argv[argv.index("--ref") + 1]
     per = int(argv[argv.index("--per-topic") + 1]) if "--per-topic" in argv else 3
+    wide = "--wide" in argv
+    global SELECTION
+    if wide:                                   # the wide pass keeps its own frozen selection beside the first
+        SELECTION = SELECTION.replace(".json", "_wide.json")
     skip = {ref, str(per)}
     slugs = [a for a in argv if not a.startswith("--") and a not in skip]
     sel = gfr._j(SELECTION) if os.path.exists(SELECTION) else {}
@@ -139,7 +149,7 @@ def main(argv):
         if slug in sel and not "--reselect" in argv:
             print(slug, "FROZEN (already selected)", sel[slug]["selected"])
             continue
-        sel[slug] = select(slug, ref, run, per)
+        sel[slug] = select(slug, ref, run, per, wide)
         r = sel[slug]
         print(f"{slug}: targets {len(r['targets'])} (no id {len(r['targets_without_identifier'])}); selected "
               f"{r['selected']}")
