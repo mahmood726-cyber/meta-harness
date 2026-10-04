@@ -231,3 +231,8 @@ INLINE_SPECS.update(_OTHER_LANES_5)
 from regex_layer.specs_whole_numbers import SITE_SPECS as _WHOLE_NUMBERS  # noqa: E402
 
 INLINE_SPECS.update(_WHOLE_NUMBERS)
+
+# harness/analysis_set.py -- lane G1 (colchicine-postop-af)
+from regex_layer.specs_g1_analysis_set import SITE_SPECS as _G1_ANALYSIS_SET  # noqa: E402
+
+INLINE_SPECS.update(_G1_ANALYSIS_SET)

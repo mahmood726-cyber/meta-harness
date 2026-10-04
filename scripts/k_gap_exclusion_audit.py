@@ -47,12 +47,30 @@ RANDOMISED_HERE = re.compile(r"\b(?:were|was|been|are|is)\s+(?:\w+\s+)?randomi[s
 # a comparison is STATED (an active or non-placebo comparator), even when no placebo is named
 COMPARISON_STATED = re.compile(r"\bversus\b|\bvs\.?\s|compared (?:with|to)|\bcombination\b|with (?:and|or) without|added to", re.I)
 BLIND = re.compile(r"\b(?:double|single|triple)[- ]?blind\w*|\bblinded\b|\bmasked\b|open[- ]label|unblinded|not blinded", re.I)
+# (the bare design adjective 'randomized, open,' is NOT here: unattributed it fires on a background line about ANOTHER
+# study -- 'Unlike the earlier randomized, open, single-center study' (NR-C21); THIS study's open design is
+# OPEN_DESIGN_SELF, which requires the self-attribution)
 OPEN = re.compile(r"open[- ]label|unblinded|not blinded|non-?blinded", re.I)
+# THIS study self-described as open ('This is a prospective, randomized, open, single-center clinical assay') -- narrow on
+# purpose: never 'open-label extension' (a double-blind trial can have one), never 'open heart'
+OPEN_DESIGN_SELF = re.compile(r"\b(?:this|the present|our)\s+(?:is\s+an?\s+|was\s+an?\s+)?(?:\w+\s*,\s*){0,3}?"
+                              r"(?:randomi[sz]ed|prospective|controlled)\s*,\s*open\s*,", re.I)
 OTHER_COMP = re.compile(r"\b(?:usual care|standard (?:of )?care|standard therapy|no treatment|untreated|"
-                        r"conventional (?:care|therapy|treatment)|control group received no|best supportive care)\b", re.I)
+                        r"conventional (?:care|therapy|treatment)|control group received no|best supportive care|"
+                        # ...unless the same sentence gives that group a placebo ('received identical dummy tablets',
+                        # NR-C21): then it is a placebo control, not another comparator
+                        r"control group,? not receiving (?:the )?(?:study )?(?:medication|drug|treatment)"
+                        r"(?![^.]{0,120}\b(?:placebo|dummy|identical|matching|sham)\b))\b", re.I)
+# a title marker naming a DESIGN / PROTOCOL paper ('per-protocol' is an analysis set of a results report, not this)
+PROTOCOL_PAPER_MARKER = re.compile(r"(?<!per[- ])\bprotocol\b|\brationale and design\b|\bstudy design\b|"
+                                   r"\bstatistical analysis plan\b|\bdesign and (?:rationale|methods)\b", re.I)
 OBSERVATIONAL = re.compile(r"\bassociation of\b|\bcohort\b|\bobservational\b|\bretrospective\b|\bregistry\b|"
                            r"\bcase series\b|\bcross-sectional\b|population-based|case-control|nationwide", re.I)
 ORDER = ("SCREENER_ERROR", "INSUFFICIENT_RECORD", "TRUE_SCOPE_DIFFERENCE", "INCONSISTENT")
+# a title marker naming a RESULTS report of a randomised trial (not a design / protocol paper)
+RESULTS_REPORT_MARKER = re.compile(r"sub-?study|secondary analysis|post[-\s]?hoc", re.I)
+
+
 # a record that STATES it analyses data from several trials (pooled / post hoc / secondary analysis), not one trial
 SECONDARY_ANALYSIS = re.compile(r"\bpooled analys[ie]s\b|\bpost[- ]hoc analys[ie]s\b|\bsecondary analys[ie]s\b|"
                                 r"\bsub-?analys[ie]s\b|"
@@ -60,6 +78,11 @@ SECONDARY_ANALYSIS = re.compile(r"\bpooled analys[ie]s\b|\bpost[- ]hoc analys[ie
                                 # trials' (DELIVER's background sentence)
                                 r"\b(?:enrolled in|across|from|of) (?:\d+|two|three|four|five|six|seven|eight|nine|ten) "
                                 r"(?:phase (?:I{1,3}|[1-3]) )?(?:randomi[sz]ed )?(?:controlled )?trials\b", re.I)
+# ...of SEVERAL trials: a pooled analysis, or a counted set of trials. The single-trial markers above (post hoc /
+# secondary / sub-analysis) are NOT here: such a record reports ONE trial and is routed to its trial family
+MULTI_TRIAL_ANALYSIS = re.compile(r"\bpooled analys[ie]s\b|"
+                                  r"\b(?:enrolled in|across|from|of) (?:\d+|two|three|four|five|six|seven|eight|nine|ten) "
+                                  r"(?:phase (?:I{1,3}|[1-3]) )?(?:randomi[sz]ed )?(?:controlled )?trials\b", re.I)
 SPAN_FIELDS = ("title", "conditions", "abstract")
 SPAN_CAP = 240
 
@@ -92,7 +115,7 @@ def _background_ranges(ab):
     return out
 
 
-def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None):
+def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None, keep_in_bg=None):
     """Every verbatim span of `rec`: the sentence around each match of `rx` (at most SPAN_CAP chars either side of the
     match) in which `avoid` does not occur, as {field, text, match}, in record order."""
     out = []
@@ -100,24 +123,115 @@ def _all_spans(rec, rx, fields=SPAN_FIELDS, avoid=None):
         ends = [e.start() for e in _SENT_END.finditer(s)]
         bg = _background_ranges(s) if f == "abstract" else []
         for m in rx.finditer(s):
-            if any(a0 <= m.start() < b0 for a0, b0 in bg):
-                continue                 # a BACKGROUND sentence says nothing about what THIS trial did (CORE, DELIVER)
+            in_bg = any(a0 <= m.start() < b0 for a0, b0 in bg)
             i = max((e for e in ends if e < m.start()), default=-1)
             a = max(0 if i < 0 else i + 2, m.start() - SPAN_CAP)
             b = min((e for e in ends if e >= m.end()), default=-1)
             b = len(s) if b < 0 else b + 1
             b = min(b, m.end() + SPAN_CAP)
             txt = s[a:b].strip()
+            if in_bg and not (keep_in_bg is not None and keep_in_bg.search(txt)):
+                continue                 # a BACKGROUND sentence says nothing about what THIS trial did (CORE, DELIVER)
             if avoid is not None and avoid.search(txt):
                 continue
             out.append({"field": f, "text": txt, "match": m.group(0)})
     return out
 
 
-def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None):
+def span_of(rec, rx, fields=SPAN_FIELDS, avoid=None, keep_in_bg=None):
     """The first verbatim span (see _all_spans), or None when the record never states it."""
-    sp = _all_spans(rec, rx, fields, avoid)
+    sp = _all_spans(rec, rx, fields, avoid, keep_in_bg)
     return sp[0] if sp else None
+
+
+# a population term NEGATED or made optional where it occurs ('adults without diabetes', 'with or without type 2
+# diabetes', 'no history of', 'free of', 'excluding') states the OPPOSITE of membership -- never an excluding span
+_NEGATION_BEFORE = re.compile(r"\b(?:without|with or without|no(?:\s+\w+){0,2}|not|free of|excluding|excluded|absence of|"
+                              r"non|never)\W*$", re.I)
+
+
+def _negated(text, match):
+    i = text.find(match)
+    return i >= 0 and bool(_NEGATION_BEFORE.search(text[max(0, i - 40):i]))
+
+
+# THIS study's question, in the first person: an aim sentence states what this trial did even when a structured abstract
+# files it under BACKGROUND (WOMAN-2 39461792: 'We examined whether giving tranexamic acid shortly after birth can
+# prevent postpartum haemorrhage ...') -- never a statement about the field
+AIM_THIS_STUDY = re.compile(r"\b(?:we|this (?:trial|study)|the (?:aim|objective|purpose) of this (?:trial|study))\s+"
+                            r"(?:\w+\s+){0,2}?(?:examined|assessed|investigated|evaluated|tested|aimed|sought|compared|"
+                            r"determined|was to)\b", re.I)
+
+# --- the EXCLUDED POPULATION of THIS study, stated in its own words (NR-C25 narrowed this to two constructions: a term
+# merely occurring in an aim or allocation sentence named in-scope trials on negations, subgroups, outcomes, secondary
+# aims, other studies' aims and contradicted abstracts)
+# words that say a sentence is about ANOTHER study
+_OTHER_STUDY = re.compile(r"\b(?:previous|prior|earlier|other|former)\s+(?:\w+\s+){0,2}?(?:trials?|stud(?:y|ies)|reports?|"
+                          r"analys[ie]s|meta-analys[ie]s|work)\b|\bauthors?\b|\breported\b|\bhave (?:been )?(?:examined|shown)\b",
+                          re.I)
+# a sentence about THIS study's enrolled population
+_ENROLLED = re.compile(r"\b(?:were|was)\s+(?:\w+\s+){0,2}?(?:randomi[sz]ed|randomly assigned|enrolled|recruited|included)\b|"
+                       r"\bwe\s+(?:\w+\s+){0,2}?(?:randomi[sz]ed|randomly assigned|enrolled|recruited)\b", re.I)
+# the enrolled population's phrase: 'patients / adults / women ... with <...>' up to the clause's end
+_POP_HEAD = re.compile(r"\b(?:patients|adults|women|men|participants|individuals|people|subjects|children)\b"
+                       r"(?P<tail>[^.;:]{0,200})", re.I)
+# any of these between the population head and the term negates, makes optional, or narrows it to a subgroup
+_NOT_MEMBERSHIP = re.compile(r"\b(?:without|not|no|none|unless|other than|except|excluding|excluded|exclusion|free of|"
+                             r"absence of|never|non|or without|including|subgroup|subset|those with|a history of|history)\b",
+                             re.I)
+# prevention verbs, applied to a condition
+_PREVENT = re.compile(r"\b(?:prevent|prevents|preventing|prevention of|prophylaxis (?:of|against)|prophylactic)\s+"
+                      r"(?P<obj>[^.;,]{0,80})", re.I)
+
+
+def _sentences_of(text):
+    ends = [e.start() for e in _SENT_END.finditer(text or "")]
+    a = 0
+    for e in ends + [len(text or "")]:
+        s = (text or "")[a:e + 1].strip()
+        if s:
+            yield s
+        a = e + 2
+
+
+def _negated_anywhere(text, term_rx):
+    """The abstract states the term NEGATED somewhere ('none had diabetes', 'without type 2 diabetes'): a naming would
+    contradict the record -> abstain."""
+    for m in term_rx.finditer(text or ""):
+        if _NOT_MEMBERSHIP.search(text[max(0, m.start() - 40):m.start()]):
+            return True
+    return False
+
+
+def stated_excluded_population(rec, inc):
+    """A verbatim span in which THIS study states that its enrolled population is one the protocol excludes, or None.
+      1. PREVENTION AIM: an unattributed first-person aim whose prevention verb takes the protocol's OWN condition
+         (population_any) as object, when the protocol excludes prevention (population_none has prevent / prophylaxis):
+         WOMAN-2 'We examined whether ... can prevent postpartum haemorrhage ...'. 'prevent death ... in women with
+         established postpartum haemorrhage' does not qualify (the object is death).
+      2. ENROLMENT: an unattributed randomisation / enrolment sentence whose population phrase ('patients ... with ...')
+         names a population_none term with nothing negating, optional or subgroup-like between the head and the term.
+    Either way, the abstract must never state the term negated (contradiction -> None)."""
+    ab = (rec or {}).get("abstract") or ""
+    none_rx, any_rx = _terms_rx(inc.get("population_none")), _terms_rx(inc.get("population_any"))
+    if not none_rx or not ab:
+        return None
+    prevention_excluded = any(re.match(r"(?:prevent|prophyla)", (t or "").strip(), re.I) for t in inc.get("population_none") or [])
+    for s in _sentences_of(ab):
+        if _OTHER_STUDY.search(s):
+            continue
+        if prevention_excluded and any_rx and AIM_THIS_STUDY.search(s):
+            for pm in _PREVENT.finditer(s):
+                om = any_rx.match(pm.group("obj").strip())
+                if om:
+                    return {"field": "abstract", "text": s, "match": pm.group(0)[:80]}
+        if _ENROLLED.search(s):
+            for hm in _POP_HEAD.finditer(s):
+                tail = hm.group("tail")
+                tm = none_rx.search(tail)
+                if tm and not _NOT_MEMBERSHIP.search(tail[:tm.start()]) and not _negated_anywhere(ab, none_rx):
+                    return {"field": "abstract", "text": s, "match": tm.group(0)}
+    return None
 
 
 def _terms_rx(terms):
@@ -200,9 +314,11 @@ def population_in_screen():
             # a lane-owned topic: the lane NAMED these exclusions; each still needs a span from its record, so the
             # same classifier runs on them (origin LANE_NAMED) -- the tracker demotes an unspanned one to an open gap
             slug = o["slug"]
-            # named by the lane, OR screened out with a rule (a lane-named exclusion this audit once demoted must stay
-            # in the audit's population, or a later fix of the audit can never re-examine it -- SOLOIST-WHF, 3 Oct)
-            lane_items = [d for d in o.get("named_differences") or []
+            # the LANE's naming, from the lane's own file pinned in lane_source (commit + path + sha256) -- the local copy
+            # is the tracker's output, from which an unspanned name has already been demoted -- PLUS every trial the lane
+            # screened out with a rule (a lane-named exclusion this audit once demoted must stay in the audit's
+            # population, or a later fix of the audit can never re-examine it -- SOLOIST-WHF, 3 Oct)
+            lane_items = [d for d in lane_named_differences(o)
                           if d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE" and d.get("pmid")]
             seen_lane = {d["trial"] for d in lane_items}
             lane_items += [{"trial": x["label"], "pmid": (x.get("seeded_funnel") or {}).get("pmid"),
@@ -234,6 +350,30 @@ def population_in_screen():
                         "stage": "SCREENED_OUT", "recorded_rule": fn.get("rule_id"),
                         "origin": "IN_SCREEN" if fn.get("already_in_screen") else "SEEDED_IN_MEMORY"})
     return out
+
+
+class LaneSourceUnreadable(RuntimeError):
+    pass
+
+
+def lane_named_differences(o):
+    """named_differences of a lane-owned tracker file AS THE LANE WROTE THEM: git show <lane_source.commit>:<path>,
+    checked against lane_source.sha256. Refuses (raises) when the pinned blob is unreadable or its hash differs --
+    an audit of a lane's naming that cannot read the naming must not quietly audit something else."""
+    import hashlib
+    import subprocess
+    ls = o["lane_source"]
+    try:
+        b = subprocess.run(["git", "show", f"{ls['commit']}:{ls['path']}"], cwd=ROOT, capture_output=True,
+                           stdin=subprocess.DEVNULL, check=True).stdout
+    except (subprocess.CalledProcessError, KeyError) as e:
+        raise LaneSourceUnreadable(f"{o.get('slug')}: lane_source {ls} not readable ({e})") from e
+    if hashlib.sha256(b).hexdigest() != ls.get("sha256"):
+        raise LaneSourceUnreadable(f"{o.get('slug')}: lane_source blob sha256 != recorded {ls.get('sha256')}")
+    lane = json.loads(b.decode("utf-8"))
+    if lane.get("slug") != o.get("slug"):              # right bytes, wrong topic: refuse (NR-C21)
+        raise LaneSourceUnreadable(f"{o.get('slug')}: pinned lane file is for topic {lane.get('slug')!r}")
+    return lane.get("named_differences") or []
 
 
 _MREC = {}
@@ -302,6 +442,27 @@ def _classify(rec, cfg):
     inc = copy.deepcopy(cfg.get("include") or {})
     base = decide(rec, inc)
     if base["decision"] == "include":
+        # a FULL TEXT can mention 'placebo-controlled' while citing ANOTHER study (Zarpelon 27223641's sample-size
+        # paragraph) and so pass the ruleset's design check; an explicit self-description of THIS study's design as open
+        # decides the design axis (the protocol requires double-blind or placebo-controlled)
+        if inc.get("design_double_blind") and OPEN_DESIGN_SELF.search(rec.get("abstract") or ""):
+            return ("TRUE_SCOPE_DIFFERENCE", "OPEN_DESIGN_STATED_FOR_THIS_STUDY (a placebo mention elsewhere cites another "
+                    "study)", _with_span(base, span_of(rec, OPEN_DESIGN_SELF, ("abstract",))))
+        # the SERVED screen (harness/screen.py) applies the registered ARM OBJECT after the ruleset includes: re-screen
+        # the same way, or a record the screen excludes reads here as 'the ruleset includes it' (O'Neil 2018 30122305:
+        # once-daily semaglutide 0·05-0·4 mg, protocol arm_object.dose.required = 2.4 mg -> X-DOSE)
+        if cfg.get("arm_object"):
+            from harness import arm_object
+            _, ref = arm_object.screen_refusal(rec, cfg)
+            if ref:
+                b2 = dict(base, decision="exclude", rule_id=ref["rule_id"], reason=ref["reason"])
+                m = re.search(r"randomised (.+?) dose is", ref.get("reason") or "")
+                if ref["rule_id"] == "X-DOSE" and m:
+                    # the record's own words stating the dose(s): '<drug> [0·05 mg, ...' (a middle dot is a decimal)
+                    sp = span_of(rec, re.compile(re.escape(m.group(1)) + r"\s*[\[(]?\s*\d+(?:[.,·]\d+)?\s*mg", re.I),
+                                 ("title", "abstract"))
+                    return ("TRUE_SCOPE_DIFFERENCE", f"DOSE_OUTSIDE_PROTOCOL_STATED ({ref['reason']})", _with_span(b2, sp))
+                return "INSUFFICIENT_RECORD", f"ARM_OBJECT_{ref['rule_id']}_NOT_SPANNED", b2
         return "INCONSISTENT", "RULESET_INCLUDES", base
     rule, reason = base["rule_id"], base["reason"] or ""
     ab = rec.get("abstract") or ""
@@ -337,12 +498,38 @@ def _classify(rec, cfg):
     if OBSERVATIONAL.search((rec.get("title") or "") + " " + ab) and not RANDOMISED_HERE.search((rec.get("title") or "") + " " + ab):
         return ("TRUE_SCOPE_DIFFERENCE", "OBSERVATIONAL_DESIGN_STATED (protocol requires an RCT)",
                 _with_span(base, span_of(rec, OBSERVATIONAL, ("title", "abstract"))))
-    if rule == "X1" and SECONDARY_ANALYSIS.search((rec.get("title") or "") + " " + ab):
-        # the record states it is an analysis ACROSS / OF trials, not a trial's report (doac-vte PMID 24081972:
-        # 'bleeding reports from 1034 individuals ... enrolled in 5 phase III trials')
+    if rule == "X1" and MULTI_TRIAL_ANALYSIS.search((rec.get("title") or "") + " " + ab):
+        # the record states it is an analysis ACROSS SEVERAL trials, not any one trial's report (doac-vte PMID 24081972:
+        # 'bleeding reports from 1034 individuals ... enrolled in 5 phase III trials'). A post hoc / secondary /
+        # sub-analysis of ONE trial is still that trial's report: it falls through to the X1 title logic below, which
+        # routes it to its trial family (lane G1 merge decision, 3 Oct; acq 0ce442d1 matches 'same trial, other report')
         return ("TRUE_SCOPE_DIFFERENCE", "SECONDARY_ANALYSIS_OF_TRIALS_STATED (protocol includes trial reports)",
-                _with_span(base, span_of(rec, SECONDARY_ANALYSIS, ("title", "abstract"))))
+                _with_span(base, span_of(rec, MULTI_TRIAL_ANALYSIS, ("title", "abstract"))))
     if rule == "X1":
+        from harness import screen as _screen
+        mark = _screen._TITLE_RCT_NOT.search(rec.get("title") or "")
+        pts = [p.lower() for p in rec.get("pubtypes") or []]
+        if mark and any("randomized controlled trial" in p for p in pts) and (RANDOMISED_HERE.search(ab)
+                                                                              or _screen._body_says_rct(rec)):
+            # the X1 came from a TITLE marker on a record PubMed types as an RCT and whose abstract says THIS study was
+            # randomised. A design / protocol paper is legitimately not a results report; a substudy / secondary /
+            # post-hoc report IS a randomised report of a trial -- 'not a randomized controlled trial' misstates it
+            # (colchicine-postop-af 22090167, the COPPS POAF substudy; the recorded adjudicator already disagreed).
+            # the WHOLE title decides, not its first marker (NR-C21: 'Substudy design and protocol of ...' is a protocol
+            # paper; 'Non-randomised substudy of ...' is not a randomised report, whatever its parent trial did)
+            title = rec.get("title") or ""
+            if not re.search(r"non-?randomi[sz]ed", title + " " + ab, re.I):
+                pm = PROTOCOL_PAPER_MARKER.search(title)
+                if pm:
+                    # a design / protocol paper says something about the REPORT, not the trial: the trial has (or will
+                    # have) a results report we do not hold. The unit is the TRIAL, so it stays ELIGIBLE -- never a
+                    # scope difference (spironolactone 25678098 'Rationale and design of ARTS-HF' would otherwise have
+                    # removed the ARTS-HF trial from the denominator; caught by this lane on regeneration, 3 Oct)
+                    return ("INSUFFICIENT_RECORD", f"DESIGN_PAPER_ONLY:'{pm.group(0)}' (the trial's results report is "
+                            f"not held)", base)
+                rm = RESULTS_REPORT_MARKER.search(title)
+                if rm:
+                    return "SCREENER_ERROR", f"SECONDARY_REPORT_OF_RCT:'{rm.group(0)}' (route to its trial family)", base
         return (("TRUE_SCOPE_DIFFERENCE", "NOT_RANDOMISED_STATED",
                  _with_span(base, span_of(rec, re.compile(r"non-?randomi[sz]ed", re.I), ("title", "abstract"))))
                 if re.search(r"non-?randomi[sz]ed", ab, re.I)
@@ -385,6 +572,12 @@ def _classify(rec, cfg):
         # tie-break is the RECORDED second reader's population axis on this same record (scripts/k_gap_screen_recheck.py,
         # quote-verified by model_source.verify_screening): MET -> our wording missed it; NOT_MET -> the record states
         # another population; NOT_STATED / no verified reading -> the record does not say.
+        # deterministic first: a population the protocol EXCLUDES, named in a sentence about THIS study (its first-person
+        # aim, or its allocation) -- the record states the excluding fact in its own words
+        sp = stated_excluded_population(rec, inc)
+        if sp and sp["text"] in (rec.get("abstract") or ""):
+            return ("TRUE_SCOPE_DIFFERENCE", f"PROTOCOL_EXCLUDES_POPULATION_STATED_FOR_THIS_STUDY:'{sp['match']}'",
+                    _with_span(base, sp))
         pv, pq = READER.get(str(rec.get("id"))) or (None, None)
         if pv == "MET":
             return "SCREENER_ERROR", "POPULATION_VOCABULARY (recorded reader: population MET, quoted)", base
