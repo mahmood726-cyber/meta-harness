@@ -1697,7 +1697,9 @@ def topic(slug, T):
     by_fam = {}
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
-    comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"]
+    # a DUPLICATE_UNIT is the same comparator trial listed in a second table (k_gap_table.mark_duplicate_units): never twice
+    comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"
+                 and t.get("status") != "DUPLICATE_UNIT"]
     other_agent = [t["label"][:60] for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""

@@ -469,6 +469,36 @@ def _title_key(t: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", k_gap.fold_dashes(t or "").lower()).strip()
 
 
+
+def _first_surname(label):
+    import re as _r
+    m = _r.match(r"\s*([A-Za-z][A-Za-z'-]{2,})", str(label or ""))
+    return m.group(1).lower() if m else None
+
+
+def mark_duplicate_units(rows):
+    """ONE comparator trial listed in two of the comparator's tables (balanced-crystalloids: 'Semler (SMART trial)' in
+    one table, 'Semler [15]' in another, both PMID 29485925) is one trial: the later unit is status DUPLICATE_UNIT with
+    duplicate_of, and leaves the comparator's N. Only when both units resolve to the same identity (same NCT set, else
+    same PMID set) AND name the same first author -- two numbered rows of one registration ('1 [21]' / '9 [28]', PLATO)
+    may be two analyses the comparator itself counts, so they stay. (consolidation 2026-10-04: SMART was counted twice
+    once both units resolved; before, a first-accession tie-break mislabelled one OTHER_AGENT and hid it.)"""
+    seen = {}
+    for r in rows:
+        if r.get("drug") == "OTHER_AGENT" or r.get("status") in ("UNRESOLVED", "DUPLICATE_UNIT"):
+            continue
+        ident = tuple(sorted(r.get("ncts") or [])) or tuple(sorted(r.get("pmids") or []))
+        if not ident:
+            continue
+        key = (r.get("slug"), ident)
+        prev = seen.get(key)
+        if prev is not None and _first_surname(r.get("label")) and \
+                _first_surname(r.get("label")) == _first_surname(prev.get("label")):
+            r["status"], r["duplicate_of"] = "DUPLICATE_UNIT", prev.get("label")
+            continue
+        seen.setdefault(key, r)
+    return rows
+
 def registered_before(n, year, idx) -> bool:
     """True unless we KNOW the registration was first submitted after the paper's publication year."""
     d = ((idx.get("study") or {}).get(n) or {}).get("study_first_submitted_date") or ""
@@ -1623,7 +1653,7 @@ def main(argv=None):
         return out
 
     def n_elig(rs):
-        return sum(r["drug"] != "OTHER_AGENT" and r["status"] != "UNRESOLVED" for r in rs)
+        return sum(r["drug"] != "OTHER_AGENT" and r["status"] not in ("UNRESOLVED", "DUPLICATE_UNIT") for r in rs)
 
     # round 1: every held candidate source for every topic (one batched AACT fact scan)
     need = set()
@@ -1708,11 +1738,12 @@ def main(argv=None):
         r["gap_class"] = classify(r["status"], r["declared_absent"], None, r["aact"], is_oa or bool(r["unpaywall"]))
         r["closable_by"] = closable_by(r["gap_class"], r["aact"], is_oa, bool(r["unpaywall"]),
                                        bool(r["abstract_outcome_span"]))
+    mark_duplicate_units(rows)
     topics_out = []
     for slug, cpmid, cit in topics:
         P = per[slug]
         tr = [r for r in rows if r["slug"] == slug]
-        elig = [r for r in tr if r["drug"] != "OTHER_AGENT" and r["status"] != "UNRESOLVED"]
+        elig = [r for r in tr if r["drug"] != "OTHER_AGENT" and r["status"] not in ("UNRESOLVED", "DUPLICATE_UNIT")]
         if P["chosen"] == "JATS_TABLE":
             state = "TABLE_ENUMERATED"
         elif P["chosen"] == "MODEL_PROPOSAL_GATED":
