@@ -118,3 +118,4 @@ Found while gating the outcome-set rule on "the analysis IS the compared result"
 - For Mahmood, before signing:
   - sglt2-primary-prevention's RESULT_AGREES rests on one small comparable trial (Kosiborod); its large trials are HR-vs-RR measure differences.
   - EPHESUS and CREDENCE are named under the protocol's own population_none terms ('myocardial infarction', 'nephropathy'), while the comparator includes both trials.
+- **a327c8041**: registry wording, and posted results as the single primary. The posted N must equal the randomised N. Flips **dapagliflozin-hfpef-hosp** (DELIVER). G1_MATCHED 7 -> 8 locally.
