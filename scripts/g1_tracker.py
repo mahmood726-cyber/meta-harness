@@ -23,6 +23,7 @@ from __future__ import annotations
 import io
 import json
 import math
+import re
 import os
 import sys
 from collections import Counter
@@ -61,7 +62,8 @@ def as_row(primary, label, measure_hint=None):
                            trial_label=label, measure=(primary.get("measure") or measure_hint or "").upper(),
                            outcome_definition="", effect=primary.get("effect"), lower=primary.get("lower"),
                            upper=primary.get("upper"), events_t=primary.get("events_t"), n_t=primary.get("n_t"),
-                           events_c=primary.get("events_c"), n_c=primary.get("n_c"))
+                           events_c=primary.get("events_c"), n_c=primary.get("n_c"), mean_t=primary.get("mean_t"),
+                           sd_t=primary.get("sd_t"), mean_c=primary.get("mean_c"), sd_c=primary.get("sd_c"))
 
 
 def agreement(ours, theirs):
@@ -117,6 +119,119 @@ def same_trials_pool(pairs, method_label):
         out[side] = {k: round(v, 4) for k, v in raw[side].items()}
     out["verdict"] = result_verdict(raw["ours"], raw["theirs"], measure)     # decided UNROUNDED; displayed rounded
     return out
+
+
+_COUNT_MEASURES = ("RR", "OR")
+
+
+def on_comparator_measure(ours, theirs):
+    """OUR trial row expressed in the COMPARATOR'S measure, or (None, why). Same measure: as is. The comparator pooled
+    RR / OR and our verified row carries ARM COUNTS: re-expressed from the counts (the 2x2 carries no measure). An HR
+    is NEVER converted to a ratio of risks: that pair is a MEASURE_DIFFERENCE (typed, named, never a failure alone)."""
+    om, tm = (ours.measure or "").upper(), (theirs.measure or "").upper()
+    if om == tm or not tm:
+        return ours, None
+    counts = None not in (ours.events_t, ours.n_t, ours.events_c, ours.n_c)
+    if tm in _COUNT_MEASURES and counts and om in ("", "RR", "OR"):
+        return sm.SecondaryRow(meta_pmid=ours.meta_pmid, meta_doi="", location={}, source_digest="", provenance=ours.provenance,
+                               trial_label=ours.trial_label, measure=tm, outcome_definition="",
+                               events_t=ours.events_t, n_t=ours.n_t, events_c=ours.events_c, n_c=ours.n_c), None
+    return None, f"MEASURE_DIFFERENCE:{om or '?'}_VS_{tm}"
+
+
+def _est(row):
+    """(estimate, ci_low, ci_high) of one row on its own scale, from its effect + CI or its counts."""
+    yv = sm.row_yi_vi(row)
+    if yv is None:
+        return None
+    g = math.exp if (row.measure or "").upper() in sm.RATIO else (lambda x: x)
+    se = math.sqrt(yv[1])
+    return {"estimate": g(yv[0]), "ci_low": g(yv[0] - 1.959963984540054 * se), "ci_high": g(yv[0] + 1.959963984540054 * se)} \
+        if row.effect is None else {"estimate": sm._num(row.effect), "ci_low": sm._num(row.lower), "ci_high": sm._num(row.upper)}
+
+
+def _concl(r, measure):
+    null = 1.0 if measure in sm.RATIO else 0.0
+    return "BENEFIT" if r["ci_high"] < null else "HARM" if r["ci_low"] > null else "NULL_INCLUDED"
+
+
+def same_trials_compare(pairs, method_label):
+    """The same-trials comparison ON THE COMPARATOR'S MEASURE (5 Oct class):
+      >= 2 comparable pairs   both sides pooled by ONE method on the comparator's measure (same_trials_pool)
+      exactly 1 shared trial  ONE_SHARED_TRIAL: that trial compared directly (k = 1 rule)
+      1 comparable + others   that trial's verdict, the others as measure differences
+      only measure differences  MEASURE_DIFFERENCE: our HR vs their RR/OR is never converted; it passes only on the
+                              SAME CONCLUSION about the null (per pair, and pooled when both sides pool)
+    Every measure-difference pair is listed (trial, both values, both conclusions)."""
+    comp, md = [], []
+    for o_, t_ in pairs:
+        row, why = on_comparator_measure(o_, t_)
+        if row is not None:
+            comp.append((row, t_))
+            continue
+        eo, et = _est(o_), _est(t_)
+        if eo is None or et is None:
+            continue
+        md.append({"trial": t_.trial_label or o_.trial_label, "why": why,
+                   "ours": {"measure": o_.measure, **{k: round(v, 4) for k, v in eo.items()}},
+                   "theirs": {"measure": t_.measure, **{k: round(v, 4) for k, v in et.items()}},
+                   "same_conclusion": _concl(eo, (o_.measure or "").upper()) == _concl(et, (t_.measure or "").upper())})
+    md_ok = all(d["same_conclusion"] for d in md)
+    if len(comp) >= 2:
+        out = same_trials_pool(comp, method_label)
+    elif len(comp) == 1:
+        o_, t_ = comp[0]
+        eo, et = _est(o_), _est(t_)
+        m = (t_.measure or "").upper()
+        out = ({"state": "ONE_SHARED_TRIAL" if not md else "ONE_COMPARABLE_TRIAL", "k": 1, "measure": m,
+                "trial": t_.trial_label, "ours": {k: round(v, 4) for k, v in eo.items()}, "theirs": et,
+                "verdict": result_verdict(eo, et, m)} if eo and et else {"state": "ROW_NOT_COMPARABLE", "k": 1})
+    elif md:
+        out = {"state": "MEASURE_DIFFERENCE", "k": len(md)}
+        same = md_ok
+        ours_m = {(p[0].measure or "").upper() for p in pairs}
+        theirs_m = {(p[1].measure or "").upper() for p in pairs}
+        if len(pairs) >= 2 and len(ours_m) == 1 and len(theirs_m) == 1:
+            method, hk = method_label.replace("+HK", ""), method_label.endswith("+HK")
+            pooled = {}
+            for side, idx, ms_ in (("ours", 0, ours_m), ("theirs", 1, theirs_m)):
+                yv = [sm.row_yi_vi(p[idx]) for p in pairs]
+                if any(v is None for v in yv):
+                    pooled = {}
+                    break
+                g = math.exp if next(iter(ms_)) in sm.RATIO else (lambda x: x)
+                mu, lo, hi = (g(x) for x in sm.pool([v[0] for v in yv], [v[1] for v in yv], method, hk))
+                pooled[side] = {"measure": next(iter(ms_)), "estimate": round(float(mu), 4), "ci_low": round(float(lo), 4),
+                                "ci_high": round(float(hi), 4)}
+            if pooled:
+                out.update(pooled)
+                same = same and _concl(pooled["ours"], pooled["ours"]["measure"]) == _concl(pooled["theirs"], pooled["theirs"]["measure"])
+        out["verdict"] = {"verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION" if same else "DIFFERENT_CONCLUSION",
+                          "basis": "our verified values are HRs; the comparator pooled a ratio of risks/odds: never converted"}
+    else:
+        return same_trials_pool(pairs, method_label)
+    if md:
+        out["measure_differences"] = md
+        v = (out.get("verdict") or {}).get("verdict")
+        if v == "AGREE" and not md_ok:
+            out["verdict"] = dict(out["verdict"], verdict="DIFFERENT_CONCLUSION",
+                                  why="a measure-difference pair reaches another conclusion about the null")
+    return out
+
+
+_NUMW = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+         "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15}
+_KTRIALS = re.compile(r"(?<![Pp]hase )(?<![Pp]hase)\b(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen)\s+"
+                      r"(?:(?:phase\s*(?:3|iii)|large|randomi[sz]ed|controlled|clinical|placebo-controlled|double-blind)\s+)*"
+                      r"(?:trials|studies|rcts)\b", re.I)
+
+
+def printed_trial_count(text):
+    """k as the comparator's own text states it ('6 phase 3 trials', 'Four randomized controlled trials'), only when
+    the text states exactly ONE such count (a screened-records count beside it is ambiguity, never a pick)."""
+    ks = {(_NUMW.get(m.group(1).lower()) or int(m.group(1))) for m in _KTRIALS.finditer(text or "")
+          if m.group(1).lower() in _NUMW or m.group(1).isdigit()}
+    return ks.pop() if len(ks) == 1 else None
 
 
 def result_verdict(ours, theirs, measure):
@@ -1031,6 +1146,11 @@ def our_value_from_row(t):
     if t.get("ai") is not None:
         return {"measure": "RR", "events_t": t["ai"], "n_t": t["n1i"], "events_c": t["ci"], "n_c": t["n2i"],
                 "source": f"our held-source pool {t.get('id')} ({t.get('provenance')})"}
+    # a continuous outcome pooled from ARM means / SDs / Ns (esketamine MADRS): the value is that mean difference
+    if None not in (t.get("mean1"), t.get("sd1"), t.get("nc1"), t.get("mean2"), t.get("sd2"), t.get("nc2")):
+        return {"measure": "MD", "mean_t": str(t["mean1"]), "sd_t": str(t["sd1"]), "n_t": int(t["nc1"]),
+                "mean_c": str(t["mean2"]), "sd_c": str(t["sd2"]), "n_c": int(t["nc2"]),
+                "source": f"our held-source pool {t.get('id')} ({t.get('provenance')})"}
     return None
 
 
@@ -1149,24 +1269,38 @@ def report_pmid(t, shown=None):
     return str(p) if p else None
 
 
-def whole_pool_comparison(o):
+def whole_pool_comparison(o, printed_k=None):
     """When EVERY comparator trial is matched and the comparator prints no per-trial rows (an IPD / network meta), the
     'same trials' ARE both whole pools: compare our pooled result with the comparator's printed one, labelled as such,
     with both methods recorded (they may differ: e.g. our PM+HKSJ vs an IPD model). Otherwise None."""
     st = o.get("same_trials") or {}
     ours, comp = o.get("ours") or {}, o.get("comparator") or {}
-    if st.get("state") == "POOLED" or o["k_matched"] != o["N_comparator_trials"] or o["named_differences"]:
+    if st.get("state") in ("POOLED", "ONE_SHARED_TRIAL", "ONE_COMPARABLE_TRIAL", "MEASURE_DIFFERENCE"):
         return None
-    if ours.get("k") != o["N_comparator_trials"] or None in (ours.get("estimate"), ours.get("ci_low"),
-                                                               ours.get("ci_high"), comp.get("estimate"),
-                                                               comp.get("ci_low"), comp.get("ci_high")):
+    # the comparator pooled exactly our matched set: every comparator unit matched, or -- when it lists units we name
+    # out of scope -- its own text states k pooled trials and k IS our matched set (doac-vte: '6 phase 3 trials')
+    k = o["k_matched"]
+    whole = k == o["N_comparator_trials"] and not o["named_differences"]
+    by_k = bool(printed_k) and printed_k == k and not o.get("ours_not_in_comparator")
+    if not (whole or by_k):
+        return None
+    if ours.get("k") != k or None in (ours.get("estimate"), ours.get("ci_low"), ours.get("ci_high"),
+                                      comp.get("estimate"), comp.get("ci_low"), comp.get("ci_high")):
         return None
     m = (ours.get("scale") or "").upper()
+    basis = ("ALL_TRIALS_SHARED_WHOLE_POOLS (comparator prints no per-trial rows)" if whole else
+             f"COMPARATOR_STATES_K={printed_k}=OUR_MATCHED_SET (comparator prints no per-trial rows)")
     if m != (comp.get("scale") or "").upper():
-        return {"state": "WHOLE_POOL_MEASURE_DIFFERS", "ours": ours.get("scale"), "theirs": comp.get("scale")}
+        o_ = {k_: ours[k_] for k_ in ("estimate", "ci_low", "ci_high")}
+        t_ = {k_: comp[k_] for k_ in ("estimate", "ci_low", "ci_high")}
+        same = _concl(o_, m) == _concl(t_, (comp.get("scale") or "").upper())
+        return {"state": "MEASURE_DIFFERENCE", "basis": basis, "k": k,
+                "ours": dict(o_, measure=ours.get("scale")), "theirs": dict(t_, measure=comp.get("scale")),
+                "verdict": {"verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION" if same else "DIFFERENT_CONCLUSION",
+                            "basis": "our pool is on hazard ratios; the comparator pooled a ratio of risks/odds: never converted"}}
     o_ = {k: ours[k] for k in ("estimate", "ci_low", "ci_high")}
     t_ = {k: comp[k] for k in ("estimate", "ci_low", "ci_high")}
-    return {"state": "POOLED", "basis": "ALL_TRIALS_SHARED_WHOLE_POOLS (comparator prints no per-trial rows)",
+    return {"state": "POOLED", "basis": basis,
             "k": o["k_matched"], "measure": m, "method": "ours: served pool method; theirs: as printed",
             "ours": {k: round(v, 4) for k, v in o_.items()}, "theirs": t_, "verdict": result_verdict(o_, t_, m)}
 
@@ -1209,7 +1343,9 @@ def g1_status(o):
                                     and x.get("g1_countable", True) for x in tr if is_matched(x)),
         # a READERS_DIFFER comparator row is never resolved by a pick: the result agrees only if the verdict is the
         # SAME under every reading (same_trials.readers_agree_on_verdict), else it is unmet until the readers resolve
-        "RESULT_AGREES": v == "AGREE" and (not readers_differ or (o.get("same_trials") or {}).get("readers_agree_on_verdict") is True),
+        # AGREE, or a NAMED measure difference (our HRs vs their RR/OR, never converted) with the same conclusion
+        "RESULT_AGREES": v in ("AGREE", "MEASURE_DIFFERENCE_SAME_CONCLUSION")
+                         and (not readers_differ or (o.get("same_trials") or {}).get("readers_agree_on_verdict") is True),
         "DIVERGENCES_NAMED": all((d.get("protocol_rule") or d.get("gate")) and (d.get("span") or {}).get("text")
                                  for d in nd)
                              and all(x.get("disagreement_side") for x in dis),
@@ -1477,7 +1613,7 @@ def topic(slug, T):
             "comparator_findings": comparator_findings(trials, comp),
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if is_matched(x))),
-            "same_trials": dict(same_trials_pool(pairs, method),
+            "same_trials": dict(same_trials_compare(pairs, method),
                                 method_basis=("comparator positive control reproduced " + method) if pc.get("methods")
                                 else "comparator positive control not reproduced: PM default"),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
@@ -1485,7 +1621,9 @@ def topic(slug, T):
             "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
-    wp = whole_pool_comparison(out)
+    _abs = _j(os.path.join(OUT, "comparator_abstracts.json")) if os.path.exists(os.path.join(OUT, "comparator_abstracts.json")) else {}
+    _ab = _abs.get(str(comp))
+    wp = whole_pool_comparison(out, printed_k=printed_trial_count(_ab if isinstance(_ab, str) else json.dumps(_ab or "")))
     if wp:
         out["same_trials_per_trial"] = out["same_trials"]
         out["same_trials"] = wp
