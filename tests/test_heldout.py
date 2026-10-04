@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -20,9 +21,13 @@ SHORT_FORM = "zz-plant"
 
 
 def _git(root, *args):
+    # never inherit a hook's GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE: under a commit hook this `git init` + `git config`
+    # re-initialised the LIVE repository (a lane clone: core.bare=true + this identity, 4 Oct 2026;
+    # plant tests/test_git_env_never_reaches_a_live_repo.py)
     return subprocess.run(
         ["git", *args],
         cwd=root,
+        env={k: v for k, v in os.environ.items() if not k.startswith("GIT_")},
         check=True,
         capture_output=True,
         text=True,
