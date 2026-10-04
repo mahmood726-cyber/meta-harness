@@ -263,6 +263,33 @@ def definition_gate(spec_name, registry_title):
     return extract.composite_component_mismatch(spec_name, "composite outcome definition: " + (registry_title or ""))
 
 
+_KW_STOP = {"or", "and", "an", "a", "the", "for", "of", "to", "with", "in", "on", "at", "by", "due"}
+
+
+def _kw_tokens(x):
+    x = (x or "").lower()
+    x = re.sub(r"\bcv\b", "cardiovascular", x)
+    x = re.sub(r"\bhf\b", "heart failure", x)
+    x = re.sub(r"hospitalisation", "hospitalization", x)
+    x = re.sub(r"\bdue to\b", "for", x)
+    return [w for w in re.findall(r"[a-z0-9]+", x) if w not in _KW_STOP]
+
+
+def keyword_named(keyword, title):
+    """Does a registry outcome TITLE name this topic keyword? Literally, or in its own wording: after normalising
+    abbreviations / spellings ('CV' = cardiovascular, 'Due to' = for), EVERY content word of the keyword is in the
+    title (DELIVER: 'CV Death, Hospitalization Due to Heart Failure or Urgent Visit ...'). A generic anchor ('primary
+    outcome') never names; a component-only title cannot contain a composite keyword's words."""
+    from harness import extract
+    k = (keyword or "").lower().strip()
+    if not k or k in extract.GENERIC_ANCHORS:
+        return False
+    if k in (title or "").lower():
+        return True
+    kt, tt = _kw_tokens(k), set(_kw_tokens(title))
+    return len(kt) >= 2 and all(w in tt for w in kt)
+
+
 def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     """One registry outcome through the binding gates, in order:
       OUTCOME_NOT_NAMED  the title names no topic keyword (generic anchors like 'primary outcome' do not count): being
@@ -272,7 +299,7 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
       ARMS               fewer than two result groups with people-unit counts"""
     from harness import extract
     t = (title or "").lower()
-    named = [k for k in keywords if k and k.lower() not in extract.GENERIC_ANCHORS and k.lower() in t]
+    named = [k for k in keywords if keyword_named(k, title)]
     if not named:
         return {"gate": "OUTCOME_NOT_NAMED", "verdict": "REFUSED",
                 "reason": "registry title names none of the topic's outcome keywords" + (" (it is the trial's PRIMARY "
@@ -423,6 +450,7 @@ def is_matched(x):
 
 
 ROUTE_GROUP = {"PRIMARY": "PRIMARY", "SWEEP_META+TRIAL_TEXT": "PRIMARY", "SWEEP_META+AACT": "PRIMARY",
+               "SWEEP_AACT_PRIMARY": "PRIMARY",
                "TWO_SOURCE": "TWO_SOURCE", "SWEEP_TWO_INDEPENDENT_METAS": "TWO_SOURCE",
                "SECONDARY_SINGLE": "SECONDARY_SINGLE", "SWEEP_SECONDARY_SINGLE": "SECONDARY_SINGLE"}
 
