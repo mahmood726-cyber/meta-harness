@@ -148,6 +148,16 @@ def definition_gate(spec_name, registry_title):
     return extract.composite_component_mismatch(spec_name, "composite outcome definition: " + (registry_title or ""))
 
 
+_STOP = {"of", "for", "the", "and", "or", "with", "in", "to", "a", "due", "by"}
+
+
+def _name_words(x):
+    """Content words of an outcome name or registry title, plural and British -isation folded."""
+    import re as _r
+    w = _r.findall(r"[a-z]+", (x or "").lower().replace("hospitalis", "hospitaliz"))
+    return {_r.sub(r"s$", "", v) for v in w if v not in _STOP}
+
+
 def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     """One registry outcome through the binding gates, in order:
       OUTCOME_NOT_NAMED  the title names no topic keyword (generic anchors like 'primary outcome' do not count): being
@@ -158,6 +168,12 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False):
     from harness import extract
     t = (title or "").lower()
     named = [k for k in keywords if k and k.lower() not in extract.GENERIC_ANCHORS and k.lower() in t]
+    # ...or the topic's OWN outcome NAME, when every content word of it (plural / British spelling folded) is in the
+    # title: iv-iron's keywords all say 'worsening', so HEART-FID's primary 'Number of Hospitalizations for Heart
+    # Failure' (the topic's 'Heart-failure hospitalization') was never named. Corpus: 2 candidates newly named --
+    # HEART-FID, and DAPA-HF's composite, which the ESTIMAND gate below still refuses.
+    if not named and spec_name and _name_words(spec_name) and _name_words(spec_name) <= _name_words(title):
+        named = [spec_name]
     if not named:
         return {"gate": "OUTCOME_NOT_NAMED", "verdict": "REFUSED",
                 "reason": "registry title names none of the topic's outcome keywords" + (" (it is the trial's PRIMARY "
@@ -1263,7 +1279,10 @@ def topic(slug, T):
             x["seeded_funnel"] = {"stage": "SCREENED_OUT", "rule_id": r.get("rule_id"),
                                   "reason": (r.get("reason") or "")[:140], "pmid": p, "already_in_screen": True}
             x["our_refusal"] = f"IN SCREEN PMID {p}: SCREENED_OUT {r.get('rule_id')}: {(r.get('reason') or '')[:140]}"
-    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if x["route"] == "NO_ROW" and not x.get("seeded_funnel")
+    # EVERY comparator trial we do not pool, whatever its route: gating this on route NO_ROW skipped any trial that had
+    # a comparator row joined (route UNVERIFIED) -- 45 trials in 12 topics never saw our screen, and when the label join
+    # attached Radholm (9)'s row it lost its SCREENED_VIA_OTHER_REPORT match to the CANVAS pool row
+    unseen = {rp[id(t)] for x, t in zip(trials, comp_rows) if not x["in_our_pool"] and not x.get("seeded_funnel")
               and rp[id(t)] and rp[id(t)] not in screened}
     if unseen:
         mp = os.path.join(OUT, "member_records.json")
@@ -1272,13 +1291,13 @@ def topic(slug, T):
         fun = cfm.funnel(cfm.build(slug, extra_records=recs), [r["id"] for r in recs], recs) if recs else {}
         for x, t in zip(trials, comp_rows):
             p = rp[id(t)] if rp[id(t)] in fun else None
-            if p and x["route"] == "NO_ROW" and not x.get("seeded_funnel"):
+            if p and not x["in_our_pool"] and not x.get("seeded_funnel"):
                 f = fun[p]
                 x["seeded_funnel"] = dict(f, pmid=p)
                 x["our_refusal"] = f"SEEDED PMID {p}: {f['stage']}" + (
                     f" {f.get('rule_id')}: {f.get('reason')}" if f.get("rule_id") else
                     f" {f.get('reason_code')}" if f.get("reason_code") else "")
-            elif x["route"] == "NO_ROW" and not x.get("seeded_funnel") and rp[id(t)] in unseen:
+            elif not x["in_our_pool"] and not x.get("seeded_funnel") and rp[id(t)] in unseen:
                 x["our_refusal"] = "NO_RECORD_HELD"
     # SAME TRIAL, OTHER REPORT: the comparator cites a secondary report (Radholm 2018, CANVAS heart-failure outcomes) whose
     # registered trial (the funnel's NCT link) we pool under its main report (Neal 2017, same NCT). The comparator trial

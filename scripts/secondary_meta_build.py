@@ -518,18 +518,42 @@ def family_of_factory(ours):
         """the acronym as a contiguous run anywhere in the label ('Rosas (COVACTA)'), distinctive only"""
         return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
 
+    ref_rx = re.compile(r"\s*[\[(]\s*(\d+)\s*[\])]\s*$")
+
     def family_of(row):
-        lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
+        lt = toks(ref_rx.sub("", row.trial_label or ""))
         hits = {}
         for t in ours:
-            names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
-            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
-                hits[t["id"]] = t
+            # the TRIAL-LIST label's trailing reference number is stripped like the row's: 'Zinman (8)' tokenised to
+            # ['zinman', '8'] and could never lead the figure's 'Zinman 2016' (sglt2-primary-prevention-hf: 8 accepted
+            # rows read, none joined). Reference numbers are NOT compared: a comparator may number its figure and its
+            # list differently (melatonin: figure 'Wade AG, 2011 [21]' is list 'Wade AG [22]', consistently offset)
+            lab = ref_rx.sub("", t["label"] or "")
+            names = [toks(a) for a in t["acronyms"]] + ([toks(lab)] if lab and not lab.isdigit() else [])
+            matched = sorted((n for n in names if n and (prefix(lt, n) or within(lt, n))), key=len)
+            score, name = (len(matched[-1]), matched[-1]) if matched else (0, None)
+            if t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt:
+                # first author AND year confirmed outranks a bare name: two 'Young' entries both name-match 'Young 2015';
+                # the one whose own report is Young 2015 wins (balanced-crystalloids)
+                score, name = score + 10, (name or [t["author_year"][0]])
+            if score:
+                hits[t["id"]] = (t, score, name)
         if len(hits) > 1:
             # two trials share an acronym ('CORIMUNO' names CORIMUNO-TOCI-1 and CORIMUNO-TOCI-ICU): the ONE whose full
-            # label tokens EQUAL the row's label wins; anything less stays ambiguous (None)
-            exact = [i for i, t in hits.items() if t["label"] and toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", t["label"])) == lt]
-            return exact[0] if len(exact) == 1 else None
+            # label tokens EQUAL the row's label wins; else the one whose matching name is LONGEST ('Semler (SALT trial)'
+            # over a bare 'Semler'), unique or nothing
+            exact = [i for i, (t, _, _) in hits.items() if t["label"] and toks(ref_rx.sub("", t["label"])) == lt]
+            if len(exact) == 1:
+                return exact[0]
+            # ...and only when every other hit's name LEADS the winner's (a bare 'Semler' inside 'Semler (SALT trial)'):
+            # a row naming two different trials ('SOLOIST-WHF/SCORED') is a combined row and binds to neither
+            top = max(s for _, s, _ in hits.values())
+            best = [i for i, (_, s, _) in hits.items() if s == top]
+            if len(best) != 1 or hits[best[0]][2] is None:
+                return None
+            win = hits[best[0]][2]
+            ok = all(n is not None and win[:len(n)] == n for i, (_, _, n) in hits.items() if i != best[0])
+            return best[0] if ok else None
         return next(iter(hits)) if len(hits) == 1 else None
     return family_of
 
