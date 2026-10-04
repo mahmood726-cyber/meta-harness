@@ -85,20 +85,39 @@ def shown_pmid(r):
         sp = os.path.join(OUT, "_aact_store.json")
         _STORE = (_j(sp).get("pmid") or {}) if os.path.exists(sp) else {}
     ncts = {n.upper() for n in r.get("ncts") or []}
-    for p in r["pmids"]:
-        if any(n in ncts and t == "RESULT" for n, t in _STORE.get(p, [])):
+    nc, pt = _pubmed_caches()
+    result = [p for p in r["pmids"] if any(n in ncts and t == "RESULT" for n, t in _STORE.get(p, []))]
+    # AACT's RESULT type is the sponsor's word: a design-and-rationale paper is typed RESULT too. Prefer a RESULT
+    # reference that is not a design/secondary paper by its own title; else the first RESULT reference, as before.
+    for p in result:
+        if not _not_main((pt.get(p) or {}).get("title") or ""):
             return p
+    if result:
+        return result[0]
     # AACT types no RESULT reference for the NCT (DELIVER: 48 linked PMIDs, all DERIVED; the oldest is a review): the
     # earliest PMID whose OWN PubMed record links the NCT, typed Randomized Controlled Trial, that is not a design /
     # protocol / secondary-analysis paper. Caches only (pubmed_ncts.json, pubmed_pubtypes.json); else the old fallback.
-    nc, pt = _pubmed_caches()
-    for p in sorted(r["pmids"], key=lambda x: int(x) if str(x).isdigit() else 10 ** 12):
+    by_id = sorted(r["pmids"], key=lambda x: int(x) if str(x).isdigit() else 10 ** 12)
+    for p in by_id:
         info = pt.get(p) or {}
         if ((nc.get(p) or "").upper() in ncts and "Randomized Controlled Trial" in (info.get("pubtypes") or [])
-                and not NOT_A_MAIN_REPORT.search(info.get("title") or "")
-                and not IN_A_NAMED_TRIAL.search(info.get("title") or "")):
+                and not _not_main(info.get("title") or "")):
+            return p
+    # pubmed_ncts.json holds ONE NCT per PMID, so a JOINT report of two trials links only the first: 'ODYSSEY FH I and
+    # FH II: 78 week results' (26330422) carries NCT01623115, and FH II (NCT01709500) fell to pmids[0] -- the 2014
+    # 'design and rationale of the ODYSSEY FH studies' (24842558), a paper the test above itself rejects. Before that
+    # fallback, take the earliest linked RCT-typed paper that passes the same main-report test -- only when pmids[0]'s
+    # OWN title is held and fails that test (an uncached title is unknown, not a design paper: LONG TERM 25773378).
+    first_title = (pt.get(r["pmids"][0]) or {}).get("title") or ""
+    for p in (by_id if first_title and _not_main(first_title) else []):
+        info = pt.get(p) or {}
+        if "Randomized Controlled Trial" in (info.get("pubtypes") or []) and not _not_main(info.get("title") or ""):
             return p
     return r["pmids"][0]
+
+
+def _not_main(title):
+    return bool(NOT_A_MAIN_REPORT.search(title) or IN_A_NAMED_TRIAL.search(title))
 
 
 _PM = None
