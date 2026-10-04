@@ -77,13 +77,20 @@ def stated_by(trial: dict) -> set[str]:
 
 
 def secondary_basis(trial: dict) -> dict | None:
-    sw = trial.get("sweep") or trial.get("secondary_single") or {}
-    return sw.get("basis") if isinstance(sw, dict) and isinstance(sw.get("basis"), dict) else None
+    """The recorded source of a SECONDARY_SINGLE row: sweep.basis (the two-source sweep) or secondary_single.provenance
+    (the tracker's own route, whose 'basis' is a sentence) -- both carry meta / location / digest."""
+    for key, field in (("sweep", "basis"), ("secondary_single", "basis"), ("secondary_single", "provenance")):
+        sw = trial.get(key)
+        if isinstance(sw, dict) and isinstance(sw.get(field), dict):
+            return sw[field]
+    return None
 
 
 def counts(trial: dict, comparator_ids: set[str]) -> tuple[bool, str]:
     """INDEPENDENTLY CONFIRMED: true only on a route whose sources are recorded AND exclude the comparator."""
     route = trial.get("route")
+    if trial.get("scope_difference"):
+        return False, "named out of scope (rule + span): not part of the comparator's eligible set"
     if trial.get("coverage") == "COMPARATOR_SOURCED":
         return False, "the row is comparator-sourced: coverage only, never confirmation"
     if route == "PRIMARY":
@@ -110,7 +117,7 @@ def counts(trial: dict, comparator_ids: set[str]) -> tuple[bool, str]:
 
 def comparator_sourced(trial: dict, comparator_ids: set[str]) -> tuple[bool, str]:
     """COVERAGE only (never INDEPENDENTLY CONFIRMED, never G1): a row taken from the comparator meta with provenance."""
-    if trial.get("coverage") != "COMPARATOR_SOURCED":
+    if trial.get("coverage") != "COMPARATOR_SOURCED" or trial.get("scope_difference"):
         return False, ""
     pv = (trial.get("comparator_sourced") or {}).get("provenance") or {}
     missing = [k for k in ("meta_pmid", "location", "digest", "read") if not pv.get(k)]
