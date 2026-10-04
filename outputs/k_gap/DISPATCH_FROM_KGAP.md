@@ -119,3 +119,15 @@ Found while gating the outcome-set rule on "the analysis IS the compared result"
   - sglt2-primary-prevention's RESULT_AGREES rests on one small comparable trial (Kosiborod); its large trials are HR-vs-RR measure differences.
   - EPHESUS and CREDENCE are named under the protocol's own population_none terms ('myocardial infarction', 'nephropathy'), while the comparator includes both trials.
 - **a327c8041**: registry wording, and posted results as the single primary. The posted N must equal the randomised N. Flips **dapagliflozin-hfpef-hosp** (DELIVER). G1_MATCHED 7 -> 8 locally.
+
+## To the captain / Mahmood: three alerts (5 Oct)
+
+1. **Private paths in git history.** Four codex records added in 90478bedc listed `<private path removed>` and `<private path removed>` under `files_read` (paths only, no content).
+   - They were quarantined from HEAD in 4e9146610, and the private-content test passes again.
+   - They remain in history at 90478bedc. Purging them needs a history rewrite (force-push), which this lane does not do.
+   - Root cause is still open: codex reads the owner's global instructions; isolating CODEX_HOME needs a go-ahead.
+2. **Disk is full.** C: has 360 MB free and F: has 6 GB. A full worktree of this repo no longer fits, so the lane has stopped sweeps and rebuilds that write into the repo. The lane's own scratch is about 47 MB.
+3. **Full local suite: 4751 passed, 16 failed** (MAHMOOD worker unreachable).
+   - One failure was the leak above, now fixed.
+   - The others are certificate, bundle, gate and production-record checks that compare served certificates with this branch's harness. The pinned blobs differ for files no acq/k-gap commit touched (synth.py, extract.py, screen_entry.py, source_hierarchy.py). They also differ for harness/secondary_meta.py, which this lane changed in e89dfe864 (rounding-envelope control); that change needs re-certification.
+   - fixstate fails because `core.bare = true` blocks its git status call.
