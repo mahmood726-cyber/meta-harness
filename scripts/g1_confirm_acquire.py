@@ -35,6 +35,8 @@ def unverified_targets():
     table row and the two-source sweep's identity for it (never typed)."""
     T = _j(os.path.join(OUT, "k_gap_table.json"))
     tab = {(t["slug"], t["label"]): t for t in T["trials"]}
+    ep = os.path.join(OUT, "g1_confirm", "extra_reports.json")
+    extra = _j(ep) if os.path.exists(ep) else {}
     out = []
     for f in sorted(os.listdir(os.path.join(OUT, "g1"))):
         if not f.endswith(".json"):
@@ -54,6 +56,9 @@ def unverified_targets():
             s = sw.get(x["label"]) or {}
             pm = set(re.findall(r"\b\d{6,9}\b", fam)) | set(t.get("pmids") or []) | set(s.get("pmids") or [])
             nc = set(re.findall(r"NCT\d{8}", fam)) | set(t.get("ncts") or []) | set(s.get("ncts") or [])
+            # other reports of THIS trial that its own held texts cite, located by a reading lane and resolved to a PMID
+            # deterministically (outputs/k_gap/g1_confirm/extra_reports.json, provenance per entry)
+            pm |= {e["pmid"] for e in extra.get(f"{slug}::{x['label']}", []) if str(e.get("pmid") or "").isdigit()}
             out.append({"slug": slug, "label": x["label"], "pmids": sorted(p for p in pm if p.isdigit()),
                         "ncts": sorted(nc)})
     return out

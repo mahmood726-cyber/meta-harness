@@ -230,3 +230,16 @@ def test_a_rerun_keeps_rows_this_lane_already_flipped(tmp_path, monkeypatch):
     (tmp_path / "k_gap_table.json").write_text(json.dumps({"trials": []}), encoding="utf-8")
     monkeypatch.setattr(acq, "OUT", str(tmp_path))
     assert [t["label"] for t in acq.unverified_targets()] == ["Flipped", "Open"]
+
+
+def test_extra_reports_of_the_trial_join_its_pmids(tmp_path, monkeypatch):
+    import g1_confirm_acquire as acq
+    (tmp_path / "g1").mkdir()
+    (tmp_path / "g1_confirm").mkdir()
+    (tmp_path / "g1" / "topic.json").write_text(json.dumps({"trials": [
+        {"label": "Open", "route": "UNVERIFIED", "family": "PMID 33300001"}]}), encoding="utf-8")
+    (tmp_path / "k_gap_table.json").write_text(json.dumps({"trials": []}), encoding="utf-8")
+    (tmp_path / "g1_confirm" / "extra_reports.json").write_text(json.dumps(
+        {"topic::Open": [{"pmid": "44400001", "via": "cited in PMID 333 PMC OA"}, {"pmid": None}]}), encoding="utf-8")
+    monkeypatch.setattr(acq, "OUT", str(tmp_path))
+    assert acq.unverified_targets()[0]["pmids"] == ["33300001", "44400001"]
