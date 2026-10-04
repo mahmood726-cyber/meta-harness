@@ -879,6 +879,63 @@ def comparator_sourced(x, g1r_state, orient="ESTABLISHED"):
             "provenance": x.get("comparator_row_provenance") or {}}, None
 
 
+def count_stated(text, a, n):
+    """The span where the text STATES a events of n ('13/98', '4 (3.9%) of 103', '9 of 103'), else None."""
+    m = re.search(rf"(?<![\d.]){a}\s*/\s*{n}(?![\d.])|(?<![\d.]){a}\s*\(\s*[\d.]+\s*%\s*\)\s*of\s*{n}(?![\d.])|"
+                  rf"(?<![\d.]){a}\s+of\s+(?:the\s+)?{n}(?![\d.])", text or "")
+    return m.group(0) if m else None
+
+
+def disagreement_side(ours, theirs, text):
+    """Which side of an ours-vs-comparator DISAGREE the trial's OWN held text supports, or None:
+      COMPARATOR_ARMS_SWAPPED            the comparator's numerators appear stated with their denominators exchanged
+                                         (Pozzoni: report '16/106' S. boulardii, '13/98' placebo; comparator 13/106 vs 16/98)
+      COMPARATOR_ROW_NOT_IN_TRIAL_REPORT  our counts are stated in the report, the comparator's are not
+                                         (Song: report '4 (3.9%) of 103' and '8 (7.2%) of 111'; comparator 9/103 vs 16/111)"""
+    if not text or None in (theirs.get("events_t"), theirs.get("n_t"), theirs.get("events_c"), theirs.get("n_c")):
+        return None
+    a, n1, b, n2 = (theirs[k] for k in ("events_t", "n_t", "events_c", "n_c"))
+    direct = count_stated(text, a, n1) and count_stated(text, b, n2)
+    sw = (count_stated(text, b, n1), count_stated(text, a, n2))
+    if not direct and all(sw) and (a, n1) != (b, n2):
+        return f"COMPARATOR_ARMS_SWAPPED (the trial's report states '{sw[0]}' and '{sw[1]}')"
+    if ours and ours.get("events_t") is not None:
+        s1, s2 = count_stated(text, ours["events_t"], ours["n_t"]), count_stated(text, ours["events_c"], ours["n_c"])
+        if s1 and s2 and not direct:
+            return f"COMPARATOR_ROW_NOT_IN_TRIAL_REPORT (the trial's report states '{s1}' and '{s2}'; the comparator's counts appear nowhere in it)"
+        if s1 and s2 and direct:
+            # the report states BOTH: two definitions of the outcome (Song: 'AAD-1' 4/103 vs 8/111 is the abstract's
+            # primary, 'AAD-2' 9/103 vs 16/111 is what the comparator pooled) -- neither side is wrong
+            d1, d2 = count_stated(text, a, n1), count_stated(text, b, n2)
+            return (f"BOTH_STATED_DIFFERENT_DEFINITIONS (the trial's report states ours '{s1}' / '{s2}' and the "
+                    f"comparator's '{d1}' / '{d2}')")
+    return None
+
+
+def side_from_trial_text(trials, slug):
+    """A per-trial DISAGREE with no side yet takes the side the trial's own held record supports (title + abstract +
+    held full text), so DIVERGENCES_NAMED can be met by evidence rather than left open."""
+    recs = {}
+    for f in (os.path.join(ROOT, "cache", slug, "records.json"), os.path.join(OUT, "member_records.json")):
+        if os.path.exists(f):
+            d = _j(f)
+            for v in (d.values() if isinstance(d, dict) else [d]):
+                for r in (v if isinstance(v, list) else [v]):
+                    if isinstance(r, dict) and r.get("id"):
+                        recs[str(r["id"])] = r
+    for x in trials:
+        if not str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE") or x.get("disagreement_side"):
+            continue
+        pm = str(x.get("family") or "").replace("PMID ", "")
+        r = recs.get(pm) or {}
+        ft = os.path.join(ROOT, "cache", slug, f"ft_{pm}.txt")
+        text = " ".join([r.get("title") or "", r.get("abstract") or "",
+                         open(ft, encoding="utf-8", errors="replace").read() if os.path.exists(ft) else ""])
+        side = disagreement_side(x.get("our_value"), x.get("comparator_row") or {}, text)
+        if side:
+            x["disagreement_side"] = side
+
+
 def discrepancy_findings(o):
     """Typed DISCREPANCY FINDINGS (never a silent overwrite of either side): every trial where our own value (pool /
     primary) and the comparator's row DISAGREE, every comparator row our primary verification contradicted (MISMATCH),
@@ -1740,6 +1797,7 @@ def topic(slug, T):
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
                             compared=_rep0 or None, accounted_other=accounted_other)
     sweep_merge(slug, trials, routes, pairs)
+    side_from_trial_text(trials, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))
