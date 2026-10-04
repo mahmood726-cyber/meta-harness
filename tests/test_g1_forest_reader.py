@@ -519,3 +519,13 @@ def test_topic_retry_note_names_the_review_and_suggests_no_value():
     assert "legible=false" in n and not any(ch.isdigit() for ch in n.replace("Colchicine", ""))
     # every frozen key names a topic file (a missing one would crash the run, not silently drop the note)
     assert all(os.path.exists(os.path.join(g.ROOT, "topics", k.split("::")[0] + ".json")) for k in g.TOPIC_RETRY)
+
+
+def test_comparator_extra_figures_are_comparator_role_with_their_own_keys():
+    its, skipped = g.items([], False, extras=sorted(g.COMPARATOR_EXTRA))
+    assert not skipped
+    keys = {it["key"] for it in its}
+    assert "spironolactone-hfref-mortality::40959489::F2D" in keys
+    assert all(it["role"] == "comparator" and it["pmid"] == g.comparator_of(it["slug"]) for it in its)
+    # an extra never shadows the topic's main comparator result (keyed by the bare slug)
+    assert not keys & set(g.COMPARATOR_EXTRA)

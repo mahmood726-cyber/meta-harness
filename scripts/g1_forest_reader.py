@@ -456,13 +456,14 @@ def supplement_figure(slug, pmid, t):
             "selected_by": f"TARGETS supplement page (text contains {t['caption_has']!r})"}, "SELECTED"
 
 
-def figure_for(slug, pmid):
-    """(figure dict, why). A TARGETS entry is honoured only if its figure exists and its caption contains the words."""
+def figure_for(slug, pmid, target=None):
+    """(figure dict, why). A TARGETS entry is honoured only if its figure exists and its caption contains the words.
+    target: an explicit entry (a further comparator figure, COMPARATOR_EXTRA) instead of the TARGETS lookup."""
     jp = jats_path(pmid)
     if not jp:
         return None, "NO_JATS"
     # a TARGETS entry keyed by the slug names the COMPARATOR's figure; another meta's is keyed '<slug>::<pmid>'
-    t = TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if pmid == comparator_of(slug) else None)
+    t = target or TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if pmid == comparator_of(slug) else None)
     if t and t.get("supplement"):
         return supplement_figure(slug, pmid, t)
     if t:
@@ -1223,26 +1224,55 @@ def key_of(slug, pmid):
     return slug if pmid == comparator_of(slug) else f"{slug}::{pmid}"
 
 
-def items(slugs, run, pairs=None):
-    """slugs -> each topic's comparator; pairs [(slug, pmid)] -> those metas (the two-source sweep's selection)."""
+# FURTHER figures of a topic's COMPARATOR, read for comparator trials that the comparator's main topic-outcome figure
+# does not show (3-4 Oct: the tracker's uncovered comparator trials, checked against every figure and open supplement
+# of each comparator). Only a per-trial plot of the TOPIC outcome qualifies -- a different outcome's rows cannot fill
+# the review. Keyed '<slug>::<comparator pmid>::<fig_id><panel>', role 'comparator'; same caption check, same two
+# recorded readings, same pooled-reconstruction gate as any figure.
+COMPARATOR_EXTRA = {
+    # MACE in the two pre-surgical (PCI) colchicine trials (Akodad 2017, Shah 2020), absent from F3's MACE panel
+    "colchicine-secondary-cv-prevention": [
+        {"fig_id": "F11", "caption_has": "subgroups of MACE from studies with pre-surgical colchicine",
+         "instruction": "Rows: every study row, once each. Pooled: the overall pooled row; if the figure prints both a "
+                        "fixed-effect and a random-effects total, give the random-effects total as pooled and say so in "
+                        "notes."}],
+    # all-cause mortality in the HFpEF/HFmrEF trials (TOPCAT is a comparator trial absent from F4's HFrEF panels)
+    "spironolactone-hfref-mortality": [
+        {"fig_id": "F2", "caption_has": "MRA effectiveness in hFpEF and hFmrEF", "panel": "D",
+         "panel_title": "All-cause mortality (HFpEF / HFmrEF)",
+         "instruction": "The figure has four panels (A-D). Transcribe ONLY panel (D) 'All-cause mortality': its study "
+                        "rows, once each, with the 'Hazard Ratio IV, Fixed, 95% CI' values (never log[Hazard Ratio] or "
+                        "SE), and panel (D)'s Total (95% CI) row as pooled. Ignore panels A-C."}],
+}
+
+
+def extra_key(slug, pmid, t):
+    return f"{slug}::{pmid}::{t['fig_id']}{t.get('panel') or ''}"
+
+
+def items(slugs, run, pairs=None, extras=None):
+    """slugs -> each topic's comparator; pairs [(slug, pmid)] -> those metas (the two-source sweep's selection);
+    extras [slug] -> that topic's COMPARATOR_EXTRA figures."""
     out, skipped = [], {}
-    todo = list(pairs or [])
+    todo = [(s, p, None) for s, p in (pairs or [])]
+    for slug in extras or []:
+        todo += [(slug, comparator_of(slug), t) for t in COMPARATOR_EXTRA.get(slug, [])]
     for slug in slugs:
         try:
-            todo.append((slug, comparator_of(slug)))
+            todo.append((slug, comparator_of(slug), None))
         except Exception as exc:  # noqa: BLE001
             skipped[slug] = f"NO_COMPARATOR:{type(exc).__name__}"
-    for slug, pmid in todo:
-        key = key_of(slug, pmid)
-        role = "comparator" if key == slug else "meta"
+    for slug, pmid, extra in todo:
+        key = extra_key(slug, pmid, extra) if extra else key_of(slug, pmid)
+        role = "comparator" if extra or key == slug else "meta"
         if run and not jats_path(pmid):
             k_gap.fetch_comparator_jats(pmid, FETCH_DATE)
             if not jats_path(pmid) and pmcid_of(pmid):
                 pmc_page_jats(pmid, pmcid_of(pmid))
-        t = TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if role == "comparator" else None)
+        t = extra or TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if role == "comparator" else None)
         if run and t and t.get("supplement") and jats_path(pmid):
             fetch_supplement(pmid, pmcid_of(pmid), t["supplement"])
-        fig, why = figure_for(slug, pmid)
+        fig, why = figure_for(slug, pmid, extra)
         if not fig:
             skipped[key] = {"pmid": pmid, "why": why, "role": role, "slug": slug}
             if why == "NO_JATS" and not pmcid_of(pmid) and role == "comparator":
@@ -1570,7 +1600,9 @@ def main(argv):
         slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1"))
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    if "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
+    if "--comparator-extra" in argv:           # the COMPARATOR_EXTRA figures (further comparator figures)
+        its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
+    elif "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
     elif "--kgap-sweep" in argv:
         its, skipped = items([], run, pairs=kgap_sweep_pairs(slugs))
