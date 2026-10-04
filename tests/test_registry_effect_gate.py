@@ -46,3 +46,14 @@ def test_first_and_recurrent_events_are_not_time_to_first():
                            analysis=dict(TECOS_ITT, param_value="0.70", ci_lower="0.58", ci_upper="0.85"),
                            estimand="HR", population=POP)
     assert v["gate"] == "ESTIMAND" and "recurrent" in v["reason"]
+
+
+def test_adding_death_is_another_composite_only_for_a_single_outcome():
+    hf = gt.binding_verdict("Heart-failure hospitalization", ["HF hospitalisation"], "HF Hospitalizations and CV Death", 2)
+    assert hf["gate"] == "ESTIMAND" and "adds death" in hf["reason"]
+    mace = gt.binding_verdict("3-point major adverse cardiovascular events", KW,
+                              "Time to first MACE: CV death, nonfatal myocardial infarction or nonfatal stroke", 2)
+    assert mace["verdict"] == "BINDABLE"
+    mve = gt.binding_verdict("Major vascular events", ["major vascular events"],
+                             "Major vascular events (vascular death, myocardial infarction, stroke)", 2)
+    assert "adds death" not in str(mve.get("reason"))

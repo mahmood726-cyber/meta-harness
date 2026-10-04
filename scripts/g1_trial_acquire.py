@@ -139,8 +139,42 @@ def outcome_terms(cfg):
     return [k for k in (po.get("keywords") or []) if k and k.lower() not in extract.GENERIC_ANCHORS]
 
 
+DETAIL = os.path.join(ROOT, "outputs", "k_gap", "_aact_detail.json")
+_OUT_COLS = ("description", "population", "units", "units_analyzed", "param_type")
+_AN_COLS = ("ci_n_sides", "ci_percent", "method", "estimate_description", "groups_description", "param_type",
+            "param_value", "ci_lower_limit", "ci_upper_limit")
+
+
+def aact_detail(ncts):
+    """Per outcome id: the snapshot's outcome description / analysis population / units, and each analysis's CI
+    sidedness + percent + method + estimate description (one streaming pass over outcomes + outcome_analyses for the
+    NCTs not yet cached; gitignored cache keyed by snapshot). TECOS's reader could not tell a two-sided CI or the MACE
+    components without them."""
+    from harness import aact
+    snap = aact.snapshot_dir(None)
+    d = json.load(open(DETAIL, encoding="utf-8")) if os.path.exists(DETAIL) else {}
+    if d.get("snapshot") != snap:
+        d = {"snapshot": snap, "ncts": {}}
+    want = {n for n in ncts if n and n not in d["ncts"]}
+    if want and snap:
+        got = {n: {"outcomes": {}, "analyses": {}} for n in want}
+        for r in aact._iter_rows(os.path.join(snap, "outcomes.txt")):
+            n = r.get("nct_id")
+            if n in want:
+                got[n]["outcomes"][str(r.get("id"))] = {k: (r.get(k) or "")[:600] for k in _OUT_COLS}
+        for r in aact._iter_rows(os.path.join(snap, "outcome_analyses.txt")):
+            n = r.get("nct_id")
+            if n in want:
+                got[n]["analyses"].setdefault(str(r.get("outcome_id")), []).append(
+                    {k: (r.get(k) or "")[:400] for k in _AN_COLS})
+        d["ncts"].update(got)
+        json.dump(d, open(DETAIL, "w", encoding="utf-8"), ensure_ascii=False)
+    return {n: d["ncts"].get(n) or {} for n in ncts}
+
+
 def aact_evidence(ncts):
     from kgap import aact_adapter
+    det = aact_detail(ncts)
     out = {}
     for n in ncts:
         try:
@@ -153,8 +187,11 @@ def aact_evidence(ncts):
             out[n] = {"state": "NO_POSTED_RESULTS"}
             continue
         outs = []
+        dn = det.get(n) or {}
         for oid, o in reg["outcomes"].items():
             outs.append({"outcome_id": oid, "type": o.get("type"), "title": o.get("title"), "time_frame": o.get("time_frame"),
+                         "detail": (dn.get("outcomes") or {}).get(str(oid)),
+                         "analysis_detail": (dn.get("analyses") or {}).get(str(oid)),
                          "groups": [{"group": g.get("group"), "title": reg["group_titles"].get(str(g.get("group"))),
                                      "count": g.get("count"), "n": g.get("n")} for g in reg["groups"].get(oid) or []],
                          "analyses": [{k: a.get(k) for k in ("param_type", "param_value", "ci_lower", "ci_upper", "groups")}
@@ -207,7 +244,7 @@ def evidence(t, cfg, comp):
     po = cfg.get("primary_outcome") or {}
     ev = {"trial": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
           "outcome": {k: po.get(k) for k in ("name", "keywords", "estimand", "timepoint", "population")},
-          "protocol_keys": sorted((cfg.get("include") or {}).keys()) + ["arm_object", "primary_outcome"],
+          "protocol_include": cfg.get("include"), "protocol_arm_object": cfg.get("arm_object"),
           "eligibility_summary": cfg.get("eligibility_summary"),
           "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items()},
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
@@ -238,7 +275,12 @@ def gate(resp, held, cfg, slug):
     est = (po.get("estimand") or "").upper()
     if resp["verdict"] == "SCOPE_DIFFERENCE":
         span = resp.get("scope_span") or ""
-        ok = bool(span) and _ws(span) in _ws(held["text"]) and resp.get("scope_rule_key")
+        key = str(resp.get("scope_rule_key") or "").replace("include.", "")
+        rule = (cfg.get("include") or {}).get(key, cfg.get(key))
+        if not rule:
+            # the rule must APPLY: iv-iron's design_double_blind is false, so 'open-label' names nothing (EFFECT-HF)
+            return "REFUSED:SCOPE_RULE_NOT_SET_IN_PROTOCOL", None
+        ok = bool(span) and _ws(span) in _ws(held["text"])
         return ("SCOPE_CANDIDATE" if ok else "REFUSED:SCOPE_SPAN_NOT_VERBATIM"), None
     if resp["verdict"] != "FOUND":
         return resp["verdict"], None
@@ -293,7 +335,10 @@ def gate(resp, held, cfg, slug):
             return "REFUSED:AACT_MULTIPLE_TIME_FRAMES", None
         one = {"outcomes": {oid: o}, "analyses": [x for x in reg["analyses"] if x.get("outcome_id") == oid],
                "groups": {oid: groups}}
-        m = sm.typed_match_registry(row, one, held["terms"] + [po.get("name") or ""], f"{n} outcome {oid}")
+        # identity is the binding gate's (named / estimand / analysis set / composite): the matcher checks the NUMBERS,
+        # so it is given the outcome's own title (HEART-FID's 'Number of Hospitalizations for Heart Failure' is named
+        # by the topic's outcome NAME, not by a literal keyword substring)
+        m = sm.typed_match_registry(row, one, [o.get("title") or ""], f"{n} outcome {oid}")
         if not m:
             return "REFUSED:TUPLE_NOT_THE_POSTED_RESULT", None
         return "ADMITTED", {"kind": "AACT", "source": f"AACT {(a.get('snapshot') or {}).get('id')} {n} outcome {oid}",
@@ -305,13 +350,17 @@ def comparator_pmid(slug, o):
     return str(o.get("comparator_pmid") or "")
 
 
-def run(slugs, ref):
+def run(slugs, ref, redo=()):
+    """A trial already answered (RAN_OK) is not asked again unless its label matches a --redo=<substring>."""
     data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {"runs": {}}
     jobs = []
     for slug in slugs:
         cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8"))
         o, ts = targets(slug, ref)
         for t in ts:
+            prev = data["runs"].get(f"{slug}|{t['label']}") or {}
+            if prev.get("state") in ("RAN_OK", "NO_OPEN_SOURCE") and not any(r in t["label"] for r in redo):
+                continue
             jobs.append((slug, cfg, comparator_pmid(slug, o), t))
 
     def one(job):
@@ -392,5 +441,5 @@ if __name__ == "__main__":
     ref = next((a.split("=", 1)[1] for a in argv if a.startswith("--ref=")), "origin/main")
     slugs = [a for a in argv if not a.startswith("--")]
     if "--run" in argv:
-        run(slugs, ref)
+        run(slugs, ref, [a.split("=", 1)[1] for a in argv if a.startswith("--redo=")])
     replay(slugs, ref)
