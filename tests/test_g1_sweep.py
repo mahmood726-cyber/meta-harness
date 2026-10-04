@@ -296,3 +296,16 @@ def test_forest_plan_reads_more_metas_when_more_candidates_per_trial_are_asked()
     two = sw.forest_plan(ts, by, set())
     four = sw.forest_plan(ts, by, set(), need=4)
     assert len(two) == 2 + 1 and set(two) < set(four) and len(four) == 5
+
+
+def test_a_forest_plot_caption_need_not_say_forest():
+    # corticosteroids-cap 4 Oct: PLoS One 23112872 'Figure 2 Meta-analysis for the association between mortality and
+    # corticosteroids' (the meta's only mortality forest plot) and 'Forrest plots' (sic) were never candidates
+    import k_gap_forest_plot as fpl
+    yes = ["Figure 2 Meta-analysis for the association between mortality and corticosteroids.",
+           "Figure 2 Forrest plots. OR: odds ratio.", "Fig. 2 Forest plot of associations", "Pooled analysis of mortality"]
+    no = ["Figure 5 Funnel plot of the included trials for mortality.", "Figure 1 Flow of study identification, inclusion",
+          "Figure 3 Risk of bias summary", "Fig 1 PRISMA diagram", "Network plot of comparisons",
+          "Figure 4 Trial sequential analysis of mortality", "Dose-response curve"]
+    assert all(fpl.is_forest_caption(c) for c in yes)
+    assert not any(fpl.is_forest_caption(c) for c in no)
