@@ -1064,6 +1064,61 @@ def resolve_cited_letters(trials, comp_rows, rp, screened, co_map):
             rp[id(t)] = co[0]
 
 
+_CITE_CACHE: dict = {}
+
+
+def comparator_acronym_citations(comp):
+    """{ACRONYM: {pmid, ...}} from the comparator's OWN held JATS: an acronym the text DEFINES with a citation -- 'RALES
+    (The Effect of Spironolactone on Morbidity ...) (<xref rid="B1">1</xref>)' -- names the cited reference, whose
+    <pub-id pub-id-type="pmid"> is in the comparator's own reference list."""
+    import glob
+    if comp in _CITE_CACHE:
+        return _CITE_CACHE[comp]
+    out = {}
+    d = os.path.join(ROOT, "cache", "comparators", str(comp or ""))
+    fs = sorted(glob.glob(os.path.join(d, "*jats*.xml")) + glob.glob(os.path.join(d, "*europepmc_fulltext.xml")))
+    for f in fs:
+        if out:
+            break
+        x = open(f, encoding="utf-8", errors="replace").read()
+        refs = {}
+        for rid, body in re.findall(r'<ref id="([^"]+)"[^>]*>(.*?)</ref>', x, re.S):
+            pm = re.findall(r'pub-id-type="pmid">\s*(\d+)', body)
+            if len(pm) == 1:
+                refs[rid] = pm[0]
+        body = x.split("<ref-list", 1)[0]
+        for m in re.finditer(r'(?<![A-Za-z0-9-])([A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*)(?:\s*\([^()<]{0,300}\))?\s*\(?\s*'
+                             r'<xref rid="([^"]+)" ref-type="bibr"', body):
+            if refs.get(m.group(2)):
+                out.setdefault(m.group(1), set()).add(refs[m.group(2)])
+    _CITE_CACHE[comp] = out
+    return out
+
+
+def _smb_comparator(slug):
+    import secondary_meta_build as smb
+    return smb.comparator_pmid(slug)
+
+
+def resolve_by_comparator_citation(comp_rows, comp):
+    """A comparator trial with NO identity (pre-registry, acronym label: 'RALES1999', 'EPHESUS2003') takes the PMID its
+    comparator's own text cites where it DEFINES that acronym -- exactly one cited reference, else nothing. Basis kept."""
+    cites = comparator_acronym_citations(comp)
+    if not cites:
+        return
+    for t in comp_rows:
+        if t.get("pmids") or t.get("ncts"):
+            continue
+        core = t["label"].strip()
+        for _ in range(3):        # trailing reference number, year, or a year glued to the acronym ('RALES1999')
+            core = re.sub(r"\s*(?:[\[(]\s*\d+\s*[\])]|,?\s+(?:19|20)\d\d[a-z]?)\s*$", "", core)
+            core = re.sub(r"(?<=[A-Za-z])(?:19|20)\d\d$", "", core)
+        pm = cites.get(core.upper()) if core.upper() == core else cites.get(core)
+        if pm and len(pm) == 1:
+            t["pmids"] = sorted(pm)
+            t["identity_basis"] = (t.get("identity_basis") or []) + [f"COMPARATOR_TEXT_DEFINES_ACRONYM_WITH_CITATION:{core}"]
+
+
 def needs_seed(x):
     """A comparator trial whose record our own screen must see: not in our pool and not yet funnelled. Never keyed on
     the route: a COMPARATOR-only row (route UNVERIFIED) says nothing about what our screen does with the record
@@ -1497,6 +1552,7 @@ def topic(slug, T):
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
     comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"]
+    resolve_by_comparator_citation(comp_rows, S.get("comparator_pmid") or _smb_comparator(slug))
     other_agent = [t["label"][:60] for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
