@@ -1365,7 +1365,12 @@ def name_letter_units_by_comment_on(slug, cfg, trials, rev):
     import k_gap_exclusion_audit as au
     ledger = {str(r.get("id")): r for r in ((rev or {}).get("screening") or {}).get("records", [])}
     for x in trials:
-        if is_matched(x) or x.get("scope_difference"):
+        # g1/finish-line's CommentOn re-point (registry/comment_on.json -> x['cited_as']) may have named the unit already
+        # by the article's screen exclusion; this stricter rule (one resolved edge, row bound by the article's own patient
+        # count, audit rule == served rule: NR-C24) then still runs and, when it holds, replaces that naming with its
+        # row-bound one (consolidation 2026-10-04: both lanes built the letter -> article edge)
+        via_cited = bool((x.get("cited_as") or {}).get("comment_on")) and bool(x.get("scope_difference"))
+        if is_matched(x) or (x.get("scope_difference") and not via_cited):
             continue
         pmid = str(x.get("family") or "").replace("PMID ", "").strip()
         rec = held_record(slug, pmid) or {}
@@ -1745,8 +1750,19 @@ def topic(slug, T):
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
+        if x["scope_difference"] and x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"):
+            # a trial NAMED out of scope never carries a counted route, whichever meta's row was verified for it: ELIXA's
+            # 4-point composite, verified from a non-comparator meta's dual-read row once the forest reader's rows entered
+            # the registry, read as PRIMARY again (consolidation 2026-10-04; plant test_g1_tracker_plants)
+            routes[x["route"]] -= 1
+            routes["UNVERIFIED"] += 1
+            x["basis"] = (f"named out of scope ({x['scope_difference'].get('kind')}): a verified value is held "
+                          f"({x.get('basis')}) but never gives an out-of-scope trial a counted route")
+            x["route"], x["g1_countable"] = "UNVERIFIED", False
         if x.get("in_our_pool") and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
             x["analysis_set_attribution"] = analysis_set_attribution(slug, cfg, x)
+    for k in [k for k, n in routes.items() if n <= 0]:
+        del routes[k]
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or {}, comp, rows)
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)

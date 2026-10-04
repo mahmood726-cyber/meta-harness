@@ -93,7 +93,9 @@ def shown_pmid(r):
     # protocol / secondary-analysis paper. Caches only (pubmed_ncts.json, pubmed_pubtypes.json); else the old fallback.
     nc, pt = _pubmed_caches()
     for p in sorted(r["pmids"], key=lambda x: int(x) if str(x).isdigit() else 10 ** 12):
-        info = pt.get(p) or {}
+        # the pubtype cache may lack a PMID whose record we HOLD (WOMAN-2's results report 39461792: the merged identity
+        # chain linked an unheld paper ahead of it and selection fell to pmids[0]); the held record is the same fact
+        info = pt.get(p) or _held_info(p, r.get("slug"))
         if ((nc.get(p) or "").upper() in ncts and "Randomized Controlled Trial" in (info.get("pubtypes") or [])
                 and not NOT_A_MAIN_REPORT.search(info.get("title") or "")
                 and not IN_A_NAMED_TRIAL.search(info.get("title") or "")):
@@ -109,6 +111,24 @@ NOT_A_MAIN_REPORT = re.compile(r"\bprotocol\b|rationale|\bdesign\b|statistical a
 
 # 'Inflammatory and Cholesterol Risk in the FOURIER Trial': a paper set INSIDE a named trial is a secondary analysis
 IN_A_NAMED_TRIAL = re.compile(r"\b(?:in|from) the [A-Z][A-Z0-9-]{2,}(?:[ -][A-Z0-9-]+)? (?:[Tt]rial|[Ss]tudy)\b")
+
+
+_HELD = {}
+
+
+def _held_info(pmid, slug=None):
+    """{'title', 'pubtypes'} of a PMID from a record WE HOLD (outputs/k_gap/member_records.json, else the topic's pinned
+    cache/<slug>/records.json); {} when not held. Held bytes only: no fetch."""
+    if "member" not in _HELD:
+        mp = os.path.join(OUT, "member_records.json")
+        _HELD["member"] = _j(mp) if os.path.exists(mp) else {}
+    rec = _HELD["member"].get(str(pmid))
+    if rec is None and slug:
+        if slug not in _HELD:
+            cp = os.path.join(os.path.dirname(os.path.dirname(OUT)), "cache", slug, "records.json")
+            _HELD[slug] = {str(x.get("id")): x for x in ((_j(cp).get("records") or []) if os.path.exists(cp) else [])}
+        rec = _HELD[slug].get(str(pmid))
+    return {"title": rec.get("title"), "pubtypes": rec.get("pubtypes")} if rec else {}
 
 
 def _pubmed_caches():
