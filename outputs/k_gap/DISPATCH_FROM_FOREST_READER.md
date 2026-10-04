@@ -86,3 +86,68 @@ of these papers in the cache, for example by downloading them himself from the o
 
 Both appear in `meta_results` with role `comparator` and key `<slug>::<pmid>::<fig>`. `accepted_rows(slug)` returns
 them with `meta_pmid` set to the comparator's PMID.
+
+## 4 Oct (night): SECONDARY_SINGLE supply for six topics
+
+These are non-comparator metas covering the tracker's UNVERIFIED / NO_ROW trials.
+
+**How they were selected.** `scripts/g1_ss_targets.py` read the targets at acq/k-gap `f34580f9`. It then searched
+Europe PMC for open-access, in-EPMC meta-analyses:
+- for a target with a PMID, metas whose reference list cites it (`CITES:<pmid>_MED`);
+- for a target with only an NCT number, metas whose full text contains it.
+
+Every query is recorded in `registry/model_proposals/g1_ss_search/<slug>.json`. Candidates are ranked by how many
+targets they cite (`g1_ss_selection.json`).
+
+**How they were read.** The figure is the one whose caption names the topic outcome, caption-checked in `TARGETS`.
+Both readers also got the topic-outcome note. Two recorded readings were taken for each figure, followed by the
+pooled-reconstruction gate. The comparator is never used.
+
+### Accepted (rows in `meta_results`; `accepted_rows(slug)` returns them)
+
+| figure | rows | gate |
+|---|---|---|
+| omega3 29387889 hoi170076f2 (major vascular events, by trial) | 10 | FE 0.967 (0.929–1.007) reproduces 0.97 (0.93–1.01) |
+| pcsk9 39259104 F7 (MACE) | 12 | MH-FE reproduces 0.87 (0.83–0.91) |
+| ticagrelor 30013323 f7 (MACE at 180 days) | 5 | FE reproduces 0.27 (0.15–0.46) |
+| ticagrelor 30412125 F2 (primary efficacy) | 5 | MH-RE reproduces 0.64 (0.41–1.01) |
+
+- **omega3 29387889:** the 10 rows are DOIT, AREDS-2, SU.FOL.OM3, JELIS, Alpha Omega, OMEGA, R&P, GISSI-HF, ORIGIN and
+  GISSI-P, which covers about 8 of omega3's targets by acronym.
+  - **Caution:** these trial rows print **99% CIs**. The caption and methods say so, and the totals are 95%. Each row
+    carries `ci_level: "99%"` and a finding `ROW_CI_IS_99_PERCENT`.
+  - `SecondaryRow` has no interval-level field, so derive no SE from these rows as if they were 95%.
+- **pcsk9 39259104:** its rows are labelled by surname, so the join to the ODYSSEY targets is for you to judge.
+- **ticagrelor:** the five Chinese trials in 30013323 and Bonello/Park/Tang/Vercellino/Xia in 30412125 may not be the
+  numbered targets. Their join is yours.
+
+### Refused, with the reason
+
+| figure | agreed rows | why refused |
+|---|---|---|
+| tocilizumab 35802687 g003 | 14 | the figure prints **no pooled row** (see below) |
+| tocilizumab 35038318 f1 panel A | 9 | 1 row disagrees, so the whole figure is refused |
+| tocilizumab 34768455 f002 | 8 | 1 row disagrees, and the pool is not reproduced |
+| omega3 39076869 S3.F2 panel A | 12 | 1 row disagrees (DL reproduces on the agreed rows) |
+| omega3 42144851 | 11 log-ORs | DL 0.015 (−0.131 to 0.162) vs printed 0.04 (−0.06 to 0.14) |
+| pcsk9 41235335 F4 panel A | — | 7 rows disagree, and the counts do not give 3 printed rows |
+| ticagrelor 42524293 F2 panel b | — | the readers disagree on the pooled row |
+| metformin 28630466 Fig4 panel c | — | the readers disagree on the rows and the pool |
+
+**tocilizumab 35802687, for the captain and Mahmood.** Both readers agree on all 14 tocilizumab-vs-usual-care trial
+rows: ARCHITECTS, CORIMUNO-TOCI-ICU, COV-AID, COVACTA, COVIDOSE2-SS-A, COVIDSTORM, EMPACTA, HMO-020-0224, ImmCoVA,
+PreToVid, RECOVERY, REMAP-CAP (a), REMDACTA and TOCIBRAS. These are the NO_NON_COMPARATOR_META_ROW trials. But the
+figure is a network meta-analysis's direct-evidence plot: it prints per-trial ORs and % weights, and **no pooled
+row**. The paper's text prints no pairwise pool either. So the reconstruction gate cannot run, and the rows are NOT
+accepted.
+- **A possible decision:** let the printed % weights serve as the gate (inverse-variance weights recomputed from the
+  rows must reproduce them).
+- That is a rule change, so it is not taken here.
+
+### No source found
+
+| topic | why |
+|---|---|
+| probiotics-aad | every open meta of antibiotic-associated diarrhoea that cites the targets is already read. The higher-coverage metas plot *C. difficile* diarrhoea, a different outcome. |
+| metformin-pcos | the high-coverage metas plot other outcomes (endometrium, metabolic markers) or are network metas. |
+| pcsk9 | the high-coverage metas are network meta-analyses, or plot dementia, neurocognitive outcomes or LDL. |
