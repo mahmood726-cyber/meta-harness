@@ -78,7 +78,20 @@ def aact_day28_percentages(label):
                 out.append((arm, float(m["value"]), int(o["analysed"].get(grp)), grp))
             except (TypeError, ValueError):
                 continue
-    return [x for x in out if x[0]]
+    out = [x for x in out if x[0]]
+    # a registration shared by two REACT rows posts one group per POPULATION ('TOCILIZUMAB -- Critical COVID Population
+    # (WHO-CPS >5)'): keep this label's population only; with population groups and no rule for this label, none
+    # (codex NR-C27: severe and critical groups were mixed for CORIMUNO-TOCI-ICU)
+    if any(re.search(r"population", grp, re.I) for *_, grp in out):
+        rx = AACT_POPULATION.get(label)
+        out = [x for x in out if rx and re.search(rx, x[3], re.I)]
+    # it types a timepoint only when it covers BOTH arms, one group each (codex NR-C27: one arm alone was admitted)
+    if sorted(a for a, *_ in out) != ["c", "t"]:
+        return []
+    return out
+
+
+AACT_POPULATION = {"CORIMUNO-TOCI-1": r"severe|moderate", "CORIMUNO-TOCI-ICU": r"critical"}
 
 
 def _side(t, route, verdict):
@@ -92,9 +105,11 @@ def _side(t, route, verdict):
     if not src:
         return None
     rr = t["react_row"]
-    return (f"SECONDARY_WRONG (primary numbers are in the primary's own span: {src['source']}: '{src['span'][-160:]}'; "
-            f"the comparator's row {rr['deaths_t']}/{rr['n_t']} vs {rr['deaths_c']}/{rr['n_c']} is not the report's "
-            f"{t['row']['deaths_t']}/{t['row']['n_t']} vs {t['row']['deaths_c']}/{t['row']['n_c']})")
+    # the OBSERVED difference only: 'SECONDARY_WRONG' would assert the comparator is in error, which the two tuples
+    # alone do not show (codex NR-C27)
+    return (f"DIFFERENT_REPORTED_TUPLE (the trial's own report states {t['row']['deaths_t']}/{t['row']['n_t']} vs "
+            f"{t['row']['deaths_c']}/{t['row']['n_c']} -- {src['source']}: '{src['span'][-160:]}'; the comparator's row "
+            f"is {rr['deaths_t']}/{rr['n_t']} vs {rr['deaths_c']}/{rr['n_c']}; why they differ is not inferred)")
 
 
 def secondary_single(t):
@@ -138,6 +153,11 @@ def secondary_single(t):
                    "this row reproduces" + (" (primary states: " + "; ".join(o["timepoint"] for o in
                                                                              t.get("other_timepoint_statements") or []) + ")"
                                             if t.get("other_timepoint_statements") else ""))
+    # a SECONDARY_COUNT reading types the meta row only if it IS that row's tuple (codex NR-C27: a different tuple was
+    # admitted on the state alone)
+    if not why and t["state"] == g.SECONDARY_COUNT and tuple((t.get("row") or {}).get(k) for k in g._KEY) != tups[0]:
+        why.append(f"TIMEPOINT_NOT_TYPED: the primary-consistent reading {tuple((t.get('row') or {}).get(k) for k in g._KEY)} "
+                   f"is not the meta row {tups[0]}")
     if why:
         return None, " | ".join(why)
     tup = tups[0]
