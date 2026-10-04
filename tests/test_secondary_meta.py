@@ -374,3 +374,21 @@ def test_typed_table_reads_unicode_minus_signs_and_pools_md_from_the_arms():
     # no aligned header naming the control -> arm-level data are NOT taken (arm order unknown)
     bad = jats.replace(b"<th>Placebo mean (SD)</th>", b"<th>Mean (SD)</th>")
     assert sm.typed_rows_from_jats(bad, "x")[0]["rows"][3].mean_t is None
+
+
+
+def test_a_forest_reads_measure_wording_is_normalised_typed():
+    # omega3 5 Oct: GISSI-P's row was refused 'MEASURE_FIXED EFFECT RELATIVE RISK (95% CI)_IS_NOT_ESTIMAND_RR' -- the
+    # reader wrote the measure as 'Fixed effect relative risk (95% CI)'; and 'Std. Mean Difference' became MD
+    import secondary_meta_build as smb
+    assert smb.normalize_measure("Fixed effect relative risk (95% CI)") == "RR"
+    assert smb.normalize_measure("Risk Ratio, M-H, Random, 95% CI") == "RR"
+    assert smb.normalize_measure("RELATIVE RISK (95% CI)") == "RR"
+    assert smb.normalize_measure("Odds Ratio (M-H, Fixed)") == "OR"
+    assert smb.normalize_measure("Hazard ratio") == "HR"
+    assert smb.normalize_measure("Rate ratio") == "IRR"                 # never a ratio of risks
+    assert smb.normalize_measure("Std. Mean Difference, IV, Random") == "SMD"
+    assert smb.normalize_measure("Standardised mean difference") == "SMD"
+    assert smb.normalize_measure("Mean Difference IV, Fixed") == "MD"
+    assert smb.normalize_measure("WMD") == "MD"
+    assert smb.normalize_measure("ES (95% CI)") == "ES (95% CI)"         # unknown wording stays as printed
