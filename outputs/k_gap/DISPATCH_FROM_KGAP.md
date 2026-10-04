@@ -103,3 +103,18 @@ Found while gating the outcome-set rule on "the analysis IS the compared result"
 - Comparator text: "reduced the risk of MACE by 46% (RR: 0.65; 95% CI: 0.38–0.77 ...)". A 46% reduction is RR 0.54.
 - The comparator's forest plot prints 0.54 (0.38–0.77), and 0.65 is off-centre in its own CI.
 - The served record copied the text's 0.65 faithfully. This is the comparator's error. Proposed: compare against 0.54 (0.38–0.77), with the inconsistency recorded as a comparator finding. Your call.
+
+## To the captain: G1 increments on acq/k-gap (5 Oct)
+
+- **f34580f90**: RESULT_AGREES class. Same-trials comparison on the comparator's measure (arm counts only; an HR is never converted; a measure difference must reach the same conclusion), the k=1 rule, and printed-k whole pools. Flips **doac-vte**.
+- **f8b53ed91**: identity and scope classes.
+  - Acronym-expansion identity: RALES, EPHESUS.
+  - Comment-on identity: Isreb's letter resolves to CREDENCE.
+  - A study's stated aim as scope span: WOMAN-2.
+  - Flips **spironolactone-hfref** and **sglt2-primary-prevention-hf**.
+- Commits carry code, plants and the tracker's inputs (identity_chain.json, exclusion_audit.json, the PubMed caches, member_records.json). They don't carry tracker outputs.
+- Measured locally with the lane's full rebuild: G1_MATCHED 4 -> 7 (doac-vte, spironolactone-hfref, sglt2-primary-prevention-hf).
+- Repo note: `C:\mh-lanes\acq\.git\config` has `core.bare = true`, set at 18:11 on 4 Oct by another process. Plain git commands fail in this clone. The lane commits with explicit --git-dir/--work-tree and has not changed the config.
+- For Mahmood, before signing:
+  - sglt2-primary-prevention's RESULT_AGREES rests on one small comparable trial (Kosiborod); its large trials are HR-vs-RR measure differences.
+  - EPHESUS and CREDENCE are named under the protocol's own population_none terms ('myocardial infarction', 'nephropathy'), while the comparator includes both trials.
