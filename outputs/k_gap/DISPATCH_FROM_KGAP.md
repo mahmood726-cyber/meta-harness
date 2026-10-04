@@ -88,3 +88,18 @@ on g1/noac. Then switch `format` in `outputs/k_gap/g1_lanes.json` to `tracker_v1
   - after: HR 0.8040 (0.6517–0.9919), all HR.
 - Both agree with COMBINE AF's 0.81 (0.74–0.89). After the swap, NOAC meets every G1 criterion.
 - It changes a served number, so it goes through a notice for Mahmood's signature. The change is your lane's to make.
+
+## Served comparator records that are not the compared analysis (4 Oct; for Mahmood)
+
+Found while gating the outcome-set rule on "the analysis IS the compared result". Nothing in docs/ was changed.
+
+**metformin-pcos-ovulation: the served comparator result belongs to another comparison.**
+- Protocol and outcome label: metformin **added to clomifene** vs clomifene (+ placebo).
+- Served `comparator.reported`: OR 2.64 (1.85–3.75). In the comparator's text (CD013505) that is **metformin vs placebo**: "higher rates of ovulation with metformin (OR 2.64 ... 13 studies, 684 women)".
+- The topic's comparison is printed beside it: "The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03; I2 = 63%; 21 studies, 1568 women)". This is the figure the forest-reader lane accepted (CD013505-fig-0024; rows reproduce it, MH-FE).
+- Consequence: G1 for this topic is measured against the wrong comparison. The metformin fill notice adds 12 rows from the right comparison, but its "before" is the served 2.64. Correcting the served comparator to OR 1.65 (1.35–2.03) is a served-number change, so it needs a notice you sign.
+
+**colchicine-secondary-cv-prevention: the comparator's own text contradicts its figure.**
+- Comparator text: "reduced the risk of MACE by 46% (RR: 0.65; 95% CI: 0.38–0.77 ...)". A 46% reduction is RR 0.54.
+- The comparator's forest plot prints 0.54 (0.38–0.77), and 0.65 is off-centre in its own CI.
+- The served record copied the text's 0.65 faithfully. This is the comparator's error. Proposed: compare against 0.54 (0.38–0.77), with the inconsistency recorded as a comparator finding. Your call.
