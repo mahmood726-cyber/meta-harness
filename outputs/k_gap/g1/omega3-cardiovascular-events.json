@@ -5,7 +5,7 @@
  "N_comparator_trials": 28,
  "k_matched": 4,
  "k_in_our_pool": 4,
- "N_eligible": 19,
+ "N_eligible": 18,
  "named_differences": [
   {
    "trial": "Eritsland 1996 [24]",
@@ -73,6 +73,25 @@
    },
    "span_source": "comparator PMID 35905212 figure F2 (recorded read mc-2340ad028969726cc31960d64dc66af7)",
    "pmid": null
+  },
+  {
+   "trial": "Yokoyama 2007 [32]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X-DESIGN",
+   "screen_reason": "not double-blind/placebo-controlled (record: 17398308).",
+   "span": {
+    "field": "title",
+    "text": "Effects of eicosapentaenoic acid on major coronary events in hypercholesterolaemic patients (JELIS): a randomised open-label, blinded endpoint analysis.",
+    "match": "randomised open"
+   },
+   "span_source": "PMID 17398308 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "OPEN_LABEL_STATED (protocol requires double-blind)"
+   },
+   "protocol_rule": "include.design_double_blind = True",
+   "registered_eligibility": null,
+   "pmid": "17398308"
   },
   {
    "trial": "Tuttle 2008 [34]",
@@ -156,7 +175,6 @@
   "GISSI-P 1999 [25]",
   "Nilsen 2001 [26]",
   "Brouwer 2006 [31]",
-  "Yokoyama 2007 [32]",
   "GISSI-HF 2008 [33]",
   "Einvik 2010 [37]",
   "Rauch 2010 [38]",
@@ -186,7 +204,7 @@
  },
  "blockers": {
   "SCREENER_ERROR:POPULATION_VOCABULARY (recorded reader: population MET, quoted)": 1,
-  "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 2,
+  "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
   "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 5,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 2,
   "EXTRACTION:ENDPOINT_UNBOUND": 1,
@@ -769,10 +787,26 @@
     "pmid": "17398308",
     "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:BLINDING_NOT_STATED",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_BLOCKED_CROSSCHECK"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X-DESIGN",
+    "screen_reason": "not double-blind/placebo-controlled (record: 17398308).",
+    "span": {
+     "field": "title",
+     "text": "Effects of eicosapentaenoic acid on major coronary events in hypercholesterolaemic patients (JELIS): a randomised open-label, blinded endpoint analysis.",
+     "match": "randomised open"
+    },
+    "span_source": "PMID 17398308 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "OPEN_LABEL_STATED (protocol requires double-blind)"
+    },
+    "protocol_rule": "include.design_double_blind = True",
+    "registered_eligibility": null,
+    "pmid": "17398308"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "GISSI-HF 2008 [33]",
@@ -2312,12 +2346,94 @@
   "NOT_COMPARABLE:HR_VS_RR": 4
  },
  "same_trials": {
-  "state": "MIXED_MEASURES",
-  "measures": [
-   "HR",
-   "RR"
-  ],
+  "state": "MEASURE_DIFFERENCE",
   "k": 4,
+  "ours": {
+   "measure": "HR",
+   "estimate": 0.9086,
+   "ci_low": 0.7669,
+   "ci_high": 1.0765
+  },
+  "theirs": {
+   "measure": "RR",
+   "estimate": 0.9168,
+   "ci_low": 0.7871,
+   "ci_high": 1.0678
+  },
+  "verdict": {
+   "verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
+   "basis": "our verified values are HRs; the comparator pooled a ratio of risks/odds: never converted"
+  },
+  "measure_differences": [
+   {
+    "trial": "Kromhout 2010",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 1.01,
+     "ci_low": 0.87,
+     "ci_high": 1.17
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 1.02,
+     "ci_low": 0.88,
+     "ci_high": 1.17
+    },
+    "same_conclusion": true
+   },
+   {
+    "trial": "Galan 2010",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 1.08,
+     "ci_low": 0.79,
+     "ci_high": 1.47
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 1.06,
+     "ci_low": 0.78,
+     "ci_high": 1.44
+    },
+    "same_conclusion": true
+   },
+   {
+    "trial": "Bhatt 2019",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 0.74,
+     "ci_low": 0.65,
+     "ci_high": 0.83
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 0.78,
+     "ci_low": 0.72,
+     "ci_high": 0.86
+    },
+    "same_conclusion": true
+   },
+   {
+    "trial": "Manson 2019",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 0.92,
+     "ci_low": 0.8,
+     "ci_high": 1.06
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 0.92,
+     "ci_low": 0.8,
+     "ci_high": 1.06
+    },
+    "same_conclusion": true
+   }
+  ],
   "method_basis": "comparator positive control reproduced DL",
   "excluded_named_scope_differences": []
  },
@@ -2369,6 +2485,7 @@
   "24265794": "NO_OUTCOME_FOREST_FIGURE",
   "26571503": "NO_OUTCOME_FOREST_FIGURE:refused pone.0142652.g002=MULTIPANEL_NO_UNIQUE_PANEL",
   "23029372": "NO_OUTCOME_FOREST_FIGURE",
+  "22994912": "IMAGE_NOT_FETCHED",
   "32384902": "NO_OUTCOME_FOREST_FIGURE",
   "25106703": "NO_OUTCOME_FOREST_FIGURE"
  },
@@ -2437,19 +2554,18 @@
   "criteria": {
    "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
-   "RESULT_AGREES": false,
+   "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
   "unmet": [
-   "ALL_ELIGIBLE_MATCHED",
-   "RESULT_AGREES"
+   "ALL_ELIGIBLE_MATCHED"
   ],
   "excluded_by_scope": {
-   "n": 9,
+   "n": 10,
    "of_comparator_N": 28,
    "by_kind": {
     "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS": 4,
-    "PROTOCOL_SCOPE_DIFFERENCE": 5
+    "PROTOCOL_SCOPE_DIFFERENCE": 6
    },
    "trials": [
     "Eritsland 1996 [24] [G1-OUTCOME-SET]",
@@ -2457,21 +2573,14 @@
     "Burr 2003 [28] [G1-OUTCOME-SET]",
     "Leaf 2005 [29] [G1-OUTCOME-SET]",
     "Raitt 2005 [30] [G1-OUTCOME-SET]",
+    "Yokoyama 2007 [32] [X-DESIGN]",
     "Tuttle 2008 [34] [X3]",
     "Quinn 2010 [35] [X2]",
     "AREDS2 2014 [44] [X2]",
     "Doi 2014 [45] [X-DESIGN]"
    ]
   },
-  "result_blocker": {
-   "code": "MEASURE_DIFFERS_PER_TRIAL",
-   "measures": [
-    "HR",
-    "RR"
-   ],
-   "k_pairs": 4,
-   "comparator_rows_contradicted_by_primary": []
-  }
+  "result_blocker": null
  },
  "removed_comparator_rows": [],
  "added_comparator_rows": []

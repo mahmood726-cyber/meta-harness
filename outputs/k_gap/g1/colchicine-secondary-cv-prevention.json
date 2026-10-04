@@ -794,14 +794,102 @@
   "NOT_COMPARABLE:HR_VS_RR": 2
  },
  "same_trials": {
-  "state": "MIXED_MEASURES",
-  "measures": [
-   "HR",
-   "RR"
-  ],
+  "state": "MEASURE_DIFFERENCE",
   "k": 2,
+  "ours": {
+   "measure": "HR",
+   "estimate": 0.7215,
+   "ci_low": 0.6243,
+   "ci_high": 0.8338
+  },
+  "theirs": {
+   "measure": "RR",
+   "estimate": 0.7629,
+   "ci_low": 0.6457,
+   "ci_high": 0.9014
+  },
+  "verdict": {
+   "verdict": "DIFFERENT_CONCLUSION",
+   "basis": "our verified values are HRs; the comparator pooled a ratio of risks/odds: never converted"
+  },
+  "measure_differences": [
+   {
+    "trial": "Jean-Claude Tardif–2019",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 0.77,
+     "ci_low": 0.61,
+     "ci_high": 0.96
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 0.81,
+     "ci_low": 0.64,
+     "ci_high": 1.03
+    },
+    "same_conclusion": false
+   },
+   {
+    "trial": "Stefan M Nidorf–2020",
+    "why": "MEASURE_DIFFERENCE:HR_VS_RR",
+    "ours": {
+     "measure": "HR",
+     "estimate": 0.69,
+     "ci_low": 0.57,
+     "ci_high": 0.83
+    },
+    "theirs": {
+     "measure": "RR",
+     "estimate": 0.72,
+     "ci_low": 0.57,
+     "ci_high": 0.91
+    },
+    "same_conclusion": true
+   }
+  ],
   "method_basis": "comparator positive control not reproduced: PM default",
-  "excluded_named_scope_differences": []
+  "excluded_named_scope_differences": [],
+  "attribution": {
+   "basis": "single-trial swaps of the same-trials pools (same method, same verdict rule)",
+   "drivers": [],
+   "per_trial": [
+    {
+     "trial": "Tardif et al. (8)",
+     "row_agreement": "NOT_COMPARABLE:HR_VS_RR",
+     "analysis_set": null,
+     "comparator_row_nearest_set": null,
+     "disagreement_side": null,
+     "driver": false,
+     "theirs_with_our_row": null,
+     "theirs_with_our_row_conclusion": null,
+     "theirs_with_our_row_pool": null,
+     "ours_with_their_row": null,
+     "ours_with_their_row_conclusion": null,
+     "ours_with_their_row_pool": null
+    },
+    {
+     "trial": "Nidorf et al. (7)",
+     "row_agreement": "NOT_COMPARABLE:HR_VS_RR",
+     "analysis_set": null,
+     "comparator_row_nearest_set": null,
+     "disagreement_side": null,
+     "driver": false,
+     "theirs_with_our_row": null,
+     "theirs_with_our_row_conclusion": null,
+     "theirs_with_our_row_pool": null,
+     "ours_with_their_row": null,
+     "ours_with_their_row_conclusion": null,
+     "ours_with_their_row_pool": null
+    }
+   ],
+   "closed": false,
+   "resolution": {
+    "state": "UNRESOLVED",
+    "rows": [],
+    "why": "a driver's side is undetermined, or swapping drivers does not reach agreement"
+   }
+  }
  },
  "ours": {
   "k": 3,
@@ -821,7 +909,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "521ed499f5eab3ec6507c535d063c721a1542117",
+   "commit": "14fca27b029cbf1d6b4243f16b464eb758528577",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -892,7 +980,7 @@
   "methods": [
    "MH-RE"
   ],
-  "where": "figure F3 (g1/forest-reader 521ed499f, dual-model)",
+  "where": "figure F3 (g1/forest-reader 14fca27b0, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY)",
   "pooled": {
    "effect": "0.54",
@@ -935,13 +1023,31 @@
    ]
   },
   "result_blocker": {
-   "code": "MEASURE_DIFFERS_PER_TRIAL",
-   "measures": [
-    "HR",
-    "RR"
+   "code": "MEASURE_DIFFERENCE:DIFFERENT_CONCLUSION",
+   "basis": null,
+   "k": 2,
+   "ours": {
+    "measure": "HR",
+    "estimate": 0.7215,
+    "ci_low": 0.6243,
+    "ci_high": 0.8338
+   },
+   "theirs": {
+    "measure": "RR",
+    "estimate": 0.7629,
+    "ci_low": 0.6457,
+    "ci_high": 0.9014
+   },
+   "pairs_with_a_different_conclusion": [
+    "Jean-Claude Tardif–2019"
    ],
-   "k_pairs": 2,
-   "comparator_rows_contradicted_by_primary": []
+   "stated_k_span": null,
+   "outcome_check": null
+  },
+  "result_disagreement": {
+   "state": "UNRESOLVED",
+   "rows": [],
+   "why": "a driver's side is undetermined, or swapping drivers does not reach agreement"
   }
  },
  "removed_comparator_rows": [],
