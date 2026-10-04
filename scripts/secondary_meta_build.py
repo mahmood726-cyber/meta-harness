@@ -720,6 +720,14 @@ def build(slug, run, runs):
     for pm, ds in sorted(dual.items()):
         if (metas_out.get(pm) or {}).get("usable"):
             continue
+        if str(pm) == str(comp):
+            # the COMPARATOR's own dual read is not secondary evidence for our pool: g1_tracker.lane_comparator_rows
+            # consumes it under the COMPARATOR_SOURCED gate (its own outcome by definition, its own labels, any measure).
+            # Ingested here it went through the secondary admission meant for OTHER metas (outcome vocabulary, estimand,
+            # family join) and lost 27 comparator-sourced rows (pcsk9 'major vascular events' RR; iv-iron 'total heart
+            # failure hospitalizations'): a semantic conflict between g1/forest-reader 99e1c0a8 and acq/k-gap's coverage,
+            # found when the lanes were consolidated (2026-10-04).
+            continue
         # the timepoint the FIGURE's own caption states ('28-Day All-Cause Mortality in Each Trial', REACT) is the most
         # specific statement of it; else, as for every figure row, the meta's text for a core (mortality) outcome
         tp_text = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
@@ -735,6 +743,16 @@ def build(slug, run, runs):
         skipped.pop(pm, None)
     sm.consolidate(rows)
     sm.cross_check(rows)
+    # CROSS-CHECK BLOCKS ARE REFEREED BY THE TRIAL'S OWN REPORT: two metas that disagree on a trial block each other
+    # 'until resolved', and the resolution is the trial's own report -- so blocked rows go through the same primary
+    # verification as unblocked ones (a row matching the primary is verified; the other is a MISMATCH that names its
+    # side). Without a primary they stay BLOCKED. Before this, a blocked row was never compared with the primary:
+    # PIONEER 6 (glp1) lost its 'SECONDARY_WRONG' side once a second meta's dual-read row (upper 1.11 vs 1.10) blocked
+    # the comparator's row, and G1_MATCHED fell on DIVERGENCES_NAMED (consolidation 2026-10-04).
+    refereed = {id(r) for r in rows if r.state == sm.BLOCKED}
+    for r in rows:
+        if id(r) in refereed:
+            r.state = sm.UNVERIFIED
     by_id = {t["id"]: t for t in ours}
     # DETERMINISTIC VERIFICATION FIRST (no model, no network): the meta's exact printed numbers found by regex in the
     # trial's held primary sources -- abstract, PMC OA text, held cache/<slug>/ft_<pmid>.txt, Unpaywall text -- or in its
@@ -781,6 +799,9 @@ def build(slug, run, runs):
                         sm.verify_against_primary(r, prim2, queue_reason=f"NO_PRIMARY:{how2}")
                     else:
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
+    for r in rows:
+        if id(r) in refereed and r.state == sm.UNVERIFIED:
+            r.state = sm.BLOCKED             # no primary to referee: the disagreement stays a block
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
     # every meta that contributed a row is a KNOWN meta of the topic (incl. dual-read metas beyond the search's top N):
