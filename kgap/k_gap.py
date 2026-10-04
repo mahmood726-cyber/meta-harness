@@ -236,14 +236,68 @@ def fold_dashes(s: str) -> str:
 _APOSTROPHES = str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "′": "'"})
 
 
+_MARKER = re.compile(r"(?:\s*\[(\d{1,3})\]|(?<=et al)\.?\s*(\d{1,3}))\s*$")
+_N_EQ = re.compile(r"\s*\(\s*n\s*=\s*[\d,]+\s*\)\s*$", re.I)
+_GLUED_YEAR = re.compile(r"(?<=[A-Za-z])((?:19|20)\d\d)$")
+_TRAILING_YEAR = re.compile(r"[\s-]+(?:19|20)\d\d$")
+
+
+def _split_label(lab: str) -> tuple[str, str]:
+    """(label without its reference marker / '(n = N)' / glued year, marker). 'Ratanarat [18]' -> ('Ratanarat', '18');
+    'Helps et al52' -> ('Helps et al', '52'); 'RALES1999' -> ('RALES 1999', ''); 'SOLOIST-WHF (n = 1222)' ->
+    ('SOLOIST-WHF', ''). Only a BRACKETED number or digits glued to 'et al' are markers: a bare trailing number is part of
+    the trial's name ('PIONEER 6', 'STEP 1', 'DECLARE-TIMI 58')."""
+    lab = _N_EQ.sub("", lab).strip()
+    marker = ""
+    m = _MARKER.search(lab)
+    if m:
+        marker = next(g for g in m.groups() if g)
+        lab = lab[:m.start()].strip()
+    return _GLUED_YEAR.sub(r" \1", lab), marker
+
+
 def _label_tokens(label: str) -> dict:
     # typographic apostrophes -> "'": 'O’Neil, 2018' read no author, so the row was skipped as furniture
+    # UNCHANGED on purpose: this decides which table rows/columns ARE trial units. Identity uses identity_tokens().
     lab = fold_dashes(_flat(label)).translate(_APOSTROPHES)
     acr = [a for a in _ACRO.findall(lab) if a.replace("-", "").replace(" ", "").upper() not in _NOT_ACRO
            and not NCT_RE.match(a)]
     m = _AUTHOR_YEAR.match(lab)
     return {"acronyms": acr[:3], "author": m.group(1) if m else "", "year": m.group(2) if m else "",
             "ncts": sorted(set(NCT_RE.findall(lab)))}
+
+
+def identity_tokens(label: str) -> dict:
+    """The label's IDENTITY fields only (never used to decide what a unit is): the reference marker, a glued or
+    trailing year and '(n = N)' are separated before acronym and author-year are read. Used by the identity chain
+    (scripts/k_gap_table.resolve_unit); unit enumeration keeps _label_tokens, so no topic's trial set moves."""
+    lab, marker = _split_label(fold_dashes(_flat(label)).translate(_APOSTROPHES))
+    # a publication year is never part of an acronym: 'GISSI-P 1999' -> 'GISSI-P', 'RALES1999' -> 'RALES'
+    acr = [_TRAILING_YEAR.sub("", a) for a in _ACRO.findall(lab)
+           if a.replace("-", "").replace(" ", "").upper() not in _NOT_ACRO and not NCT_RE.match(a)]
+    acr = [a for a in acr if len(a.replace("-", "")) >= 3]
+    # a mixed-case hyphenated trial name ('Aldo-DHF') is read whole, before its upper-case tail ('DHF') is tried
+    whole = re.match(r"^([A-Z][a-z]+-[A-Z]{2,}[A-Za-z0-9]*)\b", lab)
+    if whole and whole.group(1) not in acr:
+        acr = [whole.group(1)] + acr
+    # an all-caps name with a Capitalised second word is ONE name ('EMPEROR Preserved'): reading only 'EMPEROR'
+    # resolved the row to EMPEROR-Reduced (NCT03057977), the wrong trial. Generic words are never part of a name.
+    two = re.match(r"^([A-Z]{3,}[-\s](?!(?:Trial|Study|Group|Investigators|Programme|Program)\b)[A-Z][a-z]{3,})\b", lab)
+    if two and two.group(1) not in acr:
+        head = re.split(r"[-\s]", two.group(1))[0]
+        # ...and its bare head is dropped: falling back to 'EMPEROR' alone could resolve uniquely to the WRONG member
+        acr = [two.group(1)] + [a for a in acr if a != head]
+    m = _AUTHOR_YEAR.match(lab)
+    if not m:
+        m2 = re.match(r"^([A-Z][A-Za-z'À-ſ-]+)(?:\s+[A-Z]{1,3}\.?)?(?P<etal>\s+et\s+al\.?)?$", lab)
+        # an author alone is read only with a reference marker, or in the 'Surname [I] et al' form ('Finkelstein Y et al')
+        author = m2.group(1) if m2 and (marker or m2.group("etal")) else ""
+    # a trial NAME with a year ('Risk & Prevention 2013'): the year stands on its own -- one 4-digit publication year,
+    # never part of an '(n = ...)' count (already removed) or of a longer number
+    yrs = re.findall(r"(?<![\d.])((?:19|20)\d\d)(?![\d.])", lab) if not m else []
+    year = m.group(2) if m else (yrs[0] if len(set(yrs)) == 1 else "")
+    return {"acronyms": acr[:3], "author": m.group(1) if m else author, "year": year,
+            "ncts": sorted(set(NCT_RE.findall(lab))), "marker": marker}
 
 
 def _units_from_table(t: dict) -> list[dict]:
