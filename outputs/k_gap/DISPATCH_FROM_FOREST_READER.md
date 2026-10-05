@@ -236,3 +236,23 @@ candidate value that makes the row's own printed numbers consistent. It was **re
 | ticagrelor 38371311 | KAMIR-NIH | label "2016" vs "2018", all values equal | the reference list does not resolve it |
 
 If Mahmood wants these resolved, the rule needs his decision.
+
+### 5 Oct: exhaustive candidate scan, and melatonin
+
+**Melatonin targets.** 18, read from acq/k-gap `8cd651a4`. Every candidate of every recorded search, strict and
+wide, for all seven topics was caption-scanned.
+
+**pcsk9 39126262 F0001, PCSK9-inhibitor group. ACCEPTED.**
+- **Rows:** 4 — Schwartz 2018 (ODYSSEY OUTCOMES), Koskinas 2019, Räber 2022 and Yan 2022.
+- **Gate:** DL reproduces 0.88 (0.80–0.95).
+
+**melatonin 36079069 f002, sleep latency block. ACCEPTED on the second recorded pair.**
+- **Rows:** 14. DL 0.739 (0.149–1.328) reproduces 0.74 (0.15–1.33).
+- **Why a second pair:** the first pair split only on bound order. The figure's column headed "Upper limit" holds the
+  smaller numbers, and the clarification given to both readers names no value.
+- **Caution:**
+  - The rows are DOSE ARMS, so one study can have several rows (e.g. "Haimov 1995; 1.0 mg").
+  - Rows marked * (Roth 2007, PennTakeda 2006, Jha 2016 8.0 mg*) are RAMELTEON, not melatonin.
+  - The metric is a standardised difference in means.
+  - Match only the melatonin arms to your trials. Almeida Montes appears as "Almeda 2003"; Haimov and Zhdanova are
+    targets.
