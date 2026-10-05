@@ -298,9 +298,13 @@ TARGETS: dict = {
                        "that group's own Subtotal row as pooled. Ignore the Ezetimibe group and the Overall row."},
     "melatonin-primary-insomnia-sol::36079069": {
         "fig_id": "jcm-11-05138-f002", "caption_has": "Objective Sleep Outcomes",
+        # second pair (5 Oct): the first split ONLY on bound order -- this figure's column headings read 'Upper limit'
+        # over the smaller numbers; the clarification below names no value, and the first pair stays on record
         "instruction": "Transcribe ONLY the block for SLEEP ONSET LATENCY (or latency to persistent sleep): its study "
                        "rows, once each, and that block's own pooled row. Ignore every other outcome block. If there "
-                       "is no sleep onset latency block, set legible=false and say so in notes."},
+                       "is no sleep onset latency block, set legible=false and say so in notes. Whatever the column "
+                       "headings say, report as 'lower' the SMALLER of each row's two confidence limits and as 'upper' "
+                       "the LARGER."},
     "probiotics-aad-prevention::30078376": {
         "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
         "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
