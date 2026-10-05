@@ -1029,6 +1029,113 @@ def acquired_rows(slug):
     return {r["label"]: r for r in _j(p).get("rows") or [] if r.get("verdict") == "ADMITTED" and r.get("admitted")}
 
 
+def no_open_source(x):
+    """True only when it is KNOWN that no open source holds the trial's result: its report has no held open full text
+    (fulltext_index state is not HELD) and its registration posts no results (or it has none). Unknown is not 'none'."""
+    fam = str(x.get("family") or "")
+    pmid = fam.replace("PMID ", "") if fam.startswith("PMID ") else (x.get("seeded_funnel") or {}).get("pmid")
+    if not pmid:
+        return False
+    p = os.path.join(OUT, "fulltext_index.json")
+    st = ((_j(p) if os.path.exists(p) else {}).get(str(pmid)) or {}).get("state")
+    if st in (None, "HELD", "FETCH_EMPTY", "IDCONV_FAILED"):
+        return False                      # held, or not yet known
+    rb = x.get("registry_binding") or {}
+    return rb.get("state") in (None, "NO_POSTED_RESULTS")
+
+
+_CLUSTER = re.compile(r"ENGINE_CANNOT_CONSUME\(design=(cluster\w*|stepped_wedge)", re.I)
+
+
+def cluster_design_of(x):
+    """'cluster_crossover' / 'cluster' / 'stepped_wedge' when the engine refused the trial for its cluster design (the
+    served extraction's typed design action), else None."""
+    m = _CLUSTER.search(str(x.get("our_refusal") or "") + " " + str(x.get("absent_reason") or ""))
+    return m.group(1).lower() if m else None
+
+
+def _comparator_text(comp):
+    import glob
+    import html as _h
+    for fp in sorted(glob.glob(os.path.join(ROOT, "cache", "comparators", str(comp or ""), "*jats*.xml"))):
+        x = open(fp, encoding="utf-8", errors="replace").read()
+        return re.sub(r"\s+", " ", _h.unescape(re.sub(r"<[^>]+>", " ", x))), os.path.relpath(fp, ROOT).replace(os.sep, "/")
+    return "", None
+
+
+def _crude_or(a, n1, c, n2):
+    import math
+    if min(a, c) <= 0 or a >= n1 or c >= n2:
+        return None
+    o = (a / (n1 - a)) / (c / (n2 - c))
+    se = math.sqrt(1 / a + 1 / (n1 - a) + 1 / c + 1 / (n2 - c))
+    return o, math.exp(math.log(o) - 1.959964 * se), math.exp(math.log(o) + 1.959964 * se)
+
+
+def comparator_unadjusted_cluster_findings(trials, comp, slug):
+    """COMPARATOR_POOLED_UNADJUSTED_CLUSTER_COUNTS (decision 5 Oct): for a cluster-design trial the comparator pooled on
+    an individual-level ratio with no design adjustment. Quoted from the comparator's OWN text: its methods sentence
+    (ratios calculated for binary outcomes) and its trial-table cell naming the cluster design; when the trial's own
+    openly held table prints a count pair whose CRUDE odds ratio and naive (Woolf) CI equal the comparator's row, that
+    reproduction is recorded too (SMART: 'Before 60 days | 928 (11.7) | 975 (12.4)' -> 0.934 (0.849-1.028) = the
+    comparator's row; the trial's own adjusted OR is 0.92 (0.83 to 1.02)). Never a finding without a comparator span."""
+    text, src = _comparator_text(comp)
+    if not text:
+        return []
+    meth = re.search(r"[^.]{0,200}\b(?:odds|risk) ratios?\b[^.]{0,80}\b(?:binary|dichotomous)\b[^.]*\.", text, re.I) or \
+        re.search(r"[^.]{0,200}\b(?:binary|dichotomous)\b[^.]{0,120}\b(?:odds|risk) ratios?\b[^.]*\.", text, re.I)
+    if re.search(r"\bunit[- ]of[- ]analysis\b|\bdesign effect\b|\bintra-?cluster\b|\bICC\b", text, re.I):
+        return []                                    # the comparator states some adjustment: not this finding
+    out = []
+    for x in trials:
+        design = cluster_design_of(x)
+        cr = x.get("comparator_row") or {}
+        if not design or not meth or cr.get("effect") is None:
+            continue
+        # the trial's DISTINGUISHING name: a parenthesised trial name when the label has one ('Semler (SALT trial)' vs
+        # 'Semler (SMART trial)' share the surname), else the label before any bracket
+        par = re.search(r"\(([^)]*?trial[^)]*)\)", x["label"], re.I)
+        name = par.group(1).strip() if par else re.split(r"[\[(,]", x["label"])[0].strip()
+        cell = re.search(re.escape(name) + r"[^.]{0,120}?cluster[- ]?randomi[sz]ed[^.]{0,60}", text, re.I)
+        if not cell:
+            continue
+        f = {"finding": "COMPARATOR_POOLED_UNADJUSTED_CLUSTER_COUNTS", "trial": x["label"], "comparator": comp,
+             "design": design, "comparator_row": {k: cr.get(k) for k in ("measure", "effect", "lower", "upper")},
+             "spans": [{"field": "comparator methods", "text": meth.group(0).strip(), "source": src},
+                       {"field": "comparator trial table", "text": cell.group(0).strip(), "source": src}],
+             "basis": "the comparator calculated an individual-level ratio for a cluster-design trial and states no "
+                      "design adjustment (no ICC, design effect or unit-of-analysis handling in its text)"}
+        rep = _reproduce_crude(x, cr, slug)
+        if rep:
+            f["reproduced_from_trial_table"] = rep
+        out.append(f)
+    return out
+
+
+def _reproduce_crude(x, cr, slug):
+    """The trial's own openly held table row whose crude OR + naive CI equals the comparator's row (3 d.p., +/-0.002)."""
+    fam = str(x.get("family") or "")
+    pmid = fam.replace("PMID ", "") if fam.startswith("PMID ") else None
+    fp = os.path.join(OUT, "_ft", f"{pmid}.txt") if pmid else ""
+    if not pmid or not os.path.exists(fp) or str(cr.get("measure") or "").upper() != "OR":
+        return None
+    t = open(fp, encoding="utf-8").read()
+    ns = [int(v.replace(",", "")) for v in re.findall(r"\(\s*[Nn]\s*=\s*([\d,]+)\s*\)", t)[:2]]
+    if len(ns) < 2:
+        return None
+    want = [float(cr[k]) for k in ("effect", "lower", "upper")]
+    for line in t.splitlines():
+        cells = re.findall(r"\|\s*([\d,]+)\s*\(\s*\d+(?:\.\d+)?\s*\)", line)
+        if len(cells) < 2:
+            continue
+        a, c = int(cells[0].replace(",", "")), int(cells[1].replace(",", ""))
+        got = _crude_or(a, ns[0], c, ns[1])
+        if got and all(abs(g - w) <= 0.002 for g, w in zip(got, want)):
+            return {"row": line.strip()[:200], "arm_n": ns[:2], "crude_or": [round(v, 3) for v in got],
+                    "source": f"PMID {pmid} held full text (outputs/k_gap/_ft/{pmid}.txt)"}
+    return None
+
+
 def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
     """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
     through scripts/g1_trial_acquire.py's gates is PRIMARY-verified (2 Oct decision, restated 3 Oct; the rule of
@@ -1040,6 +1147,12 @@ def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
     for x in trials:
         a = acq.get(x["label"])
         if not a or x.get("in_our_pool") or x.get("scope_difference"):
+            continue
+        if cluster_design_of(x) and (a.get("admitted") or {}).get("value", {}).get("events_t") is not None:
+            # unadjusted counts from a cluster design never match the trial (unit-of-analysis error; decision 5 Oct):
+            # SMART's 818/7942 vs 875/7860 and SALT's posted 72/520 vs 68/454 are individual-level counts
+            x["acquired_refused"] = (f"UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE: the acquired tuple is unadjusted counts "
+                                     f"from a {cluster_design_of(x)} design ({a['admitted'].get('source')})")
             continue
         promote = x.get("route") == "SECONDARY_SINGLE"
         if is_matched(x) and not promote:
@@ -1861,6 +1974,14 @@ def blocker_class(x, slug):
         return f["stage"]
     if x.get("our_refusal") == "NO_RECORD_HELD":
         return "NO_RECORD_HELD"
+    if x.get("absent_code") == "ENGINE_CANNOT_CONSUME" and cluster_design_of(x):
+        # Handbook (decision 5 Oct, Mahmood's delegation): pooling unadjusted counts from a cluster design is a
+        # unit-of-analysis error; the trial reports no ICC and no design-adjusted effect on our measure
+        return f"UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE:{cluster_design_of(x)}"
+    if x.get("absent_code") in ("OUTCOME_NOT_IN_SOURCE", "COUNTS_PRESENT_NOT_CORROBORATED") and no_open_source(x):
+        # admitted by our screen, but no open source states the result: no held open full text, no posted registry
+        # results (colchicine-postop Imazio [19]: abstract percentages only, no PMC copy, NCT00128427 posts nothing)
+        return f"NO_OPEN_SOURCE:{x['absent_code']}"
     if x.get("absent_code"):
         return f"EXTRACTION:{x['absent_code']}"
     if x["family"] is None:
@@ -2783,6 +2904,8 @@ def topic(slug, T):
                                            "comparator": comp, "stated_k": sk, "enumerated_N": out["N_comparator_trials"],
                                            "span": sspan, "basis": "check the comparator's own trial table: a trial "
                                            "missing from our enumeration, or a wrong count in the comparator"})
+    out["comparator_findings"] = (out.get("comparator_findings") or []) + \
+        comparator_unadjusted_cluster_findings(trials, comp, slug)
     _abs = _j(os.path.join(OUT, "comparator_abstracts.json")) if os.path.exists(os.path.join(OUT, "comparator_abstracts.json")) else {}
     _ab = _abs.get(str(comp))
     wp = whole_pool_comparison(out, printed_k=printed_trial_count(_ab if isinstance(_ab, str) else json.dumps(_ab or "")))

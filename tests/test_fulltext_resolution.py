@@ -5,6 +5,7 @@ Zarpelon's open-label statement is in its full text only.
 Requirement-level (consolidation 2026-10-05: g1/finish-line and another lane built this twice; the kept implementation is
 g1_tracker._ft_resolution / held_fulltext, which also keeps a recorded MODEL reader's verdict a proposal)."""
 import hashlib
+import json
 import os
 import sys
 
@@ -45,3 +46,20 @@ def test_a_model_readers_verdict_stays_a_proposal(monkeypatch):
     _setup(monkeypatch, how="RECORDED_READER")
     assert gt.exclusion_audit_class(*KEY)[0] == "INSUFFICIENT_RECORD"
     assert gt.exclusion_audit_span(*KEY) is None
+
+
+def test_a_partial_full_text_rerun_keeps_every_row_it_did_not_touch(tmp_path, monkeypatch):
+    import k_gap_exclusion_fulltext as ef
+    prev = {"rows": [{"slug": "a", "pmid": "1", "class_after": "TRUE_SCOPE_DIFFERENCE", "how": "RECORDED_READER:x"},
+                     {"slug": "b", "pmid": "2", "class_after": "SCREENER_ERROR", "how": "REGEX_ON_FULLTEXT"}]}
+    (tmp_path / "exclusion_fulltext.json").write_text(json.dumps(prev), encoding="utf-8")
+    monkeypatch.setattr(ef, "OUT", str(tmp_path))
+    monkeypatch.setattr(ef, "RUNS", str(tmp_path / "runs.json"))
+    monkeypatch.setattr(ef, "_pilot", lambda: None)
+    monkeypatch.setattr(ef, "items", lambda run: [{"slug": "c", "pmid": "3", "label": "C", "rule_id": "X1",
+                                                   "subclass_before": "S", "rec": None, "fulltext": "",
+                                                   "fulltext_source": None}])
+    ef.main(["--only=c:3"])
+    rows = {(r["slug"], r["pmid"]): r for r in json.load(open(tmp_path / "exclusion_fulltext.json"))["rows"]}
+    assert rows[("a", "1")] == prev["rows"][0] and rows[("b", "2")] == prev["rows"][1]
+    assert rows[("c", "3")]["class_after"] == "INSUFFICIENT_RECORD"

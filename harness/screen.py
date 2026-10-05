@@ -175,11 +175,34 @@ _NOT_NON = r"(?<![a-z])(?<!non-)(?<!non )(?<!not )"
 _TITLE_RCT = _re.compile(_NOT_NON + r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
 _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
                              r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
+# Decision 5 Oct (Handbook, Mahmood's delegation): a 'substudy' / 'secondary analysis' that reports a prespecified outcome
+# of the trial's RANDOMISED comparison is a report of that RCT -- the title word alone never excludes. X1 excludes such a
+# record only when the record itself says the analysis is non-randomised, post hoc or observational. colchicine-postop
+# Imazio [19] (22090167, 'results of the COPPS atrial fibrillation substudy'; 'the COPPS trial, a multicenter,
+# double-blind, randomized trial') was excluded X1 by the title word.
+_TITLE_NOT_RESULTS = _re.compile(r"\bprotocol\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b",
+                                 _re.I)                         # not a results report at all
+_TITLE_POST_HOC = _re.compile(r"\bpost[-\s]?hoc\b", _re.I)
+_TITLE_SUBSTUDY = _re.compile(r"\bsubstudy\b|\bsub-study\b|\bsecondary analysis\b", _re.I)
+_NONRANDOMISED_ANALYSIS = _re.compile(r"\bpost[-\s]?hoc\b|\bnon-?randomi[sz]ed\b|\bnot randomi[sz]ed\b|"
+                                      r"\bobservational\b|\bcohort (?:study|analysis)\b", _re.I)
+
+
+def _title_not_an_rct_report(rec) -> bool:
+    """True when the TITLE marks the record as not a report of the randomised comparison: a protocol / design / SAP
+    paper, a post hoc analysis -- or a substudy / secondary analysis that the record itself says is non-randomised, post
+    hoc or observational. A substudy of a prespecified randomised outcome is a report of the RCT."""
+    t = rec.get("title", "") or ""
+    if _TITLE_NOT_RESULTS.search(t) or _TITLE_POST_HOC.search(t):
+        return True
+    if _TITLE_SUBSTUDY.search(t):
+        return bool(_NONRANDOMISED_ANALYSIS.search(t + " " + (rec.get("abstract", "") or "")))
+    return False
 
 
 def _title_says_rct(rec) -> bool:
     t = rec.get("title", "") or ""
-    return bool(_TITLE_RCT.search(t)) and not _TITLE_RCT_NOT.search(t)
+    return bool(_TITLE_RCT.search(t)) and not _title_not_an_rct_report(rec)
 
 
 # QUASI-randomisation: alternate/pseudo allocation is NOT a true RCT even when PubMed tags it
@@ -585,7 +608,7 @@ def screen_record_2(rec, inc):
     _pts = [p.lower() for p in rec.get("pubtypes", [])]
     if rec["id_type"] == "pmid" and (
             _quasi_or_nonprimary(rec, _pts)
-            or _TITLE_RCT_NOT.search(rec.get("title", "") or "")):
+            or _title_not_an_rct_report(rec)):
         return "exclude"  # quasi/alternate allocation, non-primary pubtype, or protocol/design paper
     is_rct = (rec["id_type"] != "pmid"
               or any("randomized controlled trial" in p for p in _pts)

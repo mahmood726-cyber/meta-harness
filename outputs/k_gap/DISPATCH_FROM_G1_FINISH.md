@@ -41,6 +41,50 @@ records it correctly).
   records store their prompt. SMART's PMC text is an NIH author manuscript, so record mc-dcb6796c (in f8d674b5f) was
   removed from the tree and its re-ask never committed; it remains in history at f8d674b5f.
 
+## To acq/k-gap and the captain: SALT is screened IN; the pool gap is the engine's cluster-crossover gate (5 Oct)
+
+- SALT (27749094), SMART (29485925) and SPLIT (26444692) are **INCLUDED by our served screen** (docs/reviews/
+  balanced-crystalloids-vs-saline-mortality/review.json). A REVIEW_REFERENCE_LIST admission (the forest-reader lane's
+  proposed route; not on acq/k-gap) would not change them: they are already admitted.
+- They are outside the served pool because the engine refuses them: `ENGINE_CANNOT_CONSUME(design=cluster_crossover,
+  missing=design_adjusted_effect|ICC)` -- naive counts from a cluster-crossover trial overstate precision.
+- What would admit them (harness.design_variance / design_key): an ICC + cluster size from an open source
+  (ICC_DESIGN_EFFECT), or the trial's published cluster-adjusted estimate ON THE DECLARED ESTIMAND
+  (PUBLISHED_ADJUSTED_SUBSTITUTED). SMART's own Table 2 prints a mixed-model adjusted ODDS ratio for in-hospital death,
+  0.90 (0.80 to 1.01); the topic declares RR. **Decision for Mahmood**: may a trial's cluster-adjusted OR stand for the
+  declared RR (mortality ~10-11%: OR and RR differ)? Without that, or an ICC, the three stay outside the pool.
+- Local recount (this branch, page recompute): balanced-crystalloids k 2/5 (N 6), confirmed 2 (SMART, SALT via their
+  own sources); MATCHED_ARE_VERIFIED fails because no comparator trial is in the served pool.
+
+## colchicine-postop-af and balanced-crystalloids after the unit-of-analysis decision (5 Oct)
+
+- **balanced-crystalloids** (decision: Handbook, unit of analysis): SMART, SALT, SPLIT typed
+  UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE; comparator finding COMPARATOR_POOLED_UNADJUSTED_CLUSTER_COUNTS on each (its
+  methods sentence + its own table cell quoted; SMART reproduced: crude OR 0.934 (0.849-1.028) from the trial's 60-day
+  928/7942 vs 975/7860 = the comparator's row; the trial's adjusted OR is 0.92 (0.83 to 1.02)). Local recount 0/5, NOT YET.
+- **colchicine-postop-af**, local recount 2/4 eligible (N 9), unnamed Imazio [19] and Sarzaeem:
+  - Zarpelon [20]: named (X-DESIGN, open-label in its CC BY full text) through exclusion_fulltext.json.
+  - Imazio [19] (22090167, COPPS POAF substudy): our screen's X1 fires on the TITLE word 'substudy'
+    (harness.screen._TITLE_RCT_NOT), although the record states 'the COPPS trial, a multicenter, double-blind,
+    randomized trial' and is typed Randomized Controlled Trial. The substudy is COPPS's only report of POAF. **Decision for
+    Mahmood**: is a prespecified substudy the trial's report for that outcome (then the title rule is a screener error),
+    or a secondary report (then a scope difference)? Either way no open data: the abstract gives percentages only (12.0% vs
+    22.0%), no PMC copy, NCT00128427 posts no results.
+  - Sarzaeem [23]: no PubMed record, no Crossref record, journal site bot-protected (not bypassed): our screen has no record
+    to assess, so it stays an open gap (two non-comparator metas hold rows; eligibility is our screen's, never theirs).
+
+## Screen X1 narrowed for substudies (decision 5 Oct, Handbook) -- SERVED CODE: re-issue certificates on your next build
+
+`harness/screen.py`: a 'substudy' / 'secondary analysis' title no longer excludes by itself; X1 excludes it only when
+the record says the analysis is non-randomised, post hoc or observational (protocol / design / SAP papers and post hoc
+titles still excluded). `harness/trial_family.py`: a substudy with no registry id of its own is collated with the trial
+its own title names when exactly one held report carrying an NCT names it (never a guess). Corpus impact (4,080 held
+records): 11 decisions change -- 4 to INCLUDE (colchicine-postop Imazio [19] 22090167; colchicine-secondary 34686461;
+omega3 21315217 and 20952767, both GISSI-HF substudies collated with NCT00336336), 7 from X1 to their true exclusion
+(X2 / X-DESIGN). Collation links 2 substudies (GISSI-HF echo -> NCT00336336; TRACES secondary analysis -> NCT02797119).
+This changes the served screen's code: the certificate / bundle digests for harness/screen.py and the docs/harness mirror
+need your rebuild (test_bundle / test_gate already fail on acq/k-gap for harness/extract.py, pre-existing).
+
 ## How the acquired rows are admitted (scripts/g1_trial_acquire.py → registry/g1_acquired/<slug>.json)
 
 - One **recorded** codex call per trial (reproducible_ai.model_call_live; concurrency 3), the comparator's row never shown.

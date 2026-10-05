@@ -67,6 +67,11 @@ def items(run):
             continue
         it = pop.get((row["slug"], row["pmid"]))
         rec = (it or {}).get("rec")
+        if not rec:
+            # an exclusion of OUR screen (origin IN_SCREEN) is not in the seeded population: take the record the screen
+            # read, as the tracker does (colchicine-postop Zarpelon reached the classifier with no record: KeyError id_type)
+            import g1_tracker as gt
+            rec = gt.held_record(row["slug"], row["pmid"])
         ft = cfm.pmc_fulltext_cached(row["pmid"], offline=not run) if row["pmid"] else ""
         ft_src = "PMC_OA" if ft else None
         if not ft and (rec or {}).get("doi"):
@@ -105,21 +110,17 @@ def run_reader(args):
 
 def main(argv):
     run = "--run" in argv
-    # --only SLUG:PMID[,SLUG:PMID]: process just these items and MERGE their rows into the committed output, keeping every
-    # other row (the full-text bodies are gitignored, so a clone without them must not regenerate -- and silently empty --
-    # every other row; lane G1 2026-10-02 did exactly that once and restored it)
-    only = None
-    if "--only" in argv:
-        only = {tuple(x.split(":", 1)) for x in argv[argv.index("--only") + 1].split(",") if ":" in x}
+    # --only=slug:pmid[,slug:pmid]: recompute ONLY those rows and keep every other committed row as it is. A full rerun
+    # in a worktree without the gitignored full texts (_ft/) downgrades rows it cannot re-read (4 resolved rows fell to
+    # INSUFFICIENT_RECORD here) -- a partial update must never cost the rows it did not touch
+    only = {tuple(x.split(":", 1)) for a in argv if a.startswith("--only=") for x in a.split("=", 1)[1].split(",") if x}
     pilot = _pilot()
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    its = items(run)
-    if only is not None:
-        its = [it for it in its if (it["slug"], it["pmid"]) in only]
+    its = [it for it in items(run) if not only or (it["slug"], str(it["pmid"])) in only]
     rows, todo = [], []
     for it in its:
         key = f"{it['slug']}::{it['pmid']}"
-        if not it["fulltext"]:
+        if not it["fulltext"] or not it["rec"]:
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
                          "fulltext": "NO_OA_FULLTEXT", "class_after": "INSUFFICIENT_RECORD", "how": None})
             continue
@@ -178,10 +179,10 @@ def main(argv):
                "SCREENER_ERROR" if ag.startswith("RULE_MODEL_DISAGREE") else "INSUFFICIENT_RECORD")
         row.update(class_after=cls, how=f"RECORDED_READER:{r['record_id']}", reader_agreement=ag.split("(")[0],
                    reader_axes=axes, verifier_state=v.get("state"))
-    if only is not None:
-        prev = _j(os.path.join(OUT, "exclusion_fulltext.json")).get("rows", [])
-        mine = {(r["slug"], r["pmid"]): r for r in rows}
-        rows = [mine.pop((r["slug"], r["pmid"]), r) for r in prev] + list(mine.values())
+    if only:
+        prev = _j(os.path.join(OUT, "exclusion_fulltext.json"))
+        keep = [r for r in prev.get("rows") or [] if (r.get("slug"), str(r.get("pmid"))) not in only]
+        rows = keep + rows
     out = {"n": len(rows), "by_class_after": dict(Counter(r["class_after"] for r in rows)),
            "by_how": dict(Counter((r.get("how") or "NONE").split(":")[0] for r in rows)), "rows": rows}
     json.dump(out, open(os.path.join(OUT, "exclusion_fulltext.json"), "w", encoding="utf-8", newline="\n"),
