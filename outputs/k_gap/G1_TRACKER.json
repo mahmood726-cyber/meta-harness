@@ -20,6 +20,27 @@
    "decided": "2026-10-05",
    "id": "D3-COMPARATOR-POOLS-NO-RCT",
    "rule": "A comparator that pools no RCTs cannot be matched trial-for-trial by an RCT review: the topic stays in the denominator with status COMPARATOR_POOLS_NO_RCT, a span quoted verbatim from the comparator's own held record, and is listed on the page as not attainable against this comparator. Replacing the comparator is Mahmood's decision."
+  },
+  {
+   "applied_in": "harness/secondary_meta.py:pool_uncheckable / scripts/secondary_meta_build.py",
+   "by": "g1/forest-reader lane rule (POOL_UNCHECKABLE)",
+   "decided": "2026-10-05",
+   "id": "D4-NO-POOL-META-SECOND-SOURCE-ONLY",
+   "rule": "A meta whose figure prints no pooled result cannot reproduce its own pool (no positive control): its rows count only as a SECOND source beside a gated meta or a primary, never alone (SECOND_SOURCE_ONLY)."
+  },
+  {
+   "applied_in": "scripts/g1_tracker.py:cluster_design_of / comparator_unadjusted_cluster_findings",
+   "by": "g1/finish-line lane rule (cluster design)",
+   "decided": "2026-10-05",
+   "id": "D5-CLUSTER-UNADJUSTED-NOT-POOLED",
+   "rule": "A cluster or cluster-crossover trial's unadjusted arm counts are not pooled as if individually randomised: without a unit-of-analysis adjustment the trial is blocked UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE (SALT, SMART) and the comparator's unadjusted use is a comparator finding."
+  },
+  {
+   "applied_in": "harness/screen.py:_title_not_an_rct_report (g1/finish-line) -- NOT YET in the consolidation: it changes the SERVED screen, so its served-number changes are listed as notices in the next PR #13 packet before it lands",
+   "by": "g1/finish-line lane rule (screen X1)",
+   "decided": "2026-10-05",
+   "id": "D6-SUBSTUDY-IS-A-REPORT-OF-THE-RCT",
+   "rule": "A substudy / secondary analysis of a randomised comparison is a report of that RCT unless its own record says it is non-randomised, post hoc or observational; protocol / design papers stay excluded."
   }
  ],
  "schema": "g1_tracker_canonical_v1",
@@ -78,7 +99,7 @@
     },
     "rows": 5,
     "state": "REPRODUCED",
-    "where": "figure Fig3 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure Fig3 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 0,
@@ -91,8 +112,8 @@
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))",
-     "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
+     "span": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))",
+     "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4)",
      "trial": "Ratanarat [18]"
     }
    ],
@@ -119,11 +140,10 @@
   },
   "colchicine-postop-af": {
    "N_comparator_trials": 9,
-   "N_eligible": 5,
+   "N_eligible": 4,
    "blockers": {
     "IDENTIFIED_NOT_INDEXED": 1,
-    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1,
-    "SCREENED_OUT_UNAUDITED:X-DESIGN": 1
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1
    },
    "comparator_pmid": "36050741",
    "comparator_sourced": [
@@ -196,7 +216,7 @@
      "trial": "Imazio [18]"
     }
    ],
-   "excluded_by_scope": 4,
+   "excluded_by_scope": 5,
    "g1_status": "NOT_YET",
    "g1r_reproduction": {
     "control_basis": "POOL_PRINTED_IN_META_TEXT",
@@ -252,12 +272,19 @@
      "span": "METHODS: In this multicenter prospective randomized open-label study, consecutive patients with no history of AF and scheduled to undergo elective cardiac surgery (n = 360) were randomized to colchicine (n = 179) or no-colchicine (n = 181).",
      "span_source": "PMID 27502857 record abstract (held: cache/colchicine-postop-af/records.json or outputs/k_gap/member_records.json)",
      "trial": "Tabbalat [22]"
+    },
+    {
+     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+     "pmid": "27223641",
+     "rule_id": "X-DESIGN",
+     "span": "Methods Study Design and Participants This is a prospective, randomized, open, single-center clinical assay, whose 140 participants were recruited from the Hospital Santa Casa de Misericórdia de Curitiba.",
+     "span_source": "PMID 27223641 PMC_OA full text (held: outputs/k_gap/_ft, sha256 25981c8eb7aec5684034785a60fbe922976c47e1c2192b4e9a5a74906543f51a; resolved in outputs/k_gap/exclusion_fulltext.json)",
+     "trial": "Zarpelon [20]"
     }
    ],
    "open_gaps": [
     "Imazio [19]",
-    "Sarzaeem [23]",
-    "Zarpelon [20]"
+    "Sarzaeem [23]"
    ],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "DIFFERENT_CONCLUSION",
@@ -446,7 +473,7 @@
     },
     "rows": 7,
     "state": "REPRODUCED",
-    "where": "figure F3 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure F3 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 2,
    "k_covered": 6,
@@ -659,7 +686,7 @@
     },
     "rows": 7,
     "state": "REPRODUCED",
-    "where": "figure joi200104f2 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure joi200104f2 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 1,
    "k_covered": 5,
@@ -783,7 +810,7 @@
     },
     "rows": 6,
     "state": "REPRODUCED",
-    "where": "figure fig1 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure fig1 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 1,
@@ -844,7 +871,7 @@
     },
     "rows": 2,
     "state": "REPRODUCED",
-    "where": "figure mmc1.pdf#p43 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure mmc1.pdf#p43 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 0,
@@ -978,7 +1005,7 @@
     },
     "rows": 6,
     "state": "REPRODUCED",
-    "where": "figure F2 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure F2 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 1,
@@ -1037,7 +1064,7 @@
     },
     "rows": 4,
     "state": "REPRODUCED",
-    "where": "figure f4 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure f4 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 3,
@@ -1380,7 +1407,7 @@
     },
     "rows": 5,
     "state": "REPRODUCED",
-    "where": "figure diseases-12-00339-f003 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure diseases-12-00339-f003 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 2,
    "k_covered": 5,
@@ -1841,7 +1868,7 @@
     },
     "rows": 21,
     "state": "REPRODUCED",
-    "where": "figure CD013505-fig-0024 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure CD013505-fig-0024 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 12,
    "k_covered": 15,
@@ -1996,7 +2023,7 @@
    "slug": "noac-vs-warfarin-af-stroke",
    "source": {
     "branch": "g1/noac",
-    "commit": "8e7a92fea3d560c951213fed88358fd8437d3259"
+    "commit": "3e04ae5c8a1295d773ef30e11264cc4f77ac4c9d"
    },
    "top_blocker": null,
    "unmet": []
@@ -2641,7 +2668,7 @@
     },
     "rows": 12,
     "state": "REPRODUCED",
-    "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 9,
    "k_covered": 11,
@@ -3333,7 +3360,7 @@
     },
     "rows": 42,
     "state": "REPRODUCED",
-    "where": "figure F3 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure F3 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 22,
    "k_covered": 41,
@@ -3958,7 +3985,7 @@
     ],
     "rows": 3,
     "state": "REPRODUCED",
-    "where": "figure ehf213805-fig-0002 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure ehf213805-fig-0002 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 2,
@@ -3995,7 +4022,7 @@
    "slug": "sglt2-hfref-hosp-cvdeath",
    "source": {
     "branch": "g1/tocilizumab",
-    "commit": "fff17d61a1bc7ddbd7d926af4d7133fcbd986416"
+    "commit": "ac7b959dfe333ad371ce26278f53762dd21aa91e"
    },
    "top_blocker": "SCREENED_VIA_OTHER_REPORT",
    "unmet": []
@@ -4022,7 +4049,7 @@
     },
     "rows": 8,
     "state": "REPRODUCED",
-    "where": "figure f2 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure f2 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 5,
@@ -4096,7 +4123,7 @@
     },
     "rows": 3,
     "state": "REPRODUCED",
-    "where": "figure F4 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure F4 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 2,
@@ -4121,24 +4148,24 @@
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
-     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
+     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
+     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4)",
      "trial": "Aldo-DHF2013"
     },
     {
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
-     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
+     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
+     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4)",
      "trial": "TOPCAT2014"
     },
     {
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
-     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
+     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
+     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 55ae93342, figure sha256 38f10f0c53a4)",
      "trial": "ARTS-HF2013"
     }
    ],
@@ -4176,7 +4203,7 @@
     },
     "rows": 11,
     "state": "REPRODUCED",
-    "where": "figure S3.F2 (g1/forest-reader c0bff4dff, dual-model)"
+    "where": "figure S3.F2 (g1/forest-reader 55ae93342, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 0,
@@ -4984,7 +5011,7 @@
    "slug": "tocilizumab-covid19-mortality",
    "source": {
     "branch": "g1/tocilizumab-finish",
-    "commit": "5114c42edefa31b312d66e84b1203f422f077ea2"
+    "commit": "1772ebb4399cbe01698c7903b98721db6a9b60e4"
    },
    "top_blocker": null,
    "unmet": [
@@ -5069,10 +5096,10 @@
   "COVERAGE": 173,
   "INDEPENDENTLY_CONFIRMED": 98,
   "N_comparator_trials": 348,
-  "N_eligible": 235,
+  "N_eligible": 234,
   "coverage_complete_topics": 16,
   "discrepancy_findings": 17,
-  "excluded_by_scope": 113,
+  "excluded_by_scope": 114,
   "g1r_reproduction": {
    "NO_PER_TRIAL_ROWS": 7,
    "NO_PRINTED_POOL": 1,
