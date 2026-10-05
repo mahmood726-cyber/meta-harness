@@ -268,3 +268,51 @@ wide, for all seven topics was caption-scanned.
 melatonin has been checked. Further rows here need one of the two rule decisions above:
 - tocilizumab 35802687 checked against its printed % weights;
 - single-number disagreements settled by a row's own printed numbers.
+
+## 5 Oct: typed rule POOL_UNCHECKABLE (decision under Mahmood's delegation) — applied
+
+**The rule.** A meta whose pooled reconstruction cannot be checked never counts as SECONDARY_SINGLE on its own. Its
+rows may serve only as the SECOND source in TWO_SOURCE, agreeing with an independent primary or with another meta
+that passed the gate.
+
+### Where it lives
+
+`harness/secondary_meta.py`:
+- `POOL_UNCHECKABLE = "META_POOL_UNCHECKABLE"` is a typed finding carried in `SecondaryRow.findings`, so it survives
+  every hand-off. `pool_uncheckable(row)` tests for it.
+- `secondary_single`: such a row stays queued, with `SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE`.
+- `two_source`: a pair in which BOTH metas are uncheckable is not independent support (`BOTH_POOLS_UNCHECKABLE`). An
+  uncheckable meta paired with a gated meta does make TWO_SOURCE. A trial with an independent primary is already
+  PRIMARY; the row adds nothing there.
+
+`scripts/g1_forest_reader.py`:
+- **Typing:** `NO_POOLED_ROW_PRINTED` means both readers report no pooled row, and is typed separately from
+  `POOLED_ROW_DISAGREES`.
+- **New state `ACCEPTED_SECOND_SOURCE_ONLY`.** It is given only when every row agreed, the rows are trials, every row
+  is internally consistent, and the rows are ONE analysis (no repeated trial label). Each row carries the finding.
+- **Hand-over:** `accepted_rows()` returns these rows WITH the finding.
+- **Hook:** `secondary_meta_build` records `positive_control.reproduced = False (META_POOL_UNCHECKABLE)` for such a
+  meta. This is a second guard, beside the finding.
+
+### Plants (each failed before the change)
+
+- `test_a_meta_whose_pool_cannot_be_checked_is_only_ever_a_second_source`, harness-level:
+  - two uncheckable metas: no TWO_SOURCE;
+  - uncheckable + gated: TWO_SOURCE;
+  - uncheckable alone: never SECONDARY_SINGLE.
+- `test_rows_agreed_but_no_printed_pool_are_marked_second_source_only_never_accepted`, on the real recorded
+  35802687 readings: 14 rows, all marked. A figure that repeats trial labels stays REFUSED, and so does one whose
+  readers disagree on the pool.
+
+### Applied
+
+**tocilizumab 35802687** went REFUSED → `ACCEPTED_SECOND_SOURCE_ONLY`. Its 14 rows (ARCHITECTS, CORIMUNO-TOCI-ICU,
+COV-AID, COVACTA, COVIDOSE2-SS-A, COVIDSTORM, EMPACTA, HMO-020-0224, ImmCoVA, PreToVid, RECOVERY, REMAP-CAP (a),
+REMDACTA, TOCIBRAS) now reach you marked. They count only if an independent gated meta, or a primary, agrees.
+
+**Refused, with a typed reason:** glp1 30223891 and sacubitril 34617669 also print no pooled row. But they are
+one-block-per-outcome figures that repeat trial labels, so they get `ROWS_NOT_ONE_ANALYSIS:REPEATED_TRIAL_LABELS`.
+Nothing else changed.
+
+**Disk:** C: has about 310 MB free. See `lane_status/disk.md`. Put TMP/TEMP and pytest `--basetemp` on F: until that
+file says FIXED.

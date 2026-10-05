@@ -462,3 +462,23 @@ def test_reml_pool_matches_metafor_on_dat_bcg():
     # homogeneous pair: tau^2 truncated at 0 and the pool is the fixed-effect mean (metafor: 0, 0.108888888889)
     assert sm.reml_tau2([0.1, 0.12], [0.04, 0.05]) == 0.0
     assert abs(sm.pool([0.1, 0.12], [0.04, 0.05], "REML")[0] - 0.108888888889) < 1e-9
+
+
+def test_a_meta_whose_pool_cannot_be_checked_is_only_ever_a_second_source():
+    # decision 5 Oct (tocilizumab 35802687: rows agreed by both readers, the figure prints no pooled row): such a meta
+    # never counts as SECONDARY_SINGLE alone, and two of them never confirm each other; it may only be the SECOND
+    # source beside an independent meta that passed the gate
+    refs = {"111": {"9"}, "222": {"8"}}
+    unchecked = [sm.POOL_UNCHECKABLE + ": the figure prints no pooled row"]
+    a, b = _pair("111", "222")
+    a.findings, b.findings = list(unchecked), list(unchecked)
+    sm.two_source([a, b], refs.get, set())
+    assert a.state == b.state == sm.UNVERIFIED and "BOTH_POOLS_UNCHECKABLE" in a.verification["queue_reason"]
+    a, b = _pair("111", "222")
+    a.findings = list(unchecked)                                    # b's meta passed the gate
+    sm.two_source([a, b], refs.get, set())
+    assert a.state == b.state == sm.TWO_SOURCE
+    c = _row(meta="333", state=sm.UNVERIFIED, family_id="LEADER")
+    c.findings = list(unchecked)
+    assert sm.secondary_single([c], {"999"}, lambda r: None, lambda r: True) == []
+    assert c.state == sm.UNVERIFIED and "SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE" in c.verification["queue_reason"]

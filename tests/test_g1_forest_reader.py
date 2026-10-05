@@ -597,3 +597,26 @@ def test_a_word_supplement_figure_is_the_image_under_its_caption_and_nothing_els
     bad = _docx([("Figure S3 MACE by trial", None), ("Figure S4 other", None), ("", b"\x89PNG-two")])
     assert g.docx_figure("1", t, sp, bad)[1] == "TARGET_IMAGE_NOT_UNDER_CAPTION"
     assert g.docx_figure("1", dict(t, caption_has="absent words"), sp, good)[1] == "TARGET_CAPTION_MISMATCH"
+
+
+def test_rows_agreed_but_no_printed_pool_are_marked_second_source_only_never_accepted():
+    # tocilizumab meta 35802687 (decision 5 Oct): 14 trial rows agreed by both recorded readings, no pooled row printed
+    runs = json.load(open(g.RUNS, encoding="utf-8"))
+    ra = runs["tocilizumab-covid19-mortality::35802687::pone.0270668.g003::codex"]
+    rb = runs["tocilizumab-covid19-mortality::35802687::pone.0270668.g003::agy"]
+    (_, (da, _)), (_, (db, _)) = g.replay_reading(ra), g.replay_reading(rb)
+    item = {"pmid": "35802687", "figure": {"fig_id": "pone.0270668.g003", "caption": "c"}, "image_sha256": "x"}
+    v = g.judge(item, da, db, ra["record_id"], rb["record_id"], g.held_text("35802687"), g.model_text("35802687"))
+    assert v["state"] == g.SECOND_SOURCE_ONLY != "ACCEPTED"
+    assert len(v["secondary_rows"]) == 14
+    assert all(any(f.startswith(sm.POOL_UNCHECKABLE) for f in r["findings"]) for r in v["secondary_rows"])
+    # a figure that repeats a trial label (one block per outcome, e.g. GLP-1 meta 30223891: MI / stroke / HHF / MACE)
+    # is not ONE analysis: its rows cannot be second-source rows for any single outcome, so it stays refused
+    dup_a, dup_b = copy.deepcopy(da), copy.deepcopy(db)
+    dup_a["rows"].append(dict(dup_a["rows"][0]))
+    dup_b["rows"].append(dict(dup_b["rows"][0]))
+    assert g.judge(item, dup_a, dup_b, "a", "b", "", "")["state"] == "REFUSED"
+    # a figure whose readers DISAGREE on the pool is still refused outright
+    db2 = copy.deepcopy(db)
+    db2["pooled"] = {"label": "Total", "effect": "0.80", "lower": "0.70", "upper": "0.92"}
+    assert g.judge(item, da, db2, "a", "b", "", "")["state"] == "REFUSED"
