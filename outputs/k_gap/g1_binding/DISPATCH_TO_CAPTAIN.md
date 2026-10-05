@@ -384,3 +384,40 @@ result OUR_ROWS_INCOMPLETE (0 of 7 verified count rows).
 
 **Served notice queued for Mahmood.** `docs/reviews/statins-primary-prevention-elderly/review.json` still names
 39076238 and was NOT edited. Changing the served comparator needs his signature.
+
+## 2026-10-05 night — overnight Goal 1 run (Mahmood: "use it hard all night")
+
+**Local recount (gates unchanged; false-positive classes fixed with plants). Two topics are G1_MATCHED.**
+
+| topic (comparator) | matched | RESULT_AGREES | state | last step |
+|---|---|---|---|---|
+| esketamine (37377288) | 3 / 3 | yes: k2 pooled MD ours −4.24 (−6.73, −1.76) vs −4.18 (−6.00, −2.35) | **G1_MATCHED** | TRANSFORM-1 combined both dose arms (Handbook 6.5.2.10, AACT observed Day 28) |
+| dpp4 (31462224) | 4 / 4 | yes: k3 pooled HR AGREE | **G1_MATCHED** | EXAMINE from the FDA NESINA label Table 12: HR 0.96 (98% CI 0.80, 1.16), re-expressed at 95% |
+| melatonin (35691474) | 1 / 2 | **yes** (was no): Dawson −1.7 vs −1.70 | NOT_YET | Dawson mirrored by F2 (23691095 states positive = reduction); James 1990 open |
+| denosumab (32492050) | 1 / 2 | yes | NOT_YET | Bone 2008 open |
+| statins (32529863) | 1 / 7 | no (our counts 0/7) | NOT_YET | 6 open |
+
+**Every open route tried for the remaining trials:**
+- **James 1990** (melatonin):
+  - AACT: none.
+  - PMC/EPMC: no full text; no DOI.
+  - Metas: 23691095 cites another report; 25380732 is qualitative only.
+  - AHRQ evidence report 2004 (NBK37431, US government): NCBI served a reCAPTCHA, Europe PMC returned 403, and archive.ahrq.gov has no DNS. None was bypassed.
+  - EMA Circadin/Slenyto EPARs: James is not named.
+- **Bone 2008** (denosumab):
+  - AACT NCT00091793: no fracture outcome.
+  - JCEM text: not open.
+  - EMA Prolia EPAR: study 20040132 is described (BMD, n 332) but no fracture counts are printed.
+  - FDA BLA 125320 2010 medical, statistical and summary reviews: the study is not named with fractures.
+  - Open metas citing it: 33195764 (its only fracture forest plot is bisphosphonate) and 42494861 (league tables, no forest plot). Both were refused at figure selection; no call was made.
+- **Statins:** the earlier dispatch still holds. The only open meta citing the older-adult subgroup reports is the comparator itself (anti-circularity).
+
+**For review (tracker changes, all with plants):**
+- `refresh_same_trials_after_bindings`: the RESULT comparison was built before the binding hooks ran.
+- `comparator_one_sided`: a comparator row with one bound is AGREE_ON_POINT, never DISAGREE, and is set aside by name.
+- `ci_at_95`: a stated non-95% two-sided CI.
+- `oriented_secondary_row`: F2 on a secondary meta.
+- ARMS_COMBINED: C1–C6.
+- The regulatory binder: R1–R4.
+
+Commits: 6ef2a9eee, then the melatonin commit. g1 + k_gap suites: 278 pass. Nothing landed; no served number changed.
