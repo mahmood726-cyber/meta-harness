@@ -954,6 +954,19 @@ def same_tuple(a: SecondaryRow, b: SecondaryRow) -> Optional[str]:
     return None
 
 
+# ------------------------------------------------------------------ POOL_UNCHECKABLE (decision 5 Oct, under Mahmood's
+# delegation; tocilizumab meta 35802687). A meta whose pooled reconstruction CANNOT be checked -- both readers agree
+# on every per-trial row, but the figure prints no pooled row -- never counts as SECONDARY_SINGLE on its own. Its rows
+# may serve only as the SECOND source in TWO_SOURCE, beside an independent meta that passed the gate; two such metas
+# never confirm each other. (A trial with an independent primary is already PRIMARY: such a row adds nothing there.)
+# The mark is a typed finding on the row, so it survives every hand-off (SecondaryRow.findings).
+POOL_UNCHECKABLE = "META_POOL_UNCHECKABLE"
+
+
+def pool_uncheckable(row: SecondaryRow) -> bool:
+    return any(str(f).startswith(POOL_UNCHECKABLE) for f in (row.findings or []))
+
+
 def two_source(rows: list, refs_of, known_metas: set) -> list:
     """A row with no primary match is TWO_SOURCE_VERIFIED when two INDEPENDENT metas print the same typed tuple for the
     same trial family (same_tuple: value, and no stated difference in timepoint / population / dose). Only still-queued
@@ -972,6 +985,8 @@ def two_source(rows: list, refs_of, known_metas: set) -> list:
                 if (meta_ids(x) & meta_ids(y)) or same_tuple(x, y):
                     continue
                 why = independence(x, y, refs_of, known_metas)
+                if why is None and pool_uncheckable(x) and pool_uncheckable(y):
+                    why = "BOTH_POOLS_UNCHECKABLE"       # neither meta's pool could be checked: no first source
                 if why is None:
                     pairs.append(sorted([x.meta_pmid, y.meta_pmid]))
                     pair_ids.append(sorted(meta_ids(x) | meta_ids(y)))
@@ -1024,6 +1039,10 @@ def secondary_single(rows: list, comparator_meta_ids: set, primary_open, reprodu
         if r.state != UNVERIFIED or (meta_ids(r) & ids) or not reproduces(r):
             continue
         prior = (r.verification or {}).get("queue_reason")
+        if pool_uncheckable(r):
+            r.verification = dict(r.verification or {}, queue_reason=(prior or "NO_PRIMARY") +
+                                  " | SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE (second source only; decision 5 Oct)")
+            continue
         opened = primary_open(r)
         if opened:
             r.verification = dict(r.verification or {}, queue_reason=(prior or "NO_PRIMARY") +

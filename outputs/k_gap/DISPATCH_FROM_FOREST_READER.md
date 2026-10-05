@@ -236,3 +236,180 @@ candidate value that makes the row's own printed numbers consistent. It was **re
 | ticagrelor 38371311 | KAMIR-NIH | label "2016" vs "2018", all values equal | the reference list does not resolve it |
 
 If Mahmood wants these resolved, the rule needs his decision.
+
+### 5 Oct: exhaustive candidate scan, and melatonin
+
+**Melatonin targets.** 18, read from acq/k-gap `8cd651a4`. Every candidate of every recorded search, strict and
+wide, for all seven topics was caption-scanned.
+
+**pcsk9 39126262 F0001, PCSK9-inhibitor group. ACCEPTED.**
+- **Rows:** 4 — Schwartz 2018 (ODYSSEY OUTCOMES), Koskinas 2019, Räber 2022 and Yan 2022.
+- **Gate:** DL reproduces 0.88 (0.80–0.95).
+
+**melatonin 36079069 f002, sleep latency block. ACCEPTED on the second recorded pair.**
+- **Rows:** 14. DL 0.739 (0.149–1.328) reproduces 0.74 (0.15–1.33).
+- **Why a second pair:** the first pair split only on bound order. The figure's column headed "Upper limit" holds the
+  smaller numbers, and the clarification given to both readers names no value.
+- **Caution:**
+  - The rows are DOSE ARMS, so one study can have several rows (e.g. "Haimov 1995; 1.0 mg").
+  - Rows marked * (Roth 2007, PennTakeda 2006, Jha 2016 8.0 mg*) are RAMELTEON, not melatonin.
+  - The metric is a standardised difference in means.
+  - Match only the melatonin arms to your trials. Almeida Montes appears as "Almeda 2003"; Haimov and Zhdanova are
+    targets.
+
+**Melatonin, other candidates (not read):**
+- 36387478 (REM sleep behaviour disorder) supplementary figure 3: its sleep-latency data are baseline-versus-after
+  within-group comparisons, not melatonin versus placebo.
+- 32580450: a network meta-analysis whose sleep-latency figure was refused for subgroup rows.
+- 37457117: plots quality of sleep and daytime functioning only.
+- No other open candidate has a per-trial sleep-onset-latency plot.
+
+**Lane state.** Every recorded candidate for pcsk9, ticagrelor, metformin, omega3, probiotics, tocilizumab and
+melatonin has been checked. Further rows here need one of the two rule decisions above:
+- tocilizumab 35802687 checked against its printed % weights;
+- single-number disagreements settled by a row's own printed numbers.
+
+## 5 Oct: typed rule POOL_UNCHECKABLE (decision under Mahmood's delegation) — applied
+
+**The rule.** A meta whose pooled reconstruction cannot be checked never counts as SECONDARY_SINGLE on its own. Its
+rows may serve only as the SECOND source in TWO_SOURCE, agreeing with an independent primary or with another meta
+that passed the gate.
+
+### Where it lives
+
+`harness/secondary_meta.py`:
+- `POOL_UNCHECKABLE = "META_POOL_UNCHECKABLE"` is a typed finding carried in `SecondaryRow.findings`, so it survives
+  every hand-off. `pool_uncheckable(row)` tests for it.
+- `secondary_single`: such a row stays queued, with `SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE`.
+- `two_source`: a pair in which BOTH metas are uncheckable is not independent support (`BOTH_POOLS_UNCHECKABLE`). An
+  uncheckable meta paired with a gated meta does make TWO_SOURCE. A trial with an independent primary is already
+  PRIMARY; the row adds nothing there.
+
+`scripts/g1_forest_reader.py`:
+- **Typing:** `NO_POOLED_ROW_PRINTED` means both readers report no pooled row, and is typed separately from
+  `POOLED_ROW_DISAGREES`.
+- **New state `ACCEPTED_SECOND_SOURCE_ONLY`.** It is given only when every row agreed, the rows are trials, every row
+  is internally consistent, and the rows are ONE analysis (no repeated trial label). Each row carries the finding.
+- **Hand-over:** `accepted_rows()` returns these rows WITH the finding.
+- **Hook:** `secondary_meta_build` records `positive_control.reproduced = False (META_POOL_UNCHECKABLE)` for such a
+  meta. This is a second guard, beside the finding.
+
+### Plants (each failed before the change)
+
+- `test_a_meta_whose_pool_cannot_be_checked_is_only_ever_a_second_source`, harness-level:
+  - two uncheckable metas: no TWO_SOURCE;
+  - uncheckable + gated: TWO_SOURCE;
+  - uncheckable alone: never SECONDARY_SINGLE.
+- `test_rows_agreed_but_no_printed_pool_are_marked_second_source_only_never_accepted`, on the real recorded
+  35802687 readings: 14 rows, all marked. A figure that repeats trial labels stays REFUSED, and so does one whose
+  readers disagree on the pool.
+
+### Applied
+
+**tocilizumab 35802687** went REFUSED → `ACCEPTED_SECOND_SOURCE_ONLY`. Its 14 rows (ARCHITECTS, CORIMUNO-TOCI-ICU,
+COV-AID, COVACTA, COVIDOSE2-SS-A, COVIDSTORM, EMPACTA, HMO-020-0224, ImmCoVA, PreToVid, RECOVERY, REMAP-CAP (a),
+REMDACTA, TOCIBRAS) now reach you marked. They count only if an independent gated meta, or a primary, agrees.
+
+**Refused, with a typed reason:** glp1 30223891 and sacubitril 34617669 also print no pooled row. But they are
+one-block-per-outcome figures that repeat trial labels, so they get `ROWS_NOT_ONE_ANALYSIS:REPEATED_TRIAL_LABELS`.
+Nothing else changed.
+
+**Disk:** C: has about 310 MB free. See `lane_status/disk.md`. Put TMP/TEMP and pytest `--basetemp` on F: until that
+file says FIXED.
+
+## 5 Oct: two more typed rules (decisions under Mahmood's delegation) — applied
+
+### RULE WEIGHTS: printed % weights are a valid but WEAKER gate
+
+**Rule.** It applies to a figure that prints no pooled row. Rows that pass may count only as the SECOND source in
+TWO_SOURCE, never alone, as with POOL_UNCHECKABLE.
+
+**How the check works** (`weights_gate` in the reader):
+- The two readings' printed weights must agree within printed rounding (otherwise `WEIGHTS_DISAGREE`).
+- Every printed weight must lie inside the range the rows allow. The range comes from inverse-variance weights built
+  from each row's CI, with each bound moved within its printed half-unit, plus the printed weight's own half-unit.
+- The check passes under FE or DL (`WEIGHTS_REPRODUCED:<model>`); otherwise the figure is refused
+  (`WEIGHTS_NOT_REPRODUCED`).
+
+**Which figures it covers.** A no-pool figure that prints weights must pass it. One that prints no weights keeps the
+earlier POOL_UNCHECKABLE treatment.
+
+**Applied.** tocilizumab 35802687 passes under FE: 14 rows, still `ACCEPTED_SECOND_SOURCE_ONLY`. Each row now carries
+the finding `META_POOL_UNCHECKABLE: ... printed % weights are reproduced (WEIGHTS_REPRODUCED:FE) -- a weaker gate,
+so second source only`.
+
+### RULE SINGLE_NUMBER: a single-number reader disagreement is settled by the row's own numbers
+
+**Rule.** It applies when the two readings differ in exactly ONE number of a row, and the label and every other value
+agree. A candidate is taken only if EXACTLY ONE of the two reproduces the row's own printed effect and CI within
+printed rounding:
+- with counts: the counts must give the printed effect and CI;
+- without counts: the CI must be centred on the printed effect.
+
+The settled row records `value_basis: SINGLE_NUMBER_RESOLVED_BY_ROW ...`. If both candidates fit, or neither, or one
+reader printed nothing, the row is `READER_DISAGREEMENT_UNRESOLVED:<FIELD>`. A blank is not a second reading.
+
+**Applied.** 9 rows were settled across all recorded figures, and 5 figures moved from REFUSED to ACCEPTED (58 rows):
+
+| figure | rows | settled row |
+|---|---|---|
+| tocilizumab 35038318 | 10 | NCT04320615: control deaths 28 vs 29; only 28 gives the printed RR 1.01 |
+| tocilizumab 39633779 | 17 | Lescure: upper 2.32 vs "232" |
+| tocilizumab 34768455 | 9 | REMAP-CAP: lower 0.49 vs 0.48; only 0.48 fits, and the pool then reproduces |
+| colchicine-secondary 37608812 | 4 | Hennessy 2019: control events 1 vs 2 |
+| spironolactone 26891235 | 18 | Montalescot 2014: n_c 305 vs 306 |
+
+The 4 other settled rows sit in figures still refused for other reasons. 17 rows remain READER_DISAGREEMENT_UNRESOLVED;
+the Einvik 1.45 / 1.44 case is one of them, since both values fit.
+
+### Tests
+
+**New plants**, each failing before its change:
+- `test_rule_single_number_*`: a count settled; a dropped decimal settled; both fitting = UNRESOLVED; an omission =
+  UNRESOLVED;
+- `test_rule_weights_*`: the real 35802687 readings give WEIGHTS_REPRODUCED; RECOVERY's weight set to 40.00 in both
+  readings gives REFUSED, WEIGHTS_NOT_REPRODUCED.
+
+**Rewritten to the new requirement.** Two older plants asserted "any single disagreement refuses". They now assert that
+the perturbed number is never proposed, and that the printed value is recovered with its recorded basis:
+- `test_PLANT_one_perturbed_reading_never_yields_the_perturbed_number`;
+- `test_REAL_FIGURE_PLANT_one_perturbed_reading_never_yields_the_perturbed_number`.
+
+REPLAY_OK; 98 passed, with basetemp on F:.
+
+## 5 Oct: metformin and probiotics — the blocker is identification, not missing meta rows
+
+**The new search.** `g1_ss_targets.py --topic` adds a topic-words search. It finds open-access meta-analyses by topic
+query, holds their JATS, and checks whether their own reference lists contain a target's PMID. It is recorded and
+frozen in `g1_ss_selection_topic.json`, with the queries in `g1_ss_search/`.
+- **metformin:** 156 hits. The high-coverage ones are network meta-analyses already read and refused (28143834,
+  34280195, 28630466). Every other hit cites at most 1 target and has no per-trial ovulation plot.
+- **probiotics:** 122 hits. The high-coverage ones are already read. 41821810, 23981066 and 26596269 have no forest
+  plot at all; 26955289 and 27025619 plot *C. difficile*, a different outcome.
+
+**The finding that matters.** At acq/k-gap `f7d4278e`, every UNVERIFIED / NO_ROW target in six of the seven
+SECONDARY_SINGLE topics is `NOT_IN_OUR_POOL`:
+- metformin 38/38;
+- probiotics 26/26;
+- pcsk9 10/10;
+- omega3 24/24;
+- ticagrelor 20/20;
+- melatonin 18/18.
+
+A meta's row supplies the VALUE for a trial already in our pool. For a trial our search/screen never admitted, no
+number of meta rows changes G1. probiotics Can, Cindoruk, Gao and Sampalis are already in accepted meta rows
+(24348885, 29023420) and still read `NOT_IN_OUR_POOL`.
+
+Only tocilizumab's targets are in our pool (`NO_PRIMARY_ROW` ×12, `AGREE` ×2). That is why the two new rules moved
+tocilizumab.
+
+**Where those trials stop, from your tracker:**
+
+| topic | identification at screen | unresolved identity | screen / eligibility | acquisition / extraction | other |
+|---|---|---|---|---|---|
+| metformin | 17 | 13 | 4 | 1 | 3 (2 genuinely unavailable open, 1 scope mismatch) |
+| probiotics | 0 | 5 | 9 | 9 | 3 (2 genuinely unavailable open, 1 measure mismatch) |
+
+**The lever is upstream, in your lane:** identity resolution, screen and acquisition. Until those trials enter our
+pool, my meta reads cannot count for them. I have stopped spending codex calls on metformin/probiotics metas for
+that reason.

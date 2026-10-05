@@ -480,3 +480,23 @@ def test_a_forest_reads_measure_wording_is_normalised_typed():
     assert smb.normalize_measure("Mean Difference IV, Fixed") == "MD"
     assert smb.normalize_measure("WMD") == "MD"
     assert smb.normalize_measure("ES (95% CI)") == "ES (95% CI)"         # unknown wording stays as printed
+
+
+def test_a_meta_whose_pool_cannot_be_checked_is_only_ever_a_second_source():
+    # decision 5 Oct (tocilizumab 35802687: rows agreed by both readers, the figure prints no pooled row): such a meta
+    # never counts as SECONDARY_SINGLE alone, and two of them never confirm each other; it may only be the SECOND
+    # source beside an independent meta that passed the gate
+    refs = {"111": {"9"}, "222": {"8"}}
+    unchecked = [sm.POOL_UNCHECKABLE + ": the figure prints no pooled row"]
+    a, b = _pair("111", "222")
+    a.findings, b.findings = list(unchecked), list(unchecked)
+    sm.two_source([a, b], refs.get, set())
+    assert a.state == b.state == sm.UNVERIFIED and "BOTH_POOLS_UNCHECKABLE" in a.verification["queue_reason"]
+    a, b = _pair("111", "222")
+    a.findings = list(unchecked)                                    # b's meta passed the gate
+    sm.two_source([a, b], refs.get, set())
+    assert a.state == b.state == sm.TWO_SOURCE
+    c = _row(meta="333", state=sm.UNVERIFIED, family_id="LEADER")
+    c.findings = list(unchecked)
+    assert sm.secondary_single([c], {"999"}, lambda r: None, lambda r: True) == []
+    assert c.state == sm.UNVERIFIED and "SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE" in c.verification["queue_reason"]

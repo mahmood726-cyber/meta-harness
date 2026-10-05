@@ -58,15 +58,16 @@ def test_PLANT_agreeing_readings_are_accepted_as_secondary_comparator_rows():
     assert sm.validate(sm.SecondaryRow(**{k: v for k, v in r.items() if k in sm.SecondaryRow.__dataclass_fields__})) == []
 
 
-def test_PLANT_one_perturbed_reading_refuses_that_row_and_the_figure_with_both_readings_shown():
+def test_PLANT_one_perturbed_reading_never_yields_the_perturbed_number():
+    # requirement since decision 5 Oct (RULE SINGLE_NUMBER): a single disputed number is settled by the row's own
+    # printed effect and CI -- 0.86 does not fit Trial B's printed CI (0.75-1.03, centre 0.879), 0.88 does, so the row
+    # is the PRINTED 0.88 with its basis recorded; the perturbed value never reaches a proposed row
     b = reading()
     b["rows"][1]["effect"] = "0.86"
     v = g.judge(ITEM, reading(), b, "mc-a", "mc-b", HELD_DL)
-    assert v["state"] == "REFUSED" and "ROWS_DISAGREE:1" in v["problems"]
-    (bad,) = v["refused_rows"]
-    assert bad["why"] == "EFFECT_DISAGREES" and bad["a"]["effect"] == "0.88" and bad["b"]["effect"] == "0.86"
-    assert [r["label"] for r in v["proposed_rows"]] == ["Trial A 2009", "Trial C 2011", "Trial D 2013"]
-    assert v["secondary_rows"] == []
+    row = next(r for r in v["proposed_rows"] if r["label"] == "Trial B 2011")
+    assert row["effect"] == "0.88" and row["value_basis"].startswith(g.SINGLE_NUMBER_RESOLVED)
+    assert not v["refused_rows"] and "0.86" not in [x[k] for x in v["proposed_rows"] for k in ("effect", "lower", "upper")]
 
 
 def test_PLANT_same_numbers_different_label_is_LABEL_DISAGREES_and_refused():
@@ -152,13 +153,19 @@ def test_REAL_FIGURE_the_two_recorded_readings_accept():
     assert v["state"] == "ACCEPTED" and v["acceptance"]["methods_reproducing"] == ["FE"]
 
 
-def test_REAL_FIGURE_PLANT_one_perturbed_reading_refuses():
+def test_REAL_FIGURE_PLANT_one_perturbed_reading_never_yields_the_perturbed_number():
+    # since decision 5 Oct (RULE SINGLE_NUMBER): the first row's upper limit, perturbed in ONE recorded reading to 0.84,
+    # does not fit that row's own printed effect and CI; the printed value does -- so the row is the PRINTED value, with
+    # its basis recorded, and 0.84 is never proposed
     r = _real_readings()
+    first = r["codex"][0]["rows"][0]
     b = copy.deepcopy(r["agy"][0])
-    b["rows"][0]["upper"] = "0.84"                      # RALES upper limit printed 0.82
+    b["rows"][0]["upper"] = "0.84"
     v = g.judge(_real_item(), r["codex"][0], b, r["codex"][1], r["agy"][1], g.held_text("40959489"),
                 g.model_text("40959489"))
-    assert v["state"] == "REFUSED" and [x["why"] for x in v["refused_rows"]] == ["UPPER_DISAGREES"]
+    row = next(x for x in v["proposed_rows"] if x["label"] == first["label"])
+    assert row["upper"] == first["upper"] != "0.84" and row["value_basis"].startswith(g.SINGLE_NUMBER_RESOLVED)
+    assert v["state"] == "ACCEPTED" and not v["refused_rows"]
 
 
 def test_REAL_FIGURE_PLANT_a_perturbed_pooled_row_refuses_the_figure():
@@ -597,3 +604,85 @@ def test_a_word_supplement_figure_is_the_image_under_its_caption_and_nothing_els
     bad = _docx([("Figure S3 MACE by trial", None), ("Figure S4 other", None), ("", b"\x89PNG-two")])
     assert g.docx_figure("1", t, sp, bad)[1] == "TARGET_IMAGE_NOT_UNDER_CAPTION"
     assert g.docx_figure("1", dict(t, caption_has="absent words"), sp, good)[1] == "TARGET_CAPTION_MISMATCH"
+
+
+def test_rows_agreed_but_no_printed_pool_are_marked_second_source_only_never_accepted():
+    # tocilizumab meta 35802687 (decision 5 Oct): 14 trial rows agreed by both recorded readings, no pooled row printed
+    runs = json.load(open(g.RUNS, encoding="utf-8"))
+    ra = runs["tocilizumab-covid19-mortality::35802687::pone.0270668.g003::codex"]
+    rb = runs["tocilizumab-covid19-mortality::35802687::pone.0270668.g003::agy"]
+    (_, (da, _)), (_, (db, _)) = g.replay_reading(ra), g.replay_reading(rb)
+    item = {"pmid": "35802687", "figure": {"fig_id": "pone.0270668.g003", "caption": "c"}, "image_sha256": "x"}
+    v = g.judge(item, da, db, ra["record_id"], rb["record_id"], g.held_text("35802687"), g.model_text("35802687"))
+    assert v["state"] == g.SECOND_SOURCE_ONLY != "ACCEPTED"
+    assert len(v["secondary_rows"]) == 14
+    assert all(any(f.startswith(sm.POOL_UNCHECKABLE) for f in r["findings"]) for r in v["secondary_rows"])
+    # a figure that repeats a trial label (one block per outcome, e.g. GLP-1 meta 30223891: MI / stroke / HHF / MACE)
+    # is not ONE analysis: its rows cannot be second-source rows for any single outcome, so it stays refused
+    dup_a, dup_b = copy.deepcopy(da), copy.deepcopy(db)
+    dup_a["rows"].append(dict(dup_a["rows"][0]))
+    dup_b["rows"].append(dict(dup_b["rows"][0]))
+    assert g.judge(item, dup_a, dup_b, "a", "b", "", "")["state"] == "REFUSED"
+    # a figure whose readers DISAGREE on the pool is still refused outright
+    db2 = copy.deepcopy(db)
+    db2["pooled"] = {"label": "Total", "effect": "0.80", "lower": "0.70", "upper": "0.92"}
+    assert g.judge(item, da, db2, "a", "b", "", "")["state"] == "REFUSED"
+
+
+def _rd(rows, pooled=("0.95", "0.80", "1.13")):
+    return {"legible": True, "row_kind": "study", "measure": "RR", "model_printed": None, "notes": "",
+            "rows": rows, "pooled": {"label": "Total", "effect": pooled[0], "lower": pooled[1], "upper": pooled[2]}}
+
+
+_ITEM = {"pmid": "1", "figure": {"fig_id": "F", "caption": "c"}, "image_sha256": "x"}
+
+
+def test_rule_single_number_a_disputed_count_is_settled_by_the_rows_own_effect_and_ci():
+    # decision 5 Oct: 28 / 29 control deaths; only 28 gives the printed RR 1.01 (0.68-1.52) from 58/294 vs 28/144
+    base = {"label": "NCT04320615", "effect": "1.01", "lower": "0.68", "upper": "1.52",
+            "events_t": "58", "n_t": "294", "events_c": "28", "n_c": "144"}
+    other = {"label": "T2", "effect": "0.90", "lower": "0.62", "upper": "1.31"}
+    v = g.judge(_ITEM, _rd([base, other]), _rd([dict(base, events_c="29"), other]), "a", "b", "", "fixed-effect")
+    row = next(r for r in v["proposed_rows"] if r["label"] == "NCT04320615")
+    assert row["events_c"] == 28 and row["value_basis"].startswith(g.SINGLE_NUMBER_RESOLVED)
+    assert not v["refused_rows"]
+
+
+def test_rule_single_number_a_dropped_decimal_is_settled_by_the_interval():
+    r1 = {"label": "Lescure", "effect": "0.97", "lower": "0.41", "upper": "2.32"}
+    other = {"label": "T2", "effect": "0.90", "lower": "0.62", "upper": "1.31"}
+    v = g.judge(_ITEM, _rd([r1, other]), _rd([dict(r1, upper="232"), other]), "a", "b", "", "fixed-effect")
+    assert next(r for r in v["proposed_rows"] if r["label"] == "Lescure")["upper"] == "2.32"
+
+
+def test_rule_single_number_both_candidates_fitting_is_unresolved():
+    r1 = {"label": "Einvik 2010", "effect": "0.89", "lower": "0.55", "upper": "1.45"}
+    other = {"label": "T2", "effect": "0.90", "lower": "0.62", "upper": "1.31"}
+    v = g.judge(_ITEM, _rd([r1, other]), _rd([dict(r1, upper="1.44"), other]), "a", "b", "", "fixed-effect")
+    assert [r["why"] for r in v["refused_rows"]] == [f"{g.SINGLE_NUMBER_UNRESOLVED}:UPPER"]
+    assert v["state"] == "REFUSED"
+
+
+def test_rule_weights_the_printed_weights_gate_a_no_pool_figure_and_a_wrong_weight_refuses_it():
+    runs = json.load(open(g.RUNS, encoding="utf-8"))
+    ra = runs["tocilizumab-covid19-mortality::35802687::pone.0270668.g003::codex"]
+    rb = runs["tocilizumab-covid19-mortality::35802687::pone.0270668.g003::agy"]
+    (_, (da, _)), (_, (db, _)) = g.replay_reading(ra), g.replay_reading(rb)
+    item = {"pmid": "35802687", "figure": {"fig_id": "pone.0270668.g003", "caption": "c"}, "image_sha256": "x"}
+    v = g.judge(item, da, db, "a", "b", "", "")
+    assert v["state"] == g.SECOND_SOURCE_ONLY
+    assert all(g.WEIGHTS_REPRODUCED in " ".join(r["findings"]) for r in v["secondary_rows"])
+    da2, db2 = copy.deepcopy(da), copy.deepcopy(db)
+    for d in (da2, db2):
+        next(r for r in d["rows"] if r["label"] == "RECOVERY")["weight_pct"] = "40.00"   # both agree, both wrong
+    v2 = g.judge(item, da2, db2, "a", "b", "", "")
+    assert v2["state"] == "REFUSED" and g.WEIGHTS_NOT_REPRODUCED in v2["problems"]
+
+
+def test_rule_single_number_an_omitted_value_is_not_a_disagreement_and_stays_unresolved():
+    # one reader printing nothing is not a second READING of the number: never settled (decision 5 Oct, kept literal)
+    base = {"label": "NCT04320615", "effect": "1.01", "lower": "0.68", "upper": "1.52",
+            "events_t": "58", "n_t": "294", "events_c": "28", "n_c": "144"}
+    other = {"label": "T2", "effect": "0.90", "lower": "0.62", "upper": "1.31"}
+    v = g.judge(_ITEM, _rd([base, other]), _rd([dict(base, events_c=None), other]), "a", "b", "", "fixed-effect")
+    assert [r["why"] for r in v["refused_rows"]] == [f"{g.SINGLE_NUMBER_UNRESOLVED}:EVENTS_C"]
