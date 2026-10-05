@@ -915,6 +915,92 @@ def apply_secondary_bindings(o, path):
     return flipped
 
 
+NO_ROWS_ADOPTION = os.path.join(ROOT, "registry", "comparator_selection", "{slug}.adoption.json")
+
+
+def _held_norm(path, text=None):
+    import html as _html
+    raw = text if text is not None else open(path, encoding="utf-8", errors="replace").read()
+    if path and path.lower().endswith((".xml", ".html", ".htm")):
+        raw = _html.unescape(re.sub(r"<[^>]+>", " ", raw))
+    return re.sub(r"\s+", " ", raw).strip()
+
+
+def no_rows_adoption(slug, comp):
+    """The ADOPTION of a COMPARATOR_NO_PER_TRIAL_ROWS comparator (Mahmood, ratified exception to selection rule C6), or
+    None. Re-checked, never trusted: same comparator PMID as the tracker's, the held source's sha256 unchanged, and the
+    pooled-result / model / measure spans verbatim in it."""
+    import hashlib
+    p = NO_ROWS_ADOPTION.format(slug=slug)
+    if not os.path.exists(p):
+        return None
+    a = _j(p)
+    if a.get("comparator_type") != "COMPARATOR_NO_PER_TRIAL_ROWS" or str(a.get("comparator_pmid")) != str(comp):
+        return None
+    pr = a.get("pooled_result") or {}
+    src = os.path.join(ROOT, (pr.get("source") or {}).get("path") or "")
+    if not os.path.isfile(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != pr["source"].get("sha256"):
+        return None
+    held = _held_norm(src)
+    if not all(_held_norm(None, s_) in held for s_ in (pr.get("spans") or {}).values()):
+        return None
+    return a
+
+
+def apply_no_rows_comparator(o):
+    """COMPARATOR_NO_PER_TRIAL_ROWS (K-AND-POOLED-RESULT): the comparator prints its trial list and a pooled result but no
+    per-trial rows. Terms (Mahmood, 5 Oct):
+      k matching        the trial list counts as usual (the comparator set came through k_gap_table)
+      per-trial         every trial's comparison is NOT_AVAILABLE_FROM_COMPARATOR; no comparator row exists
+      RESULT_AGREES     ours vs the comparator's POOLED estimate, ours pooled from OUR verified rows (counted route,
+                        integer arm counts) for the SAME trial set, on the comparator's measure with its model; only when
+                        every trial of the set has such a row -- else OUR_ROWS_INCOMPLETE (unmet)
+      confirmation      never comparator-side data confirmation (comparator_data_confirmation = NONE on every trial)."""
+    a = no_rows_adoption(o.get("slug"), o.get("comparator_pmid"))
+    if not a:
+        return None
+    pr = a["pooled_result"]
+    m = pr["measure"].upper()
+    for x in o.get("trials") or []:
+        x["comparator_row"] = None
+        x["comparator_data_confirmation"] = "NONE"
+        if is_matched(x):
+            x["agreement_with_comparator_row"] = "NOT_AVAILABLE_FROM_COMPARATOR"
+    tr = o.get("trials") or []
+    rows, missing = [], []
+    for x in tr:
+        v = x.get("our_value") or {}
+        ok = is_matched(x) and x.get("g1_countable") and all(isinstance(v.get(k), int) for k in ("events_t", "n_t", "events_c", "n_c"))
+        if ok:
+            rows.append(sm.SecondaryRow(meta_pmid="OURS", meta_doi="", location={}, source_digest="", provenance="PRIMARY",
+                                        trial_label=x["label"], measure=m, outcome_definition="",
+                                        **{k: v[k] for k in ("events_t", "n_t", "events_c", "n_c")}))
+        else:
+            missing.append(x["label"])
+    theirs = {"estimate": pr["estimate"], "ci_low": pr["ci_low"], "ci_high": pr["ci_high"]}
+    st = {"state": "OURS_POOLED_VS_COMPARATOR_POOLED_RESULT", "comparator_type": "COMPARATOR_NO_PER_TRIAL_ROWS",
+          "measure": m, "k_comparator": pr.get("k"), "k_set": len(tr), "k_ours_verified": len(rows),
+          "theirs": dict(theirs, source=pr["source"]["path"], span=pr["spans"]["result"]),
+          "method": pr.get("method_for_ours"), "per_trial": "NOT_AVAILABLE_FROM_COMPARATOR"}
+    if missing or not rows or len(rows) != (pr.get("k") or len(rows)):
+        st.update(state="OUR_ROWS_INCOMPLETE", missing=missing,
+                  verdict={"verdict": "NOT_COMPUTABLE",
+                           "why": f"our verified rows cover {len(rows)} of the comparator's {pr.get('k')} trials"})
+    else:
+        yv = [sm.row_yi_vi(r) for r in rows]
+        g = math.exp if m in sm.RATIO else (lambda z: z)
+        mu, lo, hi = (g(z) for z in sm.pool([y for y, _ in yv], [w for _, w in yv], pr.get("method_for_ours") or "DL"))
+        ours = {"estimate": round(float(mu), 4), "ci_low": round(float(lo), 4), "ci_high": round(float(hi), 4)}
+        st.update(ours=ours, verdict=result_verdict(ours, theirs, m))
+    o["same_trials"] = st
+    o["comparator_type"] = "COMPARATOR_NO_PER_TRIAL_ROWS"
+    o["comparator_adoption"] = {"file": NO_ROWS_ADOPTION.format(slug=o["slug"]).replace(ROOT + os.sep, "").replace("\\", "/"),
+                                "ratified": (a.get("selection") or {}).get("ratified_exception"),
+                                "retired": {k: (a.get("retired") or {}).get(k) for k in ("comparator_pmid", "reason_code")}}
+    o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in tr if is_matched(x)))
+    return st
+
+
 def primary_counts(x):
     """Counts a trial's OWN primary states (a lane reading whose counts are printed by a primary -- TEXT or posted
     results -- not only by a meta), as (events_t, n_t, events_c, n_c), or None."""
@@ -1856,6 +1942,7 @@ def topic(slug, T):
     apply_confirm_bindings(out)
     apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings.json"))
     apply_secondary_bindings(out, os.path.join(OUT, "g1_binding", f"secondary_{out.get('slug')}.json"))
+    apply_no_rows_comparator(out)          # after every binding: OUR verified rows are final before the pooled compare
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
