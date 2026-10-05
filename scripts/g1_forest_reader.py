@@ -292,6 +292,15 @@ TARGETS: dict = {
         "caption_has": "Supplemental Figure 3 Meta-analysis of the effects of long-chain omega-3",
         "instruction": "Rows: every study row of every group (EPA plus DHA; EPA), once each, with events and "
                        "participants per arm -- never a Subtotal row. Pooled: the 'Random effects model' row."},
+    "pcsk9-mace::39126262": {
+        "fig_id": "F0001", "caption_has": "Risk of three-point MACE",
+        "instruction": "Transcribe ONLY the 'PCSK9 inhibitor' group: its study rows (with events/total per arm) and "
+                       "that group's own Subtotal row as pooled. Ignore the Ezetimibe group and the Overall row."},
+    "melatonin-primary-insomnia-sol::36079069": {
+        "fig_id": "jcm-11-05138-f002", "caption_has": "Objective Sleep Outcomes",
+        "instruction": "Transcribe ONLY the block for SLEEP ONSET LATENCY (or latency to persistent sleep): its study "
+                       "rows, once each, and that block's own pooled row. Ignore every other outcome block. If there "
+                       "is no sleep onset latency block, set legible=false and say so in notes."},
     "probiotics-aad-prevention::30078376": {
         "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
         "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
@@ -735,7 +744,8 @@ SS_READ = {
     "pcsk9-mace::39259104", "pcsk9-mace::41235335", "ticagrelor-vs-clopidogrel-acs::31000178",
     "tocilizumab-covid19-mortality::34026583", "tocilizumab-covid19-mortality::39633779",
     "probiotics-aad-prevention::30078376", "ticagrelor-vs-clopidogrel-acs::40051435",
-    "ticagrelor-vs-clopidogrel-acs::38371311", "omega3-cardiovascular-events::37031750"}
+    "ticagrelor-vs-clopidogrel-acs::38371311", "omega3-cardiovascular-events::37031750",
+    "pcsk9-mace::39126262", "melatonin-primary-insomnia-sol::36079069"}
 
 
 def topic_note(key):
