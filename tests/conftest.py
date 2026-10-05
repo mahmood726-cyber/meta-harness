@@ -1,10 +1,18 @@
 """Keep fixed-port browser contracts isolated across concurrent Windows lanes."""
 import errno
 import http.server
+import os
 import socket
 import time
 
 import pytest
+
+# A suite run from a git hook inherits GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE; any test's scratch `git init` would then
+# re-initialise the LIVE repository (core.bare=true, a test identity: three lane clones, 19 Sep - 4 Oct 2026; tests/test_target.py,
+# tests/test_incremental_rebuild.py and tests/test_search_completeness.py run `git init` with no scrub of their own).
+# Tests address repositories by cwd, never by an inherited GIT_*. Plant: tests/test_git_env_never_reaches_a_live_repo.py
+for _k in [k for k in os.environ if k.startswith("GIT_") and k not in ("GIT_TERMINAL_PROMPT", "GIT_ASKPASS", "GIT_SSH_COMMAND")]:
+    del os.environ[_k]
 
 
 @pytest.fixture(autouse=True)
