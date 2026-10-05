@@ -1062,15 +1062,49 @@ def secondary_single(sec, metas, comp_ids, slug, mine, t):
     held = primary_open(slug, mine, t)
     if held:
         return {"why": f"PRIMARY_OPENLY_AVAILABLE ({held}): extract the primary, not a meta"}
-    r = cand[0]
+    r, orient = oriented_secondary_row(cand[0])
     m = metas.get(r.meta_pmid) or {}
     where = (f"table {m.get('table')}" if m.get("provenance") == "TYPED_TABLE" else
              f"figure {m.get('figure')}{(' panel ' + str(m['panel'])) if m.get('panel') else ''} (recorded read {m.get('record_id')})")
-    return {"row": r, "provenance": {"meta_pmid": r.meta_pmid, "where": where, "row_label": r.trial_label,
+    return {"row": r, "orientation": orient,
+            "provenance": {"meta_pmid": r.meta_pmid, "where": where, "row_label": r.trial_label,
                                      "digest": r.source_digest, "control": m.get("positive_control"),
                                      "control_basis": m.get("control_basis") or "TYPED_TABLE"},
             "basis": (f"SECONDARY_SINGLE: meta {r.meta_pmid} {where}, row '{r.trial_label}' (digest {str(r.source_digest)[:12]}); "
                       f"the meta reproduces its own pooled result; queued for primary verification")}
+
+
+def _neg(x):
+    """A printed number negated as printed ('1.7' -> '-1.7', '-12.71' -> '12.71'): digits and precision unchanged."""
+    if x is None:
+        return None
+    t = str(x).strip()
+    return t[1:] if t.startswith("-") else ("-" + t if t not in ("0", "0.0", "0.00") else t)
+
+
+def oriented_secondary_row(r):
+    """A secondary meta's MD row in OUR convention (intervention minus control; harness/secondary_meta.py md = mean_t -
+    mean_c). Rule F2 (scripts/g1_binding_findings.orientation_stated) read on the META'S OWN held text: when the meta
+    states that a POSITIVE difference is a REDUCTION with the intervention ('efficacy in reducing X (WMD = 7.06)',
+    'mean improvement in X'), its rows are MIRRORED: effect -> -effect, (lower, upper) -> (-upper, -lower). Melatonin
+    Dawson 1998 from 23691095 Fig 1 was +1.7 (-12.71, 16.11); the comparator 35691474 prints -1.70 (5 Oct). Returns
+    (row, orientation) -- the row unchanged with orientation None when the measure is not MD or the meta states nothing."""
+    import dataclasses
+    import glob
+    if (r.measure or "").upper() != "MD":
+        return r, None
+    held = sorted(glob.glob(os.path.join(ROOT, "cache", "comparators", str(r.meta_pmid), "*_kgap_jats.xml")))
+    if not held:
+        return r, {"convention": "NOT_STATED", "why": "no held text of the meta"}
+    import g1_binding_findings as _bf
+    conv, spans = _bf.orientation_stated(open(held[-1], encoding="utf-8", errors="replace").read())
+    if conv != "POSITIVE_IS_REDUCTION_WITH_INTERVENTION":
+        return r, {"convention": "INTERVENTION_MINUS_CONTROL_ASSUMED", "why": "the meta states no mirrored convention"}
+    mirrored = dataclasses.replace(r, effect=_neg(r.effect), lower=_neg(r.upper), upper=_neg(r.lower))
+    return mirrored, {"convention": conv, "rule": "F2 (scripts/g1_binding_findings.orientation_stated)",
+                      "span": spans[0], "span_source": os.path.relpath(held[-1], ROOT).replace("\\", "/"),
+                      "printed": {"effect": r.effect, "lower": r.lower, "upper": r.upper},
+                      "ours": {"effect": mirrored.effect, "lower": mirrored.lower, "upper": mirrored.upper}}
 
 
 def primary_open(slug, mine, t):
