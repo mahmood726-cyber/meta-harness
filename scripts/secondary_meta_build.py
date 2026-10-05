@@ -253,8 +253,11 @@ def primary_value(slug, pmid, run, runs, want=None):
                                         declared_composite=dc, estimand=po.get("estimand")), "REGEX_ABSTRACT")
     if got[0] and (want != "counts" or got[0].get("events_t") is not None):
         return got
+    from harness import copy_licence as cl
     ft = cfm.pmc_fulltext_cached(pmid, offline=not run)
+    ft_licence = None
     if ft:
+        ft_licence = cl.pmc_licence(pmid, run)              # what a MODEL may read; typed reading below is unaffected
         got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
         if got[0] and (want != "counts" or got[0].get("events_t") is not None):
             return got
@@ -263,7 +266,10 @@ def primary_value(slug, pmid, run, runs, want=None):
         u = k_gap.unpaywall_text(rec["doi"], os.path.join(ROOT, "outputs", "k_gap", "_upw"),
                                  os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=not run)
         ft = (u.get("text") or "")[:120000]
-    text = (rec.get("title") or "") + "\n" + (rec.get("abstract") or "") + ("\n\n" + ft if ft else "")
+        ft_licence = "CC" if cl.upw_open(u) else "UPW_NOT_CC"
+    # the locator's prompt is a PUBLIC record: it carries full text only from a CC copy (harness.copy_licence), and the
+    # gate below checks its quote against exactly the text shown
+    text, ref = cl.locator_text(rec, ft, ft_licence, pmid)
     wanted = ("" if not want else
               "\nWANTED: the number of participants WITH the outcome and the number randomised, in EACH arm (events_t, n_t, "
               "events_c, n_c), copied as printed.\n" if want == "counts" else
@@ -275,7 +281,7 @@ def primary_value(slug, pmid, run, runs, want=None):
         rec_c = mcl.call(p, schema=LOCATE_SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
                          caller={"file": "scripts/secondary_meta_build.py", "line": "primary_value",
                                  "purpose": f"secondary-tier primary verification locate {slug} PMID {pmid} (acq/k-gap lane)"},
-                         input_digests=[{"ref": f"trial report PMID {pmid} (abstract + PMC OA full text if held)",
+                         input_digests=[{"ref": ref,
                                          "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                                          "what": "held text shown whole"}],
                          timeout_s=1200)
