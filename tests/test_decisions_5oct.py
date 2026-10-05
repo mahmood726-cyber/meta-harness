@@ -148,3 +148,30 @@ def test_no_quarantined_licence_record_is_tracked_or_listed():
                              stdin=subprocess.DEVNULL).stdout
     for rid in exc.get("resolved") or {}:
         assert rid not in tracked, f"{rid}: a quarantined record is tracked again"
+
+
+def test_every_registered_adjudication_renders_in_the_tracker_table():
+    # 5 Oct: the PROTOCOL_TEXT adjudication record lacked 'screen_reason' / 'registered_eligibility', and the table
+    # renderer (which needs both) crashed the tracker's markdown on the first full regeneration
+    adj = json.load(open(os.path.join(ROOT, "registry", "scope_adjudications.json"), encoding="utf-8"))["adjudications"]
+    for key in adj:
+        slug, fam = key.split("::", 1)
+        d = gt.scope_adjudication(slug, {"family": fam})
+        assert d, key
+        line = gt.scope_difference_line(dict(d, trial=fam))
+        assert d["span"]["text"] in line and "PROTOCOL_TEXT:" in line
+
+
+def test_every_named_difference_kind_renders_in_the_tracker_table():
+    # SAME_TRIAL_AS_ANOTHER_UNIT fell into the registry-gate branch ('gate' KeyError) and crashed the table: every kind
+    # the tracker emits must render, checked over the real per-topic files and one planted record per non-registry kind
+    import glob
+    seen = set()
+    for f in glob.glob(os.path.join(ROOT, "outputs", "k_gap", "g1", "*.json")):
+        for d in json.load(open(f, encoding="utf-8")).get("named_differences") or []:
+            assert gt.named_difference_line(d).startswith("- NAMED " + d["kind"]), (f, d["kind"])
+            seen.add(d["kind"])
+    same = {"kind": "SAME_TRIAL_AS_ANOTHER_UNIT", "trial": "PLATO substudy", "rule_id": "G1-ONE-TRIAL-ONE-UNIT",
+            "same_trial_as": "PLATO", "span": {"text": "NCT00391872"}, "span_source": "registry", "pmid": "1",
+            "protocol_rule": "one trial, one unit"}
+    assert "the same trial as PLATO" in gt.named_difference_line(same)

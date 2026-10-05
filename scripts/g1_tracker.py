@@ -1476,6 +1476,9 @@ def scope_adjudication(slug, x):
                            f"outputs/k_gap/member_records.json)",
             "pmid": ts["pmid"], "decided": a.get("decision"), "registry_note": a.get("registry_note"),
             "screen_rule_was": a.get("screen_rule_was"),
+            # the same shape as a screen-rule difference (the table renders both): what the screen said, and the registry
+            "screen_reason": a.get("screen_rule_was") or "decided by the protocol's own text",
+            "registered_eligibility": a.get("registry_note"),
             "audit": {"class": "PROTOCOL_TEXT_ADJUDICATION", "subclass": a.get("axis")}}
 
 
@@ -2351,6 +2354,32 @@ def headline(out):
             ". Every G1_MATCHED row shows its excluded-by-scope count of the comparator's N.") if N else "no comparator trials"
 
 
+def named_difference_line(d):
+    """One markdown line per named difference; every kind the tracker emits has a branch (a kind falling into another
+    kind's branch crashed the table: SAME_TRIAL_AS_ANOTHER_UNIT carries no registry gate)."""
+    if d["kind"] == "SAME_TRIAL_AS_ANOTHER_UNIT":
+        return (f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']}; the same trial as {d.get('same_trial_as')}. "
+                f"SPAN [{d.get('span_source')}]: \"{(d.get('span') or {}).get('text')}\"")
+    if d["kind"] == "PROTOCOL_SCOPE_DIFFERENCE":
+        return scope_difference_line(d)
+    if d["kind"] == "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS":
+        return (f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['protocol_rule']}); "
+                f"SPAN [{d['span_source']}]: \"{d['span']['text']}\"")
+    an = d.get("registry_analysis") or {}
+    return (f"- NAMED {d['kind']}: {d['trial']} -- rule {d.get('rule_id')}; {d['gate']}: {d['reason']}. "
+            f"SPAN [{d.get('span_source')}]: \"{(d.get('span') or {}).get('text')}\". Registry ({d['snapshot']['id']}): "
+            f"'{d['registry_outcome']}', arms " + ", ".join(f"{a.get('title')} {a['count']}/{a['n']}"
+                                                           for a in d.get("registry_arms") or [])
+            + (f", {an.get('param_type')} {an.get('param_value')} ({an.get('ci_lower')}-{an.get('ci_upper')})"
+               if an else "") + f"; the comparator pooled it as {d.get('comparator_pooled_it_as')}")
+
+
+def scope_difference_line(d):
+    return (f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['screen_reason']}); protocol "
+            f"rule {d['protocol_rule']}; SPAN [{d['span_source']}]: \"{d['span']['text']}\"; "
+            f"registered eligibility: {d['registered_eligibility']}")
+
+
 def table():
     out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and ".tmp" not in f]
     missing = sorted(set(served_topics()) - {o["slug"] for o in out})
@@ -2396,21 +2425,7 @@ def table():
                       + (f"; comparator row finding: {x['comparator_row_findings']}" if x.get("comparator_row_findings") else "")
                       + (f"; side: {x['disagreement_side']}" if x.get("disagreement_side") else ""))
         for d in o.get("named_differences") or []:
-            if d["kind"] == "PROTOCOL_SCOPE_DIFFERENCE":
-                md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['screen_reason']}); protocol "
-                          f"rule {d['protocol_rule']}; SPAN [{d['span_source']}]: \"{d['span']['text']}\"; "
-                          f"registered eligibility: {d['registered_eligibility']}")
-            elif d["kind"] == "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS":
-                md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d['rule_id']} ({d['protocol_rule']}); "
-                          f"SPAN [{d['span_source']}]: \"{d['span']['text']}\"")
-            else:
-                an = d.get("registry_analysis") or {}
-                md.append(f"- NAMED {d['kind']}: {d['trial']} -- rule {d.get('rule_id')}; {d['gate']}: {d['reason']}. "
-                          f"SPAN [{d.get('span_source')}]: \"{(d.get('span') or {}).get('text')}\". Registry ({d['snapshot']['id']}): "
-                          f"'{d['registry_outcome']}', arms " + ", ".join(f"{a.get('title')} {a['count']}/{a['n']}"
-                                                                         for a in d.get("registry_arms") or [])
-                          + (f", {an.get('param_type')} {an.get('param_value')} ({an.get('ci_lower')}-{an.get('ci_upper')})"
-                             if an else "") + f"; the comparator pooled it as {d.get('comparator_pooled_it_as')}")
+            md.append(named_difference_line(d))
         for f in o.get("comparator_findings") or []:
             md.append(f"- COMPARATOR FINDING {f['finding']}: {f['trial']} -- comparator row {f.get('comparator_row')}"
                       + (f" vs trial report {f['trial_report']}" if f.get("trial_report") else "")

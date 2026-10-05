@@ -666,9 +666,10 @@ def run(slugs, ref, redo=()):
     def one(job):
         slug, cfg, comp, t = job
         ev, _held = evidence(t, cfg, comp)
-        if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not _held["text"] and not ev["meta_rows"] \
+        if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not _held["text"] \
                 and not ev.get("regulatory"):
-            # nothing open to read: no model call (a reader with no source can only guess)
+            # nothing open to read: no model call (a reader with no source can only guess). A META row is never
+            # admitted (gate: META_CANDIDATE), so meta rows alone are no source to read
             return f"{slug}|{t['label']}", {"record_id": None, "state": "NO_OPEN_SOURCE", "slug": slug,
                                             "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
                                             "why": {"aact": {n: a.get("state") for n, a in ev["aact"].items()},
