@@ -33,3 +33,19 @@ def test_an_open_label_title_decides_x_design():
     assert ea.OPEN.search(rec["title"]) and not ea.OPEN.search(rec.get("abstract") or "")
     cls, sub, base = ea.classify(rec, cfg)
     assert (cls, sub.split(" ")[0]) == ("TRUE_SCOPE_DIFFERENCE", "OPEN_LABEL_STATED") and base["span"]["field"] == "title"
+
+
+def test_full_text_evidence_never_re_screens_the_record():
+    # colchicine-postop Zarpelon (27223641): its full text cites 'a randomized, placebo-controlled study' (another trial);
+    # appended to the record and re-screened, the record was INCLUDED and the item read INCONSISTENT
+    import json
+    cfg = json.load(open(os.path.join(ROOT, "topics", "colchicine-postop-af.json"), encoding="utf-8"))
+    rec = {"id": "27223641", "id_type": "pmid", "pubtypes": ["Journal Article", "Randomized Controlled Trial"],
+           "title": "Colchicine to Reduce Atrial Fibrillation in the Postoperative Period of Myocardial Revascularization.",
+           "abstract": "Between May 2012 and November 2013, 140 patients submitted to myocardial revascularization surgery "
+                       "were randomized, 69 to the control group and 71 to the colchicine group."}
+    ft = ("This is a prospective, randomized, open, single-center clinical assay, whose 140 participants were recruited. "
+          "The AF rate was estimated based on the results of a randomized, placebo-controlled study.")
+    both = dict(rec, abstract=rec["abstract"] + "\n\n" + ft)
+    cls, sub, base = ea.classify(both, cfg, decide_rec=rec)
+    assert cls == "TRUE_SCOPE_DIFFERENCE" and sub.startswith("OPEN_LABEL_STATED") and "open, single-center" in base["span"]["text"]

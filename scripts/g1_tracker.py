@@ -497,13 +497,35 @@ def exclusion_audit_class(slug, pmid):
         for r in (_j(ap).get("rows") or []) if os.path.exists(ap) else []:
             _AUDIT.setdefault((r.get("slug"), str(r.get("pmid"))), r)
     r = _AUDIT.get((slug, str(pmid)))
+    f = fulltext_resolution(slug, pmid) if (r or {}).get("class") == "INSUFFICIENT_RECORD" else None
+    if f:
+        return f.get("class_after"), f.get("subclass_after")
     return (r.get("class"), r.get("subclass")) if r else (None, None)
+
+
+_FT_AUDIT = None
+
+
+def fulltext_resolution(slug, pmid):
+    """scripts/k_gap_exclusion_fulltext.py's row for an exclusion the abstract-level audit left INSUFFICIENT_RECORD, when
+    the trial's own full text resolves it (TRUE_SCOPE_DIFFERENCE / SCREENER_ERROR); None otherwise. The tracker never read
+    that stage, so a full-text-resolved exclusion could not be named (colchicine-postop Zarpelon: 'a prospective,
+    randomized, open, single-center clinical assay' is in its full text only)."""
+    global _FT_AUDIT
+    if _FT_AUDIT is None:
+        p = os.path.join(OUT, "exclusion_fulltext.json")
+        _FT_AUDIT = {(r.get("slug"), str(r.get("pmid"))): r for r in (_j(p).get("rows") or [])} if os.path.exists(p) else {}
+    r = _FT_AUDIT.get((slug, str(pmid)))
+    return r if r and r.get("class_after") in ("TRUE_SCOPE_DIFFERENCE", "SCREENER_ERROR") else None
 
 
 def exclusion_audit_span(slug, pmid):
     """The audit's SPAN for a TRUE_SCOPE_DIFFERENCE: the record's own words establishing the excluding fact."""
     exclusion_audit_class(slug, pmid)
     r = _AUDIT.get((slug, str(pmid))) or {}
+    if r.get("class") == "INSUFFICIENT_RECORD":
+        f = fulltext_resolution(slug, pmid)
+        return f.get("span") if f and f.get("class_after") == "TRUE_SCOPE_DIFFERENCE" else None
     return r.get("span") if r.get("class") == "TRUE_SCOPE_DIFFERENCE" else None
 
 
@@ -527,6 +549,13 @@ def span_is_verbatim(slug, pmid, span):
     """True when span['text'] occurs VERBATIM in the held record's span['field'] (a list field: in one item)."""
     if not span or not (span.get("text") or "").strip():
         return False
+    if span.get("field") == "fulltext":
+        # the held full text, matched by its digest (a different text never verifies a span)
+        import hashlib
+        fp = os.path.join(OUT, "_ft", f"{pmid}.txt")
+        t = open(fp, encoding="utf-8").read() if os.path.exists(fp) else ""
+        t = t[:span["chars"]] if span.get("chars") else t           # the prefix the full-text stage read
+        return bool(t) and hashlib.sha256(t.encode("utf-8")).hexdigest() == span.get("sha256") and span["text"] in t
     v = (held_record(slug, pmid) or {}).get(span.get("field"))
     return any(isinstance(s, str) and span["text"] in s for s in (v if isinstance(v, list) else [v]))
 

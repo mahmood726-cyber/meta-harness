@@ -108,10 +108,17 @@ def main(argv):
                          "fulltext": "NO_OA_FULLTEXT", "class_after": "INSUFFICIENT_RECORD", "how": None})
             continue
         rec_ft = dict(it["rec"] or {}, abstract=((it["rec"] or {}).get("abstract") or "") + "\n\n" + it["fulltext"])
-        cls, sub, _ = ea.classify(rec_ft, ea._cfg(it["slug"]))                    # regex first, on the full text
+        cls, sub, base = ea.classify(rec_ft, ea._cfg(it["slug"]), decide_rec=it["rec"] or {})  # regex first, full text as evidence
         if cls != "INSUFFICIENT_RECORD":
+            sp = dict((base or {}).get("span") or {}) or None
+            if sp and sp.get("text") and sp["text"] not in ((it["rec"] or {}).get("abstract") or ""):
+                # the words are the FULL TEXT's, not the record's: say so, with the text's digest, so the tracker checks
+                # the span against the held full text (span_is_verbatim field 'fulltext')
+                sp.update(field="fulltext", sha256=hashlib.sha256(it["fulltext"].encode("utf-8")).hexdigest(),
+                          chars=len(it["fulltext"]))                 # the FT_CAP prefix the stage read
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
-                         "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT"})
+                         "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "span": sp,
+                         "how": "REGEX_ON_FULLTEXT"})
             continue
         p, held, cd = reader_prompt(pilot, it, rec_ft)
         r = runs.get(key)
