@@ -139,3 +139,54 @@ def test_f6_comparator_design_sentence():
     t = "Results: Twelve eligible observational studies (n = 1,627,434) were enrolled."
     assert bf._COMP_DESIGN.search(t)
     assert not bf._COMP_DESIGN.search("We pooled data on mortality.")
+
+
+# ---- F7 / F7-SCOPE / F8: real row shapes of the esketamine comparator (PMID 42490943, Table 2) and TRANSFORM-1 posts
+_JATS = """<table-wrap id="t2"><table><thead><tr><th>Study (source)</th><th>Design/phase</th>
+<th>Population (TRD definition)</th><th>Sample size (E/C)</th><th>Esketamine regimen</th><th>Primary endpoint</th></tr></thead>
+<tbody><tr><td>Trial B (2019) ( <xref>20</xref> )</td><td>Double-blind, parallel-group; acute induction</td>
+<td>Adults 18&#x2013;64</td><td>114/109</td><td>Fixed-dose 84 mg twice weekly &#xd7; 4 weeks</td><td>MADRS change day 28</td></tr>
+<tr><td>Trial E (2020) ( <xref>25</xref> )</td><td>RW, double-blind maintenance after open-label induction/stabilization</td>
+<td>Responders/remitters</td><td>301/302</td><td>Continue esketamine weekly vs placebo spray</td><td>Time to relapse</td></tr>
+</tbody></table></table-wrap>"""
+_CFG = {"primary_outcome": {"name": "Observed-case Day-28 raw change-score MADRS MD", "keywords": ["madrs", "montgomery"]},
+        "include": {"population_none": ["relapse prevention", "maintenance of", "bipolar"]}}
+
+
+def test_f7_row_contradicts_open_label_citation_and_is_out_of_scope():
+    row = bf.characteristics_row(_JATS, "Trial E (2020) (25)")
+    assert row["Primary endpoint"] == "Time to relapse"
+    f7 = bf.row_vs_citation(row, "Esketamine nasal spray plus oral antidepressant ...: assessment of long-term safety in a "
+                                 "phase 3, open-label study (SUSTAIN-2)", {"intervention_model": "SINGLE_GROUP", "allocation": "NA"})
+    assert f7 and len(f7["contradicted_by"]) == 2 and f7["row_design"].startswith("RW, double-blind")
+    sc = bf.row_scope(row, _CFG)
+    assert [s["rule"] for s in sc] == ["ROW_ENDPOINT_NOT_TOPIC_OUTCOME"]
+
+
+def test_f7_silent_when_row_and_citation_agree():
+    row = bf.characteristics_row(_JATS, "Trial B (2019) (20)")
+    assert bf.row_vs_citation(row, "results of a randomized, double-blind, active-controlled study (TRANSFORM-1)", None) is None
+    assert bf.row_scope(row, _CFG) == []
+
+
+def test_f8_declared_dose_arm_and_contrasts_from_posted_means():
+    titles = {"OG000": "Intranasal Esketamine 56 mg Plus Oral Antidepressant",
+              "OG001": "Intranasal Esketamine 84 mg Plus Oral AD", "OG002": "Oral AD Plus Intranasal Placebo"}
+    row = bf.characteristics_row(_JATS, "Trial B (2019) (20)")
+    dec = bf.declared_dose_group(row["Esketamine regimen"], titles)
+    assert dec == "OG001"
+    means = {"258346928": {"OG000": {"mean": -19.0, "sd": 13.86, "n": 111}, "OG001": {"mean": -18.8, "sd": 14.12, "n": 98},
+                           "OG002": {"mean": -14.8, "sd": 15.07, "n": 108}}}
+    f8 = bf.declared_arm_finding({"effect": "-5.00", "lower": "-8.10", "upper": "-1.90"}, dec, means, titles)
+    assert f8["verdict"] == "DECLARED_ARM_VALUE_NOT_REPRODUCED"
+    mds = [c["md_ci"][0] for c in f8["computed"]]
+    assert mds == [-4.0, -4.11]           # 84 mg: -18.8 - (-14.8); both doses combined (Handbook 6.5.2.10)
+    # the same machinery DOES reproduce a value that is the declared arm's contrast
+    hit = bf.declared_arm_finding({"effect": "-4.0", "lower": "-8.0", "upper": "-0.0"}, dec, means, titles)
+    assert hit["verdict"] == "REPRODUCED"
+
+
+def test_f8_refuses_ambiguous_dose():
+    titles = {"OG000": "Esketamine 56 mg", "OG001": "Esketamine 84 mg", "OG002": "Placebo"}
+    assert bf.declared_dose_group("56 mg or 84 mg twice weekly", titles) is None
+    assert bf.declared_dose_group("flexible dose", titles) is None
