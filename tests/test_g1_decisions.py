@@ -111,7 +111,12 @@ def test_D3_PLANT_a_span_not_in_its_source_decides_nothing(monkeypatch):
 
 def test_every_decision_is_recorded_in_the_registry_and_typed():
     ids = [d["id"] for d in gt.g1_decisions()]
-    assert ids == ["D1-SWEEP-AACT-PRIMARY", "D2-ONE-TRIAL-SHARE", "D3-COMPARATOR-POOLS-NO-RCT"]
+    assert ids[:3] == ["D1-SWEEP-AACT-PRIMARY", "D2-ONE-TRIAL-SHARE", "D3-COMPARATOR-POOLS-NO-RCT"]
+    # ratified by Mahmood on 5 Oct, his words quoted (D1, D2 and the lane rules D4-D6); D3 is the captain's, flagged
+    rat = {d["id"]: d.get("ratified") for d in gt.g1_decisions()}
+    for i in ("D1-SWEEP-AACT-PRIMARY", "D2-ONE-TRIAL-SHARE", "D4-NO-POOL-META-SECOND-SOURCE-ONLY",
+              "D5-CLUSTER-UNADJUSTED-NOT-POOLED", "D6-SUBSTUDY-IS-A-REPORT-OF-THE-RCT"):
+        assert rat[i]["by"] == "Mahmood" and rat[i]["date"] == "2026-10-05" and rat[i]["quote"], i
     assert all(d.get("rule") and d.get("decided") and d.get("by") and d.get("applied_in") for d in gt.g1_decisions())
 
 

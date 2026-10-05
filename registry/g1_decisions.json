@@ -6,7 +6,13 @@
    "decided": "2026-10-02",
    "by": "Mahmood (approval relayed 2026-10-05)",
    "rule": "A trial's own posted results in a versioned AACT snapshot count as a PRIMARY source on the page (route SWEEP_AACT_PRIMARY), only with the recorded registry binding: NCT, the registry outcome title, the snapshot id + digest, the posted-N = randomised-N guard, and two-arm counts or a two-sided effect with its CI. Anything missing is not counted (fail-closed).",
-   "applied_in": "scripts/render_g1_tracker.py:counts"
+   "applied_in": "scripts/render_g1_tracker.py:counts",
+   "ratified": {
+    "by": "Mahmood",
+    "date": "2026-10-05",
+    "quote": "sign rest for me",
+    "relayed_by": "dispatch 2026-10-05 (morning)"
+   }
   },
   {
    "id": "D2-ONE-TRIAL-SHARE",
@@ -14,7 +20,13 @@
    "by": "captain under Mahmood's delegation (dispatch 2026-10-05)",
    "rule": "ONE_COMPARABLE_TRIAL passes RESULT_AGREES only when the directly comparable pairs that AGREE carry at least half of the shared trials' participants AND every other shared pair is a named MEASURE_DIFFERENCE with the same conclusion. A pair without a participant count, or a shared pair that is neither, fails closed. One small trial never carries a topic. Participants come from the pair's arm counts, else from the trial's OWN held abstract stating its randomised N (verb before the number, never negated or future, exactly one N; span recorded) -- g1_tracker.stated_randomised_n (corpus: 35 of 296 comparator trials with a held abstract state one).",
    "threshold": 0.5,
-   "applied_in": "scripts/g1_tracker.py:same_trials_compare"
+   "applied_in": "scripts/g1_tracker.py:same_trials_compare",
+   "ratified": {
+    "by": "Mahmood",
+    "date": "2026-10-05",
+    "quote": "sign rest for me",
+    "relayed_by": "dispatch 2026-10-05 (morning)"
+   }
   },
   {
    "id": "D3-COMPARATOR-POOLS-NO-RCT",
@@ -32,6 +44,45 @@
      },
      "flag": "FOR MAHMOOD: replace the comparator (an RCT meta-analysis of statins in older adults) or keep the topic as not attainable"
     }
+   }
+  },
+  {
+   "id": "D4-NO-POOL-META-SECOND-SOURCE-ONLY",
+   "decided": "2026-10-05",
+   "by": "g1/forest-reader lane rule (POOL_UNCHECKABLE)",
+   "rule": "A meta whose figure prints no pooled result cannot reproduce its own pool (no positive control): its rows count only as a SECOND source beside a gated meta or a primary, never alone (SECOND_SOURCE_ONLY).",
+   "applied_in": "harness/secondary_meta.py:pool_uncheckable / scripts/secondary_meta_build.py",
+   "ratified": {
+    "by": "Mahmood",
+    "date": "2026-10-05",
+    "quote": "sign rest for me",
+    "relayed_by": "dispatch 2026-10-05 (morning)"
+   }
+  },
+  {
+   "id": "D5-CLUSTER-UNADJUSTED-NOT-POOLED",
+   "decided": "2026-10-05",
+   "by": "g1/finish-line lane rule (cluster design)",
+   "rule": "A cluster or cluster-crossover trial's unadjusted arm counts are not pooled as if individually randomised: without a unit-of-analysis adjustment the trial is blocked UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE (SALT, SMART) and the comparator's unadjusted use is a comparator finding.",
+   "applied_in": "scripts/g1_tracker.py:cluster_design_of / comparator_unadjusted_cluster_findings",
+   "ratified": {
+    "by": "Mahmood",
+    "date": "2026-10-05",
+    "quote": "sign rest for me",
+    "relayed_by": "dispatch 2026-10-05 (morning)"
+   }
+  },
+  {
+   "id": "D6-SUBSTUDY-IS-A-REPORT-OF-THE-RCT",
+   "decided": "2026-10-05",
+   "by": "g1/finish-line lane rule (screen X1)",
+   "rule": "A substudy / secondary analysis of a randomised comparison is a report of that RCT unless its own record says it is non-randomised, post hoc or observational; protocol / design papers stay excluded.",
+   "applied_in": "harness/screen.py:_title_not_an_rct_report (g1/finish-line) -- NOT YET in the consolidation: it changes the SERVED screen, so its served-number changes are listed as notices in the next PR #13 packet before it lands",
+   "ratified": {
+    "by": "Mahmood",
+    "date": "2026-10-05",
+    "quote": "sign rest for me",
+    "relayed_by": "dispatch 2026-10-05 (morning)"
    }
   }
  ]
