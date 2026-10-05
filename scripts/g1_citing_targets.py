@@ -65,8 +65,11 @@ def citing(pmid, run, rec):
         return None
     from harness import http
     q = f"CITES:{pmid}_MED AND {META_TITLE} AND OPEN_ACCESS:y"
-    st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-                         {"query": q, "format": "json", "resultType": "lite", "pageSize": "200"}, tries=3)
+    try:
+        st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                             {"query": q, "format": "json", "resultType": "lite", "pageSize": "200"}, tries=4)
+    except Exception:  # noqa: BLE001 - NOT recorded (never 'zero hits'); named as NOT_SEARCHED and retried next run
+        return None
     d = json.loads(b.decode("utf-8"))
     rec[pmid] = {"query": q, "hitCount": d.get("hitCount"), "sha256": hashlib.sha256(b).hexdigest(),
                  "metas": [r["pmid"] for r in (d.get("resultList") or {}).get("result") or [] if r.get("pmid")]}
@@ -108,10 +111,12 @@ def discover(slug, run, rec):
     comp = str(gfr.comparator_of(slug))
     o = gfr._j(gfr.OUT) if os.path.exists(gfr.OUT) else {}
     held_keys = set((o.get("meta_results") or {})) | set((o.get("meta_skipped") or {}))
-    cites, queries = {}, {}
+    cites, queries, not_searched = {}, {}, []
     for lab, pmids in unmatched_pmids(slug).items():
         for pm in pmids:
             r = citing(pm, run, rec)
+            if r is None:
+                not_searched.append(pm)
             if r:
                 queries[pm] = {k: r[k] for k in ("query", "hitCount", "sha256")}
                 for m in r["metas"]:
@@ -120,7 +125,10 @@ def discover(slug, run, rec):
     cands, no_jats = [], []
     for m in sorted(cites):
         if run and not gfr.jats_path(m):
-            k_gap.fetch_comparator_jats(m, gfr.FETCH_DATE)
+            try:
+                k_gap.fetch_comparator_jats(m, gfr.FETCH_DATE)
+            except Exception:  # noqa: BLE001 - a failed fetch is listed under no_open_jats (named, retried next run)
+                pass
         figs = figures_of(m)
         if figs is None:
             no_jats.append(m)
@@ -128,8 +136,8 @@ def discover(slug, run, rec):
         for c in figure_candidates(slug, m, figs, gfr._meta_title(m, run)):
             key = f"{slug}::{m}::{c['fig_id']}"
             cands.append(dict(c, pmid=m, cites=sorted(cites[m]), already_read=key in held_keys))
-    return {"comparator": comp, "queries": queries, "n_citing_metas": len(cites), "no_open_jats": no_jats,
-            "candidates": cands}
+    return {"comparator": comp, "queries": queries, "not_searched": not_searched, "n_citing_metas": len(cites),
+            "no_open_jats": no_jats, "candidates": cands}
 
 
 def main(argv):
@@ -140,7 +148,8 @@ def main(argv):
     for s in slugs:
         out[s] = discover(s, run, rec)
         d = out[s]
-        print(f"{s}: {d['n_citing_metas']} citing OA metas, {len(d['no_open_jats'])} without open JATS, "
+        print(f"{s}: {d['n_citing_metas']} citing OA metas ({len(d['not_searched'])} trial reports NOT_SEARCHED), "
+              f"{len(d['no_open_jats'])} without open JATS, "
               f"{len(d['candidates'])} admissible-looking figures ({sum(1 for c in d['candidates'] if not c['already_read'])} unread)")
         with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=1, ensure_ascii=False, sort_keys=True)
