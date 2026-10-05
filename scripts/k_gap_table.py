@@ -578,7 +578,7 @@ def held_norm(path, text=None):
     return re.sub(r"\s+", " ", raw).strip()
 
 
-def enumeration_units(slug: str, agents: list[str]) -> list[dict]:
+def enumeration_units(slug: str, agents: list[str], comparator_pmid: str | None = None) -> list[dict]:
     """A comparator set ENUMERATED from the comparator's own supplementary trial table (scripts/g1_binding_enumerate.py
     --write-input): one typed unit per trial, in the schema every other source uses. The unit's identity is the
     comparator's OWN reference-list entry (reference number -> CONFIRMED PMID by exact title + first author + year), its
@@ -588,6 +588,8 @@ def enumeration_units(slug: str, agents: list[str]) -> list[dict]:
     if not os.path.exists(p):
         return []
     e = _j(p)
+    if comparator_pmid is not None and str(e.get("comparator_pmid")) != str(comparator_pmid):
+        return []                                  # an enumeration of ANOTHER comparator never enumerates this one
     src = os.path.join(ROOT, e["source"]["path"])
     if not os.path.exists(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != e["source"]["sha256"]:
         return []
@@ -817,7 +819,7 @@ def main(argv=None):
             text, ref = "", f"UNREADABLE: {exc}"
         held = {"ref": ref, **k_gap.held_text_identity(abstracts.get(cpmid, ""), text)}
         cands = [("JATS_TABLE", inc)]
-        eu = enumeration_units(slug, agents)
+        eu = enumeration_units(slug, agents, cpmid)
         if eu:
             # a TYPED enumeration (registry/comparator_enumerations: span-verified, digest-pinned, the trial set of the
             # comparator's RESULT) takes precedence over parsing its tables: statins 32529863's Table 1 lists all 16
