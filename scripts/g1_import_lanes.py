@@ -132,6 +132,38 @@ def from_g1_noac(slug, d, spec, T):
     return o
 
 
+def pool_rows_by_identity(core):
+    """{identity: pool row id} for every trial OUR held-source build pools: the row's own id ('PMID 33933206'), its PMID
+    and its trial family (NCT04381936)."""
+    prim = next((x for x in core.get("outcomes") or [] if x.get("primary")), {})
+    out = {}
+    for t in prim.get("trials") or []:
+        rid = str(t.get("id") or "")
+        for k in {rid, rid.replace("PMID ", ""), str(t.get("trial_family_id") or "").replace("PMID:", "")} - {""}:
+            out.setdefault(k, rid)
+    return out
+
+
+def attach_pool_membership(o, core):
+    """Pool membership BY IDENTITY for a lane file's trials (decision: captain, 5 Oct). A lane names a trial by its NCT
+    (RECOVERY = NCT04381936); our pool row is keyed by its report (PMID 33933206, trial family NCT04381936). A lane value of
+    None is filled from our pool; an explicit lane value that disagrees with our pool is kept and recorded, never
+    overwritten."""
+    import re
+    rows = pool_rows_by_identity(core)
+    for x in o.get("trials") or []:
+        fam = str(x.get("family") or "")
+        keys = [fam, fam.replace("PMID ", "")] + re.findall(r"PMID[ :]?(\d{6,9})", json.dumps(x.get("identity") or ""))
+        hit = next((rows[k] for k in keys if k and k in rows), None)
+        if x.get("in_our_pool") is None:
+            x["in_our_pool"] = bool(hit)
+            if hit:
+                x["pool_join"] = {"pool_row": hit, "by": "identity (NCT / PMID) against our held-source build"}
+        elif bool(x["in_our_pool"]) != bool(hit):
+            x["pool_join_conflict"] = {"lane_says": x["in_our_pool"], "our_pool_row": hit}
+    return o
+
+
 def attach_screen_state(o, ours, slug=None, records=None):
     """OUR screen's state on a lane file's trials. By comparator label where the lane used the k-gap table's units; else
     BY IDENTITY (the lane's family NCT / PMID, and PMIDs its identity note names) against our screen's own decision
@@ -189,6 +221,7 @@ def main(argv):
         # of the same topic gives every comparator trial its identification route and screen eligibility, by label
         import k_gap_counterfactual as cfm
         core_, _src = cfm.build_with_held_sources(slug)
+        attach_pool_membership(o, core_)
         attach_screen_state(o, gt.topic(slug, gt.with_identity_chain(T)), slug, core_["screening"]["records"])
         # the lane's named scope differences must carry rule + span like ours; unspanned ones go back to eligible
         gt.cite_or_demote(o, slug)

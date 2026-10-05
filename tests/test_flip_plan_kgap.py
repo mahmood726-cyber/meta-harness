@@ -92,3 +92,28 @@ def test_one_paper_reporting_two_registered_trials_is_two_units():
     fh2 = {"label": "ODYSSEY FH II", "pmids": ["26330422"], "ncts": ["NCT01709500"]}
     pac = {"label": "PACMAN-AMI", "pmids": ["26330422"], "ncts": ["NCT03067844"]}
     assert gt.one_trial_one_unit([fh1, fh2, pac], ours) == {}
+
+
+def test_a_lane_trial_named_by_its_nct_is_found_in_our_pool_keyed_by_its_report():
+    # captain, 5 Oct: RECOVERY (lane family NCT04381936) is pooled by us as 'PMID 33933206' -- the join missed it
+    import g1_import_lanes as gil
+    core = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 99999961", "trial_family_id": "NCT99999961"},
+                                                      {"id": "PMID 99999962", "trial_family_id": "PMID:99999962"}]}]}
+    o = {"trials": [{"label": "RECOVERY-X", "family": "NCT99999961", "in_our_pool": None},
+                    {"label": "BY-PMID", "family": "PMID 99999962", "in_our_pool": None},
+                    {"label": "NOT-POOLED", "family": "NCT99999963", "in_our_pool": None},
+                    {"label": "LANE-SAYS-NO", "family": "NCT99999961", "in_our_pool": False}]}
+    gil.attach_pool_membership(o, core)
+    t = {x["label"]: x for x in o["trials"]}
+    assert t["RECOVERY-X"]["in_our_pool"] is True and t["RECOVERY-X"]["pool_join"]["pool_row"] == "PMID 99999961"
+    assert t["BY-PMID"]["in_our_pool"] is True and t["NOT-POOLED"]["in_our_pool"] is False
+    assert t["LANE-SAYS-NO"]["in_our_pool"] is False and t["LANE-SAYS-NO"]["pool_join_conflict"]["our_pool_row"]
+
+
+def test_a_section_header_row_is_not_a_trial_unit():
+    from kgap import k_gap
+    t = {"header": [[{"text": "Studies", "rids": []}, {"text": "Year", "rids": []}, {"text": "NCT", "rids": []}]],
+         "rows": [{"cells": ["GLP-1 RA vs. placebo", "", ""], "rids": [], "row_text": "GLP-1 RA vs. placebo"},
+                  {"cells": ["ELIXA", "2015", "NCT01147250"], "rids": ["B24"], "row_text": "ELIXA | 2015 | NCT01147250"},
+                  {"cells": ["LEADER", "2016", "NCT01179048"], "rids": [], "row_text": "LEADER | 2016 | NCT01179048"}]}
+    assert [u["label"] for u in k_gap._units_from_table(t)] == ["ELIXA", "LEADER"]

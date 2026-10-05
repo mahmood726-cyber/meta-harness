@@ -1670,6 +1670,29 @@ def two_readers_eligible(readings):
     return {"READER_1", "READER_2"} <= {k for k, v in dec.items() if v == {"ELIGIBLE"}}
 
 
+_DESIGNS = None
+_BLINDED = {"DOUBLE", "TRIPLE", "QUADRUPLE"}
+
+
+def registered_blinding(pmid):
+    """The trial's REGISTERED design for a blinding-silent exclusion (outputs/k_gap/aact_designs.json, recorded from the
+    AACT snapshot; PMID -> NCT by AACT study_references, else by the title's acronym unique in AACT). None when no
+    unique registration is recorded. blinded: randomised AND masking DOUBLE/TRIPLE/QUADRUPLE."""
+    global _DESIGNS
+    if _DESIGNS is None:
+        dp = os.path.join(OUT, "aact_designs.json")
+        _DESIGNS = _j(dp) if os.path.exists(dp) else {}
+    d = _DESIGNS.get(str(pmid)) or {}
+    if d.get("state") != "RECORDED" or not d.get("masking"):
+        return None
+    blinded = (d.get("allocation") or "").upper() == "RANDOMIZED" and (d.get("masking") or "").upper() in _BLINDED
+    return {"blinded": blinded, "nct": d.get("nct"),
+            "span": {"source": f"AACT {d.get('snapshot')} designs.txt + studies.txt", "nct": d.get("nct"),
+                     "link": d.get("link"),
+                     "text": f"allocation {d.get('allocation')}; masking {d.get('masking')}; official title: "
+                             f"{(d.get('official_title') or '')[:200]}"}}
+
+
 def blinding_unverifiable(slug, pmid, cfg):
     """Decision 5 Oct (4): our protocol REQUIRES double-blind, the screen excluded the trial on design, and no held source
     states blinding either way (exclusion audit INSUFFICIENT_RECORD:BLINDING_NOT_STATED, and the full-text pass did not
@@ -1704,6 +1727,15 @@ def screen_eligibility(x, rec, pmid, readings, slug=None, cfg=None):
             return {"state": "ELIGIBLE", "basis": "TWO_READERS_JUDGE_ELIGIBLE", "screen_rule": rule,
                     "readings": readings[:6]}
         if slug and blinding_unverifiable(slug, f.get("pmid") or pmid, cfg):
+            reg = registered_blinding(f.get("pmid") or pmid)
+            if reg and reg["blinded"]:
+                # the record and open full text are silent, the trial's REGISTRATION states it: the design exclusion was
+                # a screener error, established by the registry span (Tsutsui / PARALLEL-HF: QUADRUPLE masking)
+                return {"state": "ELIGIBLE", "basis": "SCREENER_ERROR:REGISTRY_STATES_BLINDING", "screen_rule": rule,
+                        "span": reg["span"], "pmid": f.get("pmid") or pmid}
+            if reg:
+                return {"state": "NOT_ELIGIBLE", "rule_id": rule, "reason": "registry states the trial is not "
+                        f"double-blind ({reg['span']['text'][:120]})", "span": reg["span"], "readings": readings[:6]}
             return {"state": "ELIGIBILITY_UNVERIFIABLE", "rule_id": rule,
                     "why": "the protocol requires double-blind (include.design_double_blind) and no held source states "
                            "blinding (exclusion audit BLINDING_NOT_STATED; full-text pass did not establish it)",
