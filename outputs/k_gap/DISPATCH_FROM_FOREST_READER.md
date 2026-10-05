@@ -594,14 +594,14 @@ My 37031750 is a cross-check dissenter on GISSI-P.
 
 ## 2026-10-05 night — URGENT for the captain: corticosteroids-covid19 4/5 on the consolidation is overstated
 
-1. **False timepoint admission, introduced through this lane's `lane_timepoint` (c4b520e9).** Fixed in 361e9b2db, with a plant.
+1. **False timepoint admission, introduced through this lane's `lane_timepoint` (c4b520e9).** Fixed in 6a007a314, with a plant.
    - `meta_timepoint` returned the only day-count found anywhere in a meta's text.
    - Meta 33612824 defines its own primary outcome as "all-cause mortality at the **longest follow-up, defined by the individual trial**". Its only day-count is the **REACT** meta's "28-day", quoted in its background and discussion.
    - Its rows for CAPE COVID (a **day-21** trial), REMAP-CAP hydrocortisone, Metcovid and CoDEX were therefore admitted under the 28-day protocol and became SECONDARY_SINGLE. That is the "3 SECONDARY_SINGLE rows restored" in your consolidation.
    - Fix: a meta that states a varying timepoint (longest, last or end of follow-up, or defined by each trial) has no single timepoint.
    - Class audit over every core-mortality topic: **only 33612824** had admitted rows that depended on it.
    - **Corrected count on this branch: corticosteroids 2 of 5.** RECOVERY is PRIMARY. CoDEX is SECONDARY_SINGLE from 36333729 Fig 4 ("The effect of corticosteroids on Mortality at 28 days…", dual-read ACCEPTED, MH-FE reproduces), with 85/151 vs 91/148, identical to 33612824's row. CAPE COVID and Metcovid are NO_ROW; REMAP-CAP is UNVERIFIED.
-   - Please regenerate corticosteroids-covid19 on the consolidation from 361e9b2db or later.
+   - Please regenerate corticosteroids-covid19 on the consolidation from 6a007a314 or later.
 2. **The tracker's `primary_open` is licence-blind** (for your decision; I did not change it). It counts any HELD full text as an open primary (`_ft` / `_upw` caches), whatever its licence. So SECONDARY_SINGLE depends on the machine: refused where a NOT_OPEN PMC copy is cached, allowed where it isn't. Under the licence rule (models read only CC; deterministic readers only CC or author manuscripts), a NOT_OPEN copy is not an openly available primary. Deciding which way to make it consistent changes counts, so it is yours or Mahmood's.
 3. **New typed rule: INTERVENTION_NOT_THE_TOPICS** (8b39e109e, 93f19d4ea). A lane figure enters a topic only if its caption or the meta's own title names the topic's drug (or a listed single-drug class: SGLT2, IL-6, IV iron, PCSK9). It applies both in the build and before any read.
    - Found because IL-6 meta 35343397 was ACCEPTED under corticosteroids. Its REMAP-CAP and RECOVERY rows (the IL-6 domains: same registrations, different drug) were blocking the corticosteroid rows by cross-check.
