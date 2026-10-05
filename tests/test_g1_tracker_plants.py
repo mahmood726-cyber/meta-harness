@@ -301,3 +301,12 @@ def test_a_registry_title_names_our_outcome_in_its_own_wording():
     assert not gt.keyword_named("cardiovascular death or hospitalization for heart failure",
                                 "Subjects With Hospitalization Due to Heart Failure")
     assert not gt.keyword_named("primary outcome", title)          # generic anchors never name
+
+
+def test_a_secondary_registry_outcome_in_its_own_wording_is_a_binding_candidate():
+    # tocilizumab 5 Oct: 'Mortality Rate at Day 28' (a SECONDARY posted outcome) was never even a candidate -- the
+    # candidate filter still matched keywords as literal substrings ('mortality at day 28' is not in it)
+    kws = ["28-day all-cause mortality", "mortality at day 28", "28-day mortality"]
+    assert gt.binding_candidate("Mortality Rate at Day 28", kws, is_primary=False)
+    assert gt.binding_candidate("Time to Clinical Improvement", kws, is_primary=True)        # primary: always examined
+    assert not gt.binding_candidate("Time to Clinical Improvement", kws, is_primary=False)

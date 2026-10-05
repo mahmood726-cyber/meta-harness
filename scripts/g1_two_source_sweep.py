@@ -94,6 +94,33 @@ def _report_year(pmid):
     return int(y) if isinstance(y, int) or (isinstance(y, str) and y.isdigit()) else None
 
 
+_RESULT_PMIDS = {}
+
+
+def _aact_result_pmids(nct):
+    """The trial's own RESULT-typed (else DERIVED) PMIDs from the versioned AACT snapshot (kgap.identity_chain)."""
+    if nct not in _RESULT_PMIDS:
+        from kgap import aact_adapter, identity_chain as ic
+        try:
+            _RESULT_PMIDS[nct] = list((ic.result_pmids([nct], aact_adapter.snapshot_dir()) or {}).get(nct) or [])
+        except Exception:  # noqa: BLE001 - no snapshot: no identity, never a guess
+            _RESULT_PMIDS[nct] = []
+    return _RESULT_PMIDS[nct]
+
+
+def lane_identity(x, t):
+    """NCTs + PMIDs of one comparator trial: its k-gap row's own identity, else -- a LANE-owned topic has no k-gap rows
+    (tocilizumab) -- its tracker family (an NCT -> that NCT and its AACT result PMIDs; a PMID -> that PMID)."""
+    if t.get("ncts") or t.get("pmids"):
+        return {"ncts": list(t.get("ncts") or []), "pmids": list(t.get("pmids") or [])}
+    fam = str(x.get("family") or "")
+    if fam.startswith("NCT"):
+        return {"ncts": [fam], "pmids": _aact_result_pmids(fam)}
+    if fam.startswith("PMID "):
+        return {"ncts": [], "pmids": [fam[5:]]}
+    return {"ncts": [], "pmids": []}
+
+
 def targets(slugs=None, routes=None):
     """{slug: [trial dict]} for every unmatched, un-named comparator trial, with its identity (PMIDs, NCTs, acronyms)."""
     T = _j(os.path.join(OUT, "k_gap_table.json"))
@@ -112,7 +139,8 @@ def targets(slugs=None, routes=None):
         for x in o.get("trials") or []:
             if x.get("in_our_pool") or x["label"] in named or (routes and x.get("route") not in routes):
                 continue
-            t = by.get((o["slug"], x["label"])) or {}
+            t = dict(by.get((o["slug"], x["label"])) or {})
+            t.update(lane_identity(x, t))
             acr = sorted({v["acronym"] for v in (t.get("study") or {}).values() if (v or {}).get("acronym")})
             acr = sorted(set(acr) | label_acronyms(x["label"]))
             out.setdefault(o["slug"], []).append({
@@ -630,6 +658,10 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
         mine = [r for r in rows if r.family_id == t["label"]]
         ok = [r for r in mine if id(r) in countable]
         rb = t.get("registry_binding") or {}
+        if not rb and t.get("ncts"):
+            # a lane-owned trial carries no binding from the tracker: the same gates, from the versioned AACT snapshot
+            po = (_j(os.path.join(ROOT, "topics", slug + ".json")).get("primary_outcome") or {})
+            rb = gt.registry_binding(t["ncts"][0], po.get("name") or "", list(po.get("keywords") or []))
         bind = next((c for c in rb.get("candidates") or [] if c.get("verdict") == "BINDABLE"), None)
         route, value = None, None
         if ok:
