@@ -465,6 +465,24 @@ def read_counts(it):
             "prompt_sha256": hashlib.sha256(p).hexdigest(), "image_sha256": it["image_sha256"]}
 
 
+def wants_counts(spec, frows):
+    """A gated figure on an RR/OR topic whose rows print ANOTHER ratio measure: its per-arm counts are the only
+    assumption-free route to the estimand (harness.secondary_meta.measure_identity), so a counts read is wanted."""
+    e = (spec.get("estimand") or "").upper()
+    return e in ("RR", "OR") and any((r.measure or "").upper() != e for r in frows or [])
+
+
+def apply_counts(frows, rc, image_sha256):
+    """Attach a HELD counts read (RAN_OK, same image digest) to a figure's gated rows through attach_counts (each row's
+    counts must reproduce its printed effect). Returns the number attached, or None when no usable counts read is held."""
+    if not frows or not rc or rc.get("state") != "RAN_OK" or rc.get("image_sha256") != image_sha256:
+        return None
+    import secondary_meta_build as smb
+    from reproducible_ai import model_source as ms
+    got = json.loads(ms.replay(ms.load_record(os.path.join(smb.REC_DIR, rc["record_id"] + ".json"))).decode("utf-8"))
+    return attach_counts(frows, got)
+
+
 def attach_counts(rows, rec_counts):
     """Per-arm counts from the counts read, attached to a row ONLY when they reproduce that row's PRINTED effect (the
     RR, or the OR, implied by the counts equals the printed point estimate at its printed precision) -- a transcription
@@ -623,6 +641,9 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
         meta_state[m] = (meta_state.get(m, "") + f" | FOREST {entry.get('figure')} gate {entry.get('gate')} "
                          f"control {(entry.get('positive_control') or {}).get('reproduced')} rows {entry.get('rows_read')}"
                          ).strip(" |")
+        n_att = apply_counts(frows, (runs or {}).get(f"{slug}::{m}::counts"), it["image_sha256"])
+        if n_att is not None:
+            meta_state[m] += f" | counts attached to {n_att}/{len(frows)} rows (each reproduces its printed effect)"
         for r in frows:
             r = sm.admit(r, spec, fam)
             if r.family_id in want:
@@ -809,6 +830,20 @@ def main(argv):
                     fr = []
                 if fr and any(r.measure.upper() != spec_s["estimand"].upper() for r in fr):
                     todo.append(dict(it, counts_read=True))
+            # ...and the same for a CAPTION-SELECTED (planned) figure: it passed the same gate, so its counts are wanted
+            # just as much (corticosteroids-cap: meta 23112872 prints ORs on an RR topic; 5 rows refused on measure)
+            for m, it in sorted(fig[s].items()):
+                rr = runs.get(f"{s}::{m}")
+                ck = runs.get(f"{s}::{m}::counts")
+                if not rr or rr.get("state") != "RAN_OK" or rr.get("image_sha256") != it["image_sha256"] \
+                        or (ck and ck.get("state") == "RAN_OK") or m in comp[s]:
+                    continue
+                try:
+                    fr, _e = smb.figure_rows(s, it, rr, spec_s, smb.comparator_pmid(s))
+                except Exception:  # noqa: BLE001
+                    fr = []
+                if wants_counts(spec_s, fr):
+                    todo.append(dict(it, key=f"{s}::{m}", counts_read=True))
     todo = todo[:max_reads] if run else []
     if todo:
         with cf.ThreadPoolExecutor(max_workers=3) as ex:              # codex concurrency 3
