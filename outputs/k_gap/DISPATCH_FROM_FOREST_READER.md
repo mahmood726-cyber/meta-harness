@@ -611,3 +611,17 @@ My 37031750 is a cross-check dissenter on GISSI-P.
 6. **Tocilizumab (lane-owned, re-imported from g1/tocilizumab ac7b959df): 5 of 19.** **10 of the 14 unmatched trials are NOT_ASSESSED by our screen** (COV-AID, COVIDOSE2-SS-A, COVIDSTORM, COVINTOC, COVITOZ, PreToVid, REMAP-CAP, REMDACTA, TOCOVID and one more), and HMO-020-0224 is NOT_ELIGIBLE. No source can count these until k-gap's identification and our screen assess them. BACC-Bay's sweep row (3/82 placebo deaths) is **contradicted** by the trial's own 4/82 and stays refused.
 7. **iv-iron:** three HF-hospitalisation panels were read and accepted (33586856 panel B, 38643833 Fig 8 panel B; 36178088 panel A was refused). The build then refuses them all as `OUTCOME_NOT_THE_TOPICS`: the protocol registers hospitalisation **for worsening HF**, and the panels print "heart failure hospitalisation". The gate stays; whether those are the same outcome is a protocol question for Mahmood.
 8. **Worker:** the lanes now use my own worktree, `C:\mh-worker\forest-wt`, not the shared checkout. The worker's agy gave no answer (it is set to Gemini 3.5 Flash), so the worker runs codex-only jobs. I copied the public AACT snapshot (6 files) to `C:\mh-worker\AACT\2026-08-30`, because the k-gap sweep fails closed without it.
+
+## 2026-10-05 late night — corticosteroids-covid19 3 of 5 (machine-independent) + identity by the record's own dates
+
+- **Recount on g1/forest-reader (eceb30b38): corticosteroids-covid19 3 of 5.**
+  - RECOVERY: PRIMARY.
+  - CoDEX: TWO_SOURCE, from three independent metas (33765902, 34484209 and 36333729, each dual-read and accepted, and each stating 28 days).
+  - Metcovid: TWO_SOURCE, from 33666200 and 35937252 (72/194 vs 76/199 in both).
+  - No SECONDARY_SINGLE is involved, so this does not depend on the licence-blind `primary_open`. Please regenerate the consolidation from it; it supersedes the 4/5 that rested on the false timepoint.
+- **Identity change for your review (k-gap's resolver).** A row's author-year now also joins a trial when the year is one of the **trial record's own** dates: PubMed issue year, epub year, or the year the record entered PubMed (esummary history `pubmed`/`entrez`/`aheadofprint`; cached in `outputs/k_gap/pubmed_record_years.json`).
+  - No tolerance: any other year still fails (see the plant).
+  - Reason: Metcovid is dated 2021 by issue but entered PubMed on 2020-08-14 (no epubdate), and metas cite it as "Jeronimo 2020".
+  - Audit across every topic: 9 rows newly join, each the correct trial (Horby 2020→RECOVERY dexamethasone; Jolly 2024→CLEAR SYNERGY; Hermine 2020→CORIMUNO-TOCI-1; Raju 2011; Bessissow 2017; Ochs-Ross 2019→TRANSFORM-3; Jeronimo 2020 ×2; Horby 2020 ×2). No false join.
+- **New tooling:** `scripts/g1_citing_targets.py` plus `g1_forest_reader.py --citing`. For each unmatched trial it finds the open metas that **cite** the trial's report (recorded Europe PMC query, hit count and digest). It keeps only figures that pass the admission pre-filter before any read. In 7 topics: 425 citing metas → 36 figures, now being read.
+- **CAPE COVID and REMAP-CAP hydrocortisone remain open.** Among the 86 open metas citing them, none prints them in a figure whose caption or single stated timepoint is 28 days, except a sepsis meta (34484209) that doesn't carry their rows. Their published endpoints are day 21 and in-hospital; REACT used trialist-supplied day-28 data.
