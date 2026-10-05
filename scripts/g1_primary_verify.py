@@ -259,6 +259,30 @@ def main(argv):
               f" {v.get('events_t')}/{v.get('n_t')} vs {v.get('events_c')}/{v.get('n_c')}")
 
 
+def merge(outs):
+    """One output from runs split across boxes (each saw only its own trials): union by label, and the claimed-by-two
+    refusal re-applied across the UNION -- a split run cannot see that two trials chose the same report."""
+    from collections import Counter
+    trials, titles, pubtypes = {}, {}, {}
+    for o in outs:
+        titles.update(o.get("titles") or {})
+        pubtypes.update(o.get("pubtypes") or {})
+        for t in o.get("trials") or []:
+            assert t["label"] not in trials, f"label run twice: {t['label']}"
+            trials[t["label"]] = dict(t)
+    claims = Counter(t.get("report_pmid") for t in trials.values() if t.get("report_pmid"))
+    for t in trials.values():
+        pm = t.get("report_pmid")
+        if pm and claims[pm] > 1:
+            t.pop("value", None)
+            t["state"] = f"REPORT_CLAIMED_BY_{claims[pm]}_TRIALS:{pm}"
+    res = list(trials.values())
+    return {"slug": outs[0].get("slug"), "spec": outs[0].get("spec"), "titles": titles, "pubtypes": pubtypes,
+            "merged_from": len(outs),
+            "tally": dict(Counter((r.get("state") or r.get("report_basis") or "?").split(":")[0] for r in res)),
+            "trials": res}
+
+
 class _null:
     def __enter__(self):
         return self
@@ -269,4 +293,9 @@ class _null:
 
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-    main(sys.argv[1:])
+    if sys.argv[1:2] == ["--merge"]:          # --merge OUT IN1 IN2 ...
+        m = merge([gfr._j(f) for f in sys.argv[3:]])
+        gfr._save(sys.argv[2], m)
+        print(json.dumps(m["tally"]))
+    else:
+        main(sys.argv[1:])
