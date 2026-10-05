@@ -675,7 +675,11 @@ def build(slug, run, runs):
         metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
                          "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
                          "rows_read": len(ds), "record_ids": ds[0]["provenance"].split(":", 1)[1].split("+"),
-                         "positive_control": {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"},
+                         # a SECOND_SOURCE_ONLY figure (no printed pool) did NOT self-reproduce: say so (decision 5 Oct)
+                         "positive_control": ({"reproduced": False, "why": sm.POOL_UNCHECKABLE,
+                                               "basis": "g1_forest_reader: rows agreed, no printed pooled row"}
+                                              if any(sm.pool_uncheckable(r) for r in rows if r.meta_pmid == pm) else
+                                              {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"}),
                          "is_comparator": pm == comp, "earlier_route": metas_out.get(pm) or skipped.get(pm)}
         skipped.pop(pm, None)
     sm.consolidate(rows)

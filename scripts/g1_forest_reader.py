@@ -924,7 +924,10 @@ def agree(ra, rb):
                             "a": x["a"], "b": y["b"]})
     pa, pb = ra.get("pooled") or {}, rb.get("pooled") or {}
     pooled = {k: agree_value(pa.get(k), pb.get(k)) for k in ("effect", "lower", "upper")}
-    if None in pooled.values():
+    if all(not str(p.get(k) or "").strip() for p in (pa, pb) for k in ("effect", "lower", "upper")):
+        probs.append("NO_POOLED_ROW_PRINTED")      # BOTH readers: the figure prints no pooled row (not a disagreement)
+        pooled = None
+    elif None in pooled.values():
         probs.append("POOLED_ROW_DISAGREES")
         pooled = None
     if refused:
@@ -1336,9 +1339,22 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
         {"state": "REFUSED", "problems": [], "recomputed": {}, "methods_reproducing": [], "pooled_anchor": None}
     problems = probs + acc["problems"]
     state = "ACCEPTED" if not problems else "REFUSED"
+    # decision 5 Oct (tocilizumab meta 35802687): every row agreed, the rows are trials and internally consistent, but
+    # the figure prints NO pooled row -- the reconstruction gate cannot run. Such rows are SECOND-SOURCE-ONLY: emitted
+    # with the typed finding harness.secondary_meta.POOL_UNCHECKABLE, never ACCEPTED, never SECONDARY_SINGLE alone
+    unchecked = None
+    # ... and the rows are ONE analysis: no trial label twice (a figure printing one block per outcome repeats them)
+    if problems == ["NO_POOLED_ROW_PRINTED"] and len(proposed) >= 2 and \
+            len({_norm_label(r["label"]) for r in proposed}) == len(proposed) and \
+            not [x for r in proposed for x in row_problems(r, fp.is_ratio(measure), measure)]:
+        state, unchecked = SECOND_SOURCE_ONLY, (f"{sm.POOL_UNCHECKABLE}: both readers agree the figure prints no "
+                                                f"pooled row, so its pooled reconstruction cannot be checked; second "
+                                                f"source only (TWO_SOURCE beside a gated meta), decision 5 Oct")
+    elif problems == ["NO_POOLED_ROW_PRINTED"] and len({_norm_label(r["label"]) for r in proposed}) < len(proposed):
+        problems = problems + ["ROWS_NOT_ONE_ANALYSIS:REPEATED_TRIAL_LABELS"]   # one block per outcome: not second-source
     fig = item["figure"]
     rows = []
-    if state == "ACCEPTED":
+    if state in ("ACCEPTED", SECOND_SOURCE_ONLY):
         for r in proposed:
             rows.append({"meta_pmid": item["pmid"], "meta_doi": "", "source_digest": item["image_sha256"],
                          "location": {"kind": "figure", "id": fig["fig_id"], "panel": fig.get("panel"), "row_label": r["label"]},
@@ -1350,6 +1366,8 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
                              "findings": [f"ROW_CI_IS_{fig['row_ci_level']}_PERCENT: the meta prints this trial's interval "
                                           f"at {fig['row_ci_level']}% (its caption); not a 95% CI"]}
                             if fig.get("row_ci_level") else {})})
+            if unchecked:
+                rows[-1]["findings"] = list(rows[-1].get("findings") or []) + [unchecked]
     return {"state": state, "problems": problems, "measure": measure, "stated_model": model,
             "proposed_rows": proposed, "refused_rows": refused, "pooled_agreed": pooled,
             "agreed_rows_not_trials": agreed_not_trials, "agreed_rows_not_estimable": not_estimable,
@@ -1666,6 +1684,9 @@ def evaluate(its, runs):
     return res
 
 
+SECOND_SOURCE_ONLY = "ACCEPTED_SECOND_SOURCE_ONLY"     # rows agreed, pool unprinted: see judge (decision 5 Oct)
+
+
 def accepted_rows(slug):
     """The ACCEPTED secondary rows of a topic -- its comparator's and every other meta's (replay output, no model): for
     secondary_meta_build, where each meta's rows count toward the two-source rule but never against that meta."""
@@ -1674,7 +1695,10 @@ def accepted_rows(slug):
     d = _j(OUT)
     rs = [(d.get("results") or {}).get(slug) or {}] + \
          [v for v in (d.get("meta_results") or {}).values() if v.get("slug") == slug]
-    return [row for r in rs if r.get("state") == "ACCEPTED" for row in (r.get("secondary_rows") or [])]
+    # ACCEPTED rows, and SECOND_SOURCE_ONLY rows -- the latter carry the POOL_UNCHECKABLE finding, which the harness
+    # enforces (never SECONDARY_SINGLE, never a first source in TWO_SOURCE)
+    return [row for r in rs if r.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY)
+            for row in (r.get("secondary_rows") or [])]
 
 
 REPORT = os.path.join(ROOT, "outputs", "k_gap", "G1_FOREST_READER.md")
