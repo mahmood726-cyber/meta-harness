@@ -1,4 +1,27 @@
 {
+ "decisions": [
+  {
+   "applied_in": "scripts/render_g1_tracker.py:counts",
+   "by": "Mahmood (approval relayed 2026-10-05)",
+   "decided": "2026-10-02",
+   "id": "D1-SWEEP-AACT-PRIMARY",
+   "rule": "A trial's own posted results in a versioned AACT snapshot count as a PRIMARY source on the page (route SWEEP_AACT_PRIMARY), only with the recorded registry binding: NCT, the registry outcome title, the snapshot id + digest, the posted-N = randomised-N guard, and two-arm counts or a two-sided effect with its CI. Anything missing is not counted (fail-closed)."
+  },
+  {
+   "applied_in": "scripts/g1_tracker.py:same_trials_compare",
+   "by": "captain under Mahmood's delegation (dispatch 2026-10-05)",
+   "decided": "2026-10-05",
+   "id": "D2-ONE-TRIAL-SHARE",
+   "rule": "ONE_COMPARABLE_TRIAL passes RESULT_AGREES only when the directly comparable pairs that AGREE carry at least half of the shared trials' participants AND every other shared pair is a named MEASURE_DIFFERENCE with the same conclusion. A pair without a participant count, or a shared pair that is neither, fails closed. One small trial never carries a topic. Participants come from the pair's arm counts, else from the trial's OWN held abstract stating its randomised N (verb before the number, never negated or future, exactly one N; span recorded) -- g1_tracker.stated_randomised_n (corpus: 35 of 296 comparator trials with a held abstract state one)."
+  },
+  {
+   "applied_in": "scripts/g1_tracker.py:g1_status",
+   "by": "captain under Mahmood's delegation (dispatch 2026-10-05)",
+   "decided": "2026-10-05",
+   "id": "D3-COMPARATOR-POOLS-NO-RCT",
+   "rule": "A comparator that pools no RCTs cannot be matched trial-for-trial by an RCT review: the topic stays in the denominator with status COMPARATOR_POOLS_NO_RCT, a span quoted verbatim from the comparator's own held record, and is listed on the page as not attainable against this comparator. Replacing the comparator is Mahmood's decision."
+  }
+ ],
  "schema": "g1_tracker_canonical_v1",
  "topic_keys": [
   "slug",
@@ -32,8 +55,8 @@
    "N_comparator_trials": 6,
    "N_eligible": 5,
    "blockers": {
-    "EXTRACTION:ENGINE_CANNOT_CONSUME": 1,
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 2,
+    "UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE:cluster_crossover": 3
    },
    "comparator_pmid": "30140441",
    "comparator_sourced": [],
@@ -55,42 +78,40 @@
     },
     "rows": 5,
     "state": "REPRODUCED",
-    "where": "figure Fig3 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure Fig3 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
-   "k_covered": 2,
-   "k_independent": 2,
-   "k_matched": 2,
-   "matched_by_route": {
-    "PRIMARY": 2
-   },
-   "matched_by_route_group": {
-    "PRIMARY": 2
-   },
+   "k_covered": 0,
+   "k_independent": 0,
+   "k_matched": 0,
+   "matched_by_route": {},
+   "matched_by_route_group": {},
    "named_differences": [
     {
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))",
-     "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215)",
+     "span": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))",
+     "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
      "trial": "Ratanarat [18]"
     }
    ],
    "open_gaps": [
+    "Semler (SMART trial)",
+    "Semler (SALT trial)",
     "Young [10]",
     "Verma [16]",
     "Young [17]"
    ],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "SAME_CONCLUSION_DIFFERENT_ESTIMATE",
+   "same_trials_verdict": "FEWER_THAN_2_SHARED_TRIALS",
    "secondary_single": [],
    "slug": "balanced-crystalloids-vs-saline-mortality",
    "source": {
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE:cluster_crossover",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES"
@@ -100,8 +121,8 @@
    "N_comparator_trials": 9,
    "N_eligible": 5,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1,
     "IDENTIFIED_NOT_INDEXED": 1,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1,
     "SCREENED_OUT_UNAUDITED:X-DESIGN": 1
    },
    "comparator_pmid": "36050741",
@@ -246,7 +267,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES"
@@ -329,10 +350,34 @@
    "N_eligible": 11,
    "blockers": {
     "EXTRACTION:KNOWN_REPORTED_NOT_YET_EXTRACTED": 1,
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 5
+    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 4
    },
    "comparator_pmid": "36176989",
    "comparator_sourced": [
+    {
+     "effect": "0.26",
+     "events_c": 48,
+     "events_t": 14,
+     "from": {
+      "digest": "89a964ed1c24c0afdbdb7b1adccff0d9930c311246a2940775930b7dc5f90661",
+      "location": {
+       "id": "F3",
+       "kind": "figure",
+       "panel": "A",
+       "row_label": "Nidorf SM, et al.–2013"
+      },
+      "meta_pmid": "36176989",
+      "read": "MODEL_PROPOSAL_DUAL:mc-a72fac250e8f4faf71e450b5af2d9118+mc-e1417b058071808affac01fa3179078a",
+      "row_label": "Nidorf SM, et al.–2013"
+     },
+     "lower": "0.15",
+     "measure": "RR",
+     "n_c": 250,
+     "n_t": 282,
+     "trial": "Nidorf et al. (13)",
+     "upper": "0.46"
+    },
     {
      "effect": "0.45",
      "events_c": 36,
@@ -401,17 +446,17 @@
     },
     "rows": 7,
     "state": "REPRODUCED",
-    "where": "figure F3 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure F3 (g1/forest-reader c0bff4dff, dual-model)"
    },
-   "k_comparator_sourced": 1,
+   "k_comparator_sourced": 2,
    "k_covered": 6,
-   "k_independent": 5,
-   "k_matched": 5,
+   "k_independent": 4,
+   "k_matched": 4,
    "matched_by_route": {
-    "PRIMARY": 5
+    "PRIMARY": 4
    },
    "matched_by_route_group": {
-    "PRIMARY": 5
+    "PRIMARY": 4
    },
    "named_differences": [
     {
@@ -453,7 +498,8 @@
     "Deftereos et al. (19)",
     "Hennessy et al. (23)",
     "Mewton et al. (26)",
-    "Tong et al. (22)"
+    "Tong et al. (22)",
+    "Nidorf et al. (13)"
    ],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "DIFFERENT_CONCLUSION",
@@ -463,7 +509,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES",
@@ -474,7 +520,8 @@
    "N_comparator_trials": 11,
    "N_eligible": 10,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 4
+    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 2
    },
    "comparator_pmid": "38128217",
    "comparator_sourced": [],
@@ -487,16 +534,16 @@
     "state": "NO_PER_TRIAL_ROWS"
    },
    "k_comparator_sourced": 0,
-   "k_covered": 6,
-   "k_independent": 6,
-   "k_matched": 6,
+   "k_covered": 5,
+   "k_independent": 5,
+   "k_matched": 5,
    "matched_by_route": {
     "PRIMARY": 3,
-    "SECONDARY_SINGLE": 3
+    "SECONDARY_SINGLE": 2
    },
    "matched_by_route_group": {
     "PRIMARY": 3,
-    "SECONDARY_SINGLE": 3
+    "SECONDARY_SINGLE": 2
    },
    "named_differences": [
     {
@@ -512,16 +559,14 @@
     "Hydrocortisone infusion for severe community-acquired pneumo",
     "Efficacy of corticosteroids in community-acquired pneumonia:",
     "Dexamethasone and length of hospital stay in patients with c",
-    "Efficacy of corticosteroids in the treatment of community-ac"
+    "Efficacy of corticosteroids in the treatment of community-ac",
+    "Ampicillin dosage and use of prednisolone in treatment of pn"
    ],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "FEWER_THAN_2_SHARED_TRIALS",
    "secondary_single": [
     {
      "trial": "Hydrocortisone and tumor necrosis factor in severe community"
-    },
-    {
-     "trial": "Ampicillin dosage and use of prednisolone in treatment of pn"
     },
     {
      "trial": "Adjunct prednisone therapy for patients with community-acqui"
@@ -532,7 +577,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES"
@@ -542,7 +587,7 @@
    "N_comparator_trials": 5,
    "N_eligible": 5,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1
    },
    "comparator_pmid": "32876694",
    "comparator_sourced": [
@@ -595,7 +640,7 @@
       "n_t": 151,
       "upper": "1.11"
      },
-     "ours_source": "SECONDARY_SINGLE: meta 33612824 figure Fig2 (recorded read None), row 'Tomazini 2020 CoDEX' (digest 25565fb2e343); the meta reproduces its own pooled result; queued for primary verification",
+     "ours_source": "SECONDARY_SINGLE: meta 33612824 figure Fig2 (recorded read mc-15828f0c37c7072a1021a2fd3acb9eaa+mc-697b1fb109006ed73f9943380de88fa0), row 'Tomazini 2020 CoDEX' (digest 25565fb2e343); the meta reproduce",
      "side": "UNRESOLVED",
      "trial": "Effect of Dexamethasone on Days Alive and Ventilator-Free in"
     }
@@ -614,7 +659,7 @@
     },
     "rows": 7,
     "state": "REPRODUCED",
-    "where": "figure joi200104f2 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure joi200104f2 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 1,
    "k_covered": 5,
@@ -633,43 +678,73 @@
     "Effect of Hydrocortisone on Mortality and Organ Support in P"
    ],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "AGREE",
+   "same_trials_verdict": "ONE_TRIAL_MINORITY_SHARE",
    "secondary_single": [
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_META_TEXT: ts not receiving corticosteroids (31.1%). The pooled RR was 0.85 (95% CI: 0.73-0.99, P = 0.04), with a ",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.852,
+        0.7337,
+        0.9892
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: ts not receiving corticosteroids (31.1)",
      "digest": "25565fb2e3435e31317515d4231d6ac5428a302ac793f7433428c2de63683ddd",
      "meta_pmid": "33612824",
      "row_label": "Tomazini 2020 CoDEX",
      "trial": "Effect of Dexamethasone on Days Alive and Ventilator-Free in",
-     "where": "figure Fig2 (recorded read None)"
+     "where": "figure Fig2 (recorded read mc-15828f0c37c7072a1021a2fd3acb9eaa+mc-697b1fb109006ed73f9943380de88fa0)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_META_TEXT: ts not receiving corticosteroids (31.1%). The pooled RR was 0.85 (95% CI: 0.73-0.99, P = 0.04), with a ",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.852,
+        0.7337,
+        0.9892
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: ts not receiving corticosteroids (31.1)",
      "digest": "25565fb2e3435e31317515d4231d6ac5428a302ac793f7433428c2de63683ddd",
      "meta_pmid": "33612824",
      "row_label": "Dequin 2020 CAPECOVID",
      "trial": "Effect of Hydrocortisone on 21-Day Mortality or Respiratory ",
-     "where": "figure Fig2 (recorded read None)"
+     "where": "figure Fig2 (recorded read mc-15828f0c37c7072a1021a2fd3acb9eaa+mc-697b1fb109006ed73f9943380de88fa0)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_META_TEXT: ts not receiving corticosteroids (31.1%). The pooled RR was 0.85 (95% CI: 0.73-0.99, P = 0.04), with a ",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.852,
+        0.7337,
+        0.9892
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: ts not receiving corticosteroids (31.1)",
      "digest": "25565fb2e3435e31317515d4231d6ac5428a302ac793f7433428c2de63683ddd",
      "meta_pmid": "33612824",
      "row_label": "Jeronimo 2020 Metcovid",
      "trial": "Methylprednisolone as Adjunctive Therapy for Patients Hospit",
-     "where": "figure Fig2 (recorded read None)"
+     "where": "figure Fig2 (recorded read mc-15828f0c37c7072a1021a2fd3acb9eaa+mc-697b1fb109006ed73f9943380de88fa0)"
     }
    ],
    "slug": "corticosteroids-covid19-mortality",
@@ -677,44 +752,21 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
+    "RESULT_AGREES",
     "DIVERGENCES_NAMED"
    ]
   },
   "dapagliflozin-hfpef-hosp": {
-   "N_comparator_trials": 5,
-   "N_eligible": 4,
+   "N_comparator_trials": 4,
+   "N_eligible": 3,
    "blockers": {
-    "IDENTITY_UNRESOLVED": 3
+    "IDENTITY_UNRESOLVED": 2
    },
    "comparator_pmid": "36914068",
-   "comparator_sourced": [
-    {
-     "effect": "0.92",
-     "events_c": null,
-     "events_t": null,
-     "from": {
-      "digest": "e28da3a286d6bba079abc356da18d78bfa33cc0ae4fd2adc7cecb519e521aa07",
-      "location": {
-       "id": "fig1",
-       "kind": "figure",
-       "panel": null,
-       "row_label": "VERTIS-CV Cosentino et al (2020) HF EF>45%"
-      },
-      "meta_pmid": "36914068",
-      "read": "MODEL_PROPOSAL_DUAL:mc-aa18a5928a8e8b9f229a37d0bf5de59d+mc-a033714416be83e39731e98c04256bd5",
-      "row_label": "VERTIS-CV Cosentino et al (2020) HF EF>45%"
-     },
-     "lower": "0.61",
-     "measure": "HR",
-     "n_c": 327,
-     "n_t": 680,
-     "trial": "VERTIS-CV",
-     "upper": "1.39"
-    }
-   ],
+   "comparator_sourced": [],
    "coverage_complete": false,
    "discrepancy_findings": [],
    "excluded_by_scope": 1,
@@ -731,10 +783,10 @@
     },
     "rows": 6,
     "state": "REPRODUCED",
-    "where": "figure fig1 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure fig1 (g1/forest-reader c0bff4dff, dual-model)"
    },
-   "k_comparator_sourced": 1,
-   "k_covered": 2,
+   "k_comparator_sourced": 0,
+   "k_covered": 1,
    "k_independent": 1,
    "k_matched": 1,
    "matched_by_route": {
@@ -755,8 +807,7 @@
    ],
    "open_gaps": [
     "SOLOIST-WHF",
-    "SCORED",
-    "VERTIS-CV"
+    "SCORED"
    ],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "AGREE",
@@ -793,7 +844,7 @@
     },
     "rows": 2,
     "state": "REPRODUCED",
-    "where": "figure mmc1.pdf#p43 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure mmc1.pdf#p43 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 0,
@@ -927,7 +978,7 @@
     },
     "rows": 6,
     "state": "REPRODUCED",
-    "where": "figure F2 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure F2 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 1,
@@ -986,7 +1037,7 @@
     },
     "rows": 4,
     "state": "REPRODUCED",
-    "where": "figure f4 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure f4 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 3,
@@ -1233,7 +1284,8 @@
    "N_comparator_trials": 5,
    "N_eligible": 5,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2
+    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1
    },
    "comparator_pmid": "39727669",
    "comparator_sourced": [
@@ -1328,7 +1380,7 @@
     },
     "rows": 5,
     "state": "REPRODUCED",
-    "where": "figure diseases-12-00339-f003 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure diseases-12-00339-f003 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 2,
    "k_covered": 5,
@@ -1354,7 +1406,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES"
@@ -1364,9 +1416,9 @@
    "N_comparator_trials": 19,
    "N_eligible": 12,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 6,
     "INSUFFICIENT_RECORD:COMPARATOR_NOT_STATED": 1,
     "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 2,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 6,
     "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 2
    },
    "comparator_pmid": "23691095",
@@ -1474,7 +1526,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES"
@@ -1484,12 +1536,12 @@
    "N_comparator_trials": 41,
    "N_eligible": 33,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 3,
     "IDENTIFIED_NOT_INDEXED": 7,
     "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 2,
     "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 5,
     "INSUFFICIENT_RECORD:OTHER_INTERVENTION_OR_FORM_RANDOMISED_NO_SPAN": 2,
     "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 3,
     "NO_RECORD_HELD": 4,
     "SCREENED_OUT_UNAUDITED:X-CONTRAST": 1,
     "SCREENER_ERROR:COMPARATOR_WORDING": 5
@@ -1789,7 +1841,7 @@
     },
     "rows": 21,
     "state": "REPRODUCED",
-    "where": "figure CD013505-fig-0024 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure CD013505-fig-0024 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 12,
    "k_covered": 15,
@@ -1954,10 +2006,11 @@
    "N_eligible": 18,
    "blockers": {
     "EXTRACTION:ENDPOINT_UNBOUND": 1,
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 5,
+    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
     "EXTRACTION:RESULT_INCOMPATIBLE": 1,
     "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
     "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 2,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 3,
     "SCREENED_OUT_UNAUDITED:X-DESIGN": 1,
     "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 1,
     "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]": 1,
@@ -2343,7 +2396,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED"
    ]
@@ -2588,7 +2641,7 @@
     },
     "rows": 12,
     "state": "REPRODUCED",
-    "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 9,
    "k_covered": 11,
@@ -2638,11 +2691,11 @@
    "N_comparator_trials": 41,
    "N_eligible": 41,
    "blockers": {
-    "EXTRACTION:COUNTS_PRESENT_NOT_CORROBORATED": 3,
+    "EXTRACTION:COUNTS_PRESENT_NOT_CORROBORATED": 1,
     "EXTRACTION:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": 1,
     "EXTRACTION:ENDPOINT_UNBOUND": 2,
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 7,
     "IDENTIFIED_NOT_INDEXED": 5,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 7,
     "SCREENED_OUT_UNAUDITED:X3": 2,
     "SCREENER_ERROR:POPULATION_VOCABULARY (recorded reader: population MET, quoted)": 3
    },
@@ -2695,29 +2748,6 @@
      "upper": "3.05"
     },
     {
-     "effect": "0.15",
-     "events_c": 7,
-     "events_t": 1,
-     "from": {
-      "digest": "f5fcaaa9eb28145464381292f66ae109174ddedb5a3989de00e8991bcec5471b",
-      "location": {
-       "id": "F3",
-       "kind": "figure",
-       "panel": null,
-       "row_label": "Can 2006"
-      },
-      "meta_pmid": "34385227",
-      "read": "MODEL_PROPOSAL_DUAL:mc-559b2e37877618a4a75029c8c62df651+mc-7b6a20ac3d0e256c7025641d12a8c062",
-      "row_label": "Can 2006"
-     },
-     "lower": "0.02",
-     "measure": "RR",
-     "n_c": 78,
-     "n_t": 73,
-     "trial": "Can et al35",
-     "upper": "1.21"
-    },
-    {
      "effect": "1.04",
      "events_c": 19,
      "events_t": 21,
@@ -2762,29 +2792,6 @@
      "n_t": 80,
      "trial": "Evans et al50",
      "upper": "1.16"
-    },
-    {
-     "effect": "0.53",
-     "events_c": 34,
-     "events_t": 37,
-     "from": {
-      "digest": "f5fcaaa9eb28145464381292f66ae109174ddedb5a3989de00e8991bcec5471b",
-      "location": {
-       "id": "F3",
-       "kind": "figure",
-       "panel": null,
-       "row_label": "Gao 2010"
-      },
-      "meta_pmid": "34385227",
-      "read": "MODEL_PROPOSAL_DUAL:mc-559b2e37877618a4a75029c8c62df651+mc-7b6a20ac3d0e256c7025641d12a8c062",
-      "row_label": "Gao 2010"
-     },
-     "lower": "0.36",
-     "measure": "RR",
-     "n_c": 84,
-     "n_t": 171,
-     "trial": "Gao et al28",
-     "upper": "0.79"
     },
     {
      "effect": "1.06",
@@ -3086,6 +3093,29 @@
      "upper": "4.74"
     },
     {
+     "effect": "0.43",
+     "events_c": 14,
+     "events_t": 11,
+     "from": {
+      "digest": "f5fcaaa9eb28145464381292f66ae109174ddedb5a3989de00e8991bcec5471b",
+      "location": {
+       "id": "F3",
+       "kind": "figure",
+       "panel": null,
+       "row_label": "Surawicz 1989"
+      },
+      "meta_pmid": "34385227",
+      "read": "MODEL_PROPOSAL_DUAL:mc-559b2e37877618a4a75029c8c62df651+mc-7b6a20ac3d0e256c7025641d12a8c062",
+      "row_label": "Surawicz 1989"
+     },
+     "lower": "0.21",
+     "measure": "RR",
+     "n_c": 64,
+     "n_t": 116,
+     "trial": "Surawicz et al70",
+     "upper": "0.90"
+    },
+    {
      "effect": "0.97",
      "events_c": 14,
      "events_t": 50,
@@ -3203,9 +3233,36 @@
       "n_t": 30,
       "upper": "5.26"
      },
-     "ours_source": "SECONDARY_SINGLE: meta 29023420 figure antibiotics-06-00021-f003 (recorded read None), row 'De Vrese et al., 2011' (digest 3469f74a2064); the meta reproduces its own pooled result; queued for primary ",
+     "ours_source": "SECONDARY_SINGLE: meta 29023420 figure antibiotics-06-00021-f003 (recorded read mc-ab17980297ced32d991fd397bcd84e5b+mc-9abf24053ab7a16ded0f71b22c041773), row 'De Vrese et al., 2011' (digest 3469f74a20",
      "side": "UNRESOLVED",
      "trial": "de Vrese et al33"
+    },
+    {
+     "comparator_row": {
+      "effect": "0.53",
+      "events_c": 34,
+      "events_t": 37,
+      "lower": "0.36",
+      "measure": "RR",
+      "n_c": 84,
+      "n_t": 171,
+      "upper": "0.79"
+     },
+     "detail": "DISAGREE",
+     "kind": "OURS_VS_COMPARATOR_ROW",
+     "ours": {
+      "effect": "0.64",
+      "events_c": 37,
+      "events_t": 24,
+      "lower": "0.42",
+      "measure": "RR",
+      "n_c": 84,
+      "n_t": 85,
+      "upper": "0.97"
+     },
+     "ours_source": "SECONDARY_SINGLE: meta 24348885 figure figure2 panel A (recorded read mc-073412a590093d4c64f4559ab81c2483+mc-b2f060a51c9d9f1b7fd03a8ad81a3209), row 'Gao et al.¹³' (digest 86a1e81d1d00); the meta repro",
+     "side": "UNRESOLVED",
+     "trial": "Gao et al28"
     },
     {
      "comparator_row": {
@@ -3276,29 +3333,26 @@
     },
     "rows": 42,
     "state": "REPRODUCED",
-    "where": "figure F3 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure F3 (g1/forest-reader c0bff4dff, dual-model)"
    },
-   "k_comparator_sourced": 23,
+   "k_comparator_sourced": 22,
    "k_covered": 41,
-   "k_independent": 18,
-   "k_matched": 18,
+   "k_independent": 19,
+   "k_matched": 19,
    "matched_by_route": {
-    "PRIMARY": 11,
-    "SECONDARY_SINGLE": 6,
-    "SWEEP_SECONDARY_SINGLE": 1
+    "PRIMARY": 12,
+    "SECONDARY_SINGLE": 7
    },
    "matched_by_route_group": {
-    "PRIMARY": 11,
+    "PRIMARY": 12,
     "SECONDARY_SINGLE": 7
    },
    "named_differences": [],
    "open_gaps": [
     "Beniwal et al43",
     "Bravo et al44",
-    "Can et al35",
     "Ehrhardt et al49",
     "Evans et al50",
-    "Gao et al28",
     "Helps et al52",
     "Horosheva et al23",
     "Iamharit et al54",
@@ -3312,88 +3366,168 @@
     "Plummer et al62",
     "Sampalis et al66",
     "Shimbo et al68",
+    "Surawicz et al70",
     "Velasco et al27",
     "Wong et al73",
     "Wright et al74",
     "Wu et al31"
    ],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "AGREE",
+   "same_trials_verdict": "SAME_CONCLUSION_DIFFERENT_ESTIMATE",
    "secondary_single": [
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_META_TEXT:  statistically significant reduction in the risk of AAD (RR 0.61, 95% CI 0.47 to 0.79; I2= 39%; RD -0.09,",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.6099,
+        0.4734,
+        0.7857
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT:  statistically significant reduction i)",
      "digest": "86a1e81d1d00b706c4f5287fae741adac9bac9b0eab6ce2f6a1ec3eb0cd5234f",
      "meta_pmid": "24348885",
      "row_label": "Cimperman et al.²³",
      "trial": "Cimperman et al46",
-     "where": "figure figure2 panel A (recorded read None)"
+     "where": "figure figure2 panel A (recorded read mc-073412a590093d4c64f4559ab81c2483+mc-b2f060a51c9d9f1b7fd03a8ad81a3209)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_FIGURE_ONLY",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.4547,
+        0.3448,
+        0.5995
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY)",
      "digest": "3469f74a2064e48e66deb804c97f6d8afb2459716f9e71593018468d980a3df8",
      "meta_pmid": "29023420",
      "row_label": "Cindoruk et al., 2007",
      "trial": "Cindoruk et al47",
-     "where": "figure antibiotics-06-00021-f003 (recorded read None)"
+     "where": "figure antibiotics-06-00021-f003 (recorded read mc-ab17980297ced32d991fd397bcd84e5b+mc-9abf24053ab7a16ded0f71b22c041773)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_FIGURE_ONLY",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.4547,
+        0.3448,
+        0.5995
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY)",
      "digest": "3469f74a2064e48e66deb804c97f6d8afb2459716f9e71593018468d980a3df8",
      "meta_pmid": "29023420",
      "row_label": "De Vrese et al., 2011",
      "trial": "de Vrese et al33",
-     "where": "figure antibiotics-06-00021-f003 (recorded read None)"
+     "where": "figure antibiotics-06-00021-f003 (recorded read mc-ab17980297ced32d991fd397bcd84e5b+mc-9abf24053ab7a16ded0f71b22c041773)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_FIGURE_ONLY",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.4547,
+        0.3448,
+        0.5995
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY)",
      "digest": "3469f74a2064e48e66deb804c97f6d8afb2459716f9e71593018468d980a3df8",
      "meta_pmid": "29023420",
      "row_label": "Duman et al., 2005",
      "trial": "Duman et al48",
-     "where": "figure antibiotics-06-00021-f003 (recorded read None)"
+     "where": "figure antibiotics-06-00021-f003 (recorded read mc-ab17980297ced32d991fd397bcd84e5b+mc-9abf24053ab7a16ded0f71b22c041773)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_META_TEXT:  statistically significant reduction in the risk of AAD (RR 0.61, 95% CI 0.47 to 0.79; I2= 39%; RD -0.09,",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.6099,
+        0.4734,
+        0.7857
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT:  statistically significant reduction i)",
+     "digest": "86a1e81d1d00b706c4f5287fae741adac9bac9b0eab6ce2f6a1ec3eb0cd5234f",
+     "meta_pmid": "24348885",
+     "row_label": "Gao et al.¹³",
+     "trial": "Gao et al28",
+     "where": "figure figure2 panel A (recorded read mc-073412a590093d4c64f4559ab81c2483+mc-b2f060a51c9d9f1b7fd03a8ad81a3209)"
+    },
+    {
+     "control": {
+      "anchor": "PRINTED_IN_META_TEXT:  statistically significant reduction in the risk of AAD (RR 0.61, 95% CI 0.47 to 0.79; I2= 39%; RD -0.09,",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.6099,
+        0.4734,
+        0.7857
+       ]
+      },
+      "reproduced": true
+     },
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT:  statistically significant reduction i)",
      "digest": "86a1e81d1d00b706c4f5287fae741adac9bac9b0eab6ce2f6a1ec3eb0cd5234f",
      "meta_pmid": "24348885",
      "row_label": "Gotz et al.²⁸",
      "trial": "Gotz et al51",
-     "where": "figure figure2 panel A (recorded read None)"
+     "where": "figure figure2 panel A (recorded read mc-073412a590093d4c64f4559ab81c2483+mc-b2f060a51c9d9f1b7fd03a8ad81a3209)"
     },
     {
      "control": {
-      "basis": "g1_forest_reader acceptance (stated model)",
+      "anchor": "PRINTED_IN_META_TEXT:  statistically significant reduction in the risk of AAD (RR 0.61, 95% CI 0.47 to 0.79; I2= 39%; RD -0.09,",
+      "methods": [
+       "MH-RE"
+      ],
+      "recomputed": {
+       "MH-RE": [
+        0.6099,
+        0.4734,
+        0.7857
+       ]
+      },
       "reproduced": true
      },
-     "control_basis": "TYPED_TABLE",
+     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT:  statistically significant reduction i)",
      "digest": "86a1e81d1d00b706c4f5287fae741adac9bac9b0eab6ce2f6a1ec3eb0cd5234f",
      "meta_pmid": "24348885",
      "row_label": "Lewis et al.²¹",
      "trial": "Lewis et al57",
-     "where": "figure figure2 panel A (recorded read None)"
-    },
-    {
-     "trial": "Surawicz et al70"
+     "where": "figure figure2 panel A (recorded read mc-073412a590093d4c64f4559ab81c2483+mc-b2f060a51c9d9f1b7fd03a8ad81a3209)"
     }
    ],
    "slug": "probiotics-aad-prevention",
@@ -3401,9 +3535,10 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
+    "RESULT_AGREES",
     "DIVERGENCES_NAMED"
    ]
   },
@@ -3823,7 +3958,7 @@
     ],
     "rows": 3,
     "state": "REPRODUCED",
-    "where": "figure ehf213805-fig-0002 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure ehf213805-fig-0002 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 2,
@@ -3874,7 +4009,7 @@
    "coverage_complete": true,
    "discrepancy_findings": [],
    "excluded_by_scope": 3,
-   "g1_status": "G1_MATCHED",
+   "g1_status": "NOT_YET",
    "g1r_reproduction": {
     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: ients with type 2 diabetes compared with control group (RR, 0.63; 95% CI, 0.53 to 0.74; P < 0.00001) ( Fig)",
     "methods": [
@@ -3887,7 +4022,7 @@
     },
     "rows": 8,
     "state": "REPRODUCED",
-    "where": "figure f2 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure f2 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 5,
@@ -3927,7 +4062,7 @@
    ],
    "open_gaps": [],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "AGREE",
+   "same_trials_verdict": "ONE_TRIAL_MINORITY_SHARE",
    "secondary_single": [],
    "slug": "sglt2-primary-prevention-hf",
    "source": {
@@ -3935,7 +4070,9 @@
     "commit": null
    },
    "top_blocker": null,
-   "unmet": []
+   "unmet": [
+    "RESULT_AGREES"
+   ]
   },
   "spironolactone-hfref-mortality": {
    "N_comparator_trials": 6,
@@ -3959,7 +4096,7 @@
     },
     "rows": 3,
     "state": "REPRODUCED",
-    "where": "figure F4 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure F4 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 2,
@@ -3984,24 +4121,24 @@
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
-     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215)",
+     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
+     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
      "trial": "Aldo-DHF2013"
     },
     {
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
-     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215)",
+     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
+     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
      "trial": "TOPCAT2014"
     },
     {
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
      "rule_id": "G1-OUTCOME-SET",
-     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
-     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader 99923b3a5, figure sha256 f82fd7439215)",
+     "span": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821): rows ['RALES2000', 'EPHESUS 2003', 'EMPHASIS-HF2011']; positive control reproduced (['FE']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: 4C). For all-cause mortality, MRAs reduced risk by 22% (HR: 0.78, 95% CI: 0.72-0.85; P < 0.00001) with ))",
+     "span_source": "comparator PMID 40959489 figure F4 (recorded read g1/forest-reader c0bff4dff, figure sha256 ed57a0103821)",
      "trial": "ARTS-HF2013"
     }
    ],
@@ -4026,7 +4163,7 @@
    "coverage_complete": false,
    "discrepancy_findings": [],
    "excluded_by_scope": 12,
-   "g1_status": "NOT_YET",
+   "g1_status": "COMPARATOR_POOLS_NO_RCT",
    "g1r_reproduction": {
     "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: e were 8 relevant studies. The risk was reduced by 25% (HR: 0.75, 95% CI: 0.66-0.85; p < 0.01) with sig)",
     "methods": [
@@ -4039,7 +4176,7 @@
     },
     "rows": 11,
     "state": "REPRODUCED",
-    "where": "figure S3.F2 (g1/forest-reader 99923b3a5, dual-model)"
+    "where": "figure S3.F2 (g1/forest-reader c0bff4dff, dual-model)"
    },
    "k_comparator_sourced": 0,
    "k_covered": 0,
@@ -4156,26 +4293,21 @@
    },
    "top_blocker": null,
    "unmet": [
-    "ALL_ELIGIBLE_MATCHED",
-    "RESULT_AGREES"
+    "COMPARATOR_POOLS_RCTS"
    ]
   },
   "ticagrelor-vs-clopidogrel-acs": {
    "N_comparator_trials": 22,
-   "N_eligible": 16,
+   "N_eligible": 4,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1,
-    "IDENTIFIED_NOT_INDEXED": 7,
-    "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 2,
-    "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 1,
-    "INSUFFICIENT_RECORD:NO_ABSTRACT": 1,
-    "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 2
+    "IDENTIFIED_NOT_INDEXED": 1,
+    "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1
    },
    "comparator_pmid": "28545073",
    "comparator_sourced": [],
    "coverage_complete": false,
    "discrepancy_findings": [],
-   "excluded_by_scope": 6,
+   "excluded_by_scope": 18,
    "g1_status": "NOT_YET",
    "g1r_reproduction": {
     "control_basis": "POOL_PRINTED_IN_META_TEXT",
@@ -4220,6 +4352,54 @@
      "trial": "3 [23]"
     },
     {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "4 [1]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "5 [24]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "6 [25]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "7 [26]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "11 [30]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "12 [31]"
+    },
+    {
      "kind": "PROTOCOL_SCOPE_DIFFERENCE",
      "pmid": "23500251",
      "rule_id": "X3",
@@ -4236,6 +4416,14 @@
      "trial": "14 [33]"
     },
     {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "15 [34]"
+    },
+    {
      "kind": "PROTOCOL_SCOPE_DIFFERENCE",
      "pmid": "19923168",
      "rule_id": "X2",
@@ -4244,29 +4432,57 @@
      "trial": "16 [35]"
     },
     {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "17 [36]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "18 [37]"
+    },
+    {
      "kind": "PROTOCOL_SCOPE_DIFFERENCE",
      "pmid": "26440227",
      "rule_id": "X2",
      "span": "Platelet inhibition with ticagrelor versus clopidogrel in Hispanic patients with stable coronary artery disease with or without diabetes mellitus.",
      "span_source": "PMID 26440227 record title (held: cache/ticagrelor-vs-clopidogrel-acs/records.json or outputs/k_gap/member_records.json)",
      "trial": "19 [38]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "20 [39]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "21 [40]"
+    },
+    {
+     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+     "pmid": null,
+     "rule_id": "G1-OUTCOME-SET",
+     "span": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b): rows ['Cannon 2007', 'Cannon 2010', 'Hansson 2014', 'Liu 2014', 'Wallentin 2009']; positive control reproduced (['FE', 'FE+HK', 'DL', 'DL+HK', 'PM', 'PM+HK']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)",
+     "span_source": "comparator PMID 28545073 figure pone.0177872.g004 (recorded read mc-5c0139e83ad3e92a7cee6a7531ee7d0b)",
+     "trial": "22 [41]"
     }
    ],
    "open_gaps": [
-    "4 [1]",
-    "5 [24]",
-    "6 [25]",
-    "7 [26]",
     "8 [27]",
-    "10 [29]",
-    "11 [30]",
-    "12 [31]",
-    "15 [34]",
-    "17 [36]",
-    "18 [37]",
-    "20 [39]",
-    "21 [40]",
-    "22 [41]"
+    "10 [29]"
    ],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
@@ -4276,7 +4492,7 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "IDENTIFIED_NOT_INDEXED",
+   "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED"
    ]
@@ -4429,6 +4645,30 @@
      "n_c": 8,
      "n_t": 19,
      "trial": "COVIDOSE2-SS-A",
+     "upper": null
+    },
+    {
+     "effect": null,
+     "events_c": 0,
+     "events_t": 0,
+     "from": {
+      "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+      "location": {
+       "id": "joi210079f1",
+       "kind": "figure",
+       "panel": null,
+       "row_label": "COVIDSTORM"
+      },
+      "meta_pmid": "34228774",
+      "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+      "row_label": "COVIDSTORM",
+      "verified": "the forest-reader dual read prints the same counts"
+     },
+     "lower": null,
+     "measure": "OR",
+     "n_c": 13,
+     "n_t": 26,
+     "trial": "COVIDSTORM",
      "upper": null
     },
     {
@@ -4601,6 +4841,30 @@
     },
     {
      "effect": null,
+     "events_c": 41,
+     "events_t": 78,
+     "from": {
+      "digest": "522cc764d03b043b3ebc34aaeed14da130edca846297ceef5dadf54f912d2ca7",
+      "location": {
+       "id": "joi210079f1",
+       "kind": "figure",
+       "panel": null,
+       "row_label": "REMDACTA"
+      },
+      "meta_pmid": "34228774",
+      "read": "MODEL_PROPOSAL_DUAL:mc-4c796a918bcc0e6c862023d3cac15d25+mc-82cf391f0b00b7ef0ff8a8b5e811532a",
+      "row_label": "REMDACTA",
+      "verified": "the forest-reader dual read prints the same counts"
+     },
+     "lower": null,
+     "measure": "OR",
+     "n_c": 210,
+     "n_t": 430,
+     "trial": "REMDACTA",
+     "upper": null
+    },
+    {
+     "effect": null,
      "events_c": 0,
      "events_t": 0,
      "from": {
@@ -4683,34 +4947,36 @@
     "state": "REPRODUCED",
     "where": "figure joi210079f1 (g1/forest-reader e1543f18e, dual-model)"
    },
-   "k_comparator_sourced": 14,
+   "k_comparator_sourced": 16,
    "k_covered": 19,
-   "k_independent": 5,
-   "k_matched": 5,
+   "k_independent": 3,
+   "k_matched": 3,
    "matched_by_route": {
-    "PRIMARY": 4,
+    "PRIMARY": 2,
     "TWO_SOURCE": 1
    },
    "matched_by_route_group": {
-    "PRIMARY": 4,
+    "PRIMARY": 2,
     "TWO_SOURCE": 1
    },
    "named_differences": [],
    "open_gaps": [
     "ARCHITECTS",
     "BACC-Bay",
+    "CORIMUNO-TOCI-1",
     "CORIMUNO-TOCI-ICU",
     "COV-AID",
     "COVIDOSE2-SS-A",
+    "COVIDSTORM",
     "COVINTOC",
     "COVITOZ",
+    "EMPACTA",
     "HMO-020-0224",
     "ImmCoVA",
     "PreToVid",
     "REMAP-CAP",
-    "TOCOVID",
-    "CORIMUNO-TOCI-1",
-    "EMPACTA"
+    "REMDACTA",
+    "TOCOVID"
    ],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "AGREE",
@@ -4799,36 +5065,36 @@
   }
  },
  "totals": {
-  "COMPARATOR_SOURCED": 74,
-  "COVERAGE": 177,
-  "INDEPENDENTLY_CONFIRMED": 103,
-  "N_comparator_trials": 349,
-  "N_eligible": 248,
+  "COMPARATOR_SOURCED": 75,
+  "COVERAGE": 173,
+  "INDEPENDENTLY_CONFIRMED": 98,
+  "N_comparator_trials": 348,
+  "N_eligible": 235,
   "coverage_complete_topics": 16,
-  "discrepancy_findings": 16,
-  "excluded_by_scope": 101,
+  "discrepancy_findings": 17,
+  "excluded_by_scope": 113,
   "g1r_reproduction": {
    "NO_PER_TRIAL_ROWS": 7,
    "NO_PRINTED_POOL": 1,
    "REPRODUCED": 24
   },
-  "k_matched": 103,
+  "k_matched": 98,
   "matched_by_route": {
-   "PRIMARY": 87,
+   "PRIMARY": 83,
    "SECONDARY_SINGLE": 12,
    "SWEEP_AACT_PRIMARY": 2,
-   "SWEEP_SECONDARY_SINGLE": 1,
    "TWO_SOURCE": 1
   },
   "matched_by_route_group": {
-   "PRIMARY": 89,
-   "SECONDARY_SINGLE": 13,
+   "PRIMARY": 85,
+   "SECONDARY_SINGLE": 12,
    "TWO_SOURCE": 1
   },
   "topics_by_status": {
    "COMPARATOR_NOT_ENUMERATED": 1,
    "COMPARATOR_NO_PRIMARY_RESULT": 1,
-   "G1_MATCHED": 9,
+   "COMPARATOR_POOLS_NO_RCT": 1,
+   "G1_MATCHED": 8,
    "NOT_YET": 21
   }
  }
