@@ -399,3 +399,40 @@ None of the four items flips a topic under the strict definition.
 - **Codex:** 1 forest read this round. The other routes were decided by typed sources (registry, PubMed metadata, the
   comparator's JATS).
 - **Worker:** unreachable (SSH and Tailscale ping time out).
+
+## To the captain: Tier B codex fan-out + REGULATORY route (5 Oct, night) — acq/k-gap 67978d5d7, f2f3b8df9
+
+**Headline (local recount, 32 topics):** G1_MATCHED 9 (unchanged), INDEPENDENT 92/361 (+1), COVERAGE 164/361 (−1),
+eligible 239 (−1). Please regenerate the served tracker from the tip; this lane does not commit tracker outputs.
+
+**Fan-out.** One codex job per NO_ROW / UNVERIFIED / SECONDARY_SINGLE trial in the 7 Tier B topics:
+- 60 targets → 32 recorded calls (gpt-6-astra, concurrency 3) + 28 with no open source (no call made).
+- The commit message for f2f3b8df9 says "45 calls / 15 no source". That is a miscount; **32 / 28** is right, counted from the run logs.
+- Worker still unreachable. Codex liveness was checked by a real exec, not a status page.
+
+| topic | targets | admitted | outcome |
+|---|---|---|---|
+| iv-iron-hfref-hosp | 4 | 2 | **HEART-FID → PRIMARY** (AACT ITT 297/1532 vs 332/1533); matched 1→2 of 5. **AFFIRM-AHF** admitted (AACT HF hospitalisations 142/558 vs 178/550) but now NAMED `ESTIMAND_DIFFERENCE`: the comparator pooled *HF hospitalisation + CV death* (217/558 vs 294/550). A named row is never merged. |
+| pcsk9-mace | 9 | 0 | Lipid trials post no MACE; HIGH FH 6/72 vs 0/35 refused (`TYPED_MATCH_NOT_FOUND`); ODYSSEY trials are named only in the EMA EPAR (held, never shown) |
+| tocilizumab-covid19-mortality | 16 | 0 | Posted outcomes without counts; CORIMUNO HRs without group labels → UNSURE; REMDACTA HR refused `AACT_OUTCOME_NOT_NAMED` |
+| corticosteroids-cap / -covid19 | 7 / 3 | 0 | No posted results and no CC full text |
+| colchicine-secondary | 8 | 0 | Same; Shah refused because AACT posts a stent subset only |
+| omega3 | 13 | 0 | 12 have no open source; Pahor's AACT outcome is mobility disability |
+
+**REGULATORY route (new, PRIMARY-grade).**
+- *Source records:* drugs@FDA NDA/BLA reviews and EMA EPARs, held as typed records (`registry/regulatory_sources.json`):
+  - agency and licence come from the url host only;
+  - each record carries the PDF sha256 and the text sha256.
+- *Gate:* a regulatory value is admitted only if all of these hold:
+  - the quote is verbatim in the **whole** document;
+  - every number is in the quote;
+  - the trial is named near the quote (another study's row is refused);
+  - the typed tuple sits beside the outcome terms.
+- *Licence guard:* only FDA windows may enter a prompt. A prompt's own licence claim counts for nothing.
+- *EMA (for Mahmood):* the licence is "reproduction authorised with acknowledgement", which is not marked open, so EMA documents are held but never shown. Decide whether EMA may enter prompts.
+- *Yield so far:* 30 FDA and 13 EMA texts are held. No prompt-open document names a target trial beside its outcome terms, so this round had no regulatory admissions. Actemra's COVID-19 sBLA review is missing from openFDA's application_docs.
+
+**Defects fixed (root cause, with plants):**
+- The tracker table crashed on full regeneration. The 5 Oct PROTOCOL_TEXT adjudication record lacked `screen_reason`, and `SAME_TRIAL_AS_ANOTHER_UNIT` fell into the registry-gate branch.
+- Fix: one renderer per kind, with a plant that checks it over every real per-topic record.
+- Note: `python scripts/g1_tracker.py` with no slugs only re-renders the existing files. Pass the slugs to regenerate.
