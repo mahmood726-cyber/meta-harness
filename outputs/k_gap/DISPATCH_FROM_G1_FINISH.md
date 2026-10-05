@@ -56,6 +56,23 @@ records it correctly).
 - Local recount (this branch, page recompute): balanced-crystalloids k 2/5 (N 6), confirmed 2 (SMART, SALT via their
   own sources); MATCHED_ARE_VERIFIED fails because no comparator trial is in the served pool.
 
+## colchicine-postop-af and balanced-crystalloids after the unit-of-analysis decision (5 Oct)
+
+- **balanced-crystalloids** (decision: Handbook, unit of analysis): SMART, SALT, SPLIT typed
+  UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE; comparator finding COMPARATOR_POOLED_UNADJUSTED_CLUSTER_COUNTS on each (its
+  methods sentence + its own table cell quoted; SMART reproduced: crude OR 0.934 (0.849-1.028) from the trial's 60-day
+  928/7942 vs 975/7860 = the comparator's row; the trial's adjusted OR is 0.92 (0.83 to 1.02)). Local recount 0/5, NOT YET.
+- **colchicine-postop-af**, local recount 2/4 eligible (N 9), unnamed Imazio [19] and Sarzaeem:
+  - Zarpelon [20]: named (X-DESIGN, open-label in its CC BY full text) through exclusion_fulltext.json.
+  - Imazio [19] (22090167, COPPS POAF substudy): our screen's X1 fires on the TITLE word 'substudy'
+    (harness.screen._TITLE_RCT_NOT), although the record states 'the COPPS trial, a multicenter, double-blind,
+    randomized trial' and is typed Randomized Controlled Trial. The substudy is COPPS's only report of POAF. **Decision for
+    Mahmood**: is a prespecified substudy the trial's report for that outcome (then the title rule is a screener error),
+    or a secondary report (then a scope difference)? Either way no open data: the abstract gives percentages only (12.0% vs
+    22.0%), no PMC copy, NCT00128427 posts no results.
+  - Sarzaeem [23]: no PubMed record, no Crossref record, journal site bot-protected (not bypassed): our screen has no record
+    to assess, so it stays an open gap (two non-comparator metas hold rows; eligibility is our screen's, never theirs).
+
 ## How the acquired rows are admitted (scripts/g1_trial_acquire.py → registry/g1_acquired/<slug>.json)
 
 - One **recorded** codex call per trial (reproducible_ai.model_call_live; concurrency 3), the comparator's row never shown.
