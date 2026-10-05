@@ -185,3 +185,47 @@ still binds UNVERIFIED rows only (plant).
 - **Tong (COPS):** prints "24 events … 38 events": events, not patients.
 - **Hennessy:** Unpaywall copy, NOT_REPORTED.
 - **Mewton (COVERT-MI):** its primary is infarct size; MACE is not printed by arm.
+
+## Update (5 Oct, later): statins-elderly and denosumab
+
+### statins-elderly: G1 is unattainable against this comparator
+
+- **12 of 12** of our observational rows are confirmed out of scope by their OWN abstracts: rule F6 scope audit
+  (`scripts/g1_binding_findings.py`); the span is each abstract's design sentence (cohort / case-control).
+- The comparator pools **0 RCTs**; its own abstract says "Twelve eligible observational studies". There are no
+  comparator RCTs to identify.
+- The 15 QRISK rows are table fragments, not trials.
+- **Decision for the captain:** re-point this topic to an RCT comparator, or retire it from G1.
+
+### denosumab: COMPARATOR_NOT_ENUMERATED, now enumerated
+
+- **Source:** the comparator's OWN supplementary trial table (PMID 36852077, mmc1). Enumerated by
+  `scripts/g1_binding_enumerate.py` (deterministic regex, 3 plants), output `enumeration_denosumab-vertebral-fracture.json`.
+- **11** denosumab RCTs. **6** are in scope (placebo arm). **5** are named OUT_OF_SCOPE: COMPARATOR_NOT_PLACEBO
+  (active control only; the span is the arm lines).
+- **Identity:** each PMID is CONFIRMED by exact title + first author + year from the supplement's reference list.
+
+| In-scope trial | PMID | NCT | Result |
+|---|---|---|---|
+| Cummings 2009 (FREEDOM) | 19671655 | — | **matched** |
+| McClung 2006a | 16495394 | NCT00043186 | AACT posts only BMD/marker outcomes, no fracture outcome; abstract NOT_REPORTED |
+| Bone 2008 | 18381571 | — | abstract NOT_REPORTED; no OA |
+| Seeman 2010 | 20222106 | NCT00293813 | AACT posts XtremeCT outcomes only; Unpaywall copy held: NOT_REPORTED |
+| Koh 2016 | 27189284 | — | PMC4951467 (CC BY-NC) held: NOT_REPORTED |
+| Nakamura 2012a | 21927920 | — | abstract: "No new vertebral fracture was observed on spinal radiographs in either group." Named **ZERO_EVENTS_BOTH_ARMS**: no ratio is estimable; the gate refused NO_NUMBERS_COPIED. |
+
+**n of N: 1 of 6 matched (FREEDOM). 0 of 5 newly verified.**
+
+**Open.**
+- Which in-scope trials the comparator actually pooled for vertebral fracture: its eFigure 5 is image-only (no text
+  layer), so this is not assumed.
+- The tracker carries N=0 for this topic until the captain integrates the enumeration.
+
+**Records.**
+- 3 new recorded calls are committed (abstract-only prompts).
+- **Held, NOT committed** (F:/claude-temp/held_records, git-excluded):
+
+| Trial | Record | Reason |
+|---|---|---|
+| Koh | mc-1450a895 | CC BY-NC |
+| Seeman | mc-ad533f04 | Unpaywall, licence unclear |
