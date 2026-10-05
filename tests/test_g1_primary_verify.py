@@ -51,3 +51,16 @@ def test_acronym_route_only_when_pmids_and_nct_give_nothing_and_never_a_review(m
     t2 = {"label": "X", "ncts": [], "pmids": [], "acronyms": ["COVINTOC"]}
     hits["ACR"] = [("333", "COVINTOC results"), ("222", "Tocilizumab: a systematic review")]
     assert pv.choose_report("tocilizumab-covid19-mortality", t2, True, {}, {})[0] is None
+
+
+def test_merge_of_split_runs_reapplies_the_claimed_by_two_refusal_across_the_union():
+    a = {"slug": "s", "spec": {}, "titles": {"9": "t"}, "pubtypes": {}, "trials": [
+        {"label": "ARCH", "report_pmid": "9", "state": "PRIMARY_VERIFIED", "value": {"events_t": 1}}]}
+    b = {"slug": "s", "spec": {}, "titles": {}, "pubtypes": {"9": ["x"]}, "trials": [
+        {"label": "REMD", "report_pmid": "9", "state": "NO_PRIMARY_VALUE:LOCATOR_NOT_REPORTED"},
+        {"label": "OTHER", "report_pmid": "7", "state": "PRIMARY_VERIFIED", "value": {"events_t": 2}}]}
+    m = pv.merge([a, b])
+    st = {t["label"]: t for t in m["trials"]}
+    assert st["ARCH"]["state"] == st["REMD"]["state"] == "REPORT_CLAIMED_BY_2_TRIALS:9"
+    assert "value" not in st["ARCH"] and st["OTHER"]["state"] == "PRIMARY_VERIFIED"
+    assert m["titles"] == {"9": "t"} and m["pubtypes"] == {"9": ["x"]} and m["tally"]["PRIMARY_VERIFIED"] == 1
