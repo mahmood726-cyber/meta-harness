@@ -256,3 +256,15 @@ wide, for all seven topics was caption-scanned.
   - The metric is a standardised difference in means.
   - Match only the melatonin arms to your trials. Almeida Montes appears as "Almeda 2003"; Haimov and Zhdanova are
     targets.
+
+**Melatonin, other candidates (not read):**
+- 36387478 (REM sleep behaviour disorder) supplementary figure 3: its sleep-latency data are baseline-versus-after
+  within-group comparisons, not melatonin versus placebo.
+- 32580450: a network meta-analysis whose sleep-latency figure was refused for subgroup rows.
+- 37457117: plots quality of sleep and daytime functioning only.
+- No other open candidate has a per-trial sleep-onset-latency plot.
+
+**Lane state.** Every recorded candidate for pcsk9, ticagrelor, metformin, omega3, probiotics, tocilizumab and
+melatonin has been checked. Further rows here need one of the two rule decisions above:
+- tocilizumab 35802687 checked against its printed % weights;
+- single-number disagreements settled by a row's own printed numbers.
