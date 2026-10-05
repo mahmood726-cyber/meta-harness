@@ -305,6 +305,12 @@ TARGETS: dict = {
                        "is no sleep onset latency block, set legible=false and say so in notes. Whatever the column "
                        "headings say, report as 'lower' the SMALLER of each row's two confidence limits and as 'upper' "
                        "the LARGER."},
+    "tocilizumab-covid19-mortality::34050796": {
+        "fig_id": "Fig3", "caption_has": "Forest plots for primary and secondary outcomes", "panel": "A",
+        "panel_title": "Mortality",
+        "instruction": "Transcribe ONLY panel (A) (mortality): every study row with events and totals per arm, and "
+                       "panel (A)'s Total (95% CI) row as pooled. Ignore panels B, C and D."},
+    "omega3-cardiovascular-events::39238993": {"fig_id": "F1", "caption_has": "Primary outcome"},
     "probiotics-aad-prevention::30078376": {
         "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
         "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
@@ -750,6 +756,11 @@ SS_READ = {
     "probiotics-aad-prevention::30078376", "ticagrelor-vs-clopidogrel-acs::40051435",
     "ticagrelor-vs-clopidogrel-acs::38371311", "omega3-cardiovascular-events::37031750",
     "pcsk9-mace::39126262", "melatonin-primary-insomnia-sol::36079069"}
+
+
+# admission-first reads (5 Oct): candidate figures that pass g1_admission_check.prefilter -- caption names the
+# topic's outcome, the protocol's timepoint is stated, the protocol's measure is stated -- before any read is spent
+ADMISSION_READ = {"tocilizumab-covid19-mortality::34050796", "omega3-cardiovascular-events::39238993"}
 
 
 def topic_note(key):
@@ -1510,17 +1521,31 @@ COMPARATOR_EXTRA = {
 }
 
 
+# FURTHER figures of a NON-comparator meta (5 Oct, admission-first pass): a second figure of a meta already read under
+# '<slug>::<pmid>' -- chosen because ITS caption states what the tracker's admission needs (34768455: f002 says 28/30-day
+# mortality and is refused TIMEPOINT_30_NE_28; f004 states 28-day mortality). Key '<slug>::<pmid>::<fig><panel>'.
+META_EXTRA = {
+    ("tocilizumab-covid19-mortality", "34768455"): [
+        {"fig_id": "jcm-10-04935-f004", "caption_has": "Pooled comparison of 28-day mortality according to treatment",
+         "instruction": "Rows: every trial row of every comparison group, once each, with events and totals per arm. "
+                        "Pooled: the overall 'Fixed effect model' row at the bottom (not a group's model rows, not the "
+                        "random effects row)."}],
+}
+
+
 def extra_key(slug, pmid, t):
     return f"{slug}::{pmid}::{t['fig_id']}{t.get('panel') or ''}"
 
 
-def items(slugs, run, pairs=None, extras=None):
+def items(slugs, run, pairs=None, extras=None, meta_extras=None):
     """slugs -> each topic's comparator; pairs [(slug, pmid)] -> those metas (the two-source sweep's selection);
     extras [slug] -> that topic's COMPARATOR_EXTRA figures."""
     out, skipped = [], {}
     todo = [(s, p, None) for s, p in (pairs or [])]
     for slug in extras or []:
         todo += [(slug, comparator_of(slug), t) for t in COMPARATOR_EXTRA.get(slug, [])]
+    for slug, pmid in meta_extras or []:
+        todo += [(slug, pmid, t) for t in META_EXTRA.get((slug, pmid), [])]
     for slug in slugs:
         try:
             todo.append((slug, comparator_of(slug), None))
@@ -1528,7 +1553,7 @@ def items(slugs, run, pairs=None, extras=None):
             skipped[slug] = f"NO_COMPARATOR:{type(exc).__name__}"
     for slug, pmid, extra in todo:
         key = extra_key(slug, pmid, extra) if extra else key_of(slug, pmid)
-        role = "comparator" if extra or key == slug else "meta"
+        role = "comparator" if key == slug or (extra and pmid == comparator_of(slug)) else "meta"
         if run and not jats_path(pmid):
             k_gap.fetch_comparator_jats(pmid, FETCH_DATE)
             if not jats_path(pmid) and pmcid_of(pmid):
@@ -1553,7 +1578,8 @@ def items(slugs, run, pairs=None, extras=None):
             continue
         with open(ip, "rb") as fh:
             b = fh.read()
-        note = topic_note(key) if key in TOPIC_RETRY or key in SS_READ else RETRY_NOTE if key in RETRY else None
+        note = topic_note(key) if key in TOPIC_RETRY or key in SS_READ or key in ADMISSION_READ else \
+            RETRY_NOTE if key in RETRY else None
         fig = dict(fig, image_name=os.path.basename(ip), **({"retry_note": note} if note else {}))
         out.append({"slug": slug, "pmid": pmid, "pmcid": pmcid, "key": key, "role": role, "figure": fig,
                     "image_path": ip, "image_ref": os.path.relpath(ip, ROOT).replace(os.sep, "/"),
@@ -1894,7 +1920,10 @@ def main(argv):
         slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "outputs", "k_gap", "g1"))
                        if f.endswith(".json") and ".tmp" not in f)
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
-    if "--ss-read" in argv:                    # the SECONDARY_SINGLE supply figures (SS_READ)
+    if "--admission-read" in argv:             # the admission-first figures (ADMISSION_READ + META_EXTRA)
+        its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(ADMISSION_READ)],
+                             meta_extras=sorted(META_EXTRA))
+    elif "--ss-read" in argv:                    # the SECONDARY_SINGLE supply figures (SS_READ)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(SS_READ)])
     elif "--comparator-extra" in argv:           # the COMPARATOR_EXTRA figures (further comparator figures)
         its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
