@@ -688,6 +688,20 @@ _TP = re.compile(r"(\d+)[- ]day (?:all[- ]cause )?mortality|mortality (?:at|by|w
                  r"day[- ](\d+) (?:all[- ]cause )?mortality", re.I)
 
 
+def lane_row_timepoint(r, spec, held_text=None):
+    """A forest-lane row's timepoint, for a CORE (mortality) outcome, read like every figure row's: the figure caption /
+    outcome definition first ('28-Day All-Cause Mortality in Each Trial', REACT), else the meta's own held text. Lost when
+    the consolidation took acq/k-gap's forest_lane_metas over the earlier ingestion (5 Oct): corticosteroids-covid's three
+    SECONDARY_SINGLE rows from meta 33612824 fell to TIMEPOINT_NOT_STATED_BY_META. Never overwrites a stated timepoint."""
+    if getattr(r, "timepoint", None) or not (spec or {}).get("core"):
+        return r
+    if held_text is None:
+        import g1_forest_reader as gfr
+        held_text = gfr.held_text
+    r.timepoint = meta_timepoint(r.outcome_definition) or meta_timepoint(held_text(r.meta_pmid))
+    return r
+
+
 def meta_timepoint(held):
     """The mortality timepoint the meta itself states, only when it states exactly ONE (else unknown -> refused by
     the timepoint check for a topic that registers one)."""
@@ -1017,6 +1031,7 @@ def build(slug, run, runs):
     lrows, lmetas = forest_lane_metas(slug, comp, have)
     metas_out.update(lmetas)
     for r, lv in lrows:
+        lane_row_timepoint(r, spec)
         r = sm.admit(r, spec, fam)
         if lv:
             r.reasons = list(r.reasons) + [lv]
