@@ -256,6 +256,60 @@ def design_findings(slug):
     return rows
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Rule F6 SCOPE_AUDIT_DESIGN -- for every comparator study named out of scope as non-randomised (X1 / X3), the STUDY'S OWN
+#   held abstract must state a non-randomised design (cohort / observational / registry / population-based / retrospective
+#   / propensity / case-control); the sentence is the span. Plus the comparator's OWN statement of what it pooled
+#   ('Twelve eligible observational studies ... were enrolled'): a comparator that pools no RCT makes G1 unattainable under
+#   an RCT protocol -- a comparator-choice decision, recorded, never a silent zero.
+_DESIGN = re.compile(r"[^.]*\b(?:cohort|observational|registry|population[- ]based|retrospective|propensity|case[- ]control|"
+                     r"nationwide|real[- ]life|claims|database)\b[^.]*\.", re.I)
+# the exposure was NOT assigned by randomisation: statin USE observed ('took statins at baseline', 'the association of
+# statin use with ...') -- e.g. a statin analysis inside an aspirin trial (Zhou 2020, ASPREE)
+_EXPOSURE_OBSERVED = re.compile(r"[^.]*\b(?:took \w+ at baseline|\w+ use at baseline|association (?:of|between) \w+ use|"
+                                r"\w+ users? (?:and|versus|vs\.?) non-?users?|users? of \w+ (?:and|versus|vs\.?) non-?users?)"
+                                r"[^.]*\.", re.I)
+_COMP_DESIGN = re.compile(r"[^.]*\b(?:\w+ )?eligible (?:observational|cohort|randomi[sz]ed)[^.]*\b(?:studies|trials)\b[^.]*\.", re.I)
+
+
+def scope_audit(slug):
+    import secondary_meta_build as smb
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
+    comp = str(o.get("comparator_pmid"))
+    d = os.path.join(ROOT, "cache", "comparators", comp)
+    jats = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None) if os.path.isdir(d) else None
+    ct = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", open(jats, encoding="utf-8", errors="replace").read())) if jats else ""
+    comp_design = [m.group(0).strip() for m in _COMP_DESIGN.finditer(ct)][:2]
+    pools_rct = any(re.search(r"randomi[sz]ed", s, re.I) for s in comp_design)
+    rows = []
+    for x in o["trials"]:
+        sd = x.get("scope_difference") or {}
+        fam = str(x.get("family") or "")
+        if sd.get("rule_id") not in ("X1", "X3") or not fam.startswith("PMID "):
+            continue
+        p = fam[5:]
+        span = None
+        for kind, ref, pl in smb.primary_sources(slug, p):
+            if kind == "text" and ref.endswith("abstract"):
+                m = _DESIGN.search(pl or "")
+                if m:
+                    span = (ref, m.group(0).strip()[:300])
+                    break
+                m = _EXPOSURE_OBSERVED.search(pl or "")
+                if m:
+                    span = (ref + " [exposure observed, not randomised]", m.group(0).strip()[:300])
+                    break
+        rows.append({"rule": "F6", "slug": slug, "label": x["label"], "pmid": p, "scope_rule": sd.get("rule_id"),
+                     "verdict": "NON_RANDOMISED_DESIGN_STATED_BY_THE_STUDY" if span else "DESIGN_NOT_STATED_IN_ABSTRACT",
+                     "design_span": span})
+    if rows or comp_design:
+        rows.append({"rule": "F6", "slug": slug, "label": "(comparator)", "pmid": comp,
+                     "verdict": "COMPARATOR_POOLS_RCTS" if pools_rct else "COMPARATOR_POOLS_NO_RCT",
+                     "comparator_design_span": comp_design,
+                     "span_source": f"comparator JATS {os.path.basename(jats) if jats else '(none)'}"})
+    return rows
+
+
 def topic(slug):
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
     T = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"), encoding="utf-8"))
@@ -288,7 +342,7 @@ def topic(slug):
 def main(argv):
     os.makedirs(OUT, exist_ok=True)
     for slug in argv:
-        rows = topic(slug) + orientation_findings(slug) + design_findings(slug)
+        rows = topic(slug) + orientation_findings(slug) + design_findings(slug) + scope_audit(slug)
         p = os.path.join(OUT, f"findings_{slug}.json")
         with open(p + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
             json.dump({"slug": slug, "findings": rows}, fh, indent=1, ensure_ascii=False)
