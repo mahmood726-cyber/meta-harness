@@ -15,6 +15,7 @@ instructions. The user's global ~/.codex/AGENTS.md, which the client may inject,
 """
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import json
@@ -27,6 +28,10 @@ from pathlib import Path
 from typing import Callable
 
 from reproducible_ai import model_source
+
+
+class LicenceRefused(Exception):
+    """The prompt would carry text the licence guard (reproducible_ai/record_licence.py) refuses: no call is made."""
 
 NOT_CONTROLLABLE = ["temperature", "top_p", "seed", "client system instructions (codex built-in, not exposed)",
                     "server-side model revision behind the model id"]
@@ -241,6 +246,13 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
     images: files the model is shown (e.g. a forest-plot figure). Their sha256 is recorded as an input digest and in
     params, so the record says exactly which bytes were seen; this is the ONLY route by which a model sees an image."""
     runner = runner or codex_runner
+    # LICENCE GUARD AT CALL TIME: the prompt goes into a committed record, so a prompt the record guard would refuse is
+    # never sent (6 Oct audit: 44 committed records carried non-CC full text in shapes the after-the-fact test missed)
+    from reproducible_ai import record_licence
+    probs = record_licence.record_problems({"record_id": "pre-call", "input_digests": list(input_digests),
+                                            "prompt": {"b64": base64.b64encode(prompt).decode("ascii")}})
+    if probs:
+        raise LicenceRefused("; ".join(probs)[:600])
     digests = list(input_digests)
     g = global_agents_digest() if runner is codex_runner else None
     if g:
