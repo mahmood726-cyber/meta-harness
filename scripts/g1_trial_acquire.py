@@ -253,7 +253,11 @@ def aact_evidence(ncts):
                          "analysis_detail": (dn.get("analyses") or {}).get(str(oid)),
                          "groups": [{"group": g.get("group"), "title": reg["group_titles"].get(str(g.get("group"))),
                                      "count": g.get("count"), "n": g.get("n")} for g in reg["groups"].get(oid) or []],
-                         "analyses": [{k: a.get(k) for k in ("param_type", "param_value", "ci_lower", "ci_upper", "groups")}
+                         # each analysis's groups BY TITLE: CORIMUNO (NCT04331808) posts HRs per stratum with no
+                         # measurement rows, so ids alone left the reader unable to tell severe from critical
+                         "analyses": [dict({k: a.get(k) for k in ("param_type", "param_value", "ci_lower", "ci_upper",
+                                                                  "groups")},
+                                           group_titles=[reg["group_titles"].get(str(g)) for g in a.get("groups") or []])
                                       for a in reg["analyses"] if a.get("outcome_id") == oid]})
         out[n] = {"state": "POSTED", "snapshot": reg.get("_snapshot"), "outcomes": outs[:60], "_reg": reg}
     return out
