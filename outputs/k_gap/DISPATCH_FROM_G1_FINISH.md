@@ -17,6 +17,16 @@ served-number change. Every item below takes effect when you regenerate the trac
 Live ClinicalTrials.gov (API v2, cached + hashed by `ctgov_results_cached`) was checked too for the trials with no
 source: CoDEX, CAPE COVID, REMAP-CAP, Metcovid, FAIR-HF, EFFECT-HF -- none has posted results.
 
+## Increment 2 (5 Oct): balanced-crystalloids and colchicine-postop-af
+
+| topic | n of N | this branch | still open (why) |
+|---|---|---|---|
+| balanced-crystalloids-vs-saline-mortality | 1 of 5 (N 6) | **SALT** matched PRIMARY: posted 30-day mortality, NCT02345486 outcome 258389389, 72/520 vs 68/454 (posted 974 = the randomised total) | **SMART** refused: NCT02444988 posts the medical-ICU subset (2735 + 2646 = 5381); its report randomised 15,802 adults -- new gate `posted_population_short` (the record's own randomised total, from a randomisation clause, never a screened count). Young [10] (SPLIT), Verma [16], Young [17]: no posted results, no open machine-readable text |
+| colchicine-postop-af | 2 of 5 (N 9) | Zarpelon [20]: open-label in its CC BY full text ("randomized, open, single-center") against design_double_blind -- named TRUE_SCOPE by the audit's X-DESIGN once `k_gap_exclusion_fulltext.py` reruns (2f8c0a72) | Imazio [19], Sarzaeem [23]: no posted results, no open text (meta rows only) |
+
+Correction: commit f8d674b5f's message gives SALT's registration as NCT02614040; it is **NCT02345486** (the admitted row
+records it correctly).
+
 ## How the acquired rows are admitted (scripts/g1_trial_acquire.py → registry/g1_acquired/<slug>.json)
 
 - One **recorded** codex call per trial (reproducible_ai.model_call_live; concurrency 3), the comparator's row never shown.
