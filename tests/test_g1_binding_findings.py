@@ -123,3 +123,19 @@ def test_f5_reads_the_aact_designs_row(tmp_path):
     d = bf.aact_design("NCT02497287", str(tmp_path))
     assert d == {"row_id": "227554268", "allocation": "NA", "intervention_model": "SINGLE_GROUP", "masking": "NONE"}
     assert bf.aact_design("NCT02417064", str(tmp_path))["allocation"] == "RANDOMIZED"
+
+
+# ---- F6 scope audit (statins-elderly: 12 observational studies, a comparator that pools no RCT) ---------------------
+def test_f6_design_and_observed_exposure_patterns():
+    assert bf._DESIGN.search("DESIGN: Prospective cohort study.")
+    assert bf._DESIGN.search("A nationwide population-based case-control study.")
+    assert not bf._DESIGN.search("Patients were randomly assigned to statin or placebo.")
+    assert bf._EXPOSURE_OBSERVED.search("Data were collected for those aged 70 years, and participants who took statins at baseline were compared.")
+    assert bf._EXPOSURE_OBSERVED.search("We investigated the association of statin use with incident cardiovascular disease.")
+    assert not bf._EXPOSURE_OBSERVED.search("Participants were randomized to statin or placebo.")
+
+
+def test_f6_comparator_design_sentence():
+    t = "Results: Twelve eligible observational studies (n = 1,627,434) were enrolled."
+    assert bf._COMP_DESIGN.search(t)
+    assert not bf._COMP_DESIGN.search("We pooled data on mortality.")
