@@ -3,7 +3,7 @@
  "slug": "balanced-crystalloids-vs-saline-mortality",
  "comparator_pmid": "30140441",
  "N_comparator_trials": 6,
- "k_matched": 0,
+ "k_matched": 1,
  "k_in_our_pool": 0,
  "N_eligible": 5,
  "named_differences": [
@@ -14,20 +14,19 @@
    "protocol_rule": "G1 matches the comparator's result for this outcome",
    "span": {
     "field": "comparator outcome analysis",
-    "text": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 22ecebedd, figure sha256 0e3c23740639): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))"
+    "text": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 85dda6c00, figure sha256 f82fd7439215): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))"
    },
-   "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 22ecebedd, figure sha256 0e3c23740639)",
+   "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 85dda6c00, figure sha256 f82fd7439215)",
    "pmid": null
   }
  ],
  "open_gaps": [
   "Semler (SMART trial)",
-  "Semler (SALT trial)",
   "Young [10]",
   "Verma [16]",
   "Young [17]"
  ],
- "k_matched_of_comparator_N": "0 of 6",
+ "k_matched_of_comparator_N": "1 of 6",
  "comparator_set": {
   "state": "TABLE_ENUMERATED",
   "sources_tried": [
@@ -44,7 +43,7 @@
   ]
  },
  "blockers": {
-  "EXTRACTION:ENGINE_CANNOT_CONSUME": 3,
+  "EXTRACTION:ENGINE_CANNOT_CONSUME": 2,
   "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2
  },
  "top_blocker": "EXTRACTION:ENGINE_CANNOT_CONSUME",
@@ -54,8 +53,9 @@
  "comparator_findings": [],
  "k_ours_total": 2,
  "routes": {
-  "UNVERIFIED": 5,
-  "NO_ROW": 1
+  "UNVERIFIED": 4,
+  "NO_ROW": 1,
+  "PRIMARY": 1
  },
  "trials": [
   {
@@ -109,8 +109,8 @@
    "label": "Semler (SALT trial)",
    "family": "PMID 27749094",
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "route": "PRIMARY",
+   "basis": "single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT02345486 outcome 258389389; model-read (record mc-a9ef3c6d4c879b6d477542086c3d13c3), gate-verified (scripts/g1_trial_acquire.py)",
    "our_refusal": "ENGINE_CANNOT_CONSUME(design=cluster_crossover, missing=design_adjusted_effect|ICC): typed design action REFUSE: SALT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC",
    "gap_class": "MEASURE_MISMATCH",
    "absent_code": "ENGINE_CANNOT_CONSUME",
@@ -138,7 +138,16 @@
     "row_label": "Semler (SALT trial) 2016"
    },
    "disagreement_side": null,
-   "our_value": null,
+   "our_value": {
+    "measure": "RR",
+    "effect": null,
+    "lower": null,
+    "upper": null,
+    "events_t": 72,
+    "n_t": 520,
+    "events_c": 68,
+    "n_c": 454
+   },
    "registry_binding": {
     "state": "BINDABLE",
     "candidates": [
@@ -223,17 +232,25 @@
      }
     ]
    },
-   "g1_countable": false,
+   "g1_countable": true,
    "secondary_single": {
     "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
    },
-   "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
+   "agreement_with_comparator_row": "NOT_COMPARABLE:RR_VS_OR",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "EXTRACTION:ENGINE_CANNOT_CONSUME",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
+   "blocker": null,
+   "matched_by": "ACQUIRED_PRIMARY",
+   "acquired": {
+    "kind": "AACT",
+    "source": "AACT AACT 2026-08-30 NCT02345486 outcome 258389389",
+    "span": "In-hospital Mortality: groups [(68, 454), (72, 520)]",
+    "quote": "\"outcome_id\": \"258389389\",\n\"type\": \"SECONDARY\",\n\"title\": \"In-hospital Mortality\",\n\"time_frame\": \"30 days\",\n\"detail\": {\n\"description\": \"Death prior to the earlier of hospital discharge or day 30\",\n\"population\": \"\",\n\"units\": \"Participants\",\n\"units_analyzed\": \"\",\n\"param_type\": \"COUNT_OF_PARTICIPANTS\"\n},\n\"analysis_detail\": null,\n\"groups\": [\n{\n\"group\": \"837697767\",\n\"title\": \"0.9% Sodium Chloride\",\n\"count\": 68,\n\"n\": 454\n},\n{\n\"group\": \"837697768\",\n\"title\": \"Physiologically Balanced Fluid\",\n\"count\": 72,\n\"n\": 520\n}\n]",
+    "record_id": "mc-a9ef3c6d4c879b6d477542086c3d13c3",
+    "promoted_from": null
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "Young [10]",
@@ -405,19 +422,38 @@
     "protocol_rule": "G1 matches the comparator's result for this outcome",
     "span": {
      "field": "comparator outcome analysis",
-     "text": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 22ecebedd, figure sha256 0e3c23740639): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))"
+     "text": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 85dda6c00, figure sha256 f82fd7439215): rows ['Young 2015', 'Verma 2016', 'Semler (SMART trial) 2018', 'Semler (SALT trial) 2016', 'Young 2014']; positive control reproduced (['DL', 'PM', 'REML']) against its printed pooled result (FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY))"
     },
-    "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 22ecebedd, figure sha256 0e3c23740639)",
+    "span_source": "comparator PMID 30140441 figure Fig3 (recorded read g1/forest-reader 85dda6c00, figure sha256 f82fd7439215)",
     "pmid": null
    },
    "blocker": null,
    "coverage": null
   }
  ],
- "per_trial_agreement": {},
+ "per_trial_agreement": {
+  "NOT_COMPARABLE:RR_VS_OR": 1
+ },
  "same_trials": {
-  "state": "FEWER_THAN_2_SHARED_TRIALS",
-  "k": 0,
+  "state": "ONE_SHARED_TRIAL",
+  "k": 1,
+  "measure": "OR",
+  "trial": "Semler (SALT trial)",
+  "ours": {
+   "estimate": 0.9123,
+   "ci_low": 0.6376,
+   "ci_high": 1.3054
+  },
+  "theirs": {
+   "estimate": 0.898,
+   "ci_low": 0.645,
+   "ci_high": 1.251
+  },
+  "verdict": {
+   "verdict": "AGREE",
+   "conclusion": "NULL_INCLUDED",
+   "estimate_gap_over_ci_halfwidth": 0.0477
+  },
   "method_basis": "comparator positive control not reproduced: PM default",
   "excluded_named_scope_differences": []
  },
@@ -439,7 +475,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "22ecebedda863296a4ad0f541bfdcce3f76f8ffb",
+   "commit": "85dda6c00b75c202300c5867ffb5bd71387264f2",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -457,7 +493,7 @@
     "lower": "0.851",
     "upper": "1.014"
    },
-   "sha256": "0e3c23740639afbf340e5efee3ce5b954df55078309341eec1a88eb45cedee2c",
+   "sha256": "f82fd7439215a752e5485e47735d2018acf9f84173a7e7aad53a05a823aa6b43",
    "rows": 5,
    "joined": 5
   }
@@ -516,7 +552,7 @@
    "PM",
    "REML"
   ],
-  "where": "figure Fig3 (g1/forest-reader 22ecebedd, dual-model)",
+  "where": "figure Fig3 (g1/forest-reader 85dda6c00, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_FIGURE_ONLY)",
   "pooled": {
    "effect": "0.929",
@@ -528,9 +564,9 @@
   "state": "UNKNOWN",
   "why": "no shared trial agrees or shows the direction"
  },
- "k_independent": 0,
+ "k_independent": 1,
  "k_comparator_sourced": 0,
- "k_covered": 0,
+ "k_covered": 1,
  "coverage_complete": false,
  "discrepancy_findings": [],
  "g1_status": {
@@ -538,12 +574,11 @@
   "criteria": {
    "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
-   "RESULT_AGREES": false,
+   "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
   "unmet": [
-   "ALL_ELIGIBLE_MATCHED",
-   "RESULT_AGREES"
+   "ALL_ELIGIBLE_MATCHED"
   ],
   "excluded_by_scope": {
    "n": 1,
@@ -555,11 +590,7 @@
     "Ratanarat [18] [G1-OUTCOME-SET]"
    ]
   },
-  "result_blocker": {
-   "code": "FEWER_THAN_2_COMPARABLE_PAIRS",
-   "k_pairs": 0,
-   "matched_without_a_pair": {}
-  }
+  "result_blocker": null
  },
  "removed_comparator_rows": [
   {
