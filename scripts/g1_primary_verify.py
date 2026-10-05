@@ -1,0 +1,156 @@
+"""PER-TRIAL PRIMARY VERIFICATION of a topic's outcome from each trial's OWN report (flip plan #6 tocilizumab,
+#4 pcsk9 'PMC for the rest'; 5 Oct). One job per trial, recorded, through the build's own machinery -- nothing typed by
+hand, no gate loosened:
+
+  report    the trial's report that names the topic's INTERVENTION in its title (deterministic): among the trial's
+            known PMIDs (sweep targets: k-gap table + AACT RESULT references), else Europe PMC hits for its NCT
+            (recorded query); exactly one candidate, or the trial is recorded REPORT_AMBIGUOUS / REPORT_NOT_FOUND
+  value     secondary_meta_build.primary_value(slug, pmid, run, runs, want="counts"): regex on the abstract, the typed
+            full-text rung (PMC OA, else Unpaywall's open copy), then a RECORDED locator (codex) whose quote must be
+            verbatim in the report and contain every number it copies (sm.gate_locator_claim)
+  timepoint for a topic that registers one (tocilizumab: 28 days), the verified span must STATE it
+            (secondary_meta_build.meta_timepoint of the span == the protocol's) -- else TIMEPOINT_NOT_IN_SPAN
+  output    registry/model_proposals/g1_primary_verify_<slug>.json: per trial the report, the value (counts + span +
+            how), or why not. This is the per-trial primary evidence a SERVED-POOL notice needs; it is not itself a
+            counted tracker route for a trial outside our pool (is_matched: in our pool, or a two-source SWEEP_*).
+
+    python scripts/g1_primary_verify.py --run SLUG [LABEL ...]
+"""
+from __future__ import annotations
+
+import concurrent.futures as cf
+import hashlib
+import io
+import json
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
+import g1_forest_reader as gfr  # noqa: E402
+import secondary_meta_build as smb  # noqa: E402
+from harness import secondary_meta as sm  # noqa: E402
+
+# one ledger per box: the worker (C:\Projects\workerun-remote.ps1) writes its own, merged afterwards by key
+RUNS = os.environ.get("G1_PV_RUNS") or os.path.join(ROOT, "registry", "model_proposals", "g1_primary_verify_runs.json")
+INTERVENTION = {"tocilizumab-covid19-mortality": r"tocilizumab|interleukin[- ]6 receptor|IL-6 receptor|IL-6R",
+                "pcsk9-mace": r"alirocumab|evolocumab|PCSK9|proprotein convertase",
+                "omega3-cardiovascular-events": r"omega-3|n-3|fish oil|eicosapentaenoic|icosapent|docosahexaenoic|"
+                                                r"fatty acid"}
+
+
+def _title(pmid, run):
+    """PubMed/EPMC title of a PMID (recorded per PMID in the output's 'titles')."""
+    from harness import http
+    if not run:
+        return None
+    try:
+        st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                             {"query": f"EXT_ID:{pmid} AND SRC:MED", "format": "json", "resultType": "lite"}, tries=2)
+        r = (json.loads(b.decode("utf-8")).get("resultList") or {}).get("result") or []
+        return (r[0].get("title") if r else None), hashlib.sha256(b).hexdigest()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def nct_hits(nct, run):
+    from harness import http
+    if not run or not nct:
+        return []
+    try:
+        st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                             {"query": f'"{nct}" AND SRC:MED', "format": "json", "resultType": "lite",
+                              "pageSize": "50"}, tries=2)
+        return [(r["pmid"], r.get("title") or "") for r in (json.loads(b.decode("utf-8")).get("resultList") or {})
+                .get("result") or [] if r.get("pmid")]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def choose_report(slug, t, run, titles):
+    """(pmid, basis) or (None, why): the ONE report whose title names the intervention."""
+    pat = INTERVENTION[slug]
+    cands = []
+    for p in t.get("pmids") or []:
+        if p not in titles:
+            got = _title(p, run)
+            titles[p] = got[0] if got else None
+        if titles[p] and re.search(pat, titles[p], re.I):
+            cands.append(p)
+    basis = "TRIAL_PMIDS_TITLE_NAMES_INTERVENTION"
+    if not cands:
+        for p, ti in nct_hits((t.get("ncts") or [None])[0], run):
+            titles.setdefault(p, ti)
+            if re.search(pat, ti, re.I) and not re.search(r"meta-analys|systematic review|protocol|rationale|"
+                                                          r"design|statistical analysis plan", ti, re.I):
+                cands.append(p)
+        basis = "EPMC_NCT_HITS_TITLE_NAMES_INTERVENTION"
+    cands = list(dict.fromkeys(cands))
+    if len(cands) == 1:
+        return cands[0], basis
+    return None, ("REPORT_NOT_FOUND" if not cands else f"REPORT_AMBIGUOUS:{cands[:6]}")
+
+
+def verify(slug, t, run, runs, titles, spec):
+    pmid, basis = choose_report(slug, t, run, titles)
+    out = {"label": t["label"], "ncts": t.get("ncts"), "report_pmid": pmid, "report_basis": basis,
+           "report_title": titles.get(pmid) if pmid else None}
+    if not pmid:
+        return out
+    prim, how = smb.primary_value(slug, pmid, run, runs, want="counts")
+    out["how"] = how
+    if not prim:
+        out["state"] = f"NO_PRIMARY_VALUE:{how}"
+        return out
+    out["value"] = prim
+    days = sm._days(spec.get("timepoint") or "")
+    if days is not None:
+        tp = smb.meta_timepoint(prim.get("span") or "")
+        if not tp or sm._days(tp) != days:
+            out["state"] = f"TIMEPOINT_NOT_IN_SPAN:{tp}"
+            return out
+    out["state"] = "PRIMARY_VERIFIED"
+    return out
+
+
+def main(argv):
+    run = "--run" in argv
+    args = [a for a in argv if not a.startswith("--")]
+    slug, labels = args[0], set(args[1:])
+    import g1_two_source_sweep as sw
+    ts = sw.targets([slug], None).get(slug) or []
+    if labels:
+        ts = [t for t in ts if t["label"] in labels]
+    spec = smb.spec_of(slug)
+    runs = gfr._j(RUNS) if os.path.exists(RUNS) else {}
+    outp = os.path.join(ROOT, "registry", "model_proposals", f"g1_primary_verify_{slug}.json")
+    prev = gfr._j(outp) if os.path.exists(outp) else {}
+    titles = prev.get("titles") or {}
+    with gfr.RunLock(RUNS) if run else _null():
+        with cf.ThreadPoolExecutor(max_workers=3) as ex:          # codex concurrency 3 (only the locator rung calls it)
+            res = list(ex.map(lambda t: verify(slug, t, run, runs, titles, spec), ts))
+        gfr._save(RUNS, runs)
+    from collections import Counter
+    out = {"slug": slug, "spec": {k: spec.get(k) for k in ("estimand", "timepoint")}, "titles": titles,
+           "tally": dict(Counter((r.get("state") or r.get("report_basis") or "?").split(":")[0] for r in res)),
+           "trials": res}
+    gfr._save(outp, out)
+    print(json.dumps(out["tally"]))
+    for r in res:
+        v = r.get("value") or {}
+        print(f"  {r['label'][:22]:22s} {str(r.get('report_pmid')):9s} {str(r.get('state') or r.get('report_basis'))[:48]:48s}"
+              f" {v.get('events_t')}/{v.get('n_t')} vs {v.get('events_c')}/{v.get('n_c')}")
+
+
+class _null:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+if __name__ == "__main__":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    main(sys.argv[1:])
