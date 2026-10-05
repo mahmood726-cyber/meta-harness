@@ -11,8 +11,8 @@ FIX = Path(__file__).resolve().parent / "fixtures" / "codex_stderr_rejected_exec
 PROMPT = b"Label these sentences."
 OK_EXEC = ("OpenAI Codex v0.153.4\n--------\nworkdir: <workdir>\nmodel: gpt-6-astra\nprovider: openai\napproval: never\n"
            "sandbox: read-only\nreasoning effort: medium\nreasoning summaries: none\nsession id: x\n--------\nuser\n"
-           "Label these sentences.\ncodex\nreading\nexec\npowershell -Command Get-Content C:\\Users\\mahmo\\.claude\\AGENTS.md in "
-           "C:\\mh-lanes\\mcall\\mcall-abc123\n succeeded in 21ms:\n# AGENTS\ncodex\n{\"items\": []}\ntokens used\n12,345\n")
+           "Label these sentences.\ncodex\nreading\nexec\npowershell -Command Get-Content X:\\client\\AGENTS.md in "
+           "X:\\lane\\mcall\\mcall-abc123\n succeeded in 21ms:\n# AGENTS\ncodex\n{\"items\": []}\ntokens used\n12,345\n")
 
 
 def test_a_real_rejected_tool_call_is_counted_with_its_tokens():
