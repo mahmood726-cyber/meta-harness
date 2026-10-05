@@ -44,6 +44,14 @@ def _squash(t):
     return re.sub(r"\s+", "", html.unescape(t or ""))
 
 
+def _source_text(path):
+    """The comparable text of a held source: markup sources (.xml/.html) tag-stripped and unescaped; plain text as is."""
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    if path.lower().endswith((".xml", ".html", ".htm")):
+        raw = html.unescape(re.sub(r"<[^>]+>", " ", raw))
+    return raw
+
+
 def find_span(path, needle):
     """The VERBATIM substring of the file at `path` that equals `needle` up to whitespace, or None."""
     raw = open(path, encoding="utf-8", errors="replace").read()
@@ -122,7 +130,11 @@ def retired_comparator(slug, cur_pmid):
     src = os.path.join(ROOT, (r.get("source") or {}).get("path") or "")
     if not os.path.isfile(src) or _sha(src) != r["source"].get("sha256"):
         return None
-    spans = [find_span(src, t) for t in r.get("spans") or []]
+    if src.lower().endswith((".xml", ".html", ".htm")):
+        hay = _squash(_source_text(src))
+        spans = [t if _squash(t) in hay else None for t in r.get("spans") or []]
+    else:
+        spans = [find_span(src, t) for t in r.get("spans") or []]
     if not spans or not all(spans):
         return None
     return {"retired_pmid": r["comparator_pmid"], "reason_code": r["reason_code"], "new_pmid": a["comparator_pmid"],
@@ -270,8 +282,7 @@ def problems(led):
                 bad.append(f"{r['slug']}::{r['label']}: span source missing {s['source']}")
             elif _sha(p) != s.get("source_sha256"):
                 bad.append(f"{r['slug']}::{r['label']}: span source changed {s['source']}")
-            elif not all(_squash(t) in _squash(open(p, encoding="utf-8", errors="replace").read())
-                         for t in (s.get("parts") or [s["text"]])):
+            elif not all(_squash(t) in _squash(_source_text(p)) for t in (s.get("parts") or [s["text"]])):
                 bad.append(f"{r['slug']}::{r['label']}: span not in its source")
     b = led.get("baseline", {}).get("N")
     if isinstance(b, int) and b - led.get("removed_n", 0) + led.get("added_n", 0) != led.get("current", {}).get("N"):

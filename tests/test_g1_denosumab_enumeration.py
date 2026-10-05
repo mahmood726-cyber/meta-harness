@@ -14,7 +14,8 @@ sys.path.insert(0, ROOT)
 sys.path.append(os.path.join(ROOT, "scripts"))
 
 SLUG = "denosumab-vertebral-fracture"
-INPUT = os.path.join(ROOT, "registry", "comparator_enumerations", SLUG + ".json")
+# the 36852077 enumeration is RETIRED with its comparator (replaced 2026-10-05 by 32492050): kept as a verifiable record
+INPUT = os.path.join(ROOT, "registry", "comparator_enumerations", "retired", SLUG + ".36852077.json")
 
 
 def test_enumeration_input_is_typed_units_with_ref_span_and_digest():
@@ -34,8 +35,9 @@ def test_enumeration_input_is_typed_units_with_ref_span_and_digest():
 
 def test_k_gap_table_units_use_the_existing_schema():
     import k_gap_table as kt
-    us = kt.enumeration_units(SLUG, ["denosumab"])
-    assert len(us) == 11
+    us = kt.enumeration_units(SLUG, ["denosumab"], "32492050")      # the CURRENT comparator's enumeration
+    assert len(us) == 2
+    assert kt.enumeration_units(SLUG, ["denosumab"], "36852077") == []   # never another comparator's
     keys = {"table", "layout", "label", "context", "rids", "cited", "ncts", "acronyms", "author", "year", "agent_hit",
             "drug_match", "design_stated"}
     assert all(keys <= set(u) for u in us)
@@ -45,18 +47,15 @@ def test_k_gap_table_units_use_the_existing_schema():
 
 @pytest.mark.skipif(not os.path.exists(os.path.join(ROOT, "outputs", "k_gap", "_aact_store.json")),
                     reason="needs the local AACT store (gitignored cache)")
-def test_tracker_shows_comparator_n_11_and_6_eligible():
+def test_tracker_shows_the_replacement_comparators_set():
     import k_gap_table as kt
     import g1_tracker as gt
     T = kt.main(["--offline", f"--only={SLUG}", "--no-write"])
     tp = next(t for t in T["topics"] if t["slug"] == SLUG)
-    assert tp["comparator_set_state"] == "ENUMERATED"
+    assert tp["comparator_set_state"] == "ENUMERATED" and tp["comparator_pmid"] == "32492050"
     o = gt.topic(SLUG, T)
-    assert o["N_comparator_trials"] == 11
-    assert o["N_eligible"] == 6
+    assert o["N_comparator_trials"] == 2 and o["N_eligible"] == 2
     assert gt.scope_citation_violations(o) == []
-    named = {d["trial"]: d for d in o["named_differences"]}
-    assert len(named) == 5 and all(d["rule_id"] == "E2:COMPARATOR_NOT_PLACEBO" for d in named.values())
 
 
 def test_e2_named_difference_survives_cite_or_demote_only_when_re_derived():
