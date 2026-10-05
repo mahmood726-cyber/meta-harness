@@ -568,6 +568,16 @@ def proposal_units(slug: str, agents: list[str], others: list[str] | None = None
 ENUM_DIR = os.path.join(ROOT, "registry", "comparator_enumerations")
 
 
+def held_norm(path, text=None):
+    """Whitespace-normalised text of a held source (or of `text`). Markup sources (.xml/.html/.htm) are tag-stripped and
+    unescaped first; plain text is NOT tag-stripped (a bare '<' in 'p<0.05' would swallow text up to the next '>')."""
+    import html as _html
+    raw = text if text is not None else open(path, encoding="utf-8", errors="replace").read()
+    if path and path.lower().endswith((".xml", ".html", ".htm")):
+        raw = _html.unescape(re.sub(r"<[^>]+>", " ", raw))
+    return re.sub(r"\s+", " ", raw).strip()
+
+
 def enumeration_units(slug: str, agents: list[str]) -> list[dict]:
     """A comparator set ENUMERATED from the comparator's own supplementary trial table (scripts/g1_binding_enumerate.py
     --write-input): one typed unit per trial, in the schema every other source uses. The unit's identity is the
@@ -581,6 +591,9 @@ def enumeration_units(slug: str, agents: list[str]) -> list[dict]:
     src = os.path.join(ROOT, e["source"]["path"])
     if not os.path.exists(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != e["source"]["sha256"]:
         return []
+    held = held_norm(src)
+    if not all(held_norm(None, line) in held for u in e.get("units") or [] for line in u["span"].split(" / ")):
+        return []                                  # a span not in its held source refuses the whole enumeration
     agent_re = re.compile("|".join(re.escape(a) for a in agents), re.I) if agents else None
     out = []
     for u in e.get("units") or []:
@@ -806,9 +819,12 @@ def main(argv=None):
         cands = [("JATS_TABLE", inc)]
         eu = enumeration_units(slug, agents)
         if eu:
-            cands.append(("SUPPLEMENT_ENUMERATION", {"state": "ENUMERATED", "units": eu,
-                                                     "tables_used": [eu[0]["table"]],
-                                                     "enumerated_from": eu[0]["enumeration"]["enumerated_from"]}))
+            # a TYPED enumeration (registry/comparator_enumerations: span-verified, digest-pinned, the trial set of the
+            # comparator's RESULT) takes precedence over parsing its tables: statins 32529863's Table 1 lists all 16
+            # trials (primary + secondary prevention), while its primary-prevention result pools 7 (refs 29, 35-40)
+            cands.insert(0, ("SUPPLEMENT_ENUMERATION", {"state": "ENUMERATED", "units": eu,
+                                                        "tables_used": [eu[0]["table"]],
+                                                        "enumerated_from": eu[0]["enumeration"]["enumerated_from"]}))
         if held["state"] == "NAMED_ARTICLE":
             pu = proposal_units(slug, agents, others)
             if pu:

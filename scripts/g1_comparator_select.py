@@ -22,10 +22,16 @@ def _j(p):
         return json.load(fh)
 
 
-def eligible(rule, cand):
+def eligible(rule, cand, exception=None):
+    """All criteria PASS -- except ONE criterion waived for ONE named candidate by a RATIFIED exception (decided_by,
+    quote, date recorded); every other criterion must still PASS. A waiver never applies to any other candidate."""
     ids = [c["id"] for c in rule["criteria"]]
     verdicts = {c["id"]: (cand.get("criteria") or {}).get(c["id"], {}).get("verdict") for c in rule["criteria"]}
-    return all(verdicts.get(i) == "PASS" for i in ids), verdicts
+    waived = None
+    if exception and str(cand.get("pmid")) == str(exception.get("candidate_pmid")) and exception.get("decided_by") \
+            and exception.get("quote") and exception.get("date"):
+        waived = exception.get("waived_criterion")
+    return all(verdicts.get(i) == "PASS" or i == waived for i in ids), verdicts
 
 
 def order_key(rule, cand):
@@ -34,8 +40,8 @@ def order_key(rule, cand):
                  for t in rule["tie_breaks"])
 
 
-def select(rule, cands):
-    ok = [c for c in cands if eligible(rule, c)[0]]
+def select(rule, cands, exception=None):
+    ok = [c for c in cands if eligible(rule, c, exception)[0]]
     if not ok:
         return None, []
     ranked = sorted(ok, key=lambda c: order_key(rule, c))
@@ -52,14 +58,20 @@ def main(argv):
     slug = argv[0]
     rule = _j(os.path.join(SEL, f"{slug}.rule.json"))
     cands = _j(os.path.join(SEL, f"{slug}.candidates.json"))["candidates"]
-    pick, ranked = select(rule, cands)
+    rp = os.path.join(SEL, f"{slug}.ratification.json")
+    exc = _j(rp).get("ratified_exception") if os.path.exists(rp) else None
+    pick0, _ = select(rule, cands)                       # the pre-registered rule alone, always recorded
+    pick, ranked = select(rule, cands, exc)
     out = {"slug": slug, "rule": f"registry/comparator_selection/{slug}.rule.json", "rule_commit": rule_sha(slug),
            "n_candidates": len(cands), "n_eligible": len(ranked),
            "pick": ({k: pick.get(k) for k in ("pmid", "pmcid", "title", "year")} if pick else None),
            "ranking": [{"pmid": c.get("pmid"), "tie_breaks": c.get("tie_breaks")} for c in ranked],
-           "per_candidate": [{"pmid": c.get("pmid"), "eligible": eligible(rule, c)[0],
+           "per_candidate": [{"pmid": c.get("pmid"), "eligible_under_rule": eligible(rule, c)[0],
+                              "eligible_with_ratified_exception": eligible(rule, c, exc)[0],
                               "verdicts": eligible(rule, c)[1]} for c in cands],
-           "result": "PICKED" if pick else rule["if_none_pass"].split(":")[0]}
+           "result_under_preregistered_rule": "PICKED" if pick0 else rule["if_none_pass"].split(":")[0],
+           "ratified_exception": exc,
+           "result": ("PICKED" if pick0 else "PICKED_BY_RATIFIED_EXCEPTION" if pick else rule["if_none_pass"].split(":")[0])}
     p = os.path.join(SEL, f"{slug}.selection.json")
     with open(p, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False)
