@@ -32,3 +32,9 @@ def test_candidates_settle_only_when_every_verified_report_agrees():
     assert dis["state"] == "REPORTS_DISAGREE"
     none = pv.settle([{"state": "TIMEPOINT_NOT_IN_SPAN"}, {"state": "NO_PRIMARY_VALUE:X"}])
     assert none["state"].startswith("NO_REPORT_VERIFIED")
+
+
+def test_a_value_without_both_arms_counts_is_not_primary_verified_for_a_counts_topic():
+    assert pv.counts_state({"effect": "0.3", "measure": "WEIGHTED DIFFERENCE"}) == "VERIFIED_NO_COUNTS"
+    assert pv.counts_state({"events_t": 26, "n_t": 249, "events_c": 11, "n_c": None}) == "VERIFIED_NO_COUNTS"
+    assert pv.counts_state({"events_t": 26, "n_t": 249, "events_c": 11, "n_c": 128}) == "PRIMARY_VERIFIED"
