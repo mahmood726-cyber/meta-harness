@@ -41,7 +41,9 @@ def order_key(rule, cand):
 
 
 def select(rule, cands, exception=None):
-    ok = [c for c in cands if eligible(rule, c, exception)[0]]
+    # the comparator being REPLACED (rule.replaces.excluded_from_candidates) is listed but never picked
+    ex = str((rule.get("replaces") or {}).get("comparator_pmid")) if (rule.get("replaces") or {}).get("excluded_from_candidates") else None
+    ok = [c for c in cands if eligible(rule, c, exception)[0] and str(c.get("pmid")) != ex]
     if not ok:
         return None, []
     ranked = sorted(ok, key=lambda c: order_key(rule, c))
