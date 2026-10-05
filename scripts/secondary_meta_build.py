@@ -676,9 +676,19 @@ _TP = re.compile(r"(\d+)[- ]day (?:all[- ]cause )?mortality|mortality (?:at|by|w
                  r"day[- ](\d+) (?:all[- ]cause )?mortality", re.I)
 
 
+# a meta that defines its outcome at a VARYING timepoint states no single one, whatever day-count its text quotes about
+# other studies (33612824: 'all-cause mortality at the longest follow-up, defined by the individual trial'; its only
+# day-count is REACT's '28-day' in the background)
+_VARIABLE_TP = re.compile(r"\b(?:longest|last|end of|maximum|maximal|latest|final)\s+(?:available\s+)?follow[- ]?up"
+                          r"|\b(?:defined|reported|chosen)\s+by\s+(?:the\s+|each\s+)?(?:individual\s+)?(?:trials?|stud(?:y|ies))"
+                          r"|time[- ]?points?\s+(?:defined|reported)\s+by\s+each", re.I)
+
+
 def meta_timepoint(held):
-    """The mortality timepoint the meta itself states, only when it states exactly ONE (else unknown -> refused by
-    the timepoint check for a topic that registers one)."""
+    """The mortality timepoint the meta itself states, only when it states exactly ONE and does not define its outcome
+    at a varying timepoint (else unknown -> refused by the timepoint check for a topic that registers one)."""
+    if _VARIABLE_TP.search(held or ""):
+        return None
     vals = {next(g for g in m.groups() if g) for m in _TP.finditer(held or "")}
     return f"{vals.pop()} days" if len(vals) == 1 else None
 
