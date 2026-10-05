@@ -128,6 +128,34 @@ def randomised_contrasts(arms, agents, randomized=False, comparators=()):
                         'background_therapy':sorted(av-aa), 'span':[a['span'], b['span']]})
     return out
 
+_PARENT_IN_TITLE = re.compile(r'\b(?:sub-?study|secondary analysis|subanalysis)\s+(?:of|from)\s+(?:the\s+)?'
+                              r'([A-Z][A-Za-z0-9]*(?:[- ][A-Z0-9][A-Za-z0-9]*)*)'
+                              r'|\b([A-Z][A-Z0-9]{2,}(?:[- ][A-Z0-9]+)*)\s+(?:sub-?study|subanalysis)\b')
+
+
+def _collate_substudies(records):
+    """Decision 5 Oct (Handbook): a substudy reporting a prespecified outcome of a trial's randomised comparison is a
+    report of THAT RCT -- collated with its parent as ONE study, never counted twice. A SUBGROUP / SECONDARY_ANALYSIS
+    report that carries no registry id of its own joins the family of the trial its OWN TITLE names ('a substudy of
+    GISSI-HF trial'), when exactly one NCT is carried by the other held reports that name that trial in their title.
+    Ambiguity, or no such report, leaves it unlinked (flagged PARENT_UNRESOLVED as before) -- never a guess. A report with
+    its own NCT is collated by the registry id already (Imazio [19] 22090167: NCT00128427, COPPS)."""
+    held = [(r, [n for n in r['registry_ids'] if n.upper().startswith('NCT')]) for r in records]
+    for r in records:
+        if r['registry_ids'] or report_role(r)[0] not in {'SUBGROUP', 'SECONDARY_ANALYSIS'}:
+            continue
+        m = _PARENT_IN_TITLE.search(r.get('title') or '')
+        name = (m.group(1) or m.group(2)) if m else None
+        if not name or len(name) < 4:
+            continue
+        rx = re.compile(r'(?<![A-Za-z0-9])' + re.escape(name) + r'(?![A-Za-z0-9])')
+        parents = sorted({n[0] for o, n in held if o is not r and len(n) == 1 and rx.search(o.get('title') or '')})
+        if len(parents) == 1:
+            r['family_parent_evidence'] = {'nct_id': parents[0], 'basis': 'SUBSTUDY_TITLE_NAMES_PARENT',
+                                           'quote': m.group(0)}
+            r['registry_ids'] = [parents[0]]
+
+
 def families(records, *, companion_reports=None, config=None, registry=None, ledger=None):
     config, registry, ledger = config or {}, registry or {}, ledger or {}
     records = [dict(r, id=_rid(r), registry_ids=registry_ids(r)) for r in records]
@@ -135,6 +163,7 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         raise ValueError('Every report requires a held identifier')
     # Meta-analyses describe multiple trials and are retained separately by the consumer.
     records = [r for r in records if report_role(r)[0] not in {'HTA','POOLED_ANALYSIS'}]
+    _collate_substudies(records)
     by_id = {r['id']:r for r in records}
     for r in records:
         ncts = [n for n in r['registry_ids'] if n.upper().startswith('NCT')]

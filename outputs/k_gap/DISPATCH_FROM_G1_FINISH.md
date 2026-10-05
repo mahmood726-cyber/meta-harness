@@ -73,6 +73,18 @@ records it correctly).
   - Sarzaeem [23]: no PubMed record, no Crossref record, journal site bot-protected (not bypassed): our screen has no record
     to assess, so it stays an open gap (two non-comparator metas hold rows; eligibility is our screen's, never theirs).
 
+## Screen X1 narrowed for substudies (decision 5 Oct, Handbook) -- SERVED CODE: re-issue certificates on your next build
+
+`harness/screen.py`: a 'substudy' / 'secondary analysis' title no longer excludes by itself; X1 excludes it only when
+the record says the analysis is non-randomised, post hoc or observational (protocol / design / SAP papers and post hoc
+titles still excluded). `harness/trial_family.py`: a substudy with no registry id of its own is collated with the trial
+its own title names when exactly one held report carrying an NCT names it (never a guess). Corpus impact (4,080 held
+records): 11 decisions change -- 4 to INCLUDE (colchicine-postop Imazio [19] 22090167; colchicine-secondary 34686461;
+omega3 21315217 and 20952767, both GISSI-HF substudies collated with NCT00336336), 7 from X1 to their true exclusion
+(X2 / X-DESIGN). Collation links 2 substudies (GISSI-HF echo -> NCT00336336; TRACES secondary analysis -> NCT02797119).
+This changes the served screen's code: the certificate / bundle digests for harness/screen.py and the docs/harness mirror
+need your rebuild (test_bundle / test_gate already fail on acq/k-gap for harness/extract.py, pre-existing).
+
 ## How the acquired rows are admitted (scripts/g1_trial_acquire.py → registry/g1_acquired/<slug>.json)
 
 - One **recorded** codex call per trial (reproducible_ai.model_call_live; concurrency 3), the comparator's row never shown.
