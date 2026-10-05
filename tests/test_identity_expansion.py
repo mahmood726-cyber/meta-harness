@@ -45,3 +45,27 @@ def test_a_letter_resolves_to_the_one_article_it_comments_on():
     assert ic.comment_target(rec) == "30990260"
     assert ic.comment_target({"pubtypes": ["Journal Article", "Randomized Controlled Trial"], "comment_on": ["1"]}) is None
     assert ic.comment_target({"pubtypes": ["Letter"], "comment_on": ["1", "2"]}) is None
+
+
+def test_the_comparators_own_row_year_breaks_an_identity_tie():
+    # colchicine-recurrent-pericarditis 5 Oct: 'COPE study' had four self-naming PMIDs and 'COPPS study' four; the
+    # comparator's own table row prints the year ('COPE study 1 Italy/2005 Open-label RCT ...'). 'Finkelstein Y et al'
+    # carries no year in its label, so it had no author-year key at all.
+    assert ic.context_year("COPE study 1 Italy/2005 Open-label RCT Single center Colchicine 120 18") == 2005
+    assert ic.context_year("Table 1 Mean features ... 2005 ... 2010") is None          # two years: never a pick
+    years = {"16186437": 2005, "34003667": 2021, "34686461": 2021, "35685430": 2022}
+    assert ic.year_tiebreak(["16186437", "34003667", "34686461", "35685430"], years, 2005) == ["16186437"]
+    assert ic.year_tiebreak(["1", "2"], {"1": 2005, "2": 2005}, 2005) == ["1", "2"]      # still two: stays ambiguous
+    assert ic.label_author("Finkelstein Y et al") == "Finkelstein"
+    assert ic.label_author("COPE study") is None                                        # an acronym is not an author
+
+
+def test_the_row_year_tiebreak_never_picks_a_news_or_comment_item():
+    # 5 Oct: the tie-break first resolved 'RALES1999' to '[Study of the month. The RALES study]' (1999) and
+    # 'EPHESUS2003' to a 'News' item, overriding the main reports the acronym-expansion route had found
+    recs = {"10589274": {"pubtypes": ["Journal Article", "Randomized Controlled Trial"], "title": "[Study of the month. The RALES study]"},
+            "12974260": {"pubtypes": ["News", "Randomized Controlled Trial"], "title": "Efficacy of eplerenone ..."},
+            "20805112": {"pubtypes": ["Journal Article", "Randomized Controlled Trial"], "title": "COlchicine for the Prevention of ..."}}
+    assert ic.tiebreak_eligible(recs["20805112"])
+    assert not ic.tiebreak_eligible(recs["12974260"])
+    assert not ic.tiebreak_eligible(recs["10589274"])
