@@ -560,6 +560,10 @@ def span_is_verbatim(slug, pmid, span):
         import hashlib
         fp = os.path.join(OUT, "_ft", f"{pmid}.txt")
         t = open(fp, encoding="utf-8").read() if os.path.exists(fp) else ""
+        if not t:
+            # not cached here (gitignored): the harness fetcher (PMC OA, the same bytes the stage read), never a guess
+            import k_gap_counterfactual as cfm
+            t = cfm.pmc_fulltext_cached(str(pmid)) or ""
         t = t[:span["chars"]] if span.get("chars") else t           # the prefix the full-text stage read
         return bool(t) and hashlib.sha256(t.encode("utf-8")).hexdigest() == span.get("sha256") and span["text"] in t
     v = (held_record(slug, pmid) or {}).get(span.get("field"))

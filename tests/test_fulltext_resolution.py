@@ -38,3 +38,20 @@ def test_a_full_text_resolution_names_the_exclusion(tmp_path, monkeypatch):
 def test_a_different_full_text_never_verifies_the_span(tmp_path, monkeypatch):
     sp = _setup(tmp_path, monkeypatch, sha="0" * 64)
     assert not gt.span_is_verbatim("colchicine-postop-af", "27223641", sp)
+
+
+def test_a_partial_full_text_rerun_keeps_every_row_it_did_not_touch(tmp_path, monkeypatch):
+    import k_gap_exclusion_fulltext as ef
+    prev = {"rows": [{"slug": "a", "pmid": "1", "class_after": "TRUE_SCOPE_DIFFERENCE", "how": "RECORDED_READER:x"},
+                     {"slug": "b", "pmid": "2", "class_after": "SCREENER_ERROR", "how": "REGEX_ON_FULLTEXT"}]}
+    (tmp_path / "exclusion_fulltext.json").write_text(json.dumps(prev), encoding="utf-8")
+    monkeypatch.setattr(ef, "OUT", str(tmp_path))
+    monkeypatch.setattr(ef, "RUNS", str(tmp_path / "runs.json"))
+    monkeypatch.setattr(ef, "_pilot", lambda: None)
+    monkeypatch.setattr(ef, "items", lambda run: [{"slug": "c", "pmid": "3", "label": "C", "rule_id": "X1",
+                                                   "subclass_before": "S", "rec": None, "fulltext": "",
+                                                   "fulltext_source": None}])
+    ef.main(["--only=c:3"])
+    rows = {(r["slug"], r["pmid"]): r for r in json.load(open(tmp_path / "exclusion_fulltext.json"))["rows"]}
+    assert rows[("a", "1")] == prev["rows"][0] and rows[("b", "2")] == prev["rows"][1]
+    assert rows[("c", "3")]["class_after"] == "INSUFFICIENT_RECORD"
