@@ -71,6 +71,56 @@ def _save(p, obj):
 
 
 # ------------------------------------------------------------------ targets
+def _record_text(slug, pmid):
+    """The trial report's own held record (title + abstract): the topic's records, else the comparator members'."""
+    if not pmid:
+        return ""
+    for p in (os.path.join(ROOT, "cache", slug, "records.json"), os.path.join(OUT, "member_records.json")):
+        if not os.path.exists(p):
+            continue
+        d = _j(p)
+        recs = d.get("records") if isinstance(d, dict) and "records" in d else d
+        r = (next((x for x in recs if str(x.get("id")) == str(pmid)), None) if isinstance(recs, list)
+             else (recs or {}).get(str(pmid)))
+        if r:
+            return f"{r.get('title') or ''} {r.get('abstract') or ''}"
+    return ""
+
+
+def _report_year(pmid):
+    """The trial report's publication year from the recorded PubMed years cache (outputs/k_gap/pubmed_years.json)."""
+    p = os.path.join(OUT, "pubmed_years.json")
+    y = (_j(p) if os.path.exists(p) else {}).get(str(pmid)) if pmid else None
+    return int(y) if isinstance(y, int) or (isinstance(y, str) and y.isdigit()) else None
+
+
+_RESULT_PMIDS = {}
+
+
+def _aact_result_pmids(nct):
+    """The trial's own RESULT-typed (else DERIVED) PMIDs from the versioned AACT snapshot (kgap.identity_chain)."""
+    if nct not in _RESULT_PMIDS:
+        from kgap import aact_adapter, identity_chain as ic
+        try:
+            _RESULT_PMIDS[nct] = list((ic.result_pmids([nct], aact_adapter.snapshot_dir()) or {}).get(nct) or [])
+        except Exception:  # noqa: BLE001 - no snapshot: no identity, never a guess
+            _RESULT_PMIDS[nct] = []
+    return _RESULT_PMIDS[nct]
+
+
+def lane_identity(x, t):
+    """NCTs + PMIDs of one comparator trial: its k-gap row's own identity, else -- a LANE-owned topic has no k-gap rows
+    (tocilizumab) -- its tracker family (an NCT -> that NCT and its AACT result PMIDs; a PMID -> that PMID)."""
+    if t.get("ncts") or t.get("pmids"):
+        return {"ncts": list(t.get("ncts") or []), "pmids": list(t.get("pmids") or [])}
+    fam = str(x.get("family") or "")
+    if fam.startswith("NCT"):
+        return {"ncts": [fam], "pmids": _aact_result_pmids(fam)}
+    if fam.startswith("PMID "):
+        return {"ncts": [], "pmids": [fam[5:]]}
+    return {"ncts": [], "pmids": []}
+
+
 def targets(slugs=None, routes=None):
     """{slug: [trial dict]} for every unmatched, un-named comparator trial, with its identity (PMIDs, NCTs, acronyms)."""
     T = _j(os.path.join(OUT, "k_gap_table.json"))
@@ -89,12 +139,14 @@ def targets(slugs=None, routes=None):
         for x in o.get("trials") or []:
             if x.get("in_our_pool") or x["label"] in named or (routes and x.get("route") not in routes):
                 continue
-            t = by.get((o["slug"], x["label"])) or {}
+            t = dict(by.get((o["slug"], x["label"])) or {})
+            t.update(lane_identity(x, t))
             acr = sorted({v["acronym"] for v in (t.get("study") or {}).values() if (v or {}).get("acronym")})
             acr = sorted(set(acr) | label_acronyms(x["label"]))
             out.setdefault(o["slug"], []).append({
                 "slug": o["slug"], "label": x["label"], "pmids": list(t.get("pmids") or []),
                 "report_pmid": report_pmid(t),
+                "report_year": _report_year(report_pmid(t)),
                 "cited_pmids": list(t.get("cited_pmids") or []), "ncts": list(t.get("ncts") or []), "acronyms": acr,
                 "comparator_row": x.get("comparator_row"), "registry_binding": x.get("registry_binding"),
                 "lane_owned": bool(o.get("lane_source"))})
@@ -199,6 +251,9 @@ def discover(t, comp_ids, run, agents=()):
         for h in r.get("hits") or []:
             if h["pmid"] in comp_ids or (h.get("doi") and h["doi"] in comp_ids) or h["pmid"] in t["pmids"] + pm:
                 continue                                       # the comparator never verifies itself; nor the trial
+            ry = t.get("report_year")
+            if ry and str(h.get("year") or "").isdigit() and int(h["year"]) < int(ry):
+                continue                                       # published before the trial's result: cannot print it
             hits.setdefault(h["pmid"], h)
     ranked = sorted(hits.values(), key=lambda h: (-(h.get("cited") or 0), h["pmid"]))[:MAX_METAS_PER_TRIAL]
     return [h["pmid"] for h in ranked], recs
@@ -476,6 +531,45 @@ def prepare_figures(slug, metas, run):
     return items, state
 
 
+_RAND_N = re.compile(r"(?:randomly assigned|randomi[sz]ed|underwent randomi[sz]ation of|enrolled)\D{0,40}?"
+                     r"(\d{1,3}(?:,\d{3})+|\d{2,6})\s+(?:patients|participants|adults|women|men|subjects|people|individuals)"
+                     r"|(\d{1,3}(?:,\d{3})+|\d{2,6})\s+(?:patients|participants|adults|women|men|subjects)\s+(?:were|underwent)"
+                     r"\s+(?:randomly assigned|randomi[sz]ed|randomi[sz]ation)", re.I)
+_CONTROL_ARM = re.compile(r"placebo|control|usual care|standard care|saline|vehicle", re.I)
+
+
+def aact_single_primary(bind, record_text, estimand):
+    """Mahmood decision (e), applied to the sweep: ONE bound primary source -- posted CT.gov results -- verifies a row,
+    under the typed guard that kept the sweep from counting it (SMART: posted counts cover 5,381 patients, the report
+    15,802): the posted arms' TOTAL N must equal a randomised N printed in the trial's OWN record. The value is the
+    posting's own analysis on the topic's estimand (an HR topic needs a posted HR analysis -- never converted from
+    counts); a ratio-of-risks topic takes the posted participant counts. Returns (value, basis) or (None, why)."""
+    arms = bind.get("arms") or []
+    if len(arms) != 2 or not all(isinstance(a.get("count"), int) and isinstance(a.get("n"), int) for a in arms):
+        return None, "ARMS_NOT_TWO_TYPED_COUNTS"
+    ctrl = [a for a in arms if _CONTROL_ARM.search(a.get("title") or "")]
+    if len(ctrl) != 1:
+        return None, "CONTROL_ARM_NOT_IDENTIFIED"
+    trt = next(a for a in arms if a is not ctrl[0])
+    total = trt["n"] + ctrl[0]["n"]
+    ns = {int((m.group(1) or m.group(2)).replace(",", "")) for m in _RAND_N.finditer(record_text or "")}
+    if total not in ns:
+        return None, "POSTED_N_IS_NOT_THE_RANDOMISED_N"
+    counts = {"events_t": trt["count"], "n_t": trt["n"], "events_c": ctrl[0]["count"], "n_c": ctrl[0]["n"]}
+    est = (estimand or "").upper()
+    an = bind.get("analysis") or {}
+    pt = str(an.get("param_type") or "").upper()
+    if est == "HR":
+        if "HAZARD" not in pt or None in (an.get("param_value"), an.get("ci_lower"), an.get("ci_upper")):
+            return None, "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"
+        v = {"measure": "HR", "effect": str(an["param_value"]), "lower": str(an["ci_lower"]), "upper": str(an["ci_upper"]), **counts}
+    elif est in ("RR", "OR"):
+        v = {"measure": est, "effect": None, "lower": None, "upper": None, **counts}
+    else:
+        return None, "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"
+    return v, f"POSTED_N_EQUALS_RANDOMISED_N ({total}); {bind.get('nct')} '{str(bind.get('title'))[:120]}' ({(bind.get('snapshot') or {}).get('id')})"
+
+
 def ss_rows(rows):
     """Rows admissible for SECONDARY_SINGLE: typed-admitted (state SECONDARY_UNVERIFIED) and from a SELF-REPRODUCING
     source -- a controlled typed table or a gated figure read (an uncontrolled table never counts alone)."""
@@ -564,6 +658,10 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
         mine = [r for r in rows if r.family_id == t["label"]]
         ok = [r for r in mine if id(r) in countable]
         rb = t.get("registry_binding") or {}
+        if not rb and t.get("ncts"):
+            # a lane-owned trial carries no binding from the tracker: the same gates, from the versioned AACT snapshot
+            po = (_j(os.path.join(ROOT, "topics", slug + ".json")).get("primary_outcome") or {})
+            rb = gt.registry_binding(t["ncts"][0], po.get("name") or "", list(po.get("keywords") or []))
         bind = next((c for c in rb.get("candidates") or [] if c.get("verdict") == "BINDABLE"), None)
         route, value = None, None
         if ok:
@@ -589,13 +687,20 @@ def sweep_topic(slug, ts, run, comp_ids, metas_by_trial, fig_items=None, runs=No
                      "digest": best.source_digest, "provenance": best.provenance, "queued_for_primary": True}
         elif bind and len(bind.get("arms") or []) == 2:
             a = bind["arms"]
-            # posted results ALONE are one source: recorded, never counted (SMART's posted counts cover 5,381 patients,
-            # its report 15,802 -- one source cannot tell which population a number belongs to)
-            route = "AACT_ONLY_SINGLE_SOURCE"
-            value = {"measure": "COUNTS", "arms": [{"title": x.get("title"), "count": x.get("count"), "n": x.get("n")}
-                                                   for x in a]}
-            basis = {"nct": bind["nct"], "outcome": bind["title"], "snapshot": bind["snapshot"],
-                     "analysis": bind.get("analysis")}
+            # posted results ALONE count only when the posted population IS the randomised one (aact_single_primary):
+            # else recorded, never counted (SMART's posted counts cover 5,381 patients, its report 15,802)
+            rec_text = _record_text(slug, t.get("report_pmid"))
+            v1, why1 = aact_single_primary(bind, rec_text, spec.get("estimand"))
+            if v1:
+                route, value = "SWEEP_AACT_PRIMARY", v1
+                basis = {"nct": bind["nct"], "outcome": bind["title"], "snapshot": bind["snapshot"],
+                         "analysis": bind.get("analysis"), "guard": why1, "report_pmid": t.get("report_pmid")}
+            else:
+                route = "AACT_ONLY_SINGLE_SOURCE"
+                value = {"measure": "COUNTS", "arms": [{"title": x.get("title"), "count": x.get("count"), "n": x.get("n")}
+                                                       for x in a]}
+                basis = {"nct": bind["nct"], "outcome": bind["title"], "snapshot": bind["snapshot"],
+                         "analysis": bind.get("analysis"), "not_counted": why1}
         else:
             basis = None
         cr = t.get("comparator_row")
@@ -629,6 +734,13 @@ def main(argv):
     # --routes=UNVERIFIED: the trials that already HAVE one row (cheapest second-source wins) first (Mahmood 3 Oct)
     routes = next((set(a.split("=", 1)[1].split(",")) for a in argv if a.startswith("--routes=")), None)
     tg = targets(slugs, routes)
+    if run:
+        # every report's publication year, so discovery can drop metas published before the trial's result
+        import k_gap_table as _kt
+        _kt.pub_years([t["report_pmid"] for ts in tg.values() for t in ts if t.get("report_pmid")])
+        for ts in tg.values():
+            for t in ts:
+                t["report_year"] = _report_year(t.get("report_pmid"))
     n_nct = add_registry_ncts(tg)
     # discovery: per trial, in parallel (network bound; Europe PMC returns 503 above ~2 concurrent)
     metas_by = {}
@@ -651,11 +763,15 @@ def main(argv):
     # concurrency 3, at most --max-reads per invocation (hourly batches); the ledger is the per-topic runs store
     from kgap import runs_store
     max_reads = next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--max-reads=")), 60)
+    # --need=N: candidate metas planned per unmatched trial (default 2, what TWO-SOURCE asks); a higher N reads more of
+    # the discovered open metas' forest plots (407 held on 4 Oct with no typed table and no figure ever read) -- every
+    # read is a recorded proposal through the same gate, capped by --max-reads, ledgered per read
+    need = next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--need=")), 2)
     runs = runs_store.load()
     fig, fig_state, todo = {}, {}, []
     for s, ts in sorted(tg.items()):
         typed_ok = set()          # typed tables are tried inside sweep_topic; a forest read is planned for every meta
-        plan = forest_plan(ts, metas_by.get(s, {}), typed_ok)
+        plan = forest_plan(ts, metas_by.get(s, {}), typed_ok, need=need)
         fig[s], fig_state[s] = prepare_figures(s, plan, run)
         for m in plan:
             it = fig[s].get(m)
@@ -700,7 +816,11 @@ def main(argv):
                "topics": {}}
     for s, ts in sorted(tg.items()):
         o = sweep_topic(s, ts, run, comp[s], metas_by.get(s, {}), fig.get(s), runs, ref.get(s))
-        o["metas"].update({m: v for m, v in fig_state[s].items() if m not in o["metas"]})
+        # a planned figure that could not be prepared says WHY, also on a meta that already has a table state (the
+        # reason was dropped there: 222 of 296 planned figures on 4 Oct had no read and no recorded reason)
+        for m, v in fig_state[s].items():
+            prev = o["metas"].get(m)
+            o["metas"][m] = v if prev is None else (dict(prev, figure=v) if isinstance(prev, dict) else f"{prev} | {v}")
         for r in o["trials"]:
             r["searches"] = disc.get((s, r["label"]))
         sp = os.path.join(SWEEP, f"{s}.json")

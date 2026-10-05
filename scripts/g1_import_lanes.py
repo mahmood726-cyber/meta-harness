@@ -179,6 +179,39 @@ def apply_resolutions(slug, o, path=RESOLUTIONS):
                                           "source": "outputs/k_gap/g1_readers_differ_resolutions.json"}
     o["per_trial_agreement"] = dict(Counter(x["agreement_with_comparator_row"] for x in o.get("trials") or []
                                             if x.get("in_our_pool")))
+
+
+def attach_screen_state(o, ours, slug=None, records=None):
+    """OUR screen's state on a lane file's trials. By comparator label where the lane used the k-gap table's units; else
+    BY IDENTITY (the lane's family NCT / PMID, and PMIDs its identity note names) against our screen's own decision
+    records (records: core['screening']['records'] of our held-source build) -- tocilizumab's lane lists REACT's 19
+    trials, whose labels are not the table's. A trial our screen never saw gets NOT_ASSESSED, never a pass."""
+    import re
+    import g1_tracker as gt
+    by = {x["label"]: x for x in ours.get("trials") or []}
+    for x in o.get("trials") or []:
+        if "screen_eligibility" in x and x["screen_eligibility"] is not None:
+            continue
+        m = by.get(x["label"])
+        if m and m.get("screen_eligibility"):
+            se, via = m["screen_eligibility"], "our build of the topic, by comparator label"
+        else:
+            fam = str(x.get("family") or "")
+            ncts = [fam] if fam.startswith("NCT") else []
+            pmids = ([fam.replace("PMID ", "")] if fam.startswith("PMID ") else []) + \
+                re.findall(r"PMID[ :]?(\d{6,9})", json.dumps(x.get("identity") or ""))
+            rec = gt.screen_record_for(records or [], ncts, pmids)
+            p = str(rec["id"]) if rec and str(rec.get("id")).isdigit() else (pmids[0] if pmids else None)
+            se = gt.screen_eligibility({"in_our_pool": x.get("in_our_pool")}, rec, p,
+                                       gt.two_reader_readings(slug, [p] if p else []) if slug else [])
+            if rec is None:
+                se = dict(se, why="NOT_IN_OUR_SCREEN (by NCT / PMID)")
+            via = f"our screen's records, by identity {ncts or pmids or '(none)'}"
+        x["screen_eligibility"] = dict(se, via=via)
+        if not x.get("identification"):
+            x["identification"] = (m or {}).get("identification") or {"route": "REVIEW_REFERENCE_LIST",
+                                                                      "source_meta": o.get("comparator_pmid"),
+                                                                      "location": {"label": x["label"]}}
     return o
 
 
@@ -201,10 +234,23 @@ def main(argv):
         else:
             raise ValueError(f"{slug}: unknown lane format {spec['format']}")
         o["lane_source"] = src
+        # ELIGIBILITY IS OUR SCREEN'S (5 Oct): a lane's file predating the gate carries no screen state; our own build
+        # of the same topic gives every comparator trial its identification route and screen eligibility, by label
+        import k_gap_counterfactual as cfm
+        core_, _src = cfm.build_with_held_sources(slug)
+        attach_screen_state(o, gt.topic(slug, gt.with_identity_chain(T)), slug, core_["screening"]["records"])
         # the lane's named scope differences must carry rule + span like ours; unspanned ones go back to eligible
         gt.cite_or_demote(o, slug)
         gt.apply_sweep(o, slug)           # trials the two-source sweep verified count as matched, by route
         gt.apply_single_primary(o)        # ONE_SOURCE rows bound to a single PRIMARY source, typed (2 Oct decision)
+        gt.attach_forest_reader_provenance(o, slug)   # dual-read provenance for rows whose counts it prints identically
+        if not (o.get("g1r_reproduction") or {}).get("state"):
+            o["g1r_reproduction"] = gt.g1r_from_trials(o)
+        gt.apply_coverage(o)              # COVERAGE (incl. COMPARATOR_SOURCED) beside INDEPENDENTLY CONFIRMED
+        tr = o.get("trials") or []        # recounted under the screen gate (a lane's own k_matched predates it)
+        o["k_matched"] = sum(1 for x in tr if gt.is_matched(x))
+        o["k_matched_of_comparator_N"] = f"{o['k_matched']} of {len(tr)}"
+        o["open_gaps"] = [x["label"] for x in tr if not gt.is_matched(x) and not x.get("scope_difference")]
         bad = gt.scope_citation_violations(o)
         if bad:
             raise SystemExit(f"{slug}: lane artefact non-eligible without rule + span: {bad}")

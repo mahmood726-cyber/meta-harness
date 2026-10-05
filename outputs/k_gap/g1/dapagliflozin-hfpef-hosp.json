@@ -5,12 +5,31 @@
  "N_comparator_trials": 6,
  "k_matched": 0,
  "k_in_our_pool": 0,
- "N_eligible": 6,
- "named_differences": [],
+ "N_eligible": 5,
+ "named_differences": [
+  {
+   "trial": "DECLARE-TIMI 58",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+   "span": {
+    "field": "title",
+    "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+    "match": "Type 2 Diabetes"
+   },
+   "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+   },
+   "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+   "registered_eligibility": null,
+   "pmid": "30415602"
+  }
+ ],
  "open_gaps": [
   "SOLOIST-WHF",
   "SCORED",
-  "DECLARE-TIMI 58",
   "VERTIS-CV",
   "EMPEROR-Preserved",
   "DELIVER"
@@ -33,14 +52,15 @@
  },
  "blockers": {
   "IDENTITY_UNRESOLVED": 4,
-  "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 2
+  "EXTRACTION:EXTRACTION_NOT_PERFORMED": 1
  },
  "top_blocker": "IDENTITY_UNRESOLVED",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": null,
  "routes": {
-  "NO_ROW": 6
+  "NO_ROW": 4,
+  "UNVERIFIED": 2
  },
  "trials": [
   {
@@ -54,6 +74,7 @@
    "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
+   "comparator_row_provenance": null,
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": null,
@@ -61,8 +82,11 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
+   "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "IDENTITY_UNRESOLVED",
+   "coverage": null,
+   "comparator_sourced_refusal": "NO_COMPARATOR_ROW"
   },
   {
    "label": "SCORED",
@@ -75,6 +99,7 @@
    "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
+   "comparator_row_provenance": null,
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": null,
@@ -82,20 +107,44 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
+   "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "IDENTITY_UNRESOLVED",
+   "coverage": null,
+   "comparator_sourced_refusal": "NO_COMPARATOR_ROW"
   },
   {
    "label": "DECLARE-TIMI 58",
-   "family": "PMID 27009868",
+   "family": "PMID 30415602",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "SEEDED PMID 27009868: SCREENED_OUT X1: not a randomized controlled trial (record: 27009868).",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "IN SCREEN PMID 30415602: SCREENED_OUT X2: wrong population: title/conditions mention 'type 2 diabetes'.",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.88",
+    "lower": "0.66",
+    "upper": "1.17",
+    "events_t": null,
+    "n_t": 662,
+    "events_c": null,
+    "n_c": 654,
+    "measure": "HR"
+   },
    "comparator_row_findings": [],
+   "comparator_row_provenance": {
+    "meta_pmid": "36914068",
+    "location": {
+     "id": "fig1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "DECLARE-TIMI 58 Kato et al (2019) HF EF ≥45%"
+    },
+    "digest": "e28da3a286d6bba079abc356da18d78bfa33cc0ae4fd2adc7cecb519e521aa07",
+    "read": "MODEL_PROPOSAL_DUAL:mc-aa18a5928a8e8b9f229a37d0bf5de59d+mc-a033714416be83e39731e98c04256bd5",
+    "row_label": "DECLARE-TIMI 58 Kato et al (2019) HF EF ≥45%"
+   },
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": {
@@ -162,15 +211,35 @@
    "g1_countable": false,
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
+   "comparator_row_reasons": [],
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
-    "rule_id": "X1",
-    "reason": "not a randomized controlled trial (record: 27009868).",
-    "pmid": "27009868"
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "pmid": "30415602",
+    "already_in_screen": true
    },
-   "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD"
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "span": {
+     "field": "title",
+     "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+     "match": "Type 2 Diabetes"
+    },
+    "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+    },
+    "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+    "registered_eligibility": null,
+    "pmid": "30415602"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "VERTIS-CV",
@@ -181,17 +250,41 @@
    "our_refusal": "UNRESOLVED_IDENTITY",
    "gap_class": "UNRESOLVED_IDENTITY",
    "absent_code": null,
-   "comparator_row": null,
+   "comparator_row": {
+    "effect": "0.92",
+    "lower": "0.61",
+    "upper": "1.39",
+    "events_t": null,
+    "n_t": 680,
+    "events_c": null,
+    "n_c": 327,
+    "measure": "HR"
+   },
    "comparator_row_findings": [],
+   "comparator_row_provenance": {
+    "meta_pmid": "36914068",
+    "location": {
+     "id": "fig1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "VERTIS-CV Cosentino et al (2020) HF EF>45%"
+    },
+    "digest": "e28da3a286d6bba079abc356da18d78bfa33cc0ae4fd2adc7cecb519e521aa07",
+    "read": "MODEL_PROPOSAL_DUAL:mc-aa18a5928a8e8b9f229a37d0bf5de59d+mc-a033714416be83e39731e98c04256bd5",
+    "row_label": "VERTIS-CV Cosentino et al (2020) HF EF>45%"
+   },
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": null,
    "g1_countable": false,
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "IDENTITY_UNRESOLVED",
+   "coverage": null,
+   "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
   },
   {
    "label": "EMPEROR-Preserved",
@@ -204,6 +297,7 @@
    "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
+   "comparator_row_provenance": null,
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": null,
@@ -211,20 +305,44 @@
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": null,
+   "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED"
+   "blocker": "IDENTITY_UNRESOLVED",
+   "coverage": null,
+   "comparator_sourced_refusal": "NO_COMPARATOR_ROW"
   },
   {
    "label": "DELIVER",
-   "family": "PMID 31081589",
+   "family": "PMID 36027570",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "EXTRACTION_FROM_TABLE",
-   "our_refusal": "SEEDED PMID 31081589: SCREENED_OUT X1: not a randomized controlled trial (record: 31081589).",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "The result previously published on this page for its primary outcome was a cardiovascular-death-only registry measure served as the composite outcome. It is withdrawn.",
    "gap_class": "EXTRACTION_FROM_TABLE",
-   "absent_code": null,
-   "comparator_row": null,
+   "absent_code": "EXTRACTION_NOT_PERFORMED",
+   "comparator_row": {
+    "effect": "0.63",
+    "lower": "0.45",
+    "upper": "0.88",
+    "events_t": null,
+    "n_t": 368,
+    "events_c": null,
+    "n_c": 371,
+    "measure": "HR"
+   },
    "comparator_row_findings": [],
+   "comparator_row_provenance": {
+    "meta_pmid": "36914068",
+    "location": {
+     "id": "fig1",
+     "kind": "figure",
+     "panel": null,
+     "row_label": "SOLOIST-WHF/SCORED Bhatt et al (2021) HFpEF"
+    },
+    "digest": "e28da3a286d6bba079abc356da18d78bfa33cc0ae4fd2adc7cecb519e521aa07",
+    "read": "MODEL_PROPOSAL_DUAL:mc-aa18a5928a8e8b9f229a37d0bf5de59d+mc-a033714416be83e39731e98c04256bd5",
+    "row_label": "SOLOIST-WHF/SCORED Bhatt et al (2021) HFpEF"
+   },
    "disagreement_side": null,
    "our_value": null,
    "registry_binding": {
@@ -317,15 +435,12 @@
    "g1_countable": false,
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": null,
-   "seeded_funnel": {
-    "stage": "SCREENED_OUT",
-    "rule_id": "X1",
-    "reason": "not a randomized controlled trial (record: 31081589).",
-    "pmid": "31081589"
-   },
+   "comparator_row_state": "SECONDARY_UNVERIFIED",
+   "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD"
+   "blocker": "EXTRACTION:EXTRACTION_NOT_PERFORMED",
+   "coverage": null,
+   "comparator_sourced_refusal": "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
   }
  ],
  "per_trial_agreement": {},
@@ -349,7 +464,30 @@
   "scale": "HR"
  },
  "comparator_basis": "served review comparator.reported",
- "comparator_rows_source": [],
+ "comparator_rows_source": [
+  {
+   "branch": "g1/forest-reader",
+   "commit": "521ed499f5eab3ec6507c535d063c721a1542117",
+   "path": "registry/model_proposals/g1_forest_reader.json",
+   "acceptance": {
+    "state": "ACCEPTED",
+    "methods_reproducing": [
+     "FE"
+    ],
+    "pooled_anchor": "PRINTED_IN_META_TEXT: d with improved CVD/HHF outcomes in HFmrEF/HFpEF (pooled HR 0.80, 95% CI: 0.74, 0.86, p < 0.001, I 2 = 0",
+    "problems": []
+   },
+   "figure": "fig1",
+   "pooled_agreed": {
+    "effect": "0.80",
+    "lower": "0.74",
+    "upper": "0.86"
+   },
+   "sha256": "a182b823687b5b31df468b2865d6c2781600ff451f3c5c11573e189d6512a218",
+   "rows": 6,
+   "joined": 3
+  }
+ ],
  "ours_not_in_comparator": [],
  "ours_not_in_comparator_detail": [],
  "secondary_tally": {},
@@ -373,9 +511,28 @@
  },
  "served_pool_lags": [],
  "g1r_reproduction": {
-  "state": "NO_PER_TRIAL_ROWS",
-  "rows": 0
+  "state": "REPRODUCED",
+  "rows": 6,
+  "methods": [
+   "FE"
+  ],
+  "where": "figure fig1 (g1/forest-reader 521ed499f, dual-model)",
+  "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: d with improved CVD/HHF outcomes in HFmrEF/HFpEF (pooled HR 0.80, 95% CI: 0.74, 0.86, p < 0.001, I 2 = 0)",
+  "pooled": {
+   "effect": "0.80",
+   "lower": "0.74",
+   "upper": "0.86"
+  }
  },
+ "comparator_orientation": {
+  "state": "UNKNOWN",
+  "why": "no shared trial agrees or shows the direction"
+ },
+ "k_independent": 0,
+ "k_comparator_sourced": 0,
+ "k_covered": 0,
+ "coverage_complete": false,
+ "discrepancy_findings": [],
  "g1_status": {
   "state": "NOT_YET",
   "criteria": {
@@ -389,10 +546,14 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 6,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "DECLARE-TIMI 58 [X2]"
+   ]
   }
  }
 }

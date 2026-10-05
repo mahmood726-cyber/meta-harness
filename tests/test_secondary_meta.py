@@ -482,3 +482,30 @@ def test_a_meta_whose_pool_cannot_be_checked_is_only_ever_a_second_source():
     c.findings = list(unchecked)
     assert sm.secondary_single([c], {"999"}, lambda r: None, lambda r: True) == []
     assert c.state == sm.UNVERIFIED and "SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE" in c.verification["queue_reason"]
+
+
+
+def test_a_forest_reads_measure_wording_is_normalised_typed():
+    # omega3 5 Oct: GISSI-P's row was refused 'MEASURE_FIXED EFFECT RELATIVE RISK (95% CI)_IS_NOT_ESTIMAND_RR' -- the
+    # reader wrote the measure as 'Fixed effect relative risk (95% CI)'; and 'Std. Mean Difference' became MD
+    import secondary_meta_build as smb
+    assert smb.normalize_measure("Fixed effect relative risk (95% CI)") == "RR"
+    assert smb.normalize_measure("Risk Ratio, M-H, Random, 95% CI") == "RR"
+    assert smb.normalize_measure("RELATIVE RISK (95% CI)") == "RR"
+    assert smb.normalize_measure("Odds Ratio (M-H, Fixed)") == "OR"
+    assert smb.normalize_measure("Hazard ratio") == "HR"
+    assert smb.normalize_measure("Rate ratio") == "IRR"                 # never a ratio of risks
+    assert smb.normalize_measure("Std. Mean Difference, IV, Random") == "SMD"
+    assert smb.normalize_measure("Standardised mean difference") == "SMD"
+    assert smb.normalize_measure("Mean Difference IV, Fixed") == "MD"
+    assert smb.normalize_measure("WMD") == "MD"
+    assert smb.normalize_measure("ES (95% CI)") == "ES (95% CI)"         # unknown wording stays as printed
+
+
+def test_pool_uncheckable_reads_a_finding_typed_as_a_dict():
+    # secondary_meta_build.as_finding types every lane finding as {'finding': CODE, 'detail': ...} at entry: the
+    # second-source-only mark must survive that typing, or a no-pool meta could become SECONDARY_SINGLE
+    r = _row(meta="333", state=sm.UNVERIFIED, family_id="LEADER")
+    r.findings = [{"finding": sm.POOL_UNCHECKABLE, "detail": "no printed pooled row"}]
+    assert sm.pool_uncheckable(r)
+    assert sm.secondary_single([r], {"999"}, lambda x: None, lambda x: True) == [] and r.state == sm.UNVERIFIED

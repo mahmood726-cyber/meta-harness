@@ -47,6 +47,15 @@ XL = "{http://www.w3.org/1999/xlink}href"
 SUBGROUP = re.compile(r"subgroup|sensitivity|in patients with|without such|stratified|by (?:baseline|dose|duration)"
                       r"|with different|with respect to|according to", re.I)
 FOREST = re.compile(r"forest", re.I)
+# a forest plot's caption need not say 'forest': 'Meta-analysis for the association between mortality and
+# corticosteroids' (PLoS One 23112872), 'Forrest plots' (sic). Never a flow / funnel / bias / network / TSA figure.
+_FOREST_LIKE = re.compile(r"\bforr?est\b|\bmeta-?analys[ie]s (?:of|for|on)\b|\bpooled (?:analysis|estimate|effect)", re.I)
+_NOT_FOREST_CAP = re.compile(r"\bflow\b|prisma|funnel|risk of bias|\bnetwork\b|trial sequential|search strateg|"
+                             r"study selection|dose[- ]response", re.I)
+
+
+def is_forest_caption(cap):
+    return bool(_FOREST_LIKE.search(cap or "")) and not _NOT_FOREST_CAP.search(cap or "")
 MULTIPANEL = re.compile(r"\(\s*[A-D]\s*\)|\b[A-D]\)\s", re.S)
 SECONDARY = re.compile(r"secondary (?:outcome|end ?point)", re.I)
 
@@ -132,7 +141,9 @@ def select_figure(slug, pmid, jats_date="2026-09-28", caption_re=None, jats_file
     for f in ET.parse(jp).getroot().iter("fig"):
         cap = " ".join("".join(x.itertext()) for x in f.iter("caption"))
         g = f.find(".//graphic")
-        if g is None or not (caption_re or FOREST).search(cap) or SUBGROUP.search(cap):
+        # a tier's own caption regex WIDENS the predicate, never replaces it; a flow / funnel / bias figure is never one
+        forest_like = is_forest_caption(cap) or bool(caption_re and caption_re.search(cap))
+        if g is None or not forest_like or _NOT_FOREST_CAP.search(cap) or SUBGROUP.search(cap):
             continue
         # The gate anchors the plot's pool to the comparator's TEXT, but a wrong-outcome figure's pool is printed there
         # too, so a figure whose outcome is not unambiguous is refused here, before any model call: a multi-panel

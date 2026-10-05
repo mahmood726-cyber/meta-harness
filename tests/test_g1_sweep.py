@@ -76,7 +76,14 @@ def test_every_committed_sweep_file_counts_only_two_source_verdicts():
         if not f.endswith(".json") or f == "sweep_summary.json":
             continue
         for t in json.load(open(os.path.join(d, f), encoding="utf-8"))["trials"]:
-            if str(t["verdict"]).startswith("SWEEP_"):
+            if t["verdict"] == "SWEEP_AACT_PRIMARY":
+                # the REQUIREMENT for this route: a posted registry binding (NCT + versioned snapshot) whose posted
+                # population passed the randomised-N guard, and a value -- not meta rows (5 Oct, decision (e))
+                b = t.get("basis") or {}
+                if t["value"] is None or not b.get("nct") or not (b.get("snapshot") or {}).get("id") \
+                        or not str(b.get("guard") or "").startswith("POSTED_N_EQUALS_RANDOMISED_N"):
+                    bad.append(f"{f}::{t['label']}")
+            elif str(t["verdict"]).startswith("SWEEP_"):
                 ok = ("PRIMARY_VERIFIED", "TWO_SOURCE_VERIFIED") + (
                     ("SECONDARY_UNVERIFIED",) if t["verdict"] == "SWEEP_SECONDARY_SINGLE" else ())
                 rows = [r for r in t["rows"] if r["state"] in ok]
@@ -222,3 +229,137 @@ def test_a_sweep_row_never_replaces_a_matched_trial_and_is_flagged_when_the_prim
     assert gt.sweep_merge("t", [lane_matched, contradicted]) == []
     assert lane_matched["route"] == "PRIMARY"
     assert contradicted["secondary_single_flag"]["state"] == "CONTRADICTED_BY_PRIMARY"
+
+
+def _cs_topic(g1r="REPRODUCED", state="SECONDARY_UNVERIFIED"):
+    cr = {"measure": "RR", "effect": "0.80", "lower": "0.60", "upper": "1.05", "events_t": None, "n_t": None,
+          "events_c": None, "n_c": None}
+    return {"g1r_reproduction": {"state": g1r},
+            "trials": [{"label": "A", "in_our_pool": True, "route": "PRIMARY", "comparator_row": cr,
+                        "our_value": dict(cr), "agreement_with_comparator_row": "AGREE"},      # orientation: A agrees
+                       {"label": "B", "in_our_pool": False, "route": "UNVERIFIED", "comparator_row": cr,
+                        "comparator_row_state": state, "scope_difference": None, "g1_countable": False,
+                        "comparator_row_provenance": {"meta_pmid": "C", "location": {"kind": "figure", "id": "F2"},
+                                                      "digest": "d" * 64, "read": "MODEL_PROPOSAL_DUAL:mc-1+mc-2"}}],
+            "N_eligible": 2, "k_matched": 1, "open_gaps": ["B"], "named_differences": [],
+            "same_trials": {"verdict": {"verdict": "AGREE"}}}
+
+
+def test_a_comparator_sourced_row_never_counts_toward_independently_confirmed():
+    # Mahmood decision 3 Oct: comparator-sourced rows FILL coverage; INDEPENDENTLY CONFIRMED and G1_MATCHED ignore them
+    o = gt.apply_coverage(_cs_topic())
+    b = o["trials"][1]
+    assert b["coverage"] == "COMPARATOR_SOURCED" and not gt.is_matched(b)
+    assert (o["k_independent"], o["k_comparator_sourced"], o["k_covered"]) == (1, 1, 2) and o["coverage_complete"]
+    assert gt.g1_status(o)["state"] == "NOT_YET"            # strict G1: B is not independently confirmed
+
+
+def test_a_non_self_reproducing_comparators_rows_are_never_admitted():
+    for g1r in ("NOT_REPRODUCED", "NO_PER_TRIAL_ROWS", None):
+        o = gt.apply_coverage(_cs_topic(g1r=g1r))
+        assert o["trials"][1]["coverage"] is None and o["k_comparator_sourced"] == 0
+        assert o["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_DOES_NOT_SELF_REPRODUCE")
+    for st in ("REFUSED", "MISMATCH", "BLOCKED_CROSSCHECK"):           # an untyped / contradicted row neither
+        assert gt.apply_coverage(_cs_topic(state=st))["trials"][1]["coverage"] is None
+
+
+def test_comparator_rows_need_established_orientation_and_provenance():
+    o = _cs_topic()
+    o["trials"][0]["agreement_with_comparator_row"] = "NOT_COMPARABLE"          # no agreement, and a NEAR-NULL value
+    o["trials"][0]["our_value"] = {"measure": "RR", "effect": "1.02"}         # shows no direction: UNKNOWN
+    assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"] == "COMPARATOR_ARM_ORIENTATION_UNKNOWN"
+    o = _cs_topic()
+    o["trials"][1].pop("comparator_row_provenance")
+    assert gt.apply_coverage(o)["trials"][1]["comparator_sourced_refusal"].startswith("COMPARATOR_ROW_PROVENANCE_MISSING")
+    # a MIRRORED shared row (reciprocal ratio) disputes orientation; a merely different number does not
+    assert gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "1.25"})
+    assert not gt._mirrors({"measure": "RR", "effect": "0.80"}, {"measure": "RR", "effect": "0.70"})
+
+
+def test_orientation_by_direction_when_measures_differ():
+    # omega-3: our HR 0.74 vs the comparator's RR 0.78 for REDUCE-IT -- same side of the null, clearly off it
+    base = _cs_topic()
+    a = base["trials"][0]
+    a.update(agreement_with_comparator_row="NOT_COMPARABLE:HR_VS_RR", our_value={"measure": "HR", "effect": "0.74"},
+             comparator_row=dict(a["comparator_row"], measure="RR", effect="0.78"))
+    assert gt.orientation(base)[0] == "ESTABLISHED"
+    a["comparator_row"]["effect"] = "1.02"                 # near the null: says nothing
+    assert gt.orientation(base)[0] == "UNKNOWN"
+
+
+def test_comparator_rows_join_by_the_comparators_own_labels():
+    # metformin: 'Legro 2007' (no identity of ours) has its row in the comparator's accepted figure: it must attach
+    import json as _json
+    o = _json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "metformin-pcos-ovulation.json"), encoding="utf-8"))
+    x = next(t for t in o["trials"] if t["label"] == "Legro 2007")
+    assert x["comparator_row"] and x["comparator_row_provenance"]["location"]["id"]
+    labs = [t["comparator_row_provenance"]["row_label"] for t in o["trials"] if t.get("comparator_row_provenance")]
+    assert len(labs) == len(set(labs))                      # a comparator row never serves two trials
+
+
+def test_forest_plan_reads_more_metas_when_more_candidates_per_trial_are_asked():
+    ts = [{"label": "A"}, {"label": "B"}]
+    by = {"A": ["m1", "m2", "m3", "m4"], "B": ["m2", "m5"]}
+    two = sw.forest_plan(ts, by, set())
+    four = sw.forest_plan(ts, by, set(), need=4)
+    assert len(two) == 2 + 1 and set(two) < set(four) and len(four) == 5
+
+
+def test_a_forest_plot_caption_need_not_say_forest():
+    # corticosteroids-cap 4 Oct: PLoS One 23112872 'Figure 2 Meta-analysis for the association between mortality and
+    # corticosteroids' (the meta's only mortality forest plot) and 'Forrest plots' (sic) were never candidates
+    import k_gap_forest_plot as fpl
+    yes = ["Figure 2 Meta-analysis for the association between mortality and corticosteroids.",
+           "Figure 2 Forrest plots. OR: odds ratio.", "Fig. 2 Forest plot of associations", "Pooled analysis of mortality"]
+    no = ["Figure 5 Funnel plot of the included trials for mortality.", "Figure 1 Flow of study identification, inclusion",
+          "Figure 3 Risk of bias summary", "Fig 1 PRISMA diagram", "Network plot of comparisons",
+          "Figure 4 Trial sequential analysis of mortality", "Dose-response curve"]
+    assert all(fpl.is_forest_caption(c) for c in yes)
+    assert not any(fpl.is_forest_caption(c) for c in no)
+
+
+def test_a_meta_published_before_the_trials_result_is_never_a_candidate(monkeypatch):
+    # dapagliflozin-hfpef 5 Oct: DELIVER (result 2022) got ten highly-cited 2020-2021 metas (they cite its design
+    # paper / name its NCT) -- none can print its result; the 2022+ metas that do never made the top ten
+    hits = [{"pmid": "34308311", "cited": 900, "year": "2021", "doi": ""},
+            {"pmid": "36041474", "cited": 300, "year": "2022", "doi": ""},
+            {"pmid": "37000000", "cited": 5, "year": "2023", "doi": ""}]
+    monkeypatch.setattr(sw, "search", lambda q, run: {"state": "SEARCHED", "hits": hits})
+    t = {"report_pmid": "36027570", "cited_pmids": [], "ncts": [], "acronyms": [], "pmids": ["36027570"], "report_year": 2022}
+    got, _ = sw.discover(t, set(), run=False)
+    assert got == ["36041474", "37000000"]
+    t.pop("report_year")                                       # no known year: unchanged behaviour
+    assert sw.discover(t, set(), run=False)[0][0] == "34308311"
+
+
+def test_posted_results_count_as_the_single_primary_only_for_the_randomised_population():
+    # Mahmood decision (e): ONE bound primary source (posted results) verifies a row -- the sweep never applied it, for
+    # a recorded reason: SMART's posted counts cover 5,381 patients, its report 15,802. Guard: the posted arms' total N
+    # must equal the randomised N the trial's own record prints. DELIVER: 3131 + 3132 = 6263 = 'randomly assigned 6263'.
+    bind = {"nct": "NCT03619213", "title": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to "
+                                           "Heart Failure or Urgent Visit Due to Heart Failure",
+            "arms": [{"title": "Placebo", "count": 610, "n": 3132}, {"title": "Dapa 10 mg", "count": 512, "n": 3131}],
+            "analysis": {"param_type": "Hazard Ratio (HR)", "param_value": "0.82", "ci_lower": "0.73", "ci_upper": "0.92"},
+            "snapshot": {"id": "AACT 2026-08-30"}}
+    text = "METHODS: In this randomized, controlled trial, we randomly assigned 6263 patients with heart failure ..."
+    v, why = sw.aact_single_primary(bind, text, "HR")
+    assert v and v["measure"] == "HR" and v["effect"] == "0.82" and why.startswith("POSTED_N_EQUALS_RANDOMISED_N")
+    smart = dict(bind, arms=[{"title": "Balanced", "count": 300, "n": 2700}, {"title": "Saline", "count": 330, "n": 2681}])
+    v, why = sw.aact_single_primary(smart, "we enrolled 15,802 adults in a cluster-randomized trial", "HR")
+    assert v is None and why == "POSTED_N_IS_NOT_THE_RANDOMISED_N"
+    # an HR topic with no posted HR analysis: never converted from counts
+    v, why = sw.aact_single_primary(dict(bind, analysis={"param_type": "Odds Ratio (OR)"}), text, "HR")
+    assert v is None and why == "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"
+
+
+def test_a_lane_owned_trial_reaches_the_sweep_with_its_registration(monkeypatch):
+    # tocilizumab 5 Oct: lane-owned topics have no k-gap rows, so their 14 open trials (each family an NCT) reached the
+    # sweep with no NCT, no PMID and no registry binding -- the AACT route was never tried for REMAP-CAP, COV-AID, ...
+    x = {"label": "COV-AID", "family": "NCT04330638", "in_our_pool": None, "route": "NO_ROW"}
+    monkeypatch.setattr(sw, "_aact_result_pmids", lambda nct: ["34284985"] if nct == "NCT04330638" else [])
+    ident = sw.lane_identity(x, {})
+    assert ident["ncts"] == ["NCT04330638"] and ident["pmids"] == ["34284985"]
+    # a k-gap row's own identity always wins
+    assert sw.lane_identity(x, {"ncts": ["NCT1"], "pmids": ["9"]}) == {"ncts": ["NCT1"], "pmids": ["9"]}
+    # a PMID family gives its PMID
+    assert sw.lane_identity({"label": "y", "family": "PMID 123"}, {})["pmids"] == ["123"]

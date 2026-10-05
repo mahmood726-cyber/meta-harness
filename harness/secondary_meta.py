@@ -396,26 +396,73 @@ def pool_mh(rows: list, measure: str, random: bool = False, z=1.959963984540054)
     return mu, mu - z * se, mu + z * se
 
 
-def positive_control(rows: list, printed: dict, measure: str) -> dict:
+_MH = re.compile(r"\bM\s*[-\u2013\u2010]\s*H\b|Mantel", re.I)
+
+
+def _perturbed(row, rng):
+    """One draw of a row's printed effect / CI within each printed number's rounding half-unit (log scale for ratios),
+    or None when the draw is not a valid interval."""
+    vals = []
+    for k in ("effect", "lower", "upper"):
+        v = _num(getattr(row, k))
+        if v is None:
+            return None
+        vals.append(v + rng.uniform(-1, 1) * _half(getattr(row, k)))
+    e, lo, hi = vals
+    ratio = row.measure.upper() in RATIO
+    if (ratio and min(vals) <= 0) or not (lo < hi and lo <= e <= hi):
+        return None
+    f = math.log if ratio else (lambda x: x)
+    return f(e), ((f(hi) - f(lo)) / (2 * 1.959963984540054)) ** 2
+
+
+def positive_control(rows: list, printed: dict, measure: str, stated_model: Optional[str] = None) -> dict:
     """Does the meta's own printed pooled result follow from the rows extracted from it? FE/DL/PM, each +/- HK; the
-    tolerance is the printed rounding plus one printed unit for row-rounding propagation. A meta that fails is unused."""
+    tolerance is the printed rounding plus one printed unit for row-rounding propagation. A meta that fails is unused.
+    When the single reconstruction from the ROUNDED rows misses, the rows' ROUNDING ENVELOPE is checked: seeded draws of
+    every printed row number within its half-unit; one draw must reproduce all three printed values jointly, same
+    tolerance (meta 35488485: sparse rows printed '0.01 to 4.00' -- our reconstruction error, not the meta's). A
+    misread row still fails. A meta stating Mantel-Haenszel whose rows carry no counts cannot be reconstructed from a
+    figure: typed refusal STATED_MODEL_MH_NEEDS_COUNTS."""
+    import random
     ratio = measure.upper() in RATIO
     g = math.exp if ratio else (lambda x: x)
     pairs = [row_yi_vi(r) for r in rows]
     if len(rows) < 2 or any(p is None for p in pairs):
         return {"reproduced": False, "why": "FEWER_THAN_2_USABLE_ROWS", "methods": []}
-    yi, vi = [p[0] for p in pairs], [p[1] for p in pairs]
     tol = lambda s: _half(s) * 3 + 1e-9                      # noqa: E731 - printed half-unit + one unit of propagation
-    ok = []
-    for m in ("FE", "DL", "PM"):
-        for hk in (False, True):
-            try:
-                mu, lo, hi = (g(x) for x in pool(yi, vi, m, hk))
-            except Exception:  # noqa: BLE001 - an estimator that fails to converge reproduces nothing
+    keys = ("effect", "lower", "upper")
+
+    def hits(yi, vi):
+        ok = []
+        for m in ("FE", "DL", "PM"):
+            for hk in (False, True):
+                try:
+                    est = [g(x) for x in pool(yi, vi, m, hk)]
+                except Exception:  # noqa: BLE001 - an estimator that fails to converge reproduces nothing
+                    continue
+                if all(abs(v - _num(printed[k])) <= tol(printed[k]) for v, k in zip(est, keys)):
+                    ok.append(m + ("+HK" if hk else ""))
+        return ok
+
+    ok = hits([p[0] for p in pairs], [p[1] for p in pairs])
+    if ok:
+        return {"reproduced": True, "methods": ok, "why": None}
+    # the rounding envelope (only rows whose numbers ARE their printed effect / CI; arm-derived MD rows are exact)
+    if not any(r.measure.upper() == "MD" and _has_arms(r) for r in rows):
+        rng = random.Random(20261004)
+        for _ in range(300):
+            d = [_perturbed(r, rng) for r in rows]
+            if any(x is None for x in d):
                 continue
-            if all(abs(v - _num(printed[k])) <= tol(printed[k]) for v, k in ((mu, "effect"), (lo, "lower"), (hi, "upper"))):
-                ok.append(m + ("+HK" if hk else ""))
-    return {"reproduced": bool(ok), "methods": ok, "why": None if ok else "PRINTED_POOL_NOT_REPRODUCED"}
+            ok = hits([x[0] for x in d], [x[1] for x in d])
+            if ok:
+                return {"reproduced": True, "methods": [m + "@ROUNDING_ENVELOPE" for m in ok], "why": None,
+                        "basis": "ROUNDING_ENVELOPE (seeded, 300 draws within each printed half-unit)"}
+    counts = all(None not in (r.events_t, r.n_t, r.events_c, r.n_c) for r in rows)
+    if stated_model and _MH.search(stated_model) and not counts:
+        return {"reproduced": False, "methods": [], "why": "STATED_MODEL_MH_NEEDS_COUNTS", "stated_model": stated_model[:120]}
+    return {"reproduced": False, "methods": [], "why": "PRINTED_POOL_NOT_REPRODUCED"}
 
 
 # ------------------------------------------------------------------ admission gate (the primary gate's questions)
@@ -917,7 +964,9 @@ POOL_UNCHECKABLE = "META_POOL_UNCHECKABLE"
 
 
 def pool_uncheckable(row: SecondaryRow) -> bool:
-    return any(str(f).startswith(POOL_UNCHECKABLE) for f in (row.findings or []))
+    """A string finding ('META_POOL_UNCHECKABLE: ...') or a typed one ({'finding': 'META_POOL_UNCHECKABLE', ...})."""
+    return any(str(f.get("finding") if isinstance(f, dict) else f).startswith(POOL_UNCHECKABLE)
+               for f in (row.findings or []))
 
 
 def two_source(rows: list, refs_of, known_metas: set) -> list:
