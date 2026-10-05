@@ -135,6 +135,8 @@ def select(slug, ref, run, per_topic=3, wide=False):
 
 
 def main(argv):
+    if "--topic" in argv:
+        return topic_main(argv)
     run = "--run" in argv
     ref = argv[argv.index("--ref") + 1]
     per = int(argv[argv.index("--per-topic") + 1]) if "--per-topic" in argv else 3
@@ -156,6 +158,69 @@ def main(argv):
         for x in r["ranked"][:6]:
             print(f"   {x['pmid']} n={x['n_targets']} read={x['already_read']} {x['title'][:90]}")
     gfr._save(SELECTION, sel)
+
+
+
+
+# ------------------------------------------------------------------ TOPIC pass (5 Oct): metas found by topic WORDS,
+# scored by their OWN reference lists. CITES: relies on Europe PMC having linked a meta's reference to the trial's
+# record; a reference it never linked is invisible there. Here the meta is found by a recorded topic query, its JATS
+# is held, and its reference list (secondary_meta_build.refs_of) must contain a target's PMID.
+TOPIC_QUERIES = {
+    "metformin-pcos-ovulation": '(metformin) AND (clomiphene OR clomifene OR "ovulation induction") AND '
+                                '(TITLE:"meta-analysis" OR TITLE:"systematic review" OR PUB_TYPE:"meta-analysis")',
+    "probiotics-aad-prevention": '(probiotic OR probiotics OR lactobacillus OR saccharomyces) AND '
+                                 '("antibiotic-associated diarrhea" OR "antibiotic-associated diarrhoea" OR '
+                                 '"antibiotic associated diarrhea") AND (TITLE:"meta-analysis" OR '
+                                 'TITLE:"systematic review" OR PUB_TYPE:"meta-analysis")',
+}
+
+
+def topic_select(slug, ref, run, per_topic=15):
+    import secondary_meta_build as smb
+    from kgap import k_gap
+    comp = gfr.comparator_of(slug)
+    rp = os.path.join(SEARCH_DIR, f"{slug}.json")
+    rec = gfr._j(rp) if os.path.exists(rp) else {}
+    q = TOPIC_QUERIES[slug] + " AND OPEN_ACCESS:y AND IN_EPMC:y"
+    hits = search(q, run, rec)
+    gfr._save(rp, rec)
+    tg = targets(slug, ref)
+    want = {i: l for l, k, i in tg if k == "PMID"}
+    seen, rows = already_read(), []
+    for pm, title in hits:
+        if pm == comp:
+            continue
+        if run and not gfr.jats_path(pm):
+            try:
+                k_gap.fetch_comparator_jats(pm, gfr.FETCH_DATE)
+            except Exception:  # noqa: BLE001 - no open JATS: recorded as such
+                pass
+        refs = smb.refs_of(pm) if gfr.jats_path(pm) else None
+        cites = sorted(want[i] for i in want if refs and i in {str(x) for x in refs})
+        rows.append({"pmid": pm, "title": title, "n_targets": len(cites), "targets": cites,
+                     "jats": bool(gfr.jats_path(pm)), "already_read": pm in seen})
+    rows.sort(key=lambda x: (-x["n_targets"], x["already_read"], x["pmid"]))
+    return {"pinned_ref": ref, "comparator": comp, "query": q, "n_hits": len(hits),
+            "selected": [x["pmid"] for x in rows if x["n_targets"] and not x["already_read"]][:per_topic],
+            "ranked": rows[:40]}
+
+
+def topic_main(argv):
+    run = "--run" in argv
+    ref = argv[argv.index("--ref") + 1]
+    path = SELECTION.replace(".json", "_topic.json")
+    sel = gfr._j(path) if os.path.exists(path) else {}
+    for slug in [a for a in argv if a in TOPIC_QUERIES]:
+        if slug in sel and "--reselect" not in argv:
+            print(slug, "FROZEN", sel[slug]["selected"])
+            continue
+        sel[slug] = topic_select(slug, ref, run)
+        r = sel[slug]
+        print(f"{slug}: hits {r['n_hits']}; selected {r['selected']}")
+        for x in r["ranked"][:12]:
+            print(f"   {x['pmid']} n={x['n_targets']} read={x['already_read']} jats={x['jats']} {x['title'][:80]}")
+    gfr._save(path, sel)
 
 
 if __name__ == "__main__":
