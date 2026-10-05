@@ -38,3 +38,16 @@ def test_a_value_without_both_arms_counts_is_not_primary_verified_for_a_counts_t
     assert pv.counts_state({"effect": "0.3", "measure": "WEIGHTED DIFFERENCE"}) == "VERIFIED_NO_COUNTS"
     assert pv.counts_state({"events_t": 26, "n_t": 249, "events_c": 11, "n_c": None}) == "VERIFIED_NO_COUNTS"
     assert pv.counts_state({"events_t": 26, "n_t": 249, "events_c": 11, "n_c": 128}) == "PRIMARY_VERIFIED"
+
+
+def test_acronym_route_only_when_pmids_and_nct_give_nothing_and_never_a_review(monkeypatch):
+    hits = {"NCT": [], "ACR": [("111", "COVINTOC: tocilizumab in severe COVID-19, an open-label RCT"),
+                                  ("222", "Tocilizumab in COVID-19: a systematic review and meta-analysis incl. COVINTOC")]}
+    monkeypatch.setattr(pv, "nct_hits", lambda nct, run: hits["NCT"])
+    monkeypatch.setattr(pv, "acronym_hits", lambda acr, run: hits["ACR"])
+    t = {"label": "COVINTOC", "ncts": [], "pmids": [], "acronyms": ["COVINTOC"]}
+    pm, basis = pv.choose_report("tocilizumab-covid19-mortality", t, True, {}, {})
+    assert pm == "111" and basis == "EPMC_ACRONYM_TITLE_NAMES_INTERVENTION"
+    t2 = {"label": "X", "ncts": [], "pmids": [], "acronyms": ["COVINTOC"]}
+    hits["ACR"] = [("333", "COVINTOC results"), ("222", "Tocilizumab: a systematic review")]
+    assert pv.choose_report("tocilizumab-covid19-mortality", t2, True, {}, {})[0] is None
