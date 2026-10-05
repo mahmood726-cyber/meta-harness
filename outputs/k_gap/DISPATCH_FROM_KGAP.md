@@ -289,3 +289,44 @@ REVIEW_REFERENCE_LIST was already live (fe689f080, see the section above); these
 known classes: served CERTIFICATE.json release_sha256, bundle and code-closure pins, and fixstate under core.bare.
 `tests/test_architecture_identity.py` was NOT run: it copies the whole registry per test and stalled for over 20
 minutes on its second test on this box. It needs the worker or a longer window.
+
+## ACTION REQUIRED, captain and forest lane: acq/k-gap history was rewritten (5 Oct, approved by Mahmood)
+
+**What happened**
+- Old tip `d92d07bf4` → new tip `a424d32f7`; force-pushed with `--force-with-lease`.
+- The **tip tree is byte-identical** (`247cfc0ad` before and after; `git diff --stat` is empty).
+- Only the 121 commits in `origin/main..acq/k-gap` were rewritten. main and everything reachable from main are
+  untouched (same merge-base).
+
+**What was removed or changed** (`git filter-branch`, index + message + identity filters; no prune or gc was run)
+- **15 files dropped from every commit:**
+  - the 9 non-open full-text records (`registry/record_licence_exceptions.json` → `resolved`);
+  - 6 records whose codex `client_evidence.files_read` named the owner's private files: the 4 quarantined in
+    4e9146610, `registry/model_calls/mc-0125ce41…`, and `evidence/model_calls/secondary/mc-b90b18e8…`.
+- **Private paths redacted** to `<private path removed>`:
+  - in the historical versions of `registry/model_calls/lane_log/unattributed.jsonl` and of this dispatch file
+    (both tip versions were already clean);
+  - in 5 commit messages.
+- **Authorship:** the 53 "Heldout Test" commits are now the normal identity.
+
+**Verified** (scripts kept locally)
+- No dropped path in any commit.
+- No private path in any of the 3,006 blobs or 121 messages of the new range.
+- All 566 model-call record blobs pass the licence guard (`tests/test_record_licence.py`'s per-record check at every
+  commit).
+- Commits map 1:1, dates preserved.
+- The same check run on the old range FAILS (36 / 13 / 9 hits), so it can detect what it claims to.
+
+**You must re-sync**
+- Worktrees on old SHAs: `git fetch origin && git rebase --onto origin/acq/k-gap d92d07bf4 <your-branch>`, or reset a
+  pure tracking clone to `origin/acq/k-gap`. Don't merge the old tip back; that reintroduces the files.
+- **19 remote branches still reach the old commits, and with them the removed files:** g1/forest-reader,
+  g1/finish-line, g1/binding-4topics, consolidate/g1-on-main-2026-10-04, consolidate/g1-2026-10-04,
+  captain/cascade-batch, captain/screen-consensus-2026-10-03, g1/colchicine-postop-af, g1/confirm-unverified,
+  g1/doac-vte-recurrence, g1/identity, g1/noac, g1/repro-ai-audit, g1/sglt2-primary-prevention-hf, g1/tocilizumab,
+  g1/tocilizumab-finish, integrate/g1-identity-2026-10-03, integrate/k-gap-2026-10-02, integrate/k-gap-2026-10-03.
+- Until each is rebased onto the new acq/k-gap or deleted, GitHub keeps serving those files through them. This lane
+  touched none of them.
+- **consolidate/g1-on-main-2026-10-04 in particular must not be merged to main as-is.**
+- **main** has one commit message (4e72f7a14) quoting a private-looking path. main was not touched, per instruction.
+- GitHub may also keep the unreachable old commits cached until a support purge request; Mahmood can file one.
