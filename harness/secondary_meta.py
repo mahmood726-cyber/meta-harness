@@ -964,7 +964,9 @@ POOL_UNCHECKABLE = "META_POOL_UNCHECKABLE"
 
 
 def pool_uncheckable(row: SecondaryRow) -> bool:
-    return any(str(f).startswith(POOL_UNCHECKABLE) for f in (row.findings or []))
+    """A string finding ('META_POOL_UNCHECKABLE: ...') or a typed one ({'finding': 'META_POOL_UNCHECKABLE', ...})."""
+    return any(str(f.get("finding") if isinstance(f, dict) else f).startswith(POOL_UNCHECKABLE)
+               for f in (row.findings or []))
 
 
 def two_source(rows: list, refs_of, known_metas: set) -> list:

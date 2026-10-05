@@ -500,3 +500,10 @@ def test_a_meta_whose_pool_cannot_be_checked_is_only_ever_a_second_source():
     c.findings = list(unchecked)
     assert sm.secondary_single([c], {"999"}, lambda r: None, lambda r: True) == []
     assert c.state == sm.UNVERIFIED and "SECONDARY_SINGLE_REFUSED:POOL_UNCHECKABLE" in c.verification["queue_reason"]
+def test_pool_uncheckable_reads_a_finding_typed_as_a_dict():
+    # secondary_meta_build.as_finding types every lane finding as {'finding': CODE, 'detail': ...} at entry: the
+    # second-source-only mark must survive that typing, or a no-pool meta could become SECONDARY_SINGLE
+    r = _row(meta="333", state=sm.UNVERIFIED, family_id="LEADER")
+    r.findings = [{"finding": sm.POOL_UNCHECKABLE, "detail": "no printed pooled row"}]
+    assert sm.pool_uncheckable(r)
+    assert sm.secondary_single([r], {"999"}, lambda x: None, lambda x: True) == [] and r.state == sm.UNVERIFIED
