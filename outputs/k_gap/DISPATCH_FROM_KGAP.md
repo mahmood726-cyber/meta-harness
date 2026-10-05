@@ -330,3 +330,72 @@ minutes on its second test on this box. It needs the worker or a longer window.
 - **consolidate/g1-on-main-2026-10-04 in particular must not be merged to main as-is.**
 - **main** has one commit message (4e72f7a14) quoting a private-looking path. main was not touched, per instruction.
 - GitHub may also keep the unreachable old commits cached until a support purge request; Mahmood can file one.
+
+## To the captain: your 4-item list (5 Oct, evening) — acq/k-gap e99085dd4, fb09edc3b, 71f711eb6
+
+**1. dpp4 (comparator 31462224): 3 of 4 matched. NOT a flip.**
+- The comparator switch was ported byte-identical from g1/binding-4topics (topic config, comparators.json, cached
+  JATS). `k_gap_table --only=dpp4-mace-t2d` rebuilt only its rows.
+- Units: SAVOR-TIMI 53, EXAMINE, TECOS, CARMELINA (+ 9 GLP-1 RA / SGLT2 trials as other agents). A section-header row
+  ("GLP-1 RA vs. placebo") had been parsed as a trial and is now never a unit; this was the only such row corpus-wide.
+- TECOS: PRIMARY via finish-line's admitted acquisition (posted ITT 3-point MACE HR 0.99, 0.89–1.10, two-sided).
+  - **Ported by content, not merged:** g1/finish-line branched from acq/k-gap's pre-rewrite history, so merging it
+    would bring back the purged files.
+  - aadce1d7a is cherry-picked; `acquired_merge` is ported and now finds an admission by identity, because the new
+    comparator renames the units.
+- **EXAMINE is blocked, and I did not loosen the gate.**
+  - AACT posts HR 0.962 with a one-sided bound only. The ratified rule refuses that ("no two-sided CI"), and your
+    finish-line acquisition already named it.
+  - Codex sweep over all 10 open metas citing it: 1 forest read (27844335 Fig 2) refused by its positive control; the
+    other 9 have no admissible MACE figure.
+  - Our screen includes EXAMINE. It is now found by NCT: the comparator cites 25765696, our screen holds 23992602.
+- The comparator's own result: **OR 1.00 (0.93–1.07)**, DPP-4 inhibitor vs placebo, from its Table 2 league table.
+  - The orientation comes from its footnote and is confirmed against its abstract: the same reading gives GLP-1 RA
+    0.87 (0.82–0.93), which the abstract prints.
+  - Recorded in `registry/comparator_results.json`. The tracker uses it only because the served page still carries the
+    previous comparator (34754403).
+- RESULT_AGREES: unmet.
+  - The comparator prints per-trial HRs only (Table 1) and pools ORs.
+  - Our verified values are HRs, with counts only for SAVOR (AACT 613/8280 vs 609/8212).
+  - On the strict reading no comparison on its measure is possible yet.
+- **The served page needs the comparator switch as a served change** (it shows 34754403). That's a notice.
+
+**2. omega3 Rauch 2010: not dropped by a rule.** It is matched SECONDARY_SINGLE on acq/k-gap from meta 37031750's
+"OMEGA" row (dual-model read, the meta reproduces its own pool). Main's regeneration ran on inputs from before
+fe689f080 (the forest lane's non-comparator rows joining the secondary tier). Regenerating from the current tip
+restores it, provided the consolidation carries `registry/secondary_meta/*` and the run can reach the forest lane's
+branch (the build pins its commit).
+
+**3. tocilizumab RECOVERY: fixed.** Lane files leave `in_our_pool` unset, and our pool keys RECOVERY by its report
+(PMID 33933206, trial family NCT04381936).
+- `g1_import_lanes.attach_pool_membership` now decides membership by identity (NCT or PMID) against our held-source
+  build. An explicit lane value is kept; a disagreement is recorded. Planted.
+- RECOVERY is now `in_our_pool: true` (pool row PMID 33933206). The k count is unchanged (it was already counted).
+
+**4. sacubitril Tsutsui: screener error, fixed with a registry span.**
+- The record and held full text don't state blinding (no open full text; no PMCID).
+- Its registration does: PMID 33731544 → NCT02468232, linked by the title's acronym PARALLEL-HF, which is unique in
+  AACT (AACT's study references don't cite the paper). Registered RANDOMIZED, masking QUADRUPLE, official title
+  "…Randomized, Double-blind … Active-controlled…". Now ELIGIBLE, with basis
+  SCREENER_ERROR:REGISTRY_STATES_BLINDING.
+- **Class:** `scripts/aact_designs.py` records the registered design of every blinding-silent exclusion. Registered
+  open-label or single-blind → the exclusion stands, with the span (JELIS: NONE; NCT01360437: SINGLE). No unique
+  registration → still fails closed (decision 4 unchanged).
+- **But Tsutsui has no verified value from an open source.** PARALLEL-HF's own primary composite is posted with HR
+  1.088 (0.650–1.821), under a title that never names the outcome ("CEC Confirmed Composite Endpoints"), so it's refused.
+- **A gate defect, found and fixed:** the posted "First **Triple** Composite (CV death, HF hospitalization, or worsening
+  of HF in outpatients)" was BINDABLE against our two-component outcome. A composite that declares more components than
+  the protocol's now never binds.
+
+**Recount (local, 32 topics):**
+| | before | after |
+|---|---|---|
+| G1_MATCHED | 9 | 9 |
+| INDEPENDENT | 91 | 91 |
+| COVERAGE | 165/362 | 165/361 |
+| eligible | 241 | 240 |
+
+None of the four items flips a topic under the strict definition.
+- **Codex:** 1 forest read this round. The other routes were decided by typed sources (registry, PubMed metadata, the
+  comparator's JATS).
+- **Worker:** unreachable (SSH and Tailscale ping time out).
