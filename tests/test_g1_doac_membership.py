@@ -55,7 +55,8 @@ def test_the_tracker_names_majeed_with_both_spans_and_keeps_the_denominator_hone
     if d["kind"] == "NOT_AN_INCLUDED_TRIAL":
         assert gt.span_is_verbatim(SLUG, "24963045", d["comparator_span"])
     # the whole pools ARE comparable: the comparator states 6 trials == 6 matched, so the measure question is reached
-    assert o["same_trials"]["state"] == "WHOLE_POOL_MEASURE_DIFFERS"
+    # state renamed by the HR/RR class (acq/k-gap f34580f9; 5 Oct decision 1): the whole-pool form carries its basis
+    assert o["same_trials"]["state"] == "MEASURE_DIFFERENCE" and o["same_trials"]["basis"].startswith("COMPARATOR_STATES")
     assert o["N_eligible"] == 6 and o["k_matched"] == 6 and o["open_gaps"] == []
     assert gt.scope_citation_violations(o) == []
 

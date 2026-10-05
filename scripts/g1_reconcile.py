@@ -259,7 +259,11 @@ def reconcile(slug):
         (scen["A_shared_trials_comparator_rows"] or {}).get("conclusion") != (scen["B_shared_trials_our_rows_ITT"] or {}).get("conclusion")
         else None,
     }
-    if (g.get("same_trials") or {}).get("state") == "WHOLE_POOL_MEASURE_DIFFERS":
+    st_ = g.get("same_trials") or {}
+    # the HR/RR class (acq/k-gap f34580f9, 5 Oct decision 1) renamed the whole-pool measure-difference state
+    # WHOLE_POOL_MEASURE_DIFFERS -> MEASURE_DIFFERENCE; only the WHOLE-POOL form carries a `basis` (the comparator's stated
+    # k == our matched set) -- a per-trial measure-difference set does not, and is not a whole-pool comparison
+    if st_.get("state") == "WHOLE_POOL_MEASURE_DIFFERS" or (st_.get("state") == "MEASURE_DIFFERENCE" and st_.get("basis")):
         # same trials, different measures: decide what IS decidable without arm sizes (harness/event_total_check.py)
         from harness import comparator_membership as cmb, event_total_check as etc
         crec = recs.get(str(g.get("comparator_pmid"))) or {}
