@@ -2,6 +2,7 @@
 answer is admitted only when a deterministic gate finds it in the trial's own source; never from the comparator; a scope
 claim only under a protocol rule that is SET (iv-iron's design_double_blind is false: EFFECT-HF's 'open-label' names
 nothing)."""
+import json
 import os
 import sys
 
@@ -144,3 +145,23 @@ def test_the_deterministic_table_reader_refuses_an_ambiguous_table():
             "Death at 90 days — no. (%) | 15 (15.0) | 25 (25.0)\n")
     assert ga.table_tuple(text, ["death"], None) is None                       # two rows, no timepoint to choose
     assert ga.table_tuple(text, ["death"], "90 days")[1]["events_t"] == 15
+
+
+def test_plant_a_table_row_from_a_copy_not_open_is_refused_not_kept(tmp_path, monkeypatch):
+    text = ("Outcome | Balanced (N = 7942) | Saline (N = 7860)\n"
+            "In-hospital death before 30 days — no. (%) | 818 (10.3) | 875 (11.1)\n")
+    prop = tmp_path / "prop.json"
+    prop.write_text(json.dumps({"runs": {"x|SMART": {"slug": "balanced-crystalloids-vs-saline-mortality", "label": "SMART",
+                                                      "pmid": "29485925", "ncts": [], "record_id": None,
+                                                      "state": "WITHHELD_NOT_OPEN_TEXT"}}}), encoding="utf-8")
+    monkeypatch.setattr(ga, "PROP", str(prop))
+    monkeypatch.setattr(ga, "ACQ_DIR", str(tmp_path / "acq"))
+    monkeypatch.setattr(ga, "tracker_file", lambda slug, ref: {"comparator_pmid": "0", "trials": []})
+    monkeypatch.setattr(ga, "evidence", lambda t, cfg, comp: ({}, {"text": text, "sha": "s", "terms": ["death"],
+                                                                     "comp": "0", "pmid": "29485925", "aact": {}}))
+    for lic, want in (("NOT_OPEN", "REFUSED:HELD_COPY_NOT_OPEN"), ("PMC_AUTHOR_MANUSCRIPT", "ADMITTED")):
+        monkeypatch.setattr(ga, "pmc_copy", lambda pmid, lic=lic: {"pmcid": "PMC5846085", "url": "u", "licence": lic,
+                                                                    "statement": "s"})
+        row = ga.replay(["balanced-crystalloids-vs-saline-mortality"], "ref")["balanced-crystalloids-vs-saline-mortality"][0]
+        assert row["verdict"] == want
+        assert (row.get("source_copy") or (row.get("admitted") or {}).get("source_copy"))["licence"] == lic
