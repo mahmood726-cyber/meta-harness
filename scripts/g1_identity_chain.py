@@ -136,6 +136,35 @@ def expansion_candidates(year, agents, offline):
     return q, cache.get(q) if isinstance(cache.get(q), list) else []
 
 
+def context_year(context):
+    """The year the comparator's OWN table row prints for the unit ('COPE study 1 Italy/2005 Open-label RCT'), only when
+    the row states exactly one year."""
+    ys = {int(y) for y in re.findall(r"(?<!\d)(19[5-9]\d|20[0-3]\d)(?!\d)", context or "")}
+    return ys.pop() if len(ys) == 1 else None
+
+
+def year_tiebreak(pmids, years, year):
+    """The self-naming PMIDs published in the comparator row's year; the caller resolves only if exactly one remains."""
+    return [p for p in pmids if years.get(p) == year]
+
+
+def label_author(label):
+    """A leading surname of an author label ('Finkelstein Y et al'); an all-caps acronym ('COPE study') is not one."""
+    m = re.match(r"^\s*([A-Z][a-z][A-Za-z'\-]+)\b", label or "")
+    return m.group(1) if m else None
+
+
+_NOT_RESEARCH = {"News", "Comment", "Editorial", "Letter", "Review", "Published Erratum"}
+
+
+def tiebreak_eligible(rec):
+    """A paper the row-year tie-break may pick: a research report, never a news / comment / editorial / letter / review
+    item, never a 'study of the month' digest ('RALES1999' first resolved to one of those)."""
+    if set(rec.get("pubtypes") or []) & _NOT_RESEARCH:
+        return False
+    return not re.search(r"study of the month|journal club|in brief|digest", rec.get("title") or "", re.I)
+
+
 def main(argv):
     offline = "--offline" in argv
     snap = aact_adapter.snapshot_dir()
@@ -157,6 +186,16 @@ def main(argv):
         elif ay:
             ay_items.append(t)
         else:
+            # an author label with no year: the comparator's own row year completes the author-year key
+            au, cy = label_author(t["label"]), context_year(t.get("context"))
+            if au and cy:
+                pm1, q1, ids1 = kt.pubmed_author_year(au, str(cy), kt.topic_agents(topics[t["slug"]]), offline)
+                if pm1:
+                    link1 = ic.pmid_to_ncts([pm1], snap).get(pm1) or {}
+                    results[f"{t['slug']}::{t['label']}"] = {
+                        "state": "RESOLVED", "basis": "AUTHOR_WITH_COMPARATOR_ROW_YEAR", "pmid": pm1, "scope": "IN_SCOPE",
+                        "nct": next(iter(link1), None) if len(link1) == 1 else None, "query": q1, "row_year": cy}
+                    continue
             results[f"{t['slug']}::{t['label']}"] = {"state": "NO_KEY", "why": "label carries neither acronym nor author-year"}
     # ---- acronym route
     hits = {}
@@ -243,6 +282,23 @@ def main(argv):
                             "query": q}
         elif len(hits) > 1:
             results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_EXPANSION", "pmids": hits, "query": q}
+    # ---- ROW-YEAR tie-break, LAST (weaker than a spelled-out acronym): an acronym still AMBIGUOUS among several
+    # self-naming papers takes the one research report published in the comparator row's year (COPPS: 2010)
+    for t in items:
+        key = f"{t['slug']}::{t['label']}"
+        v = results.get(key) or {}
+        cy = context_year(t.get("context"))
+        if v.get("state") != "AMBIGUOUS" or v.get("basis") != "ACRONYM" or not cy:
+            continue
+        pm_all = list(v.get("self_naming_pmids") or [])
+        recs_y = pubmed_records(pm_all, offline)
+        yrs = kt.pub_years(pm_all, offline)
+        one = [p for p in year_tiebreak(pm_all, {p: yrs.get(p) for p in pm_all}, cy) if tiebreak_eligible(recs_y.get(p) or {})]
+        if len(one) == 1:
+            link1 = ic.pmid_to_ncts(one, snap).get(one[0]) or {}
+            results[key] = {"state": "RESOLVED", "basis": "ACRONYM_SELF_NAMING_TITLE+COMPARATOR_ROW_YEAR", "pmid": one[0],
+                            "nct": next(iter(link1), None) if len(link1) == 1 else None, "scope": "IN_SCOPE",
+                            "row_year": cy, "from_ambiguous": pm_all}
     # ---- COMMENT-ON route: a unit whose only report is a Letter / Comment is the article it comments on
     T_all = [t for t in T["trials"] if len(t.get("pmids") or []) == 1 and t.get("status") != "POOLED"]
     recs = pubmed_records([t["pmids"][0] for t in T_all], offline)
