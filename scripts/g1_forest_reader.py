@@ -1312,6 +1312,64 @@ def label_from_references(la, lb, refs):
                                     f"list; '{other}' is not (or is marked uncertain by its reader)"}
 
 
+SINGLE_NUMBER_RESOLVED = "SINGLE_NUMBER_RESOLVED_BY_ROW"         # rule 2, decision 5 Oct
+SINGLE_NUMBER_UNRESOLVED = "READER_DISAGREEMENT_UNRESOLVED"
+WEIGHTS_REPRODUCED = "WEIGHTS_REPRODUCED"                         # rule 1, decision 5 Oct
+WEIGHTS_NOT_REPRODUCED, WEIGHTS_DISAGREE = "WEIGHTS_NOT_REPRODUCED", "WEIGHTS_DISAGREE"
+
+
+def weights_gate(proposed, reading_a, reading_b, ratio):
+    """RULE WEIGHTS (decision 5 Oct, under Mahmood's delegation): for a figure that prints NO pooled row, its printed
+    % weights are a valid but WEAKER gate. None when neither reading prints weights; else WEIGHTS_DISAGREE (the two
+    readings' weights differ beyond printed rounding, or one is missing), WEIGHTS_REPRODUCED:<FE|DL> (every printed
+    weight lies in the range the rows allow under that model -- inverse-variance weights from each row's CI, with each
+    bound moved within its printed half-unit, and the printed weight's own half-unit), or WEIGHTS_NOT_REPRODUCED."""
+    def wmap(rd):
+        return {k: str(r.get("weight_pct") or "").replace("%", "").strip() for k, r in _keyed(rd.get("rows"))}
+    wa, wb = wmap(reading_a), wmap(reading_b)
+    keys = [k for k, _ in _keyed(proposed)]
+    if not any(wa.get(k) for k in keys) and not any(wb.get(k) for k in keys):
+        return None
+    w = []
+    for k in keys:
+        v = agree_value(wa.get(k) or None, wb.get(k) or None)
+        if _num(v) is None:
+            return WEIGHTS_DISAGREE
+        w.append(v)
+    f = math.log if ratio else (lambda x: x)
+    z = 1.959963984540054
+    var_lo, var_hi, y = [], [], []
+    for r in proposed:
+        e, lo, hi = _num(r["effect"]), _num(r["lower"]), _num(r["upper"])
+        hl, hh = fp._half_unit(r["lower"]), fp._half_unit(r["upper"])
+        if None in (e, lo, hi) or (ratio and lo - hl <= 0):
+            return WEIGHTS_NOT_REPRODUCED
+        wide = (f(hi + hh) - f(lo - hl)) / (2 * z)
+        narrow = max((f(hi - hh) - f(lo + hl)) / (2 * z), 1e-12)
+        var_lo.append(narrow ** 2)
+        var_hi.append(wide ** 2)
+        y.append(f(e))
+    vm = [((f(_num(r["upper"])) - f(_num(r["lower"]))) / (2 * z)) ** 2 for r in proposed]
+    wf = [1 / v for v in vm]
+    fe = sum(a * b for a, b in zip(wf, y)) / sum(wf)
+    q = sum(a * (b - fe) ** 2 for a, b in zip(wf, y))
+    c = sum(wf) - sum(a * a for a in wf) / sum(wf)
+    for name, t2 in (("FE", 0.0), ("DL", max(0.0, (q - (len(y) - 1)) / c) if c > 0 else 0.0)):
+        wmin = [1 / (v + t2) for v in var_hi]
+        wmax = [1 / (v + t2) for v in var_lo]
+        ok = True
+        for i, pv in enumerate(w):
+            p, hu = _num(pv), fp._half_unit(pv)
+            lo_p = 100 * wmin[i] / (wmin[i] + sum(wmax) - wmax[i])
+            hi_p = 100 * wmax[i] / (wmax[i] + sum(wmin) - wmin[i])
+            if not (lo_p - hu - 1e-9 <= p <= hi_p + hu + 1e-9):
+                ok = False
+                break
+        if ok:
+            return f"{WEIGHTS_REPRODUCED}:{name}"
+    return WEIGHTS_NOT_REPRODUCED
+
+
 def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
     """Two parsed readings -> the figure's verdict, the proposed/refused rows, and (if ACCEPTED) the secondary rows."""
     proposed, refused, pooled, probs, not_estimable = agree(reading_a, reading_b)
@@ -1326,6 +1384,38 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
             for k in ("events_t", "n_t", "events_c", "n_c"):
                 vals[k] = agree_count(r["a"].get(k), r["b"].get(k))[1]
             proposed.append({"label": pick["label"], **vals, "label_basis": pick["basis"]})
+    # RULE SINGLE_NUMBER (decision 5 Oct, under Mahmood's delegation): a row whose two readings differ in exactly ONE
+    # number (every other value and the label agree) is settled by the row's OWN printed numbers -- a candidate is taken
+    # only if EXACTLY ONE of the two reproduces the row's printed effect and CI within printed rounding (row_problems:
+    # counts -> effect and CI; else the CI centred on the effect). Both or neither: READER_DISAGREEMENT_UNRESOLVED.
+    ratio_, measure_ = fp.is_ratio(measure_code(reading_a.get("measure"))), measure_code(reading_a.get("measure"))
+    for r in [x for x in refused if x.get("a") and x.get("b") and "," not in x["why"]
+              and x["why"].endswith("_DISAGREES") and x["why"] != "LABEL_DISAGREES"]:
+        if _norm_label(r["a"].get("label")) != _norm_label(r["b"].get("label")):
+            continue
+        field = r["why"][:-len("_DISAGREES")].lower()
+        base = {k: r["a"].get(k) for k in ("effect", "lower", "upper")}
+        for k in ("events_t", "n_t", "events_c", "n_c"):
+            base[k] = agree_count(r["a"].get(k), r["b"].get(k))[1]
+        if any(not str(r[side].get(field) or "").strip() for side in ("a", "b")):
+            r["why"] = f"{SINGLE_NUMBER_UNRESOLVED}:{field.upper()}"     # one reader printed nothing: not two readings
+            continue
+        cands = []
+        for side in ("a", "b"):
+            v = r[side].get(field)
+            val = (agree_count(v, v)[1] if field.startswith(("events", "n_")) else
+                   re.sub(r"^\s*[−‒–—]", "-", _nfkc(v)).strip() if v else None)
+            row = dict(base, label=r["a"].get("label"), **{field: val})
+            cands.append((val is not None and not row_problems(row, ratio_, measure_), row))
+        good = [row for ok, row in cands if ok]
+        if len(good) == 1:
+            refused.remove(r)
+            good[0]["value_basis"] = (f"{SINGLE_NUMBER_RESOLVED}: {field} read {r['a'].get(field)!r} / "
+                                      f"{r['b'].get(field)!r}; only {good[0][field]!r} reproduces the row's own printed "
+                                      f"effect and CI")
+            proposed.append(good[0])
+        else:
+            r["why"] = f"{SINGLE_NUMBER_UNRESOLVED}:{field.upper()}"
     probs = [p for p in probs if not p.startswith("ROWS_DISAGREE")] + ([f"ROWS_DISAGREE:{len(refused)}"] if refused else [])
     agreed_not_trials = []
     if any(p.startswith("ROWS_ARE_NOT_STUDIES") for p in probs):
@@ -1347,9 +1437,17 @@ def judge(item, reading_a, reading_b, rid_a, rid_b, held, mtext=None):
     if problems == ["NO_POOLED_ROW_PRINTED"] and len(proposed) >= 2 and \
             len({_norm_label(r["label"]) for r in proposed}) == len(proposed) and \
             not [x for r in proposed for x in row_problems(r, fp.is_ratio(measure), measure)]:
-        state, unchecked = SECOND_SOURCE_ONLY, (f"{sm.POOL_UNCHECKABLE}: both readers agree the figure prints no "
-                                                f"pooled row, so its pooled reconstruction cannot be checked; second "
-                                                f"source only (TWO_SOURCE beside a gated meta), decision 5 Oct")
+        wg = weights_gate(proposed, reading_a, reading_b, fp.is_ratio(measure))
+        if wg is None:                                    # no weights printed: the 5 Oct POOL_UNCHECKABLE decision
+            state, unchecked = SECOND_SOURCE_ONLY, (f"{sm.POOL_UNCHECKABLE}: both readers agree the figure prints no "
+                                                    f"pooled row, so its pooled reconstruction cannot be checked; "
+                                                    f"second source only (TWO_SOURCE beside a gated meta), decision 5 Oct")
+        elif wg.startswith(WEIGHTS_REPRODUCED):           # the weaker gate passed: still second source only
+            state, unchecked = SECOND_SOURCE_ONLY, (f"{sm.POOL_UNCHECKABLE}: no printed pooled row; the printed % "
+                                                    f"weights are reproduced from the rows ({wg}) -- a weaker gate, so "
+                                                    f"second source only (TWO_SOURCE beside a gated meta), decision 5 Oct")
+        else:
+            problems = problems + [wg]                    # weights printed but disagreeing / not reproduced: refused
     elif problems == ["NO_POOLED_ROW_PRINTED"] and len({_norm_label(r["label"]) for r in proposed}) < len(proposed):
         problems = problems + ["ROWS_NOT_ONE_ANALYSIS:REPEATED_TRIAL_LABELS"]   # one block per outcome: not second-source
     fig = item["figure"]
