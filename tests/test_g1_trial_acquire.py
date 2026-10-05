@@ -111,3 +111,36 @@ def test_a_screened_count_is_never_the_randomised_total(monkeypatch):
     monkeypatch.setattr(gt, "held_record", lambda slug, pmid: rec)
     assert ga.posted_population_short("iv-iron", "33197395", 558 + 550) is None      # 1108 vs 1132 randomised: >= 90%
     assert ga.posted_population_short("iv-iron", "33197395", 600)["randomised_total"] == 1132
+
+
+def test_a_structured_table_row_under_column_ns_is_a_typed_tuple():
+    q = ("Outcome | Balanced Crystalloids (N = 7942) | Saline (N = 7860) | Adjusted Odds Ratio (95% CI)\n"
+         "Major adverse kidney event within 30 days — no. (%) | 1139 (14.3) | 1211 (15.4) | 0.90 (0.82 to 0.99)\n"
+         "In-hospital death before 30 days — no. (%) | 818 (10.3) | 875 (11.1) | 0.90 (0.80 to 1.01)")
+    r = {"events_t": 818, "n_t": 7942, "events_c": 875, "n_c": 7860}
+    assert ga.typed_match_table(q, r, ["death", "mortality"])["route"] == "TABLE_ROW_WITH_COLUMN_N"
+    assert ga.typed_match_table(q, dict(r, events_t=875, events_c=818), ["death"]) is None     # arm order matters
+    assert ga.typed_match_table(q, dict(r, n_t=7860, n_c=7942), ["death"]) is None
+    bad = q.replace("818 (10.3)", "818 (12.3)")                                                  # % must corroborate
+    assert ga.typed_match_table(bad, r, ["death"]) is None
+    assert ga.typed_match_table(q, r, ["stroke"]) is None                                         # row must name the outcome
+
+
+def test_a_text_that_is_not_openly_licensed_never_enters_a_prompt(monkeypatch):
+    # SMART (PMC5846085) is an NIH author manuscript: the prompt is stored in the committed record, so it may not carry it
+    monkeypatch.setattr(ga, "text_evidence", lambda pmid, terms: ("full text " * 50, "full text " * 50, "sha"))
+    monkeypatch.setattr(ga, "aact_evidence", lambda ncts: {})
+    monkeypatch.setattr(ga, "meta_evidence", lambda slug, label: [])
+    t = {"slug": "x", "label": "SMART", "pmid": "29485925", "ncts": []}
+    monkeypatch.setattr(ga, "pmc_licence", lambda pmid: "NOT_OPEN")
+    ev, held = ga.evidence(t, CFG, "0")
+    assert ev["full_text"]["state"] == "HELD_NOT_OPEN_LICENSED" and "text" not in ev["full_text"] and held["text"]
+    monkeypatch.setattr(ga, "pmc_licence", lambda pmid: "CC")
+    assert "text" in ga.evidence(t, CFG, "0")[0]["full_text"]
+
+
+def test_the_deterministic_table_reader_refuses_an_ambiguous_table():
+    text = ("Outcome | A (N = 100) | B (N = 100)\nDeath at 30 days — no. (%) | 10 (10.0) | 20 (20.0)\n"
+            "Death at 90 days — no. (%) | 15 (15.0) | 25 (25.0)\n")
+    assert ga.table_tuple(text, ["death"], None) is None                       # two rows, no timepoint to choose
+    assert ga.table_tuple(text, ["death"], "90 days")[1]["events_t"] == 15

@@ -67,6 +67,8 @@ SCHEMA = {
 INSTR = """You read ONE randomised trial's own open sources to find its result for a meta-analysis outcome. Sources are
 inline below; use nothing else (no files, no memory of the paper). Order: the AACT posted results first, then the trial's
 own full text, then the meta rows (a meta row is never the trial's own result: report it only if nothing primary exists).
+The result must be for the trial's RANDOMISED population: if the AACT posting covers only a subset (a site, a unit, a
+stratum: compare its denominators with the randomised total the text states), use the full text instead.
 
 Return the trial's result for the OUTCOME (name, keywords, estimand, timepoint, population as given) for experimental vs
 control:
@@ -131,6 +133,14 @@ def registered_ncts(pmid):
         if pmid in (r.get("pmids") or []) and len(r.get("ncts") or []) == 1:
             out |= set(r["ncts"])
     return out
+
+
+def outcome_row_terms(cfg):
+    """Outcome terms that name the EVENT, for a table row label: the topic's keywords minus any that are also its
+    population vocabulary (crystalloids' keywords carry 'ICU' / 'intensive care', which named SMART's baseline row
+    'Another ICU within hospital' and the sub-row 'Before ICU discharge' as mortality rows)."""
+    pop = {str(x).lower() for x in ((cfg.get("include") or {}).get("population_any") or [])}
+    return [k for k in outcome_terms(cfg) if k.lower() not in pop]
 
 
 def outcome_terms(cfg):
@@ -218,6 +228,40 @@ def aact_evidence(ncts):
     return out
 
 
+def pmc_licence(pmid):
+    """'CC' when the held PMC text carries a Creative Commons licence, else 'NOT_OPEN' (an NIH author manuscript is
+    'available for text mining ... fair use' -- not an open licence: SMART PMC5846085). Read once from the PMC XML
+    permissions and cached in outputs/k_gap/fulltext_index.json (state only). A text that is not openly licensed is
+    NEVER put in a model prompt: the prompt is stored in the committed record."""
+    import time
+    from harness import http, fetch
+    ip = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
+    idx = json.load(open(ip, encoding="utf-8")) if os.path.exists(ip) else {}
+    e = idx.get(pmid) or {}
+    if e.get("licence"):
+        return e["licence"]
+    if not e.get("pmcid"):
+        return "NOT_OPEN"
+    xml = ""
+    for attempt in range(3):
+        try:
+            time.sleep(0.4 + attempt)
+            xml = http.get_text(f"{fetch.EUTILS}/efetch.fcgi", {"db": "pmc", "id": e["pmcid"], "retmode": "xml",
+                                                                "tool": "meta-harness",
+                                                                "email": "meta-harness@example.org"})
+            break
+        except Exception:  # noqa: BLE001 - an unread licence is NOT_OPEN, never assumed open
+            xml = ""
+    perm = " ".join(re.findall(r"<permissions>.*?</permissions>", xml, re.S))
+    lic = "CC" if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm) else "NOT_OPEN"
+    if xml:
+        idx = json.load(open(ip, encoding="utf-8")) if os.path.exists(ip) else {}
+        idx.setdefault(pmid, {})["licence"] = lic
+        with open(ip, "w", encoding="utf-8") as fh:
+            json.dump(idx, fh, indent=1, sort_keys=True)
+    return lic
+
+
 def text_evidence(pmid, terms):
     """(whole text, shown text, sha256). Shown = whole when short; else windows centred on the outcome terms."""
     import k_gap_counterfactual as cfm
@@ -266,6 +310,8 @@ def evidence(t, cfg, comp):
           "eligibility_summary": cfg.get("eligibility_summary"),
           "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items()},
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
+                        if whole and pmc_licence(t["pmid"]) == "CC" else
+                        {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
     return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"]}
@@ -318,6 +364,73 @@ def posted_population_short(slug, pmid, posted_total):
     return None
 
 
+_COL_N = re.compile(r"\(\s*[Nn]\s*=\s*([\d,]+)\s*\)")
+_CELL = re.compile(r"\|\s*([\d,]+)\s*\(\s*(\d+(?:\.\d+)?)\s*%?\s*\)")
+
+
+def typed_match_table(quote, resp, terms):
+    """A STRUCTURED TABLE in the trial's own text (the held text renders a JATS table as '|' rows): the column header
+    states each arm's N ('(N = 7942)'), the outcome's row states each arm's count with its percentage ('818 (10.3)'),
+    in the same column order. Admitted only when the row label names an outcome term, the counts and Ns are the
+    proposal's in order, and EACH count is corroborated by its printed percentage (count / N rounds to it). SMART
+    (PMC5846085, Table 2): 'In-hospital death before 30 days -- no. (%) | 818 (10.3) | 875 (11.1)' under
+    'Balanced Crystalloids (N = 7942) | Saline (N = 7860)'."""
+    ns = [int(x.replace(",", "")) for x in _COL_N.findall(quote or "")]
+    if len(ns) < 2 or (ns[0], ns[1]) != (resp["n_t"], resp["n_c"]):
+        return None
+    rx = re.compile("|".join(re.escape(t) for t in terms if t) or r"$^", re.I)
+    for line in (quote or "").splitlines():
+        label = line.split("|")[0]
+        cells = _CELL.findall(line)
+        if not rx.search(label) or len(cells) < 2:
+            continue
+        (a, pa), (b, pb) = cells[0], cells[1]
+        a, b = int(a.replace(",", "")), int(b.replace(",", ""))
+        if (a, b) != (resp["events_t"], resp["events_c"]):
+            continue
+        if all(abs(round(100 * e / n, 1) - float(p)) <= 0.1 for e, n, p in ((a, ns[0], pa), (b, ns[1], pb))):
+            return {"result": "TYPED_MATCH", "span": line.strip()[:300], "route": "TABLE_ROW_WITH_COLUMN_N"}
+    return None
+
+
+_TABLE_HEAD = re.compile(r"^[^\n]*\(\s*[Nn]\s*=\s*[\d,]+\s*\)[^\n]*\(\s*[Nn]\s*=\s*[\d,]+\s*\)[^\n]*$", re.M)
+
+
+def table_tuple(text, terms, timepoint=None):
+    """DETERMINISTIC: the outcome's row in a table of the trial's own held text (no model; for a text that may not be
+    shown to one). A table = a header line with two arm Ns + the following '|' rows; a candidate row names an outcome
+    term and passes typed_match_table (percent-corroborated). One candidate -> its tuple; several -> the one whose label
+    names the protocol's timepoint number, else None (ambiguous is never a pick)."""
+    cands = []
+    for h in _TABLE_HEAD.finditer(text or ""):
+        ns = [int(x.replace(",", "")) for x in _COL_N.findall(h.group(0))][:2]
+        block = [h.group(0)]
+        gap = 0
+        for line in text[h.end():].splitlines()[1:60]:
+            if "|" in line:
+                gap = 0
+                block.append(line)
+            elif len(line.strip()) < 80 and gap < 1:
+                gap += 1                  # a section label inside the table ('Components of primary outcome')
+            else:
+                break
+        for line in block[1:]:
+            cells = _CELL.findall(line)
+            if len(cells) < 2:
+                continue
+            r = {"events_t": int(cells[0][0].replace(",", "")), "n_t": ns[0],
+                 "events_c": int(cells[1][0].replace(",", "")), "n_c": ns[1]}
+            m = typed_match_table(block[0] + "\n" + line, r, terms)
+            if m:
+                cands.append((line.split("|")[0].strip(), r, block[0] + "\n" + line))
+    if len(cands) > 1 and timepoint:
+        num = re.search(r"\d+", str(timepoint))
+        if num:
+            cands = [c for c in cands if re.search(r"\b" + num.group(0) + r"\b", c[0])] or cands
+    uniq = {(c[1]["events_t"], c[1]["events_c"]) for c in cands}
+    return cands[0] if len(uniq) == 1 else None
+
+
 def gate(resp, held, cfg, slug):
     """ADMITTED (with basis) or REFUSED:<gate> for one model answer, against the held sources."""
     import g1_tracker as gt
@@ -360,6 +473,8 @@ def gate(resp, held, cfg, slug):
         if not nums_ok:
             return "REFUSED:NUMBERS_NOT_IN_QUOTE", None
         m = sm.typed_match_text(row, held["text"], held["terms"], f"PMID {resp['source_ref']}")
+        if not m and counts:
+            m = typed_match_table(resp["quote"], resp, held["terms"])
         if not m:
             return "REFUSED:TYPED_MATCH_NOT_FOUND_BESIDE_OUTCOME_TERMS", None
         return "ADMITTED", {"kind": "TEXT", "source": f"PMID {resp['source_ref']} PMC OA full text sha256 {held['sha']}",
@@ -485,15 +600,33 @@ def replay(slugs, ref):
             continue
         cfg = json.load(open(os.path.join(ROOT, "topics", f"{r['slug']}.json"), encoding="utf-8"))
         o = tracker_file(r["slug"], ref)
-        if r["state"] != "RAN_OK":
+        t = {"slug": r["slug"], "label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"]}
+        if r["state"] not in ("RAN_OK", "WITHHELD_NOT_OPEN_TEXT"):
             by_slug.setdefault(r["slug"], []).append({"label": r["label"], "verdict": r["state"] if r["state"] ==
                                                        "NO_OPEN_SOURCE" else f"CALL_{r['state']}",
                                                        "record_id": r["record_id"], "why": r.get("why")})
             continue
-        resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
-        t = {"slug": r["slug"], "label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"]}
         _ev, held = evidence(t, cfg, comparator_pmid(r["slug"], o))
-        verdict, adm = gate(resp, held, cfg, r["slug"])
+        if r["state"] == "RAN_OK":
+            resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
+            verdict, adm = gate(resp, held, cfg, r["slug"])
+        else:
+            resp, verdict, adm = {}, "WITHHELD_NOT_OPEN_TEXT", None
+        if verdict != "ADMITTED" and held["text"]:
+            # the trial's OWN held text, read DETERMINISTICALLY (no model): its outcome table row under the arm Ns. The
+            # route for a text that may not be shown to a model (SMART: an NIH author manuscript, not CC-licensed)
+            tt = table_tuple(held["text"], outcome_row_terms(cfg), (cfg.get("primary_outcome") or {}).get("timepoint"))
+            if tt:
+                label_, rr, span = tt
+                verdict = "ADMITTED"
+                est = ((cfg.get("primary_outcome") or {}).get("estimand") or "").upper()
+                from harness import secondary_meta as sm_
+                adm = {"kind": "TEXT_TABLE", "source": f"PMID {r['pmid']} held full text sha256 {held['sha']} "
+                                                       f"(read deterministically: g1_trial_acquire.table_tuple)",
+                       "span": span[:600], "quote": None,
+                       "row": sm_.SecondaryRow(meta_pmid="ACQUIRED", meta_doi="", location={}, source_digest="",
+                                               provenance="TABLE_ROW", trial_label="", measure=est,
+                                               outcome_definition=label_, **rr, effect=None, lower=None, upper=None)}
         row = {"label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"], "record_id": r["record_id"],
                "verdict": verdict, "model": {k_: resp.get(k_) for k_ in ("verdict", "source", "source_ref", "measure",
                                                                          "events_t", "n_t", "events_c", "n_c", "effect",
