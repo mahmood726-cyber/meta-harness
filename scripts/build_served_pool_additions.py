@@ -78,6 +78,22 @@ def _acquired_spans(slug, fam):
     return hits
 
 
+def _held_abstract_spans(slug, pmids):
+    """Sentences of the trial's own held abstract (cache/<slug>/records.json) -- committed bytes the pipeline reads."""
+    import re
+    p = os.path.join(ROOT, "cache", slug, "records.json")
+    if not os.path.exists(p):
+        return []
+    d = json.load(open(p, encoding="utf-8"))
+    recs = d if isinstance(d, list) else (d.get("records") if isinstance(d.get("records"), (list, dict)) else d)
+    recs = recs if isinstance(recs, list) else list(recs.values())
+    out = []
+    for r in recs:
+        if isinstance(r, dict) and str(r.get("pmid") or r.get("id") or "").replace("PMID ", "") in pmids:
+            out.extend(x for x in re.split(r"(?<=[.;])\s+(?=[A-Z])", r.get("abstract") or "") if x.strip())
+    return out
+
+
 def _has(span, *nums):
     from harness import verify
     return all(verify._digits_in(span, n) if isinstance(n, int) else verify._effect_in(span, n) for n in nums)
@@ -100,9 +116,9 @@ def pipeline_row(slug, x, scale):
     v = sp.value_of(x) or {}
     fam = str(x.get("family") or "").strip()
     tid = fam if fam.upper().startswith(("PMID ", "NCT")) else f"PMID {fam}"
-    spans = _spans(x) + _acquired_spans(slug, fam)
     counts = [v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")]
     reps = report_ids(slug, tid)
+    spans = _spans(x) + _acquired_spans(slug, fam) + _held_abstract_spans(slug, set(reps))
     if not reps:
         return None, "no held report of this trial in the topic's family registry"
     base = {"id": tid, "label": x["label"], "provenance": "served_pool_signed_notice", "family_report_id": reps[0],
