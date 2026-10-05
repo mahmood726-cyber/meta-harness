@@ -3,17 +3,15 @@
  "slug": "iv-iron-hfref-hosp",
  "comparator_pmid": "39727669",
  "N_comparator_trials": 5,
- "k_matched": 1,
+ "k_matched": 3,
  "k_in_our_pool": 1,
  "N_eligible": 5,
  "named_differences": [],
  "open_gaps": [
-  "HEART-FID [11]",
-  "AFFIRM-AHF [10]",
   "FAIR-HF [20]",
   "EFFECT-HF [21]"
  ],
- "k_matched_of_comparator_N": "1 of 5",
+ "k_matched_of_comparator_N": "3 of 5",
  "comparator_set": {
   "state": "TABLE_ENUMERATED",
   "sources_tried": [
@@ -30,13 +28,37 @@
   ]
  },
  "blockers": {
-  "EXTRACTION:COUNTS_PRESENT_NOT_CORROBORATED": 1,
-  "EXTRACTION:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": 1,
   "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2
  },
  "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
  "comparator_findings": [
+  {
+   "finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT",
+   "trial": "AFFIRM-AHF [10]",
+   "comparator": "39727669",
+   "comparator_row": {
+    "effect": "0.55",
+    "lower": "0.44",
+    "upper": "0.70",
+    "events_t": 217,
+    "n_t": 558,
+    "events_c": 294,
+    "n_c": 550,
+    "measure": "OR"
+   },
+   "trial_report": {
+    "measure": "RR",
+    "effect": null,
+    "lower": null,
+    "upper": null,
+    "events_t": 142,
+    "n_t": 558,
+    "events_c": 178,
+    "n_c": 550
+   },
+   "basis": "SECONDARY_WRONG (the comparator's counts ['217', '294'] are the posted 'HF Hospitalisations' measurements in ['Events'], not participants; NCT02937454 outcome 258897602)"
+  },
   {
    "finding": "COMPARATOR_STATED_K_ABOVE_ENUMERATED_N",
    "trial": "(the comparator set)",
@@ -53,16 +75,17 @@
  ],
  "k_ours_total": 2,
  "routes": {
-  "UNVERIFIED": 4,
-  "PRIMARY": 1
+  "UNVERIFIED": 2,
+  "PRIMARY": 2,
+  "SWEEP_AACT_PRIMARY": 1
  },
  "trials": [
   {
    "label": "HEART-FID [11]",
    "family": "PMID 37632463",
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "route": "SWEEP_AACT_PRIMARY",
+   "basis": "two-source sweep: SWEEP_AACT_PRIMARY",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "EXTRACTION_FROM_TABLE",
    "absent_code": "COUNTS_PRESENT_NOT_CORROBORATED",
@@ -90,7 +113,16 @@
     "row_label": "Mentz et al. 2023"
    },
    "disagreement_side": null,
-   "our_value": null,
+   "our_value": {
+    "measure": "RR",
+    "effect": null,
+    "lower": null,
+    "upper": null,
+    "events_t": 297,
+    "n_t": 1532,
+    "events_c": 332,
+    "n_c": 1533
+   },
    "registry_binding": {
     "state": "BINDABLE",
     "candidates": [
@@ -173,47 +205,49 @@
      }
     ]
    },
-   "g1_countable": false,
+   "g1_countable": true,
    "secondary_single": {
     "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
    },
-   "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
+   "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "EXTRACTION:COUNTS_PRESENT_NOT_CORROBORATED",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
+   "blocker": null,
+   "matched_by": "SWEEP",
+   "sweep": {
     "value": {
-     "measure": "OR",
-     "effect": "0.87",
-     "lower": "0.73",
-     "upper": "1.04",
+     "measure": "RR",
+     "effect": null,
+     "lower": null,
+     "upper": null,
      "events_t": 297,
      "n_t": 1532,
      "events_c": 332,
      "n_c": 1533
     },
-    "provenance": {
-     "meta_pmid": "39727669",
-     "location": {
-      "id": "diseases-12-00339-f003",
-      "kind": "figure",
-      "panel": null,
-      "row_label": "Mentz et al. 2023"
+    "basis": {
+     "nct": "NCT03037931",
+     "outcome": "Number of Hospitalizations for Heart Failure",
+     "snapshot": {
+      "id": "AACT 2026-08-30",
+      "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+      "rules": 3
      },
-     "digest": "75ce83549017b398f82619ad2c52f730d0907c344452158a5e7dff10a3b28ac3",
-     "read": "MODEL_PROPOSAL_DUAL:mc-0c1c4f448cda373693c4459d8724c26e+mc-bad469684ba6aee08c1e9ef5c42a6085",
-     "row_label": "Mentz et al. 2023"
-    }
-   }
+     "analysis": null,
+     "guard": "POSTED_N_EQUALS_RANDOMISED_N (3065); NCT03037931 'Number of Hospitalizations for Heart Failure' (AACT 2026-08-30)",
+     "report_pmid": "37632463"
+    },
+    "agreement_with_comparator_row": "AGREE"
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "AFFIRM-AHF [10]",
    "family": "PMID 33197395",
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "route": "PRIMARY",
+   "basis": "single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT02937454 outcome 258897606; model-read (record mc-51e85b6e509bad6512e6b98fd2ba719a), gate-verified (scripts/g1_trial_acquire.py)",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "MEASURE_MISMATCH",
    "absent_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
@@ -240,10 +274,19 @@
     "read": "MODEL_PROPOSAL_DUAL:mc-0c1c4f448cda373693c4459d8724c26e+mc-bad469684ba6aee08c1e9ef5c42a6085",
     "row_label": "Ponikowski et al. 2020"
    },
-   "disagreement_side": null,
-   "our_value": null,
+   "disagreement_side": "SECONDARY_WRONG (the comparator's counts ['217', '294'] are the posted 'HF Hospitalisations' measurements in ['Events'], not participants; NCT02937454 outcome 258897602)",
+   "our_value": {
+    "measure": "RR",
+    "effect": null,
+    "lower": null,
+    "upper": null,
+    "events_t": 142,
+    "n_t": 558,
+    "events_c": 178,
+    "n_c": 550
+   },
    "registry_binding": {
-    "state": "REFUSED",
+    "state": "BINDABLE",
     "candidates": [
      {
       "nct": "NCT02937454",
@@ -269,46 +312,171 @@
        "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
        "rules": 3
       },
-      "gate": "OUTCOME_NOT_NAMED",
+      "gate": "ESTIMAND",
       "verdict": "REFUSED",
-      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
+      "reason": "composite with death: the registry outcome 'HF Hospitalizations and CV Death' adds death to the protocol's 'Heart-failure hospitalization'",
+      "named_by": [
+       "Heart-failure hospitalization"
+      ]
+     },
+     {
+      "nct": "NCT02937454",
+      "outcome_id": "258897602",
+      "title": "HF Hospitalisations",
+      "time_frame": "up to 52 weeks after randomisation",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258897602",
+       "param_type": "Annualised event rate ratio (RR)",
+       "param_value": "0.74",
+       "ci_lower": "0.58",
+       "ci_upper": "0.94",
+       "analysis_id": "129104157",
+       "groups": [
+        "839386959",
+        "839386960"
+       ],
+       "groups_description": "Full Analysis Set (FAS)"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "ARMS",
+      "verdict": "REFUSED",
+      "named_by": [
+       "Heart-failure hospitalization"
+      ],
+      "reason": "fewer than two result groups with people-unit counts"
+     },
+     {
+      "nct": "NCT02937454",
+      "outcome_id": "258897604",
+      "title": "Composite of HF Hospitalisations or CV Death",
+      "time_frame": "at 52 weeks after randomisation",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258897604",
+       "param_type": "Hazard Ratio (HR)",
+       "param_value": "0.8",
+       "ci_lower": "0.66",
+       "ci_upper": "0.98",
+       "analysis_id": "129104161",
+       "groups": [
+        "839386963",
+        "839386964"
+       ],
+       "groups_description": "Full Analysis Set (FAS)"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "ESTIMAND",
+      "verdict": "REFUSED",
+      "reason": "declared single outcome 'Heart-failure hospitalization' but the registry outcome is a composite: 'Composite of HF Hospitalisations or CV Death'",
+      "named_by": [
+       "Heart-failure hospitalization"
+      ]
+     },
+     {
+      "nct": "NCT02937454",
+      "outcome_id": "258897605",
+      "title": "Days Lost Due to HF Hospitalisation or CV Death",
+      "time_frame": "at 52 weeks after randomisation",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258897605",
+       "param_type": "Annualised event rate ratio (RR)",
+       "param_value": "0.67",
+       "ci_lower": "0.47",
+       "ci_upper": "0.97",
+       "analysis_id": "129104163",
+       "groups": [
+        "839386965",
+        "839386966"
+       ],
+       "groups_description": "Full Analysis Set (FAS)"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "ESTIMAND",
+      "verdict": "REFUSED",
+      "reason": "composite with death: the registry outcome 'Days Lost Due to HF Hospitalisation or CV Death' adds death to the protocol's 'Heart-failure hospitalization'",
+      "named_by": [
+       "Heart-failure hospitalization"
+      ]
+     },
+     {
+      "nct": "NCT02937454",
+      "outcome_id": "258897606",
+      "title": "HF Hospitalisations",
+      "time_frame": "up to 52 weeks after randomisation",
+      "arms": [
+       {
+        "group": "839386967",
+        "count": 142,
+        "n": 558,
+        "title": "FCM (Ferric Carboxymaltose)"
+       },
+       {
+        "group": "839386968",
+        "count": 178,
+        "n": 550,
+        "title": "Placebo (Normal Saline (NaCl 0.9%))"
+       }
+      ],
+      "analysis": {
+       "outcome_id": "258897606",
+       "param_type": "Hazard Ratio (HR)",
+       "param_value": "0.73",
+       "ci_lower": "0.59",
+       "ci_upper": "0.92",
+       "analysis_id": "129104165",
+       "groups": [
+        "839386967",
+        "839386968"
+       ],
+       "groups_description": "Full Analysis Set (FAS)"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": null,
+      "verdict": "BINDABLE",
+      "reason": null,
+      "named_by": [
+       "Heart-failure hospitalization"
+      ]
      }
     ]
    },
-   "g1_countable": false,
+   "g1_countable": true,
    "secondary_single": {
     "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
    },
-   "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
+   "agreement_with_comparator_row": "DISAGREE",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
    "scope_difference": null,
-   "blocker": "EXTRACTION:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "OR",
-     "effect": "0.55",
-     "lower": "0.44",
-     "upper": "0.70",
-     "events_t": 217,
-     "n_t": 558,
-     "events_c": 294,
-     "n_c": 550
-    },
-    "provenance": {
-     "meta_pmid": "39727669",
-     "location": {
-      "id": "diseases-12-00339-f003",
-      "kind": "figure",
-      "panel": null,
-      "row_label": "Ponikowski et al. 2020"
-     },
-     "digest": "75ce83549017b398f82619ad2c52f730d0907c344452158a5e7dff10a3b28ac3",
-     "read": "MODEL_PROPOSAL_DUAL:mc-0c1c4f448cda373693c4459d8724c26e+mc-bad469684ba6aee08c1e9ef5c42a6085",
-     "row_label": "Ponikowski et al. 2020"
-    }
-   }
+   "blocker": null,
+   "matched_by": "ACQUIRED_PRIMARY",
+   "acquired": {
+    "kind": "AACT",
+    "source": "AACT AACT 2026-08-30 NCT02937454 outcome 258897606",
+    "span": "HF Hospitalisations: groups [(142, 558), (178, 550)]",
+    "quote": "\"outcome_id\": \"258897606\",\n\"type\": \"OTHER_PRE_SPECIFIED\",\n\"title\": \"HF Hospitalisations\",\n\"time_frame\": \"up to 52 weeks after randomisation\",\n\"groups\": [\n{\n\"group\": \"839386967\",\n\"title\": \"FCM (Ferric Carboxymaltose)\",\n\"count\": 142,\n\"n\": 558\n},\n{\n\"group\": \"839386968\",\n\"title\": \"Placebo (Normal Saline (NaCl 0.9%))\",\n\"count\": 178,\n\"n\": 550\n}\n]",
+    "record_id": "mc-51e85b6e509bad6512e6b98fd2ba719a",
+    "promoted_from": null
+   },
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "FAIR-HF [20]",
@@ -511,14 +679,29 @@
   }
  ],
  "per_trial_agreement": {
+  "AGREE": 1,
+  "DISAGREE": 1,
   "NOT_COMPARABLE:HR_VS_OR": 1
  },
  "same_trials": {
-  "state": "MEASURE_DIFFERENCE",
-  "k": 1,
+  "state": "POOLED",
+  "k": 2,
+  "measure": "OR",
+  "method": "PM",
+  "ours": {
+   "estimate": 0.8073,
+   "ci_low": 0.6687,
+   "ci_high": 0.9747
+  },
+  "theirs": {
+   "estimate": 0.6962,
+   "ci_low": 0.4443,
+   "ci_high": 1.091
+  },
   "verdict": {
-   "verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
-   "basis": "our verified values are HRs; the comparator pooled a ratio of risks/odds: never converted"
+   "verdict": "DIFFERENT_CONCLUSION",
+   "ours": "BENEFIT",
+   "theirs": "NULL_INCLUDED"
   },
   "measure_differences": [
    {
@@ -540,7 +723,61 @@
    }
   ],
   "method_basis": "comparator positive control not reproduced: PM default",
-  "excluded_named_scope_differences": []
+  "excluded_named_scope_differences": [],
+  "attribution": {
+   "basis": "single-trial swaps of the same-trials pools (same method, same verdict rule)",
+   "drivers": [],
+   "per_trial": [
+    {
+     "trial": "CONFIRM-HF [2]",
+     "row_agreement": "NOT_COMPARABLE:HR_VS_OR",
+     "analysis_set": null,
+     "comparator_row_nearest_set": null,
+     "disagreement_side": null,
+     "driver": false,
+     "theirs_with_our_row": null,
+     "theirs_with_our_row_conclusion": null,
+     "theirs_with_our_row_pool": null,
+     "ours_with_their_row": null,
+     "ours_with_their_row_conclusion": null,
+     "ours_with_their_row_pool": null
+    },
+    {
+     "trial": "HEART-FID [11]",
+     "row_agreement": "AGREE",
+     "analysis_set": null,
+     "comparator_row_nearest_set": null,
+     "disagreement_side": null,
+     "driver": false,
+     "theirs_with_our_row": null,
+     "theirs_with_our_row_conclusion": null,
+     "theirs_with_our_row_pool": null,
+     "ours_with_their_row": null,
+     "ours_with_their_row_conclusion": null,
+     "ours_with_their_row_pool": null
+    },
+    {
+     "trial": "AFFIRM-AHF [10]",
+     "row_agreement": "DISAGREE",
+     "analysis_set": null,
+     "comparator_row_nearest_set": null,
+     "disagreement_side": "SECONDARY_WRONG (the comparator's counts ['217', '294'] are the posted 'HF Hospitalisations' measurements in ['Events'], not participants; NCT02937454 outcome 258897602)",
+     "driver": false,
+     "theirs_with_our_row": null,
+     "theirs_with_our_row_conclusion": null,
+     "theirs_with_our_row_pool": null,
+     "ours_with_their_row": null,
+     "ours_with_their_row_conclusion": null,
+     "ours_with_their_row_pool": null
+    }
+   ],
+   "closed": false,
+   "resolution": {
+    "state": "UNRESOLVED",
+    "rows": [],
+    "why": "a driver's side is undetermined, or swapping drivers does not reach agreement"
+   }
+  }
  },
  "ours": {
   "k": 2,
@@ -560,7 +797,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "14fca27b029cbf1d6b4243f16b464eb758528577",
+   "commit": "22ecebedda863296a4ad0f541bfdcce3f76f8ffb",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -576,7 +813,7 @@
     "lower": "0.40",
     "upper": "0.88"
    },
-   "sha256": "a182b823687b5b31df468b2865d6c2781600ff451f3c5c11573e189d6512a218",
+   "sha256": "0e3c23740639afbf340e5efee3ce5b954df55078309341eec1a88eb45cedee2c",
    "rows": 5,
    "joined": 5
   }
@@ -634,7 +871,7 @@
   "methods": [
    "DL"
   ],
-  "where": "figure diseases-12-00339-f003 (g1/forest-reader 14fca27b0, dual-model)",
+  "where": "figure diseases-12-00339-f003 (g1/forest-reader 22ecebedd, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: nificantly reduced total HF hospitalizations, with an OR of 0.59 (95% CI: 0.40 to 0.88, p < 0.010; I2 = 78)",
   "pooled": {
    "effect": "0.59",
@@ -644,23 +881,52 @@
  },
  "comparator_orientation": {
   "state": "ESTABLISHED",
-  "why": "1 shared trial(s) on the same side of the null (CONFIRM-HF [2])"
+  "why": "1 shared trial(s) AGREE"
  },
- "k_independent": 1,
- "k_comparator_sourced": 4,
+ "k_independent": 3,
+ "k_comparator_sourced": 2,
  "k_covered": 5,
  "coverage_complete": true,
- "discrepancy_findings": [],
+ "discrepancy_findings": [
+  {
+   "trial": "AFFIRM-AHF [10]",
+   "kind": "OURS_VS_COMPARATOR_ROW",
+   "detail": "DISAGREE",
+   "ours": {
+    "measure": "RR",
+    "effect": null,
+    "lower": null,
+    "upper": null,
+    "events_t": 142,
+    "n_t": 558,
+    "events_c": 178,
+    "n_c": 550
+   },
+   "ours_source": "single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT02937454 outcome 258897606; model-read (record mc-51e85b6e509bad6512e6b98fd2ba719a), gate-verified (scripts/g1_trial_acquire.py)",
+   "comparator_row": {
+    "effect": "0.55",
+    "lower": "0.44",
+    "upper": "0.70",
+    "events_t": 217,
+    "n_t": 558,
+    "events_c": 294,
+    "n_c": 550,
+    "measure": "OR"
+   },
+   "side": "SECONDARY_WRONG (the comparator's counts ['217', '294'] are the posted 'HF Hospitalisations' measurements in ['Events'], not participants; NCT02937454 outcome 258897602)"
+  }
+ ],
  "g1_status": {
   "state": "NOT_YET",
   "criteria": {
    "ALL_ELIGIBLE_MATCHED": false,
    "MATCHED_ARE_VERIFIED": true,
-   "RESULT_AGREES": true,
+   "RESULT_AGREES": false,
    "DIVERGENCES_NAMED": true
   },
   "unmet": [
-   "ALL_ELIGIBLE_MATCHED"
+   "ALL_ELIGIBLE_MATCHED",
+   "RESULT_AGREES"
   ],
   "excluded_by_scope": {
    "n": 0,
@@ -668,7 +934,23 @@
    "by_kind": {},
    "trials": []
   },
-  "result_blocker": null
+  "result_blocker": {
+   "code": "RESULT_DIFFERS:DIFFERENT_CONCLUSION",
+   "verdict": {
+    "verdict": "DIFFERENT_CONCLUSION",
+    "ours": "BENEFIT",
+    "theirs": "NULL_INCLUDED"
+   },
+   "comparator_rows_contradicted_by_primary": [
+    "AFFIRM-AHF [10]"
+   ],
+   "note": "the comparator rows our primaries contradict are in the same-trials pool"
+  },
+  "result_disagreement": {
+   "state": "UNRESOLVED",
+   "rows": [],
+   "why": "a driver's side is undetermined, or swapping drivers does not reach agreement"
+  }
  },
  "removed_comparator_rows": [],
  "added_comparator_rows": []
