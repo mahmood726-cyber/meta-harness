@@ -75,6 +75,30 @@ def nct_hits(nct, run):
         return []
 
 
+def own_pmids(ts):
+    """Each trial's PMIDs minus those also listed for a trial of a DIFFERENT registration (a pooled analysis or shared
+    reference is never one trial's own report). Sharing within one registration (CORIMUNO-TOCI-1 / -ICU) is kept, so
+    the claimed-by-two refusal still sees it."""
+    regs = {}
+    for t in ts:
+        for p in set(t.get("pmids") or []):
+            regs.setdefault(p, set()).add(tuple(sorted(t.get("ncts") or [t["label"]])))
+    return [[p for p in (t.get("pmids") or []) if len(regs[p]) == 1] for t in ts]
+
+
+def settle(results):
+    """Several candidate reports of one trial: PRIMARY_VERIFIED only when every report that verified gives the SAME
+    counts; disagreement or none verified is recorded, never chosen between."""
+    key = ("events_t", "n_t", "events_c", "n_c")
+    ok = [r for r in results if r.get("state") == "PRIMARY_VERIFIED"]
+    vals = {tuple((r.get("value") or {}).get(k) for k in key) for r in ok}
+    if not ok:
+        return {"state": "NO_REPORT_VERIFIED:" + ",".join(sorted({str(r.get("state")).split(":")[0] for r in results}))}
+    if len(vals) > 1:
+        return {"state": "REPORTS_DISAGREE", "values": sorted(vals, key=str)}
+    return dict(ok[0], settled_by=f"VERIFIED_REPORTS_AGREE_{len(ok)}")
+
+
 def choose_report(slug, t, run, titles, pubtypes):
     """(pmid, basis) or (None, why): the ONE report whose title names the intervention; when several do, the ONE whose
     publication type is a randomised controlled trial (never a comment / letter / erratum / review / protocol)."""
@@ -104,7 +128,26 @@ def choose_report(slug, t, run, titles, pubtypes):
             return rct[0], basis + "+PUBTYPE_RCT"
     if len(cands) == 1:
         return cands[0], basis
+    t["_cands"] = cands
     return None, ("REPORT_NOT_FOUND" if not cands else f"REPORT_AMBIGUOUS:{cands[:6]}")
+
+
+MAX_CANDIDATES = 4
+
+
+def verify_many(slug, t, run, runs, titles, spec, chosen):
+    """An ambiguous choice of <= MAX_CANDIDATES reports: verify each, settle() by agreement."""
+    pmid, basis = chosen
+    if pmid or not basis.startswith("REPORT_AMBIGUOUS"):
+        return verify(slug, t, run, runs, titles, spec, chosen)
+    cands = t.get("_cands") or []
+    if not cands or len(cands) > MAX_CANDIDATES:
+        return verify(slug, t, run, runs, titles, spec, chosen)
+    each = [verify(slug, t, run, runs, titles, spec, (p, "CANDIDATE")) for p in cands]
+    out = {"label": t["label"], "ncts": t.get("ncts"), "report_pmid": None, "report_basis": basis,
+           "candidates": each}
+    out.update(settle(each))
+    return out
 
 
 def verify(slug, t, run, runs, titles, spec, chosen):
@@ -148,6 +191,8 @@ def main(argv):
     pubtypes = prev.get("pubtypes") or {}
     with gfr.RunLock(RUNS) if run else _null():
         # SEQUENTIAL first: report choice and each report's record fetch (shared files); then the jobs in parallel
+        for t, own in zip(ts, own_pmids(ts)):
+            t["pmids"] = own
         chosen = [choose_report(slug, t, run, titles, pubtypes) for t in ts]
         # a report claimed by two trials is neither's own report: both become ambiguous
         claims = {}
@@ -156,11 +201,11 @@ def main(argv):
                 claims.setdefault(pm, []).append(t["label"])
         chosen = [(pm, b) if not pm or len(claims[pm]) == 1 else (None, f"REPORT_CLAIMED_BY_{len(claims[pm])}_TRIALS:{pm}")
                   for pm, b in chosen]
-        for pm, _ in chosen:
-            if pm:
-                smb._trial_text(slug, pm, run)
+        for (pm, b), t in zip(chosen, ts):
+            for p in ([pm] if pm else (t.get("_cands") or [])[:MAX_CANDIDATES] if b.startswith("REPORT_AMBIGUOUS") else []):
+                smb._trial_text(slug, p, run)
         with cf.ThreadPoolExecutor(max_workers=3) as ex:          # codex concurrency 3 (only the locator rung calls it)
-            res = list(ex.map(lambda tc: verify(slug, tc[0], run, runs, titles, spec, tc[1]), zip(ts, chosen)))
+            res = list(ex.map(lambda tc: verify_many(slug, tc[0], run, runs, titles, spec, tc[1]), zip(ts, chosen)))
         gfr._save(RUNS, runs)
     from collections import Counter
     out = {"slug": slug, "spec": {k: spec.get(k) for k in ("estimand", "timepoint")}, "titles": titles,
