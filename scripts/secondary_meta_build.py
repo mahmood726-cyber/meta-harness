@@ -334,7 +334,10 @@ def our_trials(slug):
     import k_gap_result_agreement as ra
     rev = cfm.build(slug)
     prim = next((o for o in rev["outcomes"] if o.get("primary")), {})
-    T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
+    import g1_tracker as _gt
+    # the identity chain's resolutions (acronym / author-year / REVIEW_REFERENCE_LIST ...) are families too: without
+    # them a resolved comparator unit (GISSI-HF via two metas' reference lists) could never take a meta row
+    T = _gt.with_identity_chain(_j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json")))
     rows = [r for r in T["trials"] if r["slug"] == slug]
     acr_nct, acr_pmid, nct_pmid = {}, {}, {}
     for r in rows:
@@ -505,8 +508,14 @@ def refs_of(pmid):
 
 def family_of_factory(ours):
     # a year glued to its acronym ('RALES2000', 'EPHESUS2003') is split before tokenising, or the acronym never leads
+    import unicodedata
+
+    def _fold(x):
+        # accents folded ('Alpérovitch' -> alperovitch), so an accented letter never splits a name into two tokens
+        return "".join(c for c in unicodedata.normalize("NFKD", k_gap.fold_dashes(str(x or ""))) if not unicodedata.combining(c))
+
     toks = lambda x: re.findall(r"[a-z0-9]+", re.sub(r"(?<=[a-z])(?=(?:19|20)\d\d\b)", " ",   # noqa: E731
-                                                       k_gap.fold_dashes(str(x or "")).lower()))
+                                                       _fold(x).lower()))
 
     def prefix(a, b):
         """a and b name the same trial when one's tokens lead the other's ('HARMONY' / 'Harmony Outcomes'), with a
@@ -518,18 +527,117 @@ def family_of_factory(ours):
         """the acronym as a contiguous run anywhere in the label ('Rosas (COVACTA)'), distinctive only"""
         return (len(n[0]) >= 4 or len(n) >= 2) and any(a[i:i + len(n)] == n for i in range(len(a) - len(n) + 1))
 
+    def core(label):
+        """(surname core, year) of an author label: tokens up to 'et al' / a reference number / the year, single-letter
+        initials dropped, spacing folded ('Helps et al52' -> helps; 'Mewton N-2019' -> mewton, 2019; 'Re faie 2005' ->
+        refaie). None unless it is a short (<= 3 token) name of >= 4 letters."""
+        tt = toks(label)
+        yr = next((m.group(0) for x in tt for m in [re.match(r"(?:19|20)\d\d", x)] if m), None)
+        name = []
+        for x in tt:
+            if x == "et" or x[0].isdigit() or re.fullmatch(r"al\d*", x):
+                break
+            if len(x) > 1:
+                name.append(x)
+        c = "".join(name)
+        return (c, yr) if 1 <= len(name) <= 3 and len(c) >= 4 else (None, yr)
+
+    def cores(label, forename_first=False):
+        """Every surname core a label can carry: as printed (accents folded), with non-ASCII letters DROPPED (a reader
+        that lost the 'ö' of 'Lönnermark' printed 'Lnnermark'), and -- for a row only -- each single name token
+        ('Mehdi Akrami-2012': forename first)."""
+        out = set()
+        for lab in (label, re.sub(r"[^\x00-\x7f]", "", str(label or ""))):
+            c, _ = core(lab)
+            if c:
+                out.add(c)
+            if forename_first:
+                tt = [x for x in toks(lab) if not x[0].isdigit()]
+                if len(tt) == 2 and all(len(x) >= 4 for x in tt):
+                    out |= set(tt)
+        return out
+
+    def acronym(label):
+        return bool(re.match(r"\s*[A-Z][A-Z0-9-]{3,}", str(label or "")))
+
+    def same_author(row_label, t_label):
+        # a comparator's trial list labelled 'Helps et al52' and its forest row 'Helps 2015' name one trial; never when
+        # both carry a year and the years differ ('Palomba 2004' / 'Palomba 2005a') -- except by ONE year for an
+        # all-caps acronym ('RALES2000' / 'RALES1999': an acronym names the trial, its year is a publication date)
+        ya, yb = core(row_label)[1], core(t_label)[1]
+        if ya and yb and ya != yb and not (abs(int(ya) - int(yb)) == 1 and acronym(row_label) and acronym(t_label)):
+            return False
+        return bool(cores(row_label, forename_first=True) & cores(t_label))
+
+    def compact(label):
+        """The label with spacing and punctuation gone and its trailing citation furniture removed -- reference numbers
+        glued or standalone ('SCALEMaintenance25,38', 'SURMOUNT-1 39'), a year (', 2013'), bracketed numbers -- so a
+        table cell that lost its spaces meets the figure row that kept them. A trial NUMBER stays ('STEP 8'): a
+        standalone trailing number is stripped only after another number."""
+        x = _fold(label)
+        x = re.sub(r"[\[(]\s*[\d,\s\u2013-]+\s*[\])]", " ", x)          # [12] (12) (19,20)
+        x = re.sub(r",?\s*(?:19|20)\d\d[a-z]?\b", " ", x)                    # a year
+        x = re.sub(r"(?<=[A-Za-z])\d+(?:,\d+)*\s*$", "", x.strip())          # glued ref numbers 'Maintenance25,38'
+        tt = x.split()
+        while len(tt) >= 2 and re.fullmatch(r"\d+(?:,\d+)*", tt[-1]) and re.search(r"\d$", tt[-2]):
+            tt.pop()                                                          # 'SURMOUNT-1 39' -> 'SURMOUNT-1'
+        c = re.sub(r"[^a-z0-9]", "", " ".join(tt).lower())
+        return c if len(c) >= 6 else None
+
+    def years_ok(row_label, t):
+        """the year rule of every tier: when both sides carry a year (the label's, else the entry's PMID year) they are
+        equal -- or one apart for an all-caps acronym; an author's year is never relaxed (Nagtegaal 1995 vs 1998)"""
+        ya = core(row_label)[1]
+        yb = core(t["label"])[1] or (t.get("author_year") or (None, None))[1]
+        if not (ya and yb) or ya == yb:
+            return True
+        return abs(int(ya) - int(yb)) == 1 and acronym(row_label) and acronym(t["label"])
+
+    def ay_hit(t, lt):
+        # the PMID's first author is accented ('garzón'); the row's tokens are folded ('garzon')
+        a = t.get("author_year")
+        sur = toks(a[0]) if a else []
+        return bool(sur) and sur[0] in lt and str(a[1]) in lt
+
     def family_of(row):
         lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))
         hits = {}
         for t in ours:
-            names = [toks(a) for a in t["acronyms"]] + ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
-            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or (t["author_year"] and t["author_year"][0] in lt and t["author_year"][1] in lt):
+            # a generic clinical abbreviation ('HFPEF', 'MACE') is never a trial's name: 'HFpEF' anywhere in a row joined
+            # it to DELIVER (k_gap's own label stop-list, applied to entries' acronyms too)
+            names = [toks(a) for a in t["acronyms"]
+                     if re.sub(r"[^A-Z0-9]", "", str(a).upper()) not in k_gap._NOT_ACRO] +                     ([toks(t["label"])] if t["label"] and not t["label"].isdigit() else [])
+            if any(n and (prefix(lt, n) or within(lt, n)) for n in names) or ay_hit(t, lt):
                 hits[t["id"]] = t
+        if not hits:
+            # FALLBACK tier only: the surname core never adds a hit to (and so never dilutes or overrides) a join the
+            # rules above already made ('Young [10]' / 'Young [17]' by their PMIDs' author-year, 4 Oct)
+            for t in ours:
+                yr = (t.get("author_year") or (None, None))[1]
+                if t["label"] and same_author(row.trial_label, t["label"] + (f" {yr}" if yr and not core(t["label"])[1] else "")):
+                    hits[t["id"]] = t
+        if not hits:
+            # last tier: the compact label (spacing lost in table extraction: 'SCALEMaintenance25,38'), unique or nothing
+            rc = compact(row.trial_label)
+            if rc:
+                hits = {t["id"]: t for t in ours if t["label"] and compact(t["label"]) == rc and years_ok(row.trial_label, t)}
+                if len(hits) > 1:
+                    return None
         if len(hits) > 1:
             # two trials share an acronym ('CORIMUNO' names CORIMUNO-TOCI-1 and CORIMUNO-TOCI-ICU): the ONE whose full
             # label tokens EQUAL the row's label wins; anything less stays ambiguous (None)
             exact = [i for i, t in hits.items() if t["label"] and toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", t["label"])) == lt]
-            return exact[0] if len(exact) == 1 else None
+            if len(exact) == 1:
+                return exact[0]
+            # a bare family acronym ('ODYSSEY') hits every trial of the family: the ONE label the row's tokens LEAD
+            # ('ODYSSEY FH II' -> 'ODYSSEY FH II NCT01709500') wins; anything less stays ambiguous
+            lead = [i for i, t in hits.items() if len(lt) >= 2 and t["label"] and toks(t["label"])[:len(lt)] == lt]
+            if len(lead) == 1:
+                return lead[0]
+            # the compact label breaks a tie the surname tier made ('SURMOUNT-1, 2022' hits SURMOUNT-1 and SURMOUNT-3)
+            rc = compact(row.trial_label)
+            same = [i for i, t in hits.items() if rc and t["label"] and compact(t["label"]) == rc and years_ok(row.trial_label, t)]
+            return same[0] if len(same) == 1 else None
         return next(iter(hits)) if len(hits) == 1 else None
     return family_of
 
@@ -563,6 +671,26 @@ def meta_timepoint(held):
 
 # ------------------------------------------------------------------ driver
 
+def normalize_measure(text):
+    """A forest read's measure wording as a typed measure. 'Fixed effect relative risk (95% CI)' is RR (it was left as
+    printed and refused as 'not the estimand RR'); a RATE ratio is IRR, never a ratio of risks; a STANDARDISED mean
+    difference is SMD, never MD. Unknown wording stays as printed (and is refused downstream)."""
+    m = (text or "").upper().strip()
+    if "HAZARD" in m or re.fullmatch(r"HRS?", m):
+        return "HR"
+    if "RATE RATIO" in m or "INCIDENCE RATE" in m or re.fullmatch(r"IRR", m):
+        return "IRR"
+    if "RISK RATIO" in m or "RELATIVE RISK" in m or re.fullmatch(r"RRS?", m) or re.match(r"RR\b", m):
+        return "RR"
+    if "ODDS" in m or re.fullmatch(r"ORS?", m) or re.match(r"OR\b", m):
+        return "OR"
+    if re.search(r"STD\.?\s*MEAN|STANDARDI[SZ]ED MEAN|\bSMD\b", m):
+        return "SMD"
+    if "MEAN" in m or m in ("MD", "WMD"):
+        return "MD"
+    return (text or "").upper().strip()
+
+
 def figure_rows(slug, it, run_r, spec, comp):
     """The rows of ONE recorded forest-plot read of a meta (secondary tier), through its deterministic gates: rows
     consistent, the pool printed in the meta's text (or, failing that, in the figure), and the rows reproducing it
@@ -582,9 +710,7 @@ def figure_rows(slug, it, run_r, spec, comp):
         g = fp.gate(resp, {"effect": fig_pool.get("effect"), "lower": fig_pool.get("lower"),
                            "upper": fig_pool.get("upper"), "k": None, "quote": None, "method": None}, it["held"])
         control_basis = "POOL_PRINTED_IN_FIGURE"
-    measure = (resp.get("measure") or "").upper().strip()
-    measure = "HR" if "HAZARD" in measure else "RR" if ("RISK R" in measure or measure == "RR") else \
-              "OR" if ("ODDS" in measure or measure == "OR") else "MD" if ("MEAN" in measure or measure in ("MD", "WMD")) else measure
+    measure = normalize_measure(resp.get("measure"))
     mrows = []
     for x in (g.get("rows") or []):
         pr = x.get("printed") or {}
@@ -596,15 +722,220 @@ def figure_rows(slug, it, run_r, spec, comp):
             outcome_definition=(it["figure"].get("panel_title") or it["figure"]["caption"])[:300],
             timepoint=meta_timepoint(it["held"]) if spec.get("core") else None,   # mortality/death outcomes only
             effect=pr.get("effect"), lower=pr.get("lower"), upper=pr.get("upper")))
-    pc = sm.positive_control(mrows, g["printed_pool"], measure) if g.get("printed_pool") and mrows else \
+    pc = sm.positive_control(mrows, g["printed_pool"], measure,
+                             stated_model=" ".join(str(resp.get(k) or "") for k in ("measure", "notes", "model"))) \
+        if g.get("printed_pool") and mrows else \
         {"reproduced": False, "why": "NO_PRINTED_POOL_IN_TEXT"}
     usable = g["state"] == "PASS" and pc["reproduced"]
     entry = {"figure": it["figure"]["fig_id"], "panel": it["figure"].get("panel"), "measure": measure,
                              "gate": g["state"], "gate_problems": g["problems"][:6], "positive_control": pc,
-                             "control_basis": control_basis,
+                             "control_basis": control_basis, "pooled": g.get("printed_pool"),
                              "rows_read": len(mrows), "usable": usable, "record_id": run_r["record_id"],
                              "is_comparator": it["pmid"] == comp}
     return (mrows if usable else []), entry
+
+
+_LANE_CACHE = {}
+
+
+def forest_lane_results(fmt="forest_reader_v1"):
+    """The forest-reader lane's committed output (outputs/k_gap/g1_comparator_rows.json lists the source): read from the
+    lane's branch at its CURRENT commit, pinned by that commit + the blob's sha256. Returns (parsed json, pin) or
+    (None, None) when the lane's branch or file is not reachable (fail closed: no rows)."""
+    import subprocess
+    if fmt in _LANE_CACHE:
+        return _LANE_CACHE[fmt]
+    sp = os.path.join(ROOT, "outputs", "k_gap", "g1_comparator_rows.json")
+    out = (None, None)
+    for src in (_j(sp) if os.path.exists(sp) else []):
+        if src.get("format") != fmt:
+            continue
+        try:
+            commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
+                                    text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
+            b = subprocess.run(["git", "show", f"{commit}:{src['path']}"], cwd=ROOT, capture_output=True,
+                               stdin=subprocess.DEVNULL, check=True).stdout
+        except (subprocess.CalledProcessError, OSError):
+            continue
+        out = (json.loads(b.decode("utf-8")), {"branch": src["branch"], "commit": commit, "path": src["path"],
+                                               "sha256": hashlib.sha256(b).hexdigest()})
+        break
+    _LANE_CACHE[fmt] = out
+    return out
+
+
+def as_finding(f):
+    """A row finding is a DICT across the harness ({'finding': CODE, ...}; readers call f.get). The forest-reader lane
+    writes them as strings ('ROW_CI_IS_99_PERCENT: ...'): typed here, at entry, so no reader meets a string."""
+    if isinstance(f, dict):
+        return f
+    code, _, detail = str(f).partition(":")
+    return {"finding": code.strip(), "detail": detail.strip() or None}
+
+
+def ci_level_refusal(d):
+    """A row whose meta prints its interval at a level other than 95% (omega-3 JAMA Cardiol: 99%) cannot enter a
+    95% pooling or a 95% comparison: row_yi_vi reads every interval at z = 1.96. Refused, typed; never rescaled."""
+    lv = str(d.get("ci_level") or "").strip().replace(" ", "")
+    return None if lv in ("", "95%", "95") else f"CI_LEVEL_{lv}_NOT_95"
+
+
+def forest_lane_metas(slug, comp, have):
+    """REVIEW_REFERENCE_LIST data side (Mahmood/captain decision 5 Oct): the forest-reader lane's DUAL-MODEL reads of
+    NON-comparator metas of this topic that the lane ACCEPTED (their rows reproduce the figure's own printed pool --
+    the meta's positive control). Only for a meta with no usable read of our own (`have`: never two reads of one meta).
+    The comparator is never taken here (its rows are comparator rows: lane_comparator_rows). Returns
+    (rows, metas_out entries)."""
+    d, pin = forest_lane_results()
+    if not d:
+        return [], {}
+    rows, metas = [], {}
+    for key, v in sorted((d.get("meta_results") or {}).items()):
+        if not key.startswith(slug + "::"):
+            continue
+        pmid = str(v.get("pmid") or key.split("::", 1)[1])
+        acc = v.get("acceptance") or {}
+        if pmid == str(comp) or pmid in have or v.get("role") == "comparator":
+            continue
+        if acc.get("state") != "ACCEPTED" or not acc.get("methods_reproducing"):
+            continue
+        fig = v.get("figure") or {}
+        mrows = []
+        for x in v.get("secondary_rows") or []:
+            r = sm.SecondaryRow(**{k: val for k, val in x.items() if k in sm.SecondaryRow.__dataclass_fields__})
+            r.measure = normalize_measure(r.measure) or r.measure
+            r.findings = [as_finding(f) for f in r.findings or []]
+            lv = ci_level_refusal(x)
+            if lv:
+                r.findings = r.findings + [as_finding(lv)]
+            r.location = dict(r.location or {}, lane=f"g1/forest-reader {pin['commit'][:9]}")
+            mrows.append((r, lv))
+        metas[pmid] = {"figure": fig.get("fig_id"), "panel": fig.get("panel"), "measure": normalize_measure(v.get("measure")),
+                       "provenance": "FOREST_READER_DUAL", "record_id": "+".join(sorted({str(x.get("provenance") or "")
+                                                                                         .split(":", 1)[-1] for x in v.get("secondary_rows") or []}))[:200],
+                       "positive_control": {"reproduced": True, "methods": acc.get("methods_reproducing"),
+                                            "recomputed": acc.get("recomputed"), "anchor": acc.get("pooled_anchor")},
+                       "control_basis": f"FOREST_READER_ACCEPTANCE ({str(acc.get('pooled_anchor') or '')[:60]})",
+                       "pooled": v.get("pooled_agreed"), "rows_read": len(mrows), "usable": True,
+                       "is_comparator": False, "lane": pin, "image_sha256": (v.get("image") or {}).get("sha256")}
+        rows += mrows
+    return rows, metas
+
+
+def settle_crosscheck_by_primary(rows, sources_of, terms, primary_of=None):
+    """Metas that DISAGREE on one trial (sm.cross_check blocked every row of it) are settled by the trial's OWN report,
+    deterministically: a blocked row whose exact printed numbers the typed matcher finds in the trial's held primary text
+    or posted results is PRIMARY_VERIFIED (the dissent recorded on it); a row the primary does not confirm stays BLOCKED.
+    Nothing is settled when no row matches -- the disagreement stands. colchicine-postop-af: three metas print
+    Tabbalat 2020 13/81 vs 13/71 (its report confirms), one prints 12/81; before this, the one dissenting read blocked the
+    three confirmed rows. Returns the number of rows settled."""
+    by = {}
+    for r in rows:
+        if r.state == sm.BLOCKED and any(str(x).startswith("CROSSCHECK_DISAGREES") for x in r.reasons):
+            by.setdefault(r.family_id, []).append(r)
+    n = 0
+    for fam, group in by.items():
+        src = sources_of(fam)
+        prim = primary_of(fam) if primary_of else None
+        if not src and not prim:
+            continue
+        hits = []
+        for r in group:
+            probe = sm.SecondaryRow(**{k: getattr(r, k) for k in sm.SecondaryRow.__dataclass_fields__})
+            probe.state, probe.reasons, probe.verification = sm.UNVERIFIED, [], None
+            if src:
+                sm.verify_typed(probe, src, terms)
+            if probe.state != sm.VERIFIED and prim:
+                # OUR extraction of the trial's own report (value + span), the same check every unblocked row gets
+                sm.verify_against_primary(probe, prim)
+            if probe.state == sm.VERIFIED:
+                hits.append((r, probe.verification))
+        # settled now, or by an earlier pass (typed text) whose dissenters are still waiting for their comparison
+        earlier = sorted({r.meta_pmid for r in rows if r.family_id == fam and r.state == sm.VERIFIED
+                          and (r.verification or {}).get("crosscheck_settled_by_primary")})
+        if not hits and not earlier:
+            continue
+        dissent = sorted({r.meta_pmid for r in group if all(r is not h for h, _ in hits)})
+        for r, v in hits:
+            r.state = sm.VERIFIED
+            r.reasons = [x for x in r.reasons if not str(x).startswith("CROSSCHECK_DISAGREES")]
+            r.verification = dict(v, crosscheck_settled_by_primary=True, dissenting_metas=dissent)
+            n += 1
+        confirmed = sorted({h.meta_pmid for h, _ in hits} | set(earlier))
+        for r in group:
+            if any(r is h for h, _ in hits):
+                continue
+            if not any(f.get("finding") == "DISSENTS_FROM_PRIMARY" for f in r.findings or [] if isinstance(f, dict)):
+                r.findings = list(r.findings or []) + [{"finding": "DISSENTS_FROM_PRIMARY",
+                                                        "detail": "the trial's own report confirms another meta's "
+                                                                  "value, not this row's",
+                                                        "confirmed_metas": confirmed}]
+            if prim:
+                # the dissenting row gets the comparison with the trial's report it would have had unblocked: a
+                # MISMATCH carries the side the evidence points to (PIONEER 6: the comparator prints 0.57-1.10, the
+                # report 0.57-1.11) -- what DIVERGENCES_NAMED reads
+                probe = sm.SecondaryRow(**{k: getattr(r, k) for k in sm.SecondaryRow.__dataclass_fields__})
+                probe.state, probe.reasons, probe.verification = sm.UNVERIFIED, [], None
+                sm.verify_against_primary(probe, prim)
+                if probe.state == sm.MISMATCH:
+                    r.state, r.verification = sm.MISMATCH, dict(probe.verification, crosscheck_settled_by_primary=True)
+    return n
+
+
+def row_identity_family(m, ours):
+    """One identity-map record -> ONE of our families, or None: its tracker family when that is one of ours, else the
+    single entry whose PMID / NCT / exact label the map gives. Several candidates -> None (never guessed)."""
+    ids = {str(t["id"]) for t in ours}
+    if str(m.get("tracker_family") or "") in ids:
+        return str(m["tracker_family"])
+    hit = {str(t["id"]) for t in ours
+           if (m.get("pmid") and str(t.get("pmid")) == str(m["pmid"])) or (m.get("nct") and t.get("nct") == m["nct"])
+           or (m.get("comparator_label") and t.get("label") == m["comparator_label"])}
+    return hit.pop() if len(hit) == 1 else None
+
+
+def with_row_identity(slug, ours, family_of):
+    """The build's family join, then -- only where it finds nothing -- the forest-reader lane's ROW IDENTITY MAP for the
+    same meta + row label (each row resolved through that meta's own reference list or the tracker's ids; ambiguity
+    recorded there and never guessed). probiotics 24348885 'Gao et al.13': no label join, a reference-number join."""
+    idm, _pin = forest_lane_results("forest_row_identity_v1")
+    idx = {}
+    for m in (idm or {}).get("rows") or []:
+        if m.get("slug") == slug and m.get("mapped"):
+            idx.setdefault((str(m.get("meta_pmid")), m.get("row_label")), []).append(m)
+
+    def fam(row):
+        f = family_of(row)
+        if f:
+            return f
+        ms_ = idx.get((str(row.meta_pmid), row.trial_label)) or []
+        got = {row_identity_family(m, ours) for m in ms_} - {None}
+        return got.pop() if len(got) == 1 else None
+    return fam
+
+
+def reference_list_identification(slug, label):
+    """How a comparator-listed trial ENTERED our candidate set (REVIEW_REFERENCE_LIST, Cochrane Handbook: reference lists
+    of related reviews are a standard identification source): the comparator meta, the location of the unit in its
+    trial list, and the digest of the bytes it was read from. Identification only -- never eligibility evidence, never
+    data."""
+    T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
+    t = next((x for x in T["trials"] if x["slug"] == slug and x["label"] == label), None)
+    if not t:
+        return None
+    tp = next((x for x in T.get("topics") or [] if x.get("slug") == slug), {})
+    held = tp.get("held_text") or {}
+    ref = str(held.get("ref") or "").split("#", 1)[0] if isinstance(held, dict) else ""
+    fp_ = os.path.join(ROOT, ref) if ref else ""
+    dig = None
+    if fp_ and os.path.isfile(fp_):
+        with open(fp_, "rb") as fh:
+            dig = hashlib.sha256(fh.read()).hexdigest()
+    return {"route": "REVIEW_REFERENCE_LIST", "source_meta": t.get("comparator_pmid"),
+            "location": {"unit_source": t.get("unit_source"), "table": t.get("table"), "layout": t.get("layout"),
+                         "label": t["label"], "context": (t.get("context") or "")[:200]},
+            "held_ref": ref or None, "digest": dig,
+            "proposal": t.get("table") if str(t.get("table") or "").startswith("proposal:") else None}
 
 
 def build(slug, run, runs):
@@ -636,7 +967,7 @@ def build(slug, run, runs):
                 print(r["key"], r["state"], r["record_id"], flush=True)
     ours = our_trials(slug)
     registry_state = ensure_registry([t["nct"] for t in ours if t.get("nct")])
-    fam = family_of_factory(ours)
+    fam = with_row_identity(slug, ours, family_of_factory(ours))
     rows, metas_out = [], {}
     for pmid, t in typed.items():
         metas_out[pmid] = {"table": t["table_id"], "measure": t["measure"], "provenance": "TYPED_TABLE",
@@ -654,34 +985,17 @@ def build(slug, run, runs):
         mrows, metas_out[it["pmid"]] = figure_rows(slug, it, run_r, spec, comp)
         for r in mrows:
             rows.append(sm.admit(r, spec, fam))
-    # DUAL-MODEL figure rows (scripts/g1_forest_reader.py; its replayed output, no model here): a meta whose own route
-    # above gave no usable row contributes the rows two model families (codex + agy) agreed on, from a figure whose
-    # printed pool the meta's STATED model reproduced from those rows. They are the meta's own numbers -- SECONDARY,
-    # verified like any row below, and never counted toward G1 agreement with that meta (sm.g1_countable).
-    import g1_forest_reader as gfr
-    dual = {}
-    for d in gfr.accepted_rows(slug):
-        dual.setdefault(d["meta_pmid"], []).append(d)
-    for pm, ds in sorted(dual.items()):
-        if (metas_out.get(pm) or {}).get("usable"):
-            continue
-        # the timepoint the FIGURE's own caption states ('28-Day All-Cause Mortality in Each Trial', REACT) is the most
-        # specific statement of it; else, as for every figure row, the meta's text for a core (mortality) outcome
-        tp_text = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
-        for d in ds:
-            r = sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
-            r.timepoint = meta_timepoint(r.outcome_definition) or tp_text
-            rows.append(sm.admit(r, spec, fam))
-        metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
-                         "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
-                         "rows_read": len(ds), "record_ids": ds[0]["provenance"].split(":", 1)[1].split("+"),
-                         # a SECOND_SOURCE_ONLY figure (no printed pool) did NOT self-reproduce: say so (decision 5 Oct)
-                         "positive_control": ({"reproduced": False, "why": sm.POOL_UNCHECKABLE,
-                                               "basis": "g1_forest_reader: rows agreed, no printed pooled row"}
-                                              if any(sm.pool_uncheckable(r) for r in rows if r.meta_pmid == pm) else
-                                              {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"}),
-                         "is_comparator": pm == comp, "earlier_route": metas_out.get(pm) or skipped.get(pm)}
-        skipped.pop(pm, None)
+    # the forest-reader lane's ACCEPTED dual reads of other metas of this topic, through the SAME admission and the
+    # same verification below; a row printed at a non-95% level is refused (typed), never rescaled
+    have = {m for m, e in metas_out.items() if e.get("usable")}
+    lrows, lmetas = forest_lane_metas(slug, comp, have)
+    metas_out.update(lmetas)
+    for r, lv in lrows:
+        r = sm.admit(r, spec, fam)
+        if lv:
+            r.reasons = list(r.reasons) + [lv]
+            r.state = sm.REFUSED
+        rows.append(r)
     sm.consolidate(rows)
     sm.cross_check(rows)
     by_id = {t["id"]: t for t in ours}
@@ -698,6 +1012,9 @@ def build(slug, run, runs):
             pid = r.family_id[5:]
             sm.verify_typed(r, primary_sources(slug, pid, nct_of.get(r.family_id)), terms)
             typed_n += r.state == sm.VERIFIED
+    typed_n += settle_crosscheck_by_primary(
+        rows, lambda fam: primary_sources(slug, fam[5:], nct_of.get(fam)) if str(fam or "").startswith("PMID ") else [],
+        terms)
     typed_secs = round(_time.time() - _t0, 2)
     tried = {}
     for r in rows:
@@ -730,6 +1047,10 @@ def build(slug, run, runs):
                         sm.verify_against_primary(r, prim2, queue_reason=f"NO_PRIMARY:{how2}")
                     else:
                         r.verification = dict(v, queue_reason=v.get("queue_reason", "") + f" | {want}:{how2}")
+    # a disagreement the typed text could not settle may still be settled by OUR extraction of the trial's own report
+    # (held value + span only: no new extraction is made for a blocked row)
+    settle_crosscheck_by_primary(rows, lambda fam: [], terms,
+                                 primary_of=lambda fam: (by_id.get(fam) or {}).get("primary"))
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
     # every meta that contributed a row is a KNOWN meta of the topic (incl. dual-read metas beyond the search's top N):

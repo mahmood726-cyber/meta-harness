@@ -1,0 +1,201 @@
+{
+ "caller": {
+  "file": "scripts/secondary_meta_build.py",
+  "line": "read_one",
+  "purpose": "secondary-tier forest read tocilizumab-covid19-mortality meta 33422642 (acq/k-gap lane)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-i",
+   "<workdir>\\image_0.jpg",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a10983-a433-7a12-882c-1ca14d40b537",
+   "tokens used": "7,981"
+  },
+  "lane_log": "registry/model_calls/lane_log/unattributed.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "stderr_bytes": 4774,
+  "stderr_sha256": "b2e4872cbc3c6336441ba530e3801d6557300da3ded20b41cff5d47ac3aa80a8",
+  "stdout_bytes": 3405,
+  "stdout_sha256": "9ac5a629876e1aac8146757f6052243974b995267a6a7e0ce494b93161730d4d",
+  "tokens_used": 7981,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "2356650982f27be4e0916f1d6912ae8ffd331f4901159f1300615deeeef6cfd5"
+ },
+ "input_digests": [
+  {
+   "ref": "cache/comparators/33422642/2026-09-29_kgap_gr2_lrg.jpg",
+   "sha256": "4e1a666c55f8f0f3c7928dbb4801d04cb8c6b4aea16d09ba5948fded2d8a2928",
+   "what": "secondary meta forest-plot figure attached with -i"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "dbdf1d1c3ca163d63a7f23903e878d67d137cd3fa7e64013fb6c740b58ad40c6",
+   "what": "JSON schema the client constrains the final message to"
+  },
+  {
+   "ref": "attached image_0",
+   "sha256": "4e1a666c55f8f0f3c7928dbb4801d04cb8c6b4aea16d09ba5948fded2d8a2928",
+   "what": "image attached with -i (copied into the work dir)"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "attached_images_sha256": [
+   "4e1a666c55f8f0f3c7928dbb4801d04cb8c6b4aea16d09ba5948fded2d8a2928"
+  ],
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "legible": {
+     "type": "boolean"
+    },
+    "measure": {
+     "type": "string"
+    },
+    "notes": {
+     "type": "string"
+    },
+    "pooled": {
+     "additionalProperties": false,
+     "properties": {
+      "effect": {
+       "type": "string"
+      },
+      "lower": {
+       "type": "string"
+      },
+      "upper": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "effect",
+      "lower",
+      "upper"
+     ],
+     "type": "object"
+    },
+    "rows": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "effect": {
+        "type": "string"
+       },
+       "label": {
+        "type": "string"
+       },
+       "lower": {
+        "type": "string"
+       },
+       "upper": {
+        "type": "string"
+       },
+       "weight_pct": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "label",
+       "effect",
+       "lower",
+       "upper",
+       "weight_pct"
+      ],
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "legible",
+    "measure",
+    "rows",
+    "pooled",
+    "notes"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "image_0": "4e1a666c55f8f0f3c7928dbb4801d04cb8c6b4aea16d09ba5948fded2d8a2928",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "WW91IGFyZSByZWFkaW5nIE9ORSBmb3Jlc3QtcGxvdCBmaWd1cmUgZnJvbSBhIHB1Ymxpc2hlZCBtZXRhLWFuYWx5c2lzLiBUcmFuc2NyaWJlIHdoYXQgaXMgUFJJTlRFRDsgZG8gbm90CmNvbXB1dGUsIGluZmVyLCByb3VuZCBvciBjb3JyZWN0IGFueXRoaW5nLgoKLSBGb3IgZXZlcnkgc3R1ZHkgcm93LCBpbiB0aGUgb3JkZXIgcHJpbnRlZDogdGhlIHN0dWR5IGxhYmVsIGV4YWN0bHkgYXMgcHJpbnRlZCwgYW5kIHRoZSBwb2ludCBlc3RpbWF0ZSBhbmQgdGhlIGxvd2VyCiAgYW5kIHVwcGVyIGNvbmZpZGVuY2UgbGltaXRzIGV4YWN0bHkgYXMgcHJpbnRlZCBpbiB0aGUgbnVtZXJpYyBjb2x1bW4gKHNhbWUgZGVjaW1hbHMpLiBHaXZlIHRoZSB3ZWlnaHQgaW4gcGVyY2VudAogIGlmIGl0IGlzIHByaW50ZWQsIGVsc2UgbnVsbC4KLSBHaXZlIHRoZSBwb29sZWQgKG92ZXJhbGwgLyBzdW1tYXJ5IC8gZGlhbW9uZCkgcm93J3MgcHJpbnRlZCBlc3RpbWF0ZSBhbmQgbGltaXRzIHRoZSBzYW1lIHdheS4KLSBtZWFzdXJlOiB0aGUgZWZmZWN0IG1lYXN1cmUgdGhlIGZpZ3VyZSBzdGF0ZXMgKGUuZy4gSFIsIFJSLCBPUikuCi0gSWYgdGhlIG51bWVyaWMgY29sdW1uIGlzIG5vdCBwcmludGVkIG9yIGlzIHVucmVhZGFibGUsIHNldCBsZWdpYmxlPWZhbHNlIGFuZCBsZWF2ZSByb3dzIGVtcHR5LiBOZXZlciBlc3RpbWF0ZSBhCiAgdmFsdWUgZnJvbSB0aGUgcG9zaXRpb24gb2YgYSBtYXJrZXIuCi0gbm90ZXM6IGFueXRoaW5nIGEgY2hlY2tlciBuZWVkcyAoZS5nLiB0d28gcG9vbGVkIHJvd3MgcHJpbnRlZDsgd2hpY2ggb25lIHlvdSBnYXZlKS4KCkZJR1VSRSBDQVBUSU9OIChmcm9tIHRoZSBhcnRpY2xlKTogQS4gRm9yZXN0IHBsb3Qgb2YgbWVhbiB0aW1lIHRvIGNsaW5pY2FsIGltcHJvdmVtZW50LiBCLiBGb3Jlc3QgcGxvdCBvZiByZWNvdmVyaWVzLiBDLiBGb3Jlc3QgcGxvdCBvZiBkaXNjaGFyZ2VzIGZyb20gaG9zcGl0YWwuIEQuIEZvcmVzdCBwbG90IG9mIGRlYXRocy4gRS4gRm9yZXN0IHBsb3Qgb2YgYW55IHNlcmlvdXMgYWR2ZXJzZSBldmVudHMuIEYuIEZvcmVzdCBwbG90IG9mIGFueSBhZHZlcnNlIGV2ZW50cy4K",
+  "bytes": 1089,
+  "sha256": "95239efd79116cae06e947ab395375b43932e071b3f64e93aa5b38eac5989f62"
+ },
+ "record_id": "mc-3d6630ae1dd1c2fef128841bf6a347b8",
+ "request_utc": "2026-10-05T00:42:59Z",
+ "response": {
+  "b64": "ewogICJsZWdpYmxlIjogdHJ1ZSwKICAibWVhc3VyZSI6ICJBOiBTdGQuIE1lYW4gRGlmZmVyZW5jZTsgQuKAk0Y6IFJpc2sgRGlmZmVyZW5jZSIsCiAgIm5vdGVzIjogIlNpeCBwYW5lbHMuIFJvd3MgYXJlIGdyb3VwZWQgaW4gcHJpbnRlZCBvcmRlcjogQSAocm93cyAx4oCTMyksIEIgKDTigJM2KSwgQyAoN+KAkzkpLCBEICgxMOKAkzEzKSwgRSAoMTTigJMxNiksIEYgKDE34oCTMTkpLiBUaGUgcG9vbGVkIG9iamVjdCBnaXZlcyBwYW5lbCBBLiBPdGhlciBwcmludGVkIHBvb2xlZCBlc3RpbWF0ZXMgW2xvd2VyOyB1cHBlcl06IEI6IDAuMDcgWzAuMDU7IDAuMDhdOyBDOiAwLjA3IFswLjAzOyAwLjExXTsgRDogLTAuMDEgWy0wLjAzOyAwLjAxXTsgRTogLTAuMDUgWy0wLjEwOyAtMC4wMV07IEY6IDAuMDEgWy0wLjE3OyAwLjE5XS4gRWFjaCBwb29sZWQgd2VpZ2h0IGlzIDEwMC4wJS4gU2VwYXJhdGUgcHJlZGljdGlvbiBpbnRlcnZhbHMgYXJlIGFsc28gcHJpbnRlZDogQSBbLTguNTI7IDYuOTJdOyBCIFswLjAzOyAwLjEwXTsgQyBbLTAuMDY7IDAuMjBdOyBEIFstMC4wMzsgMC4wMl07IEUgWy0wLjE5OyAwLjA4XTsgRiBbLTAuOTA7IDAuOTJdLiIsCiAgInBvb2xlZCI6IHsKICAgICJlZmZlY3QiOiAiLTAuODAiLAogICAgImxvd2VyIjogIi0yLjEyIiwKICAgICJ1cHBlciI6ICIwLjUzIgogIH0sCiAgInJvd3MiOiBbCiAgICB7CiAgICAgICJsYWJlbCI6ICJXYW5nLCAyMDIwIiwKICAgICAgImVmZmVjdCI6ICItMC41NCIsCiAgICAgICJsb3dlciI6ICItMC44MSIsCiAgICAgICJ1cHBlciI6ICItMC4yNiIsCiAgICAgICJ3ZWlnaHRfcGN0IjogIjMyLjMiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiQmVpZ2VsLCAyMDIwIiwKICAgICAgImVmZmVjdCI6ICItMS40MCIsCiAgICAgICJsb3dlciI6ICItMS41NCIsCiAgICAgICJ1cHBlciI6ICItMS4yNyIsCiAgICAgICJ3ZWlnaHRfcGN0IjogIjM0LjAiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiU3Bpbm5lciwgMjAyMCIsCiAgICAgICJlZmZlY3QiOiAiLTAuNDQiLAogICAgICAibG93ZXIiOiAiLTAuNjEiLAogICAgICAidXBwZXIiOiAiLTAuMjciLAogICAgICAid2VpZ2h0X3BjdCI6ICIzMy43IgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIldhbmcsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIjAuMDciLAogICAgICAibG93ZXIiOiAiLTAuMDYiLAogICAgICAidXBwZXIiOiAiMC4yMCIsCiAgICAgICJ3ZWlnaHRfcGN0IjogIjguNCIKICAgIH0sCiAgICB7CiAgICAgICJsYWJlbCI6ICJCZWlnZWwsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIjAuMDYiLAogICAgICAibG93ZXIiOiAiMC4wMSIsCiAgICAgICJ1cHBlciI6ICIwLjEyIiwKICAgICAgIndlaWdodF9wY3QiOiAiNDcuMyIKICAgIH0sCiAgICB7CiAgICAgICJsYWJlbCI6ICJTcGlubmVyLCAyMDIwIiwKICAgICAgImVmZmVjdCI6ICIwLjA3IiwKICAgICAgImxvd2VyIjogIjAuMDEiLAogICAgICAidXBwZXIiOiAiMC4xMyIsCiAgICAgICJ3ZWlnaHRfcGN0IjogIjQ0LjMiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiV2FuZywgMjAyMCIsCiAgICAgICJlZmZlY3QiOiAiMC4wMyIsCiAgICAgICJsb3dlciI6ICItMC4xMSIsCiAgICAgICJ1cHBlciI6ICIwLjE2IiwKICAgICAgIndlaWdodF9wY3QiOiAiOC44IgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIkJlaWdlbCwgMjAyMCIsCiAgICAgICJlZmZlY3QiOiAiMC4wOCIsCiAgICAgICJsb3dlciI6ICIwLjAyIiwKICAgICAgInVwcGVyIjogIjAuMTQiLAogICAgICAid2VpZ2h0X3BjdCI6ICI0Ny40IgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIlNwaW5uZXIsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIjAuMDciLAogICAgICAibG93ZXIiOiAiMC4wMSIsCiAgICAgICJ1cHBlciI6ICIwLjEzIiwKICAgICAgIndlaWdodF9wY3QiOiAiNDMuOCIKICAgIH0sCiAgICB7CiAgICAgICJsYWJlbCI6ICJXYW5nLCAyMDIwIiwKICAgICAgImVmZmVjdCI6ICIwLjAyIiwKICAgICAgImxvd2VyIjogIi0wLjA4IiwKICAgICAgInVwcGVyIjogIjAuMTEiLAogICAgICAid2VpZ2h0X3BjdCI6ICIxLjgiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiQmVpZ2VsLCAyMDIwIiwKICAgICAgImVmZmVjdCI6ICItMC4wNCIsCiAgICAgICJsb3dlciI6ICItMC4wOCIsCiAgICAgICJ1cHBlciI6ICIwLjAwIiwKICAgICAgIndlaWdodF9wY3QiOiAiOS44IgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIlNwaW5uZXIsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIi0wLjAxIiwKICAgICAgImxvd2VyIjogIi0wLjAzIiwKICAgICAgInVwcGVyIjogIjAuMDIiLAogICAgICAid2VpZ2h0X3BjdCI6ICIzMS40IgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIlBhbiAoU29saWRhcml0eSksIDIwMjAiLAogICAgICAiZWZmZWN0IjogIi0wLjAwIiwKICAgICAgImxvd2VyIjogIi0wLjAyIiwKICAgICAgInVwcGVyIjogIjAuMDEiLAogICAgICAid2VpZ2h0X3BjdCI6ICI1Ny4wIgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIldhbmcsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIi0wLjA4IiwKICAgICAgImxvd2VyIjogIi0wLjE5IiwKICAgICAgInVwcGVyIjogIjAuMDQiLAogICAgICAid2VpZ2h0X3BjdCI6ICI4LjUiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiQmVpZ2VsLCAyMDIwIiwKICAgICAgImVmZmVjdCI6ICItMC4wNyIsCiAgICAgICJsb3dlciI6ICItMC4xMiIsCiAgICAgICJ1cHBlciI6ICItMC4wMiIsCiAgICAgICJ3ZWlnaHRfcGN0IjogIjM3LjUiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiU3Bpbm5lciwgMjAyMCIsCiAgICAgICJlZmZlY3QiOiAiLTAuMDQiLAogICAgICAibG93ZXIiOiAiLTAuMDkiLAogICAgICAidXBwZXIiOiAiMC4wMCIsCiAgICAgICJ3ZWlnaHRfcGN0IjogIjU0LjEiCiAgICB9LAogICAgewogICAgICAibGFiZWwiOiAiV2FuZywgMjAyMCIsCiAgICAgICJlZmZlY3QiOiAiMC4wMiIsCiAgICAgICJsb3dlciI6ICItMC4xMSIsCiAgICAgICJ1cHBlciI6ICIwLjE1IiwKICAgICAgIndlaWdodF9wY3QiOiAiMjMuMiIKICAgIH0sCiAgICB7CiAgICAgICJsYWJlbCI6ICJCZWlnZWwsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIi0wLjA1IiwKICAgICAgImxvd2VyIjogIi0wLjExIiwKICAgICAgInVwcGVyIjogIjAuMDEiLAogICAgICAid2VpZ2h0X3BjdCI6ICI0Mi40IgogICAgfSwKICAgIHsKICAgICAgImxhYmVsIjogIlNwaW5uZXIsIDIwMjAiLAogICAgICAiZWZmZWN0IjogIjAuMDgiLAogICAgICAibG93ZXIiOiAiMC4wMCIsCiAgICAgICJ1cHBlciI6ICIwLjE3IiwKICAgICAgIndlaWdodF9wY3QiOiAiMzQuNCIKICAgIH0KICBdCn0=",
+  "bytes": 3404,
+  "sha256": "258e66e63a361180962b9171667306e7df7feaca78e0693abb65eade75c6707e"
+ },
+ "response_utc": "2026-10-05T00:43:57Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

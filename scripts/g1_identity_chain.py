@@ -32,9 +32,207 @@ NOT_A_REPORT = re.compile(r"\bprotocol\b|rationale and design|\bdesign and ratio
                           r"\bbaseline characteristics\b|\bstudy design\b", re.I)
 
 
+def k_gap_fold(x):
+    from kgap import k_gap as _kg
+    return _kg.fold_dashes(str(x or ""))
+
+
 def _j(p):
     with open(p, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+_STOP = {"and", "of", "the", "in", "for", "with", "on", "a", "an", "to", "or", "by", "at", "after", "versus", "vs"}
+
+
+def spells_out(acr, text, max_skip=3):
+    """Does TEXT spell the acronym out? In order, each acronym letter taken from a word-start prefix of a CAPITALISED
+    word ('Randomized ALdactone Evaluation Study' -> RALES), at most `max_skip` words skipped between two used words
+    (EPHESUS skips 'Acute Myocardial Infarction'), at least 3 words used. Lower-case words are never used: a sentence-case
+    title can spell almost anything."""
+    a = re.sub(r"[^A-Z]", "", (acr or "").upper())
+    words = re.findall(r"[A-Za-z]+", text or "")
+    if len(a) < 4 or not words:
+        return False
+
+    def go(ai, wi, used, skipped):
+        if ai == len(a):
+            return used >= 3
+        for j in range(wi, len(words)):
+            if used and j - wi > max_skip:
+                return False
+            w = words[j]
+            if w[0].isupper() and w[0].upper() == a[ai]:
+                for k in range(min(len(w), len(a) - ai), 0, -1):
+                    if w[:k].upper() == a[ai:ai + k] and go(ai + k, j + 1, used + 1, 0):
+                        return True
+            if not used and j - wi > 40:
+                return False
+        return False
+    return go(0, 0, 0, 0)
+
+
+def expansion_hits(acr, titles):
+    """PMIDs whose title or study-group CollectiveName spells the acronym out. titles: {pmid: (title, collective)}."""
+    return sorted(p for p, (ti, co) in titles.items() if spells_out(acr, ti) or spells_out(acr, co))
+
+
+def comment_target(rec):
+    """The article a Letter / Comment record comments on (PubMed CommentOn), when it is ONLY a letter / comment and
+    links exactly one; else None."""
+    pt = set(rec.get("pubtypes") or [])
+    if not pt & {"Letter", "Comment", "Editorial"} or pt & {"Randomized Controlled Trial", "Clinical Trial"}:
+        return None
+    on = rec.get("comment_on") or []
+    return on[0] if len(on) == 1 else None
+
+
+def pubmed_records(pmids, offline):
+    """PMID -> {title, collective, pubtypes, comment_on} from PubMed efetch XML; cached in outputs/k_gap/
+    pubmed_records_identity.json so a rerun replays them (a failed fetch is never cached)."""
+    import xml.etree.ElementTree as ET
+    cp = os.path.join(OUT, "pubmed_records_identity.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    todo = [] if offline else sorted({p for p in pmids if p and str(p).isdigit() and p not in cache})
+    if todo:
+        from harness import http
+        for i in range(0, len(todo), 100):
+            chunk = todo[i:i + 100]
+            try:
+                body = http.get_text("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                                     {"db": "pubmed", "id": ",".join(chunk), "retmode": "xml"})
+                root = ET.fromstring(body.encode("utf-8") if isinstance(body, str) else body)
+            except Exception as exc:  # noqa: BLE001
+                print("efetch failed", exc)
+                continue
+            for art in root.iter("PubmedArticle"):
+                pm = (art.findtext(".//MedlineCitation/PMID") or "").strip()
+                cache[pm] = {"title": "".join(art.find(".//ArticleTitle").itertext()) if art.find(".//ArticleTitle") is not None else "",
+                             "collective": " | ".join((c.text or "") for c in art.iter("CollectiveName")),
+                             "pubtypes": [x.text for x in art.iter("PublicationType") if x.text],
+                             "comment_on": [c.findtext("PMID") for c in art.iter("CommentsCorrections")
+                                            if c.get("RefType") == "CommentOn" and c.findtext("PMID")]}
+        with open(cp, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    return cache
+
+
+def expansion_candidates(year, agents, offline):
+    """PubMed: the year's RCT-typed papers naming a topic agent (cached query -> ids, outputs/k_gap/pubmed_expansion.json)."""
+    cp = os.path.join(OUT, "pubmed_expansion.json")
+    cache = _j(cp) if os.path.exists(cp) else {}
+    ag = " OR ".join(f'"{a}"[tiab]' for a in agents)
+    q = f"{year}[dp] AND ({ag}) AND randomized controlled trial[pt]"
+    if q not in cache and not offline:
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                              {"db": "pubmed", "term": q, "retmode": "json", "retmax": 400})
+            cache[q] = d.get("esearchresult", {}).get("idlist", [])
+            with open(cp, "w", encoding="utf-8") as fh:
+                json.dump(cache, fh, indent=1, sort_keys=True)
+        except Exception as exc:  # noqa: BLE001
+            print("esearch failed", exc)
+    return q, cache.get(q) if isinstance(cache.get(q), list) else []
+
+
+def context_year(context):
+    """The year the comparator's OWN table row prints for the unit ('COPE study 1 Italy/2005 Open-label RCT'), only when
+    the row states exactly one year."""
+    ys = {int(y) for y in re.findall(r"(?<!\d)(19[5-9]\d|20[0-3]\d)(?!\d)", context or "")}
+    return ys.pop() if len(ys) == 1 else None
+
+
+def year_tiebreak(pmids, years, year):
+    """The self-naming PMIDs published in the comparator row's year; the caller resolves only if exactly one remains."""
+    return [p for p in pmids if years.get(p) == year]
+
+
+def label_author(label):
+    """A leading surname of an author label ('Finkelstein Y et al'); an all-caps acronym ('COPE study') is not one."""
+    m = re.match(r"^\s*([A-Z][a-z][A-Za-z'\-]+)\b", label or "")
+    return m.group(1) if m else None
+
+
+_NOT_RESEARCH = {"News", "Comment", "Editorial", "Letter", "Review", "Published Erratum"}
+
+
+def tiebreak_eligible(rec):
+    """A paper the row-year tie-break may pick: a research report, never a news / comment / editorial / letter / review
+    item, never a 'study of the month' digest ('RALES1999' first resolved to one of those)."""
+    if set(rec.get("pubtypes") or []) & _NOT_RESEARCH:
+        return False
+    return not re.search(r"study of the month|journal club|in brief|digest", rec.get("title") or "", re.I)
+
+
+_DRUG_TYPES = {"DRUG", "BIOLOGICAL", "DIETARY_SUPPLEMENT", "COMBINATION_PRODUCT", "GENETIC"}
+
+
+def registry_acronym_identity(want, snap, agents_of):
+    """REGISTRY identity for comparator acronyms nothing else resolved: AACT studies.acronym (folded) naming exactly ONE
+    study -> its NCT; that study's REGISTERED interventions decide the scope (a topic agent among them -> IN_SCOPE; drug
+    interventions but none of the topic's -> OTHER_AGENT:<the registered name>; none -> AGENT_UNSTATED). SCORED and
+    SOLOIST-WHF (sotagliflozin) in a dapagliflozin topic: no title query can find them -- no topic registers that
+    molecule -- but the registry names the trial and its drug. want: {folded acronym: [key, ...]}; agents_of(key) ->
+    the topic's agents. Unique-or-nothing: two studies with one acronym -> AMBIGUOUS."""
+    if not want:
+        return {}
+    hits = {}
+    for r in ic._rows(snap, "studies.txt"):
+        a = ic._fold(r.get("acronym") or "")
+        if a and a in want:
+            hits.setdefault(a, set()).add(r["nct_id"])
+    ncts = {n for v in hits.values() if len(v) == 1 for n in v}
+    names = {}
+    if ncts:
+        for r in ic._rows(snap, "interventions.txt"):
+            if r.get("nct_id") in ncts and (r.get("intervention_type") or "").upper() in _DRUG_TYPES:
+                names.setdefault(r["nct_id"], []).append((r.get("name") or "").strip())
+    out = {}
+    for a, keys in want.items():
+        got = sorted(hits.get(a) or [])
+        for key in keys:
+            if not got:
+                continue
+            if len(got) > 1:
+                out[key] = {"state": "AMBIGUOUS", "basis": "AACT_STUDIES_ACRONYM", "ncts": got[:10]}
+                continue
+            nm = names.get(got[0]) or []
+            low = " ".join(nm).lower()
+            ag = [x.lower() for x in agents_of(key)]
+            if any(x in low for x in ag):
+                scope = "IN_SCOPE"
+            else:
+                drugs = [x for x in nm if x and not re.search(r"placebo|standard|usual care|matching", x, re.I)]
+                scope = f"OTHER_AGENT:{drugs[0].lower()}" if drugs else "AGENT_UNSTATED"
+            out[key] = {"state": "RESOLVED", "basis": "AACT_STUDIES_ACRONYM+REGISTERED_INTERVENTIONS", "nct": got[0],
+                        "pmid": None, "scope": scope, "registered_interventions": nm[:6]}
+    return out
+
+
+_REF_METHODS = ("META_REFERENCE_NUMBER", "META_REFERENCE_SURNAME_YEAR", "META_REFERENCE_TITLE_ACRONYM", "NCT_IN_LABEL")
+
+
+def reference_list_identity(slug, label, id_rows):
+    """REVIEW_REFERENCE_LIST identity (5 Oct decision): a comparator unit with no identity of its own takes the PMID /
+    NCT that a published meta's OWN reference list gives the same trial -- the forest-reader lane's row identity map
+    (registry/model_proposals/g1_forest_row_identity.json), only rows mapped by a REFERENCE method (the citation number,
+    surname + year, the whole acronym in a reference title, an NCT in the label), never by a tracker join alone.
+    Resolved only when every such row agrees on ONE PMID (or, with no PMID, one NCT); several -> AMBIGUOUS."""
+    rs = [r for r in id_rows if r.get("slug") == slug and r.get("comparator_label") == label and r.get("mapped")
+          and any(m in _REF_METHODS for m in r.get("methods") or [])]
+    if not rs:
+        return None
+    pm = sorted({str(r["pmid"]) for r in rs if r.get("pmid")})
+    nc = sorted({str(r["nct"]) for r in rs if r.get("nct")})
+    src = [{"meta": r.get("meta_pmid"), "comparator_meta": bool(r.get("is_comparator")), "row": r.get("row_label"),
+            "methods": r.get("methods"), "reference": (r.get("reference") or "")[:160]} for r in rs]
+    if len(pm) > 1 or (not pm and len(nc) > 1):
+        return {"state": "AMBIGUOUS", "basis": "REVIEW_REFERENCE_LIST", "pmids": pm, "ncts": nc, "sources": src}
+    if not pm and not nc:
+        return None
+    return {"state": "RESOLVED", "basis": "REVIEW_REFERENCE_LIST", "pmid": pm[0] if pm else None,
+            "nct": nc[0] if len(nc) == 1 else None, "scope": "IN_SCOPE", "sources": src}
 
 
 def main(argv):
@@ -58,6 +256,16 @@ def main(argv):
         elif ay:
             ay_items.append(t)
         else:
+            # an author label with no year: the comparator's own row year completes the author-year key
+            au, cy = label_author(t["label"]), context_year(t.get("context"))
+            if au and cy:
+                pm1, q1, ids1 = kt.pubmed_author_year(au, str(cy), kt.topic_agents(topics[t["slug"]]), offline)
+                if pm1:
+                    link1 = ic.pmid_to_ncts([pm1], snap).get(pm1) or {}
+                    results[f"{t['slug']}::{t['label']}"] = {
+                        "state": "RESOLVED", "basis": "AUTHOR_WITH_COMPARATOR_ROW_YEAR", "pmid": pm1, "scope": "IN_SCOPE",
+                        "nct": next(iter(link1), None) if len(link1) == 1 else None, "query": q1, "row_year": cy}
+                    continue
             results[f"{t['slug']}::{t['label']}"] = {"state": "NO_KEY", "why": "label carries neither acronym nor author-year"}
     # ---- acronym route
     hits = {}
@@ -74,6 +282,25 @@ def main(argv):
     for k, (pm, acrs, cfg) in hits.items():
         raw = kt.k_gap._label_tokens(k[1])["acronyms"] or acrs
         selfn[k] = [p for p in pm if any(kt.self_names(a, titles.get(p, ""), "") for a in raw)]
+    # OTHER-AGENT RETRY: the query above names only the topic's own agents, so a comparator unit testing ANOTHER agent
+    # (SCORED -- sotagliflozin -- in a dapagliflozin topic) can never be found, and so never be named OTHER_AGENT; it
+    # stayed AGENT_UNCONFIRMED in N and a sweep row counted it. Retried once with every molecule any topic registers;
+    # the scope rule below then decides IN_SCOPE / OTHER_AGENT from the self-naming titles, as for any other hit.
+    for k in [k for k, v in selfn.items() if not v]:
+        pm0, acrs, cfg = hits[k]
+        pm2 = []
+        for a in acrs:
+            raw1 = next((x for x in kt.k_gap._label_tokens(k[1])["acronyms"] if ic._fold(x) == a), a)
+            pm2 += kt.pubmed_acronym_ids(raw1, sorted(all_molecules), offline)
+        pm2 = sorted(set(pm2) - set(pm0))
+        if not pm2:
+            continue
+        titles.update(kt.pubmed_titles_of(pm2, offline))
+        raw = kt.k_gap._label_tokens(k[1])["acronyms"] or acrs
+        got = [p for p in pm2 if any(kt.self_names(a, titles.get(p, ""), "") for a in raw)]
+        if got:
+            hits[k] = (sorted(set(pm0) | set(pm2)), acrs, cfg)
+            selfn[k] = got
     link = ic.pmid_to_ncts(sorted({p for v in selfn.values() for p in v}), snap) if selfn else {}
     own = ic.result_pmids(sorted({n for d in link.values() for n in d}), snap) if link else {}
     own_titles = kt.pubmed_titles_of(sorted({p for v in own.values() for p in v}), offline) if own else {}
@@ -84,14 +311,22 @@ def main(argv):
         if not pm:
             results[key] = {"state": "NOT_FOUND", "basis": "ACRONYM", "pubmed_hits": hits[(slug, label)][0][:10]}
             continue
+        # the AGENT is read from EVERY self-naming title, before any ambiguity about which paper is the report: twelve
+        # VERTIS CV papers that all name ertugliflozin and none dapagliflozin are an other-agent trial whichever of them
+        # is its report (the report stays unresolved; only the scope is stated)
+        _txt = " ".join(titles.get(p, "") for p in pm).lower()
+        _ag = [a.lower() for a in kt.topic_agents(cfg)]
+        _oth = sorted(m for m in all_molecules if m in _txt and m not in _ag)
+        amb_scope = "IN_SCOPE" if any(a in _txt for a in _ag) else (f"OTHER_AGENT:{_oth[0]}" if _oth else "AGENT_UNSTATED")
         if len(ncts) > 1:
-            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM", "self_naming_pmids": pm, "ncts": ncts}
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM", "self_naming_pmids": pm, "ncts": ncts,
+                            "scope": amb_scope}
             continue
         unlinked = [p for p in pm if not link.get(p)]
         if ncts and unlinked and len(pm) > 1:
             # a self-naming paper with NO registry link could be ANOTHER trial of the same acronym (codex review 3 Oct)
             results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_PARTLY_LINKED", "self_naming_pmids": pm,
-                            "ncts": ncts, "unlinked": unlinked}
+                            "ncts": ncts, "unlinked": unlinked, "scope": amb_scope}
             continue
         nct = ncts[0] if ncts else None
         # the trial's REPORT: its earliest own RESULT-typed reference in AACT; else (no registry link) the self-naming PMID
@@ -107,7 +342,8 @@ def main(argv):
             other = sorted(m for m in all_molecules if m in text and m not in agents)
             scope = f"OTHER_AGENT:{other[0]}" if other else "AGENT_UNSTATED"
         if not nct and len(pm) > 1:
-            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_NO_REGISTRY_LINK", "self_naming_pmids": pm}
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_NO_REGISTRY_LINK", "self_naming_pmids": pm,
+                            "scope": amb_scope}
             continue
         results[key] = {"state": "RESOLVED", "basis": "ACRONYM_SELF_NAMING_TITLE" + ("+AACT_STUDY_REFERENCES" if nct else ""),
                         "nct": nct, "pmid": report, "self_naming_pmids": pm, "scope": scope,
@@ -120,6 +356,83 @@ def main(argv):
             if v["state"] == "RESOLVED":
                 v["scope"] = "IN_SCOPE"            # the candidate already had to name a topic agent
             results[f"{slug}::{label}"] = v
+    # ---- acronym-EXPANSION route: an acronym + year label still unresolved ('RALES1999', 'EPHESUS2003'): the year's
+    # RCT-typed papers naming a topic agent whose title or study-group name SPELLS THE ACRONYM OUT; exactly one
+    for t in items:
+        key = f"{t['slug']}::{t['label']}"
+        if (results.get(key) or {}).get("state") == "RESOLVED":
+            continue
+        m = re.match(r"^\s*([A-Z][A-Z0-9-]{3,})\s*,?\s*\(?((?:19|20)\d\d)\)?", k_gap_fold(t["label"]))
+        if not m:
+            continue
+        acr, year = m.group(1), m.group(2)
+        agents = kt.topic_agents(topics[t["slug"]])
+        q, ids = expansion_candidates(year, agents, offline)
+        recs = pubmed_records(ids, offline)
+        hits = expansion_hits(acr, {p: (recs.get(p, {}).get("title", ""), recs.get(p, {}).get("collective", ""))
+                                    for p in ids if p in recs})
+        if len(hits) == 1:
+            p = hits[0]
+            link = ic.pmid_to_ncts([p], snap).get(p) or {}
+            results[key] = {"state": "RESOLVED", "basis": "ACRONYM_EXPANSION", "pmid": p,
+                            "nct": next(iter(link), None) if len(link) == 1 else None, "scope": "IN_SCOPE",
+                            "span": (recs[p]["title"] if spells_out(acr, recs[p]["title"]) else recs[p]["collective"])[:300],
+                            "query": q}
+        elif len(hits) > 1:
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_EXPANSION", "pmids": hits, "query": q}
+    # ---- ROW-YEAR tie-break, LAST (weaker than a spelled-out acronym): an acronym still AMBIGUOUS among several
+    # self-naming papers takes the one research report published in the comparator row's year (COPPS: 2010)
+    for t in items:
+        key = f"{t['slug']}::{t['label']}"
+        v = results.get(key) or {}
+        cy = context_year(t.get("context"))
+        if v.get("state") != "AMBIGUOUS" or v.get("basis") != "ACRONYM" or not cy:
+            continue
+        pm_all = list(v.get("self_naming_pmids") or [])
+        recs_y = pubmed_records(pm_all, offline)
+        yrs = kt.pub_years(pm_all, offline)
+        one = [p for p in year_tiebreak(pm_all, {p: yrs.get(p) for p in pm_all}, cy) if tiebreak_eligible(recs_y.get(p) or {})]
+        if len(one) == 1:
+            link1 = ic.pmid_to_ncts(one, snap).get(one[0]) or {}
+            results[key] = {"state": "RESOLVED", "basis": "ACRONYM_SELF_NAMING_TITLE+COMPARATOR_ROW_YEAR", "pmid": one[0],
+                            "nct": next(iter(link1), None) if len(link1) == 1 else None, "scope": "IN_SCOPE",
+                            "row_year": cy, "from_ambiguous": pm_all}
+    # ---- REVIEW_REFERENCE_LIST, LAST: a unit still without an identity takes the one PMID / NCT that published metas'
+    # own reference lists give it (identification only; eligibility is our screen's, data never the comparator's)
+    import secondary_meta_build as smb
+    idm, pin = smb.forest_lane_results("forest_row_identity_v1")
+    id_rows = (idm or {}).get("rows") or []
+    for t in items:
+        key = f"{t['slug']}::{t['label']}"
+        if (results.get(key) or {}).get("state") == "RESOLVED":
+            continue
+        v = reference_list_identity(t["slug"], t["label"], id_rows)
+        if v:
+            if v["state"] == "RESOLVED" and v.get("pmid") and not v.get("nct"):
+                link1 = ic.pmid_to_ncts([v["pmid"]], snap).get(v["pmid"]) or {}
+                v["nct"] = next(iter(link1), None) if len(link1) == 1 else None
+            v["lane"] = pin
+            results[key] = v
+    # ---- REGISTRY acronym route, last of all: AACT's own acronym field + the study's registered interventions
+    want = {}
+    for t, acrs in acr_items:
+        key = f"{t['slug']}::{t['label']}"
+        if (results.get(key) or {}).get("state") == "RESOLVED":
+            continue
+        for a in acrs:
+            want.setdefault(a, []).append(key)
+    for key, v in registry_acronym_identity(want, snap,
+                                            lambda k: kt.topic_agents(topics[k.split("::", 1)[0]])).items():
+        if (results.get(key) or {}).get("state") != "RESOLVED":
+            results[key] = v
+    # ---- COMMENT-ON route: a unit whose only report is a Letter / Comment is the article it comments on
+    T_all = [t for t in T["trials"] if len(t.get("pmids") or []) == 1 and t.get("status") != "POOLED"]
+    recs = pubmed_records([t["pmids"][0] for t in T_all], offline)
+    for t in T_all:
+        tgt = comment_target(recs.get(t["pmids"][0]) or {})
+        if tgt:
+            results[f"{t['slug']}::{t['label']}"] = {"state": "COMMENT_ON", "basis": "PUBMED_COMMENT_ON",
+                                                     "from": t["pmids"][0], "pmid": tgt}
     from collections import Counter
     out = {"n": len(items), "by_state": dict(Counter(v["state"] for v in results.values())),
            "by_scope": dict(Counter(v.get("scope") for v in results.values() if v["state"] == "RESOLVED")),
