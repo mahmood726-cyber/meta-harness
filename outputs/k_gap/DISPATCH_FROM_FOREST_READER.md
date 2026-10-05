@@ -316,3 +316,63 @@ Nothing else changed.
 
 **Disk:** C: has about 310 MB free. See `lane_status/disk.md`. Put TMP/TEMP and pytest `--basetemp` on F: until that
 file says FIXED.
+
+## 5 Oct: two more typed rules (decisions under Mahmood's delegation) — applied
+
+### RULE WEIGHTS: printed % weights are a valid but WEAKER gate
+
+**Rule.** It applies to a figure that prints no pooled row. Rows that pass may count only as the SECOND source in
+TWO_SOURCE, never alone, as with POOL_UNCHECKABLE.
+
+**How the check works** (`weights_gate` in the reader):
+- The two readings' printed weights must agree within printed rounding (otherwise `WEIGHTS_DISAGREE`).
+- Every printed weight must lie inside the range the rows allow. The range comes from inverse-variance weights built
+  from each row's CI, with each bound moved within its printed half-unit, plus the printed weight's own half-unit.
+- The check passes under FE or DL (`WEIGHTS_REPRODUCED:<model>`); otherwise the figure is refused
+  (`WEIGHTS_NOT_REPRODUCED`).
+
+**Which figures it covers.** A no-pool figure that prints weights must pass it. One that prints no weights keeps the
+earlier POOL_UNCHECKABLE treatment.
+
+**Applied.** tocilizumab 35802687 passes under FE: 14 rows, still `ACCEPTED_SECOND_SOURCE_ONLY`. Each row now carries
+the finding `META_POOL_UNCHECKABLE: ... printed % weights are reproduced (WEIGHTS_REPRODUCED:FE) -- a weaker gate,
+so second source only`.
+
+### RULE SINGLE_NUMBER: a single-number reader disagreement is settled by the row's own numbers
+
+**Rule.** It applies when the two readings differ in exactly ONE number of a row, and the label and every other value
+agree. A candidate is taken only if EXACTLY ONE of the two reproduces the row's own printed effect and CI within
+printed rounding:
+- with counts: the counts must give the printed effect and CI;
+- without counts: the CI must be centred on the printed effect.
+
+The settled row records `value_basis: SINGLE_NUMBER_RESOLVED_BY_ROW ...`. If both candidates fit, or neither, or one
+reader printed nothing, the row is `READER_DISAGREEMENT_UNRESOLVED:<FIELD>`. A blank is not a second reading.
+
+**Applied.** 9 rows were settled across all recorded figures, and 5 figures moved from REFUSED to ACCEPTED (58 rows):
+
+| figure | rows | settled row |
+|---|---|---|
+| tocilizumab 35038318 | 10 | NCT04320615: control deaths 28 vs 29; only 28 gives the printed RR 1.01 |
+| tocilizumab 39633779 | 17 | Lescure: upper 2.32 vs "232" |
+| tocilizumab 34768455 | 9 | REMAP-CAP: lower 0.49 vs 0.48; only 0.48 fits, and the pool then reproduces |
+| colchicine-secondary 37608812 | 4 | Hennessy 2019: control events 1 vs 2 |
+| spironolactone 26891235 | 18 | Montalescot 2014: n_c 305 vs 306 |
+
+The 4 other settled rows sit in figures still refused for other reasons. 17 rows remain READER_DISAGREEMENT_UNRESOLVED;
+the Einvik 1.45 / 1.44 case is one of them, since both values fit.
+
+### Tests
+
+**New plants**, each failing before its change:
+- `test_rule_single_number_*`: a count settled; a dropped decimal settled; both fitting = UNRESOLVED; an omission =
+  UNRESOLVED;
+- `test_rule_weights_*`: the real 35802687 readings give WEIGHTS_REPRODUCED; RECOVERY's weight set to 40.00 in both
+  readings gives REFUSED, WEIGHTS_NOT_REPRODUCED.
+
+**Rewritten to the new requirement.** Two older plants asserted "any single disagreement refuses". They now assert that
+the perturbed number is never proposed, and that the printed value is recovered with its recorded basis:
+- `test_PLANT_one_perturbed_reading_never_yields_the_perturbed_number`;
+- `test_REAL_FIGURE_PLANT_one_perturbed_reading_never_yields_the_perturbed_number`.
+
+REPLAY_OK; 98 passed, with basetemp on F:.
