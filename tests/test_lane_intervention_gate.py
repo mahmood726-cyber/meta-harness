@@ -65,3 +65,17 @@ def test_pcsk9_class_reads_a_parenthesised_abbreviation():
                                          "kexin type (PCSK9) inhibitors") is None
     assert smb.lane_intervention_refusal(pc, "Risk of three-point MACE", "Benefits of intensive lipid-lowering "
                                          "therapies in acute coronary syndrome") == "INTERVENTION_NOT_THE_TOPICS"
+
+
+def test_reader_skips_a_wrong_intervention_meta_before_any_model_call(monkeypatch):
+    import g1_forest_reader as gfr
+    monkeypatch.setattr(gfr, "comparator_of", lambda slug: "999")
+    monkeypatch.setattr(gfr, "_meta_title", lambda pmid, run: {"1": "Interleukin-6 receptor antagonists in COVID-19",
+                                                               "2": "Corticosteroids for COVID-19"}.get(pmid))
+    its = [{"slug": "corticosteroids-covid19-mortality", "pmid": "1", "figure": {"fig_id": "F2", "caption": "Mortality"}},
+           {"slug": "corticosteroids-covid19-mortality", "pmid": "2", "figure": {"fig_id": "F1", "caption": "Mortality"}},
+           {"slug": "corticosteroids-covid19-mortality", "pmid": "999", "figure": {"fig_id": "F3", "caption": "x"}}]
+    skipped = {}
+    kept = gfr.intervention_skip(its, skipped, run=False)
+    assert [i["pmid"] for i in kept] == ["2", "999"]          # the comparator is never filtered here
+    assert skipped == {"corticosteroids-covid19-mortality::1": "INTERVENTION_NOT_THE_TOPICS"}

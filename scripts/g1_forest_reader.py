@@ -1530,6 +1530,87 @@ META_EXTRA = {
         {"fig_id": "F4", "caption_has": "for the prevention of antibiotic-associated diarrhea in children and adults",
          "instruction": "Rows: every study row of every strain subgroup, once each, with events and totals per arm "
                         "(never a subgroup subtotal). Pooled: the overall pooled row."}],
+    # corticosteroids-covid19 (5 Oct night): mortality figures the caption selector cannot take (no 'forest' in the caption,
+    # or a subgroup split) in metas that cite CAPE COVID / REMAP-CAP hydrocortisone / Metcovid / CoDEX (k-gap sweep's
+    # citation-network discovery); every downstream gate still applies (dual agreement, reconstruction, admission)
+    ("corticosteroids-covid19-mortality", "36333729"): [
+        {"fig_id": "Fig4", "caption_has": "The effect of corticosteroids on Mortality at 28 days. Studies subdivided by "
+                                         "COVID-19 status",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "35971278"): [
+        {"fig_id": "rmv2386-fig-0002", "caption_has": "Effect of corticosteroids on mortality in COVID",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled "
+                        "row for the whole figure."},
+        {"fig_id": "rmv2386-fig-0003", "caption_has": "Effect of methylprednisolone on mortality in COVID",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled "
+                        "row for the whole figure."},
+        {"fig_id": "rmv2386-fig-0004", "caption_has": "Effect of dexamethasone on mortality in COVID",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled "
+                        "row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "35346661"): [
+        {"fig_id": "f0020", "caption_has": "Forest plot of the short-term mortality in meta-analysis and subgroup "
+                                          "analyses of RCTs and Non-RCTs",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "37076606"): [
+        {"fig_id": "Fig3", "caption_has": "Forest plot for mortality based on corticosteroid type subgroup",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "34011029"): [
+        {"fig_id": "F2", "caption_has": "Forest plot of subgroup comparisons of mortality rates",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    # corticosteroids-covid19 (5 Oct night, 2nd pass): figures of OA metas CITING CAPE COVID / REMAP-CAP / Metcovid / CoDEX
+    # (Europe PMC CITES:<pmid>_MED, 86 metas), pre-filtered before any read: a mortality figure, intervention named, and
+    # 28 days stated by the caption or as the meta's single timepoint (meta_timepoint, variable-timepoint guard applied)
+    ("corticosteroids-covid19-mortality", "35937252"): [
+        {"fig_id": "F3", "caption_has": "Forest plot of comparison: 28-day mortality",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "39003393"): [
+        {"fig_id": "Fig4", "caption_has": "Effect of corticosteroids on mortality at 28 days among hospitalized patients",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "33666200"): [
+        {"fig_id": "F2", "caption_has": "Steroid + standard of care vs. standard of care: Mortality",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "39185470"): [
+        {"fig_id": "fig1", "caption_has": "Forest plot of the mortality among patients with serve COVID-19 in Methylprednisolone group",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "34484209"): [
+        {"fig_id": "f2", "caption_has": "The 28-day mortality of patients with sepsis based on the corticosteroids treatment",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "33765902"): [
+        {"fig_id": "fig2-17534666211007214", "caption_has": "Comparison: dexamethasone versus standard care. Outcome: mortality at day 28",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "34644768"): [
+        {"fig_id": "f1", "caption_has": "Risk ratio for dexamethasone with regard to mortality (A)", "panel": "A",
+         "panel_title": "mortality",
+         "instruction": "Transcribe ONLY panel (A) (risk ratio for mortality): its study rows (events and totals per arm) "
+                        "and panel (A)'s own pooled row. Ignore panel (B)."}],
+    # iv-iron (5 Oct night): the HF-hospitalisation PANEL of multi-panel figures in metas citing EFFECT-HF / FAIR-HF /
+    # AFFIRM-AHF / HEART-FID (k-gap sweep's citation network); patients-with-event panels only (never recurrent rates)
+    ("iv-iron-hfref-hosp", "36178088"): [
+        {"fig_id": "ehf214177-fig-0002", "caption_has": "(A) Hospitalization for worsening HF", "panel": "A",
+         "panel_title": "Hospitalization for worsening HF",
+         "instruction": "Transcribe ONLY panel (A) 'Hospitalization for worsening HF': its study rows (events and totals "
+                        "per arm) and panel (A)'s own pooled row. Ignore panels (B) and (C)."}],
+    ("iv-iron-hfref-hosp", "33586856"): [
+        {"fig_id": "ehf213146-fig-0002", "caption_has": "(B) number of patients who experienced heart failure "
+                                                        "hospitalizations during follow", "panel": "B",
+         "panel_title": "number of patients who experienced heart failure hospitalizations during follow-up",
+         "instruction": "Transcribe ONLY panel (B) (patients who experienced heart failure hospitalizations): its study "
+                        "rows (events and totals per arm) and panel (B)'s own pooled row. Ignore panels (A), (C), (D)."}],
+    ("iv-iron-hfref-hosp", "38643833"): [
+        {"fig_id": "fig0008", "caption_has": "B) Heart failure hospitalisation", "panel": "B",
+         "panel_title": "Heart failure hospitalisation",
+         "instruction": "Transcribe ONLY panel B) 'Heart failure hospitalisation': its study rows (events and totals per "
+                        "arm) and panel B)'s own pooled row. Ignore panel A)."}],
     ("tocilizumab-covid19-mortality", "34768455"): [
         {"fig_id": "jcm-10-04935-f004", "caption_has": "Pooled comparison of 28-day mortality according to treatment",
          "instruction": "Rows: every trial row of every comparison group, once each, with events and totals per arm. "
@@ -1542,11 +1623,29 @@ def extra_key(slug, pmid, t):
     return f"{slug}::{pmid}::{t['fig_id']}{t.get('panel') or ''}"
 
 
-def items(slugs, run, pairs=None, extras=None, meta_extras=None):
+CITING_ROWS = ("Rows: every study row, once each (never a subgroup subtotal or an overall row), with events and totals "
+               "per arm. Pooled: the overall pooled row for the whole figure.")
+
+
+def citing_named(slugs):
+    """[(slug, pmid, named figure)] from scripts/g1_citing_targets.py's recorded candidates (figures of OA metas citing an
+    unmatched trial that pass the admission pre-filter); the caption anchor is the recorded caption, re-checked against
+    the JATS by figure_for."""
+    p = os.path.join(ROOT, "registry", "model_proposals", "g1_citing_targets.json")
+    d = _j(p) if os.path.exists(p) else {}
+    out = []
+    for slug in slugs:
+        for c in (d.get(slug) or {}).get("candidates") or []:
+            out.append((slug, c["pmid"], {"fig_id": c["fig_id"], "caption_has": c["caption"][:80],
+                                          "instruction": CITING_ROWS}))
+    return out
+
+
+def items(slugs, run, pairs=None, extras=None, meta_extras=None, named=None):
     """slugs -> each topic's comparator; pairs [(slug, pmid)] -> those metas (the two-source sweep's selection);
-    extras [slug] -> that topic's COMPARATOR_EXTRA figures."""
+    extras [slug] -> that topic's COMPARATOR_EXTRA figures; named [(slug, pmid, figure)] -> those figures."""
     out, skipped = [], {}
-    todo = [(s, p, None) for s, p in (pairs or [])]
+    todo = [(s, p, None) for s, p in (pairs or [])] + list(named or [])
     for slug in extras or []:
         todo += [(slug, comparator_of(slug), t) for t in COMPARATOR_EXTRA.get(slug, [])]
     for slug, pmid in meta_extras or []:
@@ -1596,16 +1695,30 @@ def items(slugs, run, pairs=None, extras=None, meta_extras=None):
 SWEEP = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader_sweep.json")
 
 
-def unmatched_trial_ids(slug):
+def trial_ids(t, doi_of):
+    """A trial's identifiers as a reference list may print them: PMIDs, NCTs and the DOI of each PMID's record
+    (casefolded) -- many JATS reference lists carry DOIs only (5 Oct: 99 of 100 corticosteroid metas were dropped)."""
+    ids = {str(p) for p in (t.get("pmids") or [])} | {str(n).lower() for n in (t.get("ncts") or [])}
+    for p in t.get("pmids") or []:
+        d = doi_of(str(p))
+        if d:
+            ids.add(str(d).strip().lower())
+    return ids
+
+
+def unmatched_trial_ids(slug, run=False):
     """The comparator trials of a topic that are NOT matched (route neither PRIMARY nor TWO_SOURCE in the tracker), as
-    the PMIDs/NCTs the k-gap table holds for them -- the trials a second meta could supply a two-source row for."""
+    the PMIDs/NCTs/DOIs the k-gap table and each PMID's record hold for them -- the trials a second meta could supply a
+    two-source row for."""
+    import secondary_meta_build as smb
     tp = os.path.join(ROOT, "outputs", "k_gap", "g1", f"{slug}.json")
     if not os.path.exists(tp):
         return {}
     tr = _j(tp)
     open_labels = {x["label"][:60] for x in tr.get("trials") or [] if x.get("route") not in ("PRIMARY", "TWO_SOURCE")}
     T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
-    return {t["label"][:60]: {str(p) for p in (t.get("pmids") or [])} | {str(n).lower() for n in (t.get("ncts") or [])}
+    doi_of = lambda pmid: (smb._trial_text(slug, pmid, run) or {}).get("doi")  # noqa: E731
+    return {t["label"][:60]: trial_ids(t, doi_of)
             for t in T["trials"] if t["slug"] == slug and t["label"][:60] in open_labels}
 
 
@@ -1701,7 +1814,7 @@ def sweep(slugs, run, wide=False, deep=False):
         sp = os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json")
         usable = {m for m, v in ((_j(sp).get("metas") or {}) if os.path.exists(sp) else {}).items()
                   if v.get("usable") and v.get("provenance") != "MODEL_PROPOSAL_DUAL"}
-        want = unmatched_trial_ids(slug)
+        want = unmatched_trial_ids(slug, run)
         rows = {}
         for pm in metas:
             if pm == comp:
@@ -1916,6 +2029,28 @@ class RunLock:
             pass
 
 
+def _meta_title(pmid, run):
+    """The meta's own title (recorded in g1_lane_meta_titles.json; fetched and recorded there when run)."""
+    import g1_lane_meta_titles as lmt
+    return lmt.title_of(pmid, run)
+
+
+def intervention_skip(its, skipped, run):
+    """Before any model call: a META figure (never the comparator's) whose caption and title do not name the topic's
+    intervention is skipped (secondary_meta_build.lane_intervention_refusal), recorded in skipped."""
+    import secondary_meta_build as smb
+    kept = []
+    for it in its:
+        if str(it["pmid"]) != str(comparator_of(it["slug"])):
+            why = smb.lane_intervention_refusal(smb.topic_intervention_terms(it["slug"]),
+                                                (it.get("figure") or {}).get("caption"), _meta_title(it["pmid"], run))
+            if why:
+                skipped[f"{it['slug']}::{it['pmid']}"] = why
+                continue
+        kept.append(it)
+    return kept
+
+
 def main(argv):
     """SLUG ... reads each topic's comparator; --metas reads instead the OTHER metas the two-source sweep selects for
     those topics (--all: every topic in the tracker)."""
@@ -1934,12 +2069,15 @@ def main(argv):
         its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
     elif "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
+    elif "--citing" in argv:                     # figures of OA metas citing an unmatched trial (g1_citing_targets)
+        its, skipped = items([], run, named=citing_named(slugs))
     elif "--kgap-sweep" in argv:
         its, skipped = items([], run, pairs=kgap_sweep_pairs(slugs))
     elif "--metas" in argv:
         its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv, deep="--deep" in argv))
     else:
         its, skipped = items(slugs, run)
+    its = intervention_skip(its, skipped, run)
     if "--verify-replay" in argv:
         probs = []
         for k, r in sorted(runs.items()):

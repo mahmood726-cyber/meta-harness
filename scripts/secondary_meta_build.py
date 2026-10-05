@@ -722,23 +722,19 @@ _TP = re.compile(r"(\d+)[- ]day (?:all[- ]cause )?mortality|mortality (?:at|by|w
                  r"day[- ](\d+) (?:all[- ]cause )?mortality", re.I)
 
 
-def lane_row_timepoint(r, spec, held_text=None):
-    """A forest-lane row's timepoint, for a CORE (mortality) outcome, read like every figure row's: the figure caption /
-    outcome definition first ('28-Day All-Cause Mortality in Each Trial', REACT), else the meta's own held text. Lost when
-    the consolidation took acq/k-gap's forest_lane_metas over the earlier ingestion (5 Oct): corticosteroids-covid's three
-    SECONDARY_SINGLE rows from meta 33612824 fell to TIMEPOINT_NOT_STATED_BY_META. Never overwrites a stated timepoint."""
-    if getattr(r, "timepoint", None) or not (spec or {}).get("core"):
-        return r
-    if held_text is None:
-        import g1_forest_reader as gfr
-        held_text = gfr.held_text
-    r.timepoint = meta_timepoint(r.outcome_definition) or meta_timepoint(held_text(r.meta_pmid))
-    return r
+# a meta that defines its outcome at a VARYING timepoint states no single one, whatever day-count its text quotes about
+# other studies (33612824: 'all-cause mortality at the longest follow-up, defined by the individual trial'; its only
+# day-count is REACT's '28-day' in the background)
+_VARIABLE_TP = re.compile(r"\b(?:longest|last|end of|maximum|maximal|latest|final)\s+(?:available\s+)?follow[- ]?up"
+                          r"|\b(?:defined|reported|chosen)\s+by\s+(?:the\s+|each\s+)?(?:individual\s+)?(?:trials?|stud(?:y|ies))"
+                          r"|time[- ]?points?\s+(?:defined|reported)\s+by\s+each", re.I)
 
 
 def meta_timepoint(held):
-    """The mortality timepoint the meta itself states, only when it states exactly ONE (else unknown -> refused by
-    the timepoint check for a topic that registers one)."""
+    """The mortality timepoint the meta itself states, only when it states exactly ONE and does not define its outcome
+    at a varying timepoint (else unknown -> refused by the timepoint check for a topic that registers one)."""
+    if _VARIABLE_TP.search(held or ""):
+        return None
     vals = {next(g for g in m.groups() if g) for m in _TP.finditer(held or "")}
     return f"{vals.pop()} days" if len(vals) == 1 else None
 
@@ -1122,7 +1118,6 @@ def build(slug, run, runs):
     metas_out.update(lmetas)
     skipped.update({m: f"LANE:{why}" for m, why in LANE_SKIPPED.get(slug, {}).items()})
     for r, lv in lrows:
-        lane_row_timepoint(r, spec)
         lane_timepoint(r, spec)
         r = sm.admit(r, spec, fam)
         if lv:

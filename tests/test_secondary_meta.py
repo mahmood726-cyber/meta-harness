@@ -515,23 +515,6 @@ def test_pool_uncheckable_reads_a_finding_typed_as_a_dict():
     assert sm.secondary_single([r], {"999"}, lambda x: None, lambda x: True) == [] and r.state == sm.UNVERIFIED
 
 
-def test_PLANT_a_forest_lane_row_takes_its_timepoint_from_the_meta_like_every_figure_row():
-    # corticosteroids-covid (5 Oct consolidation): k-gap's forest_lane_metas rows carried no timepoint, so the meta's
-    # 28-day statement was never read and three SECONDARY_SINGLE rows fell to TIMEPOINT_NOT_STATED_BY_META
-    import secondary_meta_build as smb
-    r = sm.SecondaryRow(meta_pmid="33612824", meta_doi="", location={}, source_digest="", provenance="FOREST_READER_DUAL",
-                        trial_label="Tomazini 2020 CoDEX", measure="RR", outcome_definition="Forest plot", events_t=1,
-                        n_t=10, events_c=2, n_c=10)
-    smb.lane_row_timepoint(r, {"core": True}, held_text=lambda pm: "The primary outcome was all-cause mortality at 28 days.")
-    assert r.timepoint
-    kept = sm.SecondaryRow(**{**r.__dict__, "timepoint": "90 days"})
-    smb.lane_row_timepoint(kept, {"core": True}, held_text=lambda pm: "mortality at 28 days")
-    assert kept.timepoint == "90 days"                                   # a stated timepoint is never overwritten
-    other = sm.SecondaryRow(**{**r.__dict__, "timepoint": None})
-    smb.lane_row_timepoint(other, {"core": False}, held_text=lambda pm: "mortality at 28 days")
-    assert other.timepoint is None                                       # only core outcomes read the meta's text
-
-
 def test_a_forest_lane_row_gets_the_timepoint_its_caption_states_like_every_figure_row():
     # the build derives a figure row's timepoint from the meta's own words (secondary_meta_build.meta_timepoint); the
     # forest-lane rows entered without it, so every 28-day tocilizumab row read TIMEPOINT_NOT_STATED_BY_META (5 Oct)
