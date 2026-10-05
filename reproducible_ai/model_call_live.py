@@ -110,10 +110,22 @@ _READ_CMD = re.compile(r"(?:Get-Content|cat|type|more|head|tail|sed -n|rg|grep|S
 _LOCAL_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:(?:\\+|/)[^\s'\"`;|<>]*")
 
 
+_CLIENT_FILES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")    # a client's own instruction files: the log exists to show these
+
+
+def _local_name(path):
+    name = re.split(r"[\\/]+", path.rstrip("\\/"))[-1]
+    if name in _CLIENT_FILES:
+        return "<local-path>/" + name
+    # any other local file: its NAME can be private too (a client read attempt named a private workbook, 5 Oct), so
+    # only a short digest of the name is kept -- the same file still compares equal across calls
+    return "<local-file " + hashlib.sha256(name.encode("utf-8")).hexdigest()[:10] + ">"
+
+
 def _local(x):
-    """An absolute local path keeps only its file name (WHICH file was read is the log's point; the folders are local)."""
-    return _LOCAL_PATH.sub(lambda m: "<local-path>/" + re.split(r"[\\/]+", m.group(0).rstrip("\\/"))[-1], x) \
-        if isinstance(x, str) else x
+    """An absolute local path never enters the committed log: the folders are dropped, and the file name too unless it
+    is a client instruction file (WHICH instruction file was read is the log's point)."""
+    return _LOCAL_PATH.sub(lambda m: _local_name(m.group(0)), x) if isinstance(x, str) else x
 
 
 def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
@@ -132,6 +144,13 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
     # every OTHER absolute local path too: the client's own AGENTS.md steered a forest read (mc-28562764, 5 Oct) into
     # commands naming private index files; the log is committed, so a local path never enters it (all were rejected)
     red = _local(red)
+    # ...and never a tool's OUTPUT: a read-only sandbox still lets the client READ local files, and one forest read
+    # (mc-e947935a, 5 Oct) printed a private file's contents into its transcript. The committed log keeps the header,
+    # the prompt digest and a digest of the body; the commands and outcomes are kept (scrubbed) in tool_calls.
+    head, sep, _body = red.partition("\n--------\nuser")
+    if sep:
+        red = (head + sep + f"\n<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>\n<client transcript body sha256 "
+               f"{hashlib.sha256(t.encode('utf-8')).hexdigest()}: tool output and messages are not kept in the log>")
     calls = [{k: _local(v) for k, v in c.items()} for c in calls]
     files = sorted({_local(f) for f in files})
     return {"tokens_used": tokens, "tool_calls": calls, "tool_calls_n": len(calls),

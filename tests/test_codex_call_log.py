@@ -71,3 +71,18 @@ def test_no_local_path_survives_into_the_committed_lane_log():
     blob = json.dumps(f)
     assert "Private" not in blob and "WINDOWS" not in blob and "F:" not in blob and "C:" not in blob
     assert f["tool_calls_n"] == 2 and f["tool_calls_rejected_n"] == 1 and f["tokens_used"] == 1234
+
+
+def test_a_private_file_name_is_reduced_to_a_digest_and_a_client_instruction_file_keeps_its_name():
+    f = live.transcript_facts("exec\npowershell -Command Get-Content X:\\proj\\private-notes.txt; Get-Content "
+                              "X:\\home\\.codex\\AGENTS.md\n exited 1 in 5ms\ntokens used\n10\n", b"")
+    blob = json.dumps(f)
+    assert "private-notes" not in blob and "<local-file " in blob and "<local-path>/AGENTS.md" in blob
+
+
+def test_a_tools_output_never_enters_the_committed_log():
+    # 5 Oct: a read-only sandbox still let the client READ a private local file, and its contents reached the transcript
+    err = OK_EXEC.replace("# AGENTS\n", "# AGENTS\nSECRET WORKBOOK LINE 1\nSECRET WORKBOOK LINE 2\n")
+    f = live.transcript_facts(err, PROMPT)
+    assert "SECRET WORKBOOK" not in json.dumps(f)
+    assert "<client transcript body sha256 " in f["transcript_redacted"] and "model: gpt-6-astra" in f["transcript_redacted"]
