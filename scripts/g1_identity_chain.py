@@ -165,6 +165,31 @@ def tiebreak_eligible(rec):
     return not re.search(r"study of the month|journal club|in brief|digest", rec.get("title") or "", re.I)
 
 
+_REF_METHODS = ("META_REFERENCE_NUMBER", "META_REFERENCE_SURNAME_YEAR", "META_REFERENCE_TITLE_ACRONYM", "NCT_IN_LABEL")
+
+
+def reference_list_identity(slug, label, id_rows):
+    """REVIEW_REFERENCE_LIST identity (5 Oct decision): a comparator unit with no identity of its own takes the PMID /
+    NCT that a published meta's OWN reference list gives the same trial -- the forest-reader lane's row identity map
+    (registry/model_proposals/g1_forest_row_identity.json), only rows mapped by a REFERENCE method (the citation number,
+    surname + year, the whole acronym in a reference title, an NCT in the label), never by a tracker join alone.
+    Resolved only when every such row agrees on ONE PMID (or, with no PMID, one NCT); several -> AMBIGUOUS."""
+    rs = [r for r in id_rows if r.get("slug") == slug and r.get("comparator_label") == label and r.get("mapped")
+          and any(m in _REF_METHODS for m in r.get("methods") or [])]
+    if not rs:
+        return None
+    pm = sorted({str(r["pmid"]) for r in rs if r.get("pmid")})
+    nc = sorted({str(r["nct"]) for r in rs if r.get("nct")})
+    src = [{"meta": r.get("meta_pmid"), "comparator_meta": bool(r.get("is_comparator")), "row": r.get("row_label"),
+            "methods": r.get("methods"), "reference": (r.get("reference") or "")[:160]} for r in rs]
+    if len(pm) > 1 or (not pm and len(nc) > 1):
+        return {"state": "AMBIGUOUS", "basis": "REVIEW_REFERENCE_LIST", "pmids": pm, "ncts": nc, "sources": src}
+    if not pm and not nc:
+        return None
+    return {"state": "RESOLVED", "basis": "REVIEW_REFERENCE_LIST", "pmid": pm[0] if pm else None,
+            "nct": nc[0] if len(nc) == 1 else None, "scope": "IN_SCOPE", "sources": src}
+
+
 def main(argv):
     offline = "--offline" in argv
     snap = aact_adapter.snapshot_dir()
@@ -212,6 +237,25 @@ def main(argv):
     for k, (pm, acrs, cfg) in hits.items():
         raw = kt.k_gap._label_tokens(k[1])["acronyms"] or acrs
         selfn[k] = [p for p in pm if any(kt.self_names(a, titles.get(p, ""), "") for a in raw)]
+    # OTHER-AGENT RETRY: the query above names only the topic's own agents, so a comparator unit testing ANOTHER agent
+    # (SCORED -- sotagliflozin -- in a dapagliflozin topic) can never be found, and so never be named OTHER_AGENT; it
+    # stayed AGENT_UNCONFIRMED in N and a sweep row counted it. Retried once with every molecule any topic registers;
+    # the scope rule below then decides IN_SCOPE / OTHER_AGENT from the self-naming titles, as for any other hit.
+    for k in [k for k, v in selfn.items() if not v]:
+        pm0, acrs, cfg = hits[k]
+        pm2 = []
+        for a in acrs:
+            raw1 = next((x for x in kt.k_gap._label_tokens(k[1])["acronyms"] if ic._fold(x) == a), a)
+            pm2 += kt.pubmed_acronym_ids(raw1, sorted(all_molecules), offline)
+        pm2 = sorted(set(pm2) - set(pm0))
+        if not pm2:
+            continue
+        titles.update(kt.pubmed_titles_of(pm2, offline))
+        raw = kt.k_gap._label_tokens(k[1])["acronyms"] or acrs
+        got = [p for p in pm2 if any(kt.self_names(a, titles.get(p, ""), "") for a in raw)]
+        if got:
+            hits[k] = (sorted(set(pm0) | set(pm2)), acrs, cfg)
+            selfn[k] = got
     link = ic.pmid_to_ncts(sorted({p for v in selfn.values() for p in v}), snap) if selfn else {}
     own = ic.result_pmids(sorted({n for d in link.values() for n in d}), snap) if link else {}
     own_titles = kt.pubmed_titles_of(sorted({p for v in own.values() for p in v}), offline) if own else {}
@@ -222,14 +266,22 @@ def main(argv):
         if not pm:
             results[key] = {"state": "NOT_FOUND", "basis": "ACRONYM", "pubmed_hits": hits[(slug, label)][0][:10]}
             continue
+        # the AGENT is read from EVERY self-naming title, before any ambiguity about which paper is the report: twelve
+        # VERTIS CV papers that all name ertugliflozin and none dapagliflozin are an other-agent trial whichever of them
+        # is its report (the report stays unresolved; only the scope is stated)
+        _txt = " ".join(titles.get(p, "") for p in pm).lower()
+        _ag = [a.lower() for a in kt.topic_agents(cfg)]
+        _oth = sorted(m for m in all_molecules if m in _txt and m not in _ag)
+        amb_scope = "IN_SCOPE" if any(a in _txt for a in _ag) else (f"OTHER_AGENT:{_oth[0]}" if _oth else "AGENT_UNSTATED")
         if len(ncts) > 1:
-            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM", "self_naming_pmids": pm, "ncts": ncts}
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM", "self_naming_pmids": pm, "ncts": ncts,
+                            "scope": amb_scope}
             continue
         unlinked = [p for p in pm if not link.get(p)]
         if ncts and unlinked and len(pm) > 1:
             # a self-naming paper with NO registry link could be ANOTHER trial of the same acronym (codex review 3 Oct)
             results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_PARTLY_LINKED", "self_naming_pmids": pm,
-                            "ncts": ncts, "unlinked": unlinked}
+                            "ncts": ncts, "unlinked": unlinked, "scope": amb_scope}
             continue
         nct = ncts[0] if ncts else None
         # the trial's REPORT: its earliest own RESULT-typed reference in AACT; else (no registry link) the self-naming PMID
@@ -245,7 +297,8 @@ def main(argv):
             other = sorted(m for m in all_molecules if m in text and m not in agents)
             scope = f"OTHER_AGENT:{other[0]}" if other else "AGENT_UNSTATED"
         if not nct and len(pm) > 1:
-            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_NO_REGISTRY_LINK", "self_naming_pmids": pm}
+            results[key] = {"state": "AMBIGUOUS", "basis": "ACRONYM_NO_REGISTRY_LINK", "self_naming_pmids": pm,
+                            "scope": amb_scope}
             continue
         results[key] = {"state": "RESOLVED", "basis": "ACRONYM_SELF_NAMING_TITLE" + ("+AACT_STUDY_REFERENCES" if nct else ""),
                         "nct": nct, "pmid": report, "self_naming_pmids": pm, "scope": scope,
@@ -299,6 +352,22 @@ def main(argv):
             results[key] = {"state": "RESOLVED", "basis": "ACRONYM_SELF_NAMING_TITLE+COMPARATOR_ROW_YEAR", "pmid": one[0],
                             "nct": next(iter(link1), None) if len(link1) == 1 else None, "scope": "IN_SCOPE",
                             "row_year": cy, "from_ambiguous": pm_all}
+    # ---- REVIEW_REFERENCE_LIST, LAST: a unit still without an identity takes the one PMID / NCT that published metas'
+    # own reference lists give it (identification only; eligibility is our screen's, data never the comparator's)
+    import secondary_meta_build as smb
+    idm, pin = smb.forest_lane_results("forest_row_identity_v1")
+    id_rows = (idm or {}).get("rows") or []
+    for t in items:
+        key = f"{t['slug']}::{t['label']}"
+        if (results.get(key) or {}).get("state") == "RESOLVED":
+            continue
+        v = reference_list_identity(t["slug"], t["label"], id_rows)
+        if v:
+            if v["state"] == "RESOLVED" and v.get("pmid") and not v.get("nct"):
+                link1 = ic.pmid_to_ncts([v["pmid"]], snap).get(v["pmid"]) or {}
+                v["nct"] = next(iter(link1), None) if len(link1) == 1 else None
+            v["lane"] = pin
+            results[key] = v
     # ---- COMMENT-ON route: a unit whose only report is a Letter / Comment is the article it comments on
     T_all = [t for t in T["trials"] if len(t.get("pmids") or []) == 1 and t.get("status") != "POOLED"]
     recs = pubmed_records([t["pmids"][0] for t in T_all], offline)

@@ -125,9 +125,19 @@ def test_the_comparators_own_row_never_gives_an_unpooled_trial_a_counted_route()
     import json
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "glp1-ra-mace-t2d.json"), encoding="utf-8"))
     elixa = next(x for x in o["trials"] if x["label"] == "ELIXA")
-    assert not elixa["in_our_pool"] and elixa["route"] not in ("PRIMARY", "TWO_SOURCE") and not elixa["g1_countable"]
+    comp = str(o["comparator_pmid"])
+    # the REQUIREMENT: any counted route ELIXA holds rests on a NON-comparator meta (5 Oct: meta 42529614's row, verified
+    # against ELIXA's own text); never on the comparator's own row. (Asserted as 'route not PRIMARY' while the
+    # comparator's was the only verified row -- that was the circumstance, not the rule.)
+    if elixa["route"] in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"):
+        assert f"meta {comp} " not in str(elixa["basis"]) and not str(elixa["basis"]).startswith(f"meta {comp}")
+    assert not elixa["in_our_pool"] and not gt.is_matched(elixa)       # the named estimand difference keeps it out
     assert any(f["finding"] == "COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND" and f["trial"] == "ELIXA"
                for f in o["comparator_findings"])
+    # and the class, on synthetic rows: the comparator's verified row alone is never countable
+    r = sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="TYPED_TABLE",
+                        trial_label="X", measure="HR", outcome_definition="", state=sm.VERIFIED)
+    assert sm.g1_countable([r], {comp}) == []
 
 
 def test_a_year_glued_to_an_acronym_still_joins_the_family():
