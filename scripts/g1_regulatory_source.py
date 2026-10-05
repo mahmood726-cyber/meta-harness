@@ -48,6 +48,7 @@ EMA_ACK = "Source: European Medicines Agency (EMA), reproduced with acknowledgem
 WINDOW = 1800                                    # characters either side of a naming mention shown to the reader
 MAX_SHOWN = 40000                                # per trial, across documents
 MAX_DOCS = 160
+MAX_PER_AGENCY = 70                              # documents held per agency per topic
 TYPED_REACH = 6000                               # the typed reader looks as far from a naming mention as the gate does
 
 
@@ -192,9 +193,16 @@ def hold_topic(slug, cfg, fetch=True):
         del cur[u]
     held = []
     import g1_trial_acquire as ga
-    for u in list(dict.fromkeys(urls))[:MAX_DOCS]:
-        if not agency_of(u):
-            continue
+    # the cap is PER AGENCY: one global cap let FDA + NICE fill it before any EMA document was reached
+    # (corticosteroids: 160 = 64 FDA + 84 NICE + 12 failed, EMA never tried)
+    per = {}
+    capped = []
+    for u in dict.fromkeys(urls):
+        a = agency_of(u)
+        if a and per.get(a, 0) < MAX_PER_AGENCY:
+            per[a] = per.get(a, 0) + 1
+            capped.append(u)
+    for u in capped:
         if not ga.disk_ok():                       # Mahmood 6 Oct: work only while C: and F: each keep >= 5 GB free
             print("DISK_FLOOR: stopped holding documents", slug, flush=True)
             break
