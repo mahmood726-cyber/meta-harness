@@ -1561,6 +1561,38 @@ META_EXTRA = {
         {"fig_id": "F2", "caption_has": "Forest plot of subgroup comparisons of mortality rates",
          "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
                         "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    # corticosteroids-covid19 (5 Oct night, 2nd pass): figures of OA metas CITING CAPE COVID / REMAP-CAP / Metcovid / CoDEX
+    # (Europe PMC CITES:<pmid>_MED, 86 metas), pre-filtered before any read: a mortality figure, intervention named, and
+    # 28 days stated by the caption or as the meta's single timepoint (meta_timepoint, variable-timepoint guard applied)
+    ("corticosteroids-covid19-mortality", "35937252"): [
+        {"fig_id": "F3", "caption_has": "Forest plot of comparison: 28-day mortality",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "39003393"): [
+        {"fig_id": "Fig4", "caption_has": "Effect of corticosteroids on mortality at 28 days among hospitalized patients",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "33666200"): [
+        {"fig_id": "F2", "caption_has": "Steroid + standard of care vs. standard of care: Mortality",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "39185470"): [
+        {"fig_id": "fig1", "caption_has": "Forest plot of the mortality among patients with serve COVID-19 in Methylprednisolone group",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "34484209"): [
+        {"fig_id": "f2", "caption_has": "The 28-day mortality of patients with sepsis based on the corticosteroids treatment",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "33765902"): [
+        {"fig_id": "fig2-17534666211007214", "caption_has": "Comparison: dexamethasone versus standard care. Outcome: mortality at day 28",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled row for the whole figure."},
+    ],
+    ("corticosteroids-covid19-mortality", "34644768"): [
+        {"fig_id": "f1", "caption_has": "Risk ratio for dexamethasone with regard to mortality (A)", "panel": "A",
+         "panel_title": "mortality",
+         "instruction": "Transcribe ONLY panel (A) (risk ratio for mortality): its study rows (events and totals per arm) "
+                        "and panel (A)'s own pooled row. Ignore panel (B)."}],
     # iv-iron (5 Oct night): the HF-hospitalisation PANEL of multi-panel figures in metas citing EFFECT-HF / FAIR-HF /
     # AFFIRM-AHF / HEART-FID (k-gap sweep's citation network); patients-with-event panels only (never recurrent rates)
     ("iv-iron-hfref-hosp", "36178088"): [
