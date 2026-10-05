@@ -1592,6 +1592,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                f"{dim}={admission[dim]['trial_value']} (requires {admission[dim]['contract_value']})"
                                for dim in failed)})
         trials = kept
+    if not spec.get("withdrawn"):
+        # SIGNED SERVED-POOL ADDITIONS (Mahmood 5 Oct, 'yes can sign' / packet V6): a trial verified by the G1
+        # tracker enters this pool ONLY when a signed result-change notice names it (harness/served_pool_additions.py
+        # re-checks the signature and the rendered hash). It then meets every gate below like any other row.
+        from . import served_pool_additions as _spa
+        _have = {str(t.get("id")) for t in trials}
+        trials.extend(r for r in _spa.admitted_rows(slug, spec.get("name")) if str(r.get("id")) not in _have)
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
     # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
     # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
@@ -1708,6 +1715,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         meta = included_meta.get(key)
         if meta:
             row.update(meta)
+    if any(t.get("provenance") == "served_pool_signed_notice" for t in trials):
+        from . import served_pool_additions as _spa
+        trials, absent = _spa.reconcile(trials, absent)
     _apply_trial_annotations(spec, trials)
     for t in trials:
         if t.get("cross_source"):
