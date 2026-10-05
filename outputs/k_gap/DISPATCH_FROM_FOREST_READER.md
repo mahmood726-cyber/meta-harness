@@ -376,3 +376,40 @@ the perturbed number is never proposed, and that the printed value is recovered 
 - `test_REAL_FIGURE_PLANT_one_perturbed_reading_never_yields_the_perturbed_number`.
 
 REPLAY_OK; 98 passed, with basetemp on F:.
+
+## 5 Oct: metformin and probiotics — the blocker is identification, not missing meta rows
+
+**The new search.** `g1_ss_targets.py --topic` adds a topic-words search. It finds open-access meta-analyses by topic
+query, holds their JATS, and checks whether their own reference lists contain a target's PMID. It is recorded and
+frozen in `g1_ss_selection_topic.json`, with the queries in `g1_ss_search/`.
+- **metformin:** 156 hits. The high-coverage ones are network meta-analyses already read and refused (28143834,
+  34280195, 28630466). Every other hit cites at most 1 target and has no per-trial ovulation plot.
+- **probiotics:** 122 hits. The high-coverage ones are already read. 41821810, 23981066 and 26596269 have no forest
+  plot at all; 26955289 and 27025619 plot *C. difficile*, a different outcome.
+
+**The finding that matters.** At acq/k-gap `f7d4278e`, every UNVERIFIED / NO_ROW target in six of the seven
+SECONDARY_SINGLE topics is `NOT_IN_OUR_POOL`:
+- metformin 38/38;
+- probiotics 26/26;
+- pcsk9 10/10;
+- omega3 24/24;
+- ticagrelor 20/20;
+- melatonin 18/18.
+
+A meta's row supplies the VALUE for a trial already in our pool. For a trial our search/screen never admitted, no
+number of meta rows changes G1. probiotics Can, Cindoruk, Gao and Sampalis are already in accepted meta rows
+(24348885, 29023420) and still read `NOT_IN_OUR_POOL`.
+
+Only tocilizumab's targets are in our pool (`NO_PRIMARY_ROW` ×12, `AGREE` ×2). That is why the two new rules moved
+tocilizumab.
+
+**Where those trials stop, from your tracker:**
+
+| topic | identification at screen | unresolved identity | screen / eligibility | acquisition / extraction | other |
+|---|---|---|---|---|---|
+| metformin | 17 | 13 | 4 | 1 | 3 (2 genuinely unavailable open, 1 scope mismatch) |
+| probiotics | 0 | 5 | 9 | 9 | 3 (2 genuinely unavailable open, 1 measure mismatch) |
+
+**The lever is upstream, in your lane:** identity resolution, screen and acquisition. Until those trials enter our
+pool, my meta reads cannot count for them. I have stopped spending codex calls on metformin/probiotics metas for
+that reason.
