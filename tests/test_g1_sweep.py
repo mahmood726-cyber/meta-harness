@@ -363,3 +363,14 @@ def test_a_lane_owned_trial_reaches_the_sweep_with_its_registration(monkeypatch)
     assert sw.lane_identity(x, {"ncts": ["NCT1"], "pmids": ["9"]}) == {"ncts": ["NCT1"], "pmids": ["9"]}
     # a PMID family gives its PMID
     assert sw.lane_identity({"label": "y", "family": "PMID 123"}, {})["pmids"] == ["123"]
+
+
+def test_a_held_gated_read_is_counted_whatever_the_current_plan():
+    # 5 Oct: a re-sweep with --need=4 planned other metas and dropped Nilsen 2001's verified row (meta 39639295 Fig 3,
+    # a held RAN_OK read): the plan decides what to READ, never what is COUNTED
+    import g1_two_source_sweep as sw
+    runs = {"omega3::39639295": {"state": "RAN_OK"}, "omega3::111": {"state": "FAILED"},
+            "omega3::222::Fig2": {"state": "RAN_OK"}, "other::333": {"state": "RAN_OK"},
+            "omega3::444": {"state": "RAN_OK"}}
+    got = sw.metas_to_count("omega3", ["555"], runs, {"444"})
+    assert got == ["39639295", "555"]        # held read kept; failed read, text-linked key, other topic, comparator not

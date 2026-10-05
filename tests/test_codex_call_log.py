@@ -57,3 +57,17 @@ def test_a_test_runner_does_not_write_the_lane_log(tmp_path, monkeypatch):
               caller={"file": "t", "line": "1", "purpose": "test"}, input_digests=[], runner=_fake(),
               client_version="0.153.4")
     assert not log.exists()
+
+
+def test_no_local_path_survives_into_the_committed_lane_log():
+    # 5 Oct: the client's own AGENTS.md steered a forest read (mc-28562764) into commands naming private local files;
+    # the workdir was redacted but those paths reached registry/model_calls/lane_log (caught by the leak scan)
+    from reproducible_ai import model_call_live as mcl
+    err = ("exec\n\"C:\\WINDOWS\\System32\\powershell.exe\" -Command \"Get-Content F:\\Private\\INDEX.md -TotalCount 5\"\n"
+           " exited 1 in 10ms\n"
+           "exec_command failed: Rejected(\"Get-Item -LiteralPath 'F:\\claude-temp\\mcall-abc1\\image_0.jpg'\") blocked\n"
+           "tokens used\n1,234\n")
+    f = mcl.transcript_facts(err, b"PROMPT")
+    blob = json.dumps(f)
+    assert "Private" not in blob and "WINDOWS" not in blob and "F:" not in blob and "C:" not in blob
+    assert f["tool_calls_n"] == 2 and f["tool_calls_rejected_n"] == 1 and f["tokens_used"] == 1234
