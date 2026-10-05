@@ -8,10 +8,10 @@ Comparator trials across the 32 topics: 348. Kinds: 235 ELIGIBLE (the recall den
 
 ## Search
 
-- Registered search (PubMed + CT.gov as run): **172 of 235** eligible trials identified.
-- Plus other published metas' reference lists already held: 177 of 235.
-- After this branch's identification fixes (counterfactual, recorded probes): **216 of 235**; 193 of 235 without the comparator's own reference list (circular as a measure: it lists its trials by construction).
-- Search misses, typed by the recorded probe: DATABASE_NOT_SEARCHED 1, IDENTITY_FAILURE 18, QUERY_GAP 32, RETRIEVED_NOT_RETAINED 12.
+- Registered search (PubMed + CT.gov as run): **160 of 235** eligible trials identified.
+- Plus other published metas' reference lists already held: 171 of 235.
+- After this branch's identification fixes (counterfactual, recorded probes): **215 of 235**; 190 of 235 without the comparator's own reference list (circular as a measure: it lists its trials by construction).
+- Search misses, typed by the recorded probe: DATABASE_NOT_SEARCHED 1, IDENTITY_FAILURE 18, QUERY_GAP 40, RETRIEVED_NOT_RETAINED 16.
 
 **Class defect 1, CT.gov silently capped at 30** (17 of 32 topics): colchicine-secondary-cv-prevention 30 of 62; corticosteroids-covid19-mortality 30 of 110; doac-vte-recurrence 30 of 50; dpp4-mace-t2d 30 of 244; empagliflozin-hfpef-hosp 21 of 22; esketamine-trd-madrs 30 of 43; finerenone-ckd-t2d-renal 21 of 22; metformin-pcos-ovulation 30 of 224; noac-vs-warfarin-af-stroke 30 of 33; omega3-cardiovascular-events 30 of 216; probiotics-aad-prevention 30 of 53; sacubitril-valsartan-hfref 30 of 60; semaglutide-obesity-weight 30 of 355; sglt2-ckd-progression 30 of 55; sglt2-primary-prevention-hf 30 of 51; tocilizumab-covid19-mortality 30 of 86; tranexamic-acid-pph 30 of 74. Fixed (harness.fetch pagination, plant).
 
@@ -39,16 +39,15 @@ Comparator trials across the 32 topics: 348. Kinds: 235 ELIGIBLE (the recall den
 
 ## Screen
 
-- Screen recall (eligible trials our search identified, then included by our screen): served **141 of 172**; under this branch's screener **144 of 172**.
+- Screen recall (eligible trials our search identified, then included by our screen): served **132 of 160**; under this branch's screener **135 of 160**.
 - Recorded dual review v2 (second screener: gpt-6-astra; adjudicator: gpt-5.5; both see the registered criteria including the exclusion lists): 251 items ({'RULE_MODEL_AGREE': 188, 'MODEL_CANNOT_TELL': 43, 'RULE_MODEL_DISAGREE': 20}). **Cohen's kappa, rule screener vs reader: 0.8077** on 208 decided items (43 the reader could not decide from the record).
 - v1 (reader saw only the summary criteria, not the registered exclusion lists): kappa 0.7607; kept for the record -- the two differ because v1 judged protocol-excluded populations (CABG, assisted reproduction, eye disease) against a looser standard.
 
-Eligible trials our screen EXCLUDED (served): 27. Typed: SCREEN_FALSE_EXCLUSION 10, PROTOCOL_EXCLUSION 7, DESIGN_NOT_STATED 3, FIXED_ON_BRANCH 3, POST_SCREEN_STAGE 2, UNRESOLVED 2.
+Eligible trials our screen EXCLUDED (served): 24. Typed: SCREEN_FALSE_EXCLUSION 10, PROTOCOL_EXCLUSION 5, FIXED_ON_BRANCH 3, DESIGN_NOT_STATED 2, POST_SCREEN_STAGE 2, UNRESOLVED 2.
 
 | Topic | Trial | Rule (served) | Dual review | Branch | Type |
 |---|---|---|---|---|---|
 | colchicine-postop-af | Zarpelon [20] | X-DESIGN | UNRESOLVED | EXCLUDED | DESIGN_NOT_STATED |
-| omega3-cardiovascular-events | GISSI-P 1999 [25] | X-DESIGN | UNRESOLVED | EXCLUDED | DESIGN_NOT_STATED |
 | sacubitril-valsartan-hfref | Tsutsui, 2021 | X-DESIGN | UNRESOLVED | EXCLUDED | DESIGN_NOT_STATED |
 | probiotics-aad-prevention | Hickson et al53 | X2 | ELIGIBLE | INCLUDED | FIXED_ON_BRANCH |
 | probiotics-aad-prevention | Koning et al56 | X2 | ELIGIBLE | INCLUDED | FIXED_ON_BRANCH |
@@ -60,8 +59,6 @@ Eligible trials our screen EXCLUDED (served): 27. Typed: SCREEN_FALSE_EXCLUSION 
 | metformin-pcos-ovulation | Malkawi 2002 | X1 | INELIGIBLE | EXCLUDED | PROTOCOL_EXCLUSION |
 | metformin-pcos-ovulation | Palomba 2005a | X3 | INELIGIBLE | EXCLUDED | PROTOCOL_EXCLUSION |
 | metformin-pcos-ovulation | PCOSMIC 2010 | X3 | INELIGIBLE | EXCLUDED | PROTOCOL_EXCLUSION |
-| omega3-cardiovascular-events | Burr 1989 [23] | X2 | INELIGIBLE | EXCLUDED | PROTOCOL_EXCLUSION |
-| omega3-cardiovascular-events | Brouwer 2006 [31] | X2 | INELIGIBLE | EXCLUDED | PROTOCOL_EXCLUSION |
 | colchicine-postop-af | Imazio [19] | X1 | ELIGIBLE | EXCLUDED | SCREEN_FALSE_EXCLUSION |
 | metformin-pcos-ovulation | Lord 2006 | X-DESIGN | ELIGIBLE | EXCLUDED | SCREEN_FALSE_EXCLUSION |
 | probiotics-aad-prevention | Cindoruk et al47 | X2 | ELIGIBLE | EXCLUDED | SCREEN_FALSE_EXCLUSION |

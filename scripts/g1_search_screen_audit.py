@@ -108,6 +108,13 @@ def topic(slug, acq_meta):
             ktab[k.get("label")].append(k)
     retrieved = {str(r["id"]).upper() if str(r["id"]).upper().startswith("NCT") else str(r["id"])
                  for r in (rec.get("records") or []) + (rec.get("ctgov") or [])}
+    # FORCED ids are not identification: config extra_pmids (hand-named, discovery_capable=false), negative controls and
+    # the comparator are fetched by name whatever the query returns. 12 eligible trials (omega3 7, pcsk9 3,
+    # semaglutide-weight 2) had been counted 'identified by the registered search' only because they were hand-named.
+    cfg = _j(os.path.join(ROOT, "topics", f"{slug}.json"))
+    forced = ({str(x) for x in cfg.get("extra_pmids") or []} | {str(x) for x in cfg.get("negative_control_pmids") or []}
+              | {str(cfg.get("comparator_pmid") or "")})
+    retrieved -= forced
     screened = {str(r["id"]).upper() if str(r["id"]).upper().startswith("NCT") else str(r["id"]): r
                 for r in (rev.get("screening") or {}).get("records") or []}
     fam_of = {}                                   # any id -> every id of its trial family (all reports + registrations)
