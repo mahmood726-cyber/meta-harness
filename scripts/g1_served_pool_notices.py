@@ -138,9 +138,13 @@ def topic_notice(o):
         described.append(f"{tid} entered the pool contributing {val} ({x['label']}; verified {x['route']})")
     if not entered:
         return None, exc
-    pr = synth.pool(studies, scale=scale)
-    nan = lambda v: None if v is None or v != v else round(float(v), 4)  # noqa: E731
-    after = {"k": pr.k, "estimate": nan(pr.estimate), "ci_low": nan(pr.ci_low), "ci_high": nan(pr.ci_high)}
+    # the SERVED pipeline's own result function (harness.pipeline._pool_result), not the bare engine: it carries the
+    # served rules -- 4-dp rounding, and at k=1 the single trial's REPORTED CI verbatim (V6-03/V6-04 were derived with
+    # the bare engine's recomputed CI and could never have matched the served page within the gate's 1e-6)
+    from harness import pipeline as _pl
+    pr = _pl._pool_result(studies, scale=scale)
+    nan = lambda v: None if v is None or v != v else float(v)  # noqa: E731
+    after = {"k": pr["k"], "estimate": nan(pr.get("estimate")), "ci_low": nan(pr.get("ci_low")), "ci_high": nan(pr.get("ci_high"))}
     notice = {"slug": slug, "outcome": prim.get("name"), "before": before, "after": after, "left_pool": [],
               "entered_pool": entered,
               "reason": (f"SERVED-POOL REFRESH (Mahmood 5 Oct, 'yes can sign'): {len(entered)} trial(s) verified from a "
