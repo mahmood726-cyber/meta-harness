@@ -491,6 +491,13 @@ def posted_effect_on_estimand(analysis, estimand):
     return True, None
 
 
+def binding_candidate(title, keywords, is_primary):
+    """A posted outcome is examined when it is the trial's PRIMARY outcome or its title names a topic keyword -- in the
+    registry's own wording, by the SAME rule as the gate (keyword_named): the candidate filter matched literal
+    substrings only, so 'Mortality Rate at Day 28' was never a candidate for 'mortality at day 28' (tocilizumab)."""
+    return bool(is_primary) or any(keyword_named(k, title) for k in keywords or [])
+
+
 def registry_binding(nct, spec_name, keywords, estimand=None, population=None):
     """BIND A COMPARATOR TRIAL WE DO NOT POOL VIA THE AACT SNAPSHOT (source hierarchy 2a), through the same gates.
     Candidates: the trial's PRIMARY posted outcomes and any outcome whose title names a topic keyword. Gates, in order:
@@ -511,11 +518,11 @@ def registry_binding(nct, spec_name, keywords, estimand=None, population=None):
     cands = []
     for oid, o in reg["outcomes"].items():
         t = o.get("title") or ""
-        # a candidate is named the SAME way the binding gate names it -- a keyword substring OR the topic's outcome name
-        # (AFFIRM-AHF: 'HF Hospitalisations', its participant outcome, was never a candidate while its composite primary
-        # was; with only the composite refused at ESTIMAND, scope_difference named the trial an ESTIMAND_DIFFERENCE)
-        if (o.get("type") or "").upper() != "PRIMARY" and not any(k in t.lower() for k in kws) \
-                and not (sw and sw <= _name_words(t)):
+        # a candidate is named the SAME way the binding gate names it: the trial's PRIMARY, a keyword in the registry's own
+        # wording (acq/k-gap binding_candidate: 'Mortality Rate at Day 28', tocilizumab), OR the topic's outcome name
+        # (AFFIRM-AHF 'HF Hospitalisations') -- consolidated 2026-10-05
+        if (not binding_candidate(t, keywords, (o.get("type") or "").upper() == "PRIMARY")
+                and not (sw and sw <= _name_words(t))):
             continue
         groups = reg["groups"].get(oid) or []
         an = next((a for a in reg["analyses"] if a["outcome_id"] == oid), None)

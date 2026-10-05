@@ -350,3 +350,16 @@ def test_posted_results_count_as_the_single_primary_only_for_the_randomised_popu
     # an HR topic with no posted HR analysis: never converted from counts
     v, why = sw.aact_single_primary(dict(bind, analysis={"param_type": "Odds Ratio (OR)"}), text, "HR")
     assert v is None and why == "NO_POSTED_ANALYSIS_ON_THE_ESTIMAND"
+
+
+def test_a_lane_owned_trial_reaches_the_sweep_with_its_registration(monkeypatch):
+    # tocilizumab 5 Oct: lane-owned topics have no k-gap rows, so their 14 open trials (each family an NCT) reached the
+    # sweep with no NCT, no PMID and no registry binding -- the AACT route was never tried for REMAP-CAP, COV-AID, ...
+    x = {"label": "COV-AID", "family": "NCT04330638", "in_our_pool": None, "route": "NO_ROW"}
+    monkeypatch.setattr(sw, "_aact_result_pmids", lambda nct: ["34284985"] if nct == "NCT04330638" else [])
+    ident = sw.lane_identity(x, {})
+    assert ident["ncts"] == ["NCT04330638"] and ident["pmids"] == ["34284985"]
+    # a k-gap row's own identity always wins
+    assert sw.lane_identity(x, {"ncts": ["NCT1"], "pmids": ["9"]}) == {"ncts": ["NCT1"], "pmids": ["9"]}
+    # a PMID family gives its PMID
+    assert sw.lane_identity({"label": "y", "family": "PMID 123"}, {})["pmids"] == ["123"]
