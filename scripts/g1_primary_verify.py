@@ -37,7 +37,11 @@ RUNS = os.environ.get("G1_PV_RUNS") or os.path.join(ROOT, "registry", "model_pro
 INTERVENTION = {"tocilizumab-covid19-mortality": r"tocilizumab|interleukin[- ]6 receptor|IL-6 receptor|IL-6R",
                 "pcsk9-mace": r"alirocumab|evolocumab|PCSK9|proprotein convertase",
                 "omega3-cardiovascular-events": r"omega-3|n-3|fish oil|eicosapentaenoic|icosapent|docosahexaenoic|"
-                                                r"fatty acid"}
+                                                r"fatty acid",
+                "corticosteroids-covid19-mortality": r"dexamethasone|hydrocortisone|methylprednisolone|corticosteroid|"
+                                                     r"glucocorticoid|steroid",
+                "iv-iron-hfref-hosp": r"ferric carboxymaltose|ferric derisomaltose|iron isomaltoside|iron sucrose|"
+                                      r"intravenous iron|\biron\b|ferinject"}
 
 
 def _meta(pmid, run, pubtypes):

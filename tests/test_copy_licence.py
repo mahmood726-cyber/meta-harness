@@ -24,3 +24,10 @@ def test_locator_text_carries_full_text_only_from_a_cc_copy():
         shown, ref = cl.locator_text(rec, "FULL TEXT BODY", lic, 123)
         assert "FULL TEXT BODY" not in shown and shown.strip() == "T\nA" and "abstract only" in ref
         assert "full text" not in ref.lower()      # record_licence's 'declared' detector reads 'PMID n ... full text'
+
+
+def test_typed_reader_admits_only_cc_or_author_manuscript_copies():
+    # g1/finish-line 9cf9841bc: the deterministic reader admits a row only from CC or a PMC author manuscript
+    assert cl.typed_may_read("CC") and cl.typed_may_read("PMC_AUTHOR_MANUSCRIPT")
+    for lic in ("NOT_OPEN", "NO_PMCID", None, "UPW_NOT_CC"):
+        assert not cl.typed_may_read(lic)
