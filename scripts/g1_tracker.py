@@ -66,10 +66,23 @@ def as_row(primary, label, measure_hint=None):
                            sd_t=primary.get("sd_t"), mean_c=primary.get("mean_c"), sd_c=primary.get("sd_c"))
 
 
+def comparator_one_sided(theirs):
+    """The comparator printed an effect with ONE bound only (a one-sided interval, e.g. EXAMINE 'HR 0.96 (<= 1.16)' in
+    31462224 Table 1): no two-sided interval exists on its side, so the row can be neither interval-compared nor pooled."""
+    return (theirs is not None and theirs.effect is not None and theirs.events_t is None
+            and (theirs.lower is None) != (theirs.upper is None))
+
+
 def agreement(ours, theirs):
     """Our pooled value vs the comparator's printed row for the same trial: AGREE / DISAGREE / NOT_COMPARABLE[:why]."""
     if not ours or not theirs:
         return "NOT_COMPARABLE:NO_COMPARATOR_ROW" if ours else "NOT_COMPARABLE"
+    if comparator_one_sided(theirs) and ours.get("effect") is not None and \
+            (ours.get("measure") or "").upper() == (theirs.measure or "").upper():
+        # a missing comparator bound is not a disagreement (5 Oct false-positive class): the POINT is compared at the
+        # comparator's precision, the interval is not comparable
+        return ("AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND" if sm._eq_printed(ours["effect"], theirs.effect)
+                else f"DISAGREE_ON_POINT:ours_{ours['effect']}_vs_printed_{theirs.effect}:COMPARATOR_ONE_SIDED_BOUND")
     # two 2x2 tables compare as counts when both sides label a COUNT-derived ratio (RR / OR): the counts carry no
     # measure. Never across an HR (a time-to-event row's counts are not its estimate's data)
     if ours.get("events_t") is not None and theirs.events_t is not None and \
@@ -156,6 +169,18 @@ def _concl(r, measure):
 
 
 def same_trials_compare(pairs, method_label):
+    """same_trials_core on the pairs whose comparator row has a two-sided interval (or counts); a pair whose comparator
+    printed ONE bound only (comparator_one_sided) can be pooled by neither side and is set aside BY NAME in
+    comparator_one_sided_not_pooled -- never silently dropped."""
+    one_sided = [t_.trial_label for _, t_ in pairs if comparator_one_sided(t_)]
+    kept = [p for p in pairs if not comparator_one_sided(p[1])]
+    out = same_trials_core(kept, method_label) if kept else {"state": "NO_SHARED_TRIAL", "k": 0}
+    if one_sided:
+        out = dict(out, comparator_one_sided_not_pooled=one_sided)
+    return out
+
+
+def same_trials_core(pairs, method_label):
     """The same-trials comparison ON THE COMPARATOR'S MEASURE (5 Oct class):
       >= 2 comparable pairs   both sides pooled by ONE method on the comparator's measure (same_trials_pool)
       exactly 1 shared trial  ONE_SHARED_TRIAL: that trial compared directly (k = 1 rule)
@@ -802,6 +827,52 @@ def confirm_blocked(x):
     return None
 
 
+def ci_at_95(v):
+    """A two-sided CI printed at level L re-expressed at 95%: SE = (g(U) - g(L)) / (2 z_{(1+L)/2}), g = log for a ratio;
+    the estimate is unchanged. None when the printed tuple is not a valid interval around the estimate."""
+    from statistics import NormalDist
+    try:
+        e, lo, hi, lvl = float(v["effect"]), float(v["lower"]), float(v["upper"]), float(v["ci_level"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    ratio = (v.get("measure") or "").upper() in sm.RATIO
+    if not (0 < lvl < 100) or not (lo < e < hi) or (ratio and lo <= 0):
+        return None
+    g, gi = (math.log, math.exp) if ratio else ((lambda x: x), (lambda x: x))
+    se = (g(hi) - g(lo)) / (2 * NormalDist().inv_cdf(0.5 + lvl / 200))
+    z95 = NormalDist().inv_cdf(0.975)
+    return gi(g(e) - z95 * se), gi(g(e) + z95 * se)
+
+
+def arms_combined_check(slug, b):
+    """An own-tuple ARMS_COMBINED binding (scripts/g1_binding_aact.py, C1-C6), RE-DERIVED here offline: every arm's
+    mean / SD / N is verbatim in the span; each arm's role is re-derived from its title (exactly one control arm, every
+    other arm names an intervention agent of the topic); the intervention arms are re-combined by the Cochrane Handbook
+    6.5.2.10 formula and must equal the binding's values. Our value is the combined two-group tuple (MD from arms)."""
+    import g1_binding_aact as _ba
+    arms, span, v = b.get("arms") or [], b.get("span") or "", b.get("values") or {}
+    cfg = _j(os.path.join(ROOT, "topics", f"{slug}.json"))
+    if (cfg.get("primary_outcome") or {}).get("estimand", "").upper() != "MD":
+        return False, "ARMS_COMBINED_NOT_AN_MD_TOPIC", None
+    agents = _ba.topic_agents(cfg)
+    for a in arms:
+        if f"MEAN {a.get('mean')} Standard Deviation {a.get('sd')} N {a.get('n')}" not in span:
+            return False, f"ARM_NOT_IN_SPAN:{a.get('code')}", None
+        if _ba.arm_role(a.get("title") or "", agents) != a.get("role") or f"{a.get('title')} [{a.get('role')}]" not in span:
+            return False, f"ARM_ROLE_NOT_REDERIVED:{a.get('code')}", None
+    if sum(a.get("role") == "control" for a in arms) != 1 or not any(a.get("role") == "intervention" for a in arms):
+        return False, "ARMS_NOT_ONE_CONTROL_PLUS_INTERVENTION", None
+    re_v = _ba.arms_values(arms)
+    if any(str(re_v[k]) != str(v.get(k)) for k in ("mean_t", "sd_t", "n_t", "mean_c", "sd_c", "n_c")):
+        return False, "ARMS_COMBINATION_NOT_REPRODUCED", None
+    ours = {"measure": "MD", "effect": None, "lower": None, "upper": None, "events_t": None, "events_c": None,
+            **{k: re_v[k] for k in ("mean_t", "sd_t", "n_t", "mean_c", "sd_c", "n_c")},
+            "arms_combined": {"k_intervention_arms": re_v["k_intervention_arms"], "rule": re_v["combination"]}}
+    return True, (f"single PRIMARY source: per-arm mean/SD/N verbatim in the trial's posted results; "
+                  f"{re_v['k_intervention_arms']} intervention arm(s) combined ({re_v['combination']})"
+                  if re_v["k_intervention_arms"] > 1 else "single PRIMARY source: per-arm mean/SD/N verbatim"), ours
+
+
 def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
     """G1 confirm-unverified (scripts/g1_confirm_bind.py, Mahmood 3 Oct): an UNVERIFIED comparator trial whose typed tuple
     is printed by its OWN primary source -- the trial's open report or its posted CT.gov results -- is PRIMARY (2 Oct
@@ -843,7 +914,10 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             x["confirm_binding"] = {"admitted": False, "why": blocked, "source": b.get("source"),
                                     "pmid": b.get("pmid"), "tuple_kind": b.get("tuple_kind")}
             continue
-        if b.get("tuple_kind") == "COUNTS":
+        arms_ours = None
+        if b.get("tuple_kind") == "ARMS_COMBINED":
+            ok, why, arms_ours = arms_combined_check(o.get("slug"), b)
+        elif b.get("tuple_kind") == "COUNTS":
             probe = dict(x, g1_state="ONE_SOURCE", readings=[{
                 "values": {"deaths_t": v.get("events_t"), "n_t": v.get("n_t"), "deaths_c": v.get("events_c"),
                            "n_c": v.get("n_c")},
@@ -854,6 +928,12 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             ok = all(str(v.get(k) or "") and str(v.get(k)) in flat for k in ("effect", "lower", "upper"))
             why = ("single PRIMARY source: effect + CI verbatim in the trial's own span" if ok
                    else "EFFECT_CI_NOT_IN_SPAN")
+            if ok and str(v.get("ci_level") or "95") != "95":
+                # a two-sided interval at a STATED level other than 95% (a regulatory table's 98% CI): the level must be
+                # printed in the span itself, and the interval is re-expressed at 95% (ci_at_95)
+                ok = f"({v['ci_level']}% CI)" in span and ci_at_95(v) is not None
+                why = (f"single source: effect + two-sided {v['ci_level']}% CI verbatim (level printed); re-expressed at 95%"
+                       if ok else "CI_LEVEL_NOT_PRINTED_IN_SPAN")
         x["confirm_binding"] = {"admitted": ok, "why": why, "source": b.get("source"), "pmid": b.get("pmid"),
                                 "source_sha256": b.get("source_sha256"), "tuple_kind": b.get("tuple_kind"),
                                 "search_key": b.get("search_key")}
@@ -863,11 +943,19 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             # the trial's OWN printed counts for the topic outcome (Mahmood 3 Oct: matched = any verified typed tuple for
             # the comparator's trial): NOT searched by the comparator's numbers, so agreement is COMPUTED, never assumed
             cr = x.get("comparator_row") or {}
-            if b.get("tuple_kind") == "EFFECT_CI":
+            if arms_ours:
+                ours = arms_ours
+            elif b.get("tuple_kind") == "EFFECT_CI":
                 # the trial's OWN posted effect + both CI bounds (scripts/g1_binding_aact.py): our value is that tuple
                 ours = {"measure": (v.get("measure") or cr.get("measure") or "").upper(), "effect": v.get("effect"),
                         "lower": v.get("lower"), "upper": v.get("upper"),
                         "events_t": None, "n_t": None, "events_c": None, "n_c": None}
+                if str(v.get("ci_level") or "95") != "95":
+                    lo95, hi95 = ci_at_95(v)
+                    ours.update(lower=f"{lo95:.4f}", upper=f"{hi95:.4f}",
+                                ci_printed={"level": v["ci_level"], "lower": v.get("lower"), "upper": v.get("upper")},
+                                ci_reexpressed=f"95% from the printed two-sided {v['ci_level']}% CI on the "
+                                               f"{'log' if ours['measure'] in sm.RATIO else 'natural'} scale")
             else:
                 ours = {"measure": (cr.get("measure") or "").upper(), "effect": None, "lower": None, "upper": None,
                         **{k: v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}}
@@ -1646,6 +1734,35 @@ def report_pmid(t, shown=None):
     return str(p) if p else None
 
 
+def refresh_same_trials_after_bindings(o, pairs, method, comp):
+    """The per-trial same-trials comparison is built in topic() BEFORE the binding hooks run, so a trial that a binding
+    newly matched (route flipped to PRIMARY / SECONDARY_SINGLE, our_value set) was never in it: RESULT_AGREES was then
+    decided on a set that silently omitted the trial (esketamine TRANSFORM-1, 5 Oct). Re-run same_trials_compare on the
+    original pairs PLUS every matched trial with our value and a comparator row that is not yet a pair. A whole-pool
+    comparison (same_trials_per_trial present) is left as it is. Returns the labels added."""
+    st = o.get("same_trials") or {}
+    if "same_trials_per_trial" in o:
+        return []
+    # only trials a binding hook flipped AFTER the pairs were built: an own tuple or a secondary supplement row (a
+    # comparator-keyed confirm binding is never compared -- it agrees by construction, NOT_INDEPENDENT)
+    flipped_by = ("g1/confirm-unverified primary binding (own tuple)", "g1/binding secondary supplement")
+    add = []
+    for x in o.get("trials") or []:
+        cr = x.get("comparator_row")
+        if not (is_matched(x) and x.get("our_value") and cr) or not str(x.get("reclassified_by") or "").startswith(flipped_by):
+            continue
+        theirs = sm.SecondaryRow(meta_pmid=str(comp), meta_doi="", location={}, source_digest="", provenance="COMPARATOR_ROW",
+                                 trial_label=x["label"], measure=(cr.get("measure") or ""), outcome_definition="",
+                                 **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+        add.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+    if not add:
+        return []
+    o["same_trials"] = dict(same_trials_compare(list(pairs) + add, method), method_basis=st.get("method_basis"),
+                            comparator_rows=st.get("comparator_rows"),
+                            recomputed_after_bindings=[t.trial_label for _, t in add])
+    return [t.trial_label for _, t in add]
+
+
 def whole_pool_comparison(o, printed_k=None):
     """When EVERY comparator trial is matched and the comparator prints no per-trial rows (an IPD / network meta), the
     'same trials' ARE both whole pools: compare our pooled result with the comparator's printed one, labelled as such,
@@ -2033,7 +2150,9 @@ def topic(slug, T):
     apply_confirm_bindings(out)
     apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings.json"))
     apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings_aact.json"))
+    apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings_regulatory.json"))
     apply_secondary_bindings(out, os.path.join(OUT, "g1_binding", f"secondary_{out.get('slug')}.json"))
+    refresh_same_trials_after_bindings(out, pairs, method, comp)
     apply_no_rows_comparator(out)          # after every binding: OUR verified rows are final before the pooled compare
     apply_typed_comparator_rows(out)
     apply_coverage(out)
