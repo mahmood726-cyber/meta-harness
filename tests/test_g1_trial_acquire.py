@@ -91,3 +91,23 @@ def test_comparator_counts_that_are_posted_events_are_named(monkeypatch):
     # the participant outcome's own counts are never named
     assert ga.comparator_counts_are_events({"events_t": 142, "n_t": 558, "events_c": 178, "n_c": 550},
                                            ["NCT02937454"]) is None
+
+
+def test_posted_counts_for_a_subpopulation_are_refused(monkeypatch):
+    # SMART (NCT02444988) posts its medical-ICU subset, 2735 + 2646 = 5381; its report randomised 15,802 adults
+    rec = {"abstract": "METHODS: In a pragmatic, cluster-randomized, multiple-crossover trial conducted in five intensive "
+                       "care units, we assigned 15,802 adults to receive saline or balanced crystalloids. RESULTS: ..."}
+    monkeypatch.setattr(gt, "held_record", lambda slug, pmid: rec)
+    short = ga.posted_population_short("balanced", "29485925", 2735 + 2646)
+    assert short["randomised_total"] == 15802 and short["posted_total"] == 5381
+    assert ga.posted_population_short("balanced", "29485925", 15802) is None
+    monkeypatch.setattr(gt, "held_record", lambda slug, pmid: {"abstract": "We studied adults in ICUs."})
+    assert ga.posted_population_short("balanced", "29485925", 5381) is None        # no stated total: never a mismatch
+
+
+def test_a_screened_count_is_never_the_randomised_total(monkeypatch):
+    rec = {"abstract": "FINDINGS: Between March 21, 2017, and July 30, 2019, 1525 patients were screened, of whom 1132 "
+                       "patients were randomly assigned to study groups."}
+    monkeypatch.setattr(gt, "held_record", lambda slug, pmid: rec)
+    assert ga.posted_population_short("iv-iron", "33197395", 558 + 550) is None      # 1108 vs 1132 randomised: >= 90%
+    assert ga.posted_population_short("iv-iron", "33197395", 600)["randomised_total"] == 1132

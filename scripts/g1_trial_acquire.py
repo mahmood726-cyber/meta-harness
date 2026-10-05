@@ -145,7 +145,16 @@ _AN_COLS = ("ci_n_sides", "ci_percent", "method", "estimate_description", "group
             "param_value", "ci_lower_limit", "ci_upper_limit")
 
 
+import threading
+_DETAIL_LOCK = threading.Lock()
+
+
 def aact_detail(ncts):
+    with _DETAIL_LOCK:
+        return _aact_detail(ncts)
+
+
+def _aact_detail(ncts):
     """Per outcome id: the snapshot's outcome description / analysis population / units, and each analysis's CI
     sidedness + percent + method + estimate description (one streaming pass over outcomes + outcome_analyses for the
     NCTs not yet cached; gitignored cache keyed by snapshot). TECOS's reader could not tell a two-sided CI or the MACE
@@ -174,7 +183,10 @@ def aact_detail(ncts):
                     {k: (r.get(k) or "")[:200] for k in ("result_group_id", "title", "units", "param_type", "param_value",
                                                          "classification", "category")})
         d["ncts"].update(got)
-        json.dump(d, open(DETAIL, "w", encoding="utf-8"), ensure_ascii=False)
+        tmp = DETAIL + f".{os.getpid()}.tmp"           # atomic: a reader never sees a half-written cache
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(d, fh, ensure_ascii=False)
+        os.replace(tmp, DETAIL)
     return {n: d["ncts"].get(n) or {} for n in ncts}
 
 
@@ -256,7 +268,7 @@ def evidence(t, cfg, comp):
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
-    return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp}
+    return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"]}
 
 
 def _ws(s):
@@ -271,6 +283,39 @@ def _num_in(v, span):
 
 def _str_in(v, span):
     return v is None or bool(re.search(rf"(?<![\d.]){re.escape(str(v))}(?![\d])", span.replace("·", ".")))
+
+
+_TOTAL = re.compile(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+|\d{3,6})\s+(?:\w+\s+){0,3}?(?:patients|adults|participants|subjects|"
+                    r"children|women|men|infants)\b", re.I)
+_RANDOMISED_CTX = re.compile(r"randomi[sz]|enrol|underwent|assigned|total of|were included", re.I)
+_SCREENED = re.compile(r"screen|assessed|eligib|approached|consider", re.I)
+
+
+def posted_population_short(slug, pmid, posted_total):
+    """The trial's randomised total as its OWN held record states it (a count of patients in a randomisation /
+    enrolment sentence); when the posted denominators fall more than 10% short of the largest such total, the posted
+    result is a subpopulation (SMART: 5381 posted vs '15,802 adults' randomised). None when the record states no total
+    -- unknown is never treated as a mismatch."""
+    import g1_tracker as gt
+    rec = gt.held_record(slug, pmid) if pmid else None
+    ab = (rec or {}).get("abstract") or ""
+    best, span = None, None
+    for s in re.split(r"(?<=\.)\s+", ab):
+        if not _RANDOMISED_CTX.search(s):
+            continue
+        for m in _TOTAL.finditer(s):
+            # the count's OWN clause must randomise / enrol it, never screen it: AFFIRM-AHF '1525 patients were screened,
+            # of whom 1132 patients were randomly assigned' -- 1525 is not the randomised total
+            clause = s[m.start(): m.end() + (re.search(r"[,;.]|$", s[m.end():]).start())]
+            before = s[max(0, m.start() - 40): m.start()]
+            if _SCREENED.search(clause) or not (_RANDOMISED_CTX.search(clause) or _RANDOMISED_CTX.search(before)):
+                continue
+            v = int(m.group(1).replace(",", ""))
+            if best is None or v > best:
+                best, span = v, s
+    if best and posted_total < 0.9 * best:
+        return {"posted_total": posted_total, "randomised_total": best, "record_span": span[:300], "pmid": pmid}
+    return None
 
 
 def gate(resp, held, cfg, slug):
@@ -339,6 +384,11 @@ def gate(resp, held, cfg, slug):
         tf = str(o.get("time_frame") or "")
         if "," in tf or " and " in tf:
             return "REFUSED:AACT_MULTIPLE_TIME_FRAMES", None
+        if counts:
+            short = posted_population_short(slug, held.get("pmid"), resp["n_t"] + resp["n_c"])
+            if short:
+                # SMART (NCT02444988) posts its MEDICAL-ICU subset, 2735 + 2646 = 5381, while its report randomised 15,802
+                return "REFUSED:POSTED_N_IS_A_SUBPOPULATION", {"note": short}
         one = {"outcomes": {oid: o}, "analyses": [x for x in reg["analyses"] if x.get("outcome_id") == oid],
                "groups": {oid: groups}}
         # identity is the binding gate's (named / estimand / analysis set / composite): the matcher checks the NUMBERS,
@@ -393,6 +443,10 @@ def run(slugs, ref, redo=()):
                 continue
             jobs.append((slug, cfg, comparator_pmid(slug, o), t))
 
+    # ONE detail pass for every job's NCTs before the pool (three threads each streaming 3 GB, and racing on one cache
+    # file, corrupted it: 'Extra data: line 1 column 90017')
+    aact_detail(sorted({n for _s, _c, _p, t in jobs for n in t["ncts"]}))
+
     def one(job):
         slug, cfg, comp, t = job
         ev, _held = evidence(t, cfg, comp)
@@ -446,6 +500,9 @@ def replay(slugs, ref):
                                                                          "lower", "upper", "outcome_as_stated",
                                                                          "timepoint_as_stated", "population_as_stated",
                                                                          "scope_rule_key", "scope_span", "why")}}
+        if adm and verdict != "ADMITTED":
+            row["refusal_detail"] = adm                  # e.g. the randomised total a posted subpopulation falls short of
+            adm = None
         if adm and adm.get("kind") == "AACT":
             adm["comparator_counts_check"] = comparator_counts_are_events(
                 _comparator_row(o, r["label"]), r.get("ncts") or [])
