@@ -433,6 +433,18 @@ def screen_record(rec, inc, neg_pmids):
         return over
     if not _is_rct(rec):
         pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
+        # REASON MUST MATCH ITS SPAN (search+screen audit 2026-10-05; measured by scripts/measure_x1_reason_evidence.py:
+        # 16 served X1s said 'not a randomized controlled trial' while citing 'publication types: ... Randomized
+        # Controlled Trial'). When PubMed types the record an RCT and a TITLE marker is what fired, say so and quote the
+        # marker: the record is a protocol / secondary report of a trial, not 'not an RCT'. The decision is unchanged --
+        # routing a secondary report to its trial family is a separate, owner-decided stage (Codex NR-C28).
+        mk = _TITLE_RCT_NOT.search(rec.get("title", "") or "")
+        if mk and rec.get("id_type") == "pmid" and any("randomized controlled trial" in p.lower()
+                                                        for p in rec.get("pubtypes", [])):
+            return ScreenDecision("exclude", "X1",
+                    f"not a primary report: the title marks a protocol / secondary report of a trial ('{mk.group(0)}'), "
+                    f"though PubMed types it an RCT (record: {label}).",
+                    _span(rec.get("title", "") or "", mk.group(0)))
         return ScreenDecision("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
                 f"publication types: {pts}")
     bad = None

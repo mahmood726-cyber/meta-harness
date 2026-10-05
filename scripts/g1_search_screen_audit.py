@@ -134,6 +134,7 @@ def topic(slug, acq_meta):
     rrl_indep = {i for src in rrl.get("sources") or [] if src.get("kind") not in ("COMPARATOR_REFERENCES",
                                                                                    "COMPARATOR_REFERENCE_LIST")
                  for i in src.get("ids") or []}
+    dual = {(it["slug"], it["label"]): it for it in (acq_meta.get("dual") or {}).get("items") or []}
     rows = []
     for t in g["trials"]:
         pm, nc, src = trial_ids(t, chain, ktab)
@@ -178,6 +179,10 @@ def topic(slug, acq_meta):
                                   "adjudicator": exc.get("adjudicator_state")} if exc else None),
             "screen_include": ({"record": inc[0]["record"], "stage": _stage(inc[0])} if inc else None),
             "miss_type": miss, "probe": p or None,
+            "dual_review": ({k: (dual.get((slug, t["label"])) or {}).get(k) for k in ("state", "final", "screen_error")}
+                            | {"reader": ((dual.get((slug, t["label"])) or {}).get("reader") or {}).get("model_decision"),
+                               "adjudicator": ((dual.get((slug, t["label"])) or {}).get("adjudicator") or {}).get("model_decision")}
+                            if (slug, t["label"]) in dual else None),
             "tracker_gap_class": t.get("gap_class"), "tracker_identification": (t.get("identification") or {}).get("route")
             or ("REVIEW_REFERENCE_LIST" if t.get("identification") else None)})
     el = [r for r in rows if r["kind"] == "ELIGIBLE"]
@@ -198,6 +203,9 @@ def topic(slug, acq_meta):
         "reference_list_metas": rrl.get("reference_list_metas"),
         "miss_types": dict(collections.Counter(r["miss_type"] for r in el if r["miss_type"])),
         "screen_exclusions_of_eligible": [r["label"] for r in found if r["screen"] == "EXCLUDED"],
+        "screen_errors": {k: [r["label"] for r in rows if (r.get("dual_review") or {}).get("screen_error") == k]
+                          for k in ("FALSE_EXCLUSION", "FALSE_INCLUSION")},
+        "screen_unresolved": [r["label"] for r in rows if (r.get("dual_review") or {}).get("final") == "UNRESOLVED"],
         "screen_named_to_recheck": [r["label"] for r in rows if r["kind"] == "SCREEN_NAMED"],
         "trials": rows}
 
@@ -214,7 +222,9 @@ def load_acq():
     probe = _j(pp).get("topics", {}) if os.path.exists(pp) else {}
     rp = os.path.join(OUT, "rrl_probe.json")
     rrl = _j(rp).get("topics", {}) if os.path.exists(rp) else {}
-    return {"k_gap_table": kt or {}, "secondary_meta": sm, "probe": probe, "rrl": rrl,
+    dp = os.path.join(OUT, "screen_dual_review.json")
+    dual = _j(dp) if os.path.exists(dp) else {}
+    return {"k_gap_table": kt or {}, "secondary_meta": sm, "probe": probe, "rrl": rrl, "dual": dual,
             "pins": {"acq_commit": ACQ_COMMIT, "k_gap_table_sha256": kt_sha, "secondary_meta_sha256": shas}}
 
 
@@ -237,6 +247,8 @@ def main(argv):
                       "fixed_identification_recall": tot("fixed_identification_recall"),
                       "fixed_identification_recall_independent": tot("fixed_identification_recall_independent"),
                       "miss_types": dict(sum((collections.Counter(t["miss_types"]) for t in topics), collections.Counter()))},
+           "dual_review": {k: (acq["dual"] or {}).get(k) for k in ("reader_model", "adjudicator_model", "n_items", "tally",
+                                                                    "kappa_rule_vs_reader", "screen_errors", "unresolved")},
            "topics": topics}
     json.dump(out, open(os.path.join(OUT, "SEARCH_SCREEN_AUDIT.json"), "w", encoding="utf-8", newline="\n"),
               indent=1, ensure_ascii=False)
