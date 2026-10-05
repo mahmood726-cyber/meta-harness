@@ -99,6 +99,18 @@ def _has(span, *nums):
     return all(verify._digits_in(span, n) if isinstance(n, int) else verify._effect_in(span, n) for n in nums)
 
 
+def _arm_order_ok(span, t, c):
+    """The span lists the TREATMENT number before the CONTROL number: some occurrence of t precedes some occurrence of
+    c (equal numbers say nothing). Digits being present in any order is not enough -- a span stating 'Treatment: 20 of
+    100 ... Control: 10 of 100' never admits 10/100 vs 20/100 (codex review 6 Oct, captain-62d4018f7:g1#1, reproduced)."""
+    import re
+    if t == c:
+        return True
+    pos = lambda v: [m.start() for m in re.finditer(r"(?<![\d.,])" + re.escape(str(v)) + r"(?![\d.,]\d)", span)]  # noqa: E731
+    pt, pc = pos(t), pos(c)
+    return bool(pt and pc) and min(pt) < max(pc)
+
+
 def report_ids(slug, tid):
     """The held reports (PMIDs) of the trial: a PMID row is its own report; an NCT row's reports are those of the ONE
     family in cache/<slug>/families.json whose family_id is that NCT (else [] -- the row is not admitted)."""
@@ -125,9 +137,10 @@ def pipeline_row(slug, x, scale):
             "served_pool_admission": {"route": x.get("route"), "basis": x.get("basis"), "report_ids": reps}}
     if scale in ("RR", "OR") and all(c is not None for c in counts):
         a, n1, c, n2 = (int(float(z)) for z in counts)
-        span = next((s for s in spans if _has(s, a, n1) and _has(s, c, n2)), None)
+        span = next((s for s in spans if _has(s, a, n1) and _has(s, c, n2) and _arm_order_ok(s, a, c)
+                     and _arm_order_ok(s, n1, n2)), None)
         if not span:
-            return None, "no verbatim span carries the counts"
+            return None, "no verbatim span carries the counts in treatment-then-control order"
         return dict(base, ai=a, n1i=n1, ci=c, n2i=n2, source=span, derivation="reconstructed"), None
     e, lo, hi = _num(v.get("effect")), _num(v.get("lower")), _num(v.get("upper"))
     if str(v.get("measure") or "").upper() == scale and None not in (e, lo, hi):

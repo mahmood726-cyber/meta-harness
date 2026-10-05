@@ -101,13 +101,18 @@ def topic_notice(o):
     scale = (res.get("scale") or prim.get("estimand") or "").upper()
     before = rc.result_tuple(res)
     studies = fn.served_studies(prim, scale)
+    if before.get("k") and len(studies) != before.get("k"):
+        # the served pool cannot be rebuilt row for row (codex review 6 Oct, merge-5824d5844:g1#2, reproduced): a
+        # notice derived from fewer rows than are served would drop served trials silently
+        return None, exc + [{"trial": "(topic)", "why": f"control failed: {len(studies)} served rows rebuilt, served k={before.get('k')}"}]
     if studies:
         try:
             ctl = synth.pool(studies, scale=scale)
         except Exception as e:                                  # the engine cannot rebuild the served pool
             return None, exc + [{"trial": "(topic)", "why": f"control failed: {type(e).__name__}: {e}"}]
+        # estimate AND interval (codex review 6 Oct, merge-5824d5844:g1#1, reproduced: only the estimate was compared)
         bad = ctl.k != before.get("k") or any(before.get(k) is not None and abs(getattr(ctl, k) - before[k]) > TOL
-                                              for k in ("estimate",))
+                                              for k in ("estimate", "ci_low", "ci_high"))
         if bad:
             return None, exc + [{"trial": "(topic)", "why": f"control failed: the engine gives k={ctl.k} "
                                  f"{ctl.estimate:.4f} for the served pool, served is {before}"}]

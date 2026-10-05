@@ -1308,14 +1308,21 @@ def acquired_rows(slug):
     p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
     if not os.path.exists(p):
         return {}
-    out = {}
+    by = {}
     for r in _j(p).get("rows") or []:
         if r.get("verdict") != "ADMITTED" or not r.get("admitted"):
             continue
         for k in [r.get("label")] + ([f"PMID {r['pmid']}"] if r.get("pmid") else []) + list(r.get("ncts") or []):
             if k:
-                out.setdefault(k, r)
-    return out
+                by.setdefault(k, [])
+                if not any(x is r for x in by[k]):
+                    by[k].append(r)
+    # a key two admitted rows share (one report of two trials: PMID 123 for trials A and B) names NEITHER: it is marked
+    # ambiguous and never resolves (codex review 6 Oct, merge-ede33d9b2:g2#1, reproduced)
+    return {k: (v[0] if len(v) == 1 else AMBIGUOUS_ACQUIRED) for k, v in by.items()}
+
+
+AMBIGUOUS_ACQUIRED = {"_ambiguous": True}
 
 
 _CLUSTER = re.compile(r"ENGINE_CANNOT_CONSUME\(design=(cluster\w*|stepped_wedge)", re.I)
@@ -1336,8 +1343,14 @@ def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
     got = []
     for x in trials:
         rb = x.get("registry_binding") or {}
-        keys = [x.get("label"), str(x.get("family") or "")] + [c.get("nct") for c in rb.get("candidates") or []]
-        a = next((acq[k] for k in keys if k and k in acq), None)
+        # the trial's OWN keys (its label, its registrations) first; its family PMID only when they find nothing. Two
+        # different rows on its own keys, or an ambiguous key, resolve to nothing (never the first one found)
+        own = [x.get("label")] + [c.get("nct") for c in rb.get("candidates") or []]
+        hits = [acq[k] for k in own if k and k in acq]
+        if any(h is AMBIGUOUS_ACQUIRED for h in hits) or len({id(h) for h in hits}) > 1:
+            continue
+        fam = acq.get(str(x.get("family") or ""))
+        a = hits[0] if hits else (fam if fam is not AMBIGUOUS_ACQUIRED else None)
         if not a or x.get("in_our_pool") or x.get("scope_difference"):
             continue
         if cluster_design_of(x) and (a.get("admitted") or {}).get("value", {}).get("events_t") is not None:

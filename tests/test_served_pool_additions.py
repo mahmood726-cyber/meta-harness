@@ -116,3 +116,20 @@ def test_unrelated_rows_and_absences_untouched():
     absent = [{"id": "PMID 3", "reason_code": "REFUSED_ON_EVIDENCE", "reason": "per-protocol"}]
     trials, left = spa.reconcile([other], absent)
     assert trials == [other] and left == absent
+
+
+def test_withdrawn_outcome_signed_correction_supersedes_the_withdrawn_entry_only_when_flagged():
+    absent = [{"id": "PMID 11111111", "reason_code": "RESULT_WITHDRAWN", "reason": "withdrawn",
+               "withdrawn_effect": {"effect": 0.88}}]
+    trials, left = spa.reconcile([_signed_row()], list(absent))
+    assert trials == [] and left == absent                              # not flagged: the withdrawal stands
+    trials, left = spa.reconcile([_signed_row()], list(absent), corrected_withdrawal=True)
+    assert len(trials) == 1 and left == []
+    assert trials[0]["served_pool_admission"]["supersedes_absence"][0]["withdrawn_effect"] == {"effect": 0.88}
+
+
+def test_build_register_refuses_counts_in_the_wrong_arm_order():
+    import build_served_pool_additions as b
+    span = "Treatment: 20 deaths among 100 randomised. Control: 10 deaths among 100 randomised."
+    assert b._arm_order_ok(span, 20, 10) and not b._arm_order_ok(span, 10, 20)
+    assert b._arm_order_ok("Tocilizumab (N=294) ... Death at day 28 ... 58 (19.7) 28 (19.4)", 58, 28)

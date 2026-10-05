@@ -82,8 +82,20 @@ def _code(a: dict[str, Any]) -> str | None:
     return code
 
 
-def reconcile(trials: list[dict[str, Any]], absent: list[dict[str, Any]]):
-    """(trials, absent) with each admitted row either superseding its own supersedable absences or dropped."""
+def signed_entry(slug: str | None, outcome: str | None) -> dict | None:
+    """The signed notice (when_utc, rendered_sha256, state) whose rows admitted_rows would admit here, or None."""
+    if not admitted_rows(slug, outcome):
+        return None
+    e = next(e for e in _load_register() if e.get("slug") == slug and e.get("outcome") == outcome)
+    return {"notice_when_utc": e.get("notice_when_utc"), "rendered_sha256": e.get("rendered_sha256"),
+            "signature_state": e.get("signature_state"), "after": e.get("after"),
+            "register": "registry/served_pool_additions.json"}
+
+
+def reconcile(trials: list[dict[str, Any]], absent: list[dict[str, Any]], corrected_withdrawal: bool = False):
+    """(trials, absent) with each admitted row either superseding its own supersedable absences or dropped. In a
+    WITHDRAWN outcome whose corrected selection was signed (corrected_withdrawal), the signed row also supersedes the
+    RESULT_WITHDRAWN entry of the same trial -- it is the correction that withdrawal waited for -- and says so."""
     keep, drop_absent = [], set()
     for t in trials:
         if t.get("provenance") != "served_pool_signed_notice":
@@ -92,11 +104,13 @@ def reconcile(trials: list[dict[str, Any]], absent: list[dict[str, Any]]):
         ids = {_norm(t.get("id"))} | {_norm(r) for r in (t.get("served_pool_admission") or {}).get("report_ids") or []}
         mine = [i for i, a in enumerate(absent) if _norm(a.get("id")) in ids]
         states = {_code(absent[i]) for i in mine}
-        if states - SUPERSEDABLE:
+        allowed = SUPERSEDABLE | ({"RESULT_WITHDRAWN"} if corrected_withdrawal else set())
+        if states - allowed:
             continue
         t.setdefault("served_pool_admission", {})["supersedes_absence"] = [
-            {"id": absent[i].get("id"), "state": _code(absent[i]),
-             "reason": absent[i].get("reason")} for i in mine]
+            {"id": absent[i].get("id"), "state": _code(absent[i]), "reason": absent[i].get("reason"),
+             **({"withdrawn_effect": absent[i]["withdrawn_effect"]} if absent[i].get("withdrawn_effect") else {})}
+            for i in mine]
         drop_absent.update(mine)
         keep.append(t)
     return keep, [a for i, a in enumerate(absent) if i not in drop_absent]

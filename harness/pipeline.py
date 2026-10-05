@@ -1231,6 +1231,21 @@ def _apply_trial_annotations(spec, trials):
                 t[k] = ann[k]
 
 
+def _withdrawal_state(slug, config):
+    """{"withdrawn": ...} while the primary outcome's withdrawal stands; once a SIGNED served-pool notice supplies its
+    corrected selection (harness/served_pool_additions.py), {"withdrawal_superseded": the withdrawal + the signature
+    that ended it} -- the withdrawal stays on the record, never deleted, and the page pools the signed rows."""
+    po = config.get("primary_outcome") or {}
+    w = po.get("withdrawn")
+    if not w:
+        return {}
+    from . import served_pool_additions as _spa
+    sig = _spa.signed_entry(slug, po.get("name"))
+    if not sig:
+        return {"withdrawn": w}
+    return {"withdrawal_superseded": dict(w, superseded_by=sig)}
+
+
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
@@ -1554,6 +1569,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 _t["analysis_qualifiers"] = _q
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
+    from . import served_pool_additions as _spa
+    _signed_rows = _spa.admitted_rows(slug, spec.get("name"))
     if spec.get("withdrawn"):
         # RESULT WITHDRAWN (Mahmood, 2026-09-19): the outcome's declared `withdrawn` notice states that the
         # served result was wrong and why; until the corrected selection lands, NO pooled estimate is
@@ -1592,13 +1609,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                f"{dim}={admission[dim]['trial_value']} (requires {admission[dim]['contract_value']})"
                                for dim in failed)})
         trials = kept
-    if not spec.get("withdrawn"):
+    if _signed_rows:
         # SIGNED SERVED-POOL ADDITIONS (Mahmood 5 Oct, 'yes can sign' / packet V6): a trial verified by the G1
         # tracker enters this pool ONLY when a signed result-change notice names it (harness/served_pool_additions.py
         # re-checks the signature and the rendered hash). It then meets every gate below like any other row.
-        from . import served_pool_additions as _spa
+        # A WITHDRAWN outcome waits "until the corrected selection lands": a signed served-pool notice for it IS that
+        # corrected selection (packet V7, 'yes v7'), so its pool is exactly the signed rows -- the withdrawn rows stay
+        # declared absent above, and a signed row that replaces one of them discloses what it superseded.
         _have = {str(t.get("id")) for t in trials}
-        trials.extend(r for r in _spa.admitted_rows(slug, spec.get("name")) if str(r.get("id")) not in _have)
+        trials.extend(r for r in _signed_rows if str(r.get("id")) not in _have)
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
     # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
     # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
@@ -1717,7 +1736,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row.update(meta)
     if any(t.get("provenance") == "served_pool_signed_notice" for t in trials):
         from . import served_pool_additions as _spa
-        trials, absent = _spa.reconcile(trials, absent)
+        trials, absent = _spa.reconcile(trials, absent, corrected_withdrawal=bool(spec.get("withdrawn")))
     _apply_trial_annotations(spec, trials)
     for t in trials:
         if t.get("cross_source"):
@@ -2326,7 +2345,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "estimand_exclusions": config.get("estimand_exclusions", []),
         # A withdrawal notice is part of the review core: it travels under review_sha256 and is rendered
         # where the result was read, with what was published, what the held evidence holds, and why.
-        **({"withdrawn": config["primary_outcome"]["withdrawn"]} if config.get("primary_outcome", {}).get("withdrawn") else {}),
+        **(_withdrawal_state(slug, config)),
         **({"comparator_scope_note": comparator_scope_note} if comparator_scope_note else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
