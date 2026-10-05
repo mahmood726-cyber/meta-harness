@@ -81,11 +81,17 @@ def test_double_blind_required_and_unstated_is_unverifiable_not_counted_not_name
 
 
 def test_tsutsui_is_unverifiable_and_not_named():
-    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sacubitril-valsartan-hfref.json"), encoding="utf-8"))
-    t = next(x for x in o["trials"] if x["label"].startswith("Tsutsui"))
-    assert t["screen_eligibility"]["state"] == "ELIGIBILITY_UNVERIFIABLE"
-    assert t["scope_difference"] is None and not gt.is_matched(t)
-    assert "Tsutsui, 2021" in o["open_gaps"]
+    # from COMMITTED inputs only (exclusion audit, topic config, full-text pass) -- never from a tracker output, which
+    # this lane does not commit (CI saw the captain's older file: KeyError 'screen_eligibility')
+    slug, pmid = "sacubitril-valsartan-hfref", "33731544"
+    cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+    x = {"in_our_pool": False, "seeded_funnel": {"stage": "SCREENED_OUT", "rule_id": "X-DESIGN", "pmid": pmid}}
+    se = gt.screen_eligibility(x, None, pmid, [], slug=slug, cfg=cfg)
+    assert se["state"] == "ELIGIBILITY_UNVERIFIABLE"
+    t = dict(x, label="Tsutsui, 2021", screen_eligibility=se, route="SECONDARY_SINGLE", g1_countable=True,
+             scope_difference=None)
+    assert not gt.is_matched(t)                                    # not counted, even with a countable row
+    assert gt.exclusion_audit_class(slug, pmid)[0] != "TRUE_SCOPE_DIFFERENCE"   # so never named by the screen path
 
 
 def _crow(state, side, **v):
