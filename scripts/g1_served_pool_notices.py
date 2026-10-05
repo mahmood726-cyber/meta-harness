@@ -111,7 +111,7 @@ def topic_notice(o):
         if bad:
             return None, exc + [{"trial": "(topic)", "why": f"control failed: the engine gives k={ctl.k} "
                                  f"{ctl.estimate:.4f} for the served pool, served is {before}"}]
-    entered = []
+    entered, described = [], []
     s_pmids, s_ncts = served_identity(prim)
     for x in list(inc):
         fam = str(x.get("family") or "").replace("PMID ", "").strip()
@@ -130,7 +130,12 @@ def topic_notice(o):
             continue
         st.source = f"{x['route']} ({x.get('family')})"
         studies.append(st)
-        entered.append(f"{x['label']} [{x.get('family')}; {x['route']}]")
+        tid = str(x.get("family") or x["label"])
+        val = (f"{v.get('events_t')}/{v.get('n_t')} vs {v.get('events_c')}/{v.get('n_c')}" if scale in ("RR", "OR")
+               and None not in (v.get("events_t"), v.get("n_t"), v.get("events_c"), v.get("n_c"))
+               else f"{scale} {v.get('effect')} ({v.get('lower')} to {v.get('upper')})")
+        entered.append(tid)
+        described.append(f"{tid} entered the pool contributing {val} ({x['label']}; verified {x['route']})")
     if not entered:
         return None, exc
     pr = synth.pool(studies, scale=scale)
@@ -139,8 +144,9 @@ def topic_notice(o):
     notice = {"slug": slug, "outcome": prim.get("name"), "before": before, "after": after, "left_pool": [],
               "entered_pool": entered,
               "reason": (f"SERVED-POOL REFRESH (Mahmood 5 Oct, 'yes can sign'): {len(entered)} trial(s) verified from a "
-                         f"primary source by the G1 tracker enter the served pool -- "
-                         + "; ".join(entered) + f". Engine harness.synth.pool on the served {scale} scale (the same "
+                         f"primary source by the G1 tracker enter the served pool. "
+                         + "; ".join(described) + ". Entering trials are new evidence, not a correction: the "
+                         f"previously served number is not challenged. Engine harness.synth.pool on the served {scale} scale (the same "
                          f"engine reproduces the served pool before the change). Excluded: "
                          + ("; ".join(f"{e['trial']}: {e['why']}" for e in exc) if exc else "none") + "."),
               "by": "Claude Opus 5.5 (captain lane, g1_served_pool_notices.py); reviewer countersignature owed: Mahmood",
