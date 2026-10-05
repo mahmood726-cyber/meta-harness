@@ -247,6 +247,24 @@ def matched_topics(recs: dict[str, dict]) -> list[str]:
             if recompute(r)["matched"] and (r.get("g1_status") or {}).get("state") == "G1_MATCHED"]
 
 
+def k_matched(rec: dict) -> dict | None:
+    """K MATCHED (Mahmood 5 Oct, 'not inferior k-wise'): EVERY eligible comparator trial (not named out of scope) has a
+    typed row from ANY admitted source -- independent or taken from the comparator meta itself (comparator-sourced,
+    labelled). None when the topic has no eligible trial. A k-wise claim only: it never implies G1 MATCHED (strict), which
+    stays the first line. Recomputed from the tracker file, fail-closed like every other count on this page."""
+    r = recompute(rec)
+    elig = [x for x in r["rows"] if not x["trial"].get("scope_difference")]
+    if not elig:
+        return None
+    return {"matched": all(x["covered"] for x in elig), "eligible": len(elig),
+            "comparator_sourced": sum(1 for x in elig if x["covered"] and not x["counted"]),
+            "uncovered": [x["trial"].get("label") for x in elig if not x["covered"]]}
+
+
+def k_matched_topics(recs: dict[str, dict]) -> list[str]:
+    return [s for s, rec in recs.items() if (k_matched(rec) or {}).get("matched")]
+
+
 def render(root: Path = ROOT) -> str:
     recs = load(root)
     src = root / SOURCE
@@ -257,6 +275,14 @@ def render(root: Path = ROOT) -> str:
     head = f"<p><strong>G1 MATCHED: {len(both)} of {len(recs)} topics</strong>"
     if both:
         head += " (" + ", ".join(_e(s) for s in both) + ")"
+    # K MATCHED beside the strict count, never replacing it (Mahmood 5 Oct): k-wise only, comparator rows labelled
+    km = k_matched_topics(recs)
+    km_lab = [f"{_e(s)} {k_matched(recs[s])['eligible']} of comparator N {_e(recs[s].get('N_comparator_trials'))}"
+              + (f" [{k_matched(recs[s])['comparator_sourced']} comparator-sourced]"
+                 if k_matched(recs[s])["comparator_sourced"] else "") for s in km]
+    head += (f".</p><p class='hl' id='k-matched'><strong>K MATCHED:</strong> {len(km)} of {len(recs)} topics -- every eligible "
+             f"comparator trial has a typed row from an admitted source, comparator-sourced rows included and labelled; "
+             f"a k-wise count only, not G1 MATCHED" + (" (" + ", ".join(km_lab) + ")" if km else ""))
     tot = trial_totals(recs)
     conf = sum(x["g1_count"] for x in summ.values())
     cov = sum(x["covered"] for x in summ.values())
