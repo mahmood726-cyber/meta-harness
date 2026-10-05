@@ -257,11 +257,14 @@ def primary_value(slug, pmid, run, runs, want=None):
     ft = cfm.pmc_fulltext_cached(pmid, offline=not run)
     ft_licence = None
     if ft:
-        ft_licence = cl.pmc_licence(pmid, run)              # what a MODEL may read; typed reading below is unaffected
-        got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
-        if got[0] and (want != "counts" or got[0].get("events_t") is not None):
-            return got
-    if not ft and rec.get("doi"):
+        ft_licence = cl.pmc_licence(pmid, run)
+        if not cl.typed_may_read(ft_licence):
+            ft = ""                                          # HELD_COPY_NOT_OPEN: neither the typed rung nor a model reads it
+        else:
+            got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
+            if got[0] and (want != "counts" or got[0].get("events_t") is not None):
+                return got
+    if not ft and rec.get("doi") and ft_licence in (None, "NO_PMCID"):
         # a further legitimate open route: Unpaywall's OA copy as typed text (never OCR)
         u = k_gap.unpaywall_text(rec["doi"], os.path.join(ROOT, "outputs", "k_gap", "_upw"),
                                  os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=not run)

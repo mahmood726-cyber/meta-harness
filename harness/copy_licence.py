@@ -85,3 +85,12 @@ def locator_text(rec: dict, ft: str, licence, pmid) -> tuple:
     if ft and licence == "CC":
         return base + "\n\n" + ft, f"trial report PMID {pmid} (abstract + CC full text)"
     return base, f"trial report PMID {pmid} (abstract only; held copy not CC: {licence})"
+
+
+TYPED_OPEN = ("CC", "PMC_AUTHOR_MANUSCRIPT")
+
+
+def typed_may_read(licence) -> bool:
+    """A deterministic (typed / regex) reader admits a value from a held full text only when the copy is CC or a PMC
+    author manuscript (text mining permitted) -- the rule g1/finish-line's table reader applies (HELD_COPY_NOT_OPEN)."""
+    return licence in TYPED_OPEN
