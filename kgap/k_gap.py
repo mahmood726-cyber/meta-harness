@@ -322,6 +322,10 @@ def _units_from_table(t: dict) -> list[dict]:
             continue
         if _FURNITURE.match(_flat(first)) and not r["rids"]:
             continue
+        if not r["rids"] and not toks["ncts"] and not any(_flat(c).strip() for c in r["cells"][1:]):
+            # a SECTION HEADER spanning the table ('GLP-1 RA vs. placebo' above its trials): a label and nothing else,
+            # no citation, no NCT -- not a trial ('GLP-1 RA' even reads as an acronym the stop-list does not hold)
+            continue
         units.append({"layout": "row", "label": first, "rids": r["rids"], "context": r["row_text"][:600]})
     return units
 

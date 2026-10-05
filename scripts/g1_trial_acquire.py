@@ -1,7 +1,7 @@
 """G1 MISSING-TRIAL ACQUISITION: one RECORDED codex call per comparator trial we cannot yet match (concurrency 3),
 replayed through deterministic gates. Nothing a model says is admitted until a gate finds it in the source.
 
-Population: the trials of each topic's tracker file (default ref origin/main, the served union) that are not matched and
+Population: the trials of each topic's tracker file (default: the local tracker outputs; --ref=<git ref> reads a committed union) that are not matched and
 not named out of scope, plus SECONDARY_SINGLE rows (a primary source would promote them). Never a comparator row.
 
 Evidence per trial, in the source order of the goal, legitimate open sources only:
@@ -47,7 +47,7 @@ ACQ_DIR = os.path.join(ROOT, "registry", "g1_acquired")
 REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
 MODEL, EFFORT = "gpt-6-astra", "high"
 FT_CAP = 60000
-SOURCES = ["AACT", "PMC_TEXT", "META", "NONE"]
+SOURCES = ["AACT", "PMC_TEXT", "REGULATORY", "META", "NONE"]
 MEASURES = ["RR", "OR", "HR", "MD", "COUNTS", "NONE"]
 VERDICTS = ["FOUND", "SOURCE_ABSENT", "SCOPE_DIFFERENCE", "UNSURE"]
 _N = {"type": ["integer", "null"]}
@@ -66,7 +66,9 @@ SCHEMA = {
 }
 INSTR = """You read ONE randomised trial's own open sources to find its result for a meta-analysis outcome. Sources are
 inline below; use nothing else (no files, no memory of the paper). Order: the AACT posted results first, then the trial's
-own full text, then the meta rows (a meta row is never the trial's own result: report it only if nothing primary exists).
+own full text, then a regulatory review (an FDA medical/statistical review, shown as windows of the document around
+where the trial is named), then the meta rows (a meta row is never the trial's own result: report it only if nothing
+primary exists).
 The result must be for the trial's RANDOMISED population: if the AACT posting covers only a subset (a site, a unit, a
 stratum: compare its denominators with the randomised total the text states), use the full text instead.
 
@@ -76,7 +78,9 @@ control:
     from a percentage, never from a figure, never a rate; or
   - an effect: measure + effect + lower + upper exactly as printed (two-sided 95% CI only).
 quote = an EXACT substring of the source shown (copy it character for character; it must contain every number you give).
-For AACT give source_ref = the NCT and aact_outcome_id = the outcome id shown; for the text source_ref = PMID.
+For AACT give source_ref = the NCT and aact_outcome_id = the outcome id shown; for the text source_ref = PMID; for a
+regulatory review source_ref = its url exactly as shown, and the quote must come from ONE window and be about THIS trial
+(a review discusses several studies: never take another study's row).
 If the outcome, timepoint or population differ from the protocol, say so in why (do not stretch a definition). If the
 trial is outside the protocol (scope), verdict SCOPE_DIFFERENCE with scope_rule_key (a key of the protocol given) and
 scope_span (an exact substring of the trial's text stating it). If no open source states the result, SOURCE_ABSENT and
@@ -110,12 +114,39 @@ def targets(slug, ref):
         ncts = {c.get("nct") for c in ((x.get("registry_binding") or {}).get("candidates") or []) if c.get("nct")} \
             | ({fam} if fam.startswith("NCT") else set()) | registered_ncts(pmid)
         ncts = sorted(n for n in ncts if n)
+        pmid_by = "TRACKER" if pmid else None
+        if not pmid and len(ncts) == 1:
+            # no report PMID on the row (tocilizumab's served rows carry the acronym only): the registration's OWN
+            # results reference, when it lists exactly one (AACT study_references type RESULT); several -> none chosen
+            rp_ = result_pmids(ncts).get(ncts[0]) or []
+            if len(rp_) == 1:
+                pmid, pmid_by = rp_[0], "AACT_RESULT_REFERENCE"
         out.append({"slug": slug, "label": x["label"], "pmid": pmid, "ncts": ncts, "route_now": x.get("route"),
-                    "blocker_now": x.get("blocker")})
+                    "blocker_now": x.get("blocker"), "pmid_by": pmid_by})
     return o, out
 
 
 _TABLE = None
+RREF = os.path.join(ROOT, "outputs", "k_gap", "_reg", "aact_result_refs.json")
+
+
+def result_pmids(ncts):
+    """NCT -> the PMIDs its registration lists as RESULT references (AACT study_references; cached, gitignored)."""
+    from harness import aact
+    d = json.load(open(RREF, encoding="utf-8")) if os.path.exists(RREF) else {}
+    want = {n for n in ncts if n and n not in d}
+    if want:
+        snap = aact.snapshot_dir(None)
+        got = {n: [] for n in want}
+        if snap:
+            for r in aact._iter_rows(os.path.join(snap, "study_references.txt")):
+                if r.get("nct_id") in got and (r.get("reference_type") or "").upper() == "RESULT" and r.get("pmid"):
+                    got[r["nct_id"]].append(str(r["pmid"]).strip())
+        d.update({n: sorted(set(v)) for n, v in got.items()})
+        os.makedirs(os.path.dirname(RREF), exist_ok=True)
+        json.dump(d, open(RREF, "w", encoding="utf-8"), indent=0, sort_keys=True)
+    return {n: d.get(n) or [] for n in ncts}
+
 
 
 def registered_ncts(pmid):
@@ -333,7 +364,20 @@ def evidence(t, cfg, comp):
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
-    return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"]}
+    reg_shown, reg_held = regulatory_evidence(t, terms)
+    if reg_shown:
+        ev["regulatory"] = reg_shown
+    return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"], "reg": reg_held}
+
+
+def regulatory_evidence(t, terms):
+    """FDA/EMA review documents held for the topic that NAME the trial (scripts/g1_regulatory_source.py): windows of
+    prompt-open documents are shown; every naming document is held whole for the gate."""
+    import g1_regulatory_source as rs
+    try:
+        return rs.regulatory_evidence(t, terms, t["slug"])
+    except Exception as exc:  # noqa: BLE001 - no snapshot / no held documents: nothing regulatory, never a guess
+        return [], {"_error": str(exc)[:160]}
 
 
 def _ws(s):
@@ -498,6 +542,8 @@ def gate(resp, held, cfg, slug):
             return "REFUSED:TYPED_MATCH_NOT_FOUND_BESIDE_OUTCOME_TERMS", None
         return "ADMITTED", {"kind": "TEXT", "source": f"PMID {resp['source_ref']} PMC OA full text sha256 {held['sha']}",
                             "span": m.get("span"), "quote": resp["quote"], "row": row}
+    if src == "REGULATORY":
+        return regulatory_gate(resp, held, row, counts, effect)
     if src == "AACT":
         n = str(resp.get("source_ref") or "").strip()
         a = (held["aact"].get(n) or {})
@@ -534,6 +580,42 @@ def gate(resp, held, cfg, slug):
         return "ADMITTED", {"kind": "AACT", "source": f"AACT {(a.get('snapshot') or {}).get('id')} {n} outcome {oid}",
                             "span": m.get("span"), "quote": resp["quote"], "row": row, "time_frame": tf}
     return "REFUSED:UNKNOWN_SOURCE", None
+
+
+def regulatory_gate(resp, held, row, counts, effect):
+    """A regulatory review's tuple: the url must be a HELD typed source record whose text digest still matches; the quote
+    verbatim in the WHOLE document (not the window shown); every number in the quote; the trial NAMED near the quote; the
+    typed tuple beside the outcome terms. Admitted kind REGULATORY with url, digests and the host-derived licence."""
+    from harness import secondary_meta as sm
+    import g1_regulatory_source as rs
+    url = str(resp.get("source_ref") or "").strip()
+    h = (held.get("reg") or {}).get(url)
+    if not h or not rs.agency_of(url):
+        return "REFUSED:REGULATORY_DOC_NOT_HELD", None
+    doc = h["text"]
+    if rs.text_sha256(doc) != h["record"].get("text_sha256"):
+        return "REFUSED:REGULATORY_DIGEST_MISMATCH", None
+    q = _ws(resp.get("quote"))
+    if not q or q not in _ws(doc):
+        return "REFUSED:QUOTE_NOT_VERBATIM_IN_WHOLE_DOCUMENT", None
+    nums_ok = (all(_num_in(resp[k], q) for k in ("events_t", "n_t", "events_c", "n_c")) if counts else True) and \
+              (all(_str_in(resp[k], q) for k in ("effect", "lower", "upper")) if effect else True)
+    if not nums_ok:
+        return "REFUSED:NUMBERS_NOT_IN_QUOTE", None
+    if rs.quote_named_and_located(doc, resp["quote"], h["names"]) is None:
+        return "REFUSED:TRIAL_NOT_NAMED_NEAR_QUOTE", None
+    m = sm.typed_match_text(row, doc, held["terms"], url)
+    if not m and counts:
+        m = typed_match_table(resp["quote"], resp, held["terms"])
+    if not m:
+        return "REFUSED:TYPED_MATCH_NOT_FOUND_BESIDE_OUTCOME_TERMS", None
+    rec = h["record"]
+    return "ADMITTED", {"kind": "REGULATORY",
+                        "source": f"{rec['agency']} review {url} doc sha256 {rec.get('doc_sha256')} text sha256 "
+                                  f"{rec.get('text_sha256')} ({rec.get('licence')})",
+                        "url": url, "agency": rec["agency"], "licence": rec.get("licence"),
+                        "doc_sha256": rec.get("doc_sha256"), "text_sha256": rec.get("text_sha256"),
+                        "span": m.get("span"), "quote": resp["quote"], "row": row}
 
 
 _PEOPLE = re.compile(r"^\s*(?:number of |count of )?(?:participants?|subjects?|patients?|people|persons?)", re.I)
@@ -584,7 +666,8 @@ def run(slugs, ref, redo=()):
     def one(job):
         slug, cfg, comp, t = job
         ev, _held = evidence(t, cfg, comp)
-        if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not _held["text"] and not ev["meta_rows"]:
+        if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not _held["text"] and not ev["meta_rows"] \
+                and not ev.get("regulatory"):
             # nothing open to read: no model call (a reader with no source can only guess)
             return f"{slug}|{t['label']}", {"record_id": None, "state": "NO_OPEN_SOURCE", "slug": slug,
                                             "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
@@ -597,7 +680,7 @@ def run(slugs, ref, redo=()):
                        caller={"file": "scripts/g1_trial_acquire.py", "line": "run",
                                "purpose": f"G1 missing-trial acquisition {slug} / {t['label'][:50]} (g1/finish-line lane)"},
                        input_digests=[{"ref": "evidence", "sha256": hashlib.sha256(p).hexdigest(),
-                                       "what": "inline evidence: AACT snapshot rows, PMC OA text, meta rows"}],
+                                       "what": "inline evidence: AACT snapshot rows, PMC OA text, FDA review windows, meta rows"}],
                        timeout_s=1800)
         ms.write_record(rec, REC_DIR)
         return f"{slug}|{t['label']}", {"record_id": rec["record_id"], "state": rec["state"], "slug": slug,
@@ -688,7 +771,8 @@ def replay(slugs, ref):
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     argv = sys.argv[1:]
-    ref = next((a.split("=", 1)[1] for a in argv if a.startswith("--ref=")), "origin/main")
+    # default: the LOCAL tracker outputs (this lane does not commit them; the captain regenerates the served union)
+    ref = next((a.split("=", 1)[1] for a in argv if a.startswith("--ref=")), "")
     slugs = [a for a in argv if not a.startswith("--")]
     if "--run" in argv:
         run(slugs, ref, [a.split("=", 1)[1] for a in argv if a.startswith("--redo=")])

@@ -1576,8 +1576,6 @@ def main(argv=None):
         slug = os.path.basename(os.path.dirname(f))
         c = _j(f)[0]
         m = re.search(r"PMID (\d+)", c.get("citation", ""))
-        if only and slug not in only:
-            continue
         topics.append((slug, m.group(1) if m else str(c["id"]), c.get("citation", "")))
     store = k_gap.AactStore(STORE)
     store.build_maps(log=log)
@@ -1586,6 +1584,10 @@ def main(argv=None):
     other_all = sorted({a for t in topics for a in molecule_names(_j(os.path.join(ROOT, "topics", t[0] + ".json")))},
                        key=str.lower)
     SERVED_AGENTS[:] = other_all
+    # --only=<slug>: rebuild ONE topic's rows (its comparator changed) and keep every other topic's rows as they are;
+    # the other-agent list above still spans all topics
+    if only:
+        topics = [t for t in topics if t[0] in only]
     for slug, cpmid, cit in topics:
         topic = _j(os.path.join(ROOT, "topics", slug + ".json"))
         agents = topic_agents(topic)
@@ -1865,6 +1867,12 @@ def main(argv=None):
     out = {"generated": DATE, "aact_snapshot": store.snap, "topics": topics_out, "trials": rows}
     if not write:
         return out
+    if only:
+        prev = _j(os.path.join(OUT, "k_gap_table.json"))
+        keep_t = [t for t in prev.get("topics") or [] if t.get("slug") not in only]
+        keep_r = [r for r in prev.get("trials") or [] if r.get("slug") not in only]
+        out = dict(prev, topics=sorted(keep_t + topics_out, key=lambda t: t["slug"]), trials=keep_r + rows)
+        rows = out["trials"]
     with open(os.path.join(OUT, "k_gap_table.json"), "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False, default=list)
     cols = ["slug", "comparator_pmid", "unit_source", "label", "drug", "status", "gap_class", "closable_by", "pmids",

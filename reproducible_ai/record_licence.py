@@ -69,10 +69,41 @@ def embedded_sources(record):
     return out
 
 
+# REGULATORY review windows (scripts/g1_regulatory_source.py): the licence follows from the document url's HOST only --
+# a prompt cannot declare its own licence. FDA (a US Government work) is open; EMA ('reproduction authorised provided the
+# source is acknowledged') and any other host are not marked open for a public record.
+REG_HOST_OPEN = ("www.accessdata.fda.gov", "accessdata.fda.gov", "www.fda.gov")
+
+
+def regulatory_sources(record):
+    """[(url, chars)] of regulatory document text a record's prompt carries (an evidence object with a url + windows)."""
+    p = _prompt_text(record)
+    i = p.find("=== EVIDENCE ===")
+    if i < 0:
+        return []
+    try:
+        ev = json.loads(p[i + len("=== EVIDENCE ==="):])
+    except ValueError:
+        return []
+    out = []
+    for d in _walk(ev):
+        if "windows" in d and ("url" in d or "agency" in d):
+            chars = sum(len(str((w or {}).get("text") or "")) for w in d.get("windows") or [] if isinstance(w, dict))
+            if chars:
+                out.append((str(d.get("url") or ""), chars))
+    return out
+
+
 def record_problems(record, lic=None):
-    """Problems (empty = fine): one per source text whose PMID is not marked open."""
+    """Problems (empty = fine): one per source text whose PMID is not marked open, and one per regulatory document whose
+    url's host is not an open-licence host."""
+    from urllib.parse import urlparse
     lic = licences() if lic is None else lic
     probs = []
+    for url, chars in regulatory_sources(record):
+        if (urlparse(url).hostname or "").lower() not in REG_HOST_OPEN:
+            probs.append(f"{record.get('record_id')}: prompt carries {chars} chars of regulatory document {url!r}; its "
+                         f"host is not an open-licence host")
     for pmid, chars, how in embedded_sources(record):
         if lic.get(pmid) not in OPEN:
             probs.append(f"{record.get('record_id')}: prompt carries {chars} chars of PMID {pmid} text ({how}); its copy "

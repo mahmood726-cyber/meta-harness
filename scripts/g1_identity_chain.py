@@ -182,31 +182,105 @@ def registry_acronym_identity(want, snap, agents_of):
         a = ic._fold(r.get("acronym") or "")
         if a and a in want:
             hits.setdefault(a, set()).add(r["nct_id"])
-    ncts = {n for v in hits.values() if len(v) == 1 for n in v}
-    names = {}
-    if ncts:
-        for r in ic._rows(snap, "interventions.txt"):
-            if r.get("nct_id") in ncts and (r.get("intervention_type") or "").upper() in _DRUG_TYPES:
-                names.setdefault(r["nct_id"], []).append((r.get("name") or "").strip())
+    names = registered_drugs(snap, {n for v in hits.values() for n in v})
     out = {}
     for a, keys in want.items():
         got = sorted(hits.get(a) or [])
+        basis = "AACT_STUDIES_ACRONYM+REGISTERED_INTERVENTIONS"
+        if len(got) > 1:
+            # one acronym, several registrations ('SCORED': a snoring device, a transfusion study, a sotagliflozin
+            # trial): the comparator's units are DRUG-vs-PLACEBO trials, so only a registration with a drug arm AND a
+            # placebo arm can be one; exactly one such -> it, otherwise still ambiguous
+            dvp = [n for n in got if drug_vs_placebo(names.get(n) or [])]
+            if len(dvp) == 1:
+                got, basis = dvp, basis + "+ONLY_DRUG_VS_PLACEBO_REGISTRATION"
         for key in keys:
             if not got:
                 continue
             if len(got) > 1:
                 out[key] = {"state": "AMBIGUOUS", "basis": "AACT_STUDIES_ACRONYM", "ncts": got[:10]}
                 continue
-            nm = names.get(got[0]) or []
-            low = " ".join(nm).lower()
-            ag = [x.lower() for x in agents_of(key)]
-            if any(x in low for x in ag):
-                scope = "IN_SCOPE"
-            else:
-                drugs = [x for x in nm if x and not re.search(r"placebo|standard|usual care|matching", x, re.I)]
-                scope = f"OTHER_AGENT:{drugs[0].lower()}" if drugs else "AGENT_UNSTATED"
-            out[key] = {"state": "RESOLVED", "basis": "AACT_STUDIES_ACRONYM+REGISTERED_INTERVENTIONS", "nct": got[0],
-                        "pmid": None, "scope": scope, "registered_interventions": nm[:6]}
+            out[key] = dict(registry_scope(got[0], names.get(got[0]) or [], agents_of(key)), basis=basis,
+                            state="RESOLVED", pmid=None)
+    return out
+
+
+def registered_drugs(snap, ncts):
+    """{nct: [(type, name), ...]} -- every registered intervention of these studies (AACT interventions.txt)."""
+    out = {}
+    if ncts:
+        for r in ic._rows(snap, "interventions.txt"):
+            if r.get("nct_id") in ncts:
+                out.setdefault(r["nct_id"], []).append(((r.get("intervention_type") or "").upper(),
+                                                        (r.get("name") or "").strip()))
+    return out
+
+
+_NOT_A_DRUG = re.compile(r"placebo|standard|usual care|matching|vehicle", re.I)
+
+
+def drug_vs_placebo(iv):
+    return any(t in _DRUG_TYPES and not _NOT_A_DRUG.search(n) for t, n in iv) and any(_NOT_A_DRUG.search(n) for _t, n in iv)
+
+
+def registry_scope(nct, iv, agents):
+    """The scope of a registered trial from its REGISTERED interventions: a topic agent among them -> IN_SCOPE; drug
+    interventions but none of the topic's -> OTHER_AGENT:<registered name>; none -> AGENT_UNSTATED. The registry row is
+    the held span."""
+    drugs = [n for t, n in iv if t in _DRUG_TYPES and n and not _NOT_A_DRUG.search(n)]
+    low = " ".join(drugs).lower()
+    if any(a.lower() in low for a in agents):
+        scope = "IN_SCOPE"
+    else:
+        scope = f"OTHER_AGENT:{drugs[0].lower()}" if drugs else "AGENT_UNSTATED"
+    return {"nct": nct, "scope": scope, "registered_interventions": [f"{t}: {n}" for t, n in iv][:6],
+            "span": {"source": "AACT interventions.txt", "nct": nct, "text": "; ".join(f"{t}: {n}" for t, n in iv)[:300]}}
+
+
+def pubmed_acronym_open(acr, offline, retmax=60):
+    """PMIDs whose title/abstract names the acronym -- NO agent filter (the agent is what is being established); a
+    recorded query (outputs/k_gap/pubmed_acronym_open.json) replayed offline."""
+    cp = os.path.join(OUT, "pubmed_acronym_open.json")
+    cache = json.load(open(cp, encoding="utf-8")) if os.path.exists(cp) else {}
+    q = f'"{acr}"[tiab]'
+    if q not in cache and not offline:
+        import time
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                              {"db": "pubmed", "term": q, "retmode": "json", "retmax": retmax})
+            cache[q] = d.get("esearchresult", {}).get("idlist", [])
+        except Exception as exc:  # noqa: BLE001
+            cache[q] = {"error": str(exc)[:200]}
+        time.sleep(0.4)
+        with open(cp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(cache, fh, indent=1, sort_keys=True)
+    v = cache.get(q)
+    return v if isinstance(v, list) else []
+
+
+def acronym_registration_identity(label, acrs, agents, snap, offline):
+    """SELF-NAMING papers -> ONE registration -> its registered drug: a comparator acronym (SOLOIST-WHF) whose result
+    paper does not name it ('Sotagliflozin in Patients with Diabetes and Recent Worsening Heart Failure') but whose
+    secondary reports do ('... in the SOLOIST-WHF Trial'). Every self-naming paper the registry links must link to the
+    SAME NCT (unique-or-nothing); the scope is read from that NCT's registered interventions. Returns a result or None."""
+    raw = kt.k_gap._label_tokens(label)["acronyms"] or acrs
+    pm = sorted({p for a in raw for p in pubmed_acronym_open(a, offline)})
+    if not pm:
+        return None
+    titles = kt.pubmed_titles_of(pm, offline)
+    selfn = [p for p in pm if any(kt.self_names(a, titles.get(p, ""), "") for a in raw)]
+    link = ic.pmid_to_ncts(selfn, snap) if selfn else {}
+    by = {}
+    for p in selfn:
+        for n in (link.get(p) or {}):
+            by.setdefault(n, []).append(p)
+    if len(by) != 1:
+        return {"state": "AMBIGUOUS", "basis": "ACRONYM_SELF_NAMING+AACT_LINK", "ncts": sorted(by)[:6]} if by else None
+    nct, papers = next(iter(by.items()))
+    out = registry_scope(nct, registered_drugs(snap, {nct}).get(nct) or [], agents)
+    out.update(state="RESOLVED", basis="ACRONYM_SELF_NAMING+AACT_LINK+REGISTERED_INTERVENTIONS", pmid=None,
+               self_naming_linked=papers[:5], title_span=titles.get(papers[0], "")[:200])
     return out
 
 
@@ -424,6 +498,15 @@ def main(argv):
     for key, v in registry_acronym_identity(want, snap,
                                             lambda k: kt.topic_agents(topics[k.split("::", 1)[0]])).items():
         if (results.get(key) or {}).get("state") != "RESOLVED":
+            results[key] = v
+    # ---- self-naming papers -> one registration -> its registered drug (SOLOIST-WHF: AACT has no acronym for it)
+    for t, acrs in acr_items:
+        key = f"{t['slug']}::{t['label']}"
+        prev = results.get(key) or {}
+        if prev.get("state") == "RESOLVED" or str(prev.get("scope") or "").startswith("OTHER_AGENT"):
+            continue
+        v = acronym_registration_identity(t["label"], acrs, kt.topic_agents(topics[t["slug"]]), snap, offline)
+        if v and (v["state"] == "RESOLVED" or not prev):
             results[key] = v
     # ---- COMMENT-ON route: a unit whose only report is a Letter / Comment is the article it comments on
     T_all = [t for t in T["trials"] if len(t.get("pmids") or []) == 1 and t.get("status") != "POOLED"]

@@ -119,6 +119,122 @@ def agreement(ours, theirs):
     return "AGREE" if eq else "DISAGREE"
 
 
+def trial_report_in_place_of(theirs, primary):
+    """Decision 5 Oct (5): a comparator row that DISAGREES with the trial's own report -- verified MISMATCH, and the
+    evidence points at the comparator (SECONDARY_WRONG: the primary's numbers are in the primary's own span) -- enters the
+    same-trials comparison as the TRIAL'S OWN values, in the comparator's measure; the disagreement stays a named finding
+    (COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT). RESULT_AGREES is then judged on what follows. Any other row: unchanged."""
+    v = theirs.verification or {}
+    if theirs.state != sm.MISMATCH or not str(v.get("which_side") or "").startswith("SECONDARY_WRONG") or not primary:
+        return theirs
+    import copy
+    r = copy.copy(theirs)
+    for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"):
+        setattr(r, k, primary.get(k))
+    if primary.get("effect") is not None and (primary.get("measure") or "").upper() != (theirs.measure or "").upper():
+        return theirs                       # the report's value is another measure: never converted, row unchanged
+    r.provenance = f"TRIAL_REPORT_IN_PLACE_OF_COMPARATOR_ROW ({theirs.provenance})"
+    r.findings = list(theirs.findings or []) + [{"finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT",
+                                                 "comparator_printed": {k: getattr(theirs, k) for k in
+                                                                        ("effect", "lower", "upper", "events_t", "n_t",
+                                                                         "events_c", "n_c")},
+                                                 "detail": "compared on the trial's own values (5 Oct decision 5)"}]
+    return r
+
+
+def label_surname(label):
+    """The leading surname of a comparator label ('Zinman (8)', 'Zinman 2016'); None for an acronym label."""
+    m = re.match(r"\s*([A-Z][a-z][A-Za-z'\u2019\-]+)\b", label or "")
+    return m.group(1) if m else None
+
+
+def same_comparator_surname_join(comp_rows, ents, joined):
+    """A comparator ROW the family join could not place (its figure prints 'Zinman 2016'; its own trial list says
+    'Zinman (8)', reference 8 = the 2015 report: the year rule refuses) joins the comparator's own UNIT when, within that
+    one comparator, the surname names exactly one unit and exactly one row. Both are the comparator's own artefacts;
+    anything less stays unjoined. The row carries a typed finding. Returns {unit id: row}."""
+    taken = {id(r) for r in joined.values()}
+    out = {}
+    for r in comp_rows:
+        if id(r) in taken:
+            continue
+        sn = label_surname(r.trial_label)
+        if not sn:
+            continue
+        units = [e for e in ents if label_surname(e["label"]) == sn]
+        same_rows = [q for q in comp_rows if label_surname(q.trial_label) == sn]
+        if len(units) == 1 and len(same_rows) == 1 and units[0]["id"] not in joined:
+            r.findings = list(r.findings or []) + [{"finding": "JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR",
+                                                    "detail": f"row '{r.trial_label}' <-> unit '{units[0]['label']}'"}]
+            out[units[0]["id"]] = r
+    return out
+
+
+_ARM_PCT = None
+
+
+def registered_arm_check(cr, nct, keywords):
+    """A comparator row's per-arm counts against the trial's REGISTERED per-arm percentages for the same outcome
+    (outputs/k_gap/aact_arm_percentages.json; a percentage is never data -- only this check reads it). Arms are matched
+    by analysed N. CONSISTENT: the printed counts give the registered percentages; ARMS_SWAPPED: they do only with the
+    events exchanged between arms (EMPA-REG: printed 95/4687 vs 126/2333; registered 2.7% of 4687 vs 4.1% of 2333);
+    INCONSISTENT: neither. None when nothing registered applies."""
+    global _ARM_PCT
+    if _ARM_PCT is None:
+        ap = os.path.join(OUT, "aact_arm_percentages.json")
+        _ARM_PCT = _j(ap) if os.path.exists(ap) else {}
+    for key, e in _ARM_PCT.items():
+        if e.get("nct") != nct or e.get("state") != "RECORDED":
+            continue
+        if not any(keyword_named(k, e.get("outcome_title") or "") for k in keywords or []):
+            continue
+        g_t = [g for g in e["groups"] if g.get("n_analysed") == cr["n_t"]]
+        g_c = [g for g in e["groups"] if g.get("n_analysed") == cr["n_c"]]
+        if len(g_t) != 1 or len(g_c) != 1 or g_t[0] is g_c[0]:
+            continue
+        pt, pc = g_t[0]["value"], g_c[0]["value"]
+
+        def same(ev, n, posted):
+            d = len(str(posted).split(".")[1]) if "." in str(posted) else 0
+            return abs(round(100.0 * ev / n, d) - float(posted)) < 1e-9
+        reg = {"source": key, "snapshot": e.get("snapshot"), "outcome": e.get("outcome_title"),
+               "treatment": {"group": g_t[0]["title"], "n": cr["n_t"], "percent": pt},
+               "control": {"group": g_c[0]["title"], "n": cr["n_c"], "percent": pc}}
+        if same(cr["events_t"], cr["n_t"], pt) and same(cr["events_c"], cr["n_c"], pc):
+            return {"state": "CONSISTENT", "registry": reg}
+        if same(cr["events_c"], cr["n_t"], pt) and same(cr["events_t"], cr["n_c"], pc):
+            return {"state": "ARMS_SWAPPED", "registry": reg,
+                    "basis": f"printed {cr['events_t']}/{cr['n_t']} vs {cr['events_c']}/{cr['n_c']}; the registered "
+                             f"{pt}% of {cr['n_t']} and {pc}% of {cr['n_c']} are reproduced only with the events exchanged"}
+        return {"state": "INCONSISTENT", "registry": reg}
+    return None
+
+
+def one_trial_one_unit(comp_rows, ours):
+    """ONE REGISTERED TRIAL, ONE UNIT: comparator units that resolve to the same trial of ours (same NCT / report) --
+    ticagrelor: unit '9 [28]' Wallentin 2009 (PLATO, N 18,624) and unit '1 [21]' Cannon 2010 (PLATO's invasive-strategy
+    substudy, N 13,408, same NCT00391872) both mapped to our PLATO pool row, so one trial counted as two matches. The unit
+    citing the report we pool keeps the trial (else the first); every other unit is returned {id(unit): (kept unit,
+    trial)} and is named SAME_TRIAL_AS_ANOTHER_UNIT, never matched."""
+    claim = {}
+    for t in comp_rows:
+        # the SAME registered trial only: the unit's OWN registration must be the trial's NCT. A shared report is not
+        # enough -- one paper can report two trials (ODYSSEY FH I and FH II, PMID 26330422, two NCTs), and a unit's
+        # report list can carry another trial's paper (PACMAN-AMI listing ODYSSEY LONG TERM's)
+        m = next((o for o in ours if o.get("nct") and o["nct"] in (t.get("ncts") or [])), None)
+        if m:
+            claim.setdefault(str(m["id"]), (m, []))[1].append(t)
+    out = {}
+    for _mid, (m, ts) in claim.items():
+        if len(ts) < 2:
+            continue
+        win = next((t for t in ts if str(m.get("pmid")) in [str(p) for p in t.get("pmids") or []]), ts[0])
+        for t in ts:
+            if t is not win:
+                out[id(t)] = (win, m)
+    return out
+
+
 def same_trials_pool(pairs, method_label):
     """pairs: [(our_row, their_row)] for the shared trials. Both sides pooled by ONE method; None if any side cannot."""
     if len(pairs) < 2:
@@ -533,6 +649,28 @@ def keyword_named(keyword, title):
 
 _PER_PROTOCOL = re.compile(r"\bper[- ]protocol\b|\bPP (?:population|set|analysis)\b", re.I)
 _EXTENDED_COMPOSITE = re.compile(r"\bplus\b|\bexpanded\b|\bextended\b|\b(?:4|four|5|five)[- ]point\b", re.I)
+_NAMED_COUNT = {"dual": 2, "double": 2, "two": 2, "2": 2, "triple": 3, "three": 3, "3": 3, "quadruple": 4, "four": 4,
+                "4": 4, "five": 5, "5": 5}
+_DECLARED_N = re.compile(r"\b(dual|double|two|2|triple|three|3|quadruple|four|4|five|5)[- ](?:component |point )?composite",
+                         re.I)
+
+
+def _declared_components(title):
+    """The number of components a registry outcome title DECLARES ('Triple Composite', 'three-component composite',
+    '4-point composite'); None when it declares none."""
+    m = _DECLARED_N.search(title or "")
+    return _NAMED_COUNT[m.group(1).lower()] if m else None
+
+
+def _spec_components(spec_name):
+    """Components of the protocol's outcome name: its declared count ('3-point MACE'), else the parts joined by 'or' /
+    'and' / commas in a 'composite ...' name ('Composite cardiovascular death or heart-failure hospitalization' -> 2)."""
+    s = spec_name or ""
+    m = re.search(r"\b(\d)[- ]point\b", s)
+    if m:
+        return int(m.group(1))
+    body = re.sub(r"^\s*(?:the\s+)?composite(?:\s+of)?\s+", "", s, flags=re.I)
+    return len([p for p in re.split(r"\s*(?:,|\bor\b|\band\b)\s*", body) if p.strip()]) or 1
 _THREE_POINT = re.compile(r"\b(?:3|three)[- ]point\b", re.I)
 _RECURRENT = re.compile(r"\brecurrent\b|\btotal (?:number of )?(?:events|hospitali[sz]ations)\b|first and subsequent", re.I)
 _DEATH = re.compile(r"\bdeaths?\b|\bmortality\b|\bdied\b|\bfatal\b", re.I)
@@ -550,6 +688,13 @@ def analysis_set_or_extension_differs(spec_name, title, population):
         return f"analysis set: the registry outcome is per-protocol ('{t}'); the protocol's population is '{population}'"
     if _THREE_POINT.search(spec_name or "") and _EXTENDED_COMPOSITE.search(t):
         return f"extended composite: the registry outcome '{t}' extends the protocol's '{spec_name}'"
+    # a registry composite that DECLARES more components than the protocol's ('First Triple Composite Endpoint (CV Death,
+    # HF Hospitalization, or Worsening of HF in Outpatients)' against 'Composite cardiovascular death or heart-failure
+    # hospitalization', sacubitril PARALLEL-HF): it passed as BINDABLE because only 'plus / extended / 4-point' were read
+    n_reg = _declared_components(t)
+    if n_reg and n_reg > _spec_components(spec_name):
+        return (f"extended composite: the registry outcome '{t}' declares {n_reg} components; the protocol's "
+                f"'{spec_name}' has {_spec_components(spec_name)}")
     # first AND recurrent events (a total-events analysis) is not time to the first event (sglt2-pp EMPEROR-Preserved:
     # 'Occurrence of Adjudicated Hospitalisation for Heart Failure (HHF) (First and Recurrent)')
     if _RECURRENT.search(t) and not _RECURRENT.search(spec_name or ""):
@@ -1114,6 +1259,102 @@ def sweep_results(slug):
     return {r["label"]: r for r in (_j(p).get("trials") or [])} if os.path.exists(p) else {}
 
 
+def comparator_result_recorded(slug, comp):
+    """The comparator's own result recorded by scripts/comparator_league_result.py (registry/comparator_results.json),
+    only when RECORDED for THIS comparator."""
+    p = os.path.join(ROOT, "registry", "comparator_results.json")
+    r = (_j(p) if os.path.exists(p) else {}).get(slug) or {}
+    return r if r.get("state") == "RECORDED" and str(r.get("comparator_pmid")) == str(comp) else None
+
+
+def acquired_rows(slug):
+    """ADMITTED rows of the acquisition lane (registry/g1_acquired/<slug>.json; scripts/g1_trial_acquire.py on
+    g1/finish-line), indexed by trial label AND by registered identity ('PMID <n>', '<NCT>'): a replaced comparator
+    renames its units, the trial's identity does not change."""
+    p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
+    if not os.path.exists(p):
+        return {}
+    out = {}
+    for r in _j(p).get("rows") or []:
+        if r.get("verdict") != "ADMITTED" or not r.get("admitted"):
+            continue
+        for k in [r.get("label")] + ([f"PMID {r['pmid']}"] if r.get("pmid") else []) + list(r.get("ncts") or []):
+            if k:
+                out.setdefault(k, r)
+    return out
+
+
+_CLUSTER = re.compile(r"ENGINE_CANNOT_CONSUME\(design=(cluster\w*|stepped_wedge)", re.I)
+
+
+def cluster_design_of(x):
+    """'cluster_crossover' / 'cluster' / 'stepped_wedge' when the engine refused the trial for its cluster design."""
+    m = _CLUSTER.search(str(x.get("our_refusal") or "") + " " + str(x.get("absent_reason") or ""))
+    return m.group(1).lower() if m else None
+
+
+def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
+    """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
+    through the acquisition gates is PRIMARY-verified (2 Oct decision): matched, countable, compared on that tuple. A
+    SECONDARY_SINGLE trial is PROMOTED (its meta pair replaced). Never a pooled, named or already-PRIMARY trial.
+    (Ported from g1/finish-line 7949e1568; found by label or identity.) Returns the labels merged."""
+    acq = acquired_rows(slug)
+    got = []
+    for x in trials:
+        rb = x.get("registry_binding") or {}
+        keys = [x.get("label"), str(x.get("family") or "")] + [c.get("nct") for c in rb.get("candidates") or []]
+        a = next((acq[k] for k in keys if k and k in acq), None)
+        if not a or x.get("in_our_pool") or x.get("scope_difference"):
+            continue
+        if cluster_design_of(x) and (a.get("admitted") or {}).get("value", {}).get("events_t") is not None:
+            x["acquired_refused"] = (f"UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE: the acquired tuple is unadjusted counts "
+                                     f"from a {cluster_design_of(x)} design ({a['admitted'].get('source')})")
+            continue
+        promote = x.get("route") == "SECONDARY_SINGLE"
+        if is_matched(x) and not promote:
+            continue
+        ad = a["admitted"]
+        v = ad.get("value") or {}
+        cr = x.get("comparator_row")
+        theirs = None
+        if cr:
+            theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                     provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
+                                     outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
+                                                                                       "n_t", "events_c", "n_c")})
+        if pairs is not None and promote and cr:
+            same = [i for i, (_o, t) in enumerate(pairs)
+                    if t.meta_pmid == str(comp) and all(str(getattr(t, k)) == str(cr.get(k)) for k in
+                                                        ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"))]
+            for i in reversed(same):
+                pairs.pop(i)
+        if routes is not None:
+            routes[x["route"]] -= 1
+            routes["PRIMARY"] += 1
+        x.update(route="PRIMARY", g1_countable=True, blocker=None, our_value=v, matched_by="ACQUIRED_PRIMARY",
+                 basis=f"single PRIMARY source (2 Oct decision): {ad['kind']} {ad['source']}; model-read (record "
+                       f"{a.get('record_id')}), gate-verified (g1/finish-line scripts/g1_trial_acquire.py)",
+                 acquired={"kind": ad["kind"], "source": ad["source"], "span": ad.get("span"), "quote": ad.get("quote"),
+                           "record_id": a.get("record_id"), "promoted_from": "SECONDARY_SINGLE" if promote else None,
+                           "found_by": "label" if a.get("label") == x.get("label") else "identity"},
+                 agreement_with_comparator_row=agreement(v, theirs) if theirs is not None else
+                 "NOT_COMPARABLE:NO_COMPARATOR_ROW")
+        chk = ad.get("comparator_counts_check")
+        if chk and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
+            # the comparator's counts are the trial's posted EVENT counts (AFFIRM-AHF 217 vs 294, units Events) pooled over
+            # participant denominators: the disagreement falls on the comparator's side
+            x["disagreement_side"] = (f"SECONDARY_WRONG (the comparator's counts {chk['comparator_counts']} are the posted "
+                                      f"'{chk['title']}' measurements in {chk['units']}, not participants; "
+                                      f"{chk['nct']} outcome {chk['outcome_id']})")
+        if pairs is not None and theirs is not None:
+            pairs.append((as_row(v, x["label"], theirs.measure), theirs))
+        got.append(x["label"])
+    if routes is not None:
+        for k in [k for k, n in routes.items() if n <= 0]:
+            del routes[k]
+    return got
+
+
 def sweep_merge(slug, trials, routes=None, pairs=None):
     """Mark every comparator trial the sweep VERIFIED (verdict SWEEP_*) as matched, with its route, value, basis and
     its agreement with the comparator's own row; add it to the same-trials pairs. Returns the labels merged."""
@@ -1156,14 +1397,6 @@ def sweep_merge(slug, trials, routes=None, pairs=None):
     return got
 
 
-def acquired_rows(slug):
-    """ADMITTED rows of scripts/g1_trial_acquire.py for a topic (registry/g1_acquired/<slug>.json), by trial label."""
-    p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
-    if not os.path.exists(p):
-        return {}
-    return {r["label"]: r for r in _j(p).get("rows") or [] if r.get("verdict") == "ADMITTED" and r.get("admitted")}
-
-
 def no_open_source(x):
     """True only when it is KNOWN that no open source holds the trial's result: its report has no held open full text
     (fulltext_index state is not HELD) and its registration posts no results (or it has none). Unknown is not 'none'."""
@@ -1177,16 +1410,6 @@ def no_open_source(x):
         return False                      # held, or not yet known
     rb = x.get("registry_binding") or {}
     return rb.get("state") in (None, "NO_POSTED_RESULTS")
-
-
-_CLUSTER = re.compile(r"ENGINE_CANNOT_CONSUME\(design=(cluster\w*|stepped_wedge)", re.I)
-
-
-def cluster_design_of(x):
-    """'cluster_crossover' / 'cluster' / 'stepped_wedge' when the engine refused the trial for its cluster design (the
-    served extraction's typed design action), else None."""
-    m = _CLUSTER.search(str(x.get("our_refusal") or "") + " " + str(x.get("absent_reason") or ""))
-    return m.group(1).lower() if m else None
 
 
 def _comparator_text(comp):
@@ -1269,68 +1492,6 @@ def _reproduce_crude(x, cr, slug):
             return {"row": line.strip()[:200], "arm_n": ns[:2], "crude_or": [round(v, 3) for v in got],
                     "source": f"PMID {pmid} held full text (outputs/k_gap/_ft/{pmid}.txt)"}
     return None
-
-
-def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
-    """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
-    through scripts/g1_trial_acquire.py's gates is PRIMARY-verified (2 Oct decision, restated 3 Oct; the rule of
-    single_primary_source): matched, countable, compared on that tuple. A SECONDARY_SINGLE trial is PROMOTED -- its meta
-    pair in the same-trials comparison is replaced by the primary tuple. Never a pooled, named or already-PRIMARY trial.
-    Returns the labels merged."""
-    acq = acquired_rows(slug)
-    got = []
-    for x in trials:
-        a = acq.get(x["label"])
-        if not a or x.get("in_our_pool") or x.get("scope_difference"):
-            continue
-        if cluster_design_of(x) and (a.get("admitted") or {}).get("value", {}).get("events_t") is not None:
-            # unadjusted counts from a cluster design never match the trial (unit-of-analysis error; decision 5 Oct):
-            # SMART's 818/7942 vs 875/7860 and SALT's posted 72/520 vs 68/454 are individual-level counts
-            x["acquired_refused"] = (f"UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE: the acquired tuple is unadjusted counts "
-                                     f"from a {cluster_design_of(x)} design ({a['admitted'].get('source')})")
-            continue
-        promote = x.get("route") == "SECONDARY_SINGLE"
-        if is_matched(x) and not promote:
-            continue
-        ad = a["admitted"]
-        v = ad.get("value") or {}
-        cr = x.get("comparator_row")
-        theirs = None
-        if cr:
-            theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
-                                     provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
-                                     outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
-                                                                                       "n_t", "events_c", "n_c")})
-        if pairs is not None and promote and cr:
-            same = [i for i, (_o, t) in enumerate(pairs)
-                    if t.meta_pmid == str(comp) and all(str(getattr(t, k)) == str(cr.get(k)) for k in
-                                                        ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"))]
-            for i in reversed(same):
-                pairs.pop(i)
-        if routes is not None:
-            routes[x["route"]] -= 1
-            routes["PRIMARY"] += 1
-        x.update(route="PRIMARY", g1_countable=True, blocker=None, our_value=v, matched_by="ACQUIRED_PRIMARY",
-                 basis=f"single PRIMARY source (2 Oct decision): {ad['kind']} {ad['source']}; model-read (record "
-                       f"{a.get('record_id')}), gate-verified (scripts/g1_trial_acquire.py)",
-                 acquired={"kind": ad["kind"], "source": ad["source"], "span": ad.get("span"), "quote": ad.get("quote"),
-                           "record_id": a.get("record_id"), "promoted_from": "SECONDARY_SINGLE" if promote else None},
-                 agreement_with_comparator_row=agreement(v, theirs) if theirs is not None else
-                 "NOT_COMPARABLE:NO_COMPARATOR_ROW")
-        chk = ad.get("comparator_counts_check")
-        if chk and str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE"):
-            # the comparator's counts are the trial's posted EVENT counts (AFFIRM-AHF 217 vs 294, units Events) pooled over
-            # participant denominators: the disagreement falls on the comparator's side
-            x["disagreement_side"] = (f"SECONDARY_WRONG (the comparator's counts {chk['comparator_counts']} are the posted "
-                                      f"'{chk['title']}' measurements in {chk['units']}, not participants; "
-                                      f"{chk['nct']} outcome {chk['outcome_id']})")
-        if pairs is not None and theirs is not None:
-            pairs.append((as_row(v, x["label"], theirs.measure), theirs))
-        got.append(x["label"])
-    if routes is not None:
-        for k in [k for k, n in routes.items() if n <= 0]:
-            del routes[k]
-    return got
 
 
 _COUNT_KEYS = ("deaths_t", "n_t", "deaths_c", "n_c")
@@ -2107,12 +2268,15 @@ def cite_or_demote(o, slug):
             why = "SCOPE_UNCITED:E2_NOT_RE_DERIVED"
         elif d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
             sp = d.get("span") or exclusion_audit_span(slug, d.get("pmid"))
+            if d.get("protocol_spans") is not None and not protocol_spans_ok(slug, d.get("protocol_spans")):
+                sp = None                   # an adjudication's protocol words must be the registered protocol's
             if d.get("rule_id") and sp and span_is_verbatim(slug, d.get("pmid"), sp):
                 keep.append(dict(d, span=sp, span_source=span_source_of(slug, d.get("pmid"), sp)))
                 continue
             cls, sub = exclusion_audit_class(slug, d.get("pmid"))
             why = f"SCOPE_UNCITED:{d.get('rule_id')}" + (f" (audit {cls}:{sub})" if cls else " (not audited)")
-        elif d.get("kind") in ("ESTIMAND_DIFFERENCE", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS") and d.get("span") \
+        elif d.get("kind") in ("ESTIMAND_DIFFERENCE", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+                               "SAME_TRIAL_AS_ANOTHER_UNIT") and d.get("span") \
                 and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
             keep.append(d)
             continue
@@ -2251,6 +2415,68 @@ def enumeration_scope(x, cfg):
             "protocol_rule": f"topic comparator_terms {comps}", "registered_eligibility": cfg.get("eligibility_summary")}
 
 
+def _ws(t):
+    return re.sub(r"\s+", " ", re.sub(r"\*\*|`", "", str(t or ""))).strip()
+
+
+_PROTOCOL_TEXT = {}
+
+
+def protocol_text(slug):
+    """Our REGISTERED protocol's text (protocols/<slug>.md), markdown emphasis and line breaks normalised."""
+    if slug not in _PROTOCOL_TEXT:
+        pp = os.path.join(ROOT, "protocols", f"{slug}.md")
+        _PROTOCOL_TEXT[slug] = _ws(open(pp, encoding="utf-8").read()) if os.path.exists(pp) else ""
+    return _PROTOCOL_TEXT[slug]
+
+
+def protocol_spans_ok(slug, spans):
+    """Every quoted protocol span is verbatim in the registered protocol (whitespace / emphasis normalised)."""
+    t = protocol_text(slug)
+    return bool(spans) and bool(t) and all(_ws(q) and _ws(q) in t for q in spans)
+
+
+def protocol_rule_span(slug, rule_id):
+    """The registered protocol's own bullet for an exclusion rule ('**X2** - wrong population (for example heart failure,
+    ...)'), quoted, so a named difference cites the protocol's words beside the config term (5 Oct decision 3)."""
+    t = protocol_text(slug)
+    if not t or not rule_id:
+        return None
+    m = re.search(r"(?:^|\s)-\s+" + re.escape(str(rule_id)) + r"\s+-\s+(.+?)(?=\s-\s+[A-Z][A-Z0-9\-]*\s+-\s|\s#|$)", t)
+    return {"file": f"protocols/{slug}.md", "rule_id": rule_id, "text": m.group(1).strip()[:400]} if m else None
+
+
+_ADJ = None
+
+
+def scope_adjudication(slug, x):
+    """registry/scope_adjudications.json: a trial our REGISTERED protocol's own text excludes (decisions 5 Oct 2 and 3),
+    keyed '<slug>::<tracker family>'. Named only when every protocol span is verbatim in protocols/<slug>.md AND the
+    trial span is verbatim in its held record; otherwise None (the trial stays eligible) with the failure recorded."""
+    global _ADJ
+    if _ADJ is None:
+        ap = os.path.join(ROOT, "registry", "scope_adjudications.json")
+        _ADJ = (_j(ap).get("adjudications") or {}) if os.path.exists(ap) else {}
+    a = _ADJ.get(f"{slug}::{x.get('family')}")
+    if not a:
+        return None
+    ts = a.get("trial_span") or {}
+    if not protocol_spans_ok(slug, a.get("protocol_spans")):
+        x["scope_adjudication_refused"] = "PROTOCOL_SPAN_NOT_VERBATIM_IN_REGISTERED_PROTOCOL"
+        return None
+    if not span_is_verbatim(slug, ts.get("pmid"), {"field": ts.get("field"), "text": ts.get("text")}):
+        x["scope_adjudication_refused"] = "TRIAL_SPAN_NOT_VERBATIM_IN_HELD_RECORD"
+        return None
+    return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f"PROTOCOL_TEXT:{a.get('axis')}",
+            "protocol_rule": "protocols/" + slug + ".md: " + " | ".join(f"'{q}'" for q in a["protocol_spans"]),
+            "protocol_spans": a["protocol_spans"], "span": {"field": ts["field"], "text": ts["text"]},
+            "span_source": f"PMID {ts['pmid']} record {ts['field']} (held: cache/{slug}/records.json or "
+                           f"outputs/k_gap/member_records.json)",
+            "pmid": ts["pmid"], "decided": a.get("decision"), "registry_note": a.get("registry_note"),
+            "screen_rule_was": a.get("screen_rule_was"),
+            "audit": {"class": "PROTOCOL_TEXT_ADJUDICATION", "subclass": a.get("axis")}}
+
+
 def scope_difference(x, cfg, slug=None):
     """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
     cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
@@ -2260,6 +2486,19 @@ def scope_difference(x, cfg, slug=None):
     if en:
         return en
     f = x.get("seeded_funnel") or {}
+    st = x.get("same_trial_as")
+    if st:
+        # the comparator lists the SAME registered trial twice (PLATO and its invasive-strategy substudy, one NCT): the
+        # trial is matched once, under the unit citing the report we pool; this unit is named, both rows quoted
+        return {"kind": "SAME_TRIAL_AS_ANOTHER_UNIT", "rule_id": "G1-ONE-TRIAL-ONE-UNIT",
+                "protocol_rule": "one registered trial is one unit of the comparison (same NCT)",
+                "span": {"field": "comparator trial table rows",
+                         "text": f"{st['this_row']} || {st['kept_row']}"},
+                "span_source": f"the comparator's own trial table (k-gap table rows) + registry {st.get('nct')}",
+                "same_trial_as": st, "pmid": None}
+    adj = scope_adjudication(slug, x) if slug else None
+    if adj:
+        return adj                          # our protocol's own text excludes it, both spans verbatim (decisions 2, 3)
     if f.get("stage") == "SCREENED_OUT":
         if not f.get("rule_id"):
             return None                     # a screen-out with no rule cited is a blocker, never a named difference
@@ -2281,6 +2520,7 @@ def scope_difference(x, cfg, slug=None):
                 "span": sp, "span_source": span_source_of(slug, f.get("pmid"), sp),
                 "audit": {"class": cls, "subclass": sub},
                 "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")),
+                "protocol_span": protocol_rule_span(slug, f["rule_id"]),
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
     ad = arm_object_difference(x, cfg, slug)
     if ad:
@@ -2435,6 +2675,16 @@ def comparator_findings(trials, comp):
             out.append({"finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT", "trial": x["label"], "comparator": comp,
                         "comparator_row": x.get("comparator_row"), "trial_report": x.get("our_value"),
                         "basis": x["disagreement_side"]})
+        st = x.get("same_trial_as") or {}
+        if st and x.get("comparator_row"):
+            out.append({"finding": "COMPARATOR_POOLS_ONE_TRIAL_TWICE", "trial": x["label"], "comparator": comp,
+                        "same_trial_as": st.get("unit"), "nct": st.get("nct"), "comparator_row": x.get("comparator_row"),
+                        "basis": "two of the comparator's units are one registered trial; both carry a row in its analysis"})
+        ac = x.get("comparator_row_arm_check") or {}
+        if ac.get("state") == "ARMS_SWAPPED":
+            out.append({"finding": "COMPARATOR_ROW_ARMS_SWAPPED", "trial": x["label"], "comparator": comp,
+                        "comparator_row": x.get("comparator_row"), "registry": ac.get("registry"),
+                        "basis": ac.get("basis"), "side": "COMPARATOR"})
         for f in x.get("comparator_row_findings") or []:
             if not isinstance(f, dict):           # a legacy string finding (lane-written) is typed, never a crash
                 f = {"finding": str(f).partition(":")[0].strip(), "detail": str(f)}
@@ -2955,7 +3205,45 @@ def two_readers_eligible(readings):
     return {"READER_1", "READER_2"} <= {k for k, v in dec.items() if v == {"ELIGIBLE"}}
 
 
-def screen_eligibility(x, rec, pmid, readings):
+_DESIGNS = None
+_BLINDED = {"DOUBLE", "TRIPLE", "QUADRUPLE"}
+
+
+def registered_blinding(pmid):
+    """The trial's REGISTERED design for a blinding-silent exclusion (outputs/k_gap/aact_designs.json, recorded from the
+    AACT snapshot; PMID -> NCT by AACT study_references, else by the title's acronym unique in AACT). None when no
+    unique registration is recorded. blinded: randomised AND masking DOUBLE/TRIPLE/QUADRUPLE."""
+    global _DESIGNS
+    if _DESIGNS is None:
+        dp = os.path.join(OUT, "aact_designs.json")
+        _DESIGNS = _j(dp) if os.path.exists(dp) else {}
+    d = _DESIGNS.get(str(pmid)) or {}
+    if d.get("state") != "RECORDED" or not d.get("masking"):
+        return None
+    blinded = (d.get("allocation") or "").upper() == "RANDOMIZED" and (d.get("masking") or "").upper() in _BLINDED
+    return {"blinded": blinded, "nct": d.get("nct"),
+            "span": {"source": f"AACT {d.get('snapshot')} designs.txt + studies.txt", "nct": d.get("nct"),
+                     "link": d.get("link"),
+                     "text": f"allocation {d.get('allocation')}; masking {d.get('masking')}; official title: "
+                             f"{(d.get('official_title') or '')[:200]}"}}
+
+
+def blinding_unverifiable(slug, pmid, cfg):
+    """Decision 5 Oct (4): our protocol REQUIRES double-blind, the screen excluded the trial on design, and no held source
+    states blinding either way (exclusion audit INSUFFICIENT_RECORD:BLINDING_NOT_STATED, and the full-text pass did not
+    establish it). Fail closed: ELIGIBILITY_UNVERIFIABLE -- never counted, never named as a scope difference."""
+    if not ((cfg or {}).get("include") or {}).get("design_double_blind"):
+        return False
+    if exclusion_audit_class(slug, pmid) != ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED"):
+        return False
+    fp_ = os.path.join(OUT, "exclusion_fulltext.json")
+    for r in (_j(fp_).get("rows") or []) if os.path.exists(fp_) else []:
+        if r.get("slug") == slug and str(r.get("pmid")) == str(pmid) and r.get("class_after") not in (None, "INSUFFICIENT_RECORD"):
+            return False                    # a held full text established the fact: not this state
+    return True
+
+
+def screen_eligibility(x, rec, pmid, readings, slug=None, cfg=None):
     """Typed, per comparator trial outside our pool: what OUR screen says. rec = our screen's own decision record for the
     trial's report (None when the report never entered it); x['seeded_funnel'] = the decision when its held record was
     seeded through our unchanged build. ELIGIBLE / NOT_ELIGIBLE (rule + reason) / NOT_ASSESSED."""
@@ -2973,6 +3261,20 @@ def screen_eligibility(x, rec, pmid, readings):
         if two_readers_eligible(readings):
             return {"state": "ELIGIBLE", "basis": "TWO_READERS_JUDGE_ELIGIBLE", "screen_rule": rule,
                     "readings": readings[:6]}
+        if slug and blinding_unverifiable(slug, f.get("pmid") or pmid, cfg):
+            reg = registered_blinding(f.get("pmid") or pmid)
+            if reg and reg["blinded"]:
+                # the record and open full text are silent, the trial's REGISTRATION states it: the design exclusion was
+                # a screener error, established by the registry span (Tsutsui / PARALLEL-HF: QUADRUPLE masking)
+                return {"state": "ELIGIBLE", "basis": "SCREENER_ERROR:REGISTRY_STATES_BLINDING", "screen_rule": rule,
+                        "span": reg["span"], "pmid": f.get("pmid") or pmid}
+            if reg:
+                return {"state": "NOT_ELIGIBLE", "rule_id": rule, "reason": "registry states the trial is not "
+                        f"double-blind ({reg['span']['text'][:120]})", "span": reg["span"], "readings": readings[:6]}
+            return {"state": "ELIGIBILITY_UNVERIFIABLE", "rule_id": rule,
+                    "why": "the protocol requires double-blind (include.design_double_blind) and no held source states "
+                           "blinding (exclusion audit BLINDING_NOT_STATED; full-text pass did not establish it)",
+                    "pmid": f.get("pmid") or pmid, "readings": readings[:6]}
         return {"state": "NOT_ELIGIBLE", "rule_id": rule,
                 "reason": (f.get("reason") or (rec or {}).get("reason") or "")[:160], "readings": readings[:6]}
     return {"state": "NOT_ASSESSED", "why": f.get("stage") or ("NO_RECORD_HELD" if not pmid else "NOT_IN_SCREEN"),
@@ -3084,11 +3386,15 @@ def topic(slug, T):
         if lab:
             comp_by_label.setdefault(lab, []).append(r)
     comp_by_label = {k: v[0] for k, v in comp_by_label.items() if len(v) == 1}
+    comp_by_label.update(same_comparator_surname_join([r for r in rows if r.meta_pmid == comp], _ents, comp_by_label))
     row_owner = {id(r): k for k, r in comp_by_label.items()}
     used_rows = set()
+    dup_of = one_trial_one_unit(comp_rows, ours)
     for t in comp_rows:
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
                      or o["pmid"] in (t.get("pmids") or [])), None)
+        if id(t) in dup_of:
+            mine = None                     # its trial is already the other unit's (one trial, one unit)
         fam = mine["id"] if mine else None
         in_pool = is_pooled(mine, pooled_ids)
         if in_pool and row_by_id.get(str(mine["id"])):
@@ -3106,7 +3412,8 @@ def topic(slug, T):
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
             if theirs and mine.get("primary"):
-                pairs.append((as_row(mine["primary"], t["label"], theirs.measure), theirs))
+                pairs.append((as_row(mine["primary"], t["label"], theirs.measure),
+                              trial_report_in_place_of(theirs, mine["primary"])))
         else:
             refusal = absent_by_id.get(str(mine["id"])) if mine else None
             # ANTI-CIRCULARITY: a row sourced FROM the comparator never gives a trial a counted route, however well it
@@ -3247,15 +3554,38 @@ def topic(slug, T):
             x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
     for k in [k for k, n in routes.items() if n <= 0]:
         del routes[k]
+    for x, t in zip(trials, comp_rows):
+        if id(t) in dup_of:
+            win, m = dup_of[id(t)]
+            x["same_trial_as"] = {"unit": win["label"][:60], "trial_family": str(m["id"]), "nct": m.get("nct"),
+                                  "this_unit_reports": t.get("pmids"), "kept_unit_reports": win.get("pmids"),
+                                  "this_row": (t.get("context") or "")[:200], "kept_row": (win.get("context") or "")[:200]}
+    nct_of_fam = {str(o.get("id")): o.get("nct") for o in ours}
+    for x, t in zip(trials, comp_rows):
+        cr = x.get("comparator_row") or {}
+        nct = nct_of_fam.get(str(x.get("family"))) or next(iter(t.get("ncts") or []), None)
+        if cr and nct and None not in (cr.get("events_t"), cr.get("n_t"), cr.get("events_c"), cr.get("n_c")):
+            chk = registered_arm_check(cr, nct, kw_all)
+            if chk:
+                x["comparator_row_arm_check"] = chk
     own_ids = {str(r.get("id")) for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", [])} \
         if os.path.exists(os.path.join(ROOT, "cache", slug, "records.json")) else set()
     for x, t in zip(trials, comp_rows):
         p = rp[id(t)]
         x["identification"] = identification_of(x, t, slug, bool(p and p in own_ids))
-        x["screen_eligibility"] = screen_eligibility(x, screened.get(p) if p else None, p,
-                                                     two_reader_readings(slug, sorted(set(t.get("pmids") or []) | ({p} if p else set()))))
+        rec_ = screened.get(p) if p else None
+        if rec_ is None and not x.get("seeded_funnel"):
+            # the comparator cites ANOTHER report of a trial our screen holds (EXAMINE: it cites PMID 25765696, our
+            # screen holds 23992602; one NCT00968708): our screen's decision on the registered trial applies
+            rec_ = screen_record_for(core["screening"]["records"], t.get("ncts"), t.get("pmids"))
+            if rec_ is not None and str(rec_.get("id")).isdigit():
+                p = str(rec_["id"])
+        x["screen_eligibility"] = screen_eligibility(x, rec_, p,
+                                                     two_reader_readings(slug, sorted(set(t.get("pmids") or []) | ({p} if p else set()))),
+                                                     slug=slug, cfg=cfg)
     for x in trials:
-        x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
+        x["scope_difference"] = (None if x["in_our_pool"] or (x.get("screen_eligibility") or {}).get("state")
+                                 == "ELIGIBILITY_UNVERIFIABLE" else scope_difference(x, cfg, slug))
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
         if x["scope_difference"] and x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"):
             # a trial NAMED out of scope never carries a counted route, whichever meta's row was verified for it: ELIXA's
@@ -3306,6 +3636,19 @@ def topic(slug, T):
     res = prim.get("result") or {}
     rep = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     comp_basis = "served review comparator.reported" if rep else None
+    served_comp = str((rev.get("comparator") or {}).get("pmid") or "")
+    if served_comp and served_comp != str(comp):
+        # the served page still carries the PREVIOUS comparator's result (dpp4: 34754403 served, 31462224 now): never
+        # compared against the new comparator's trials
+        rep, comp_basis = {}, None
+    if not rep:
+        rec = comparator_result_recorded(slug, comp)
+        if rec:
+            rep = {"outcome": rec["outcome"], "estimate": rec["estimate"], "ci_low": rec["ci_low"],
+                   "ci_high": rec["ci_high"], "scale": rec["scale"]}
+            comp_basis = (f"comparator {comp}'s own {rec['location']['table']} ({rec['location']['block']}: "
+                          f"{rec['contrast']} {rec['printed']}), orientation from its footnote, confirmed by its abstract "
+                          f"({rec['orientation_check']['abstract_quote']}); registry/comparator_results.json")
     cm = (S.get("metas") or {}).get(comp) or {}
     if not rep and cm.get("usable") and cm.get("pooled") and cm.get("provenance") == "TYPED_TABLE":
         # the served review typed no comparator result; the comparator's OWN pooled row, typed from its JATS table and

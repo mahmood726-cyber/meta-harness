@@ -116,6 +116,9 @@ def main(argv):
     only = {tuple(x.split(":", 1)) for a in argv if a.startswith("--only=") for x in a.split("=", 1)[1].split(",") if x}
     pilot = _pilot()
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
+    from reproducible_ai import record_licence as rl
+    import secondary_meta_build as smb
+    open_licence = rl.licences()
     its = [it for it in items(run) if not only or (it["slug"], str(it["pmid"])) in only]
     rows, todo = [], []
     for it in its:
@@ -123,6 +126,12 @@ def main(argv):
         if not it["fulltext"] or not it["rec"]:
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
                          "fulltext": "NO_OA_FULLTEXT", "class_after": "INSUFFICIENT_RECORD", "how": None})
+            continue
+        if not it["rec"]:
+            # a full text with NO held record cannot be screened: the screener needs the record's typed fields (id_type,
+            # pubtypes); a bare {'abstract': ...} crashed the classifier (KeyError 'id_type')
+            rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
+                         "fulltext": it["fulltext_source"], "class_after": "INSUFFICIENT_RECORD", "how": "NO_RECORD_HELD"})
             continue
         rec_ft = dict(it["rec"] or {}, abstract=((it["rec"] or {}).get("abstract") or "") + "\n\n" + it["fulltext"])
         cls, sub, det = ea.classify(rec_ft, ea._cfg(it["slug"]))                  # regex first, on the full text
@@ -149,6 +158,13 @@ def main(argv):
             rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
                          "fulltext": it["fulltext_source"], "class_after": cls, "subclass_after": sub, "how": "REGEX_ON_FULLTEXT",
                          "span": sp, "fulltext_sha256": hashlib.sha256(it["fulltext"].encode("utf-8")).hexdigest()})
+            continue
+        if not smb.prompt_fulltext(it["pmid"], it["fulltext"], open_licence):
+            # LICENCE (5 Oct decision): the reader's prompt would carry this full text into a public record, and the copy
+            # is not marked open -- the reader is refused, typed; the regex result above stands
+            rows.append({**{k: it[k] for k in ("slug", "pmid", "label", "rule_id", "subclass_before")},
+                         "fulltext": it["fulltext_source"], "class_after": "INSUFFICIENT_RECORD",
+                         "how": f"READER_REFUSED:FULLTEXT_NOT_MARKED_OPEN({open_licence.get(str(it['pmid']))})"})
             continue
         p, held, cd = reader_prompt(pilot, it, rec_ft)
         r = runs.get(key)

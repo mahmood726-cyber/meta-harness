@@ -165,3 +165,17 @@ def test_plant_a_table_row_from_a_copy_not_open_is_refused_not_kept(tmp_path, mo
         row = ga.replay(["balanced-crystalloids-vs-saline-mortality"], "ref")["balanced-crystalloids-vs-saline-mortality"][0]
         assert row["verdict"] == want
         assert (row.get("source_copy") or (row.get("admitted") or {}).get("source_copy"))["licence"] == lic
+
+
+def test_a_row_without_a_report_pmid_takes_its_registrations_single_result_reference(monkeypatch):
+    rows = {"trials": [{"label": "EMPACTA", "family": "NCT04372186", "route": "NO_ROW"},
+                       {"label": "MANY", "family": "NCT00000002", "route": "NO_ROW"}]}
+    monkeypatch.setattr(ga, "tracker_file", lambda slug, ref: rows)
+    monkeypatch.setattr(ga, "registered_ncts", lambda pmid: set())
+    monkeypatch.setattr(ga, "result_pmids", lambda ncts: {"NCT04372186": ["33332779"],
+                                                          "NCT00000002": ["1", "2"]}.get(ncts[0]) and
+                        {ncts[0]: {"NCT04372186": ["33332779"], "NCT00000002": ["1", "2"]}[ncts[0]]})
+    _o, ts = ga.targets("tocilizumab-covid19-mortality", "")
+    by = {t["label"]: t for t in ts}
+    assert by["EMPACTA"]["pmid"] == "33332779" and by["EMPACTA"]["pmid_by"] == "AACT_RESULT_REFERENCE"
+    assert by["MANY"]["pmid"] is None                       # several result references: none is chosen
