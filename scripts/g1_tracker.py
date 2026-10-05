@@ -121,6 +121,99 @@ def trial_report_in_place_of(theirs, primary):
     return r
 
 
+def label_surname(label):
+    """The leading surname of a comparator label ('Zinman (8)', 'Zinman 2016'); None for an acronym label."""
+    m = re.match(r"\s*([A-Z][a-z][A-Za-z'\u2019\-]+)\b", label or "")
+    return m.group(1) if m else None
+
+
+def same_comparator_surname_join(comp_rows, ents, joined):
+    """A comparator ROW the family join could not place (its figure prints 'Zinman 2016'; its own trial list says
+    'Zinman (8)', reference 8 = the 2015 report: the year rule refuses) joins the comparator's own UNIT when, within that
+    one comparator, the surname names exactly one unit and exactly one row. Both are the comparator's own artefacts;
+    anything less stays unjoined. The row carries a typed finding. Returns {unit id: row}."""
+    taken = {id(r) for r in joined.values()}
+    out = {}
+    for r in comp_rows:
+        if id(r) in taken:
+            continue
+        sn = label_surname(r.trial_label)
+        if not sn:
+            continue
+        units = [e for e in ents if label_surname(e["label"]) == sn]
+        same_rows = [q for q in comp_rows if label_surname(q.trial_label) == sn]
+        if len(units) == 1 and len(same_rows) == 1 and units[0]["id"] not in joined:
+            r.findings = list(r.findings or []) + [{"finding": "JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR",
+                                                    "detail": f"row '{r.trial_label}' <-> unit '{units[0]['label']}'"}]
+            out[units[0]["id"]] = r
+    return out
+
+
+_ARM_PCT = None
+
+
+def registered_arm_check(cr, nct, keywords):
+    """A comparator row's per-arm counts against the trial's REGISTERED per-arm percentages for the same outcome
+    (outputs/k_gap/aact_arm_percentages.json; a percentage is never data -- only this check reads it). Arms are matched
+    by analysed N. CONSISTENT: the printed counts give the registered percentages; ARMS_SWAPPED: they do only with the
+    events exchanged between arms (EMPA-REG: printed 95/4687 vs 126/2333; registered 2.7% of 4687 vs 4.1% of 2333);
+    INCONSISTENT: neither. None when nothing registered applies."""
+    global _ARM_PCT
+    if _ARM_PCT is None:
+        ap = os.path.join(OUT, "aact_arm_percentages.json")
+        _ARM_PCT = _j(ap) if os.path.exists(ap) else {}
+    for key, e in _ARM_PCT.items():
+        if e.get("nct") != nct or e.get("state") != "RECORDED":
+            continue
+        if not any(keyword_named(k, e.get("outcome_title") or "") for k in keywords or []):
+            continue
+        g_t = [g for g in e["groups"] if g.get("n_analysed") == cr["n_t"]]
+        g_c = [g for g in e["groups"] if g.get("n_analysed") == cr["n_c"]]
+        if len(g_t) != 1 or len(g_c) != 1 or g_t[0] is g_c[0]:
+            continue
+        pt, pc = g_t[0]["value"], g_c[0]["value"]
+
+        def same(ev, n, posted):
+            d = len(str(posted).split(".")[1]) if "." in str(posted) else 0
+            return abs(round(100.0 * ev / n, d) - float(posted)) < 1e-9
+        reg = {"source": key, "snapshot": e.get("snapshot"), "outcome": e.get("outcome_title"),
+               "treatment": {"group": g_t[0]["title"], "n": cr["n_t"], "percent": pt},
+               "control": {"group": g_c[0]["title"], "n": cr["n_c"], "percent": pc}}
+        if same(cr["events_t"], cr["n_t"], pt) and same(cr["events_c"], cr["n_c"], pc):
+            return {"state": "CONSISTENT", "registry": reg}
+        if same(cr["events_c"], cr["n_t"], pt) and same(cr["events_t"], cr["n_c"], pc):
+            return {"state": "ARMS_SWAPPED", "registry": reg,
+                    "basis": f"printed {cr['events_t']}/{cr['n_t']} vs {cr['events_c']}/{cr['n_c']}; the registered "
+                             f"{pt}% of {cr['n_t']} and {pc}% of {cr['n_c']} are reproduced only with the events exchanged"}
+        return {"state": "INCONSISTENT", "registry": reg}
+    return None
+
+
+def one_trial_one_unit(comp_rows, ours):
+    """ONE REGISTERED TRIAL, ONE UNIT: comparator units that resolve to the same trial of ours (same NCT / report) --
+    ticagrelor: unit '9 [28]' Wallentin 2009 (PLATO, N 18,624) and unit '1 [21]' Cannon 2010 (PLATO's invasive-strategy
+    substudy, N 13,408, same NCT00391872) both mapped to our PLATO pool row, so one trial counted as two matches. The unit
+    citing the report we pool keeps the trial (else the first); every other unit is returned {id(unit): (kept unit,
+    trial)} and is named SAME_TRIAL_AS_ANOTHER_UNIT, never matched."""
+    claim = {}
+    for t in comp_rows:
+        # the SAME registered trial only: the unit's OWN registration must be the trial's NCT. A shared report is not
+        # enough -- one paper can report two trials (ODYSSEY FH I and FH II, PMID 26330422, two NCTs), and a unit's
+        # report list can carry another trial's paper (PACMAN-AMI listing ODYSSEY LONG TERM's)
+        m = next((o for o in ours if o.get("nct") and o["nct"] in (t.get("ncts") or [])), None)
+        if m:
+            claim.setdefault(str(m["id"]), (m, []))[1].append(t)
+    out = {}
+    for _mid, (m, ts) in claim.items():
+        if len(ts) < 2:
+            continue
+        win = next((t for t in ts if str(m.get("pmid")) in [str(p) for p in t.get("pmids") or []]), ts[0])
+        for t in ts:
+            if t is not win:
+                out[id(t)] = (win, m)
+    return out
+
+
 def same_trials_pool(pairs, method_label):
     """pairs: [(our_row, their_row)] for the shared trials. Both sides pooled by ONE method; None if any side cannot."""
     if len(pairs) < 2:
@@ -1083,7 +1176,8 @@ def cite_or_demote(o, slug):
                 continue
             cls, sub = exclusion_audit_class(slug, d.get("pmid"))
             why = f"SCOPE_UNCITED:{d.get('rule_id')}" + (f" (audit {cls}:{sub})" if cls else " (not audited)")
-        elif d.get("kind") in ("ESTIMAND_DIFFERENCE", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS") and d.get("span") \
+        elif d.get("kind") in ("ESTIMAND_DIFFERENCE", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
+                               "SAME_TRIAL_AS_ANOTHER_UNIT") and d.get("span") \
                 and d.get("span_source") and (d.get("rule_id") or d.get("gate")):
             keep.append(d)
             continue
@@ -1179,6 +1273,7 @@ def scope_adjudication(slug, x):
             "span_source": f"PMID {ts['pmid']} record {ts['field']} (held: cache/{slug}/records.json or "
                            f"outputs/k_gap/member_records.json)",
             "pmid": ts["pmid"], "decided": a.get("decision"), "registry_note": a.get("registry_note"),
+            "screen_rule_was": a.get("screen_rule_was"),
             "audit": {"class": "PROTOCOL_TEXT_ADJUDICATION", "subclass": a.get("axis")}}
 
 
@@ -1188,6 +1283,16 @@ def scope_difference(x, cfg, slug=None):
     trial is an open gap (it must then stay visible as NO_ROW, never be dropped)."""
     import re as _re
     f = x.get("seeded_funnel") or {}
+    st = x.get("same_trial_as")
+    if st:
+        # the comparator lists the SAME registered trial twice (PLATO and its invasive-strategy substudy, one NCT): the
+        # trial is matched once, under the unit citing the report we pool; this unit is named, both rows quoted
+        return {"kind": "SAME_TRIAL_AS_ANOTHER_UNIT", "rule_id": "G1-ONE-TRIAL-ONE-UNIT",
+                "protocol_rule": "one registered trial is one unit of the comparison (same NCT)",
+                "span": {"field": "comparator trial table rows",
+                         "text": f"{st['this_row']} || {st['kept_row']}"},
+                "span_source": f"the comparator's own trial table (k-gap table rows) + registry {st.get('nct')}",
+                "same_trial_as": st, "pmid": None}
     adj = scope_adjudication(slug, x) if slug else None
     if adj:
         return adj                          # our protocol's own text excludes it, both spans verbatim (decisions 2, 3)
@@ -1275,6 +1380,16 @@ def comparator_findings(trials, comp):
             out.append({"finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT", "trial": x["label"], "comparator": comp,
                         "comparator_row": x.get("comparator_row"), "trial_report": x.get("our_value"),
                         "basis": x["disagreement_side"]})
+        st = x.get("same_trial_as") or {}
+        if st and x.get("comparator_row"):
+            out.append({"finding": "COMPARATOR_POOLS_ONE_TRIAL_TWICE", "trial": x["label"], "comparator": comp,
+                        "same_trial_as": st.get("unit"), "nct": st.get("nct"), "comparator_row": x.get("comparator_row"),
+                        "basis": "two of the comparator's units are one registered trial; both carry a row in its analysis"})
+        ac = x.get("comparator_row_arm_check") or {}
+        if ac.get("state") == "ARMS_SWAPPED":
+            out.append({"finding": "COMPARATOR_ROW_ARMS_SWAPPED", "trial": x["label"], "comparator": comp,
+                        "comparator_row": x.get("comparator_row"), "registry": ac.get("registry"),
+                        "basis": ac.get("basis"), "side": "COMPARATOR"})
         for f in x.get("comparator_row_findings") or []:
             if not isinstance(f, dict):           # a legacy string finding (lane-written) is typed, never a crash
                 f = {"finding": str(f).partition(":")[0].strip(), "detail": str(f)}
@@ -1694,11 +1809,15 @@ def topic(slug, T):
         if lab:
             comp_by_label.setdefault(lab, []).append(r)
     comp_by_label = {k: v[0] for k, v in comp_by_label.items() if len(v) == 1}
+    comp_by_label.update(same_comparator_surname_join([r for r in rows if r.meta_pmid == comp], _ents, comp_by_label))
     row_owner = {id(r): k for k, r in comp_by_label.items()}
     used_rows = set()
+    dup_of = one_trial_one_unit(comp_rows, ours)
     for t in comp_rows:
         mine = next((o for o in ours if (o.get("nct") and o["nct"] in (t.get("ncts") or []))
                      or o["pmid"] in (t.get("pmids") or [])), None)
+        if id(t) in dup_of:
+            mine = None                     # its trial is already the other unit's (one trial, one unit)
         fam = mine["id"] if mine else None
         in_pool = is_pooled(mine, pooled_ids)
         if in_pool and row_by_id.get(str(mine["id"])):
@@ -1835,6 +1954,20 @@ def topic(slug, T):
             x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
     for k in [k for k, n in routes.items() if n <= 0]:
         del routes[k]
+    for x, t in zip(trials, comp_rows):
+        if id(t) in dup_of:
+            win, m = dup_of[id(t)]
+            x["same_trial_as"] = {"unit": win["label"][:60], "trial_family": str(m["id"]), "nct": m.get("nct"),
+                                  "this_unit_reports": t.get("pmids"), "kept_unit_reports": win.get("pmids"),
+                                  "this_row": (t.get("context") or "")[:200], "kept_row": (win.get("context") or "")[:200]}
+    nct_of_fam = {str(o.get("id")): o.get("nct") for o in ours}
+    for x, t in zip(trials, comp_rows):
+        cr = x.get("comparator_row") or {}
+        nct = nct_of_fam.get(str(x.get("family"))) or next(iter(t.get("ncts") or []), None)
+        if cr and nct and None not in (cr.get("events_t"), cr.get("n_t"), cr.get("events_c"), cr.get("n_c")):
+            chk = registered_arm_check(cr, nct, kw_all)
+            if chk:
+                x["comparator_row_arm_check"] = chk
     own_ids = {str(r.get("id")) for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", [])} \
         if os.path.exists(os.path.join(ROOT, "cache", slug, "records.json")) else set()
     for x, t in zip(trials, comp_rows):
