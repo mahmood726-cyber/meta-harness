@@ -1596,16 +1596,30 @@ def items(slugs, run, pairs=None, extras=None, meta_extras=None):
 SWEEP = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_reader_sweep.json")
 
 
-def unmatched_trial_ids(slug):
+def trial_ids(t, doi_of):
+    """A trial's identifiers as a reference list may print them: PMIDs, NCTs and the DOI of each PMID's record
+    (casefolded) -- many JATS reference lists carry DOIs only (5 Oct: 99 of 100 corticosteroid metas were dropped)."""
+    ids = {str(p) for p in (t.get("pmids") or [])} | {str(n).lower() for n in (t.get("ncts") or [])}
+    for p in t.get("pmids") or []:
+        d = doi_of(str(p))
+        if d:
+            ids.add(str(d).strip().lower())
+    return ids
+
+
+def unmatched_trial_ids(slug, run=False):
     """The comparator trials of a topic that are NOT matched (route neither PRIMARY nor TWO_SOURCE in the tracker), as
-    the PMIDs/NCTs the k-gap table holds for them -- the trials a second meta could supply a two-source row for."""
+    the PMIDs/NCTs/DOIs the k-gap table and each PMID's record hold for them -- the trials a second meta could supply a
+    two-source row for."""
+    import secondary_meta_build as smb
     tp = os.path.join(ROOT, "outputs", "k_gap", "g1", f"{slug}.json")
     if not os.path.exists(tp):
         return {}
     tr = _j(tp)
     open_labels = {x["label"][:60] for x in tr.get("trials") or [] if x.get("route") not in ("PRIMARY", "TWO_SOURCE")}
     T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
-    return {t["label"][:60]: {str(p) for p in (t.get("pmids") or [])} | {str(n).lower() for n in (t.get("ncts") or [])}
+    doi_of = lambda pmid: (smb._trial_text(slug, pmid, run) or {}).get("doi")  # noqa: E731
+    return {t["label"][:60]: trial_ids(t, doi_of)
             for t in T["trials"] if t["slug"] == slug and t["label"][:60] in open_labels}
 
 
@@ -1701,7 +1715,7 @@ def sweep(slugs, run, wide=False, deep=False):
         sp = os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json")
         usable = {m for m, v in ((_j(sp).get("metas") or {}) if os.path.exists(sp) else {}).items()
                   if v.get("usable") and v.get("provenance") != "MODEL_PROPOSAL_DUAL"}
-        want = unmatched_trial_ids(slug)
+        want = unmatched_trial_ids(slug, run)
         rows = {}
         for pm in metas:
             if pm == comp:

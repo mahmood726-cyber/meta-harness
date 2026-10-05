@@ -179,6 +179,7 @@ def apply_resolutions(slug, o, path=RESOLUTIONS):
                                           "source": "outputs/k_gap/g1_readers_differ_resolutions.json"}
     o["per_trial_agreement"] = dict(Counter(x["agreement_with_comparator_row"] for x in o.get("trials") or []
                                             if x.get("in_our_pool")))
+    return o
 
 
 def attach_screen_state(o, ours, slug=None, records=None):
