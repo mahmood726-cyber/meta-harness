@@ -84,7 +84,13 @@ Screen-named exclusions re-checked (83): dual review v2 final {'INELIGIBLE': 83}
 
 ## Decisions for Mahmood (not taken by this lane)
 
-1. **Volume cap**: the 7 topics whose blind concept query gains recall above 5,000 records (table above).
+1. **Volume cap**: the 6 topics whose blind concept query gains recall above 5,000 records (table above).
 2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).
 3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no screening term; H. pylori-eradication and C. difficile trials stay X2 (Cindoruk, Plomer, Plummer, Shimbo). Adding population terms is an eligibility amendment.
 4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.
+
+## Verification of this branch
+
+Full test suite on the worker at 45db91f636: 4712 passed, 11 failed. The same 11 tests at main: 14 passed, 1 failed (environmental on the worker (makedirs 'F:/' -- the worker has no F: drive); fails at main too). **10 failures are this branch's**, all certificate / bundle / replay / gate / fix-ledger checks: harness/screen.py and harness/fetch.py are in every page certificate's pinned code closure, and the dated amendments change topics/protocols: every served page must be regenerated and re-certified from its recorded command (the certificate, bundle, replay, gate and fix-ledger tests check exactly that). Not done on this branch: a rebuild re-runs the amended searches and changes served pooled results -- a consolidation decision.
+
+verify_all refused limbs: unit tests; offline reproduction (review_sha256 / CERTIFICATE release_sha256 / index.html re-render); fix-state discipline (docs/fix_ledger.json stale); held-out leak detector (COULD-NOT-EXECUTE: key not on the worker).

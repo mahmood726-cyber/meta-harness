@@ -134,7 +134,7 @@ def main():
           "- **E, economic evaluation title marker**: a health-economic evaluation alongside a trial is a secondary report.",
           f"- Recorded radius review of every non-comparator flip: {rr.get('tally')}.", "",
           "## Decisions for Mahmood (not taken by this lane)", "",
-          "1. **Volume cap**: the 7 topics whose blind concept query gains recall above 5,000 records (table above).",
+          f"1. **Volume cap**: the {len(cap)} topics whose blind concept query gains recall above 5,000 records (table above).",
           "2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a "
           "PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).",
           "3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no "
@@ -142,6 +142,15 @@ def main():
           "Adding population terms is an eligibility amendment.",
           "4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.",
           ""]
+    v = _j("verification_2026-10-05.json")
+    if v:
+        m = v["same_11_at_main_469a97eb"]
+        L += ["## Verification of this branch", "",
+              f"Full test suite on the worker at {v['commit'][:10]}: {v['pytest_full_suite']['passed']} passed, "
+              f"{v['pytest_full_suite']['failed']} failed. The same {len(v['failed'])} tests at main: {m['passed']} passed, "
+              f"{m['failed']} failed ({m['why_that_one']}). **{v['attributable_to_this_branch']} failures are this "
+              f"branch's**, all certificate / bundle / replay / gate / fix-ledger checks: {v['why']}", "",
+              "verify_all refused limbs: " + "; ".join(v["verify_all"]["refused_limbs"]) + ".", ""]
     open(os.path.join(SA, "SEARCH_SCREEN_REPORT.md"), "w", encoding="utf-8", newline="\n").write("\n".join(L))
     print("\n".join(L[:30]))
 
