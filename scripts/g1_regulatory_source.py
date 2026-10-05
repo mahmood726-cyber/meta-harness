@@ -349,7 +349,17 @@ def _dump(p, d):
     tmp = p + f".{os.getpid()}.tmp"
     with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(d, fh, indent=1, sort_keys=True, ensure_ascii=False)
-    os.replace(tmp, p)
+    # Windows refuses to replace a file another process holds open (a reader, git add): 6 Oct the holding run died
+    # with 'Access is denied' mid-corpus. Retry with backoff; a persistent refusal still raises.
+    import time
+    for i in range(8):
+        try:
+            os.replace(tmp, p)
+            return
+        except PermissionError:
+            if i == 7:
+                raise
+            time.sleep(0.5 * (i + 1))
 
 
 if __name__ == "__main__":
