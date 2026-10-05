@@ -523,3 +523,44 @@ is still yours to decide downstream.
   herbal formulas, L-carnitine, letrozole). No open meta plots metformin + clomifene vs clomifene ovulation per trial,
   except the comparator itself.
 - **probiotics:** no unread candidate passes. The admitted 4 come from 29023420.
+
+## 5 Oct: pushing admitted rows through to the tracker (merged acq/k-gap 7d0d3fcc, which contains fe689f08)
+
+### A gap in the merged build: forest-lane rows lost their timepoint
+
+**What happened.** `forest_lane_metas` builds lane rows WITHOUT the timepoint inference that every figure row of the
+build gets (`meta_timepoint` of the caption, else of the meta's text for a core-mortality topic). As a result, all 135
+tocilizumab lane rows read `TIMEPOINT_NOT_STATED_BY_META`, including the 28-day figures.
+
+**The fix.** `secondary_meta_build.lane_timepoint(r, spec)` runs before `sm.admit` on each lane row. It uses the same
+derivation as the build applies to its own figure rows. The timepoint gate itself is unchanged: a 30-day figure still
+reads `TIMEPOINT_30 days_NE_28 days`.
+
+**Plant:** `test_a_forest_lane_row_gets_the_timepoint_its_caption_states_like_every_figure_row` (fails before).
+
+### Recount in this clone (tracker's own build + g1_tracker; lower bound)
+
+The environment has no AACT store and no topic-lane import, so tocilizumab's pool here is 7 trials. The committed
+tracker lists REACT's 19.
+
+**tocilizumab:**
+
+| | admitted lane rows | TWO_SOURCE_VERIFIED rows | matched trials (k_matched) |
+|---|---|---|---|
+| before the fix | 0 | 0 | 1 |
+| after the fix | 19 (34768455 ×7, 35343397 ×7, 34050796 ×5) | 14 | 5 |
+
+**Trials that flip to TWO_SOURCE (5):**
+- CORIMUNO-TOCI (PMID 33080017): was NO_ROW;
+- TOCIBRAS (33472855): was UNVERIFIED;
+- COVINTOC (33676589): was UNVERIFIED;
+- COVACTA (33631066): was UNVERIFIED;
+- EMPACTA (33332779): was UNVERIFIED.
+
+Each is supported by 2–3 independent non-comparator metas (34050796, 34768455, 35343397). BACC Bay stays BLOCKED
+(two metas disagree).
+
+**omega3:** k_matched 4 → 5. GISSI-P and Nilsen became SWEEP_SECONDARY_SINGLE through your sweep, not through my rows.
+My 37031750 is a cross-check dissenter on GISSI-P.
+
+**Please regenerate tocilizumab with the lane-import inputs** to get the authoritative recount on REACT's 19 trials.

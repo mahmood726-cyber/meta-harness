@@ -780,6 +780,19 @@ def ci_level_refusal(d):
     return None if lv in ("", "95%", "95") else f"CI_LEVEL_{lv}_NOT_95"
 
 
+def lane_timepoint(r, spec, held=None):
+    """A forest-lane row's timepoint, derived EXACTLY as for every figure row of the build: the figure caption's own
+    statement ('28-Day All-Cause Mortality in Each Trial'), else -- for a core-mortality topic -- the meta's text when it
+    states exactly one. Without it every lane row of a timepoint topic reads TIMEPOINT_NOT_STATED_BY_META (5 Oct)."""
+    if r.timepoint:
+        return r
+    if held is None and spec.get("core"):
+        import g1_forest_reader as gfr
+        held = gfr.held_text(r.meta_pmid)
+    r.timepoint = meta_timepoint(r.outcome_definition) or (meta_timepoint(held) if spec.get("core") else None)
+    return r
+
+
 def forest_lane_metas(slug, comp, have):
     """REVIEW_REFERENCE_LIST data side (Mahmood/captain decision 5 Oct): the forest-reader lane's DUAL-MODEL reads of
     NON-comparator metas of this topic that the lane ACCEPTED (their rows reproduce the figure's own printed pool --
@@ -991,6 +1004,7 @@ def build(slug, run, runs):
     lrows, lmetas = forest_lane_metas(slug, comp, have)
     metas_out.update(lmetas)
     for r, lv in lrows:
+        lane_timepoint(r, spec)
         r = sm.admit(r, spec, fam)
         if lv:
             r.reasons = list(r.reasons) + [lv]

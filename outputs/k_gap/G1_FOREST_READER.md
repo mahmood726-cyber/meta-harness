@@ -2,10 +2,10 @@
 
 Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY rows: never pool inputs, never counted toward agreement with their own meta; another meta's rows feed the two-source rule.
 
-- comparators of 32 tracker topics; other metas selected by the two-source sweep: 628
-- ALL: figures read by both models 227; ACCEPTED 125, REFUSED 101 (pooled-reconstruction pass rate 125 of 227); rows proposed 1662, refused (readings disagree) 265, accepted as secondary 1029
+- comparators of 32 tracker topics; other metas selected by the two-source sweep: 629
+- ALL: figures read by both models 228; ACCEPTED 125, REFUSED 102 (pooled-reconstruction pass rate 125 of 228); rows proposed 1671, refused (readings disagree) 265, accepted as secondary 1029
 - comparators: figures read by both models 25; ACCEPTED 23, REFUSED 2 (pooled-reconstruction pass rate 23 of 25); rows proposed 239, refused (readings disagree) 0, accepted as secondary 239
-- other metas (two-source sweep): figures read by both models 202; ACCEPTED 102, REFUSED 99 (pooled-reconstruction pass rate 102 of 202); rows proposed 1423, refused (readings disagree) 265, accepted as secondary 790
+- other metas (two-source sweep): figures read by both models 203; ACCEPTED 102, REFUSED 100 (pooled-reconstruction pass rate 102 of 203); rows proposed 1432, refused (readings disagree) 265, accepted as secondary 790
 
 ## Comparators
 
@@ -167,6 +167,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | probiotics-aad-prevention | PMID 25365320 | pone-0111030-g004 | **REFUSED** | 32 / 4 | STATED ['MH-FE', 'MH-RE'] | 1.12 (1.09-1.16) |  | ROWS_DISAGREE:4, STATED_MODEL_NOT_COMPUTABLE_FROM_ROWS |
 | probiotics-aad-prevention | PMID 29023420 | antibiotics-06-00021-f003 | **ACCEPTED** | 9 / 0 | STATED ['MH-RE'] | 0.45 (0.34-0.60) | MH-RE 0.4547 (0.3448-0.5995) | - |
 | probiotics-aad-prevention | PMID 29868585 | F3 | **ACCEPTED** | 25 / 0 | STATED ['DL', 'PM', 'REML'] | 0.63 (0.48-0.82) | DL 0.6280 (0.4814-0.8192); PM 0.6250 (0.4707-0.8300); REML 0.6251 (0.4709-0.8298) | - |
+| probiotics-aad-prevention | PMID 29868585 | F4 | **REFUSED** | 9 / 0 | NOT_STATED [] | 0.63 (0.53-0.75) |  | STATED_MODEL_NOT_STATED |
 | probiotics-aad-prevention | PMID 30078376 | Fig3 | **REFUSED** | 0 / 2 | NOT_STATED [] | 0.66 (0.64-0.67) |  | ROWS_ARE_NOT_STUDIES:study/mixed, ROWS_DISAGREE:2, STATED_MODEL_NOT_STATED, FEWER_THAN_2_AGREED_ROWS |
 | probiotics-aad-prevention | PMID 33234881 | F6 | **REFUSED** | 0 / 0 | STATED ['MH-FE', 'MH-RE'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
 | probiotics-aad-prevention | PMID 35484792 | fig2-02601060221095678 | **ACCEPTED** | 7 / 0 | STATED ['DL', 'PM', 'REML'] | -0.61 (-1.04--0.18) | DL -0.6112 (-1.0426--0.1799); PM -0.7178 (-1.4804-0.0448); REML -0.6973 (-1.3644--0.0301) | - |
