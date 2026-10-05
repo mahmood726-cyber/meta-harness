@@ -196,3 +196,17 @@ def test_an_ambiguous_report_with_unanimous_other_agent_titles_is_another_agents
     got = {t["label"]: t for t in gt.with_identity_chain(T)["trials"]}
     assert got["VERTIS-X"]["drug"] == "OTHER_AGENT" and got["VERTIS-X"]["pmids"] == []   # scope stated, report not guessed
     assert got["MIXED-X"]["drug"] == "AGENT_UNCONFIRMED"
+
+
+def test_the_registry_names_an_other_agent_trial_that_no_title_query_can_find(tmp_path):
+    (tmp_path / "studies.txt").write_text("nct_id|acronym|brief_title\nNCT99999921|SCORED-X|t\nNCT99999922|DUP|a\n"
+                                          "NCT99999923|DUP|b\nNCT99999924|INAG|c\n", encoding="utf-8")
+    (tmp_path / "interventions.txt").write_text(
+        "id|nct_id|intervention_type|name|description\n1|NCT99999921|DRUG|Sotagliflozin|x\n2|NCT99999921|DRUG|Placebo|x\n"
+        "3|NCT99999924|DRUG|Dapagliflozin 10 mg|x\n", encoding="utf-8")
+    want = {"SCOREDX": ["s::SCORED-X"], "DUP": ["s::DUP"], "INAG": ["s::INAG"], "NONE": ["s::NONE"]}
+    got = gic.registry_acronym_identity(want, str(tmp_path), lambda k: ["dapagliflozin"])
+    assert got["s::SCORED-X"]["scope"] == "OTHER_AGENT:sotagliflozin" and got["s::SCORED-X"]["nct"] == "NCT99999921"
+    assert got["s::DUP"]["state"] == "AMBIGUOUS"                   # one acronym, two studies: never guessed
+    assert got["s::INAG"]["scope"] == "IN_SCOPE"
+    assert "s::NONE" not in got

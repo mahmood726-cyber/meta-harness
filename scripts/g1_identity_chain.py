@@ -165,6 +165,51 @@ def tiebreak_eligible(rec):
     return not re.search(r"study of the month|journal club|in brief|digest", rec.get("title") or "", re.I)
 
 
+_DRUG_TYPES = {"DRUG", "BIOLOGICAL", "DIETARY_SUPPLEMENT", "COMBINATION_PRODUCT", "GENETIC"}
+
+
+def registry_acronym_identity(want, snap, agents_of):
+    """REGISTRY identity for comparator acronyms nothing else resolved: AACT studies.acronym (folded) naming exactly ONE
+    study -> its NCT; that study's REGISTERED interventions decide the scope (a topic agent among them -> IN_SCOPE; drug
+    interventions but none of the topic's -> OTHER_AGENT:<the registered name>; none -> AGENT_UNSTATED). SCORED and
+    SOLOIST-WHF (sotagliflozin) in a dapagliflozin topic: no title query can find them -- no topic registers that
+    molecule -- but the registry names the trial and its drug. want: {folded acronym: [key, ...]}; agents_of(key) ->
+    the topic's agents. Unique-or-nothing: two studies with one acronym -> AMBIGUOUS."""
+    if not want:
+        return {}
+    hits = {}
+    for r in ic._rows(snap, "studies.txt"):
+        a = ic._fold(r.get("acronym") or "")
+        if a and a in want:
+            hits.setdefault(a, set()).add(r["nct_id"])
+    ncts = {n for v in hits.values() if len(v) == 1 for n in v}
+    names = {}
+    if ncts:
+        for r in ic._rows(snap, "interventions.txt"):
+            if r.get("nct_id") in ncts and (r.get("intervention_type") or "").upper() in _DRUG_TYPES:
+                names.setdefault(r["nct_id"], []).append((r.get("name") or "").strip())
+    out = {}
+    for a, keys in want.items():
+        got = sorted(hits.get(a) or [])
+        for key in keys:
+            if not got:
+                continue
+            if len(got) > 1:
+                out[key] = {"state": "AMBIGUOUS", "basis": "AACT_STUDIES_ACRONYM", "ncts": got[:10]}
+                continue
+            nm = names.get(got[0]) or []
+            low = " ".join(nm).lower()
+            ag = [x.lower() for x in agents_of(key)]
+            if any(x in low for x in ag):
+                scope = "IN_SCOPE"
+            else:
+                drugs = [x for x in nm if x and not re.search(r"placebo|standard|usual care|matching", x, re.I)]
+                scope = f"OTHER_AGENT:{drugs[0].lower()}" if drugs else "AGENT_UNSTATED"
+            out[key] = {"state": "RESOLVED", "basis": "AACT_STUDIES_ACRONYM+REGISTERED_INTERVENTIONS", "nct": got[0],
+                        "pmid": None, "scope": scope, "registered_interventions": nm[:6]}
+    return out
+
+
 _REF_METHODS = ("META_REFERENCE_NUMBER", "META_REFERENCE_SURNAME_YEAR", "META_REFERENCE_TITLE_ACRONYM", "NCT_IN_LABEL")
 
 
@@ -367,6 +412,18 @@ def main(argv):
                 link1 = ic.pmid_to_ncts([v["pmid"]], snap).get(v["pmid"]) or {}
                 v["nct"] = next(iter(link1), None) if len(link1) == 1 else None
             v["lane"] = pin
+            results[key] = v
+    # ---- REGISTRY acronym route, last of all: AACT's own acronym field + the study's registered interventions
+    want = {}
+    for t, acrs in acr_items:
+        key = f"{t['slug']}::{t['label']}"
+        if (results.get(key) or {}).get("state") == "RESOLVED":
+            continue
+        for a in acrs:
+            want.setdefault(a, []).append(key)
+    for key, v in registry_acronym_identity(want, snap,
+                                            lambda k: kt.topic_agents(topics[k.split("::", 1)[0]])).items():
+        if (results.get(key) or {}).get("state") != "RESOLVED":
             results[key] = v
     # ---- COMMENT-ON route: a unit whose only report is a Letter / Comment is the article it comments on
     T_all = [t for t in T["trials"] if len(t.get("pmids") or []) == 1 and t.get("status") != "POOLED"]
