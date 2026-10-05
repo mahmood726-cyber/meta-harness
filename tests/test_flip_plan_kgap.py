@@ -126,3 +126,17 @@ def test_a_registry_composite_declaring_more_components_than_the_protocol_never_
     assert gt.analysis_set_or_extension_differs(spec, t, "intention-to-treat").startswith("extended composite")
     assert gt._spec_components(spec) == 2 and gt._spec_components("3-point major adverse cardiovascular events") == 3
     assert gt.analysis_set_or_extension_differs("3-point MACE", "3-point MACE composite", "itt") is None
+
+
+def test_an_arm_or_stratum_row_of_the_study_above_is_not_a_trial_unit():
+    # statins-primary-prevention-elderly (39076238): 15 QRISK strata of one cohort study were parsed as 15 units (N 27 -> 12)
+    from kgap import k_gap
+    t = {"header": [[{"text": "Study", "rids": []}, {"text": "HR", "rids": []}]],
+         "rows": [{"cells": ["Gitsels et al. [26], 2016 (UK)", "0.95"], "rids": ["B26"], "row_text": "Gitsels"},
+                  {"cells": ["No stain used group in QRISK <10% (n = 39866)", "1.00"], "rids": [], "row_text": "x"},
+                  {"cells": ["Stain used group in QRISK 10\u201319% (n = 6438)", "0.81"], "rids": [], "row_text": "y"},
+                  {"cells": ["JUPITER", "0.56"], "rids": ["B30"], "row_text": "JUPITER"}]}
+    assert [u["label"] for u in k_gap._units_from_table(t)] == ["Gitsels et al. [26], 2016 (UK)", "JUPITER"]
+    # a CITED row naming a cohort keeps its unit (the rule needs no citation and no NCT)
+    t["rows"][1]["rids"] = ["B27"]
+    assert len(k_gap._units_from_table(t)) == 3

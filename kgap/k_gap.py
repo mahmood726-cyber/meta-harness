@@ -208,6 +208,8 @@ def parse_jats(body: bytes) -> dict:
 # "Year" continuation row) are not trials; they carry neither a citation, an NCT, nor a name token.
 _FURNITURE = re.compile(r"^(?:study|trial|author|year|\d{4}|n|total|overall|reference|characteristics?|"
                         r"participants?|treatment|control|intervention|placebo|mean|median|[-–— ]*)$", re.I)
+# a group / arm / stratum descriptor carrying its own n ('Stain used group in QRISK 10–19% (n = 6438)')
+_STRATUM_ROW = re.compile(r"\b(?:group|arm|stratum|strata|subgroup|cohort)\b.*\(\s*n\s*=\s*[\d,]+\s*\)\s*$", re.I)
 # after a HYPHEN a segment may be mixed case ('EMPEROR-Reduced', 'EMPEROR-Preserved'); after a SPACE only caps/digits
 # ('PIONEER 6', 'ENGAGE AF-TIMI 48'), so an ordinary word ('RALES Study') is not absorbed into the acronym
 _ACRO = re.compile(r"\b([A-Z][A-Z0-9]{2,}(?:-[A-Z0-9][A-Za-z0-9]*| [A-Z0-9]{1,}\b){0,3})")
@@ -271,6 +273,11 @@ def _units_from_table(t: dict) -> list[dict]:
         if not r["rids"] and not toks["ncts"] and not any(_flat(c).strip() for c in r["cells"][1:]):
             # a SECTION HEADER spanning the table ('GLP-1 RA vs. placebo' above its trials): a label and nothing else,
             # no citation, no NCT -- not a trial ('GLP-1 RA' even reads as an acronym the stop-list does not hold)
+            continue
+        if not r["rids"] and not toks["ncts"] and _STRATUM_ROW.search(_flat(first)):
+            # an ARM / STRATUM row of the study above it ('No stain used group in QRISK <10% (n = 39866)': 15 QRISK strata
+            # of one cohort study, statins-primary-prevention-elderly 39076238) -- a group with its own n, no citation,
+            # no NCT -- is a sub-row of a unit, never a unit
             continue
         units.append({"layout": "row", "label": first, "rids": r["rids"], "context": r["row_text"][:600]})
     return units
