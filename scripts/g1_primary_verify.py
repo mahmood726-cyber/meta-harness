@@ -32,7 +32,7 @@ import g1_forest_reader as gfr  # noqa: E402
 import secondary_meta_build as smb  # noqa: E402
 from harness import secondary_meta as sm  # noqa: E402
 
-# one ledger per box: the worker (C:\Projects\workerun-remote.ps1) writes its own, merged afterwards by key
+# one ledger per box: the worker (run-remote.ps1) writes its own, merged afterwards by key
 RUNS = os.environ.get("G1_PV_RUNS") or os.path.join(ROOT, "registry", "model_proposals", "g1_primary_verify_runs.json")
 INTERVENTION = {"tocilizumab-covid19-mortality": r"tocilizumab|interleukin[- ]6 receptor|IL-6 receptor|IL-6R",
                 "pcsk9-mace": r"alirocumab|evolocumab|PCSK9|proprotein convertase",
@@ -92,8 +92,8 @@ def choose_report(slug, t, run, titles):
     return None, ("REPORT_NOT_FOUND" if not cands else f"REPORT_AMBIGUOUS:{cands[:6]}")
 
 
-def verify(slug, t, run, runs, titles, spec):
-    pmid, basis = choose_report(slug, t, run, titles)
+def verify(slug, t, run, runs, titles, spec, chosen):
+    pmid, basis = chosen
     out = {"label": t["label"], "ncts": t.get("ncts"), "report_pmid": pmid, "report_basis": basis,
            "report_title": titles.get(pmid) if pmid else None}
     if not pmid:
@@ -128,8 +128,13 @@ def main(argv):
     prev = gfr._j(outp) if os.path.exists(outp) else {}
     titles = prev.get("titles") or {}
     with gfr.RunLock(RUNS) if run else _null():
+        # SEQUENTIAL first: report choice and each report's record fetch (shared files); then the jobs in parallel
+        chosen = [choose_report(slug, t, run, titles) for t in ts]
+        for pm, _ in chosen:
+            if pm:
+                smb._trial_text(slug, pm, run)
         with cf.ThreadPoolExecutor(max_workers=3) as ex:          # codex concurrency 3 (only the locator rung calls it)
-            res = list(ex.map(lambda t: verify(slug, t, run, runs, titles, spec), ts))
+            res = list(ex.map(lambda tc: verify(slug, tc[0], run, runs, titles, spec, tc[1]), zip(ts, chosen)))
         gfr._save(RUNS, runs)
     from collections import Counter
     out = {"slug": slug, "spec": {k: spec.get(k) for k in ("estimand", "timepoint")}, "titles": titles,
