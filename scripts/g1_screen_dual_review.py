@@ -130,8 +130,33 @@ def items():
     return out
 
 
+INSTRUMENT = "v2"   # v1 (screen_dual_review_v1.json): pilot criteria only -- the reader never saw the REGISTERED
+                    # exclusion lists, so it judged protocol-excluded populations (CABG, assisted reproduction, eye
+                    # disease) against a looser standard than the protocol; v2 states the registered criteria as enforced.
+
+
+def criteria(slug):
+    crit, cd = P.criteria(slug)
+    if INSTRUMENT == "v1":
+        return crit, cd
+    inc = json.load(open(ROOT / "topics" / f"{slug}.json", encoding="utf-8")).get("include") or {}
+    extra = []
+    if inc.get("population_none"):
+        extra.append(f"Population must NOT be (registered exclusions): {inc['population_none']}")
+    if inc.get("intervention_none"):
+        extra.append(f"Intervention must NOT be (registered exclusions): {inc['intervention_none']}")
+    ca = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
+    if ca:
+        extra.append(f"Comparator must be one of (registered): {ca}")
+    if inc.get("design_double_blind"):
+        extra.append("Design must be double-blind or placebo-controlled (registered)")
+    if inc.get("design_none"):
+        extra.append(f"Design/context must NOT be (registered): {inc['design_none']}")
+    return crit + ("\n" + "\n".join(extra) if extra else ""), cd
+
+
 def reader_prompt(it):
-    crit, cd = P.criteria(it["slug"])
+    crit, cd = criteria(it["slug"])
     body = (P.READER2_HEADER + P.SCREEN_INSTR + "\n=== REGISTERED CRITERIA ===\n" + crit + "\n"
             + f"\n=== RECORD item=R1 ===\n{it['held_text']}\n")
     return body.encode("utf-8"), cd + [{"ref": it["held_ref"], "sha256": it["held_sha256"], "what": "held record"}]
@@ -140,7 +165,7 @@ def reader_prompt(it):
 def adj_prompt(it, claim):
     """The reader's per-axis verdicts WITH its quotes (from its claim; the verification keeps verdicts only)."""
     reading = claim if isinstance(claim, dict) else {}
-    crit, cd = P.criteria(it["slug"])
+    crit, cd = criteria(it["slug"])
     rule = it["rule"]
     a = (f"decision {it['rule_decision']} (rule {rule.get('rule_id')})" + (f": {rule.get('reason')}" if rule.get("reason") else "")
          + (f" | span: {rule.get('span')}" if rule.get("span") else ""))
@@ -279,7 +304,7 @@ def run(argv, live):
     for r in rows:
         k = r.get("state") if r.get("state") != "READ" else str(r["reader"].get("agreement", "")).split("(")[0]
         tally[k] = tally.get(k, 0) + 1
-    out = {"schema": 1, "reader_model": READER_MODEL, "adjudicator_model": ADJ_MODEL, "n_items": len(rows),
+    out = {"schema": 1, "instrument": INSTRUMENT, "reader_model": READER_MODEL, "adjudicator_model": ADJ_MODEL, "n_items": len(rows),
            "tally": tally, "kappa_rule_vs_reader": {"kappa": kappa(decided), "n_decided": len(decided),
                                                     "n_undecided": sum(1 for r in rows if r.get("state") == "READ") - len(decided)},
            "screen_errors": {k: sum(1 for r in rows if r.get("screen_error") == k) for k in ("FALSE_EXCLUSION", "FALSE_INCLUSION")},

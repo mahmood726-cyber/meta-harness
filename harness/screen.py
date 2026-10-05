@@ -473,16 +473,19 @@ def screen_record(rec, inc, neg_pmids):
         return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(pop_haystack_raw, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    if inc.get("population_any_from_abstract") and not inc.get("prevention"):
+        pop_haystack, pop_haystack_raw = _text(rec), _text_raw(rec)      # inclusion only (exclusions were judged above)
     popok = _has(pop_haystack, population_any)
     enrolled = None if popok or not population_any else enrolled_population(rec, population_any)
     if enrolled:
         popok = enrolled[0]
         pop_haystack_raw = enrolled[1]          # the include span quotes the enrolment sentence itself
     if population_any and not popok:
-        _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
+        _wide = inc.get("prevention") or inc.get("population_any_from_abstract")
+        _where = "title/conditions/abstract" if _wide else "title/conditions"
         return ScreenDecision("exclude", "X2",
                 f"population not on-topic: {_where} do not mention any of {population_any}"
-                + ("" if inc.get("prevention") else " (an incidental abstract mention does not qualify)") + ".",
+                + ("" if _wide else " (an incidental abstract mention does not qualify)") + ".",
                 f"examined {_where}: “{_quote(pop_haystack_raw)}”")
     # Title-anchoring for the intervention exists to reject INCIDENTAL abstract mentions in PMID
     # records; for a CT.gov (nct) record the STRUCTURED interventions field is reliable and must be
@@ -648,8 +651,49 @@ def _source_case_basis(basis: str, rec: dict) -> str:
     return out
 
 
+def condition_is_outcome(config: dict) -> list:
+    """The registered population terms that ARE the primary outcome's keywords (folded, '*' stripped). Such a topic is a
+    prevention question whatever its flag says: a trial names WHOM it enrolled ('patients receiving antibiotics'), not
+    the outcome it prevents ('antibiotic-associated diarrhoea'). Found by acq/k-gap's screen audit (F_PREVENTION) and
+    confirmed by the search+screen audit's recorded dual review: probiotics-aad-prevention had 10 comparator trials
+    X2 'population not on-topic' that reader and adjudicator both judged eligible."""
+    inc = config.get("include") or {}
+    pop = {lexicon.fold(t).rstrip("*").strip().lower() for t in (inc.get("population_any") or []) if t}
+    kw = [lexicon.fold(k).lower() for k in ((config.get("primary_outcome") or {}).get("keywords") or []) if k]
+    shared = sorted(p for p in pop if p and any(p in k or k in p for k in kw))
+    # ... and the REGISTERED population (pico.json P) names none of those terms: they define the outcome, not whom the
+    # trial enrols. Without this, every topic whose outcome repeats its disease name ('heart failure hospitalisation',
+    # 'COVID-19 mortality') would let an incidental abstract mention qualify (23 of 38 topics share a term; 1 passes).
+    p_text = lexicon.fold(str(_registered_population(config.get("slug")) or "")).lower()
+    if not p_text or any(s in p_text for s in pop):
+        return []
+    return shared
+
+
+_PICO = None
+
+
+def _registered_population(slug):
+    global _PICO
+    if _PICO is None:
+        import json as _json
+        import os as _os
+        p = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "pico.json")
+        try:
+            _PICO = {t.get("id"): t for t in _json.load(open(p, encoding="utf-8")).get("topics", [])}
+        except (OSError, ValueError):
+            _PICO = {}
+    return (_PICO.get(slug) or {}).get("P")
+
+
 def run(all_recs: list, config: dict) -> dict:
     inc = config.get("include", {})
+    if not inc.get("prevention") and condition_is_outcome(config):
+        # CONDITION_IS_OUTCOME: the POPULATION INCLUSION check may read the abstract (a trial names whom it enrolled,
+        # not the outcome it prevents); the registered population EXCLUSIONS keep their title/conditions haystack -- a
+        # first draft reused prevention=True, which also widened the exclusions and turned 6 includes the dual review
+        # judged eligible into X2 ('treatment of AAD' in a background sentence). Derived, so the config cannot drift.
+        inc = dict(inc, population_any_from_abstract=True)
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
     # publication defect the external audit named: a "design and rationale" paper or a secondary report
