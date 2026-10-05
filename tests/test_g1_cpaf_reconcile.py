@@ -32,7 +32,8 @@ def test_every_comparator_trial_has_a_class_and_a_reason():
         "Zarpelon [20]": "TRUE_SCOPE_DIFFERENCE:OPEN_DESIGN_STATED_FOR_THIS_STUDY",    # from its PMC full text
         # COPPS POAF substudy: the screener error was FIXED (the screen includes it since the substudy exception);
         # what remains is extraction -- its POAF counts are not in the held abstract (consolidation 2026-10-04)
-        "Imazio [19]": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+        # renamed by g1/finish-line's no_open_source class: accepted 5 Oct night (decision 4, rename only)
+        "Imazio [19]": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
         # COPPS-2: no held analysis set reproduces the comparator's 0.66 (0.45-0.96); on-treatment is only NEAREST (NR-C20)
         "Imazio [18]": "COMPARATOR_ROW_UNREPRODUCED:NEAREST_HELD_SET_NAMED",
         "Tabbalat [21]": "SAME_NUMBER",                                                  # END-AF low dose

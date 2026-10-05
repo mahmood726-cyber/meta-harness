@@ -2871,7 +2871,7 @@ def report_pmid(t, shown=None):
     return str(p) if p else None
 
 
-def name_letter_units_by_comment_on(slug, cfg, trials, rev):
+def name_letter_units_by_comment_on(slug, cfg, trials, rev, comp_rows=None):
     """A comparator unit that is a LETTER / COMMENT about one article stands for that article (kgap/comment_on.py:
     PubMed CommentOn, recorded with its XML sha256). It is named a PROTOCOL_SCOPE_DIFFERENCE only when OUR served screen
     excluded that article under a rule AND the exclusion audit classes the article's exclusion TRUE_SCOPE_DIFFERENCE with
@@ -2881,27 +2881,41 @@ def name_letter_units_by_comment_on(slug, cfg, trials, rev):
     from kgap import comment_on as co
     import k_gap_exclusion_audit as au
     ledger = {str(r.get("id")): r for r in ((rev or {}).get("screening") or {}).get("records", [])}
+    by_label = {str(t.get("label") or "")[:60]: t for t in comp_rows or []}
     for x in trials:
-        # g1/finish-line's CommentOn re-point (registry/comment_on.json -> x['cited_as']) may have named the unit already
-        # by the article's screen exclusion; this stricter rule (one resolved edge, row bound by the article's own patient
-        # count, audit rule == served rule: NR-C24) then still runs and, when it holds, replaces that naming with its
-        # row-bound one (consolidation 2026-10-04: both lanes built the letter -> article edge)
-        via_cited = bool((x.get("cited_as") or {}).get("comment_on")) and bool(x.get("scope_difference"))
-        if is_matched(x) or (x.get("scope_difference") and not via_cited):
+        # A CommentOn RE-POINT -- g1/finish-line's (registry/comment_on.json -> x['cited_as']) or k-gap's identity chain
+        # (k_gap_table identity_basis IDENTITY_CHAIN:COMMENT_ON:<letter>-><article>) -- may already have named the unit
+        # by the article's screen exclusion. The stricter row-bound rule TAKES PRECEDENCE (5 Oct night decision 2): it
+        # runs for every re-pointed unit, and when it does not hold, the re-point's naming is withdrawn and the unit is
+        # left unnamed (an open gap), never named by the bare comment link (NR-C24)
+        letter = str((x.get("cited_as") or {}).get("pmid") or "") or next(
+            (b.split(":", 2)[2].split("->")[0] for b in (by_label.get(str(x.get("label") or "")[:60]) or {}).get("identity_basis") or []
+             if str(b).startswith("IDENTITY_CHAIN:COMMENT_ON:") and "->" in str(b)), "")
+        if is_matched(x) or (x.get("scope_difference") and not letter):
             continue
-        pmid = str(x.get("family") or "").replace("PMID ", "").strip()
+        named_by_repoint = bool(letter) and bool(x.get("scope_difference"))
+
+        def unnamed(why):
+            if named_by_repoint and not (x["scope_difference"] or {}).get("via_comment_on"):
+                x["scope_difference"] = None
+                x["blocker"] = x.get("blocker") or f"IDENTIFICATION:COMMENT_ON_NOT_ROW_BOUND ({why})"
+                x["comment_on_unnamed"] = {"letter": letter, "why": why}
+        pmid = letter or str(x.get("family") or "").replace("PMID ", "").strip()
         rec = held_record(slug, pmid) or {}
         pts = [str(p).lower() for p in rec.get("pubtypes") or []]
         if not any(t in pts for t in ("letter", "comment", "editorial")) or any("randomized controlled trial" in p for p in pts):
+            unnamed("the unit's record is not a letter/comment")
             continue
         rco = co.record(pmid)
         targets = rco.get("comment_on") or []
         # exactly ONE CommentOn relationship, resolved (an unresolved second edge makes the target ambiguous: NR-C24)
         if len(targets) != 1 or rco.get("comment_on_unresolved"):
+            unnamed("not exactly one resolved CommentOn edge")
             continue
         art = targets[0]
         led, arec = ledger.get(art) or {}, held_record(slug, art)
         if led.get("decision") != "exclude" or not led.get("rule_id") or not arec:
+            unnamed("the article is not excluded by our screen under a rule")
             continue
         # the comparator's ROW must be the article's trial: its arm sizes sum to a patient count the article itself states
         # (a comment link is a relationship, not trial identity -- NR-C24; Isreb row 2202 + 2199 = 4401, CREDENCE: '4401
@@ -2910,15 +2924,18 @@ def name_letter_units_by_comment_on(slug, cfg, trials, rev):
         try:
             total = int(row.get("n_t")) + int(row.get("n_c"))
         except (TypeError, ValueError):
+            unnamed("the comparator row has no arm sizes")
             continue
         tot_rx = re.compile(r"(?<![\d.,])" + "{:,}".format(total).replace(",", r"[,  ]?") + r"(?![\d.,]\d)")
         bind = next(((f, m.group(0)) for f in ("abstract", "title") for m in [tot_rx.search(arec.get(f) or "")] if m), None)
         if not bind:
+            unnamed("the article's record states no patient count equal to the row's arm sizes")
             continue
         cls, sub, base = au.classify(arec, cfg)
         sp = (base or {}).get("span")
         # the served screen's rule and the audit's re-screen must AGREE on the excluding rule (NR-C24)
         if cls != "TRUE_SCOPE_DIFFERENCE" or not sp or not span_is_verbatim(slug, art, sp) or                 (base or {}).get("rule_id") != led["rule_id"]:
+            unnamed("the audit does not re-derive the screen's rule with a verbatim span")
             continue
         x["scope_difference"] = {
             "kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": led["rule_id"], "screen_reason": led.get("reason"),
@@ -3047,8 +3064,8 @@ def whole_pool_comparison(o, printed_k=None):
              if outside_membership else f"COMPARATOR_STATES_K={printed_k}=OUR_MATCHED_SET (comparator prints no per-trial rows)")
     m = (ours.get("scale") or "").upper()
     if m != (comp.get("scale") or "").upper():
-        # a NAMED measure difference (our HR vs their RR/OR): never converted; passes RESULT_AGREES only on the SAME
-        # conclusion about the null. The event-total check rides beside it, read-only.
+        # a NAMED measure difference (our HR vs their RR/OR): never converted; its same-/different-conclusion verdict is
+        # reported but never passes strict RESULT_AGREES (AGREE only). The event-total check rides beside it, read-only.
         o_ = {k_: ours[k_] for k_ in ("estimate", "ci_low", "ci_high")}
         t_ = {k_: comp[k_] for k_ in ("estimate", "ci_low", "ci_high")}
         same = _concl(o_, m) == _concl(t_, (comp.get("scale") or "").upper())
@@ -3108,8 +3125,10 @@ def g1_status(o):
                                     and x.get("g1_countable", True) for x in tr if is_matched(x)),
         # a READERS_DIFFER comparator row is never resolved by a pick: the result agrees only if the verdict is the
         # SAME under every reading (same_trials.readers_agree_on_verdict), else it is unmet until the readers resolve
-        # AGREE, or a NAMED measure difference (our HRs vs their RR/OR, never converted) with the same conclusion
-        "RESULT_AGREES": v in ("AGREE", "MEASURE_DIFFERENCE_SAME_CONCLUSION")
+        # AGREE only (5 Oct night, dispatcher under Mahmood's delegation, "fully matched k and data wise"): a NAMED
+        # measure difference (our HRs vs their RR/OR, never converted) with the same conclusion is reported beside the
+        # status but never passes strict G1 -- the page's own recount already refuses it
+        "RESULT_AGREES": v == "AGREE"
                          and (not readers_differ or (o.get("same_trials") or {}).get("readers_agree_on_verdict") is True),
         "DIVERGENCES_NAMED": all((d.get("protocol_rule") or d.get("gate")) and (d.get("span") or {}).get("text")
                                  for d in nd)
@@ -3614,7 +3633,7 @@ def topic(slug, T):
                             compared=_rep0 or None, accounted_other=accounted_other)
     sweep_merge(slug, trials, routes, pairs)
     name_reference_seeds_outside_membership(slug, comp, trials, T)
-    name_letter_units_by_comment_on(slug, cfg, trials, rev)
+    name_letter_units_by_comment_on(slug, cfg, trials, rev, comp_rows)
     acquired_merge(slug, trials, routes, pairs, comp)
     side_from_trial_text(trials, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]

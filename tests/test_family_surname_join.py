@@ -116,3 +116,14 @@ def test_a_generic_clinical_abbreviation_is_never_a_trial_acronym_in_the_join():
     assert f(NS(trial_label="SOLOIST-WHF/SCORED Bhatt et al (2021) HFpEF")) is None
     assert f(NS(trial_label="DELIVER Solomon et al (2022) HFmr/pEF")) == "D"
     assert f(NS(trial_label="Overall MACE")) is None
+
+
+def test_PLANT_the_name_tier_applies_the_year_rule_to_an_author_label():
+    # 5 Oct night decision 5: the FIRST (name) tier joined 'Nagtegaal JE, 1995 [34]' by token prefix before the year rule
+    # of the fallback tier was ever consulted. An author label with a different year never joins; the same year does;
+    # an acronym keeps its one-year tolerance (a publication date, not the trial's name)
+    f = smb.family_of_factory([{"id": "Smithers AB [3]", "label": "Smithers AB [3]", "acronyms": [], "author_year": ("smithers", "2001")},
+                               {"id": "RALES", "label": "RALES", "acronyms": ["RALES"], "author_year": ("pitt", "1999")}])
+    assert f(NS(trial_label="Smithers AB, 1997 [9]")) is None
+    assert f(NS(trial_label="Smithers AB, 2001 [9]")) == "Smithers AB [3]"
+    assert f(NS(trial_label="RALES2000")) == "RALES"

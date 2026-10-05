@@ -115,3 +115,28 @@ def test_c24_a_letter_is_named_only_with_one_resolved_edge_and_a_row_bound_to_th
     x = unit(ok)
     gt.name_letter_units_by_comment_on(SLUG, cfg, [x], rev)                # an unresolved second edge: ambiguous
     assert x["scope_difference"] is None
+
+
+def test_PLANT_a_repointed_unit_whose_row_does_not_bind_is_left_unnamed(monkeypatch):
+    # 5 Oct night decision 2: the stricter row-bound rule takes precedence over any CommentOn re-point (finish-line's
+    # cited_as or k-gap's IDENTITY_CHAIN:COMMENT_ON). A re-point that named the unit by the article's screen exclusion,
+    # but whose comparator row does not bind to the article's own patient count, is UNNAMED (an open gap)
+    import g1_tracker as gt
+    sd = {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": "X2", "span": {"field": "title", "text": "t"}, "pmid": "30990260"}
+    rev = {"screening": {"records": [{"id": "30990260", "decision": "exclude", "rule_id": "X2", "reason": "r"}]}}
+    cfg = json.load(open(os.path.join(ROOT, "topics", SLUG + ".json"), encoding="utf-8"))
+    for how in ("cited_as", "chain"):
+        x = {"label": "Isreb (19)", "family": "PMID 30990260", "in_our_pool": False, "scope_difference": dict(sd),
+             "blocker": None, "comparator_row": {"n_t": 1000, "n_c": 1000}}       # 2000 is not CREDENCE's 4401
+        rows = []
+        if how == "cited_as":
+            x["cited_as"] = {"pmid": "31509682", "comment_on": "30990260"}
+        else:
+            rows = [{"label": "Isreb (19)", "identity_basis": ["IDENTITY_CHAIN:COMMENT_ON:31509682->30990260"]}]
+        gt.name_letter_units_by_comment_on(SLUG, cfg, [x], rev, rows)
+        assert x["scope_difference"] is None, how
+        assert x["blocker"].startswith("IDENTIFICATION:COMMENT_ON_NOT_ROW_BOUND"), how
+    # control: an unrepointed unit already named by another rule is never touched
+    y = {"label": "Other", "family": "PMID 1", "in_our_pool": False, "scope_difference": dict(sd), "blocker": None}
+    gt.name_letter_units_by_comment_on(SLUG, cfg, [y], rev, [])
+    assert y["scope_difference"] == sd

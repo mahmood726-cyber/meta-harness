@@ -33,7 +33,10 @@ def test_a_background_aim_sentence_states_this_studys_population():
              "giving tranexamic acid shortly after birth can prevent postpartum haemorrhage in women with anaemia. METHODS: "
              "We randomly assigned women who had given birth vaginally to tranexamic acid or matching placebo.")
     cls, sub, d = au.classify(r, _cfg("tranexamic-acid-pph"))
-    assert (cls, sub.split(":")[0]) == ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION_STATED_FOR_THIS_STUDY")
+    # subclass renamed to PROTOCOL_EXCLUDES_POPULATION (accepted 5 Oct night, decision 3): scope by the registered
+    # protocol's span was decided 5 Oct (decision 3 of the 5 Oct list); the requirement is the population exclusion
+    # with THIS study's aim sentence as its span (asserted on the next line), not the suffix of the subclass name
+    assert (cls, sub.split(":")[0]) == ("TRUE_SCOPE_DIFFERENCE", "PROTOCOL_EXCLUDES_POPULATION")
     assert d["span"]["text"].startswith("We examined whether")
 
 
@@ -56,7 +59,7 @@ def test_the_committed_audit_names_woman2_and_never_select():
     w = rows[("tranexamic-acid-pph", "39461792")]
     assert w["class"] == "TRUE_SCOPE_DIFFERENCE" and "prevent postpartum haemorrhage" in w["span"]["text"]
     s = rows[("semaglutide-obesity-mace", "37385278")]
-    assert not s["subclass"].startswith("PROTOCOL_EXCLUDES_POPULATION_STATED_FOR_THIS_STUDY")
+    assert not s["subclass"].startswith("PROTOCOL_EXCLUDES_POPULATION")          # renamed (decision 3); still never SELECT
 
 
 def test_pre_fix_woman2_was_an_open_gap_without_a_span():

@@ -643,6 +643,10 @@ def family_of_factory(ours):
             names = [toks(a) for a in t["acronyms"] if re.sub(r"[^A-Z0-9]", "", str(a).upper()) not in k_gap._NOT_ACRO] + \
                 ([toks(lab)] if lab and not lab.isdigit() else [])
             matched = sorted((n for n in names if n and (prefix(lt, n) or within(lt, n))), key=len)
+            if matched and lab and matched[-1] == toks(lab) and not acronym(t["label"]) and not years_ok(row.trial_label, t):
+                # an AUTHOR-label match keeps the year rule in this tier too (5 Oct night decision 5): 'Nagtegaal JE, 1995
+                # [34]' never joins 'Nagtegaal JE [36]' whose PMID is a 1998 paper -- an author's year is never relaxed
+                matched = [n for n in matched if n != toks(lab)]
             score, name = (len(matched[-1]), matched[-1]) if matched else (0, None)
             if ay_hit(t, lt):
                 # first author AND year confirmed outranks a bare name ('Young [10]' / 'Young [17]', balanced-crystalloids);

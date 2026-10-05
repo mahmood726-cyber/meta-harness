@@ -56,5 +56,8 @@ def test_the_tracker_carries_why_doac_vte_cannot_agree():
     o = json.load(open(os.path.join(gt.G1_DIR, "doac-vte-recurrence.json"), encoding="utf-8"))
     assert o["N_eligible"] == 6 and o["k_matched"] == 6 and o["g1_status"]["unmet"] == ["RESULT_AGREES"]
     oc = o["same_trials"]["outcome_check"]
-    assert o["same_trials"]["state"] == "WHOLE_POOL_MEASURE_DIFFERS"
+    # state renamed by the ratified HR/RR class (f34580f9): WHOLE_POOL_MEASURE_DIFFERS -> MEASURE_DIFFERENCE + basis; a
+    # same-conclusion measure difference never passes strict G1 (5 Oct night decision 1), so RESULT_AGREES stays unmet
+    assert o["same_trials"]["state"] == "MEASURE_DIFFERENCE" and o["same_trials"]["basis"]
+    assert o["same_trials"]["verdict"]["verdict"] == "MEASURE_DIFFERENCE_SAME_CONCLUSION"
     assert oc["state"] == "EVENTS_INCOMPATIBLE_WITH_COMPARATOR_RATES" and oc["trial_events_total"] == 702
