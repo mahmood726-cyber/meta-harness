@@ -392,7 +392,8 @@ def our_trials(slug):
         out.append({"id": t.get("id"), "pmid": pid, "nct": nct, "label": str(t.get("label") or ""),
                     "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set()) |
                                        (title_acronyms(pid) if pid.isdigit() else set())),
-                    "author_year": ra.first_author_year(pid) if pid.isdigit() else None, "primary": prim_val})
+                    "author_year": ra.first_author_year(pid) if pid.isdigit() else None,
+                    "record_years": ra.record_years(pid) if pid.isdigit() else None, "primary": prim_val})
         seen_pid.add(pid)
         if nct:
             seen_nct.add(nct)
@@ -411,7 +412,7 @@ def our_trials(slug):
             seen_nct.add(nct)
         out.append({"id": f"PMID {pid}", "pmid": pid, "nct": nct, "label": r["label"],
                     "acronyms": sorted(acr_pmid.get(pid, set()) | acr_nct.get(nct, set()) | title_acronyms(pid)),
-                    "author_year": ra.first_author_year(pid), "primary": None})
+                    "author_year": ra.first_author_year(pid), "record_years": ra.record_years(pid), "primary": None})
     return out
 
 
@@ -608,10 +609,12 @@ def family_of_factory(ours):
         return abs(int(ya) - int(yb)) == 1 and acronym(row_label) and acronym(t["label"])
 
     def ay_hit(t, lt):
-        # the PMID's first author is accented ('garzón'); the row's tokens are folded ('garzon')
+        # the PMID's first author is accented ('garzón'); the row's tokens are folded ('garzon'). The year is one of the
+        # record's OWN dates: its issue year or its electronic-publication year (Metcovid: issue 2021, epub 2020)
         a = t.get("author_year")
         sur = toks(a[0]) if a else []
-        return bool(sur) and sur[0] in lt and str(a[1]) in lt
+        years = {str(a[1])} | {str(y) for y in (t.get("record_years") or [])} if a else set()
+        return bool(sur) and sur[0] in lt and any(y in lt for y in years)
 
     def family_of(row):
         lt = toks(re.sub(r"[\[(]\s*\d+\s*[\])]\s*$", "", row.trial_label))

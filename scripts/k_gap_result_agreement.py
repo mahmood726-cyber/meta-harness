@@ -260,6 +260,31 @@ def first_author_year(pmid):
     return tuple(c[pmid]) if c.get(pmid) else None
 
 
+_RY = os.path.join(OUT, "pubmed_record_years.json")
+
+
+def record_years(pmid):
+    """The record's OWN publication years from PubMed esummary -- issue year (pubdate), electronic-publication year
+    (epubdate) and first public availability (history aheadofprint / pubmed / entrez: Metcovid entered PubMed
+    2020-08-14, issue 2021, no epubdate) -- cached in outputs/k_gap/pubmed_record_years.json. A meta cites a trial by either. None when unreachable
+    (never a guess)."""
+    c = _j(_RY) if os.path.exists(_RY) else {}
+    if pmid not in c:
+        from harness import http
+        try:
+            d = http.get_json("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                              {"db": "pubmed", "id": pmid, "retmode": "json"}, tries=2).get("result", {}).get(pmid, {})
+        except Exception:  # noqa: BLE001 - an unreachable esummary means no extra year, never a guess
+            return None
+        dates = [d.get("pubdate"), d.get("epubdate")] + [h.get("date") for h in d.get("history") or []
+                                                          if h.get("pubstatus") in ("aheadofprint", "pubmed", "entrez")]
+        ys = sorted({m.group(0) for x in dates for m in [re.search(r"\d{4}", x or "")] if m})
+        c[pmid] = ys or None
+        with open(_RY, "w", encoding="utf-8") as fh:
+            json.dump(c, fh, indent=1, sort_keys=True)
+    return c.get(pmid)
+
+
 def forest_row(slug, label, pmids=(), acronyms=()):
     """(scale, point, lo, hi) of the gated forest-plot row whose printed label IS this trial's comparator label
     (dash-folded, case-insensitive: equal, or one label's first token equal to the other's). None when the figure did
