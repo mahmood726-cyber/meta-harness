@@ -256,6 +256,41 @@ def _poptext(rec) -> str:
     return _poptext_raw(rec).lower()
 
 
+# ENROLLED-POPULATION sentence (search+screen audit 2026-10-05, class SCREEN_POPULATION_TITLE_ONLY): the population is
+# judged from the title/conditions so that an INCIDENTAL abstract mention cannot qualify -- but a sentence that states
+# whom THIS study randomised or enrolled is not incidental. LoDoCo (Nidorf 2013, PMID 23265346) was X2-excluded from
+# colchicine secondary prevention: title 'Low-dose colchicine for secondary prevention of cardiovascular disease',
+# abstract '532 patients with stable coronary disease ... were randomly assigned colchicine 0.5 mg/day or no colchicine'.
+_ENROL_VERB = _re.compile(r"\b(?:randomi[sz]ed|randomly (?:assigned|allocated)|were (?:enrolled|recruited|assigned|allocated)"
+                          r"|we (?:enrolled|recruited|randomi[sz]ed|randomly assigned))\b", _re.I)
+_SECTION = _re.compile(r"\b(BACKGROUND|INTRODUCTION|CONTEXT|RATIONALE|OBJECTIVES?|AIMS?|PURPOSE|METHODS?|DESIGN|"
+                       r"PARTICIPANTS|PATIENTS|SETTING|RESULTS|FINDINGS|CONCLUSIONS?|INTERPRETATION)\s*:", _re.I)
+_NOT_ENROL_SECTIONS = {"background", "introduction", "context", "rationale"}
+
+
+def enrolled_population(rec, terms):
+    """(term, sentence) when a population term occurs, NON-negated, in an abstract sentence that states this study's
+    enrolment / randomisation (an enrolment verb in the same sentence) and is not in a BACKGROUND-type section; else
+    None. A background sentence about other patients never qualifies."""
+    ab = rec.get("abstract") or ""
+    if not ab or not terms:
+        return None
+    for m in _re.finditer(r"[^.!?]+[.!?]?", ab):
+        snt = m.group(0)
+        v = _ENROL_VERB.search(snt)
+        if not v:
+            continue
+        sec = None                      # the section label in force AT the enrolment verb ('METHODS: In a ... trial')
+        for s in _SECTION.finditer(ab, 0, m.start() + v.start()):
+            sec = s.group(1).lower()
+        if sec in _NOT_ENROL_SECTIONS:
+            continue
+        hit = _has(snt, terms)
+        if hit:
+            return hit, " ".join(snt.split())
+    return None
+
+
 def _arm_object_screening_enabled(config) -> bool:
     """Only topics with an executable arm-object declaration enforce the contract."""
     return bool((config or {}).get("arm_object"))
@@ -427,6 +462,10 @@ def screen_record(rec, inc, neg_pmids):
                 _span(pop_haystack_raw, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
+    enrolled = None if popok or not population_any else enrolled_population(rec, population_any)
+    if enrolled:
+        popok = enrolled[0]
+        pop_haystack_raw = enrolled[1]          # the include span quotes the enrolment sentence itself
     if population_any and not popok:
         _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
         return ScreenDecision("exclude", "X2",
