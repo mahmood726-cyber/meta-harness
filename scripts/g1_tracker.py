@@ -418,6 +418,28 @@ def _name_words(x):
 
 _PER_PROTOCOL = re.compile(r"\bper[- ]protocol\b|\bPP (?:population|set|analysis)\b", re.I)
 _EXTENDED_COMPOSITE = re.compile(r"\bplus\b|\bexpanded\b|\bextended\b|\b(?:4|four|5|five)[- ]point\b", re.I)
+_NAMED_COUNT = {"dual": 2, "double": 2, "two": 2, "2": 2, "triple": 3, "three": 3, "3": 3, "quadruple": 4, "four": 4,
+                "4": 4, "five": 5, "5": 5}
+_DECLARED_N = re.compile(r"\b(dual|double|two|2|triple|three|3|quadruple|four|4|five|5)[- ](?:component |point )?composite",
+                         re.I)
+
+
+def _declared_components(title):
+    """The number of components a registry outcome title DECLARES ('Triple Composite', 'three-component composite',
+    '4-point composite'); None when it declares none."""
+    m = _DECLARED_N.search(title or "")
+    return _NAMED_COUNT[m.group(1).lower()] if m else None
+
+
+def _spec_components(spec_name):
+    """Components of the protocol's outcome name: its declared count ('3-point MACE'), else the parts joined by 'or' /
+    'and' / commas in a 'composite ...' name ('Composite cardiovascular death or heart-failure hospitalization' -> 2)."""
+    s = spec_name or ""
+    m = re.search(r"\b(\d)[- ]point\b", s)
+    if m:
+        return int(m.group(1))
+    body = re.sub(r"^\s*(?:the\s+)?composite(?:\s+of)?\s+", "", s, flags=re.I)
+    return len([p for p in re.split(r"\s*(?:,|\bor\b|\band\b)\s*", body) if p.strip()]) or 1
 _THREE_POINT = re.compile(r"\b(?:3|three)[- ]point\b", re.I)
 _RECURRENT = re.compile(r"\brecurrent\b|\btotal (?:number of )?(?:events|hospitali[sz]ations)\b|first and subsequent", re.I)
 
@@ -432,6 +454,13 @@ def analysis_set_or_extension_differs(spec_name, title, population):
         return f"analysis set: the registry outcome is per-protocol ('{t}'); the protocol's population is '{population}'"
     if _THREE_POINT.search(spec_name or "") and _EXTENDED_COMPOSITE.search(t):
         return f"extended composite: the registry outcome '{t}' extends the protocol's '{spec_name}'"
+    # a registry composite that DECLARES more components than the protocol's ('First Triple Composite Endpoint (CV Death,
+    # HF Hospitalization, or Worsening of HF in Outpatients)' against 'Composite cardiovascular death or heart-failure
+    # hospitalization', sacubitril PARALLEL-HF): it passed as BINDABLE because only 'plus / extended / 4-point' were read
+    n_reg = _declared_components(t)
+    if n_reg and n_reg > _spec_components(spec_name):
+        return (f"extended composite: the registry outcome '{t}' declares {n_reg} components; the protocol's "
+                f"'{spec_name}' has {_spec_components(spec_name)}")
     # first AND recurrent events (a total-events analysis) is not time to the first event (sglt2-pp EMPEROR-Preserved:
     # 'Occurrence of Adjudicated Hospitalisation for Heart Failure (HHF) (First and Recurrent)')
     if _RECURRENT.search(t) and not _RECURRENT.search(spec_name or ""):
@@ -880,6 +909,95 @@ def outcome_set_differences(trials, comp_meta, comp, rows, compared=None, accoun
 def sweep_results(slug):
     p = os.path.join(SWEEP_DIR, f"{slug}.json")
     return {r["label"]: r for r in (_j(p).get("trials") or [])} if os.path.exists(p) else {}
+
+
+def comparator_result_recorded(slug, comp):
+    """The comparator's own result recorded by scripts/comparator_league_result.py (registry/comparator_results.json),
+    only when RECORDED for THIS comparator."""
+    p = os.path.join(ROOT, "registry", "comparator_results.json")
+    r = (_j(p) if os.path.exists(p) else {}).get(slug) or {}
+    return r if r.get("state") == "RECORDED" and str(r.get("comparator_pmid")) == str(comp) else None
+
+
+def acquired_rows(slug):
+    """ADMITTED rows of the acquisition lane (registry/g1_acquired/<slug>.json; scripts/g1_trial_acquire.py on
+    g1/finish-line), indexed by trial label AND by registered identity ('PMID <n>', '<NCT>'): a replaced comparator
+    renames its units, the trial's identity does not change."""
+    p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
+    if not os.path.exists(p):
+        return {}
+    out = {}
+    for r in _j(p).get("rows") or []:
+        if r.get("verdict") != "ADMITTED" or not r.get("admitted"):
+            continue
+        for k in [r.get("label")] + ([f"PMID {r['pmid']}"] if r.get("pmid") else []) + list(r.get("ncts") or []):
+            if k:
+                out.setdefault(k, r)
+    return out
+
+
+_CLUSTER = re.compile(r"ENGINE_CANNOT_CONSUME\(design=(cluster\w*|stepped_wedge)", re.I)
+
+
+def cluster_design_of(x):
+    """'cluster_crossover' / 'cluster' / 'stepped_wedge' when the engine refused the trial for its cluster design."""
+    m = _CLUSTER.search(str(x.get("our_refusal") or "") + " " + str(x.get("absent_reason") or ""))
+    return m.group(1).lower() if m else None
+
+
+def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
+    """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
+    through the acquisition gates is PRIMARY-verified (2 Oct decision): matched, countable, compared on that tuple. A
+    SECONDARY_SINGLE trial is PROMOTED (its meta pair replaced). Never a pooled, named or already-PRIMARY trial.
+    (Ported from g1/finish-line 7949e1568; found by label or identity.) Returns the labels merged."""
+    acq = acquired_rows(slug)
+    got = []
+    for x in trials:
+        rb = x.get("registry_binding") or {}
+        keys = [x.get("label"), str(x.get("family") or "")] + [c.get("nct") for c in rb.get("candidates") or []]
+        a = next((acq[k] for k in keys if k and k in acq), None)
+        if not a or x.get("in_our_pool") or x.get("scope_difference"):
+            continue
+        if cluster_design_of(x) and (a.get("admitted") or {}).get("value", {}).get("events_t") is not None:
+            x["acquired_refused"] = (f"UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE: the acquired tuple is unadjusted counts "
+                                     f"from a {cluster_design_of(x)} design ({a['admitted'].get('source')})")
+            continue
+        promote = x.get("route") == "SECONDARY_SINGLE"
+        if is_matched(x) and not promote:
+            continue
+        ad = a["admitted"]
+        v = ad.get("value") or {}
+        cr = x.get("comparator_row")
+        theirs = None
+        if cr:
+            theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                     provenance="COMPARATOR_ROW", trial_label=x["label"], measure=cr.get("measure") or "",
+                                     outcome_definition="", **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t",
+                                                                                       "n_t", "events_c", "n_c")})
+        if pairs is not None and promote and cr:
+            same = [i for i, (_o, t) in enumerate(pairs)
+                    if t.meta_pmid == str(comp) and all(str(getattr(t, k)) == str(cr.get(k)) for k in
+                                                        ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"))]
+            for i in reversed(same):
+                pairs.pop(i)
+        if routes is not None:
+            routes[x["route"]] -= 1
+            routes["PRIMARY"] += 1
+        x.update(route="PRIMARY", g1_countable=True, blocker=None, our_value=v, matched_by="ACQUIRED_PRIMARY",
+                 basis=f"single PRIMARY source (2 Oct decision): {ad['kind']} {ad['source']}; model-read (record "
+                       f"{a.get('record_id')}), gate-verified (g1/finish-line scripts/g1_trial_acquire.py)",
+                 acquired={"kind": ad["kind"], "source": ad["source"], "span": ad.get("span"), "quote": ad.get("quote"),
+                           "record_id": a.get("record_id"), "promoted_from": "SECONDARY_SINGLE" if promote else None,
+                           "found_by": "label" if a.get("label") == x.get("label") else "identity"},
+                 agreement_with_comparator_row=agreement(v, theirs) if theirs is not None else
+                 "NOT_COMPARABLE:NO_COMPARATOR_ROW")
+        if pairs is not None and theirs is not None:
+            pairs.append((as_row(v, x["label"], theirs.measure), theirs))
+        got.append(x["label"])
+    if routes is not None:
+        for k in [k for k, n in routes.items() if n <= 0]:
+            del routes[k]
+    return got
 
 
 def sweep_merge(slug, trials, routes=None, pairs=None):
@@ -2073,7 +2191,14 @@ def topic(slug, T):
     for x, t in zip(trials, comp_rows):
         p = rp[id(t)]
         x["identification"] = identification_of(x, t, slug, bool(p and p in own_ids))
-        x["screen_eligibility"] = screen_eligibility(x, screened.get(p) if p else None, p,
+        rec_ = screened.get(p) if p else None
+        if rec_ is None and not x.get("seeded_funnel"):
+            # the comparator cites ANOTHER report of a trial our screen holds (EXAMINE: it cites PMID 25765696, our
+            # screen holds 23992602; one NCT00968708): our screen's decision on the registered trial applies
+            rec_ = screen_record_for(core["screening"]["records"], t.get("ncts"), t.get("pmids"))
+            if rec_ is not None and str(rec_.get("id")).isdigit():
+                p = str(rec_["id"])
+        x["screen_eligibility"] = screen_eligibility(x, rec_, p,
                                                      two_reader_readings(slug, sorted(set(t.get("pmids") or []) | ({p} if p else set()))),
                                                      slug=slug, cfg=cfg)
     for x in trials:
@@ -2084,6 +2209,7 @@ def topic(slug, T):
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
                             compared=_rep0 or None, accounted_other=accounted_other)
     sweep_merge(slug, trials, routes, pairs)
+    acquired_merge(slug, trials, routes, pairs, comp)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))
@@ -2092,6 +2218,19 @@ def topic(slug, T):
     res = prim.get("result") or {}
     rep = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     comp_basis = "served review comparator.reported" if rep else None
+    served_comp = str((rev.get("comparator") or {}).get("pmid") or "")
+    if served_comp and served_comp != str(comp):
+        # the served page still carries the PREVIOUS comparator's result (dpp4: 34754403 served, 31462224 now): never
+        # compared against the new comparator's trials
+        rep, comp_basis = {}, None
+    if not rep:
+        rec = comparator_result_recorded(slug, comp)
+        if rec:
+            rep = {"outcome": rec["outcome"], "estimate": rec["estimate"], "ci_low": rec["ci_low"],
+                   "ci_high": rec["ci_high"], "scale": rec["scale"]}
+            comp_basis = (f"comparator {comp}'s own {rec['location']['table']} ({rec['location']['block']}: "
+                          f"{rec['contrast']} {rec['printed']}), orientation from its footnote, confirmed by its abstract "
+                          f"({rec['orientation_check']['abstract_quote']}); registry/comparator_results.json")
     cm = (S.get("metas") or {}).get(comp) or {}
     if not rep and cm.get("usable") and cm.get("pooled") and cm.get("provenance") == "TYPED_TABLE":
         # the served review typed no comparator result; the comparator's OWN pooled row, typed from its JATS table and
