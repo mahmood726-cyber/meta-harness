@@ -1525,6 +1525,11 @@ COMPARATOR_EXTRA = {
 # '<slug>::<pmid>' -- chosen because ITS caption states what the tracker's admission needs (34768455: f002 says 28/30-day
 # mortality and is refused TIMEPOINT_30_NE_28; f004 states 28-day mortality). Key '<slug>::<pmid>::<fig><panel>'.
 META_EXTRA = {
+    # its F3 (read earlier) is refused at admission OUTCOME_NOT_THE_TOPICS; F4's caption names AAD prevention
+    ("probiotics-aad-prevention", "29868585"): [
+        {"fig_id": "F4", "caption_has": "for the prevention of antibiotic-associated diarrhea in children and adults",
+         "instruction": "Rows: every study row of every strain subgroup, once each, with events and totals per arm "
+                        "(never a subgroup subtotal). Pooled: the overall pooled row."}],
     ("tocilizumab-covid19-mortality", "34768455"): [
         {"fig_id": "jcm-10-04935-f004", "caption_has": "Pooled comparison of 28-day mortality according to treatment",
          "instruction": "Rows: every trial row of every comparison group, once each, with events and totals per arm. "

@@ -509,3 +509,20 @@ def test_pool_uncheckable_reads_a_finding_typed_as_a_dict():
     r.findings = [{"finding": sm.POOL_UNCHECKABLE, "detail": "no printed pooled row"}]
     assert sm.pool_uncheckable(r)
     assert sm.secondary_single([r], {"999"}, lambda x: None, lambda x: True) == [] and r.state == sm.UNVERIFIED
+
+
+def test_a_forest_lane_row_gets_the_timepoint_its_caption_states_like_every_figure_row():
+    # the build derives a figure row's timepoint from the meta's own words (secondary_meta_build.meta_timepoint); the
+    # forest-lane rows entered without it, so every 28-day tocilizumab row read TIMEPOINT_NOT_STATED_BY_META (5 Oct)
+    import os
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
+    import secondary_meta_build as smb
+    r = _row(measure="OR", outcome="Pooled comparison of 28-day mortality according to treatment received")
+    spec = {"estimand": "OR", "keywords": ["mortality"], "core": ["mortality"], "timepoint": "28 days"}
+    smb.lane_timepoint(r, spec, held="")
+    assert r.timepoint == "28 days"
+    assert sm.timepoint_identity(r, spec["timepoint"]) is None
+    r2 = _row(measure="OR", outcome="Overall meta-analysis of 28/30-day mortality")
+    smb.lane_timepoint(r2, spec, held="mortality at 30 days was the primary outcome")
+    assert sm.timepoint_identity(r2, spec["timepoint"]) is not None       # the gate itself is unchanged
