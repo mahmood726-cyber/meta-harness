@@ -99,6 +99,25 @@ def funnel(core, pmids, recs=None, topic_records=None):
 FT_DIR = os.path.join(OUT, "_ft")          # bodies (gitignored); FT_INDEX (committed) holds sha256 + bytes
 
 
+def committed_open_fulltext(pmid, idx=None):
+    """The COMMITTED held copy of an OPEN (CC) full text -- cache/<slug>/ft_<pmid>.txt -- for a clone without the
+    gitignored _ft cache, returned ONLY when its bytes' sha256 equals the one fulltext_index.json recorded and the copy
+    is marked open (copy_licence CC); else None. A non-open body is never committed, so it is never found here."""
+    import glob
+    import hashlib
+    if idx is None:
+        ip = os.path.join(OUT, "fulltext_index.json")
+        idx = _j(ip) if os.path.exists(ip) else {}
+    e = idx.get(str(pmid)) or {}
+    if e.get("copy_licence") != "CC" or not e.get("sha256"):
+        return None
+    for fp in sorted(glob.glob(os.path.join(ROOT, "cache", "*", f"ft_{pmid}.txt"))):
+        b = open(fp, "rb").read()
+        if hashlib.sha256(b).hexdigest() == e["sha256"]:
+            return b.decode("utf-8")
+    return None
+
+
 def pmc_fulltext_cached(pmid, offline=False):
     """PMC OA JATS body + structured tables + supplements for one PMID, via the harness's own fetch._pmc_fulltext
     (so the text is exactly what the pipeline would hold). Cached by PMID; '' when PMC holds no OA text."""
@@ -114,6 +133,9 @@ def pmc_fulltext_cached(pmid, offline=False):
     idx = _j(idx_p) if os.path.exists(idx_p) else {}
     if os.path.exists(fp) and os.path.getsize(fp) > 0:
         return open(fp, encoding="utf-8").read()
+    held = committed_open_fulltext(pmid, idx)
+    if held is not None:
+        return held
     if (idx.get(pmid) or {}).get("state") in ("NO_PMCID", "PUBLISHER_DISALLOWS_XML") or offline:
         return ""
     from harness import fetch, http
