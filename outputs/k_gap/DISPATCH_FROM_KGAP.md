@@ -220,3 +220,72 @@ remains in history at 8cd651a45 alongside 90478bedc, so the same history rewrite
 pattern lacked the bare names; the lane's scanner now refuses to report clean unless it catches planted copies.
 A HEAD-wide scan also finds a private path in `LANE-RB-REPORT.md` (not this lane's file: it names the owner's workbook
 path in a 'did not edit' claim). The other matches for the owner's handle are the repository's own public GitHub URLs.
+
+## To the captain: the six 5 Oct decisions, applied (typed rules + plants in `tests/test_decisions_5oct.py`)
+
+REVIEW_REFERENCE_LIST was already live (fe689f080, see the section above); these sit on top of it.
+
+1. **HR vs RR.** Already in code and planted (`tests/test_result_agrees_class.py`): a pair-level DIFFERENT_CONCLUSION
+   makes RESULT_AGREES false. Nothing changed.
+2. **O'Neil 2018 → PROTOCOL_SCOPE_DIFFERENCE by the protocol's own text.**
+   - Our screen INCLUDED it; its rule doesn't check dose.
+   - `protocols/semaglutide-obesity-weight.md` requires "once-weekly semaglutide 2.4 mg" and excludes "a different
+     semaglutide dose … as the randomized arm". The trial's abstract: "All treatment doses were delivered once-daily".
+   - AACT NCT02453711 does have posted results: arms Sema 0.05–0.4 mg **daily**, primary outcome at **Week 52**
+     (protocol: Week 68). Recorded as a registry note.
+   - The mechanism: `registry/scope_adjudications.json`. Every protocol span is verified verbatim against the
+     registered protocol, and the trial span against its held record, at every build; a failed span leaves the trial
+     eligible.
+   - **semaglutide-obesity-weight → G1_MATCHED.**
+3. **sglt2-ckd.** Every non-CKD trial is named with both spans.
+   - The 6 heart-failure/MI trials now also quote the protocol's X2 bullet (`protocol_span`, a class change: every
+     screen-named difference in every topic quotes its rule's protocol bullet).
+   - DECLARE, CANVAS and EMPA-REG are newly named. They quote the protocol's I2/X2 population span and their own
+     "patients with type 2 diabetes … cardiovascular risk" sentence.
+   - N_eligible 6 → 3, all matched. RESULT_AGREES stays unmet: the comparator prints no per-trial rows, and its pooled
+     HR covers 12 trials (9 of them non-CKD), so neither comparison is possible.
+4. **ELIGIBILITY_UNVERIFIABLE.** Applied when the protocol requires double-blind, the screen excluded on design, the
+   audit says BLINDING_NOT_STATED, and the full-text pass didn't establish it. Not counted, not named, stays an open gap.
+   - Tsutsui is typed this way, plus 5 more: Zarpelon, Eritsland, JELIS, ticagrelor units 6 and 18.
+   - I kept it to blinding as decided. 14 DESIGN_NOT_ESTABLISHED and 18 POPULATION_NOT_STATED records are candidates
+     for the same fail-closed state, which is your call.
+5. **A comparator row contradicted by the trial's report is compared on the trial's own values**
+   (`g1_tracker.trial_report_in_place_of`). It applies only to a verified MISMATCH whose evidence points at the
+   comparator; another measure is never converted. The finding stays.
+   - **colchicine-postop-af:** Imazio [18] enters on 61/180 vs 75/180 (comparator printed RR 0.66). The same-trials
+     result is then **AGREE**: ours RR 0.7055 (0.593–0.839) vs theirs 0.7059 (0.594–0.840).
+   - That replaces SAME_CONCLUSION_DIFFERENT_ESTIMATE. Not DIFFERENT_CONCLUSION: that is what the numbers say.
+     RESULT_AGREES is now met; the topic is NOT_YET only on ALL_ELIGIBLE_MATCHED.
+6. **Licence.**
+   - The 9 records are removed from acq/k-gap at HEAD. Their ledger entries are marked QUARANTINED_LICENCE, and
+     `registry/record_licence_exceptions.json` has shrunk to 0, with each record listed under `resolved`.
+   - The guard (`reproducible_ai/record_licence.py` + `tests/test_record_licence.py`) is brought over from
+     g1/finish-line, with finish-line's copy_licence determinations merged into this lane's full-text index (9 PMIDs,
+     licence fields only).
+   - **At the source:** a model prompt now carries a full text only when its copy is marked CC
+     (`secondary_meta_build.prompt_fulltext`, used by the locator and by the exclusion full-text reader); otherwise
+     title + abstract. A replay uses only a record made from the identical prompt, so a quarantined record can never
+     stand in.
+   - **Re-derived or refused:**
+     - omega3: VITAL's comparator row loses PRIMARY_VERIFIED (now MEASURE_DIFFERS/unverified). VITAL itself stays
+       matched (it is in our pool).
+     - Exclusion full text: 36216945 and 31509682 go TRUE_SCOPE_DIFFERENCE → INSUFFICIENT_RECORD (reader refused).
+       33625476 is now SCREENER_ERROR by regex on the held copy. No tracker row reads that file.
+   - **For consolidation:** the 9 records are still in acq/k-gap's history (30 Sep – 1 Oct). A plain merge carries
+     them to main. Keeping them off main needs a tree-level consolidation (squash or curated tree) or a history
+     rewrite, which is Mahmood's decision; nothing was rewritten.
+   - **Fixed in passing:** `k_gap_exclusion_fulltext.py` crashed on an item with no held record (KeyError 'id_type');
+     such items are now typed NO_RECORD_HELD.
+
+**Totals (local, 32 topics):**
+| | before | after |
+|---|---|---|
+| G1_MATCHED | 7 | **8** (+ semaglutide-obesity-weight) |
+| INDEPENDENT | 92 | 92 |
+| COVERAGE | 166 | 166 |
+| eligible | 249 | 245 |
+
+**Full suite on fe689f080's code:** 11 failed, 4772 passed, 72 xfailed (1 h 13 min; temp on C:). All 11 are the
+known classes: served CERTIFICATE.json release_sha256, bundle and code-closure pins, and fixstate under core.bare.
+`tests/test_architecture_identity.py` was NOT run: it copies the whole registry per test and stalled for over 20
+minutes on its second test on this box. It needs the worker or a longer window.
