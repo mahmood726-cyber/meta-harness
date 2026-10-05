@@ -107,6 +107,15 @@ _READ_CMD = re.compile(r"(?:Get-Content|cat|type|more|head|tail|sed -n|rg|grep|S
                        r"(?P<path>[\w.\\/:-]+\.(?:md|txt|json|py|csv|html|toml|yaml|yml))", re.I)
 
 
+_LOCAL_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:(?:\\+|/)[^\s'\"`;|<>]*")
+
+
+def _local(x):
+    """An absolute local path keeps only its file name (WHICH file was read is the log's point; the folders are local)."""
+    return _LOCAL_PATH.sub(lambda m: "<local-path>/" + re.split(r"[\\/]+", m.group(0).rstrip("\\/"))[-1], x) \
+        if isinstance(x, str) else x
+
+
 def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
     """Tokens, tool calls (with outcome) and files read, parsed from the client's stderr; plus the redacted transcript."""
     t = stderr_text.replace("\r\n", "\n")
@@ -120,6 +129,11 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
     if p and p in red:
         red = red.replace(p, f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>")
     red = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", red)
+    # every OTHER absolute local path too: the client's own AGENTS.md steered a forest read (mc-28562764, 5 Oct) into
+    # commands naming private index files; the log is committed, so a local path never enters it (all were rejected)
+    red = _local(red)
+    calls = [{k: _local(v) for k, v in c.items()} for c in calls]
+    files = sorted({_local(f) for f in files})
     return {"tokens_used": tokens, "tool_calls": calls, "tool_calls_n": len(calls),
             "tool_calls_rejected_n": sum(1 for c in calls if c["outcome"].startswith("REJECTED")),
             "files_read": files, "transcript_redacted": red}

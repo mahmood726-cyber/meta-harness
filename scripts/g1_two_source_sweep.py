@@ -320,6 +320,14 @@ def uncontrolled_tables(meta_pmid, spec):
     return out, f"UNCONTROLLED_TABLES {[t['table_id'] for t in out]} ({sum(len(t['rows']) for t in out)} rows; count only if verified)"
 
 
+def metas_to_count(slug, plan, runs, comp_ids):
+    """The plan's metas plus every meta of this topic with a HELD recorded forest read (ledger key '<slug>::<meta>',
+    RAN_OK; its image digest is re-checked against the prepared figure in sweep_topic). Never the comparator."""
+    held = {k.split("::")[1] for k, r in (runs or {}).items()
+            if k.startswith(slug + "::") and k.count("::") == 1 and (r or {}).get("state") == "RAN_OK"}
+    return sorted((set(plan) | held) - set(comp_ids or ()))
+
+
 def forest_plan(ts, metas_by_trial, typed_ok, need=2):
     """Which metas' forest plots to read, greedily: the meta covering the most still-uncovered trials first, until every
     trial has `need` candidate metas read (two independent metas are what the TWO-SOURCE rule asks for)."""
@@ -772,7 +780,9 @@ def main(argv):
     for s, ts in sorted(tg.items()):
         typed_ok = set()          # typed tables are tried inside sweep_topic; a forest read is planned for every meta
         plan = forest_plan(ts, metas_by.get(s, {}), typed_ok, need=need)
-        fig[s], fig_state[s] = prepare_figures(s, plan, run)
+        # the PLAN decides what to READ (cost); every HELD gated read is COUNTED (a re-run with another --need, or
+        # after other trials were matched, planned differently and dropped Nilsen 2001's verified row from 39639295)
+        fig[s], fig_state[s] = prepare_figures(s, metas_to_count(s, plan, runs, comp[s]), run)
         for m in plan:
             it = fig[s].get(m)
             rr = runs.get(f"{s}::{m}")
