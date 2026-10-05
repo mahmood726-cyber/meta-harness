@@ -830,6 +830,15 @@ def run(slugs, ref, redo=(), workers=5):
     return data
 
 
+def merged_rows(path, rows):
+    """The replay's rows MERGED into the topic's existing acquired file: a trial re-derived now replaces its old row; a row
+    this replay does not re-derive is KEPT (6 Oct: replay rewrote dpp4-mace-t2d from this lane's proposals alone and
+    dropped TECOS's admitted row -- ported from g1/finish-line, and no longer a target once it was matched)."""
+    old = json.load(open(path, encoding="utf-8")).get("rows") if os.path.exists(path) else []
+    new = {r["label"]: r for r in rows}
+    return [r for r in old or [] if r.get("label") not in new] + rows
+
+
 def replay(slugs, ref):
     data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {"runs": {}}
     by_slug = {}
@@ -904,6 +913,7 @@ def replay(slugs, ref):
         by_slug.setdefault(r["slug"], []).append(row)
     os.makedirs(ACQ_DIR, exist_ok=True)
     for slug, rows in by_slug.items():
+        rows = merged_rows(os.path.join(ACQ_DIR, f"{slug}.json"), rows)
         json.dump({"slug": slug, "ref": ref, "rule": "2 Oct decision: one PRIMARY source, typed (g1_tracker."
                    "single_primary_source); model-read, gate-verified (scripts/g1_trial_acquire.py)", "rows": rows},
                   open(os.path.join(ACQ_DIR, f"{slug}.json"), "w", encoding="utf-8", newline="\n"), indent=1,

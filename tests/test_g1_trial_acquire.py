@@ -194,3 +194,13 @@ def test_posted_analyses_name_their_groups_by_title(monkeypatch):
     monkeypatch.setattr(ga, "aact_detail", lambda ncts: {})
     a = ga.aact_evidence(["NCT04331808"])["NCT04331808"]["outcomes"][0]["analyses"][0]
     assert a["group_titles"] == ["TOCILIZUMAB -- Severe", "Standard of Care -- Severe"]
+
+
+def test_a_replay_merges_into_the_acquired_file_and_never_drops_a_row_it_did_not_re_derive(tmp_path):
+    # 6 Oct: replay rewrote dpp4-mace-t2d from this lane's proposals alone and dropped TECOS's admitted row
+    import json as _j
+    p = tmp_path / "dpp4.json"
+    p.write_text(_j.dumps({"rows": [{"label": "TECOS", "verdict": "ADMITTED"}, {"label": "EXAMINE", "verdict": "OLD"}]}))
+    got = ga.merged_rows(str(p), [{"label": "EXAMINE", "verdict": "SOURCE_ABSENT"}])
+    assert got == [{"label": "TECOS", "verdict": "ADMITTED"}, {"label": "EXAMINE", "verdict": "SOURCE_ABSENT"}]
+    assert ga.merged_rows(str(tmp_path / "none.json"), [{"label": "X"}]) == [{"label": "X"}]
