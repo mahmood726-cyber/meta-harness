@@ -451,9 +451,21 @@ def is_matched(x):
         return True
     if x.get("scope_difference"):
         return False                      # named out of scope: never matched, whatever value is held
-    if x.get("g1_countable") and x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"):
-        return True                       # a verified typed tuple for the comparator's trial (Mahmood 3 Oct)
-    return str(x.get("route") or "").startswith("SWEEP_")
+    counted = ((x.get("g1_countable") and x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"))
+               or str(x.get("route") or "").startswith("SWEEP_"))
+    if counted and not screen_admits(x):
+        return False                      # data held, eligibility not ours (5 Oct: being listed is never eligibility)
+    return bool(counted)
+
+
+def screen_admits(x):
+    """ELIGIBILITY IS OUR SCREEN'S (5 Oct decision, REVIEW_REFERENCE_LIST): a comparator trial outside our pool counts
+    only when OUR registered protocol's screen includes its record, or -- the screen having excluded it -- two recorded
+    readers (two models, verified quotes) both judge it eligible. Being listed by the comparator is never eligibility
+    evidence. A tracker object built before this gate (no screen_eligibility key: a lane's own file) is not gated here;
+    the importer reports those trials as SCREEN_NOT_ASSESSED_BY_TRACKER."""
+    se = x.get("screen_eligibility")
+    return True if se is None else se.get("state") == "ELIGIBLE"
 
 
 ROUTE_GROUP = {"PRIMARY": "PRIMARY", "SWEEP_META+TRIAL_TEXT": "PRIMARY", "SWEEP_META+AACT": "PRIMARY",
@@ -928,6 +940,12 @@ def apply_coverage(o):
     for x in o.get("trials") or []:
         x.pop("comparator_sourced", None)
         x.pop("comparator_sourced_refusal", None)
+        x.pop("count_refusal", None)
+        if not x.get("in_our_pool") and not screen_admits(x) and not x.get("scope_difference") and (
+                (x.get("g1_countable") and x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"))
+                or str(x.get("route") or "").startswith("SWEEP_")):
+            se = x["screen_eligibility"]
+            x["count_refusal"] = f"NOT_SCREEN_ELIGIBLE:{se.get('state')}:{se.get('rule_id') or se.get('why') or ''}"
         if is_matched(x):
             x["coverage"] = "INDEPENDENT"
             continue
@@ -1168,8 +1186,11 @@ def comparator_findings(trials, comp):
                         "comparator_row": x.get("comparator_row"), "trial_report": x.get("our_value"),
                         "basis": x["disagreement_side"]})
         for f in x.get("comparator_row_findings") or []:
+            if not isinstance(f, dict):           # a legacy string finding (lane-written) is typed, never a crash
+                f = {"finding": str(f).partition(":")[0].strip(), "detail": str(f)}
             out.append({"finding": f.get("finding"), "trial": x["label"], "comparator": comp,
-                        "comparator_row": x.get("comparator_row"), "detail": f.get("printed_vs_arm_derived")})
+                        "comparator_row": x.get("comparator_row"),
+                        "detail": f.get("printed_vs_arm_derived") or f.get("detail")})
     return out
 
 
@@ -1206,6 +1227,14 @@ def with_identity_chain(T):
             t["pmids"] = [v["pmid"]]
             t["identity_basis"] = list(t.get("identity_basis") or []) + [f"IDENTITY_CHAIN:COMMENT_ON:{v['from']}->{v['pmid']}"]
             t["status"] = "RESOLVED_BY_CHAIN"
+            continue
+        if (v and v.get("state") == "AMBIGUOUS" and str(v.get("scope") or "").startswith("OTHER_AGENT")
+                and not t.get("ncts") and not t.get("pmids") and t.get("drug") != "DRUG_MATCH"):
+            # which paper is the report is unresolved, but EVERY self-naming title names another agent and none the
+            # topic's: the unit is another agent's trial (out of a drug-specific topic's N), its identity left open
+            t["drug"] = "OTHER_AGENT"
+            t["identity_basis"] = list(t.get("identity_basis") or []) + [
+                f"IDENTITY_CHAIN:{v.get('basis')}:AMBIGUOUS_REPORT_UNANIMOUS_{v['scope']}"]
             continue
         if not v or v.get("state") != "RESOLVED" or t.get("ncts") or t.get("pmids"):
             continue
@@ -1267,6 +1296,8 @@ def lane_comparator_rows(slug, comp, ours):
     sp = os.path.join(OUT, "g1_comparator_rows.json")
     out, used = [], []
     for src in (_j(sp) if os.path.exists(sp) else []):
+        if src.get("format", "forest_reader_v1") != "forest_reader_v1":
+            continue                      # the listing also names the lane's row identity map (not rows)
         try:
             commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
                                     text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
@@ -1393,6 +1424,90 @@ def g1_status(o):
     }
     return {"state": "G1_MATCHED" if all(crit.values()) else "NOT_YET", "criteria": crit,
             "unmet": [k for k, ok in crit.items() if not ok], "excluded_by_scope": excl}
+
+
+_ELIG_STAGES = ("INCLUDED_NOT_IN_PRIMARY", "DECLARED_ABSENT", "POOLED")
+_SCREEN_PROPS = ("screening_excluded", "screening_excluded_x1", "screening_excluded_reader2",
+                 "screening_excluded_x1_reader2", "k_gap_screen_recheck", "k_gap_screen_rrl")
+_READER2 = re.compile(r"reader2|#r2\b")
+
+
+def two_reader_readings(slug, pmids):
+    """Every VERIFIED screening reading recorded for these PMIDs of this topic (registry/model_proposals: the pilot's
+    screening_excluded* tasks, k_gap_screen_recheck, k_gap_screen_rrl), with which reader made it."""
+    out = []
+    want = {f"{slug}::pmid:{p}" for p in pmids or []} | {f"{slug}::rrl:{p}" for p in pmids or []}
+    for task in _SCREEN_PROPS:
+        pp = os.path.join(ROOT, "registry", "model_proposals", task + ".json")
+        if not os.path.exists(pp):
+            continue
+        d = _j(pp)
+        for it in (d.get("items") or []) + (d.get("rows") or []):
+            if it.get("item_id") not in want:
+                continue
+            v = it.get("verification") or {}
+            if v.get("state", "VERIFIER_PASS") != "VERIFIER_PASS" or not v.get("model_decision"):
+                continue
+            rd = it.get("reader") or ("READER_2" if _READER2.search(task + " " + str(it.get("batch") or "")) else "READER_1")
+            out.append({"task": task, "reader": rd, "model_decision": v.get("model_decision"),
+                        "agreement": str(v.get("agreement") or "")[:60], "record_id": it.get("record_id")})
+    return out
+
+
+def two_readers_eligible(readings):
+    """Both readers (reader 1 AND reader 2, two models) judged ELIGIBLE on verified quotes, and no verified reading says
+    INELIGIBLE. One reader, or any dissent, is not enough to set our screen's exclusion aside."""
+    dec = {}
+    for r in readings:
+        dec.setdefault(r["reader"], set()).add(r["model_decision"])
+    if any("INELIGIBLE" in v for v in dec.values()):
+        return False
+    return {"READER_1", "READER_2"} <= {k for k, v in dec.items() if v == {"ELIGIBLE"}}
+
+
+def screen_eligibility(x, rec, pmid, readings):
+    """Typed, per comparator trial outside our pool: what OUR screen says. rec = our screen's own decision record for the
+    trial's report (None when the report never entered it); x['seeded_funnel'] = the decision when its held record was
+    seeded through our unchanged build. ELIGIBLE / NOT_ELIGIBLE (rule + reason) / NOT_ASSESSED."""
+    if x.get("in_our_pool"):
+        return {"state": "ELIGIBLE", "basis": "POOLED"}
+    f = x.get("seeded_funnel") or {}
+    if rec is not None and rec.get("decision") == "include":
+        return {"state": "ELIGIBLE", "basis": "OUR_SCREEN_INCLUDE", "pmid": pmid, "rule_id": rec.get("rule_id")}
+    if f.get("stage") in _ELIG_STAGES:
+        return {"state": "ELIGIBLE", "basis": f"SEEDED_SCREEN_INCLUDE:{f['stage']}", "pmid": f.get("pmid")}
+    if f.get("stage") in ("SCREENED_VIA_OTHER_REPORT",) and f.get("via_decision") == "include":
+        return {"state": "ELIGIBLE", "basis": "SCREEN_INCLUDE_VIA_OTHER_REPORT", "via": f.get("via")}
+    if f.get("stage") == "SCREENED_OUT" or (rec is not None and rec.get("decision") != "include"):
+        rule = f.get("rule_id") or (rec or {}).get("rule_id")
+        if two_readers_eligible(readings):
+            return {"state": "ELIGIBLE", "basis": "TWO_READERS_JUDGE_ELIGIBLE", "screen_rule": rule,
+                    "readings": readings[:6]}
+        return {"state": "NOT_ELIGIBLE", "rule_id": rule,
+                "reason": (f.get("reason") or (rec or {}).get("reason") or "")[:160], "readings": readings[:6]}
+    return {"state": "NOT_ASSESSED", "why": f.get("stage") or ("NO_RECORD_HELD" if not pmid else "NOT_IN_SCREEN"),
+            "pmid": pmid}
+
+
+def screen_record_for(records, ncts, pmids):
+    """OUR screen's decision record for a TRIAL named by identity (a lane file's own comparator set, whose labels are not
+    the k-gap table's): any screened report whose id is one of its PMIDs or whose trial family is its NCT. A trial any
+    report of which our screen INCLUDES is included; else the first exclusion; None when the trial never entered."""
+    ncts, pmids = {str(n) for n in ncts or [] if n}, {str(p) for p in pmids or [] if p}
+    hits = [r for r in records if str(r.get("id")) in pmids or str(r.get("trial_family_id") or "") in ncts
+            or str(r.get("trial_family_id") or "").replace("PMID:", "") in pmids]
+    inc = [r for r in hits if r.get("decision") == "include"]
+    return (inc or hits or [None])[0]
+
+
+def identification_of(x, t, slug, in_search):
+    """How the trial entered the candidate set: OUR_SEARCH (its report is in our own screened corpus or pool) or
+    REVIEW_REFERENCE_LIST (listed in the comparator's included studies: source meta, location in its list, digest)."""
+    import secondary_meta_build as smb
+    if x.get("in_our_pool") or in_search:
+        return {"route": "OUR_SEARCH"}
+    return smb.reference_list_identification(slug, t["label"]) or {"route": "REVIEW_REFERENCE_LIST",
+                                                                   "source_meta": t.get("comparator_pmid")}
 
 
 def topic(slug, T):
@@ -1609,6 +1724,13 @@ def topic(slug, T):
             x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
     for k in [k for k, n in routes.items() if n <= 0]:
         del routes[k]
+    own_ids = {str(r.get("id")) for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", [])} \
+        if os.path.exists(os.path.join(ROOT, "cache", slug, "records.json")) else set()
+    for x, t in zip(trials, comp_rows):
+        p = rp[id(t)]
+        x["identification"] = identification_of(x, t, slug, bool(p and p in own_ids))
+        x["screen_eligibility"] = screen_eligibility(x, screened.get(p) if p else None, p,
+                                                     two_reader_readings(slug, sorted(set(t.get("pmids") or []) | ({p} if p else set()))))
     for x in trials:
         x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
