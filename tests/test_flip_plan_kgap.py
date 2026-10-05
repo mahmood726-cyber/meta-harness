@@ -117,3 +117,12 @@ def test_a_section_header_row_is_not_a_trial_unit():
                   {"cells": ["ELIXA", "2015", "NCT01147250"], "rids": ["B24"], "row_text": "ELIXA | 2015 | NCT01147250"},
                   {"cells": ["LEADER", "2016", "NCT01179048"], "rids": [], "row_text": "LEADER | 2016 | NCT01179048"}]}
     assert [u["label"] for u in k_gap._units_from_table(t)] == ["ELIXA", "LEADER"]
+
+
+def test_a_registry_composite_declaring_more_components_than_the_protocol_never_binds():
+    spec = "Composite cardiovascular death or heart-failure hospitalization"
+    t = ("Key Secondary: EAIR of CEC-confirmed First Triple Composite Endpoint (Cardiovascular (CV) Death, Heart Failure "
+         "(HF) Hospitalization, or Worsening of HF in Outpatients)")
+    assert gt.analysis_set_or_extension_differs(spec, t, "intention-to-treat").startswith("extended composite")
+    assert gt._spec_components(spec) == 2 and gt._spec_components("3-point major adverse cardiovascular events") == 3
+    assert gt.analysis_set_or_extension_differs("3-point MACE", "3-point MACE composite", "itt") is None
