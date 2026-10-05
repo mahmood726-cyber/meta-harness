@@ -74,6 +74,34 @@ def span_in_sources(cpmid, needle):
     return None
 
 
+TITLES = os.path.join(OUT, "pubmed_titles.json")
+CHAIN = os.path.join(OUT, "identity_chain.json")
+
+
+def chain_other_agent_span(slug, label, other_agent_units):
+    """An OTHER_AGENT removal decided by k-gap's IDENTITY CHAIN (not by AACT interventions): the tracker lists the unit
+    among its other-agent units, the chain's result for it is scoped OTHER_AGENT:<agent>, and one of the trial's OWN
+    self-naming reports has a held PubMed title that names that agent -- quoted verbatim from outputs/k_gap/
+    pubmed_titles.json. None when any link is missing (the removal then stays unexplained: fail-closed)."""
+    if label not in (other_agent_units or []) or not (os.path.exists(CHAIN) and os.path.exists(TITLES)):
+        return None, None
+    r = ((_j(CHAIN).get("results") or {}).get(f"{slug}::{label}") or {})
+    scope = str(r.get("scope") or "")
+    if not scope.startswith("OTHER_AGENT:"):
+        return None, None
+    agent = scope.split(":", 1)[1].strip().lower()
+    titles = _j(TITLES)
+    for pm in r.get("self_naming_pmids") or []:
+        t = titles.get(str(pm)) or ""
+        if agent and agent in t.lower():
+            v = find_span(TITLES, t)
+            if v:
+                return ({"text": v, "source": os.path.relpath(TITLES, ROOT).replace(os.sep, "/"),
+                         "source_sha256": _sha(TITLES), "pmid": str(pm)},
+                        {"agent": agent, "ncts": r.get("ncts"), "chain_state": r.get("state"), "chain_basis": r.get("basis")})
+    return None, None
+
+
 def current_rows():
     out = {}
     for p in sorted(glob.glob(os.path.join(OUT, "g1", "*.json"))):
@@ -126,6 +154,13 @@ def build():
                 rec.update(kind="OTHER_AGENT", rule_id="K-GAP:OTHER_AGENT:REGISTRY_INTERVENTIONS",
                            identity={"pmids": (u.get("pmids") or [])[:3], "ncts": u.get("ncts")},
                            detail="the trial's registered arms (AACT) name another agent than the topic's", span=sp)
+            elif chain_other_agent_span(slug, lab, d.get("other_agent_units"))[0]:
+                sp, ev = chain_other_agent_span(slug, lab, d.get("other_agent_units"))
+                rec.update(kind="OTHER_AGENT", rule_id="K-GAP:OTHER_AGENT:IDENTITY_CHAIN",
+                           identity={"ncts": ev.get("ncts"), "chain": f"{ev.get('chain_state')}:{ev.get('chain_basis')}"},
+                           detail=(f"k-gap's identity chain scopes the trial OTHER_AGENT:{ev['agent']} (its own reports "
+                                   f"name {ev['agent']}, not the topic's agent); the span is a held PubMed title of one of "
+                                   f"those reports (PMID {sp['pmid']})"), span=sp)
             else:
                 fam = (b.get("families") or {}).get(lab)
                 match = next((nl for nl in new if fam and (now[nl].get("family") == fam)), None)

@@ -69,11 +69,14 @@ def test_the_denominator_reasons_are_the_ones_audited():
     kinds = {}
     for r in LED["removed"]:
         kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
-    assert kinds == {"NOT_A_TRIAL": 15, "DUPLICATE_UNIT": 1, "OTHER_AGENT": 1, "NOT_IN_COMPARATOR_TABLE": 2, "RELABELLED": 1}
+    # OTHER_AGENT 2 (5 Oct): + VERTIS-CV (dapagliflozin), an ertugliflozin trial scoped by k-gap's identity chain
+    assert kinds == {"NOT_A_TRIAL": 15, "DUPLICATE_UNIT": 1, "OTHER_AGENT": 2, "NOT_IN_COMPARATOR_TABLE": 2, "RELABELLED": 1}
+    vc = next(r for r in LED["removed"] if r["label"] == "VERTIS-CV")
+    assert vc["rule_id"] == "K-GAP:OTHER_AGENT:IDENTITY_CHAIN" and "Ertugliflozin" in vc["span"]["text"]
     smart = next(r for r in LED["removed"] if r["kind"] == "DUPLICATE_UNIT")
     assert smart["label"] == "Semler [15]" and smart["duplicate_of"] == "Semler (SMART trial)"
     assert "29485925" in smart["identity"]["pmids"]
-    emp = next(r for r in LED["removed"] if r["kind"] == "OTHER_AGENT")
+    emp = next(r for r in LED["removed"] if r["kind"] == "OTHER_AGENT" and r["label"] != "VERTIS-CV")
     assert "Empagliflozin" in emp["span"]["text"] and emp["slug"] == "dapagliflozin-hfpef-hosp"
 
 
@@ -97,3 +100,20 @@ def test_PLANT_a_tracker_removal_without_rule_or_span_is_refused(tmp_path, monke
     o["removed_comparator_rows"] = o["removed_comparator_rows"][1:]           # a removal missing from the tracker
     p.write_text(json.dumps(o), encoding="utf-8")
     assert any("differ from the ledger" in x for x in dl.tracker_problems(LED))
+
+
+def test_PLANT_a_chain_other_agent_removal_needs_a_held_title_naming_the_agent(monkeypatch):
+    # the chain scopes the unit OTHER_AGENT, but no held report title names that agent: no span, so the removal stays
+    # unexplained (fail-closed) -- and a unit the tracker does not list as an other agent gets nothing either
+    real = dl._j
+    def fake(path):
+        d = real(path)
+        if path == dl.CHAIN:
+            d = dict(d, results=dict(d["results"]))
+            r = dict(d["results"]["dapagliflozin-hfpef-hosp::VERTIS-CV"], scope="OTHER_AGENT:canagliflozin")
+            d["results"]["dapagliflozin-hfpef-hosp::VERTIS-CV"] = r
+        return d
+    assert dl.chain_other_agent_span("dapagliflozin-hfpef-hosp", "VERTIS-CV", ["VERTIS-CV"])[0]
+    assert dl.chain_other_agent_span("dapagliflozin-hfpef-hosp", "VERTIS-CV", [])[0] is None
+    monkeypatch.setattr(dl, "_j", fake)
+    assert dl.chain_other_agent_span("dapagliflozin-hfpef-hosp", "VERTIS-CV", ["VERTIS-CV"])[0] is None
