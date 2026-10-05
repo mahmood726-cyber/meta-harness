@@ -79,8 +79,16 @@ def _signed(n: dict) -> bool:
     return ((n.get("reviewer_countersignature") or {}).get("state") or "").upper().endswith("SIGNED")
 
 
-def build(root: Path, title: str, out: Path, base_note: str, version: str = "V3") -> str:
-    open_notices = [n for n in _notices(root) if not _signed(n)]
+def presented_in(packet: Path) -> set[str]:
+    """The rendered_sha256 of every notice an earlier, still-pending packet already presents."""
+    return set(SHA_LINE.findall(packet.read_text(encoding="utf-8"))) if packet and packet.exists() else set()
+
+
+def build(root: Path, title: str, out: Path, base_note: str, version: str = "V3", exclude: list | None = None) -> str:
+    # --exclude-packet: a notice already presented in a pending packet (sent for assent under its own hash) is never
+    # re-presented in a second one -- one notice, one packet, one signature
+    skip = set().union(*[presented_in(Path(p)) for p in exclude or []]) if exclude else set()
+    open_notices = [n for n in _notices(root) if not _signed(n) and block_and_sha(root, n)[1] not in skip]
     batch, individual = [], []
     for n in open_notices:
         block, sha, ann = block_and_sha(root, n)
@@ -182,11 +190,13 @@ def main(argv=None) -> int:
     b.add_argument("--out", required=True)
     b.add_argument("--base-note", default="")
     b.add_argument("--version", default="V3", help="packet version label for entry ids and the batch (V4 -> V4-01, v4-A)")
+    b.add_argument("--exclude-packet", action="append", default=[],
+                   help="a pending packet whose notices must not be re-presented (repeatable)")
     g = sub.add_parser("guard")
     g.add_argument("packet")
     a = ap.parse_args(argv)
     if a.cmd == "build":
-        d = build(ROOT, a.title, Path(a.out), a.base_note, a.version)
+        d = build(ROOT, a.title, Path(a.out), a.base_note, a.version, a.exclude_packet)
         problems = guard(ROOT, Path(a.out))
         print(f"wrote {a.out}  sha256 {d}")
         for p in problems:
