@@ -202,19 +202,24 @@ If the text does not report a between-arm result for this outcome, state=NOT_REP
 """
 
 
+import threading as _threading
+_MEMBER_LOCK = _threading.Lock()     # member_records.json is read-modify-written: concurrent callers corrupted it (5 Oct)
+
+
 def _trial_text(slug, pmid, run):
     rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
     rec = next((x for x in rj.get("records", []) if str(x.get("id")) == pmid), None)
     mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
-    mrec = _j(mp) if os.path.exists(mp) else {}
-    rec = rec or mrec.get(pmid)
-    if rec is None and run:
-        from harness import fetch
-        got = fetch._efetch([pmid])
-        if got:
-            rec = got[0]
-            mrec[pmid] = rec
-            _save(mp, mrec)
+    with _MEMBER_LOCK:
+        mrec = _j(mp) if os.path.exists(mp) else {}
+        rec = rec or mrec.get(pmid)
+        if rec is None and run:
+            from harness import fetch
+            got = fetch._efetch([pmid])
+            if got:
+                rec = got[0]
+                mrec[pmid] = rec
+                _save(mp, mrec)
     return rec
 
 
