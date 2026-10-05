@@ -413,3 +413,67 @@ tocilizumab.
 **The lever is upstream, in your lane:** identity resolution, screen and acquisition. Until those trials enter our
 pool, my meta reads cannot count for them. I have stopped spending codex calls on metformin/probiotics metas for
 that reason.
+
+## 5 Oct: every accepted row mapped to a trial identity, ready for REVIEW_REFERENCE_LIST admission
+
+**The file.** `registry/model_proposals/g1_forest_row_identity.json`, produced by `scripts/g1_row_identity.py` and
+pinned to acq/k-gap `f7d4278e`. It is deterministic, offline and uses no model. It holds one record per accepted row:
+`pmid`, `doi`, `nct`, `comparator_label`, `tracker_family`, `in_our_pool`, `route_now`, `methods`, `reference` (the
+cited text), and `why` when the row is unmapped.
+
+**Methods, strongest first:**
+- `META_REFERENCE_NUMBER` — the citation number in the label, taken only if its first author is in the label too;
+- `META_REFERENCE_SURNAME_YEAR` — the row's surname and year, unique in its own meta's JATS reference list;
+- `META_REFERENCE_TITLE_ACRONYM` — the whole acronym, at least 4 characters, in a reference title;
+- `NCT_IN_LABEL`;
+- tracker attachment:
+  - `TRACKER_ID` — same family PMID or NCT;
+  - `TRACKER_NAME_EXACT` — same compact name, e.g. "CONFIRM HF" = "CONFIRM-HF [2]";
+  - `TRACKER_ACRONYM`;
+  - `TRACKER_SURNAME_YEAR` — a name ONLY with a year on both sides;
+- `TABLE_NCT` — the single NCT your trial table holds for that PMID.
+
+Ambiguity is recorded (`AMBIGUOUS_REFERENCE:n`, `AMBIGUOUS_ACRONYM_IN_TITLES:n`, `TRACKER_AMBIGUOUS`) and never
+guessed. A PMID found through a meta's reference is the report that meta CITES, which may be a secondary analysis.
+`reference` keeps that visible.
+
+**Coverage, rows (1,008 accepted rows):**
+
+| measure | rows |
+|---|---|
+| mapped to at least one id | 535 |
+| with a PMID | 408 |
+| with an NCT | 229 |
+| attached to a comparator trial in your tracker | 393 |
+
+**Coverage, target trials** (your UNVERIFIED / NO_ROW comparator trials, 255 across 22 topics):
+
+| measure | trials |
+|---|---|
+| with at least one accepted row mapped | 144 |
+| with a row from a NON-comparator meta that passed the gate | **56** |
+
+The 56 are the ones that count under the new route (data from non-comparator sources only).
+
+**Per topic, non-comparator gated / targets:**
+
+| topic | rows | topic | rows |
+|---|---|---|---|
+| colchicine-secondary | 9/13 | omega3 | 7/24 |
+| tocilizumab | 6/14 (+ second-source-only rows) | colchicine-postop-af | 5/6 |
+| dapagliflozin-hfpef | 5/6 | probiotics | 5/26 |
+| balanced-crystalloids | 3/6 | iv-iron | 3/4 |
+| spironolactone | 3/5 | melatonin | 2/18 |
+| corticosteroids-covid19 | 2/3 | glp1 | 1/1 |
+| esketamine | 1/3 | sacubitril | 1/8 |
+| sglt2-ckd | 1/9 | sglt2-primary | 1/3 |
+| ticagrelor | 1/20 | metformin | 0/38 |
+| pcsk9 | 0/10 | statins | 0/27 |
+| semaglutide-mace | 0/9 | sglt2-hfref | 0/2 |
+
+metformin, pcsk9 and statins have rows mapped only from their COMPARATORS (16, 10 and 8 trials), which the new route
+excludes.
+
+**How to attach on admission.** When REVIEW_REFERENCE_LIST admits a trial, join this file on `pmid` or `nct` (or on
+`comparator_label` for your tracker's label). The rows then reach the secondary tier with their findings intact,
+including POOL_UNCHECKABLE, the 99% interval level and resolved-value bases.
