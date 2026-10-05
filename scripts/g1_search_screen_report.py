@@ -147,7 +147,7 @@ def main():
         m = v["same_11_at_main_469a97eb"]
         L += ["## Verification of this branch", "",
               f"Full test suite on the worker at {v['commit'][:10]}: {v['pytest_full_suite']['passed']} passed, "
-              f"{v['pytest_full_suite']['failed']} failed. The same {len(v['failed'])} tests at main: {m['passed']} passed, "
+              f"{v['pytest_full_suite']['failed']} failed. At main ({m.get('what_ran')}): {m['passed']} passed, "
               f"{m['failed']} failed ({m['why_that_one']}). **{v['attributable_to_this_branch']} failures are this "
               f"branch's**, all certificate / bundle / replay / gate / fix-ledger checks: {v['why']}", "",
               "verify_all refused limbs: " + "; ".join(v["verify_all"]["refused_limbs"]) + ".", ""]
