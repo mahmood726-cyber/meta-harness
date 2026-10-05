@@ -765,6 +765,29 @@ CONFIRM_BLOCKING_REFUSAL = _cre.compile(r"per[- ]?protocol|completers?\b|complet
                                         r"subgroup|different composite|estimand|cluster|cross-?over|post[- ]?hoc", _cre.I)
 
 
+_EXTRA_COMPONENT = _cre.compile(r"unstable angina|revasculari[sz]ation|hospitali[sz]ation for heart failure|"
+                                r"heart failure hospitali[sz]ation", _cre.I)
+
+
+def own_tuple_establishes_estimand(slug, span):
+    """True only when an OWN-TUPLE binding's span (the trial's own posted outcome: title | description | value) POSITIVELY
+    states the topic's registered 3-point MACE composite: the shared estimand gate passes
+    (harness.extract.composite_component_mismatch == ''), no extra component is named anywhere, and every 3-point component
+    is named (cardiovascular death, myocardial infarction, stroke). Then an EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH refusal
+    written against a DIFFERENT estimate of the trial (its 4-point primary: TECOS 'MACE plus ... unstable angina') does not
+    veto it. Any other topic / span: False (the refusal stands)."""
+    from harness import extract
+    p = os.path.join(ROOT, "topics", f"{slug}.json")
+    name = (((_j(p) if os.path.exists(p) else {}).get("primary_outcome") or {}).get("name") or "")
+    if not _cre.search(r"\b3[\s-]?point|three-point", name, _cre.I) or not _cre.search(r"mace|adverse cardiovascular", name, _cre.I):
+        return False
+    s = span or ""
+    if extract.composite_component_mismatch(name, s) or _EXTRA_COMPONENT.search(s):
+        return False
+    return bool(_cre.search(r"(cardiovascular|cv)[- ](related )?(death|mortality)|death from cardiovascular", s, _cre.I)
+                and _cre.search(r"myocardial infarction|\bMI\b", s, _cre.I) and _cre.search(r"stroke", s, _cre.I))
+
+
 def confirm_blocked(x):
     """Why a comparator trial may NOT be confirmed by a primary binding, or None: out of the topic's scope (a named
     scope / estimand difference), or our own typed refusal says the comparator's value is not the trial's result for
@@ -800,6 +823,12 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
         v, span = b.get("values") or {}, b.get("span") or ""
         src = f"{'TEXT' if b.get('source_kind') == 'TEXT' else 'AACT'} {b.get('source')}"
         blocked = confirm_blocked(x)
+        if (blocked == "TYPED_REFUSAL:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH" and b.get("own_tuple")
+                and own_tuple_establishes_estimand(o.get("slug"), b.get("span"))):
+            # the refusal concerns a DIFFERENT estimate of the trial; this own tuple's span states the registered one
+            x["estimand_refusal_superseded"] = {"refusal": x.get("absent_code"), "our_refusal": (x.get("our_refusal") or "")[:200],
+                                                "by": b.get("source"), "span": b.get("span")}
+            blocked = None
         arms = None
         if not blocked and b.get("tuple_kind") == "COUNTS" and b.get("source_kind") == "TEXT":
             # arm ownership RE-CHECKED from the committed span, never taken from the binder's own verdict
@@ -1572,6 +1601,8 @@ def lane_comparator_rows(slug, comp, ours):
     sp = os.path.join(OUT, "g1_comparator_rows.json")
     out, used = [], []
     for src in (_j(sp) if os.path.exists(sp) else []):
+        if src.get("slugs") and slug not in src["slugs"]:
+            continue                       # a source scoped to named topics (g1/forest-reader-binding) speaks for no other
         try:
             commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
                                     text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()

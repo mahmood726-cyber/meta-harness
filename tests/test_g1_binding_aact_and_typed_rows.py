@@ -81,3 +81,48 @@ def test_a2b_refuses_an_extra_component_even_without_the_word_composite():
                [{"outcome_id": "1", "param_type": "Hazard Ratio (HR)", "param_value": "0.98", "ci_lower": "0.88", "ci_upper": "1.09"}])
     ok, ref = ba.candidates(reg, {"1": "Time to first event"}, TOPIC, KW, "HR")
     assert ok == [] and ref[0]["gate"] == "A2_ESTIMAND" and "A2b" in ref[0]["why"]
+
+
+# ---- the EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH false-positive class (TECOS, dpp4-mace-t2d) -------------------------
+TECOS_3PT = ("Percentage of Participants With First Confirmed CV Event of MACE (Intent to Treat Population) | CV composite "
+             "endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke. | Hazard Ratio (HR) 0.99 [0.89, 1.1]")
+TECOS_4PT = ("Percentage of Participants With First Confirmed CV Event of Major Adverse Cardiovascular Event (MACE) Plus (Intent "
+             "to Treat Population) | Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, "
+             "nonfatal stroke, or unstable angina requiring hospitalization. | Hazard Ratio (HR) 0.98 [0.89, 1.08]")
+
+
+def _tecos_o():
+    return {"slug": "dpp4-mace-t2d", "trials": [{"label": "TECOS", "route": "NO_ROW", "comparator_row": None,
+                                                 "absent_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
+                                                 "our_refusal": "declared absent (estimand mismatch): TECOS's primary is a FOUR-point composite"}]}
+
+
+def _bind(o, tmp_path, span, effect, lower, upper, own=True):
+    import g1_tracker as gt
+    b = {"slug": "dpp4-mace-t2d", "label": "TECOS", "own_tuple": own, "tuple_kind": "EFFECT_CI", "source_kind": "AACT",
+         "source": "AACT NCT00790205", "values": {"measure": "HR", "effect": effect, "lower": lower, "upper": upper}, "span": span}
+    p = tmp_path / "b.json"
+    p.write_text(json.dumps({"bindings": [b]}), encoding="utf-8")
+    return gt.apply_confirm_bindings(o, str(p))
+
+
+def test_tecos_registered_3_point_tuple_is_not_vetoed_by_the_4_point_refusal(tmp_path):
+    o = _tecos_o()
+    assert _bind(o, tmp_path, TECOS_3PT, "0.99", "0.89", "1.1") == ["TECOS"]
+    x = o["trials"][0]
+    assert x["route"] == "PRIMARY" and x["our_value"]["effect"] == "0.99" and x["estimand_refusal_superseded"]
+
+
+def test_a_true_4_point_mace_tuple_is_still_refused(tmp_path):
+    o = _tecos_o()
+    assert _bind(o, tmp_path, TECOS_4PT, "0.98", "0.89", "1.08") == []
+    assert o["trials"][0]["confirm_binding"]["why"] == "TYPED_REFUSAL:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH"
+
+
+def test_the_veto_is_lifted_only_for_own_tuples_and_only_on_3_point_mace_topics(tmp_path):
+    import g1_tracker as gt
+    o = _tecos_o()
+    assert _bind(o, tmp_path, TECOS_3PT, "0.99", "0.89", "1.1", own=False) == []          # comparator-keyed: never lifted
+    assert gt.own_tuple_establishes_estimand("dpp4-mace-t2d", TECOS_3PT)
+    assert not gt.own_tuple_establishes_estimand("dpp4-mace-t2d", "MACE | CV death or stroke | HR 1.0 [0.9, 1.1]")  # no MI
+    assert not gt.own_tuple_establishes_estimand("esketamine-trd-madrs", TECOS_3PT)        # not a 3-point MACE topic
