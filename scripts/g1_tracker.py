@@ -878,6 +878,21 @@ def acquired_rows(slug):
     return {r["label"]: r for r in _j(p).get("rows") or [] if r.get("verdict") == "ADMITTED" and r.get("admitted")}
 
 
+def no_open_source(x):
+    """True only when it is KNOWN that no open source holds the trial's result: its report has no held open full text
+    (fulltext_index state is not HELD) and its registration posts no results (or it has none). Unknown is not 'none'."""
+    fam = str(x.get("family") or "")
+    pmid = fam.replace("PMID ", "") if fam.startswith("PMID ") else (x.get("seeded_funnel") or {}).get("pmid")
+    if not pmid:
+        return False
+    p = os.path.join(OUT, "fulltext_index.json")
+    st = ((_j(p) if os.path.exists(p) else {}).get(str(pmid)) or {}).get("state")
+    if st in (None, "HELD", "FETCH_EMPTY", "IDCONV_FAILED"):
+        return False                      # held, or not yet known
+    rb = x.get("registry_binding") or {}
+    return rb.get("state") in (None, "NO_POSTED_RESULTS")
+
+
 _CLUSTER = re.compile(r"ENGINE_CANNOT_CONSUME\(design=(cluster\w*|stepped_wedge)", re.I)
 
 
@@ -1646,6 +1661,10 @@ def blocker_class(x, slug):
         # Handbook (decision 5 Oct, Mahmood's delegation): pooling unadjusted counts from a cluster design is a
         # unit-of-analysis error; the trial reports no ICC and no design-adjusted effect on our measure
         return f"UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE:{cluster_design_of(x)}"
+    if x.get("absent_code") in ("OUTCOME_NOT_IN_SOURCE", "COUNTS_PRESENT_NOT_CORROBORATED") and no_open_source(x):
+        # admitted by our screen, but no open source states the result: no held open full text, no posted registry
+        # results (colchicine-postop Imazio [19]: abstract percentages only, no PMC copy, NCT00128427 posts nothing)
+        return f"NO_OPEN_SOURCE:{x['absent_code']}"
     if x.get("absent_code"):
         return f"EXTRACTION:{x['absent_code']}"
     if x["family"] is None:
