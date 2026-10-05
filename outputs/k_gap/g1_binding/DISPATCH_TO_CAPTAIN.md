@@ -110,7 +110,7 @@ report difference, not a value error.
 |---|---|---|
 | Confalonieri | 15557131 | — |
 | Marik | 8339624 | — |
-| Wagner 1956 BMJ | 4404939 | — |
+| McHardy & Schonell 1972 BMJ (corrected: earlier mislabelled "Wagner 1956") | 4404939 | — |
 | Snijders | 20133929 | NCT00170196, no posted results |
 | Meijvis | 21636122 | NCT00471640, no posted results |
 | Mikami | 17710485 | — |
@@ -229,3 +229,57 @@ still binds UNVERIFIED rows only (plant).
 |---|---|---|
 | Koh | mc-1450a895 | CC BY-NC |
 | Seeman | mc-ad533f04 | Unpaywall, licence unclear |
+
+## Update (5 Oct, 04:00): esketamine 2 of 2 named; cortico-CAP 3 of 7 SECONDARY_SINGLE
+
+### esketamine: both trials named by NEW rules F7 / F8 (`scripts/g1_binding_findings.py`, 4 plants)
+
+**Trial E: F7 COMPARATOR_ROW_CONTRADICTS_ITS_CITATION + F7-SCOPE.**
+- The comparator's own Table 2 row reads "RW, double-blind maintenance after open-label induction/stabilization",
+  primary endpoint "Time to relapse".
+- The report it cites, [25] Wajs 2020, is the open-label SUSTAIN-2; AACT designs is SINGLE_GROUP.
+- On either reading the trial is out of scope: the endpoint is not the topic's Day-28 MADRS. Proposed name: NOT_ELIGIBLE.
+- **Bonus: Trial F** (SUSTAIN-1, NCT02493868), same F7-SCOPE (Time to relapse).
+
+**Trial B: F8 COMPARATOR_DECLARED_ARM.** The comparator's regimen cell declares "Fixed-dose 84 mg"; its row is N 114/109.
+Recomputed from the trial's posted observed-case Day-28 means (AACT outcome 258346928):
+
+| Contrast | MD (95% CI) |
+|---|---|
+| 84 mg (−18.8, SD 14.12, n 98) − placebo (−14.8, SD 15.07, n 108) | **−4.0 (−7.99, −0.01)** |
+| both doses combined (Cochrane Handbook 6.5.2.10) − placebo | −4.11 (−7.52, −0.69) |
+| **comparator** | **−5.00 (−8.10, −1.90)** |
+
+- DECLARED_ARM_VALUE_NOT_REPRODUCED.
+- The topic's multi-arm rule still refuses binding; the captain may decide whether the comparator's own dose
+  declaration resolves it.
+
+### cortico-CAP: 3 of 7 newly verified as SECONDARY_SINGLE (k 3 → 6 of 11, A/B, tracker restored)
+
+**Source.**
+- PMID 42402602 (Crit Care 2026, PMC13613698), a dose network meta-analysis. **Not the comparator** (38128217).
+- Per-trial deaths by arm are in its open supplementary eTable 4 (Europe PMC supplementaryFiles). The main-text tables
+  of all 5 open CAP metas found are characteristics only.
+- The supplement is CC BY-NC-ND: it is held gitignored, and only typed numbers + supplement sha256 are committed
+  (`secondary_corticosteroids-cap-mortality.json`).
+
+**Positive control** (`scripts/g1_binding_secondary.py` S2). The meta's own printed results are reproduced from its own
+34 rows under its own printed rules, equal at printed precision:
+- the rules: ≥ 7.5 mg/d dexamethasone-equivalent = higher dose; 0.5 for single-zero; double-zero excluded; τ² printed 0,
+  so inverse-variance common effect;
+- the results: higher dose RR 0.83 (0.74–0.92), lower dose 0.84 (0.75–0.95).
+
+| Trial | Result |
+|---|---|
+| Marik 1993 | **1/14 vs 3/16** SECONDARY_SINGLE |
+| McHardy & Schonell 1972 | **3/40 vs 9/86** SECONDARY_SINGLE (4-group trial: both steroid arms vs both non-steroid arms, as the meta combines them) |
+| Blum 2015 (STEP) | **16/392 vs 13/393** SECONDARY_SINGLE |
+| Confalonieri 2005 | refused ARM_N_INCONSISTENT_WITHIN_SOURCE (mortality control N 22; the same source's other rows 23) |
+| Mikami 2007 | refused ARM_N_SWAPPED_WITHIN_SOURCE (mortality 16/15; other rows 15/16) |
+| Snijders 2010 | refused SUBGROUP_SPLIT_ROWS (two '*' subgroup rows whose N sum is the swap of its other rows) |
+| Meijvis 2011 | refused SECONDARY_OF_SECONDARY (the source's own data-source column: "Secondary source (Pitre 2025)") |
+
+**Tracker hook** `apply_secondary_bindings` re-checks offline: not the comparator (PMID/DOI); control reproduced; binds
+NO_ROW/UNVERIFIED only. Agreement: NOT_COMPARABLE (the tracker holds no comparator values for these trials).
+
+**Correction.** PMID 4404939 is McHardy & Schonell 1972, not "Wagner 1956" as the earlier blocked table said.
