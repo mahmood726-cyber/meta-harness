@@ -19,6 +19,26 @@ import g1_forest_reader as gfr  # noqa: E402
 import secondary_meta_build as smb  # noqa: E402
 
 
+def title_of(pmid, run):
+    """A meta's recorded title; fetched from Europe PMC and recorded when run and not yet held. None otherwise."""
+    from harness import http
+    rec = gfr._j(smb.LANE_TITLES) if os.path.exists(smb.LANE_TITLES) else {"titles": {}}
+    e = (rec.get("titles") or {}).get(str(pmid))
+    if e or not run:
+        return (e or {}).get("title")
+    try:
+        st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                             {"query": f"EXT_ID:{pmid} AND SRC:MED", "format": "json", "resultType": "lite"}, tries=3)
+    except Exception:  # noqa: BLE001 - not recorded; the caption alone decides this time
+        return None
+    r = (json.loads(b.decode("utf-8")).get("resultList") or {}).get("result") or []
+    rec = gfr._j(smb.LANE_TITLES) if os.path.exists(smb.LANE_TITLES) else {"titles": {}}
+    rec.setdefault("titles", {})[str(pmid)] = {"title": r[0].get("title") if r else None,
+                                               "sha256": hashlib.sha256(b).hexdigest()}
+    gfr._save(smb.LANE_TITLES, rec)
+    return rec["titles"][str(pmid)]["title"]
+
+
 def main():
     from harness import http
     o = gfr._j(gfr.OUT)

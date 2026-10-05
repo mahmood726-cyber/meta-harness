@@ -1916,6 +1916,28 @@ class RunLock:
             pass
 
 
+def _meta_title(pmid, run):
+    """The meta's own title (recorded in g1_lane_meta_titles.json; fetched and recorded there when run)."""
+    import g1_lane_meta_titles as lmt
+    return lmt.title_of(pmid, run)
+
+
+def intervention_skip(its, skipped, run):
+    """Before any model call: a META figure (never the comparator's) whose caption and title do not name the topic's
+    intervention is skipped (secondary_meta_build.lane_intervention_refusal), recorded in skipped."""
+    import secondary_meta_build as smb
+    kept = []
+    for it in its:
+        if str(it["pmid"]) != str(comparator_of(it["slug"])):
+            why = smb.lane_intervention_refusal(smb.topic_intervention_terms(it["slug"]),
+                                                (it.get("figure") or {}).get("caption"), _meta_title(it["pmid"], run))
+            if why:
+                skipped[f"{it['slug']}::{it['pmid']}"] = why
+                continue
+        kept.append(it)
+    return kept
+
+
 def main(argv):
     """SLUG ... reads each topic's comparator; --metas reads instead the OTHER metas the two-source sweep selects for
     those topics (--all: every topic in the tracker)."""
@@ -1940,6 +1962,7 @@ def main(argv):
         its, skipped = items([], run, pairs=sweep(slugs, run, wide="--wide" in argv, deep="--deep" in argv))
     else:
         its, skipped = items(slugs, run)
+    its = intervention_skip(its, skipped, run)
     if "--verify-replay" in argv:
         probs = []
         for k, r in sorted(runs.items()):
