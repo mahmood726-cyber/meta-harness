@@ -796,6 +796,7 @@ def main(argv):
     # the discovered open metas' forest plots (407 held on 4 Oct with no typed table and no figure ever read) -- every
     # read is a recorded proposal through the same gate, capped by --max-reads, ledgered per read
     need = next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--need=")), 2)
+    workers = next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--workers=")), 5)
     runs = runs_store.load()
     fig, fig_state, todo = {}, {}, []
     for s, ts in sorted(tg.items()):
@@ -846,7 +847,7 @@ def main(argv):
                     todo.append(dict(it, key=f"{s}::{m}", counts_read=True))
     todo = todo[:max_reads] if run else []
     if todo:
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:              # codex concurrency 3
+        with cf.ThreadPoolExecutor(max_workers=workers) as ex:        # codex concurrency (--workers, default 5)
             for r in ex.map(lambda it: read_ref(it) if it.get("key") else smb.read_one(it), todo):
                 runs[r["key"]] = r
                 runs_store.save(runs, slugs={r["key"].split("::")[0]})   # ledgered per read: a kill never re-pays

@@ -487,3 +487,52 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
    - 5 Oct: it read a private workbook during a forest read (read-only sandboxes allow reads).
    - Committed logs no longer keep tool output (fixed and planted).
    - The calls themselves should run with user-level client instructions disabled, or in a sandbox with no access outside the work dir. That is a harness-wide setting, so it is not changed by this lane.
+
+## To the captain / Mahmood: full-cascade burn, round 1 (6 Oct) — acq/k-gap 72f4c40c1 … 325049569
+
+### Licence finding (needs Mahmood): 44 committed records carry non-CC full text — none on main
+
+The guard missed a prompt shape: whole-text `<<<TEXT … TEXT>>>` blocks.
+- These come from 4 scripts: `k_gap_upw_locate` 13, `g1_table_locator` 19, `k_gap_propose_members` 9, `k_gap_result_agreement` 3.
+- The texts are NEJM, JAMA and other non-CC copies; 7 of 8 unrecorded PMC licences resolved to NOT_OPEN.
+- All 44 are listed in `registry/record_licence_exceptions.json`, so consolidation excludes them.
+- 12 of them fed comparator-membership identification and result agreement. Those are derived facts, not copied numbers, so the rows are kept.
+- **Quarantine or a history rewrite is Mahmood's call.**
+
+**Prevention.** `model_call_live.call` now runs the licence guard on the would-be record before sending (`LicenceRefused`). The guard resolves every declared source to a licence from held data.
+
+### What the cascade now does
+
+**Order:** AACT → PMC → Unpaywall (shown only if CC) → FDA reviews and labels → EMA (shown with an acknowledgement, on Mahmood's word) → NICE → independent metas (the two-source sweep).
+
+**NICE:**
+- Typed discovery:
+  - TA: committee papers (ERG/EAG) and the FAD;
+  - NG/CG: evidence reviews.
+- Every NICE document held so far states notice-of-rights, not OGL/CC (215 texts). They are read only by the typed extractor and never shown to a model.
+
+**Typed first:** a model is called only where typed extraction finds nothing.
+- The trial's own open held text: its outcome-table row.
+- A regulator's counts: one trial-named line with two percent-corroborated `e/N (p%)` cells, arms taken from a header naming both.
+
+**Regulator gate:** a figure must match the estimand, population and timepoint, be verbatim, and carry the trial's randomised N; a subpopulation is refused.
+
+### Round 1 run
+
+**Scope:** all 32 topics, 5 workers. The worker box has no codex CLI and no credentials, so it is idle; giving it codex needs Mahmood.
+
+**Trials:** 157 → 50 recorded calls (10 carried FDA/EMA windows) + 107 with no open source.
+- Of the 107: 62 have a PMID but are paywalled, with no posted results and no open copy; 45 have no PMID.
+
+**Admitted:** 3.
+- HEART-FID and AFFIRM-AHF, as before.
+- SALT (balanced crystalloids), from posted counts. The ratified unit-of-analysis gate then refuses it: cluster-crossover, unadjusted.
+
+**Defect fixed (with a plant):** replay rewrote acquired files from this lane's proposals alone. That dropped TECOS (dpp4), and INDEPENDENT read 91 until it was fixed.
+
+**Recount** (tracker → lane import → table): G1_MATCHED 9, INDEPENDENT 92/361, COVERAGE 164/361, eligible 239.
+
+**In progress:**
+- the all-topic two-source sweep (5-wide, up to 200 forest reads);
+- regulatory holding for every topic;
+- then round 2, which re-asks every trial whose evidence changed.
