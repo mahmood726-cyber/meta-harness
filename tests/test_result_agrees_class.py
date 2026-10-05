@@ -49,7 +49,11 @@ def test_mixed_comparable_and_measure_difference_pairs():
     pairs = [(R("K", "RR", counts=(1, 171, 7, 149), who="OURS"), R("K", "RR", "0.12", "0.02", "1.00", counts=(1, 171, 7, 149))),
              (R("W", "HR", "0.73", "0.61", "0.88", who="OURS"), R("W", "RR", "0.74", "0.62", "0.88"))]
     st = gt.same_trials_compare(pairs, "PM")
-    assert st["verdict"]["verdict"] == "AGREE" and len(st["measure_differences"]) == 1
+    # the mixed case is typed: one comparable pair, the HR-vs-RR pair a named measure difference. The verdict follows
+    # D2-ONE-TRIAL-SHARE (registry/g1_decisions.json): W carries no participant count, so the share cannot be shown and
+    # one small comparable trial (K, 320 people) does not carry the topic (fail-closed). Before D2 this asserted AGREE.
+    assert st["state"] == "ONE_COMPARABLE_TRIAL" and len(st["measure_differences"]) == 1
+    assert st["verdict"]["verdict"] == "ONE_TRIAL_MINORITY_SHARE" and not st["participant_share"]["passes"]
 
 
 def test_printed_k_and_the_whole_pool_measure_difference():

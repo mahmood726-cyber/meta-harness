@@ -257,7 +257,7 @@ def same_trials_compare(pairs, method_label):
       only measure differences  MEASURE_DIFFERENCE: our HR vs their RR/OR is never converted; it passes only on the
                               SAME CONCLUSION about the null (per pair, and pooled when both sides pool)
     Every measure-difference pair is listed (trial, both values, both conclusions)."""
-    comp, md = [], []
+    comp, md, md_pairs, skipped = [], [], [], []
     for o_, t_ in pairs:
         row, why = on_comparator_measure(o_, t_)
         if row is not None:
@@ -265,7 +265,9 @@ def same_trials_compare(pairs, method_label):
             continue
         eo, et = _est(o_), _est(t_)
         if eo is None or et is None:
+            skipped.append((o_, t_))
             continue
+        md_pairs.append((o_, t_))
         md.append({"trial": t_.trial_label or o_.trial_label, "why": why,
                    "ours": {"measure": o_.measure, **{k: round(v, 4) for k, v in eo.items()}},
                    "theirs": {"measure": t_.measure, **{k: round(v, 4) for k, v in et.items()}},
@@ -310,7 +312,78 @@ def same_trials_compare(pairs, method_label):
         if v == "AGREE" and not md_ok:
             out["verdict"] = dict(out["verdict"], verdict="DIFFERENT_CONCLUSION",
                                   why="a measure-difference pair reaches another conclusion about the null")
+    if out.get("state") == "ONE_COMPARABLE_TRIAL":
+        # D2-ONE-TRIAL-SHARE (registry/g1_decisions.json): one comparable trial carries the topic only with at least half
+        # of the shared trials' participants; every other shared pair a same-conclusion measure difference
+        sh = one_trial_share(comp, md_pairs, skipped, md_ok)
+        out["participant_share"] = sh
+        if (out.get("verdict") or {}).get("verdict") == "AGREE" and not sh["passes"]:
+            out["verdict"] = dict(out["verdict"], verdict="ONE_TRIAL_MINORITY_SHARE", why=sh["why"],
+                                  decision="D2-ONE-TRIAL-SHARE")
     return out
+
+
+ONE_TRIAL_SHARE_MIN = 0.5
+
+
+def _participants(*rows):
+    """Participants of one shared trial: n_t + n_c from our verified row, else from the comparator's; None if neither."""
+    for r in rows:
+        try:
+            return int(r.n_t) + int(r.n_c)
+        except (TypeError, ValueError, AttributeError):
+            continue
+    return None
+
+
+def one_trial_share(comp, md_pairs, skipped, md_ok):
+    """D2: the comparable AGREE pair's share of ALL shared trials' participants (comparable + measure-difference +
+    unestimable pairs). Fails closed on a missing count, an unestimable shared pair, or a measure difference with
+    another conclusion."""
+    per = [{"trial": t.trial_label or o.trial_label, "kind": kind, "participants": _participants(o, t)}
+           for kind, ps in (("COMPARABLE", comp), ("MEASURE_DIFFERENCE", md_pairs), ("NOT_ESTIMABLE", skipped))
+           for o, t in ps]
+    agree_n = sum(p["participants"] or 0 for p in per if p["kind"] == "COMPARABLE")
+    total = sum(p["participants"] or 0 for p in per)
+    share = (agree_n / total) if total else None
+    why = None
+    if any(p["participants"] is None for p in per):
+        why = "a shared trial has no participant count: the share cannot be computed (fail-closed)"
+    elif skipped:
+        why = "a shared pair is neither comparable nor a measure difference with an estimate (fail-closed)"
+    elif not md_ok:
+        why = "a measure-difference pair reaches another conclusion about the null"
+    elif share is None or share < ONE_TRIAL_SHARE_MIN:
+        why = (f"the one comparable trial carries {agree_n} of {total} shared participants "
+               f"({0 if share is None else round(100 * share, 1)}%), under the {int(100 * ONE_TRIAL_SHARE_MIN)}% the rule needs")
+    return {"decision": "D2-ONE-TRIAL-SHARE", "agree_participants": agree_n, "shared_participants": total,
+            "share": None if share is None else round(share, 4), "min": ONE_TRIAL_SHARE_MIN, "passes": why is None,
+            "why": why, "per_trial": per}
+
+
+DECISIONS = os.path.join(ROOT, "registry", "g1_decisions.json")
+
+
+def g1_decisions():
+    return (_j(DECISIONS).get("decisions") or []) if os.path.exists(DECISIONS) else []
+
+
+def comparator_pools_no_rct(slug, comp=None):
+    """D3: the decision's quoted span, when the decision names this topic AND the span is verbatim in the comparator's
+    own held record (whitespace-normalised); else None (fail-closed: a span not in its source decides nothing)."""
+    import html as _h
+    d = next((x for x in g1_decisions() if x.get("id") == "D3-COMPARATOR-POOLS-NO-RCT"), None)
+    t = ((d or {}).get("topics") or {}).get(slug)
+    if not t or (comp and str(t.get("comparator_pmid")) != str(comp)):
+        return None
+    sp = t.get("span") or {}
+    fp = os.path.join(ROOT, sp.get("source") or "")
+    if not sp.get("text") or not os.path.isfile(fp):
+        return None
+    norm = lambda x: re.sub(r"\s+", " ", _h.unescape(x))  # noqa: E731
+    if norm(sp["text"]) not in norm(re.sub(r"<[^>]+>", " ", open(fp, encoding="utf-8", errors="replace").read())):
+        return None
+    return {"decision": d["id"], "span": sp, "flag": t.get("flag"), "comparator_pmid": t.get("comparator_pmid")}
 
 
 _NUMW = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
@@ -2393,6 +2466,12 @@ def g1_status(o):
     excl = {"n": len(nd), "of_comparator_N": N,
             "by_kind": dict(Counter(d.get("kind") for d in nd)),
             "trials": [f"{d.get('trial')} [{d.get('rule_id') or d.get('gate')}]" for d in nd]}
+    npr = comparator_pools_no_rct(o.get("slug"), o.get("comparator_pmid"))
+    if npr:
+        # D3: G1 is not attainable against this comparator; the topic stays in the denominator
+        return {"state": "COMPARATOR_POOLS_NO_RCT", "criteria": {}, "unmet": ["COMPARATOR_POOLS_RCTS"],
+                "excluded_by_scope": excl, "decision": npr["decision"], "span": npr["span"], "flag": npr["flag"],
+                "why": "the comparator pools no randomised trials: an RCT review cannot match it trial for trial"}
     if not o.get("N_comparator_trials", len(tr)):
         cs = o.get("comparator_set") or {}
         return {"state": "COMPARATOR_NOT_ENUMERATED", "criteria": {}, "unmet": ["COMPARATOR_TRIAL_LIST"],
@@ -3111,6 +3190,7 @@ def table():
     with open(os.path.join(OUT, "G1_TRACKER.md"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(md) + "\n")
     canon = canonical(out)
+    canon["decisions"] = [{k: d.get(k) for k in ("id", "decided", "by", "rule", "applied_in")} for d in g1_decisions()]
     tmp = os.path.join(OUT, f"G1_TRACKER.json.{os.getpid()}.tmp")
     with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(canon, fh, indent=1, ensure_ascii=False, sort_keys=True)
