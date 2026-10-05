@@ -70,3 +70,9 @@ by fixed-effect meta-analysis, with a random-effects OR 0.70 (95% CI 0.48-1.01).
   methylprednisolone (PMID 32785710).
 - **Negative** - Torres/JAMA methylprednisolone for severe community-acquired
   pneumonia (PMID 25688779) must be recovered and excluded as the wrong population.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 32876694) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 35343397, 33612824; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 5 of 5 of the comparator's eligible trials; with this route and the full retrieval below, 5 of 5 (5 of 5 without the comparator's own reference list, which contains its trials by construction). The route retrieves 1757 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "COVID-19", "intr": "dexamethasone"} is unchanged. It returns 110 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-fbfe463a4102ba28e27d3cfb29fd561a.json).

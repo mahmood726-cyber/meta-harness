@@ -68,3 +68,8 @@ therefore not claim an identical trial set.
 - **Positive** - DELIVER (PMID 36027570) must be recovered and included.
 - **Negative** - DAPA-HF (PMID 31535829), a dapagliflozin/placebo trial with the same
   endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 36914068) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 34336954, 34308311; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 1 of 3 of the comparator's eligible trials; with this route and the full retrieval below, 1 of 3 (1 of 3 without the comparator's own reference list, which contains its trials by construction). The route retrieves 150 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-6cf25f6726e3342ffa87893595cb9758.json).

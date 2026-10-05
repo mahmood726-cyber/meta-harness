@@ -64,3 +64,9 @@ outcome trials" (PMID 34754403, PMC8554356, DOI 10.4330/wjc.v13.i10.585).
 - **Positive** - the search must recover and include TECOS (PMID 26052984).
 - **Negative** - DECLARE-TIMI 58 (dapagliflozin in type 2 diabetes, PMID 30415602)
   must be recovered and EXCLUDED as wrong intervention.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 34754403) backward reference list (PubMed elink and Europe PMC) and its forward citations; no other open meta-analysis is held for this topic yet. Rationale: the registered search identified 5 of 5 of the comparator's eligible trials; with this route and the full retrieval below, 5 of 5 (5 of 5 without the comparator's own reference list, which contains its trials by construction). The route retrieves 87 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "type 2 diabetes", "intr": "DPP-4 inhibitor"} is unchanged. It returns 244 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: volume 6894 > cap 5000; recorded call mc-65afae791f805fc027209c42ab91327f.json).

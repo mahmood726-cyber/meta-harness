@@ -135,6 +135,7 @@ def topic(slug, acq_meta):
                                                                                    "COMPARATOR_REFERENCE_LIST")
                  for i in src.get("ids") or []}
     dual = {(it["slug"], it["label"]): it for it in (acq_meta.get("dual") or {}).get("items") or []}
+    branch = (acq_meta.get("branch") or {}).get(slug) or {}
     rows = []
     for t in g["trials"]:
         pm, nc, src = trial_ids(t, chain, ktab)
@@ -150,6 +151,12 @@ def topic(slug, acq_meta):
         inc = [d for d in dec if d.get("decision") == "include"]
         screen = ("NOT_SCREENED" if not dec else "INCLUDED" if inc else "EXCLUDED")
         exc = None if inc or not dec else dec[0]
+        # the same records under THIS branch's screener (screen.run only: X-DEDUP / X-CONTRAST run after it, so a served
+        # X-DEDUP / X-CONTRAST exclusion is carried over, never reversed by the snapshot)
+        bdec = [branch.get(x) for x in sorted((own | fam) & set(screened)) if branch.get(x)]
+        post = [d for d in dec if d.get("rule_id") in ("X-DEDUP", "X-CONTRAST")]
+        screen_branch = ("NOT_SCREENED" if not dec else "EXCLUDED" if post and not inc else
+                         "INCLUDED" if any(b["decision"] == "include" for b in bdec) else "EXCLUDED" if bdec else screen)
         om = sorted(set().union(*(other_meta.get(x, set()) for x in own | fam))) if own else []
         p = probe.get(t["label"]) or {}
         rrl_hit = sorted(own & rrl_ids) if own else []
@@ -173,7 +180,7 @@ def topic(slug, acq_meta):
                     "independent_hit": rrl_ind},
             "identified_fixed": fixed, "identified_fixed_independent": fixed_ind,
             "identified_any": search.startswith("IDENTIFIED") or bool(om),
-            "screen": screen,
+            "screen": screen, "screen_branch": screen_branch,
             "screen_exclusion": ({"record": exc["record"], "rule_id": exc.get("rule_id"), "reason": exc.get("reason"),
                                   "span": exc.get("span"), "stage": _stage(exc),
                                   "adjudicator": exc.get("adjudicator_state")} if exc else None),
@@ -196,6 +203,7 @@ def topic(slug, acq_meta):
         "search_recall": {"n": len(found), "N": len(el)},
         "search_or_rrl_other_recall": {"n": sum(1 for r in el if r["identified_any"]), "N": len(el)},
         "screen_recall": {"n": len(s_in), "N": len(found)},
+        "screen_recall_branch": {"n": sum(1 for r in found if r["screen_branch"] == "INCLUDED"), "N": len(found)},
         "fixed_identification_recall": {"n": sum(1 for r in el if r["identified_fixed"]), "N": len(el)},
         "rrl_standing_recall": {"n": sum(1 for r in el if r["rrl"]["standing_route_hit"]), "N": len(el)},
         "fixed_identification_recall_independent": {"n": sum(1 for r in el if r["identified_fixed_independent"]),
@@ -224,7 +232,9 @@ def load_acq():
     rrl = _j(rp).get("topics", {}) if os.path.exists(rp) else {}
     dp = os.path.join(OUT, "screen_dual_review.json")
     dual = _j(dp) if os.path.exists(dp) else {}
-    return {"k_gap_table": kt or {}, "secondary_meta": sm, "probe": probe, "rrl": rrl, "dual": dual,
+    bp = os.path.join(OUT, "screen_snapshot_branch.json")      # every held decision under THIS branch's screener
+    branch = _j(bp) if os.path.exists(bp) else {}
+    return {"k_gap_table": kt or {}, "secondary_meta": sm, "probe": probe, "rrl": rrl, "dual": dual, "branch": branch,
             "pins": {"acq_commit": ACQ_COMMIT, "k_gap_table_sha256": kt_sha, "secondary_meta_sha256": shas}}
 
 
@@ -242,7 +252,7 @@ def main(argv):
            "denominator_mismatch": bad,
            "totals": {"topics": len(topics), "N_comparator": sum(t["N_comparator"] for t in topics),
                       "search_recall": tot("search_recall"), "search_or_rrl_other_recall": tot("search_or_rrl_other_recall"),
-                      "screen_recall": tot("screen_recall"),
+                      "screen_recall": tot("screen_recall"), "screen_recall_branch": tot("screen_recall_branch"),
                       "rrl_standing_recall": tot("rrl_standing_recall"),
                       "fixed_identification_recall": tot("fixed_identification_recall"),
                       "fixed_identification_recall_independent": tot("fixed_identification_recall_independent"),

@@ -71,3 +71,9 @@ tocilizumab subgroup summary OR is 0.83 (95% CI 0.74-0.92).
   (PMID 33933206), EMPACTA (PMID 33332779), and COVACTA (PMID 33631066).
 - **Negative** - GiACTA tocilizumab for giant-cell arteritis (PMID 28745999) must
   be recovered and excluded as the wrong population.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 34228774) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 35343397, 34768455; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 10 of 19 of the comparator's eligible trials; with this route and the full retrieval below, 17 of 19 (17 of 19 without the comparator's own reference list, which contains its trials by construction). The route retrieves 624 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "COVID-19", "intr": "tocilizumab"} is unchanged. It returns 86 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-8523060ee73d2b83789a590600277b32.json).

@@ -38,3 +38,8 @@ The comparator is Wei et al., "Efficacy and safety of pharmacologic therapies fo
 ## Controls
 - Positive control: FREEDOM, PMID 19671655.
 - Negative control: denosumab in men receiving androgen-deprivation therapy for prostate cancer, PMID 19671656.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 36852077) backward reference list (PubMed elink and Europe PMC) and its forward citations; no other open meta-analysis is held for this topic yet. Rationale: the registered search identified 0 of 0 of the comparator's eligible trials; with this route and the full retrieval below, 0 of 0 (0 of 0 without the comparator's own reference list, which contains its trials by construction). The route retrieves 41 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-6ae38d94941fcc367b0a7e7746add468.json).

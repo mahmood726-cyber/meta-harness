@@ -99,3 +99,9 @@ closed access during the build, so it was not used as the comparator.
   0.18 (0.09-0.39). It is excluded from the DOAC-vs-VKA pool because the
   comparator is placebo and the phase is extended/secondary prevention, not
   acute VTE treatment.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 24963045) backward reference list (PubMed elink and Europe PMC) and its forward citations; no other open meta-analysis is held for this topic yet. Rationale: the registered search identified 6 of 6 of the comparator's eligible trials; with this route and the full retrieval below, 6 of 6 (6 of 6 without the comparator's own reference list, which contains its trials by construction). The route retrieves 596 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "venous thromboembolism", "intr": "direct oral anticoagulant"} is unchanged. It returns 50 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-945cc8034209a5db9077d551f81fafdb.json).

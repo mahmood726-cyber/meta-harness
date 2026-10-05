@@ -30,3 +30,9 @@ The estimand is the mean difference (percentage points) in the Week-68 percent b
 
 ## Comparator
 - Published open-access meta-analysis of semaglutide 2.4 mg for weight reduction in non-diabetic overweight/obesity, for trial-set overlap and reporting comparison only. An identical estimate on an identical trial set is arithmetic, not corroboration; the overlap is stated on the page.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 42536519) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 1 other open meta-analysis (PMID 40732345; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 2 of 2 of the comparator's eligible trials; with this route and the full retrieval below, 2 of 2 (2 of 2 without the comparator's own reference list, which contains its trials by construction). The route retrieves 73 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "obesity", "intr": "semaglutide"} is unchanged. It returns 355 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-1c55956243fa0debf701303edc2c6a66.json).

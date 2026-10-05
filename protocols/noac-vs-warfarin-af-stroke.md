@@ -97,3 +97,9 @@ NCT02935855 is source-backed as non-randomized because the cached registry recor
 describes consecutive patients already receiving anticoagulants, not a randomized
 DOAC-vs-warfarin allocation. This amendment changes screening only; it does not
 change extraction or pooling.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 34985309) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 1 other open meta-analysis (PMID 32358343; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 4 of 4 of the comparator's eligible trials; with this route and the full retrieval below, 4 of 4 (4 of 4 without the comparator's own reference list, which contains its trials by construction). The route retrieves 371 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "atrial fibrillation", "intr": "edoxaban warfarin"} is unchanged. It returns 33 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-78218f99081eea9223339eed82842218.json).

@@ -74,3 +74,8 @@ SELECT population; the exact registered lane has one landmark eligible RCT.
 - **Negative** - SUSTAIN-6 (PMID 27633186: semaglutide, randomized, placebo-controlled,
   but type 2 diabetes rather than obesity without diabetes) must be recovered and
   EXCLUDED by the population rule.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 39345822) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 1 other open meta-analysis (PMID 40890879; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 1 of 2 of the comparator's eligible trials; with this route and the full retrieval below, 2 of 2 (1 of 2 without the comparator's own reference list, which contains its trials by construction). The route retrieves 111 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: volume 5005 > cap 5000; recorded call mc-984db8161135747397bf617cc473ccfd.json).
