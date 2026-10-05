@@ -334,7 +334,10 @@ def our_trials(slug):
     import k_gap_result_agreement as ra
     rev = cfm.build(slug)
     prim = next((o for o in rev["outcomes"] if o.get("primary")), {})
-    T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
+    import g1_tracker as _gt
+    # the identity chain's resolutions (acronym / author-year / REVIEW_REFERENCE_LIST ...) are families too: without
+    # them a resolved comparator unit (GISSI-HF via two metas' reference lists) could never take a meta row
+    T = _gt.with_identity_chain(_j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json")))
     rows = [r for r in T["trials"] if r["slug"] == slug]
     acr_nct, acr_pmid, nct_pmid = {}, {}, {}
     for r in rows:
@@ -758,6 +761,209 @@ def figure_rows(slug, it, run_r, spec, comp):
     return (mrows if usable else []), entry
 
 
+_LANE_CACHE = {}
+
+
+def forest_lane_results(fmt="forest_reader_v1"):
+    """The forest-reader lane's committed output (outputs/k_gap/g1_comparator_rows.json lists the source): read from the
+    lane's branch at its CURRENT commit, pinned by that commit + the blob's sha256. Returns (parsed json, pin) or
+    (None, None) when the lane's branch or file is not reachable (fail closed: no rows)."""
+    import subprocess
+    if fmt in _LANE_CACHE:
+        return _LANE_CACHE[fmt]
+    sp = os.path.join(ROOT, "outputs", "k_gap", "g1_comparator_rows.json")
+    out = (None, None)
+    for src in (_j(sp) if os.path.exists(sp) else []):
+        if src.get("format") != fmt:
+            continue
+        try:
+            commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
+                                    text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
+            b = subprocess.run(["git", "show", f"{commit}:{src['path']}"], cwd=ROOT, capture_output=True,
+                               stdin=subprocess.DEVNULL, check=True).stdout
+        except (subprocess.CalledProcessError, OSError):
+            continue
+        out = (json.loads(b.decode("utf-8")), {"branch": src["branch"], "commit": commit, "path": src["path"],
+                                               "sha256": hashlib.sha256(b).hexdigest()})
+        break
+    _LANE_CACHE[fmt] = out
+    return out
+
+
+def as_finding(f):
+    """A row finding is a DICT across the harness ({'finding': CODE, ...}; readers call f.get). The forest-reader lane
+    writes them as strings ('ROW_CI_IS_99_PERCENT: ...'): typed here, at entry, so no reader meets a string."""
+    if isinstance(f, dict):
+        return f
+    code, _, detail = str(f).partition(":")
+    return {"finding": code.strip(), "detail": detail.strip() or None}
+
+
+def ci_level_refusal(d):
+    """A row whose meta prints its interval at a level other than 95% (omega-3 JAMA Cardiol: 99%) cannot enter a
+    95% pooling or a 95% comparison: row_yi_vi reads every interval at z = 1.96. Refused, typed; never rescaled."""
+    lv = str(d.get("ci_level") or "").strip().replace(" ", "")
+    return None if lv in ("", "95%", "95") else f"CI_LEVEL_{lv}_NOT_95"
+
+
+def forest_lane_metas(slug, comp, have):
+    """REVIEW_REFERENCE_LIST data side (Mahmood/captain decision 5 Oct): the forest-reader lane's DUAL-MODEL reads of
+    NON-comparator metas of this topic that the lane ACCEPTED (their rows reproduce the figure's own printed pool --
+    the meta's positive control). Only for a meta with no usable read of our own (`have`: never two reads of one meta).
+    The comparator is never taken here (its rows are comparator rows: lane_comparator_rows). Returns
+    (rows, metas_out entries)."""
+    d, pin = forest_lane_results()
+    if not d:
+        return [], {}
+    rows, metas = [], {}
+    for key, v in sorted((d.get("meta_results") or {}).items()):
+        if not key.startswith(slug + "::"):
+            continue
+        pmid = str(v.get("pmid") or key.split("::", 1)[1])
+        acc = v.get("acceptance") or {}
+        if pmid == str(comp) or pmid in have or v.get("role") == "comparator":
+            continue
+        if acc.get("state") != "ACCEPTED" or not acc.get("methods_reproducing"):
+            continue
+        fig = v.get("figure") or {}
+        mrows = []
+        for x in v.get("secondary_rows") or []:
+            r = sm.SecondaryRow(**{k: val for k, val in x.items() if k in sm.SecondaryRow.__dataclass_fields__})
+            r.measure = normalize_measure(r.measure) or r.measure
+            r.findings = [as_finding(f) for f in r.findings or []]
+            lv = ci_level_refusal(x)
+            if lv:
+                r.findings = r.findings + [as_finding(lv)]
+            r.location = dict(r.location or {}, lane=f"g1/forest-reader {pin['commit'][:9]}")
+            mrows.append((r, lv))
+        metas[pmid] = {"figure": fig.get("fig_id"), "panel": fig.get("panel"), "measure": normalize_measure(v.get("measure")),
+                       "provenance": "FOREST_READER_DUAL", "record_id": "+".join(sorted({str(x.get("provenance") or "")
+                                                                                         .split(":", 1)[-1] for x in v.get("secondary_rows") or []}))[:200],
+                       "positive_control": {"reproduced": True, "methods": acc.get("methods_reproducing"),
+                                            "recomputed": acc.get("recomputed"), "anchor": acc.get("pooled_anchor")},
+                       "control_basis": f"FOREST_READER_ACCEPTANCE ({str(acc.get('pooled_anchor') or '')[:60]})",
+                       "pooled": v.get("pooled_agreed"), "rows_read": len(mrows), "usable": True,
+                       "is_comparator": False, "lane": pin, "image_sha256": (v.get("image") or {}).get("sha256")}
+        rows += mrows
+    return rows, metas
+
+
+def settle_crosscheck_by_primary(rows, sources_of, terms, primary_of=None):
+    """Metas that DISAGREE on one trial (sm.cross_check blocked every row of it) are settled by the trial's OWN report,
+    deterministically: a blocked row whose exact printed numbers the typed matcher finds in the trial's held primary text
+    or posted results is PRIMARY_VERIFIED (the dissent recorded on it); a row the primary does not confirm stays BLOCKED.
+    Nothing is settled when no row matches -- the disagreement stands. colchicine-postop-af: three metas print
+    Tabbalat 2020 13/81 vs 13/71 (its report confirms), one prints 12/81; before this, the one dissenting read blocked the
+    three confirmed rows. Returns the number of rows settled."""
+    by = {}
+    for r in rows:
+        if r.state == sm.BLOCKED and any(str(x).startswith("CROSSCHECK_DISAGREES") for x in r.reasons):
+            by.setdefault(r.family_id, []).append(r)
+    n = 0
+    for fam, group in by.items():
+        src = sources_of(fam)
+        prim = primary_of(fam) if primary_of else None
+        if not src and not prim:
+            continue
+        hits = []
+        for r in group:
+            probe = sm.SecondaryRow(**{k: getattr(r, k) for k in sm.SecondaryRow.__dataclass_fields__})
+            probe.state, probe.reasons, probe.verification = sm.UNVERIFIED, [], None
+            if src:
+                sm.verify_typed(probe, src, terms)
+            if probe.state != sm.VERIFIED and prim:
+                # OUR extraction of the trial's own report (value + span), the same check every unblocked row gets
+                sm.verify_against_primary(probe, prim)
+            if probe.state == sm.VERIFIED:
+                hits.append((r, probe.verification))
+        # settled now, or by an earlier pass (typed text) whose dissenters are still waiting for their comparison
+        earlier = sorted({r.meta_pmid for r in rows if r.family_id == fam and r.state == sm.VERIFIED
+                          and (r.verification or {}).get("crosscheck_settled_by_primary")})
+        if not hits and not earlier:
+            continue
+        dissent = sorted({r.meta_pmid for r in group if all(r is not h for h, _ in hits)})
+        for r, v in hits:
+            r.state = sm.VERIFIED
+            r.reasons = [x for x in r.reasons if not str(x).startswith("CROSSCHECK_DISAGREES")]
+            r.verification = dict(v, crosscheck_settled_by_primary=True, dissenting_metas=dissent)
+            n += 1
+        confirmed = sorted({h.meta_pmid for h, _ in hits} | set(earlier))
+        for r in group:
+            if any(r is h for h, _ in hits):
+                continue
+            if not any(f.get("finding") == "DISSENTS_FROM_PRIMARY" for f in r.findings or [] if isinstance(f, dict)):
+                r.findings = list(r.findings or []) + [{"finding": "DISSENTS_FROM_PRIMARY",
+                                                        "detail": "the trial's own report confirms another meta's "
+                                                                  "value, not this row's",
+                                                        "confirmed_metas": confirmed}]
+            if prim:
+                # the dissenting row gets the comparison with the trial's report it would have had unblocked: a
+                # MISMATCH carries the side the evidence points to (PIONEER 6: the comparator prints 0.57-1.10, the
+                # report 0.57-1.11) -- what DIVERGENCES_NAMED reads
+                probe = sm.SecondaryRow(**{k: getattr(r, k) for k in sm.SecondaryRow.__dataclass_fields__})
+                probe.state, probe.reasons, probe.verification = sm.UNVERIFIED, [], None
+                sm.verify_against_primary(probe, prim)
+                if probe.state == sm.MISMATCH:
+                    r.state, r.verification = sm.MISMATCH, dict(probe.verification, crosscheck_settled_by_primary=True)
+    return n
+
+
+def row_identity_family(m, ours):
+    """One identity-map record -> ONE of our families, or None: its tracker family when that is one of ours, else the
+    single entry whose PMID / NCT / exact label the map gives. Several candidates -> None (never guessed)."""
+    ids = {str(t["id"]) for t in ours}
+    if str(m.get("tracker_family") or "") in ids:
+        return str(m["tracker_family"])
+    hit = {str(t["id"]) for t in ours
+           if (m.get("pmid") and str(t.get("pmid")) == str(m["pmid"])) or (m.get("nct") and t.get("nct") == m["nct"])
+           or (m.get("comparator_label") and t.get("label") == m["comparator_label"])}
+    return hit.pop() if len(hit) == 1 else None
+
+
+def with_row_identity(slug, ours, family_of):
+    """The build's family join, then -- only where it finds nothing -- the forest-reader lane's ROW IDENTITY MAP for the
+    same meta + row label (each row resolved through that meta's own reference list or the tracker's ids; ambiguity
+    recorded there and never guessed). probiotics 24348885 'Gao et al.13': no label join, a reference-number join."""
+    idm, _pin = forest_lane_results("forest_row_identity_v1")
+    idx = {}
+    for m in (idm or {}).get("rows") or []:
+        if m.get("slug") == slug and m.get("mapped"):
+            idx.setdefault((str(m.get("meta_pmid")), m.get("row_label")), []).append(m)
+
+    def fam(row):
+        f = family_of(row)
+        if f:
+            return f
+        ms_ = idx.get((str(row.meta_pmid), row.trial_label)) or []
+        got = {row_identity_family(m, ours) for m in ms_} - {None}
+        return got.pop() if len(got) == 1 else None
+    return fam
+
+
+def reference_list_identification(slug, label):
+    """How a comparator-listed trial ENTERED our candidate set (REVIEW_REFERENCE_LIST, Cochrane Handbook: reference lists
+    of related reviews are a standard identification source): the comparator meta, the location of the unit in its
+    trial list, and the digest of the bytes it was read from. Identification only -- never eligibility evidence, never
+    data."""
+    T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
+    t = next((x for x in T["trials"] if x["slug"] == slug and x["label"] == label), None)
+    if not t:
+        return None
+    tp = next((x for x in T.get("topics") or [] if x.get("slug") == slug), {})
+    held = tp.get("held_text") or {}
+    ref = str(held.get("ref") or "").split("#", 1)[0] if isinstance(held, dict) else ""
+    fp_ = os.path.join(ROOT, ref) if ref else ""
+    dig = None
+    if fp_ and os.path.isfile(fp_):
+        with open(fp_, "rb") as fh:
+            dig = hashlib.sha256(fh.read()).hexdigest()
+    return {"route": "REVIEW_REFERENCE_LIST", "source_meta": t.get("comparator_pmid"),
+            "location": {"unit_source": t.get("unit_source"), "table": t.get("table"), "layout": t.get("layout"),
+                         "label": t["label"], "context": (t.get("context") or "")[:200]},
+            "held_ref": ref or None, "digest": dig,
+            "proposal": t.get("table") if str(t.get("table") or "").startswith("proposal:") else None}
+
+
 def build(slug, run, runs):
     metas, comp = metas_for(slug, offline=not run)
     spec = spec_of(slug)
@@ -787,7 +993,7 @@ def build(slug, run, runs):
                 print(r["key"], r["state"], r["record_id"], flush=True)
     ours = our_trials(slug)
     registry_state = ensure_registry([t["nct"] for t in ours if t.get("nct")])
-    fam = family_of_factory(ours)
+    fam = with_row_identity(slug, ours, family_of_factory(ours))
     rows, metas_out = [], {}
     for pmid, t in typed.items():
         metas_out[pmid] = {"table": t["table_id"], "measure": t["measure"], "provenance": "TYPED_TABLE",
@@ -805,42 +1011,17 @@ def build(slug, run, runs):
         mrows, metas_out[it["pmid"]] = figure_rows(slug, it, run_r, spec, comp)
         for r in mrows:
             rows.append(sm.admit(r, spec, fam))
-    # DUAL-MODEL figure rows (scripts/g1_forest_reader.py; its replayed output, no model here): a meta whose own route
-    # above gave no usable row contributes the rows two model families (codex + agy) agreed on, from a figure whose
-    # printed pool the meta's STATED model reproduced from those rows. They are the meta's own numbers -- SECONDARY,
-    # verified like any row below, and never counted toward G1 agreement with that meta (sm.g1_countable).
-    import g1_forest_reader as gfr
-    dual = {}
-    for d in gfr.accepted_rows(slug):
-        dual.setdefault(d["meta_pmid"], []).append(d)
-    for pm, ds in sorted(dual.items()):
-        if (metas_out.get(pm) or {}).get("usable"):
-            continue
-        if str(pm) == str(comp):
-            # the COMPARATOR's own dual read is not secondary evidence for our pool: g1_tracker.lane_comparator_rows
-            # consumes it under the COMPARATOR_SOURCED gate (its own outcome by definition, its own labels, any measure).
-            # Ingested here it went through the secondary admission meant for OTHER metas (outcome vocabulary, estimand,
-            # family join) and lost 27 comparator-sourced rows (pcsk9 'major vascular events' RR; iv-iron 'total heart
-            # failure hospitalizations'): a semantic conflict between g1/forest-reader 99e1c0a8 and acq/k-gap's coverage,
-            # found when the lanes were consolidated (2026-10-04).
-            continue
-        # the timepoint the FIGURE's own caption states ('28-Day All-Cause Mortality in Each Trial', REACT) is the most
-        # specific statement of it; else, as for every figure row, the meta's text for a core (mortality) outcome
-        tp_text = meta_timepoint(gfr.held_text(pm)) if spec.get("core") else None
-        for d in ds:
-            r = sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
-            r.timepoint = meta_timepoint(r.outcome_definition) or tp_text
-            rows.append(sm.admit(r, spec, fam))
-        metas_out[pm] = {"figure": ds[0]["location"]["id"], "panel": ds[0]["location"].get("panel"),
-                         "measure": ds[0]["measure"], "provenance": "MODEL_PROPOSAL_DUAL", "usable": True,
-                         "rows_read": len(ds), "record_ids": ds[0]["provenance"].split(":", 1)[1].split("+"),
-                         # a SECOND_SOURCE_ONLY figure (no printed pool) did NOT self-reproduce: say so (decision 5 Oct)
-                         "positive_control": ({"reproduced": False, "why": sm.POOL_UNCHECKABLE,
-                                               "basis": "g1_forest_reader: rows agreed, no printed pooled row"}
-                                              if any(sm.pool_uncheckable(r) for r in rows if r.meta_pmid == pm) else
-                                              {"reproduced": True, "basis": "g1_forest_reader acceptance (stated model)"}),
-                         "is_comparator": pm == comp, "earlier_route": metas_out.get(pm) or skipped.get(pm)}
-        skipped.pop(pm, None)
+    # the forest-reader lane's ACCEPTED dual reads of other metas of this topic, through the SAME admission and the
+    # same verification below; a row printed at a non-95% level is refused (typed), never rescaled
+    have = {m for m, e in metas_out.items() if e.get("usable")}
+    lrows, lmetas = forest_lane_metas(slug, comp, have)
+    metas_out.update(lmetas)
+    for r, lv in lrows:
+        r = sm.admit(r, spec, fam)
+        if lv:
+            r.reasons = list(r.reasons) + [lv]
+            r.state = sm.REFUSED
+        rows.append(r)
     sm.consolidate(rows)
     sm.cross_check(rows)
     # CROSS-CHECK BLOCKS ARE REFEREED BY THE TRIAL'S OWN REPORT: two metas that disagree on a trial block each other
@@ -867,6 +1048,9 @@ def build(slug, run, runs):
             pid = r.family_id[5:]
             sm.verify_typed(r, primary_sources(slug, pid, nct_of.get(r.family_id)), terms)
             typed_n += r.state == sm.VERIFIED
+    typed_n += settle_crosscheck_by_primary(
+        rows, lambda fam: primary_sources(slug, fam[5:], nct_of.get(fam)) if str(fam or "").startswith("PMID ") else [],
+        terms)
     typed_secs = round(_time.time() - _t0, 2)
     tried = {}
     for r in rows:
@@ -902,6 +1086,10 @@ def build(slug, run, runs):
     for r in rows:
         if id(r) in refereed and r.state == sm.UNVERIFIED:
             r.state = sm.BLOCKED             # no primary to referee: the disagreement stays a block
+    # a disagreement the typed text could not settle may still be settled by OUR extraction of the trial's own report
+    # (held value + span only: no new extraction is made for a blocked row)
+    settle_crosscheck_by_primary(rows, lambda fam: [], terms,
+                                 primary_of=lambda fam: (by_id.get(fam) or {}).get("primary"))
     # TWO-SOURCE RULE (2 Oct): the residue with no primary match is verified when two INDEPENDENT metas print the same
     # typed tuple. Independence is read from each meta's own JATS reference list (fail-closed when it has none).
     # every meta that contributed a row is a KNOWN meta of the topic (incl. dual-read metas beyond the search's top N):

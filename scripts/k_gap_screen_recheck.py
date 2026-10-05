@@ -12,6 +12,11 @@ A RULE_MODEL_DISAGREE is a candidate screener defect for adjudication. Nothing h
 
     python scripts/k_gap_screen_recheck.py --run      # live, concurrency 3, one recorded call per batch of <=6
     python scripts/k_gap_screen_recheck.py --verify   # re-derive every verification from stored records (no network)
+    python scripts/k_gap_screen_recheck.py --rrl --run [SLUG ...]
+        REVIEW_REFERENCE_LIST (5 Oct): the comparator trials outside our pool that our screen EXCLUDED (whether or not a
+        data row is held yet) -- each read by TWO readers (reader 1 and reader 2, two models), recorded, verified.
+        -> registry/model_proposals/k_gap_screen_rrl.json; the tracker sets the exclusion aside only when both readers
+        judge the trial eligible on verified quotes (g1_tracker.two_readers_eligible). Nothing here changes a decision.
 """
 from __future__ import annotations
 
@@ -106,6 +111,94 @@ def table_items() -> list[dict]:
     return out
 
 
+RRL_PROP = os.path.join(ROOT, "registry", "model_proposals", "k_gap_screen_rrl.json")
+READERS = (("READER_1", MODEL), ("READER_2", "gpt-5.5"))
+
+
+def rrl_items(slugs=None) -> list[dict]:
+    """--rrl: one item per comparator trial (tracker outputs/k_gap/g1/<slug>.json) that our screen EXCLUDED and that holds
+    a data row on a counted route (count_refusal NOT_SCREEN_ELIGIBLE:NOT_ELIGIBLE). The record is the held one: the
+    topic's pinned records, else outputs/k_gap/member_records.json."""
+    pilot = _pilot()
+    mrec_p = os.path.join(OUT, "member_records.json")
+    mrec = _j(mrec_p) if os.path.exists(mrec_p) else {}
+    out = []
+    gdir = os.path.join(OUT, "g1")
+    for f in sorted(os.listdir(gdir)):
+        slug = f[:-5]
+        if not f.endswith(".json") or (slugs and slug not in slugs):
+            continue
+        o = _j(os.path.join(gdir, f))
+        rj_p = os.path.join(ROOT, "cache", slug, "records.json")
+        rj = _j(rj_p) if os.path.exists(rj_p) else {}
+        recs = {x.get("id"): x for x in rj.get("records", []) + rj.get("ctgov", [])}
+        for x in o.get("trials") or []:
+            se = x.get("screen_eligibility") or {}
+            # every comparator trial our screen EXCLUDED (data held or not yet: eligibility is settled ahead of data);
+            # a trial already read by both readers is not read again
+            if x.get("in_our_pool") or x.get("scope_difference") or se.get("state") != "NOT_ELIGIBLE":
+                continue
+            if {r.get("reader") for r in se.get("readings") or []} >= {"READER_1", "READER_2"}:
+                continue
+            pmid = (x.get("seeded_funnel") or {}).get("pmid") or se.get("pmid")
+            rec = recs.get(pmid) or mrec.get(pmid)
+            it = {"slug": slug, "item_id": f"{slug}::rrl:{pmid}", "pmid": pmid, "label": x["label"],
+                  "rule_decision": "exclude", "rule_id": se.get("rule_id"), "rule_reason": se.get("reason"),
+                  "held_ref": (f"cache/{slug}/records.json#{pmid}" if pmid in recs else f"outputs/k_gap/member_records.json#{pmid}")}
+            if pmid and rec:
+                t = pilot.held_text_screening(rec)
+                it.update(held_text=t, held_sha256=_sha(t.encode("utf-8")))
+            out.append(it)
+    return out
+
+
+def run_reader(b, reader, model) -> dict:
+    from reproducible_ai import model_call_live
+    pilot = _pilot()
+    rec = model_call_live.call(b["prompt"], schema=pilot._schema(TASK), model=model, effort=EFFORT,
+                               caller={"file": "scripts/k_gap_screen_recheck.py", "line": "run_reader",
+                                       "purpose": f"REVIEW_REFERENCE_LIST screen {reader} {b['batch']} (acq/k-gap lane)"},
+                               input_digests=b["digests"], timeout_s=1200)
+    ms.write_record(rec, REC_DIR)
+    return {"batch": b["batch"], "reader": reader, "model": model, "record_id": rec["record_id"], "state": rec["state"],
+            "prompt_sha256": _sha(b["prompt"])}
+
+
+def rrl_main(argv):
+    slugs = [a for a in argv if not a.startswith("--")]
+    its = rrl_items(slugs or None)
+    bs = batches(its)
+    data = _j(RRL_PROP) if os.path.exists(RRL_PROP) else {}
+    runs = data.get("runs", {})
+    if "--run" in argv:
+        done = {(r["prompt_sha256"], r["reader"]) for r in runs.values() if r["state"] == "RAN_OK"}
+        todo = [(b, rd, m) for b in bs for rd, m in READERS if (_sha(b["prompt"]), rd) not in done]
+        print(f"items {len(its)}, batches {len(bs)}, reader calls to run {len(todo)}", flush=True)
+        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+            for r in ex.map(lambda a: run_reader(*a), todo):
+                runs[f"{r['batch']}#{r['reader']}"] = r
+                print(r["batch"], r["reader"], r["state"], r["record_id"], flush=True)
+    rows = []
+    for rd, _m in READERS:
+        sub = {k: v for k, v in runs.items() if v.get("reader") == rd}
+        for row in verify(its, bs, sub)["rows"]:
+            rows.append(dict(row, reader=rd))
+    # an item read in an EARLIER run is no longer listed (both readers done): its rows are kept, never dropped; a
+    # fresh reading of the same item by the same reader replaces the old one
+    now = {(r["item_id"], r["reader"]) for r in rows}
+    rows += [r for r in data.get("rows") or [] if (r.get("item_id"), r.get("reader")) not in now]
+    from collections import Counter
+    out = {"task": "k_gap_screen_rrl", "instrument": f"scripts/model_source_pilot.py task={TASK} prompt/schema + "
+           "reproducible_ai.model_source.verify_screening; two readers", "readers": dict(READERS),
+           "N_items": len(its), "N_callable": sum("held_text" in i for i in its),
+           "agreement": dict(Counter(f"{r['reader']}:" + (r.get("verification") or {}).get("agreement", r.get("state", "?")).split("(")[0]
+                                     for r in rows)), "rows": rows, "runs": runs}
+    os.makedirs(os.path.dirname(RRL_PROP), exist_ok=True)
+    with open(RRL_PROP, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, indent=1, ensure_ascii=False, sort_keys=True)
+    print(json.dumps({k: out[k] for k in ("N_items", "N_callable", "agreement")}, indent=1))
+
+
 def batches(its: list[dict]) -> list[dict]:
     pilot = _pilot()
     by = {}
@@ -172,6 +265,8 @@ def verify(its, bs, runs) -> dict:
 
 def main(argv):
     global PROP
+    if "--rrl" in argv:
+        return rrl_main(argv)
     if "--table" in argv:
         PROP = PROP.replace(".json", ".table.json")
     its = table_items() if "--table" in argv else items()
