@@ -335,3 +335,52 @@ g1/k_gap tests pass.
 **Open secondaries checked** (text layers): Front Pharmacol 2021 (PMC8080120), BMJ 2023 (PMC10152340 supplement
 PDF), J Clin Med 2021 (PMC8305263 supplement PDF), Front Endocrinol 2026, Med Sci Monit 2022, Front Aging 2022. They
 hold characteristics tables only; per-trial fracture counts are in forest images (forest-reader lane).
+
+## Update (5 Oct): statins-elderly, comparator 32529863 adopted (COMPARATOR_NO_PER_TRIAL_ROWS)
+
+**Decision.** Mahmood, 2026-10-05: "go with a".
+- Recorded as a ratified exception to rule C6 (per-trial rows) for 32529863 only: `registry/comparator_selection/
+  statins-primary-prevention-elderly.ratification.json`.
+- The pre-registered rule (6713b9d17) and its 26-candidate table are unchanged. `selection.json` shows both results:
+  NO_ACHIEVABLE_COMPARATOR under the rule alone, PICKED_BY_RATIFIED_EXCEPTION with it.
+
+**Type** (`…adoption.json`, `g1_tracker.apply_no_rows_comparator`).
+- k matching uses the comparator's result trial set.
+- Every per-trial comparison is **NOT_AVAILABLE_FROM_COMPARATOR**; `comparator_data_confirmation: NONE`.
+- RESULT_AGREES compares OUR pooled OR (DL), from our verified count rows for the same 7 trials, with its printed
+  OR 0.88 (0.72–1.06). Until all 7 are verified it is OUR_ROWS_INCOMPLETE (unmet).
+
+**Ledger.** `g1_denominator_ledger` kind COMPARATOR_RETIRED.
+- 39076238 is retired **COMPARATOR_POOLS_NO_RCT**, spans verbatim in its held text: "A total of 12 observational
+  studies incorporating 1,627,434 population were eligible for this analysis"; "Study design: observational study".
+- The baseline's 27 statins rows (12 observational studies + 15 QRISK fragments) leave under it. The 7 new rows carry
+  their enumeration spans.
+
+**Enumeration.** The comparator's primary-prevention result sentence cites refs 29, 35–40 (7 trials). Each ref's own
+PMID and title is the span (`registry/comparator_enumerations/…`). The typed enumeration precedes Table 1, which lists
+all 16 trials, primary and secondary.
+
+**Measured** (offline k_gap_table + topic): **comparator N 7, ENUMERATED; matched 1 of 7** (JUPITER ≥70, in our pool);
+result OUR_ROWS_INCOMPLETE (0 of 7 verified count rows).
+
+**Acquisition: 0 of 7 new verified rows.**
+- **AACT:** NCT00000542 (ALLHAT-LLT), NCT00211705 (MEGA), NCT00327418 (CARDS) post no results; the others have no NCT
+  (ISRCTN trials).
+- **Open text:** ALLHAT-LLT (Unpaywall) and JUPITER (PMC). The other 5 are abstract only.
+- **Recorded codex locate** (7 calls, concurrency 3), every result refused or not reported:
+
+| Trial | Gate result |
+|---|---|
+| PROSPER | REFUSED: "primary endpoint" 408 vs 473, no arm N, generic outcome; whole trial incl. secondary prevention |
+| HPS diabetes | REFUSED NON_NUMERIC: % reduction; 601 vs 748 events, no arm N |
+| CARDS 65–75 | REFUSED NON_NUMERIC: % only |
+| JUPITER ≥70 | REFUSED OUTCOME_NOT_NAMED: its table row "Primary end point" 75 vs 119; the topic outcome is not trial-defined, so a generic label cannot bind |
+| ASCOT-LLA older, ALLHAT-LLT older, MEGA older | NOT_REPORTED |
+
+- **Independent metas:** the open ones with per-trial rows (BMC 2026, Brugts 2009) report whole trials of all ages, or
+  single outcomes, not the older primary-prevention composite. None is usable.
+- **Records:** 5 committed (abstract-only prompts). ALLHAT-LLT (mc-bf1135de) and JUPITER (mc-e2d9b11d) are held locally
+  (non-CC-BY text) in C:\mh-tmp\binding\held_records, git-excluded.
+
+**Served notice queued for Mahmood.** `docs/reviews/statins-primary-prevention-elderly/review.json` still names
+39076238 and was NOT edited. Changing the served comparator needs his signature.
