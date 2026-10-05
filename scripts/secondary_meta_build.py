@@ -53,6 +53,10 @@ QUERY = {
                                   'TITLE:"DOAC") AND TITLE:"warfarin" AND TITLE:"atrial fibrillation"',
     "tocilizumab-covid19-mortality": '(TITLE:"interleukin-6" OR TITLE:"IL-6" OR TITLE:"tocilizumab") AND TITLE:"COVID" '
                                      'AND (TITLE:"mortality" OR TITLE:"randomized" OR TITLE:"randomised" OR TITLE:"trials")',
+    # g1/binding lane (5 Oct): the agent-only default would draw septic-shock metas; the topic is pneumonia
+    "corticosteroids-cap-mortality": '(TITLE:"corticosteroid" OR TITLE:"corticosteroids" OR TITLE:"steroid" OR '
+                                     'TITLE:"steroids" OR TITLE:"glucocorticoid" OR TITLE:"glucocorticoids" OR '
+                                     'TITLE:"hydrocortisone" OR TITLE:"dexamethasone") AND TITLE:"pneumonia"',
 }
 
 
@@ -1087,7 +1091,7 @@ def build(slug, run, runs):
     if run:
         done = {(r["prompt_sha256"], r.get("image_sha256")) for r in runs.values() if r["state"] == "RAN_OK"}
         todo = [i for i in items if (hashlib.sha256(fp.prompt_bytes(i)).hexdigest(), i["image_sha256"]) not in done]
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "3"))) as ex:
             for r in ex.map(read_one, todo):
                 runs[r["key"]] = r
                 print(r["key"], r["state"], r["record_id"], flush=True)
