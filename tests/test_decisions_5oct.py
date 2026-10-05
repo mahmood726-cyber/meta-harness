@@ -80,18 +80,32 @@ def test_double_blind_required_and_unstated_is_unverifiable_not_counted_not_name
     assert gt.screen_eligibility(x, None, "99999932", [], slug="__control_dec", cfg=cfg)["state"] == "NOT_ELIGIBLE"
 
 
-def test_tsutsui_is_unverifiable_and_not_named():
-    # from COMMITTED inputs only (exclusion audit, topic config, full-text pass) -- never from a tracker output, which
-    # this lane does not commit (CI saw the captain's older file: KeyError 'screen_eligibility')
+def test_tsutsui_is_a_screener_error_established_by_its_registration():
+    # captain, 5 Oct: Tsutsui (PARALLEL-HF) is a screener error. The record and held full text are silent on blinding,
+    # its REGISTRATION (NCT02468232, linked by the title's acronym, unique in AACT) states RANDOMIZED + QUADRUPLE masking.
+    # From COMMITTED inputs only (exclusion audit, topic config, outputs/k_gap/aact_designs.json).
     slug, pmid = "sacubitril-valsartan-hfref", "33731544"
     cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
     x = {"in_our_pool": False, "seeded_funnel": {"stage": "SCREENED_OUT", "rule_id": "X-DESIGN", "pmid": pmid}}
     se = gt.screen_eligibility(x, None, pmid, [], slug=slug, cfg=cfg)
-    assert se["state"] == "ELIGIBILITY_UNVERIFIABLE"
-    t = dict(x, label="Tsutsui, 2021", screen_eligibility=se, route="SECONDARY_SINGLE", g1_countable=True,
-             scope_difference=None)
-    assert not gt.is_matched(t)                                    # not counted, even with a countable row
-    assert gt.exclusion_audit_class(slug, pmid)[0] != "TRUE_SCOPE_DIFFERENCE"   # so never named by the screen path
+    assert se["state"] == "ELIGIBLE" and se["basis"] == "SCREENER_ERROR:REGISTRY_STATES_BLINDING"
+    assert se["span"]["nct"] == "NCT02468232" and "QUADRUPLE" in se["span"]["text"] and "Double-blind" in se["span"]["text"]
+
+
+def test_a_registration_decides_a_blinding_silent_exclusion_and_silence_still_fails_closed(monkeypatch):
+    monkeypatch.setattr(gt, "exclusion_audit_class", lambda slug, pmid: ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED"))
+    monkeypatch.setattr(gt, "_DESIGNS", {
+        "99999971": {"state": "RECORDED", "nct": "NCT1", "allocation": "RANDOMIZED", "masking": "QUADRUPLE", "snapshot": "s"},
+        "99999972": {"state": "RECORDED", "nct": "NCT2", "allocation": "RANDOMIZED", "masking": "NONE", "snapshot": "s"},
+        "99999973": {"state": "NO_UNIQUE_REGISTRATION", "ncts": []}})
+    cfg = {"include": {"design_double_blind": True}}
+
+    def se(p):
+        x = {"in_our_pool": False, "seeded_funnel": {"stage": "SCREENED_OUT", "rule_id": "X-DESIGN", "pmid": p}}
+        return gt.screen_eligibility(x, None, p, [], slug="__control_dec", cfg=cfg)["state"]
+    assert se("99999971") == "ELIGIBLE"
+    assert se("99999972") == "NOT_ELIGIBLE"                         # registered open-label: the exclusion stands
+    assert se("99999973") == "ELIGIBILITY_UNVERIFIABLE"              # no unique registration: still fails closed
 
 
 def _crow(state, side, **v):
