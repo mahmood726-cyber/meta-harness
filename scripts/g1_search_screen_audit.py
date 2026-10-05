@@ -127,6 +127,13 @@ def topic(slug, acq_meta):
                 other_meta[x].add(str(r["meta_pmid"]))
     named = {d["trial"]: d for d in g.get("named_differences") or []}
     probe = (acq_meta.get("probe") or {}).get(slug) or {}
+    rrl = (acq_meta.get("rrl") or {}).get(slug) or {}
+    rrl_ids = {i for src in rrl.get("sources") or [] for i in src.get("ids") or []}
+    # the comparator's OWN backward lists contain its trials by construction: as a recall MEASURE against that comparator
+    # they are circular (a legitimate identification source, never independent evidence that our identification works)
+    rrl_indep = {i for src in rrl.get("sources") or [] if src.get("kind") not in ("COMPARATOR_REFERENCES",
+                                                                                   "COMPARATOR_REFERENCE_LIST")
+                 for i in src.get("ids") or []}
     rows = []
     for t in g["trials"]:
         pm, nc, src = trial_ids(t, chain, ktab)
@@ -144,6 +151,13 @@ def topic(slug, acq_meta):
         exc = None if inc or not dec else dec[0]
         om = sorted(set().union(*(other_meta.get(x, set()) for x in own | fam))) if own else []
         p = probe.get(t["label"]) or {}
+        rrl_hit = sorted(own & rrl_ids) if own else []
+        rrl_ind = sorted(own & rrl_indep) if own else []
+        # FIXED identification (counterfactual, from recorded probes): what the harness as fixed on this branch would
+        # identify -- the registered search, plus the standing REVIEW_REFERENCE_LIST route, plus a record the registered
+        # query matches that the capped legacy retrieval did not retain (CT.gov pagination / uncapped PubMed)
+        fixed = (search.startswith("IDENTIFIED") or bool(rrl_hit) or p.get("miss_type") == "RETRIEVED_NOT_RETAINED")
+        fixed_ind = (search.startswith("IDENTIFIED") or bool(rrl_ind) or p.get("miss_type") == "RETRIEVED_NOT_RETAINED")
         miss = None
         if search == "IDENTITY_UNRESOLVED":
             miss = "IDENTITY_FAILURE"
@@ -154,7 +168,9 @@ def topic(slug, acq_meta):
                                                          if nd else None),
             "pmids": pm, "ncts": nc, "id_sources": src,
             "search": search, "search_hit": hit_own or hit_fam,
-            "rrl": {"comparator_list": True, "other_metas": om},
+            "rrl": {"comparator_list": True, "other_metas": om, "standing_route_hit": rrl_hit,
+                    "independent_hit": rrl_ind},
+            "identified_fixed": fixed, "identified_fixed_independent": fixed_ind,
             "identified_any": search.startswith("IDENTIFIED") or bool(om),
             "screen": screen,
             "screen_exclusion": ({"record": exc["record"], "rule_id": exc.get("rule_id"), "reason": exc.get("reason"),
@@ -175,6 +191,11 @@ def topic(slug, acq_meta):
         "search_recall": {"n": len(found), "N": len(el)},
         "search_or_rrl_other_recall": {"n": sum(1 for r in el if r["identified_any"]), "N": len(el)},
         "screen_recall": {"n": len(s_in), "N": len(found)},
+        "fixed_identification_recall": {"n": sum(1 for r in el if r["identified_fixed"]), "N": len(el)},
+        "rrl_standing_recall": {"n": sum(1 for r in el if r["rrl"]["standing_route_hit"]), "N": len(el)},
+        "fixed_identification_recall_independent": {"n": sum(1 for r in el if r["identified_fixed_independent"]),
+                                                     "N": len(el)},
+        "reference_list_metas": rrl.get("reference_list_metas"),
         "miss_types": dict(collections.Counter(r["miss_type"] for r in el if r["miss_type"])),
         "screen_exclusions_of_eligible": [r["label"] for r in found if r["screen"] == "EXCLUDED"],
         "screen_named_to_recheck": [r["label"] for r in rows if r["kind"] == "SCREEN_NAMED"],
@@ -191,7 +212,9 @@ def load_acq():
             sm[s], shas[s] = d, h
     pp = os.path.join(OUT, "search_miss_probe.json")
     probe = _j(pp).get("topics", {}) if os.path.exists(pp) else {}
-    return {"k_gap_table": kt or {}, "secondary_meta": sm, "probe": probe,
+    rp = os.path.join(OUT, "rrl_probe.json")
+    rrl = _j(rp).get("topics", {}) if os.path.exists(rp) else {}
+    return {"k_gap_table": kt or {}, "secondary_meta": sm, "probe": probe, "rrl": rrl,
             "pins": {"acq_commit": ACQ_COMMIT, "k_gap_table_sha256": kt_sha, "secondary_meta_sha256": shas}}
 
 
@@ -210,6 +233,9 @@ def main(argv):
            "totals": {"topics": len(topics), "N_comparator": sum(t["N_comparator"] for t in topics),
                       "search_recall": tot("search_recall"), "search_or_rrl_other_recall": tot("search_or_rrl_other_recall"),
                       "screen_recall": tot("screen_recall"),
+                      "rrl_standing_recall": tot("rrl_standing_recall"),
+                      "fixed_identification_recall": tot("fixed_identification_recall"),
+                      "fixed_identification_recall_independent": tot("fixed_identification_recall_independent"),
                       "miss_types": dict(sum((collections.Counter(t["miss_types"]) for t in topics), collections.Counter()))},
            "topics": topics}
     json.dump(out, open(os.path.join(OUT, "SEARCH_SCREEN_AUDIT.json"), "w", encoding="utf-8", newline="\n"),
@@ -228,11 +254,22 @@ def render(o):
          f"{o['totals']['search_or_rrl_other_recall']['N']}; screen recall {o['totals']['screen_recall']['n']} of "
          f"{o['totals']['screen_recall']['N']} (of eligible trials our search identified). Miss types: "
          f"{o['totals']['miss_types']}.", "",
-         "| Topic | Eligible | Search n/N | +other metas | Screen n/N | Misses | Screen-named to recheck |",
-         "|---|---|---|---|---|---|---|"]
+         f"**After the class fixes on this branch** (counterfactual, from the recorded probes): the standing "
+         f"REVIEW_REFERENCE_LIST route alone identifies {o['totals']['rrl_standing_recall']['n']} of "
+         f"{o['totals']['rrl_standing_recall']['N']}; registered search + that route + uncapped retrieval identify "
+         f"{o['totals']['fixed_identification_recall']['n']} of {o['totals']['fixed_identification_recall']['N']}. "
+         f"**Circular part stated:** the comparator's own reference list contains its trials by construction, so as a "
+         f"recall measure against that comparator it proves nothing; without the comparator's backward lists (other "
+         f"metas + forward citation only) the fixed identification is "
+         f"{o['totals']['fixed_identification_recall_independent']['n']} of "
+         f"{o['totals']['fixed_identification_recall_independent']['N']}.", "",
+         "| Topic | Eligible | Search n/N | +other metas | RRL route | Fixed ident. | Screen n/N | Misses | Screen-named to recheck |",
+         "|---|---|---|---|---|---|---|---|---|"]
     for t in o["topics"]:
         L.append(f"| {t['slug']} | {t['N_eligible']} | {t['search_recall']['n']}/{t['search_recall']['N']} | "
                  f"{t['search_or_rrl_other_recall']['n']}/{t['search_or_rrl_other_recall']['N']} | "
+                 f"{t['rrl_standing_recall']['n']}/{t['rrl_standing_recall']['N']} | "
+                 f"{t['fixed_identification_recall']['n']}/{t['fixed_identification_recall']['N']} | "
                  f"{t['screen_recall']['n']}/{t['screen_recall']['N']} | "
                  f"{', '.join(f'{k} {v}' for k, v in t['miss_types'].items()) or '-'} | {len(t['screen_named_to_recheck'])} |")
     return "\n".join(L) + "\n"
