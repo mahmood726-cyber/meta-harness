@@ -834,8 +834,14 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             # the trial's OWN printed counts for the topic outcome (Mahmood 3 Oct: matched = any verified typed tuple for
             # the comparator's trial): NOT searched by the comparator's numbers, so agreement is COMPUTED, never assumed
             cr = x.get("comparator_row") or {}
-            ours = {"measure": (cr.get("measure") or "").upper(), "effect": None, "lower": None, "upper": None,
-                    **{k: v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}}
+            if b.get("tuple_kind") == "EFFECT_CI":
+                # the trial's OWN posted effect + both CI bounds (scripts/g1_binding_aact.py): our value is that tuple
+                ours = {"measure": (v.get("measure") or cr.get("measure") or "").upper(), "effect": v.get("effect"),
+                        "lower": v.get("lower"), "upper": v.get("upper"),
+                        "events_t": None, "n_t": None, "events_c": None, "n_c": None}
+            else:
+                ours = {"measure": (cr.get("measure") or "").upper(), "effect": None, "lower": None, "upper": None,
+                        **{k: v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}}
             theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
                                      provenance="COMPARATOR_ROW", trial_label=x["label"],
                                      measure=(cr.get("measure") or "").upper(), outcome_definition="",
@@ -999,6 +1005,60 @@ def apply_no_rows_comparator(o):
                                 "retired": {k: (a.get("retired") or {}).get(k) for k in ("comparator_pmid", "reason_code")}}
     o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in tr if is_matched(x)))
     return st
+
+
+TYPED_COMPARATOR_ROWS = os.path.join(ROOT, "registry", "comparator_rows", "{slug}.json")
+
+
+def typed_comparator_rows(slug, comp):
+    """The comparator's OWN per-trial rows for the topic outcome, typed from its held text (a table or a supplement it
+    publishes), or None. Re-checked, never trusted: same comparator PMID as the tracker's, the held source's sha256
+    unchanged, every row's span verbatim in it (markup-aware, whitespace-normalised). These rows are ONLY ever the
+    comparator side of a comparison: they never become our value and never count a trial (anti-circularity)."""
+    import hashlib
+    p = TYPED_COMPARATOR_ROWS.format(slug=slug)
+    if not os.path.exists(p):
+        return None
+    d = _j(p)
+    if str(d.get("comparator_pmid")) != str(comp):
+        return None
+    src = os.path.join(ROOT, (d.get("source") or {}).get("path") or "")
+    if not os.path.isfile(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != d["source"].get("sha256"):
+        return None
+    held = _held_norm(src)
+    rows = [r for r in d.get("rows") or [] if r.get("span") and _held_norm(None, r["span"]) in held]
+    return dict(d, rows=rows) if rows and len(rows) == len(d.get("rows") or []) else None
+
+
+def apply_typed_comparator_rows(o):
+    """Per-trial agreement and the same-trials RESULT verdict on the COMPARATOR'S MEASURE, from its typed rows, for a
+    comparator whose rows no reader has produced (no comparator row held for any trial). Computed with the tracker's own
+    agreement() and same_trials_compare(); our values are untouched."""
+    d = typed_comparator_rows(o.get("slug"), o.get("comparator_pmid"))
+    if not d or any(x.get("comparator_row") for x in o.get("trials") or []):
+        return None
+    by = {r["label"]: r for r in d["rows"]}
+    pairs = []
+    for x in o.get("trials") or []:
+        r = by.get(x["label"])
+        if not r:
+            continue
+        theirs = sm.SecondaryRow(meta_pmid=str(d["comparator_pmid"]), meta_doi="", location={"kind": "typed", "id": d["source"]["path"]},
+                                 source_digest=d["source"]["sha256"], provenance="TYPED_COMPARATOR_ROW", trial_label=x["label"],
+                                 measure=r["measure"].upper(), outcome_definition=d.get("outcome") or "",
+                                 **{k: r.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+        x["comparator_row"] = {k: getattr(theirs, k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c", "measure")}
+        x["comparator_row_provenance"] = {"meta_pmid": theirs.meta_pmid, "location": theirs.location, "digest": theirs.source_digest,
+                                          "read": "TYPED_COMPARATOR_ROW", "row_label": x["label"], "span": r["span"]}
+        if is_matched(x) and x.get("our_value"):
+            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
+            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+    method = (o.get("same_trials") or {}).get("method") or "PM"
+    o["same_trials"] = dict(same_trials_compare(pairs, method) if pairs else {"state": "NO_SHARED_TRIAL"},
+                            method_basis=f"typed comparator rows ({d['source']['path']}); {method}",
+                            comparator_rows="TYPED_COMPARATOR_ROW")
+    o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in o["trials"] if is_matched(x)))
+    return o["same_trials"]
 
 
 def primary_counts(x):
@@ -1941,8 +2001,10 @@ def topic(slug, T):
         out["g1r_reproduction"] = g1r_from_trials(out)
     apply_confirm_bindings(out)
     apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings.json"))
+    apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings_aact.json"))
     apply_secondary_bindings(out, os.path.join(OUT, "g1_binding", f"secondary_{out.get('slug')}.json"))
     apply_no_rows_comparator(out)          # after every binding: OUR verified rows are final before the pooled compare
+    apply_typed_comparator_rows(out)
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
