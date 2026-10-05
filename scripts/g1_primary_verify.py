@@ -171,8 +171,16 @@ def verify(slug, t, run, runs, titles, spec, chosen):
         if not re.search(rf"(?<!\d){n}[- ]?(?:days?|d)\b|\bday[- ]?{n}(?!\d)", span, re.I):
             out["state"] = "TIMEPOINT_NOT_IN_SPAN"
             return out
-    out["state"] = "PRIMARY_VERIFIED"
+    out["state"] = counts_state(prim)
     return out
+
+
+def counts_state(prim):
+    """PRIMARY_VERIFIED needs events and N in BOTH arms (the topic pools counts); a verified effect without them
+    (COVACTA's weighted difference) is recorded as VERIFIED_NO_COUNTS, never filled in."""
+    if all(prim.get(k) is not None for k in ("events_t", "n_t", "events_c", "n_c")):
+        return "PRIMARY_VERIFIED"
+    return "VERIFIED_NO_COUNTS"
 
 
 def main(argv):
