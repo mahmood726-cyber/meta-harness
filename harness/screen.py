@@ -150,7 +150,11 @@ import re as _re
 # and wrongly excluded X1). Guarded: NOT a protocol / secondary analysis / substudy / design paper.
 _TITLE_RCT = _re.compile(r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
 _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
-                             r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
+                             r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b|"
+                             # an economic evaluation run ALONGSIDE a trial is not the trial's primary report (search+screen
+                             # audit radius review: PMID 36289153 'Health economic evaluation alongside the ... PROSPECT
+                             # randomized trial' was included once its population check widened)
+                             r"\beconomic evaluation\b|\bcost[-\s]?effectiveness\b|\bcost[-\s]?utility\b", _re.I)
 
 
 def _title_says_rct(rec) -> bool:
@@ -266,6 +270,31 @@ _ENROL_VERB = _re.compile(r"\b(?:randomi[sz]ed|randomly (?:assigned|allocated)|w
 _SECTION = _re.compile(r"\b(BACKGROUND|INTRODUCTION|CONTEXT|RATIONALE|OBJECTIVES?|AIMS?|PURPOSE|METHODS?|DESIGN|"
                        r"PARTICIPANTS|PATIENTS|SETTING|RESULTS|FINDINGS|CONCLUSIONS?|INTERPRETATION)\s*:", _re.I)
 _NOT_ENROL_SECTIONS = {"background", "introduction", "context", "rationale"}
+
+
+_THIS_STUDY = _re.compile(r"\b(?:primary (?:outcome|end ?point)s?|(?:aim|objective|purpose)s? of (?:this|the present|our) "
+                          r"(?:study|trial)|we (?:assessed|evaluated|investigated|examined|tested|compared|aimed)|"
+                          r"this (?:randomi[sz]ed |controlled |double-blind |placebo-controlled )*(?:study|trial) "
+                          r"(?:assessed|evaluated|investigated|examined|tested|compared|aimed))\b", _re.I)
+
+
+def this_study_sentences(rec) -> str:
+    """The abstract's sentences about THIS study -- its enrolment / randomisation (an enrolment verb), its objective
+    or its primary outcome -- outside BACKGROUND-type sections, joined. Background sentences never enter."""
+    ab = rec.get("abstract") or ""
+    keep = []
+    for m in _re.finditer(r"[^.!?]+[.!?]?", ab):
+        snt = m.group(0)
+        cue = _ENROL_VERB.search(snt) or _THIS_STUDY.search(snt)
+        if not cue:
+            continue
+        sec = None
+        for s in _SECTION.finditer(ab, 0, m.start() + cue.start()):
+            sec = s.group(1).lower()
+        if sec in _NOT_ENROL_SECTIONS:
+            continue
+        keep.append(" ".join(snt.split()))
+    return " ".join(keep)
 
 
 def enrolled_population(rec, terms):
@@ -474,7 +503,11 @@ def screen_record(rec, inc, neg_pmids):
                 _span(pop_haystack_raw, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     if inc.get("population_any_from_abstract") and not inc.get("prevention"):
-        pop_haystack, pop_haystack_raw = _text(rec), _text_raw(rec)      # inclusion only (exclusions were judged above)
+        # inclusion only (exclusions were judged above), and only from sentences about THIS study: the whole abstract
+        # let in a retrospective cohort, a society position paper and a C. difficile TREATMENT trial whose background
+        # named the outcome (recorded radius review: 4 of 12 non-comparator flips contradicted)
+        own = this_study_sentences(rec)
+        pop_haystack, pop_haystack_raw = (poptext + " " + own.lower()), (raw_pop + " " + own)
     popok = _has(pop_haystack, population_any)
     enrolled = None if popok or not population_any else enrolled_population(rec, population_any)
     if enrolled:

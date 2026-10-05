@@ -47,3 +47,17 @@ def test_without_the_derived_rule_the_same_trial_is_x2():
 def test_the_registered_exclusions_are_not_widened_to_the_abstract():
     rec = dict(TRIAL, abstract=TRIAL["abstract"] + " Earlier work examined the treatment of AAD in adults.")
     assert _decide(rec)["decision"] == "include"
+
+
+def test_a_background_only_mention_of_the_outcome_never_qualifies():
+    # the first draft read the whole abstract; the recorded radius review contradicted 4 of 12 such flips
+    rec = dict(TRIAL, title="Bacillus spores and gut symptoms in healthy adults.",
+               abstract="BACKGROUND: Antibiotic-associated diarrhea is common. METHODS: We randomly assigned 60 healthy "
+                        "adults to Bacillus spores or placebo and recorded stool frequency.")
+    assert _decide(rec)["rule_id"] == "X2"
+
+
+def test_an_economic_evaluation_alongside_a_trial_is_not_the_trials_primary_report():
+    rec = dict(TRIAL, title="Health economic evaluation alongside the PROSPECT randomized trial of probiotics.")
+    d = _decide(rec)
+    assert d["rule_id"] == "X1" and "economic evaluation" in d["reason"]
