@@ -66,9 +66,11 @@ SCHEMA = {
 }
 INSTR = """You read ONE randomised trial's own open sources to find its result for a meta-analysis outcome. Sources are
 inline below; use nothing else (no files, no memory of the paper). Order: the AACT posted results first, then the trial's
-own full text, then a regulatory review (an FDA medical/statistical review, shown as windows of the document around
+own open full text (PMC, or an open-access copy found by Unpaywall), then a regulatory document (an FDA review or
+label, an EMA assessment report, a NICE committee paper or evidence review -- shown as windows of the document around
 where the trial is named), then the meta rows (a meta row is never the trial's own result: report it only if nothing
-primary exists).
+primary exists). A regulator's number counts only for the protocol's estimand, population, timepoint and the trial's
+whole randomised population.
 The result must be for the trial's RANDOMISED population: if the AACT posting covers only a subset (a site, a unit, a
 stratum: compare its denominators with the randomised total the text states), use the full text instead.
 
@@ -253,7 +255,11 @@ def aact_evidence(ncts):
                          "analysis_detail": (dn.get("analyses") or {}).get(str(oid)),
                          "groups": [{"group": g.get("group"), "title": reg["group_titles"].get(str(g.get("group"))),
                                      "count": g.get("count"), "n": g.get("n")} for g in reg["groups"].get(oid) or []],
-                         "analyses": [{k: a.get(k) for k in ("param_type", "param_value", "ci_lower", "ci_upper", "groups")}
+                         # each analysis's groups BY TITLE: CORIMUNO (NCT04331808) posts HRs per stratum with no
+                         # measurement rows, so ids alone left the reader unable to tell severe from critical
+                         "analyses": [dict({k: a.get(k) for k in ("param_type", "param_value", "ci_lower", "ci_upper",
+                                                                  "groups")},
+                                           group_titles=[reg["group_titles"].get(str(g)) for g in a.get("groups") or []])
                                       for a in reg["analyses"] if a.get("outcome_id") == oid]})
         out[n] = {"state": "POSTED", "snapshot": reg.get("_snapshot"), "outcomes": outs[:60], "_reg": reg}
     return out
@@ -349,10 +355,52 @@ def meta_evidence(slug, label):
     return rows
 
 
+def unpaywall_evidence(pmid, terms):
+    """(whole, shown, sha, doi, licence): the trial report's open-access copy found by Unpaywall (kgap.k_gap.unpaywall_text,
+    cached), when PMC holds none. Its licence is Unpaywall's for the DOI ('cc-*' may be shown to a model)."""
+    from reproducible_ai import record_licence as rl
+    from kgap import k_gap
+    doi = rl.pmid_doi(pmid) if pmid else None
+    if not doi:
+        return "", "", None, None, None
+    try:
+        u = k_gap.unpaywall_text(doi, os.path.join(ROOT, "outputs", "k_gap", "_upw"),
+                                 os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=False)
+    except Exception:  # noqa: BLE001 - no copy is a result, never a guess
+        return "", "", None, doi, None
+    t = u.get("text") or ""
+    if len(t) < 3000:
+        return "", "", None, doi, None
+    lic = rl.doi_licences().get(doi)
+    shown = t if len(t) <= FT_CAP else _windows(t, terms)
+    return t, shown, hashlib.sha256(t.encode("utf-8")).hexdigest(), doi, lic
+
+
+def _windows(t, terms):
+    rx = re.compile("|".join(re.escape(k) for k in terms) or r"$^", re.I)
+    spans = sorted({(max(0, m.start() - 1500), m.end() + 1500) for m in rx.finditer(t)})
+    merged = []
+    for a, b in spans:
+        if merged and a <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(b, merged[-1][1]))
+        else:
+            merged.append((a, b))
+    out, used = [], 0
+    for a, b in merged:
+        if used >= FT_CAP:
+            break
+        out.append(f"[... characters {a}-{b} ...]\n" + t[a:b])
+        used += b - a
+    return "\n".join(out)[:FT_CAP + 2000]
+
+
 def evidence(t, cfg, comp):
     terms = outcome_terms(cfg)
     aact = aact_evidence(t["ncts"])
     whole, shown, sha = text_evidence(t["pmid"], terms)
+    origin, doi, ulic = ("PMC", None, None) if whole else ("UNPAYWALL", None, None)
+    if not whole:
+        whole, shown, sha, doi, ulic = unpaywall_evidence(t["pmid"], terms)
     po = cfg.get("primary_outcome") or {}
     ev = {"trial": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
           "outcome": {k: po.get(k) for k in ("name", "keywords", "estimand", "timepoint", "population")},
@@ -360,14 +408,19 @@ def evidence(t, cfg, comp):
           "eligibility_summary": cfg.get("eligibility_summary"),
           "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items()},
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
-                        if whole and pmc_licence(t["pmid"]) in PROMPT_COPY else
+                        if whole and origin == "PMC" and pmc_licence(t["pmid"]) in PROMPT_COPY else
+                        # an Unpaywall copy is shown only under a CC licence; the DOI (not the PMID) names it, so the
+                        # licence guard checks the DOI's Unpaywall licence
+                        {"doi": doi, "licence": ulic, "sha256": sha, "chars": len(whole), "shown_chars": len(shown),
+                         "text": shown} if whole and origin == "UNPAYWALL" and str(ulic or "").startswith("cc") else
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
     reg_shown, reg_held = regulatory_evidence(t, terms)
     if reg_shown:
         ev["regulatory"] = reg_shown
-    return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"], "reg": reg_held}
+    return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"], "reg": reg_held,
+                "slug": t["slug"], "text_origin": origin if whole else None, "doi": doi, "doi_licence": ulic}
 
 
 def regulatory_evidence(t, terms):
@@ -604,6 +657,10 @@ def regulatory_gate(resp, held, row, counts, effect):
         return "REFUSED:NUMBERS_NOT_IN_QUOTE", None
     if rs.quote_named_and_located(doc, resp["quote"], h["names"]) is None:
         return "REFUSED:TRIAL_NOT_NAMED_NEAR_QUOTE", None
+    if counts and held.get("slug"):
+        short = posted_population_short(held["slug"], held.get("pmid"), resp["n_t"] + resp["n_c"])
+        if short:
+            return "REFUSED:REGULATORY_N_IS_A_SUBPOPULATION", {"note": short}
     m = sm.typed_match_text(row, doc, held["terms"], url)
     if not m and counts:
         m = typed_match_table(resp["quote"], resp, held["terms"])
@@ -646,29 +703,95 @@ def comparator_pmid(slug, o):
     return str(o.get("comparator_pmid") or "")
 
 
-def run(slugs, ref, redo=()):
-    """A trial already answered (RAN_OK) is not asked again unless its label matches a --redo=<substring>."""
+def typed_first(t, cfg, held):
+    """DETERMINISTIC sources before any model: (verdict, admitted) or (None, None). (1) the trial's own held text's
+    outcome table row (table_tuple) from a legitimately open copy (PMC CC / author manuscript, or a CC Unpaywall copy);
+    (2) a regulator's counts (g1_regulatory_source.regulatory_typed: one trial-named line, two corroborated e/N (p%)
+    cells, arms ordered by a header naming both), under the randomised-N check."""
+    import g1_regulatory_source as rs
+    from harness import secondary_meta as sm_
+    po = cfg.get("primary_outcome") or {}
+    est = (po.get("estimand") or "").upper()
+    terms = outcome_row_terms(cfg)
+
+    def row(rr, label_):
+        return sm_.SecondaryRow(meta_pmid="ACQUIRED", meta_doi="", location={}, source_digest="", provenance="TABLE_ROW",
+                                trial_label="", measure=est, outcome_definition=label_, **rr, effect=None, lower=None,
+                                upper=None)
+    if held.get("text"):
+        if held.get("text_origin") == "PMC":
+            ok, copy = pmc_copy(t["pmid"])["licence"] in OPEN_COPY, pmc_copy(t["pmid"])
+        else:
+            ok, copy = str(held.get("doi_licence") or "").startswith("cc"), {"doi": held.get("doi"),
+                                                                            "licence": held.get("doi_licence")}
+        tt = table_tuple(held["text"], terms, po.get("timepoint")) if ok else None
+        if tt and not posted_population_short(t["slug"], t["pmid"], tt[1]["n_t"] + tt[1]["n_c"]):
+            return "ADMITTED", {"kind": "TEXT_TABLE", "source": f"{held.get('text_origin')} held full text sha256 "
+                                                                f"{held['sha']} (read deterministically: table_tuple)",
+                                "source_copy": copy, "span": tt[2][:600], "quote": None, "row": row(tt[1], tt[0])}
+    reg = {k: v for k, v in (held.get("reg") or {}).items() if not k.startswith("_")}
+    if reg and est in ("RR", "OR", "RD"):
+        g = rs.regulatory_typed(reg, terms, cfg.get("intervention_terms") or [], cfg.get("comparator_terms") or [])
+        if g:
+            url, rec, rr, line = g
+            if not posted_population_short(t["slug"], t["pmid"], rr["n_t"] + rr["n_c"]):
+                return "ADMITTED", {"kind": "REGULATORY_TABLE", "source": f"{rec['agency']} {url} doc sha256 "
+                                    f"{rec.get('doc_sha256')} text sha256 {rec.get('text_sha256')} ({rec.get('licence')}; "
+                                    f"read deterministically: regulatory_typed)", "url": url, "agency": rec["agency"],
+                                    "licence": rec.get("licence"), "doc_sha256": rec.get("doc_sha256"),
+                                    "text_sha256": rec.get("text_sha256"), "span": line[:600], "quote": None,
+                                    "row": row(rr, line[:120])}
+    return None, None
+
+
+MIN_FREE_GB = 5.0
+_QUOTA = re.compile(r"usage limit|quota|insufficient[_ ]credits|out of credits|rate limit|You've hit your", re.I)
+
+
+def disk_ok(drives=("C:\\", "F:\\")):
+    """Every drive present has at least MIN_FREE_GB free (Mahmood 6 Oct: run while C: and F: each have >= 5 GB)."""
+    import shutil
+    for d in drives:
+        if os.path.exists(d) and shutil.disk_usage(d).free < MIN_FREE_GB * 1e9:
+            return False
+    return True
+
+
+def run(slugs, ref, redo=(), workers=5):
+    """A trial already answered is asked again only when its evidence CHANGED (a new prompt digest: a new source in the
+    cascade) or its label matches a --redo=<substring>. Deterministic sources first (typed_first: no model call). Calls
+    stop on a disk below MIN_FREE_GB or a quota error (budget stop), recorded per trial, never silently."""
     data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {"runs": {}}
     jobs = []
     for slug in slugs:
         cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8"))
         o, ts = targets(slug, ref)
         for t in ts:
-            prev = data["runs"].get(f"{slug}|{t['label']}") or {}
-            if prev.get("state") in ("RAN_OK", "NO_OPEN_SOURCE") and not any(r in t["label"] for r in redo):
-                continue
             jobs.append((slug, cfg, comparator_pmid(slug, o), t))
 
     # ONE detail pass for every job's NCTs before the pool (three threads each streaming 3 GB, and racing on one cache
     # file, corrupted it: 'Extra data: line 1 column 90017')
     aact_detail(sorted({n for _s, _c, _p, t in jobs for n in t["ncts"]}))
 
+    import threading
+    stop = threading.Event()
+
     def one(job):
         slug, cfg, comp, t = job
-        ev, _held = evidence(t, cfg, comp)
-        if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not _held["text"] and not ev["meta_rows"] \
+        key = f"{slug}|{t['label']}"
+        prev = data["runs"].get(key) or {}
+        base = {"slug": slug, "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"]}
+        try:
+            ev, _held = evidence(t, cfg, comp)
+        except Exception as exc:  # noqa: BLE001 - one trial's failure is recorded, never fatal
+            return key, dict(base, record_id=None, state="EVIDENCE_ERROR", why=f"{type(exc).__name__}: {str(exc)[:200]}")
+        v, _adm = typed_first(t, cfg, _held)
+        if v == "ADMITTED":
+            return key, dict(base, record_id=None, state="TYPED_ADMITTED")
+        if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not _held["text"] \
                 and not ev.get("regulatory"):
-            # nothing open to read: no model call (a reader with no source can only guess)
+            # nothing open to read: no model call (a reader with no source can only guess). A META row is never
+            # admitted (gate: META_CANDIDATE), so meta rows alone are no source to read
             return f"{slug}|{t['label']}", {"record_id": None, "state": "NO_OPEN_SOURCE", "slug": slug,
                                             "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
                                             "why": {"aact": {n: a.get("state") for n, a in ev["aact"].items()},
@@ -676,17 +799,30 @@ def run(slugs, ref, redo=()):
                                                         ROOT, "outputs", "k_gap", "fulltext_index.json"),
                                                         encoding="utf-8")).get(t["pmid"] or "") or {}).get("state")}}
         p = (INSTR + "\n\n=== EVIDENCE ===\n" + json.dumps(ev, ensure_ascii=False, indent=0, default=str)).encode("utf-8")
-        rec = mcl.call(p, schema=SCHEMA, model=MODEL, effort=EFFORT,
+        psha = hashlib.sha256(p).hexdigest()
+        if prev.get("state") == "RAN_OK" and prev.get("prompt_sha256") == psha and not any(r in t["label"] for r in redo):
+            return key, prev                                  # same evidence, already answered: no second call
+        if stop.is_set():
+            return key, dict(base, record_id=None, state="SKIPPED_BUDGET", prompt_sha256=psha)
+        if not disk_ok():
+            return key, dict(base, record_id=None, state="SKIPPED_DISK", prompt_sha256=psha)
+        try:
+            rec = mcl.call(p, schema=SCHEMA, model=MODEL, effort=EFFORT,
                        caller={"file": "scripts/g1_trial_acquire.py", "line": "run",
                                "purpose": f"G1 missing-trial acquisition {slug} / {t['label'][:50]} (g1/finish-line lane)"},
-                       input_digests=[{"ref": "evidence", "sha256": hashlib.sha256(p).hexdigest(),
-                                       "what": "inline evidence: AACT snapshot rows, PMC OA text, FDA review windows, meta rows"}],
+                       input_digests=[{"ref": "evidence", "sha256": psha,
+                                       "what": "inline evidence: AACT snapshot rows, PMC OA / CC Unpaywall text, FDA / EMA "
+                                               "/ NICE windows, meta rows"}],
                        timeout_s=1800)
+        except mcl.LicenceRefused as exc:
+            return key, dict(base, record_id=None, state="REFUSED_LICENCE", why=str(exc)[:300], prompt_sha256=psha)
+        if rec["state"] != "RAN_OK" and _QUOTA.search(json.dumps(rec.get("error") or rec.get("response") or "")):
+            stop.set()                                        # the budget floor: no further calls this run
         ms.write_record(rec, REC_DIR)
         return f"{slug}|{t['label']}", {"record_id": rec["record_id"], "state": rec["state"], "slug": slug,
                                         "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
                                         "prompt_sha256": hashlib.sha256(p).hexdigest()}
-    with cf.ThreadPoolExecutor(max_workers=3) as ex:
+    with cf.ThreadPoolExecutor(max_workers=workers) as ex:
         for k, r in ex.map(one, jobs):
             data["runs"][k] = r
             print(r["state"], r["record_id"], k, flush=True)
@@ -703,6 +839,18 @@ def replay(slugs, ref):
         cfg = json.load(open(os.path.join(ROOT, "topics", f"{r['slug']}.json"), encoding="utf-8"))
         o = tracker_file(r["slug"], ref)
         t = {"slug": r["slug"], "label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"]}
+        if r["state"] == "TYPED_ADMITTED":
+            # deterministic: re-derived from the held sources on every replay (no record exists, none is needed)
+            _ev, held = evidence(t, cfg, comparator_pmid(r["slug"], o))
+            verdict, adm = typed_first(t, cfg, held)
+            row = {"label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"], "record_id": None,
+                   "verdict": verdict or "TYPED_NOT_REPRODUCED", "model": None}
+            if adm:
+                rw = adm.pop("row")
+                row["admitted"] = dict(adm, value={k_: getattr(rw, k_) for k_ in ("measure", "effect", "lower", "upper",
+                                                                                   "events_t", "n_t", "events_c", "n_c")})
+            by_slug.setdefault(r["slug"], []).append(row)
+            continue
         if r["state"] not in ("RAN_OK", "WITHHELD_NOT_OPEN_TEXT"):
             by_slug.setdefault(r["slug"], []).append({"label": r["label"], "verdict": r["state"] if r["state"] ==
                                                        "NO_OPEN_SOURCE" else f"CALL_{r['state']}",
@@ -775,5 +923,6 @@ if __name__ == "__main__":
     ref = next((a.split("=", 1)[1] for a in argv if a.startswith("--ref=")), "")
     slugs = [a for a in argv if not a.startswith("--")]
     if "--run" in argv:
-        run(slugs, ref, [a.split("=", 1)[1] for a in argv if a.startswith("--redo=")])
+        run(slugs, ref, [a.split("=", 1)[1] for a in argv if a.startswith("--redo=")],
+            workers=next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--workers=")), 5))
     replay(slugs, ref)

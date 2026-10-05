@@ -1,6 +1,7 @@
 """REGULATORY source route (scripts/g1_regulatory_source.py + g1_trial_acquire.regulatory_gate + the licence guard):
 an FDA review is a PRIMARY-grade source for a trial it NAMES, admitted only against the WHOLE held document; the licence
-follows from the url's HOST (FDA open, EMA held but never shown to a model); a prompt cannot declare itself open."""
+follows from the url's HOST and the held record (FDA open; EMA shown with its acknowledgement; NICE only if
+its own text states OGL/CC); a prompt cannot declare itself open."""
 import base64
 import json
 import os
@@ -41,7 +42,15 @@ def _resp(**kw):
 
 def test_licence_follows_the_host_only():
     assert rs.licence_of(FDA) == "US_GOV_PUBLIC_DOMAIN" and rs.prompt_open(FDA)
-    assert rs.licence_of(EMA) == "EMA_REUSE_WITH_ACKNOWLEDGEMENT" and not rs.prompt_open(EMA)
+    # EMA: shown since 6 Oct (Mahmood: 'European drug agency can be used'), always with the source acknowledgement
+    assert rs.licence_of(EMA) == "EMA_REUSE_WITH_ACKNOWLEDGEMENT" and rs.prompt_open(EMA)
+    # NICE: notice of rights -> held, never shown, unless the document's own text states OGL / CC
+    nice = "https://www.nice.org.uk/guidance/ta394/documents/committee-papers"
+    assert rs.licence_of(nice) == "NICE_NOTICE_OF_RIGHTS" and not rs.prompt_open(nice)
+    assert rs.licence_from_text(nice, "(c) NICE 2016. All rights reserved. Subject to Notice of rights.") == \
+        "NICE_NOTICE_OF_RIGHTS"
+    assert rs.licence_from_text(nice, "available under the Open Government Licence v3.0") == "OGL"
+    assert rs.prompt_open(nice, {"licence": "OGL"}) and not rs.prompt_open(nice, {"licence": "NICE_NOTICE_OF_RIGHTS"})
     assert rs.licence_of("https://example.org/www.accessdata.fda.gov/review.pdf") is None      # host, not path
 
 
@@ -106,3 +115,61 @@ def test_an_fda_toc_template_is_expanded_to_its_review_documents_and_an_anda_is_
     assert base + "MedR.pdf" in urls and base + "StatR.pdf" in urls
     assert not any("'" in u or "+" in u or " " in u for u in urls)            # an unexpanded template href is no url
     assert not any("anda" in u for u in urls)
+
+
+def test_nice_discovery_reads_published_guidance_and_its_evidence_documents():
+    search = ('<a href="/guidance/ta394">x</a><a href="/guidance/indevelopment/gid-ta11482">y</a>'
+              '<a href="/guidance/NG238">z</a><a href="/guidance/ta394/chapter/1">c</a>')
+    assert rs.nice_guidance("evolocumab", html=search) == ["ta394", "ng238"]
+    hist = ('<a href="/guidance/ta394/documents/committee-papers">a</a><a href="/guidance/ta394/documents/'
+            'committee-papers-2">b</a><a href="/guidance/ta394/documents/final-appraisal-determination-document">c</a>'
+            '<a href="/guidance/ta394/documents/draft-scope">d</a>')
+    assert rs.nice_docs("ta394", history_html=hist) == [rs.NICE + "/guidance/ta394/documents/committee-papers",
+                                                        rs.NICE + "/guidance/ta394/documents/committee-papers-2",
+                                                        rs.NICE + "/guidance/ta394/documents/final-appraisal-determination"
+                                                                  "-document"]
+    ev = ('<a href="/guidance/ng238/evidence/d-escalation-of-lipid-treatment-pdf-13253908141">r</a>'
+          '<a href="/guidance/ng238/evidence/appendix-b-stakeholders-comments-pdf-4724759775">s</a>')
+    assert rs.nice_docs("ng238", evidence_html=ev) == [rs.NICE + "/guidance/ng238/evidence/d-escalation-of-lipid-"
+                                                                 "treatment-pdf-13253908141"]
+
+
+def test_typed_counts_need_a_header_naming_both_arms_and_corroborated_cells():
+    w = ("Table 12. Study WA42380 (COVACTA) outcomes\nOutcome Tocilizumab (N=294) Placebo (N=144)\n"
+         "Mortality at day 28 58/294 (19.7) 28/144 (19.4)\n")
+    got = rs.typed_counts(w, ["mortality at day 28"], ["tocilizumab"], ["placebo"])
+    assert got and got[0] == {"events_t": 58, "n_t": 294, "events_c": 28, "n_c": 144}
+    swapped = w.replace("Tocilizumab (N=294) Placebo (N=144)", "Placebo (N=144) Tocilizumab (N=294)")
+    assert rs.typed_counts(swapped, ["mortality at day 28"], ["tocilizumab"], ["placebo"])[0]["events_t"] == 28
+    assert rs.typed_counts(w.replace("(19.7)", "(25.0)"), ["mortality at day 28"], ["tocilizumab"], ["placebo"]) is None
+    assert rs.typed_counts(w.replace("Outcome Tocilizumab (N=294) Placebo (N=144)\n", ""),
+                           ["mortality at day 28"], ["tocilizumab"], ["placebo"]) is None   # no arm order: no tuple
+
+
+def test_licence_guard_needs_the_ema_acknowledgement_and_checks_a_shown_unpaywall_doi():
+    ev = {"regulatory": [{"url": EMA, "agency": "EMA", "windows": [{"offset": 0, "text": "mortality " * 300}]}]}
+    p = "I\n\n=== EVIDENCE ===\n" + json.dumps(ev)
+    r = {"record_id": "mc-e", "prompt": {"b64": base64.b64encode(p.encode()).decode()}, "input_digests": []}
+    assert rl.record_problems(r, {}, {}, {})                                      # no acknowledgement: refused
+    ev["regulatory"][0]["acknowledgement"] = rs.EMA_ACK
+    p = "I\n\n=== EVIDENCE ===\n" + json.dumps(ev)
+    r["prompt"]["b64"] = base64.b64encode(p.encode()).decode()
+    assert rl.record_problems(r, {}, {}, {}) == []
+    ft = {"full_text": {"doi": "10.1/x", "licence": "cc-by", "text": "results " * 400}}
+    q = "I\n\n=== EVIDENCE ===\n" + json.dumps(ft)
+    rq = {"record_id": "mc-u", "prompt": {"b64": base64.b64encode(q.encode()).decode()}, "input_digests": []}
+    assert rl.record_problems(rq, {}, {"10.1/x": "cc-by"}, {}) == []
+    assert rl.record_problems(rq, {}, {"10.1/x": "other-oa"}, {})                 # the prompt's own claim is ignored
+
+
+def test_typed_first_admits_a_regulator_table_without_a_model_and_checks_the_randomised_n(monkeypatch):
+    doc = ("Study WA42380 (COVACTA) results. " + FILL[:2000] + "\nOutcome Tocilizumab (N=294) Placebo (N=144)\n"
+           "Mortality at day 28 58/294 (19.7) 28/144 (19.4)\n" + FILL[:2000])
+    held = _held(doc)
+    cfg = dict(CFG, intervention_terms=["tocilizumab"], comparator_terms=["placebo"])
+    t = {"slug": "tocilizumab-covid19-mortality", "pmid": None, "label": "COVACTA"}
+    monkeypatch.setattr(ga, "posted_population_short", lambda *a: None)
+    v, adm = ga.typed_first(t, cfg, held)
+    assert v == "ADMITTED" and adm["kind"] == "REGULATORY_TABLE" and adm["row"].events_t == 58 and adm["url"] == FDA
+    monkeypatch.setattr(ga, "posted_population_short", lambda *a: {"randomised_total": 900})
+    assert ga.typed_first(t, cfg, held) == (None, None)                       # a subpopulation is never the trial's

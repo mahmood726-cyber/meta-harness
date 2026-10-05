@@ -54,3 +54,32 @@ def test_no_tracked_record_carries_text_from_a_copy_not_marked_open():
     # the list may only shrink: an entry that no longer fails must be removed
     stale = sorted(set(listed) - seen)
     assert not stale, f"registry/record_licence_exceptions.json lists records that no longer fail: {stale}"
+
+
+def test_plant_a_whole_text_block_needs_a_declared_cc_source():
+    body = "Trial results text. " * 400                                     # 8000 chars: full-text sized
+    p = "INSTR\n<<<TEXT\n" + body + "\nTEXT>>>\n"
+    rec = lambda ref: {"record_id": "mc-blk", "prompt": {"b64": base64.b64encode(p.encode()).decode()},  # noqa: E731
+                       "input_digests": [{"ref": ref, "what": "held text shown whole"}]}
+    dl = {"10.1/cc": "cc-by", "10.1/bronze": "other-oa"}
+    assert rl.text_block_problems(rec("outputs/k_gap/_upw (DOI 10.1/cc)"), dl, {}) == []
+    assert rl.text_block_problems(rec("outputs/k_gap/_upw (DOI 10.1/bronze)"), dl, {})
+    assert rl.text_block_problems(rec("something undeclared"), dl, {})
+    assert rl.text_block_problems(rec("held open text PMID 123 (PMC_OA)"), dl, {"123": "CC"}) == []
+    assert rl.text_block_problems(rec("held open text PMID 123 (PMC_OA)"), dl, {"123": "NOT_OPEN"})
+    short = {"record_id": "a", "prompt": {"b64": base64.b64encode(b"<<<TEXT\nabstract only\nTEXT>>>").decode()},
+             "input_digests": []}
+    assert rl.text_block_problems(short, dl, {}) == []                       # abstract-sized: the abstract policy
+
+
+def test_plant_a_refused_prompt_is_never_sent():
+    from reproducible_ai import model_call_live as mcl
+    sent = []
+    p = ("INSTR\n<<<TEXT\n" + "x " * 4000 + "\nTEXT>>>\n").encode()
+    try:
+        mcl.call(p, schema={"type": "object"}, model="m", effort="low", caller={"file": "t", "line": "1", "purpose": "t"},
+                 input_digests=[{"ref": "undeclared"}], runner=lambda *a, **k: sent.append(1) or {})
+        raise AssertionError("not refused")
+    except mcl.LicenceRefused:
+        pass
+    assert not sent

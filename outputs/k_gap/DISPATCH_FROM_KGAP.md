@@ -399,3 +399,91 @@ None of the four items flips a topic under the strict definition.
 - **Codex:** 1 forest read this round. The other routes were decided by typed sources (registry, PubMed metadata, the
   comparator's JATS).
 - **Worker:** unreachable (SSH and Tailscale ping time out).
+
+## To the captain: Tier B codex fan-out + REGULATORY route (5 Oct, night) — acq/k-gap 67978d5d7, f2f3b8df9
+
+**Headline (local recount, 32 topics):** G1_MATCHED 9 (unchanged), INDEPENDENT 92/361 (+1), COVERAGE 164/361 (−1),
+eligible 239 (−1). Please regenerate the served tracker from the tip; this lane does not commit tracker outputs.
+
+**Fan-out.** One codex job per NO_ROW / UNVERIFIED / SECONDARY_SINGLE trial in the 7 Tier B topics:
+- 60 targets → 32 recorded calls (gpt-6-astra, concurrency 3) + 28 with no open source (no call made).
+- The commit message for f2f3b8df9 says "45 calls / 15 no source". That is a miscount; **32 / 28** is right, counted from the run logs.
+- Worker still unreachable. Codex liveness was checked by a real exec, not a status page.
+
+| topic | targets | admitted | outcome |
+|---|---|---|---|
+| iv-iron-hfref-hosp | 4 | 2 | **HEART-FID → PRIMARY** (AACT ITT 297/1532 vs 332/1533); matched 1→2 of 5. **AFFIRM-AHF** admitted (AACT HF hospitalisations 142/558 vs 178/550) but now NAMED `ESTIMAND_DIFFERENCE`: the comparator pooled *HF hospitalisation + CV death* (217/558 vs 294/550). A named row is never merged. |
+| pcsk9-mace | 9 | 0 | Lipid trials post no MACE; HIGH FH 6/72 vs 0/35 refused (`TYPED_MATCH_NOT_FOUND`); ODYSSEY trials are named only in the EMA EPAR (held, never shown) |
+| tocilizumab-covid19-mortality | 16 | 0 | Posted outcomes without counts; CORIMUNO HRs without group labels → UNSURE; REMDACTA HR refused `AACT_OUTCOME_NOT_NAMED` |
+| corticosteroids-cap / -covid19 | 7 / 3 | 0 | No posted results and no CC full text |
+| colchicine-secondary | 8 | 0 | Same; Shah refused because AACT posts a stent subset only |
+| omega3 | 13 | 0 | 12 have no open source; Pahor's AACT outcome is mobility disability |
+
+**REGULATORY route (new, PRIMARY-grade).**
+- *Source records:* drugs@FDA NDA/BLA reviews and EMA EPARs, held as typed records (`registry/regulatory_sources.json`):
+  - agency and licence come from the url host only;
+  - each record carries the PDF sha256 and the text sha256.
+- *Gate:* a regulatory value is admitted only if all of these hold:
+  - the quote is verbatim in the **whole** document;
+  - every number is in the quote;
+  - the trial is named near the quote (another study's row is refused);
+  - the typed tuple sits beside the outcome terms.
+- *Licence guard:* only FDA windows may enter a prompt. A prompt's own licence claim counts for nothing.
+- *EMA (for Mahmood):* the licence is "reproduction authorised with acknowledgement", which is not marked open, so EMA documents are held but never shown. Decide whether EMA may enter prompts.
+- *Yield so far:* 30 FDA and 13 EMA texts are held. No prompt-open document names a target trial beside its outcome terms, so this round had no regulatory admissions. Actemra's COVID-19 sBLA review is missing from openFDA's application_docs.
+
+**Defects fixed (root cause, with plants):**
+- The tracker table crashed on full regeneration. The 5 Oct PROTOCOL_TEXT adjudication record lacked `screen_reason`, and `SAME_TRIAL_AS_ANOTHER_UNIT` fell into the registry-gate branch.
+- Fix: one renderer per kind, with a plant that checks it over every real per-topic record.
+- Note: `python scripts/g1_tracker.py` with no slugs only re-renders the existing files. Pass the slugs to regenerate.
+
+### Follow-up (same night): two-source sweep on Tier B — 83c701809, af2c6bfb0
+
+**Run.** `g1_two_source_sweep --run --need=4` over the 7 topics:
+- 4 new recorded forest reads. The planner found few unread candidate figures.
+- **GISSI-P 1999 → SWEEP_SECONDARY_SINGLE** (meta 23335472 Fig 2, RR 0.98 (0.88–1.09)). It is not matched: our screen excludes it on design (`X-DESIGN`).
+- The headline is unchanged: G1_MATCHED 9, INDEPENDENT 92/361, COVERAGE 164/361.
+
+**Regression found and fixed (with a plant).** The sweep counted forest rows only from the *current run's* read plan.
+- A re-run with another `--need` dropped Nilsen 2001's verified row (meta 39639295, a held read), and omega3 fell from 6 to 5 matched.
+- Now the plan decides what is read; every held, gated read is counted.
+- Held reads also surface 16 more candidate rows (ROWS_NOT_VERIFIED 13 → 29). None is verified yet; these are second-source targets.
+- **Captain:** if you re-sweep from main before consolidating, take `metas_to_count` with it, or omega3 drops a match.
+
+**Ordering note.** Run `g1_tracker <slugs> --no-table` → `g1_import_lanes` → `g1_tracker --table`.
+- Rendering the table before the import shows noac, tocilizumab and sglt2-hfref from our own pipeline instead of their lanes.
+- That ordering briefly read N=348 and G1_MATCHED 7 here; it was not a data change.
+
+**Leak hygiene (for Mahmood).**
+1. *Lane-log writer.* The lane-log writer (`reproducible_ai/model_call_live.transcript_facts`) redacted only the work dir.
+   - A forest read's client, steered by its own global AGENTS.md, ran commands naming private local files. Every command was rejected by the sandbox.
+   - Those paths reached the uncommitted lane log. The leak scan caught them, and the line was redacted before commit.
+   - The writer now keeps `<local-path>/<file name>` only. There is a plant for it.
+2. *Fixture on main.* `tests/test_codex_call_log.py` carried a real home-directory path in a fixture. It came from c82e86bd7 and **is on main**.
+   - Neutralised on this lane (af2c6bfb0), so it drops out at the next consolidation.
+   - main itself is untouched by this lane.
+
+### Follow-up 2 (same night): counts re-reads and call-log privacy (5b765b8be)
+
+**Counts re-reads.** The per-arm counts re-read now also runs for planned (caption-selected) forest figures, with gates unchanged.
+- 9 recorded reads.
+- In corticosteroids-cap, meta 23112872's counts attach to 4 of 8 rows. Only counts that reproduce the printed OR attach.
+- Those rows now pass the measure gate. They stop at `TIMEPOINT_NOT_STATED_BY_META`: the meta never states the mortality timepoint.
+- No count moved.
+
+**Where Tier B stands after tonight.** Under unchanged gates, Tier B is exhausted:
+- 60 acquisition calls and 3 sweeps: the open-meta pool is fully read (67 held forest reads; the remaining planned metas have no readable figure).
+- Every unmatched row is now one of:
+  - (a) no open primary source;
+  - (b) refused by a measure gate (meta RR vs topic OR/HR: 26 of 31 candidate rows);
+  - (c) refused by a timepoint gate;
+  - (d) screen-excluded (GISSI-P, design).
+- tocilizumab is served from the g1/tocilizumab lane import, so this lane's tocilizumab reads don't move the served row.
+
+**Decisions only Mahmood can make (none taken here):**
+1. **EMA EPAR text in prompts.** The licence is "reproduction authorised with acknowledgement". It is held, never shown. Allowing it would open the ODYSSEY rows (pcsk9) to the regulatory route.
+2. **Meta with no stated timepoint.** Should a meta that states no timepoint be admissible when the trial's own report states one? This is the cortico-CAP rows' only remaining refusal.
+3. **Codex client reading private files.** Codex's client reads its user-level AGENTS.md and acts on it inside harness calls:
+   - 5 Oct: it read a private workbook during a forest read (read-only sandboxes allow reads).
+   - Committed logs no longer keep tool output (fixed and planted).
+   - The calls themselves should run with user-level client instructions disabled, or in a sandbox with no access outside the work dir. That is a harness-wide setting, so it is not changed by this lane.

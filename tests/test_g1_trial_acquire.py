@@ -179,3 +179,18 @@ def test_a_row_without_a_report_pmid_takes_its_registrations_single_result_refer
     by = {t["label"]: t for t in ts}
     assert by["EMPACTA"]["pmid"] == "33332779" and by["EMPACTA"]["pmid_by"] == "AACT_RESULT_REFERENCE"
     assert by["MANY"]["pmid"] is None                       # several result references: none is chosen
+
+
+def test_posted_analyses_name_their_groups_by_title(monkeypatch):
+    # CORIMUNO (NCT04331808) posts per-stratum HRs with no measurement rows: group ids alone cannot tell the reader
+    # severe from critical
+    reg = {"outcomes": {"1": {"title": "Overall survival", "type": "SECONDARY", "time_frame": "Day 28"}},
+           "groups": {}, "group_titles": {"g7": "TOCILIZUMAB -- Severe", "g8": "Standard of Care -- Severe"},
+           "analyses": [{"outcome_id": "1", "param_type": "Hazard Ratio (HR)", "param_value": "0.92",
+                         "ci_lower": "0.33", "ci_upper": "2.53", "groups": ["g7", "g8"]}]}
+    from kgap import aact_adapter
+    monkeypatch.setattr(aact_adapter, "ensure", lambda ncts: None)
+    monkeypatch.setattr(aact_adapter, "registry_for", lambda n: reg)
+    monkeypatch.setattr(ga, "aact_detail", lambda ncts: {})
+    a = ga.aact_evidence(["NCT04331808"])["NCT04331808"]["outcomes"][0]["analyses"][0]
+    assert a["group_titles"] == ["TOCILIZUMAB -- Severe", "Standard of Care -- Severe"]

@@ -16,6 +16,7 @@ instructions. The user's global ~/.codex/AGENTS.md, which the client may inject,
 """
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import json
@@ -28,6 +29,10 @@ from pathlib import Path
 from typing import Callable
 
 from reproducible_ai import model_source
+
+
+class LicenceRefused(Exception):
+    """The prompt would carry text the licence guard (reproducible_ai/record_licence.py) refuses: no call is made."""
 
 NOT_CONTROLLABLE = ["temperature", "top_p", "seed", "client system instructions (codex built-in, not exposed)",
                     "server-side model revision behind the model id"]
@@ -108,21 +113,25 @@ _READ_CMD = re.compile(r"(?:Get-Content|cat|type|more|head|tail|sed -n|rg|grep|S
                        r"(?P<path>[\w.\\/:-]+\.(?:md|txt|json|py|csv|html|toml|yaml|yml))", re.I)
 
 
-_ABS_PATH = re.compile(r"^(?:[A-Za-z]:[\\/]|/(?:home|Users|mnt)/)")
-_ABS_ANY = re.compile(r"[A-Za-z]:(?:\\+|/)(?!/)[^\s'\"`,;|)]*")
+_LOCAL_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:(?:\\+|/)[^\s'\"`;|<>]*")
 
 
-def _red_path(f):
-    """An absolute path keeps only its file name; a relative one (inside the work directory) is unchanged."""
-    if not _ABS_PATH.match(f or "") or "mcall-" in f:
-        return f
-    return "<outside-workdir>/" + re.split(r"[\\/]+", f.rstrip("\\/"))[-1]
+_CLIENT_FILES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")    # a client's own instruction files: the log exists to show these
 
 
-def _red_paths(s):
-    """Every absolute path inside a command or outcome string, reduced to its file name (the work dir is kept)."""
-    return _ABS_ANY.sub(lambda m: m.group(0) if "mcall-" in m.group(0) else
-                        "<outside-workdir>/" + re.split(r"[\\/]+", m.group(0).rstrip("\\/"))[-1], s or "")
+def _local_name(path):
+    name = re.split(r"[\\/]+", path.rstrip("\\/"))[-1]
+    if name in _CLIENT_FILES:
+        return "<local-path>/" + name
+    # any other local file: its NAME can be private too (a client read attempt named a private workbook, 5 Oct), so
+    # only a short digest of the name is kept -- the same file still compares equal across calls
+    return "<local-file " + hashlib.sha256(name.encode("utf-8")).hexdigest()[:10] + ">"
+
+
+def _local(x):
+    """An absolute local path never enters the committed log: the folders are dropped, and the file name too unless it
+    is a client instruction file (WHICH instruction file was read is the log's point)."""
+    return _LOCAL_PATH.sub(lambda m: _local_name(m.group(0)), x) if isinstance(x, str) else x
 
 
 def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
@@ -138,19 +147,20 @@ def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") ->
     if p and p in red:
         red = red.replace(p, f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>")
     red = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", red)
-    # a read OUTSIDE the call's work directory (the client's global instructions sent it to a user's private files,
-    # 4 Oct: <outside-workdir>/INDEX.md was read and its head landed in a committed lane log): every absolute path keeps
-    # only its file name, and the transcript -- which may echo what was read -- is WITHHELD, its digest kept
-    outside = sorted({f for f in files if _ABS_PATH.match(f) and "mcall-" not in f})
-    files = sorted({_red_path(f) for f in files})
-    calls = [{"command": _red_paths(c["command"]) if c["command"] else c["command"], "outcome": _red_paths(c["outcome"])}
-             for c in calls]
-    if outside:
-        red = (f"<withheld: the client read outside its work directory ({len(outside)} file(s)); transcript sha256 "
-               f"{hashlib.sha256(red.encode('utf-8')).hexdigest()}>")
-    else:
-        # attempted (blocked) reads still NAME the user's paths in the transcript: reduce them too
-        red = _red_paths(red)
+    # every OTHER absolute local path too: the client's own AGENTS.md steered a forest read (mc-28562764, 5 Oct) into
+    # commands naming private index files; the log is committed, so a local path never enters it (all were rejected)
+    red = _local(red)
+    # ...and never a tool's OUTPUT: a read-only sandbox still lets the client READ local files, and one forest read
+    # (mc-e947935a, 5 Oct) printed a private file's contents into its transcript. The committed log keeps the header,
+    # the prompt digest and a digest of the body; the commands and outcomes are kept (scrubbed) in tool_calls.
+    head, sep, _body = red.partition("\n--------\nuser")
+    if sep:
+        red = (head + sep + f"\n<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>\n<client transcript body sha256 "
+               f"{hashlib.sha256(t.encode('utf-8')).hexdigest()}: tool output and messages are not kept in the log>")
+    # how many files the client read OUTSIDE its work directory (counted before the names are scrubbed)
+    outside = sorted({f for f in files if _LOCAL_PATH.match(f) and "mcall-" not in f})
+    calls = [{k: _local(v) for k, v in c.items()} for c in calls]
+    files = sorted({_local(f) for f in files})
     return {"tokens_used": tokens, "tool_calls": calls, "tool_calls_n": len(calls),
             "tool_calls_rejected_n": sum(1 for c in calls if c["outcome"].startswith("REJECTED")),
             "files_read": files, "transcript_redacted": red, "outside_workdir_reads": len(outside)}
@@ -241,6 +251,13 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
     images: files the model is shown (e.g. a forest-plot figure). Their sha256 is recorded as an input digest and in
     params, so the record says exactly which bytes were seen; this is the ONLY route by which a model sees an image."""
     runner = runner or codex_runner
+    # LICENCE GUARD AT CALL TIME: the prompt goes into a committed record, so a prompt the record guard would refuse is
+    # never sent (6 Oct audit: 44 committed records carried non-CC full text in shapes the after-the-fact test missed)
+    from reproducible_ai import record_licence
+    probs = record_licence.record_problems({"record_id": "pre-call", "input_digests": list(input_digests),
+                                            "prompt": {"b64": base64.b64encode(prompt).decode("ascii")}})
+    if probs:
+        raise LicenceRefused("; ".join(probs)[:600])
     digests = list(input_digests)
     g = global_agents_digest() if runner is codex_runner else None
     if g:

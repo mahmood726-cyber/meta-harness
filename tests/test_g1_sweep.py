@@ -363,3 +363,38 @@ def test_a_lane_owned_trial_reaches_the_sweep_with_its_registration(monkeypatch)
     assert sw.lane_identity(x, {"ncts": ["NCT1"], "pmids": ["9"]}) == {"ncts": ["NCT1"], "pmids": ["9"]}
     # a PMID family gives its PMID
     assert sw.lane_identity({"label": "y", "family": "PMID 123"}, {})["pmids"] == ["123"]
+
+
+def test_a_held_gated_read_is_counted_whatever_the_current_plan():
+    # 5 Oct: a re-sweep with --need=4 planned other metas and dropped Nilsen 2001's verified row (meta 39639295 Fig 3,
+    # a held RAN_OK read): the plan decides what to READ, never what is COUNTED
+    import g1_two_source_sweep as sw
+    runs = {"omega3::39639295": {"state": "RAN_OK"}, "omega3::111": {"state": "FAILED"},
+            "omega3::222::Fig2": {"state": "RAN_OK"}, "other::333": {"state": "RAN_OK"},
+            "omega3::444": {"state": "RAN_OK"}}
+    got = sw.metas_to_count("omega3", ["555"], runs, {"444"})
+    assert got == ["39639295", "555"]        # held read kept; failed read, text-linked key, other topic, comparator not
+
+
+def test_a_planned_figure_on_another_ratio_measure_gets_its_counts_and_only_reproducing_counts_attach(monkeypatch):
+    # corticosteroids-cap: meta 23112872's gated forest plot prints ORs on an RR topic, so its rows were refused on
+    # measure; the counts re-read was wired for text-linked figures only. Counts are attached only when they reproduce
+    # the row's PRINTED effect, and only from a held read of the SAME image.
+    from harness import secondary_meta as sm
+    from reproducible_ai import model_source as ms
+    mk = lambda lab, e: sm.SecondaryRow(meta_pmid="23112872", meta_doi="", location={}, source_digest="",  # noqa: E731
+                                        provenance="FIGURE", trial_label=lab, measure="OR", outcome_definition="",
+                                        effect=e, lower="0.10", upper="2.00")
+    assert sw.wants_counts({"estimand": "RR"}, [mk("Confalonieri 2005", "0.44")])
+    assert not sw.wants_counts({"estimand": "OR"}, [mk("Confalonieri 2005", "0.44")])
+    assert not sw.wants_counts({"estimand": "HR"}, [mk("Confalonieri 2005", "0.44")])   # counts never give an HR
+    got = {"rows": [{"label": "Confalonieri 2005", "events_t": "10", "n_t": "100", "events_c": "20", "n_c": "100"},
+                    {"label": "Wrong 2007", "events_t": "1", "n_t": "50", "events_c": "9", "n_c": "50"}]}
+    monkeypatch.setattr(ms, "load_record", lambda p: {})
+    monkeypatch.setattr(ms, "replay", lambda rec: json.dumps(got).encode())
+    rows = [mk("Confalonieri 2005", "0.44"), mk("Wrong 2007", "0.44")]
+    rc = {"state": "RAN_OK", "image_sha256": "abc", "record_id": "mc-x"}
+    assert sw.apply_counts(rows, rc, "other-image") is None                  # a read of another image never attaches
+    assert sw.apply_counts(rows, dict(rc, state="FAILED"), "abc") is None
+    assert sw.apply_counts(rows, rc, "abc") == 1                              # 10/100 vs 20/100 -> OR 0.44: attached
+    assert rows[0].events_t == 10 and rows[1].events_t is None               # 1/50 vs 9/50 -> OR 0.10, not 0.44
