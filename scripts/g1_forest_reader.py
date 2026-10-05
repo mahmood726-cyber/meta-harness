@@ -1623,11 +1623,29 @@ def extra_key(slug, pmid, t):
     return f"{slug}::{pmid}::{t['fig_id']}{t.get('panel') or ''}"
 
 
-def items(slugs, run, pairs=None, extras=None, meta_extras=None):
+CITING_ROWS = ("Rows: every study row, once each (never a subgroup subtotal or an overall row), with events and totals "
+               "per arm. Pooled: the overall pooled row for the whole figure.")
+
+
+def citing_named(slugs):
+    """[(slug, pmid, named figure)] from scripts/g1_citing_targets.py's recorded candidates (figures of OA metas citing an
+    unmatched trial that pass the admission pre-filter); the caption anchor is the recorded caption, re-checked against
+    the JATS by figure_for."""
+    p = os.path.join(ROOT, "registry", "model_proposals", "g1_citing_targets.json")
+    d = _j(p) if os.path.exists(p) else {}
+    out = []
+    for slug in slugs:
+        for c in (d.get(slug) or {}).get("candidates") or []:
+            out.append((slug, c["pmid"], {"fig_id": c["fig_id"], "caption_has": c["caption"][:80],
+                                          "instruction": CITING_ROWS}))
+    return out
+
+
+def items(slugs, run, pairs=None, extras=None, meta_extras=None, named=None):
     """slugs -> each topic's comparator; pairs [(slug, pmid)] -> those metas (the two-source sweep's selection);
-    extras [slug] -> that topic's COMPARATOR_EXTRA figures."""
+    extras [slug] -> that topic's COMPARATOR_EXTRA figures; named [(slug, pmid, figure)] -> those figures."""
     out, skipped = [], {}
-    todo = [(s, p, None) for s, p in (pairs or [])]
+    todo = [(s, p, None) for s, p in (pairs or [])] + list(named or [])
     for slug in extras or []:
         todo += [(slug, comparator_of(slug), t) for t in COMPARATOR_EXTRA.get(slug, [])]
     for slug, pmid in meta_extras or []:
@@ -2051,6 +2069,8 @@ def main(argv):
         its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
     elif "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
+    elif "--citing" in argv:                     # figures of OA metas citing an unmatched trial (g1_citing_targets)
+        its, skipped = items([], run, named=citing_named(slugs))
     elif "--kgap-sweep" in argv:
         its, skipped = items([], run, pairs=kgap_sweep_pairs(slugs))
     elif "--metas" in argv:
