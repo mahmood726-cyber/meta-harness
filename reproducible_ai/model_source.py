@@ -101,10 +101,76 @@ def _unblob(blob: Any, what: str) -> bytes:
     return raw
 
 
+# ---------------------------------------------------------------------------------------- private-text redaction
+# A committed record is public. Codex reads the owner's global instructions (CODEX_HOME holds his login, so it is not
+# moved) and its replies and transcripts have echoed private, drive-qualified paths and lines of those instructions
+# (5 Oct: 16 records had to be removed from branch history). Every record is therefore redacted HERE, before it can be
+# built or written: a drive-qualified path (other than the call's own work dir) keeps only its file name, and any line
+# of the owner's global instruction files is withheld. The record states what was redacted and keeps each altered
+# field's pre-redaction sha256, so the change is visible and the run ledger's prompt digest still links to it.
+_DRIVE_PATH = re.compile(r"(?<![A-Za-z])[A-Za-z]:(?:\\+|/)(?!/)[^\s'\"`,;|)<>]*")
+OWNER_INSTRUCTION_FILES = ("~/.codex/AGENTS.md", "~/.claude/CLAUDE.md", "~/.claude/AGENTS.md", "~/AGENTS.md")
+_OWNER_LINES: list | None = None
+
+
+def owner_instruction_lines() -> list[str]:
+    """Distinctive lines (>= 40 chars) of the owner's global instruction files on this machine (none in CI)."""
+    global _OWNER_LINES
+    if _OWNER_LINES is None:
+        out = set()
+        for f in OWNER_INSTRUCTION_FILES:
+            p = Path(f).expanduser()
+            try:
+                txt = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            out |= {ln.strip() for ln in txt.splitlines() if len(ln.strip()) >= 40}
+        _OWNER_LINES = sorted(out, key=len, reverse=True)
+    return _OWNER_LINES
+
+
+def redact_private(text: str, owner_lines: list | None = None) -> tuple[str, int]:
+    """(text with drive-qualified paths reduced and owner-instruction lines withheld, number of replacements)."""
+    n = 0
+    lines = owner_instruction_lines() if owner_lines is None else owner_lines
+    for ln in lines:
+        if ln in text:
+            k = text.count(ln)
+            text = text.replace(ln, "<owner-instructions withheld sha256 " + hashlib.sha256(ln.encode("utf-8")).hexdigest()[:16] + ">")
+            n += k
+
+    def sub(m):
+        nonlocal n
+        g = m.group(0)
+        if "mcall-" in g:
+            return g
+        n += 1
+        return "<outside-workdir>/" + re.split(r"[\\/]+", g.rstrip("\\/"))[-1]
+    return _DRIVE_PATH.sub(sub, text), n
+
+
+def _redact_obj(obj: Any, owner_lines: list | None, counter: list) -> Any:
+    if isinstance(obj, str):
+        t, n = redact_private(obj, owner_lines)
+        counter[0] += n
+        return t
+    if isinstance(obj, list):
+        return [_redact_obj(x, owner_lines, counter) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _redact_obj(v, owner_lines, counter) for k, v in obj.items()}
+    return obj
+
+
+def _redact_bytes(b: bytes, owner_lines: list | None) -> tuple[bytes, int]:
+    t, n = redact_private(bytes(b).decode("utf-8", "surrogateescape"), owner_lines)
+    return (t.encode("utf-8", "surrogateescape"), n) if n else (bytes(b), 0)
+
+
 # ------------------------------------------------------------------------------------------------------ the record
 def build_record(*, prompt_bytes: bytes, response_bytes: bytes, model: dict, params: dict, not_controllable: list,
                  client: dict, request_utc: str, response_utc: str, caller: dict, input_digests: list,
-                 state: str = "RAN_OK", error: str | None = None, client_evidence: dict | None = None) -> dict:
+                 state: str = "RAN_OK", error: str | None = None, client_evidence: dict | None = None,
+                 owner_lines: list | None = None) -> dict:
     if not isinstance(prompt_bytes, (bytes, bytearray)) or not prompt_bytes:
         raise RecordIncomplete("prompt bytes missing: a call whose prompt is not recoverable is not a source")
     if not isinstance(response_bytes, (bytes, bytearray)):
@@ -133,6 +199,31 @@ def build_record(*, prompt_bytes: bytes, response_bytes: bytes, model: dict, par
     for k, v in (("request_utc", request_utc), ("response_utc", response_utc)):
         if not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", str(v or "")):
             raise RecordIncomplete(f"{k} must be UTC YYYY-MM-DDTHH:MM:SSZ")
+    # PRIVATE-TEXT REDACTION before anything is built (see redact_private): bytes and every string field
+    redaction = {}
+    pre = {"prompt": sha256_bytes(bytes(prompt_bytes)), "response": sha256_bytes(bytes(response_bytes))}
+    prompt_bytes, n_p = _redact_bytes(prompt_bytes, owner_lines)
+    response_bytes, n_r = _redact_bytes(response_bytes, owner_lines)
+    for what, n_ in (("prompt", n_p), ("response", n_r)):
+        if n_:
+            redaction[what] = {"replacements": n_, "pre_redaction_sha256": pre[what]}
+    c = [0]
+    error = _redact_obj(error, owner_lines, c) if error else error
+    if c[0]:
+        redaction["error"] = {"replacements": c[0]}
+    for what in ("client_evidence", "caller", "client"):
+        c = [0]
+        v = {"client_evidence": client_evidence, "caller": caller, "client": client}[what]
+        if v:
+            v2 = _redact_obj(v, owner_lines, c)
+            if c[0]:
+                redaction[what] = {"replacements": c[0]}
+                if what == "client_evidence":
+                    client_evidence = v2
+                elif what == "caller":
+                    caller = v2
+                else:
+                    client = v2
     rec = {"schema": SCHEMA, "state": state, "model": dict(model), "params": dict(params),
            "not_controllable": list(not_controllable), "client": dict(client), "request_utc": request_utc,
            "response_utc": response_utc, "caller": dict(caller), "input_digests": [dict(d) for d in input_digests],
@@ -141,6 +232,9 @@ def build_record(*, prompt_bytes: bytes, response_bytes: bytes, model: dict, par
         rec["error"] = error
     if client_evidence:
         rec["client_evidence"] = client_evidence
+    if redaction:
+        rec["redaction"] = {"rule": "drive-qualified paths -> <outside-workdir>/<name>; owner global-instruction lines "
+                                    "withheld (reproducible_ai/model_source.redact_private)", "fields": redaction}
     rec["record_id"] = record_id_of(rec)
     return rec
 

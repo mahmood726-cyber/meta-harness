@@ -168,6 +168,8 @@ def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
             "workdir_files": (record.get("params") or {}).get("workdir_files"),
             **{k: facts[k] for k in ("tokens_used", "tool_calls_n", "tool_calls_rejected_n", "tool_calls", "files_read",
                                      "transcript_redacted", "outside_workdir_reads")}}
+    # the lane log is committed too: the same private-text redaction as the record (model_source.redact_private)
+    line = model_source._redact_obj(line, None, [0])
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(line, sort_keys=True, ensure_ascii=True) + "\n")
