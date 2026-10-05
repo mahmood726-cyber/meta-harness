@@ -174,6 +174,12 @@ def pmc_fulltext_cached(pmid, offline=False):
                          "note": "PMCID exists but harness.fetch._pmc_fulltext returned '' (it swallows errors); not cached"}
     if os.path.exists(fp) and os.path.getsize(fp) == 0:
         os.remove(fp)
+    # write ONLY this PMID's entry into the index as it is NOW (another writer may have added entries during the
+    # network calls), and keep the copy's recorded licence (copy_*, harness.copy_licence) -- replacing the whole entry
+    # dropped EFFECT-HF's CC mark (5 Oct)
+    new = idx[pmid]
+    idx = _j(idx_p) if os.path.exists(idx_p) else {}
+    idx[pmid] = {**{k: v for k, v in (idx.get(pmid) or {}).items() if k.startswith("copy_")}, **new}
     with open(idx_p, "w", encoding="utf-8") as fh:
         json.dump(idx, fh, indent=1, sort_keys=True)
     return txt

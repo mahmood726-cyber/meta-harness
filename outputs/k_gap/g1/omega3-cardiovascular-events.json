@@ -75,25 +75,6 @@
    "pmid": null
   },
   {
-   "trial": "Yokoyama 2007 [32]",
-   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-   "rule_id": "X-DESIGN",
-   "screen_reason": "not double-blind/placebo-controlled (record: 17398308).",
-   "span": {
-    "field": "title",
-    "text": "Effects of eicosapentaenoic acid on major coronary events in hypercholesterolaemic patients (JELIS): a randomised open-label, blinded endpoint analysis.",
-    "match": "randomised open"
-   },
-   "span_source": "PMID 17398308 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
-   "audit": {
-    "class": "TRUE_SCOPE_DIFFERENCE",
-    "subclass": "OPEN_LABEL_STATED (protocol requires double-blind)"
-   },
-   "protocol_rule": "include.design_double_blind = True",
-   "registered_eligibility": null,
-   "pmid": "17398308"
-  },
-  {
    "trial": "Tuttle 2008 [34]",
    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
    "rule_id": "X3",
@@ -168,6 +149,25 @@
    "protocol_rule": "include.design_double_blind = True",
    "registered_eligibility": null,
    "pmid": "25305703"
+  },
+  {
+   "trial": "Alfaddagh 2017 [46]",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X3",
+   "screen_reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
+   "span": {
+    "field": "title",
+    "text": "Effect of Eicosapentaenoic and Docosahexaenoic Acids Added to Statin Therapy on Coronary Artery Plaque in Patients With Coronary Artery Disease: A Randomized Clinical Trial.",
+    "match": "Added to"
+   },
+   "span_source": "PMID 29246960 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "NON_PROTOCOL_COMPARATOR_STATED (protocol requires placebo, control, corn oil, olive oil)"
+   },
+   "protocol_rule": "include.comparator_any = ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard'] (none met)",
+   "registered_eligibility": null,
+   "pmid": "29246960"
   }
  ],
  "open_gaps": [
@@ -175,6 +175,7 @@
   "GISSI-P 1999 [25]",
   "Nilsen 2001 [26]",
   "Brouwer 2006 [31]",
+  "Yokoyama 2007 [32]",
   "GISSI-HF 2008 [33]",
   "Einvik 2010 [37]",
   "Rauch 2010 [38]",
@@ -182,7 +183,6 @@
   "Macchia 2013 [41]",
   "Risk & Prevention 2013 [42]",
   "Nigam 2014 [43]",
-  "Alfaddagh 2017 [46]",
   "ASCEND 2018 [47]",
   "Pahor 2019 [48]"
  ],
@@ -193,34 +193,31 @@
    {
     "source": "JATS_TABLE",
     "units": 28,
-    "drug_specific_resolved": 28
+    "drug_specific_resolved": 23
    },
    {
     "source": "MODEL_PROPOSAL_GATED",
     "units": 28,
-    "drug_specific_resolved": 26
+    "drug_specific_resolved": 23
    }
   ]
  },
  "blockers": {
   "SCREENER_ERROR:POPULATION_VOCABULARY (recorded reader: population MET, quoted)": 1,
-  "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
-  "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 3,
-  "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 2,
-  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
-  "EXTRACTION:ENDPOINT_UNBOUND": 1,
-  "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 1,
   "SCREENED_OUT_UNAUDITED:X-DESIGN": 1,
-  "EXTRACTION:RESULT_INCOMPATIBLE": 1,
-  "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]": 1
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 4,
+  "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 3,
+  "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
+  "IDENTITY_UNRESOLVED": 3,
+  "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 1
  },
- "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
+ "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 6,
  "routes": {
-  "UNVERIFIED": 18,
-  "NO_ROW": 6,
+  "UNVERIFIED": 15,
+  "NO_ROW": 9,
   "PRIMARY": 4
  },
  "trials": [
@@ -406,7 +403,7 @@
    "route": "UNVERIFIED",
    "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 37031750 BLOCKED_CROSSCHECK",
    "our_refusal": "IN SCREEN PMID 10465168: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 10465168).",
-   "gap_class": "SCREEN_OR_ELIGIBILITY",
+   "gap_class": "UNRESOLVED_IDENTITY",
    "absent_code": null,
    "comparator_row": {
     "effect": "0.91",
@@ -482,7 +479,7 @@
     ]
    },
    "scope_difference": null,
-   "blocker": "INSUFFICIENT_RECORD:BLINDING_NOT_STATED",
+   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN",
    "coverage": null,
    "comparator_sourced_refusal": "COMPARATOR_ROW_BLOCKED_CROSSCHECK"
   },
@@ -536,7 +533,7 @@
     "rule_id": "INCLUDE"
    },
    "scope_difference": null,
-   "blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1022,26 +1019,10 @@
      }
     ]
    },
-   "scope_difference": {
-    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
-    "rule_id": "X-DESIGN",
-    "screen_reason": "not double-blind/placebo-controlled (record: 17398308).",
-    "span": {
-     "field": "title",
-     "text": "Effects of eicosapentaenoic acid on major coronary events in hypercholesterolaemic patients (JELIS): a randomised open-label, blinded endpoint analysis.",
-     "match": "randomised open"
-    },
-    "span_source": "PMID 17398308 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
-    "audit": {
-     "class": "TRUE_SCOPE_DIFFERENCE",
-     "subclass": "OPEN_LABEL_STATED (protocol requires double-blind)"
-    },
-    "protocol_rule": "include.design_double_blind = True",
-    "registered_eligibility": null,
-    "pmid": "17398308"
-   },
-   "blocker": null,
-   "coverage": null
+   "scope_difference": null,
+   "blocker": "INSUFFICIENT_RECORD:BLINDING_NOT_STATED",
+   "coverage": null,
+   "comparator_sourced_refusal": "COMPARATOR_ROW_BLOCKED_CROSSCHECK"
   },
   {
    "label": "GISSI-HF 2008 [33]",
@@ -1050,7 +1031,7 @@
    "route": "UNVERIFIED",
    "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK",
    "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-   "gap_class": "ACQUISITION",
+   "gap_class": "UNRESOLVED_IDENTITY",
    "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": {
     "effect": "0.97",
@@ -1411,7 +1392,7 @@
     "rule_id": "INCLUDE"
    },
    "scope_difference": null,
-   "blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1493,7 +1474,7 @@
     "rule_id": "INCLUDE"
    },
    "scope_difference": null,
-   "blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1582,13 +1563,13 @@
   },
   {
    "label": "ORIGIN 2012 [40]",
-   "family": "PMID 22686415",
+   "family": null,
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 37031750 BLOCKED_CROSSCHECK",
-   "our_refusal": "the hand-extracted number is not bound to an endpoint in the held document (named endpoint has no definition span in the held text); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
-   "gap_class": "EXTRACTION_FROM_TABLE",
-   "absent_code": "ENDPOINT_UNBOUND",
+   "route": "NO_ROW",
+   "basis": "UNRESOLVED_IDENTITY",
+   "our_refusal": "UNRESOLVED_IDENTITY",
+   "gap_class": "UNRESOLVED_IDENTITY",
+   "absent_code": null,
    "comparator_row": {
     "effect": "1.01",
     "lower": "0.94",
@@ -1614,89 +1595,60 @@
    },
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": {
-    "state": "REFUSED",
-    "candidates": [
-     {
-      "nct": "NCT00069784",
-      "outcome_id": "258777810",
-      "title": "Composite of the First Occurrence of Cardiovascular (CV) Death, Nonfatal Myocardial Infarction (MI) or Nonfatal Stroke",
-      "time_frame": "from randomization until study cut-off date (median duration of follow-up: 6.2 years)",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258777810",
-       "param_type": "Cox Proportional Hazard",
-       "param_value": "1.022",
-       "ci_lower": "0.937",
-       "ci_upper": "1.114",
-       "analysis_id": "129050589",
-       "groups": [
-        "838990216",
-        "838990217"
-       ],
-       "groups_description": "The total required number of first coprimary outcomes (2200) assumed that a hazard reduction of 14-16% was clinically significant and controlled the overall experiment-wise Type 1 error at 5% with a p"
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "OUTCOME_NOT_NAMED",
-      "verdict": "REFUSED",
-      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
-     },
-     {
-      "nct": "NCT00069784",
-      "outcome_id": "258777811",
-      "title": "Composite of the First Occurrence of Cardiovascular (CV) Death, Nonfatal Myocardial Infarction (MI), Nonfatal Stroke, Revascularization Procedure or Hospitalization for Heart Failure (HF)",
-      "time_frame": "from randomization until study cut-off date (median duration of follow-up: 6.2 years)",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258777811",
-       "param_type": "Cox Proportional Hazard",
-       "param_value": "1.038",
-       "ci_lower": "0.972",
-       "ci_upper": "1.109",
-       "analysis_id": "129050590",
-       "groups": [
-        "838990218",
-        "838990219"
-       ],
-       "groups_description": "See above additional details provided for the analysis of the first coprimary outcome."
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "OUTCOME_NOT_NAMED",
-      "verdict": "REFUSED",
-      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
-     }
-    ]
-   },
+   "registry_binding": null,
    "g1_countable": false,
-   "secondary_single": {
-    "why": "CONTRADICTED: meta 37031750 BLOCKED_CROSSCHECK"
-   },
+   "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "BLOCKED_CROSSCHECK",
+   "comparator_row_state": "REFUSED",
    "comparator_row_reasons": [
-    "CROSSCHECK_DISAGREES:['35905212', '37031750']"
+    "FAMILY_NOT_RESOLVED"
    ],
    "identification": {
-    "route": "OUR_SEARCH"
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "ORIGIN 2012 [40]",
+     "context": "ORIGIN 2012 [40] | 40 locations in Europe and the Americas | 12536 (6281/6255) | 63.5 | 65.0 | 29.8 | 12.3 | 79.5 | NA | Primary | N-3 omega-3 vs MUFA | 6.0 yr | 5"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
    },
    "screen_eligibility": {
-    "state": "ELIGIBLE",
-    "basis": "OUR_SCREEN_INCLUDE",
-    "pmid": "22686415",
-    "rule_id": "INCLUDE"
+    "state": "NOT_ASSESSED",
+    "why": "NO_RECORD_HELD",
+    "pmid": null
    },
    "scope_difference": null,
-   "blocker": "EXTRACTION:ENDPOINT_UNBOUND",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_BLOCKED_CROSSCHECK"
+   "blocker": "IDENTITY_UNRESOLVED",
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "RR",
+     "effect": "1.01",
+     "lower": "0.94",
+     "upper": "1.10",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null
+    },
+    "provenance": {
+     "meta_pmid": "35905212",
+     "location": {
+      "kind": "figure",
+      "id": "F2",
+      "panel": null,
+      "row_label": "ORIGIN 2012"
+     },
+     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
+     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
+     "row_label": "ORIGIN 2012"
+    }
+   }
   },
   {
    "label": "Macchia 2013 [41]",
@@ -1812,13 +1764,13 @@
   },
   {
    "label": "Risk & Prevention 2013 [42]",
-   "family": "PMID 23656645",
+   "family": null,
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 MISMATCH, meta 37031750 MISMATCH",
-   "our_refusal": "declared absent (definition mismatch, cross-family definition audit): the stored 733/6239 vs 745/6266 is Rischio e Prevenzione's REVISED primary endpoint 'death from cardiovascular causes or admission to hospital for cardiovascular causes' ",
-   "gap_class": "ACQUISITION",
-   "absent_code": "OUTCOME_NOT_IN_SOURCE",
+   "route": "NO_ROW",
+   "basis": "UNRESOLVED_IDENTITY",
+   "our_refusal": "UNRESOLVED_IDENTITY",
+   "gap_class": "UNRESOLVED_IDENTITY",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.99",
     "lower": "0.90",
@@ -1844,30 +1796,35 @@
    },
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": {
-    "state": "NO_POSTED_RESULTS",
-    "nct": "NCT00317707"
-   },
+   "registry_binding": null,
    "g1_countable": false,
-   "secondary_single": {
-    "why": "CONTRADICTED: meta 35187035 MISMATCH, meta 37031750 MISMATCH"
-   },
+   "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "PRIMARY_VERIFIED",
+   "comparator_row_state": "REFUSED",
    "comparator_row_reasons": [
-    "CROSSCHECK_DISAGREES:['35187035', '35905212', '37031750']"
+    "FAMILY_NOT_RESOLVED"
    ],
    "identification": {
-    "route": "OUR_SEARCH"
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Risk & Prevention 2013 [42]",
+     "context": "Risk & Prevention 2013 [42] | Italy | 12513 (6244/6269) | 64.0 | 61.5 | NA | 21.8 | 84.6 | 59.9 | Primary | N-3 omega-3 vs olive oil | 5.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
    },
    "screen_eligibility": {
-    "state": "ELIGIBLE",
-    "basis": "OUR_SCREEN_INCLUDE",
-    "pmid": "23656645",
-    "rule_id": "INCLUDE"
+    "state": "NOT_ASSESSED",
+    "why": "NO_RECORD_HELD",
+    "pmid": null
    },
    "scope_difference": null,
-   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "IDENTITY_UNRESOLVED",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -2225,7 +2182,7 @@
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "IN SCREEN PMID 29246960: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 29246960).",
+   "our_refusal": "IN SCREEN PMID 29246960: SCREENED_OUT X3: no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -2264,8 +2221,8 @@
    "comparator_row_reasons": [],
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
-    "rule_id": "X-DESIGN",
-    "reason": "not double-blind/placebo-controlled (record: 29246960).",
+    "rule_id": "X3",
+    "reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
     "pmid": "29246960",
     "already_in_screen": true
    },
@@ -2285,8 +2242,8 @@
    },
    "screen_eligibility": {
     "state": "NOT_ELIGIBLE",
-    "rule_id": "X-DESIGN",
-    "reason": "not double-blind/placebo-controlled (record: 29246960).",
+    "rule_id": "X3",
+    "reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
     "readings": [
      {
       "task": "k_gap_screen_recheck",
@@ -2297,43 +2254,36 @@
      }
     ]
    },
-   "scope_difference": null,
-   "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "RR",
-     "effect": "1.06",
-     "lower": "0.73",
-     "upper": "1.54",
-     "events_t": null,
-     "n_t": null,
-     "events_c": null,
-     "n_c": null
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X3",
+    "screen_reason": "no eligible comparator (none of ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']).",
+    "span": {
+     "field": "title",
+     "text": "Effect of Eicosapentaenoic and Docosahexaenoic Acids Added to Statin Therapy on Coronary Artery Plaque in Patients With Coronary Artery Disease: A Randomized Clinical Trial.",
+     "match": "Added to"
     },
-    "provenance": {
-     "meta_pmid": "35905212",
-     "location": {
-      "kind": "figure",
-      "id": "F2",
-      "panel": null,
-      "row_label": "Alfaddagh 2017"
-     },
-     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
-     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
-     "row_label": "Alfaddagh 2017"
-    }
-   }
+    "span_source": "PMID 29246960 record title (held: cache/omega3-cardiovascular-events/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "NON_PROTOCOL_COMPARATOR_STATED (protocol requires placebo, control, corn oil, olive oil)"
+    },
+    "protocol_rule": "include.comparator_any = ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard'] (none met)",
+    "registered_eligibility": null,
+    "pmid": "29246960"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "ASCEND 2018 [47]",
-   "family": "PMID 30146932",
+   "family": null,
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 MISMATCH",
-   "our_refusal": "the bound endpoint span adds component(s) to the declared composite (transient ischemic attack): a different composite is not 'Major vascular events / MACE' and this outcome declares no near-match permission (allow_near_match / component_co",
-   "gap_class": "MEASURE_MISMATCH",
-   "absent_code": "RESULT_INCOMPATIBLE",
+   "route": "NO_ROW",
+   "basis": "UNRESOLVED_IDENTITY",
+   "our_refusal": "UNRESOLVED_IDENTITY",
+   "gap_class": "UNRESOLVED_IDENTITY",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.99",
     "lower": "0.91",
@@ -2357,189 +2307,62 @@
     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
     "row_label": "ASCEND 2018"
    },
-   "disagreement_side": "UNDETERMINED (primary value not anchored in a primary span)",
+   "disagreement_side": null,
    "our_value": null,
-   "registry_binding": {
-    "state": "BINDABLE",
-    "candidates": [
-     {
-      "nct": "NCT00135226",
-      "outcome_id": "258646503",
-      "title": "Number of Participants With First Occurrence of Any Serious Vascular Event (SVE)",
-      "time_frame": "Randomized treatment phase during a mean of 7.4 years",
-      "arms": [
-       {
-        "group": "838553299",
-        "count": 658,
-        "n": 7740,
-        "title": "Aspirin"
-       },
-       {
-        "group": "838553300",
-        "count": 743,
-        "n": 7740,
-        "title": "Placebo Aspirin"
-       },
-       {
-        "group": "838553301",
-        "count": 689,
-        "n": 7740,
-        "title": "Omega-3"
-       },
-       {
-        "group": "838553302",
-        "count": 712,
-        "n": 7740,
-        "title": "Placebo Omega-3"
-       }
-      ],
-      "analysis": {
-       "outcome_id": "258646503",
-       "param_type": "Rate Ratio",
-       "param_value": "0.88",
-       "ci_lower": "0.79",
-       "ci_upper": "0.97",
-       "analysis_id": "128985812",
-       "groups": [
-        "838553299",
-        "838553300"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": null,
-      "verdict": "BINDABLE",
-      "reason": null,
-      "named_by": [
-       "serious vascular event"
-      ]
-     },
-     {
-      "nct": "NCT00135226",
-      "outcome_id": "258646504",
-      "title": "Number of Participants With First Occurrence of Any Major Bleed (Aspirin Comparison Only)",
-      "time_frame": "Randomized treatment phase during a mean of 7.4 years",
-      "arms": [
-       {
-        "group": "838553303",
-        "count": 314,
-        "n": 7740,
-        "title": "Aspirin"
-       },
-       {
-        "group": "838553304",
-        "count": 245,
-        "n": 7740,
-        "title": "Placebo Aspirin"
-       }
-      ],
-      "analysis": {
-       "outcome_id": "258646504",
-       "param_type": "Rate Ratio",
-       "param_value": "1.29",
-       "ci_lower": "1.09",
-       "ci_upper": "1.52",
-       "analysis_id": "128985814",
-       "groups": [
-        "838553303",
-        "838553304"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "OUTCOME_NOT_NAMED",
-      "verdict": "REFUSED",
-      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
-     },
-     {
-      "nct": "NCT00135226",
-      "outcome_id": "258646505",
-      "title": "Number of Participants With Combined End-point of Serious Vascular Events (SVEs) or Revascularizations",
-      "time_frame": "Randomized treatment phase during a mean of 7.4 years",
-      "arms": [
-       {
-        "group": "838553305",
-        "count": 833,
-        "n": 7740,
-        "title": "Aspirin"
-       },
-       {
-        "group": "838553306",
-        "count": 936,
-        "n": 7740,
-        "title": "Placebo Aspirin"
-       },
-       {
-        "group": "838553307",
-        "count": 882,
-        "n": 7740,
-        "title": "Omega-3"
-       },
-       {
-        "group": "838553308",
-        "count": 887,
-        "n": 7740,
-        "title": "Placebo Omega-3"
-       }
-      ],
-      "analysis": {
-       "outcome_id": "258646505",
-       "param_type": "Rate Ratio",
-       "param_value": "0.88",
-       "ci_lower": "0.8",
-       "ci_upper": "0.97",
-       "analysis_id": "128985815",
-       "groups": [
-        "838553305",
-        "838553306"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": null,
-      "verdict": "BINDABLE",
-      "reason": null,
-      "named_by": [
-       "serious vascular event",
-       "serious vascular events"
-      ]
-     }
-    ]
-   },
+   "registry_binding": null,
    "g1_countable": false,
-   "secondary_single": {
-    "why": "CONTRADICTED: meta 35187035 MISMATCH"
-   },
+   "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
-   "comparator_row_state": "MISMATCH",
+   "comparator_row_state": "REFUSED",
    "comparator_row_reasons": [
-    "CROSSCHECK_DISAGREES:['35187035', '35905212']"
+    "FAMILY_NOT_RESOLVED"
    ],
    "identification": {
-    "route": "OUR_SEARCH"
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "ASCEND 2018 [47]",
+     "context": "ASCEND 2018 [47] | UK | 15480 (7740/7740) | 63.3 | 62.6 | 30.8 | 8.3 | NA | 100.0 | Primary | N-3 EPA + DHA vs MUFA | 7.4 yr | 5"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
    },
    "screen_eligibility": {
-    "state": "ELIGIBLE",
-    "basis": "OUR_SCREEN_INCLUDE",
-    "pmid": "30146932",
-    "rule_id": "INCLUDE"
+    "state": "NOT_ASSESSED",
+    "why": "NO_RECORD_HELD",
+    "pmid": null
    },
    "scope_difference": null,
-   "blocker": "EXTRACTION:RESULT_INCOMPATIBLE",
-   "coverage": null,
-   "comparator_sourced_refusal": "COMPARATOR_ROW_MISMATCH"
+   "blocker": "IDENTITY_UNRESOLVED",
+   "coverage": "COMPARATOR_SOURCED",
+   "comparator_sourced": {
+    "value": {
+     "measure": "RR",
+     "effect": "0.99",
+     "lower": "0.91",
+     "upper": "1.09",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null
+    },
+    "provenance": {
+     "meta_pmid": "35905212",
+     "location": {
+      "kind": "figure",
+      "id": "F2",
+      "panel": null,
+      "row_label": "ASCEND 2018"
+     },
+     "digest": "467b51c286b37dce14d583c58dd4ac76ccfe8d9adf08f34dcd2db0afeb5de4ee",
+     "read": "MODEL_PROPOSAL:mc-2340ad028969726cc31960d64dc66af7",
+     "row_label": "ASCEND 2018"
+    }
+   }
   },
   {
    "label": "Pahor 2019 [48]",
@@ -2716,7 +2539,7 @@
     ]
    },
    "scope_difference": null,
-   "blocker": "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]",
+   "blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -2958,8 +2781,7 @@
     "same_conclusion": true
    }
   ],
-  "method_basis": "comparator positive control reproduced DL",
-  "excluded_named_scope_differences": []
+  "method_basis": "comparator positive control reproduced DL"
  },
  "ours": {
   "k": 6,
@@ -2997,11 +2819,11 @@
  ],
  "secondary_tally": {
   "SECONDARY_UNVERIFIED": 12,
-  "BLOCKED_CROSSCHECK": 15,
+  "BLOCKED_CROSSCHECK": 13,
   "TWO_SOURCE_VERIFIED": 4,
-  "PRIMARY_VERIFIED": 3,
-  "MISMATCH": 6,
-  "REFUSED": 35
+  "REFUSED": 43,
+  "PRIMARY_VERIFIED": 2,
+  "MISMATCH": 1
  },
  "secondary_skipped": {
   "28673352": "NO_OUTCOME_FOREST_FIGURE",
@@ -3021,22 +2843,16 @@
    "rules": 3
   }
  },
- "comparator_stated_k": {
-  "k": 8,
-  "span": {
-   "field": "comparator abstract",
-   "text": "eight randomized controlled trials",
-   "source": "cache/comparators/35905212/2026-09-15_pubmed_efetch.xml"
-  }
- },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
   "held_records": 7,
-  "held_fulltext": 0,
+  "held_fulltext": 1,
   "held_unpaywall": 0,
   "held_registry": 0
  },
- "served_pool_lags": [],
+ "served_pool_lags": [
+  "PMID 38199870"
+ ],
  "g1r_reproduction": {
   "state": "REPRODUCED",
   "rows": 22,
@@ -3053,26 +2869,10 @@
   "why": "1 shared trial(s) on the same side of the null (Bhatt 2019 [49])"
  },
  "k_independent": 4,
- "k_comparator_sourced": 10,
- "k_covered": 14,
+ "k_comparator_sourced": 11,
+ "k_covered": 15,
  "coverage_complete": false,
- "discrepancy_findings": [
-  {
-   "trial": "ASCEND 2018 [47]",
-   "kind": "COMPARATOR_ROW_CONTRADICTED_BY_PRIMARY",
-   "comparator_row": {
-    "effect": "0.99",
-    "lower": "0.91",
-    "upper": "1.09",
-    "events_t": null,
-    "n_t": null,
-    "events_c": null,
-    "n_c": null,
-    "measure": "RR"
-   },
-   "side": "UNDETERMINED (primary value not anchored in a primary span)"
-  }
- ],
+ "discrepancy_findings": [],
  "g1_status": {
   "state": "NOT_YET",
   "criteria": {
@@ -3097,15 +2897,12 @@
     "Burr 2003 [28] [G1-OUTCOME-SET]",
     "Leaf 2005 [29] [G1-OUTCOME-SET]",
     "Raitt 2005 [30] [G1-OUTCOME-SET]",
-    "Yokoyama 2007 [32] [X-DESIGN]",
     "Tuttle 2008 [34] [X3]",
     "Quinn 2010 [35] [X2]",
     "AREDS2 2014 [44] [X2]",
-    "Doi 2014 [45] [X-DESIGN]"
+    "Doi 2014 [45] [X-DESIGN]",
+    "Alfaddagh 2017 [46] [X3]"
    ]
-  },
-  "result_blocker": null
- },
- "removed_comparator_rows": [],
- "added_comparator_rows": []
+  }
+ }
 }

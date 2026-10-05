@@ -50,33 +50,25 @@
    {
     "source": "MODEL_PROPOSAL_GATED",
     "units": 12,
-    "drug_specific_resolved": 10
+    "drug_specific_resolved": 8
    }
   ]
  },
  "blockers": {
-  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 3,
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
   "EXTRACTION:outcome_post_hoc_not_pooled": 1,
+  "IDENTIFICATION": 3,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
-  "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY": 1,
   "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 1,
-  "NO_RECORD_HELD": 1,
-  "EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT": 1
+  "SCREENED_VIA_OTHER_REPORT": 1
  },
- "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+ "top_blocker": "IDENTIFICATION",
  "other_agent_units": [],
- "comparator_findings": [
-  {
-   "finding": "COMPARATOR_CITES_NCT_NOT_IN_REGISTRY",
-   "trial": "ODYSSEY JAPAN NCT02017898",
-   "comparator": "36531722",
-   "basis": "NCT02017898 is not in the AACT snapshot (registry/comparator_nct_check.json)"
-  }
- ],
+ "comparator_findings": [],
  "k_ours_total": 2,
  "routes": {
-  "UNVERIFIED": 9,
-  "NO_ROW": 1,
+  "UNVERIFIED": 8,
+  "NO_ROW": 2,
   "PRIMARY": 2
  },
  "trials": [
@@ -267,10 +259,10 @@
       },
       "gate": "ARMS",
       "verdict": "REFUSED",
+      "reason": "fewer than two result groups with people-unit counts",
       "named_by": [
        "major adverse cardiovascular events"
-      ],
-      "reason": "fewer than two result groups with people-unit counts"
+      ]
      }
     ]
    },
@@ -446,7 +438,7 @@
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "SEEDED PMID 26330422: DECLARED_ABSENT OUTCOME_NOT_IN_SOURCE",
+   "our_refusal": null,
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -512,11 +504,6 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
-   "seeded_funnel": {
-    "stage": "DECLARED_ABSENT",
-    "reason_code": "OUTCOME_NOT_IN_SOURCE",
-    "pmid": "26330422"
-   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -533,11 +520,12 @@
    },
    "screen_eligibility": {
     "state": "ELIGIBLE",
-    "basis": "SEEDED_SCREEN_INCLUDE:DECLARED_ABSENT",
-    "pmid": "26330422"
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "24842558",
+    "rule_id": "INCLUDE"
    },
    "scope_difference": null,
-   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "IDENTIFICATION",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -797,10 +785,7 @@
     "pmid": null
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY",
-   "comparator_cites_unknown_nct": [
-    "NCT02017898"
-   ],
+   "blocker": "IDENTIFICATION",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -889,13 +874,13 @@
   },
   {
    "label": "PACMAN - AMI NCT03067844",
-   "family": "PMID 22421222",
+   "family": "PMID 25773378",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "IN SCREEN PMID 22421222: SCREENED_OUT X1: not a randomized controlled trial (record: 22421222).",
-   "gap_class": "IDENTIFICATION",
-   "absent_code": null,
+   "our_refusal": "SEEDED PMID 22019821: SCREENED_OUT X1: not a randomized controlled trial (record: 22019821).",
+   "gap_class": "MEASURE_MISMATCH",
+   "absent_code": "outcome_post_hoc_not_pooled",
    "comparator_row": {
     "effect": "0.53",
     "lower": "0.30",
@@ -926,18 +911,15 @@
     "nct": "NCT03067844"
    },
    "g1_countable": false,
-   "secondary_single": {
-    "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
-   },
+   "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
     "rule_id": "X1",
-    "reason": "not a randomized controlled trial (record: 22421222).",
-    "pmid": "22421222",
-    "already_in_screen": true
+    "reason": "not a randomized controlled trial (record: 22019821).",
+    "pmid": "22019821"
    },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
@@ -956,8 +938,23 @@
    "screen_eligibility": {
     "state": "NOT_ELIGIBLE",
     "rule_id": "X1",
-    "reason": "not a randomized controlled trial (record: 22421222).",
-    "readings": []
+    "reason": "not a randomized controlled trial (record: 22019821).",
+    "readings": [
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-29d8a24f61ebaeef1fddf57f9ba9f386"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-92b83c0f4dbc8794348ebbb61033798b"
+     }
+    ]
    },
    "scope_difference": null,
    "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD",
@@ -989,11 +986,11 @@
   },
   {
    "label": "DESCARTES NCT01516879",
-   "family": "PMID 24678979",
+   "family": null,
    "in_our_pool": false,
-   "route": "UNVERIFIED",
-   "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "NO_RECORD_HELD",
+   "route": "NO_ROW",
+   "basis": "IDENTIFICATION",
+   "our_refusal": "IDENTIFICATION",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -1075,11 +1072,11 @@
    },
    "screen_eligibility": {
     "state": "NOT_ASSESSED",
-    "why": "NOT_IN_SCREEN",
-    "pmid": "24678979"
+    "why": "NO_RECORD_HELD",
+    "pmid": null
    },
    "scope_difference": null,
-   "blocker": "NO_RECORD_HELD",
+   "blocker": "IDENTIFICATION",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1293,12 +1290,6 @@
     "via_rule_id": "INCLUDE",
     "pmid": "27264224"
    },
-   "via_report_absent": {
-    "id": "PMID 27846344",
-    "code": "outcome_not_reported",
-    "reason": "GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect.",
-    "full_text_held": false
-   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -1319,7 +1310,7 @@
     "via": "27846344"
    },
    "scope_difference": null,
-   "blocker": "EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT",
+   "blocker": "SCREENED_VIA_OTHER_REPORT",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1465,8 +1456,7 @@
     "same_conclusion": true
    }
   ],
-  "method_basis": "comparator positive control not reproduced: PM default",
-  "excluded_named_scope_differences": []
+  "method_basis": "comparator positive control not reproduced: PM default"
  },
  "ours": {
   "k": 2,
@@ -1486,7 +1476,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "55ae93342a107a23eb9b13993ba2691d839b1ea2",
+   "commit": "be4a2e785bd1a00335b5f65f4106714ffaa269ed",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -1506,7 +1496,7 @@
    },
    "sha256": "38f10f0c53a45f3181ed522d3aad59ded6e9f5654caf5fb905e9fff7618483fa",
    "rows": 12,
-   "joined": 10
+   "joined": 9
   }
  ],
  "ours_not_in_comparator": [],
@@ -1533,13 +1523,9 @@
    "rules": 3
   }
  },
- "comparator_stated_k": {
-  "k": null,
-  "span": null
- },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
-  "held_records": 11,
+  "held_records": 9,
   "held_fulltext": 0,
   "held_unpaywall": 0,
   "held_registry": 0
@@ -1553,7 +1539,7 @@
    "FE",
    "PM"
   ],
-  "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader 55ae93342, dual-model)",
+  "where": "figure Data_Sheet_1.PDF#p7 (g1/forest-reader be4a2e785, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT:  PCSK9 inhibitors on MACE was statistically significant (RR 0.83, 95% CI 0.79-0.87) (Supplementary Fig)",
   "pooled": {
    "effect": "0.83",
@@ -1590,9 +1576,6 @@
    "trials": [
     "OSLER-1 NCT01439880 [X3]"
    ]
-  },
-  "result_blocker": null
- },
- "removed_comparator_rows": [],
- "added_comparator_rows": []
+  }
+ }
 }

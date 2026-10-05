@@ -202,19 +202,24 @@ If the text does not report a between-arm result for this outcome, state=NOT_REP
 """
 
 
+import threading as _threading
+_MEMBER_LOCK = _threading.Lock()     # member_records.json is read-modify-written: concurrent callers corrupted it (5 Oct)
+
+
 def _trial_text(slug, pmid, run):
     rj = _j(os.path.join(ROOT, "cache", slug, "records.json"))
     rec = next((x for x in rj.get("records", []) if str(x.get("id")) == pmid), None)
     mp = os.path.join(ROOT, "outputs", "k_gap", "member_records.json")
-    mrec = _j(mp) if os.path.exists(mp) else {}
-    rec = rec or mrec.get(pmid)
-    if rec is None and run:
-        from harness import fetch
-        got = fetch._efetch([pmid])
-        if got:
-            rec = got[0]
-            mrec[pmid] = rec
-            _save(mp, mrec)
+    with _MEMBER_LOCK:
+        mrec = _j(mp) if os.path.exists(mp) else {}
+        rec = rec or mrec.get(pmid)
+        if rec is None and run:
+            from harness import fetch
+            got = fetch._efetch([pmid])
+            if got:
+                rec = got[0]
+                mrec[pmid] = rec
+                _save(mp, mrec)
     return rec
 
 
@@ -257,21 +262,26 @@ def primary_value(slug, pmid, run, runs, want=None):
                                         declared_composite=dc, estimand=po.get("estimand")), "REGEX_ABSTRACT")
     if got[0] and (want != "counts" or got[0].get("events_t") is not None):
         return got
+    from harness import copy_licence as cl
     ft = cfm.pmc_fulltext_cached(pmid, offline=not run)
+    ft_licence = None
     if ft:
-        got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
-        if got[0] and (want != "counts" or got[0].get("events_t") is not None):
-            return got
-    if not ft and rec.get("doi"):
+        ft_licence = cl.pmc_licence(pmid, run)
+        if not cl.typed_may_read(ft_licence):
+            ft = ""                                          # HELD_COPY_NOT_OPEN: neither the typed rung nor a model reads it
+        else:
+            got = as_prim(pipeline._fulltext_extract(ft, po, interv, comp, dc), "TYPED_FULLTEXT")
+            if got[0] and (want != "counts" or got[0].get("events_t") is not None):
+                return got
+    if not ft and rec.get("doi") and ft_licence in (None, "NO_PMCID"):
         # a further legitimate open route: Unpaywall's OA copy as typed text (never OCR)
         u = k_gap.unpaywall_text(rec["doi"], os.path.join(ROOT, "outputs", "k_gap", "_upw"),
                                  os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=not run)
         ft = (u.get("text") or "")[:120000]
-    # LICENCE (5 Oct decision): the locator's prompt is stored in a public record, so it may carry the full text only when
-    # that copy is marked open (reproducible_ai.record_licence: copy_licence CC). Otherwise the locator sees the title and
-    # abstract only (the typed rungs above still read the held copy locally; nothing of it is published)
-    ft = prompt_fulltext(pmid, ft)
-    text = (rec.get("title") or "") + "\n" + (rec.get("abstract") or "") + ("\n\n" + ft if ft else "")
+        ft_licence = "CC" if cl.upw_open(u) else "UPW_NOT_CC"
+    # the locator's prompt is a PUBLIC record: it carries full text only from a CC copy (harness.copy_licence), and the
+    # gate below checks its quote against exactly the text shown
+    text, ref = cl.locator_text(rec, ft, ft_licence, pmid)
     wanted = ("" if not want else
               "\nWANTED: the number of participants WITH the outcome and the number randomised, in EACH arm (events_t, n_t, "
               "events_c, n_c), copied as printed.\n" if want == "counts" else
@@ -283,8 +293,7 @@ def primary_value(slug, pmid, run, runs, want=None):
         rec_c = mcl.call(p, schema=LOCATE_SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
                          caller={"file": "scripts/secondary_meta_build.py", "line": "primary_value",
                                  "purpose": f"secondary-tier primary verification locate {slug} PMID {pmid} (acq/k-gap lane)"},
-                         input_digests=[{"ref": f"trial report PMID {pmid} " + ("(abstract + PMC OA full text, copy marked open)"
-                                                                                if ft else "(title + abstract only)"),
+                         input_digests=[{"ref": ref,
                                          "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                                          "what": "held text shown whole"}],
                          timeout_s=1200)
@@ -841,6 +850,58 @@ def ci_level_refusal(d):
     return None if lv in ("", "95%", "95") else f"CI_LEVEL_{lv}_NOT_95"
 
 
+def lane_timepoint(r, spec, held=None):
+    """A forest-lane row's timepoint, derived EXACTLY as for every figure row of the build: the figure caption's own
+    statement ('28-Day All-Cause Mortality in Each Trial'), else -- for a core-mortality topic -- the meta's text when it
+    states exactly one. Without it every lane row of a timepoint topic reads TIMEPOINT_NOT_STATED_BY_META (5 Oct)."""
+    if r.timepoint:
+        return r
+    if held is None and spec.get("core"):
+        import g1_forest_reader as gfr
+        held = gfr.held_text(r.meta_pmid)
+    r.timepoint = meta_timepoint(r.outcome_definition) or (meta_timepoint(held) if spec.get("core") else None)
+    return r
+
+
+LANE_SKIPPED = {}                     # {slug: {meta pmid: reason}} -- lane metas refused before their rows are built
+LANE_TITLES = os.path.join(ROOT, "registry", "model_proposals", "g1_lane_meta_titles.json")
+
+
+# a meta of the topic's DRUG CLASS names the class, not the drug; listed only where the class adds no other comparison
+# for the topic's trials (each row's trial is still decided by the family gate). Mixed-class topics stay drug-only.
+INTERVENTION_CLASS = {
+    "dapagliflozin-hfpef-hosp": ["SGLT2", "SGLT-2", "sodium-glucose cotransporter 2", "sodium-glucose co-transporter 2",
+                                 "sodium-glucose cotransporter-2", "sodium-glucose co-transporter-2"],
+    "empagliflozin-hfpef-hosp": ["SGLT2", "SGLT-2", "sodium-glucose cotransporter 2", "sodium-glucose co-transporter 2",
+                                 "sodium-glucose cotransporter-2", "sodium-glucose co-transporter-2"],
+    "tocilizumab-covid19-mortality": ["IL-6", "interleukin-6", "interleukin 6"],
+    "iv-iron-hfref-hosp": ["intravenous iron", "IV iron", "i.v. iron", "parenteral iron"],
+    "pcsk9-mace": ["PCSK9", "proprotein convertase subtilisin"],
+}
+_HYPHENS = dict.fromkeys(map(ord, "‐‑‒–−"), "-")
+
+
+def topic_intervention_terms(slug):
+    return list((_j(os.path.join(ROOT, "topics", slug + ".json")) or {}).get("intervention_terms") or []) +         INTERVENTION_CLASS.get(slug, [])
+
+
+def lane_intervention_refusal(terms, caption, title):
+    """INTERVENTION_NOT_THE_TOPICS unless the figure's caption or the meta's own title names one of the topic's
+    intervention terms (whole words, any case, a plural ending allowed, Unicode hyphens read as '-'). None when it does."""
+    text = ((caption or "") + " | " + (title or "")).translate(_HYPHENS)
+    for t in terms or []:
+        if re.search(r"(?<![A-Za-z0-9])" + re.escape(str(t).translate(_HYPHENS)) + r"(?:s|es)?(?![A-Za-z0-9])", text, re.I):
+            return None
+    return "INTERVENTION_NOT_THE_TOPICS"
+
+
+def lane_meta_title(pmid):
+    """The meta's own title, from the committed record of Europe PMC titles (g1_lane_meta_titles.json; written by
+    scripts/g1_forest_reader.py --titles). None when not recorded (then only the caption can name the intervention)."""
+    t = _j(LANE_TITLES) if os.path.exists(LANE_TITLES) else {}
+    return ((t.get("titles") or {}).get(str(pmid)) or {}).get("title")
+
+
 def forest_lane_metas(slug, comp, have):
     """REVIEW_REFERENCE_LIST data side (Mahmood/captain decision 5 Oct): the forest-reader lane's DUAL-MODEL reads of
     NON-comparator metas of this topic that the lane ACCEPTED (their rows reproduce the figure's own printed pool --
@@ -861,6 +922,10 @@ def forest_lane_metas(slug, comp, have):
         if acc.get("state") != "ACCEPTED" or not acc.get("methods_reproducing"):
             continue
         fig = v.get("figure") or {}
+        # a figure of ANOTHER intervention never enters this topic (35343397: IL-6 antagonists read under corticosteroids)
+        if lane_intervention_refusal(topic_intervention_terms(slug), fig.get("caption"), lane_meta_title(pmid)):
+            LANE_SKIPPED.setdefault(slug, {})[pmid] = "INTERVENTION_NOT_THE_TOPICS"
+            continue
         mrows = []
         for x in v.get("secondary_rows") or []:
             r = sm.SecondaryRow(**{k: val for k, val in x.items() if k in sm.SecondaryRow.__dataclass_fields__})
@@ -1051,8 +1116,10 @@ def build(slug, run, runs):
     have = {m for m, e in metas_out.items() if e.get("usable")}
     lrows, lmetas = forest_lane_metas(slug, comp, have)
     metas_out.update(lmetas)
+    skipped.update({m: f"LANE:{why}" for m, why in LANE_SKIPPED.get(slug, {}).items()})
     for r, lv in lrows:
         lane_row_timepoint(r, spec)
+        lane_timepoint(r, spec)
         r = sm.admit(r, spec, fam)
         if lv:
             r.reasons = list(r.reasons) + [lv]
