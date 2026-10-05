@@ -228,38 +228,57 @@ def aact_evidence(ncts):
     return out
 
 
-def pmc_licence(pmid):
-    """'CC' when the held PMC text carries a Creative Commons licence, else 'NOT_OPEN' (an NIH author manuscript is
-    'available for text mining ... fair use' -- not an open licence: SMART PMC5846085). Read once from the PMC XML
-    permissions and cached in outputs/k_gap/fulltext_index.json (state only). A text that is not openly licensed is
-    NEVER put in a model prompt: the prompt is stored in the committed record."""
+OPEN_COPY = ("CC", "PMC_AUTHOR_MANUSCRIPT")      # copies the DETERMINISTIC reader may admit a row from
+PROMPT_COPY = ("CC",)                           # copies a model may be shown (the prompt is stored in a public record)
+
+
+def pmc_copy(pmid):
+    """Which copy of the trial's text we hold, and under what terms: {pmcid, url, licence, statement}. licence is
+      CC                     a Creative Commons licence in the PMC permissions (redistributable: may enter a prompt)
+      PMC_AUTHOR_MANUSCRIPT  a PMC author manuscript ('available for text mining ... fair use'): a legitimately open
+                             copy for deterministic reading (text mining), never redistributed -- SMART PMC5846085
+      NOT_OPEN               anything else, or terms that could not be read (never assumed open)
+    Read once from the PMC XML and cached in outputs/k_gap/fulltext_index.json (terms only, never text)."""
     import time
     from harness import http, fetch
     ip = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
     idx = json.load(open(ip, encoding="utf-8")) if os.path.exists(ip) else {}
     e = idx.get(pmid) or {}
-    if e.get("licence"):
-        return e["licence"]
-    if not e.get("pmcid"):
-        return "NOT_OPEN"
+    pmcid = e.get("pmcid")
+    if not pmcid:
+        return {"pmcid": None, "url": None, "licence": "NOT_OPEN", "statement": None}
+    url = f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/"
+    if e.get("copy_licence"):
+        return {"pmcid": pmcid, "url": url, "licence": e["copy_licence"], "statement": e.get("copy_statement")}
     xml = ""
     for attempt in range(3):
         try:
             time.sleep(0.4 + attempt)
-            xml = http.get_text(f"{fetch.EUTILS}/efetch.fcgi", {"db": "pmc", "id": e["pmcid"], "retmode": "xml",
-                                                                "tool": "meta-harness",
-                                                                "email": "meta-harness@example.org"})
+            xml = http.get_text(f"{fetch.EUTILS}/efetch.fcgi", {"db": "pmc", "id": pmcid, "retmode": "xml",
+                                                                "tool": "meta-harness", "email": "meta-harness@example.org"})
             break
-        except Exception:  # noqa: BLE001 - an unread licence is NOT_OPEN, never assumed open
+        except Exception:  # noqa: BLE001 - unread terms are NOT_OPEN, never assumed open
             xml = ""
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", xml, re.S))
-    lic = "CC" if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm) else "NOT_OPEN"
+    stmt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", perm)).strip()[:300] or None
+    if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm):
+        lic = "CC"
+    elif re.search(r"available for text mining", stmt or "", re.I) and re.search(r'article-type="[^"]*"', xml) and \
+            re.search(r"\bmanuscript\b", xml, re.I):
+        lic = "PMC_AUTHOR_MANUSCRIPT"
+    else:
+        lic = "NOT_OPEN"
     if xml:
         idx = json.load(open(ip, encoding="utf-8")) if os.path.exists(ip) else {}
-        idx.setdefault(pmid, {})["licence"] = lic
+        idx.setdefault(pmid, {}).update(copy_licence=lic, copy_statement=stmt)
         with open(ip, "w", encoding="utf-8") as fh:
             json.dump(idx, fh, indent=1, sort_keys=True)
-    return lic
+    return {"pmcid": pmcid, "url": url, "licence": lic, "statement": stmt}
+
+
+def pmc_licence(pmid):
+    """'CC' / 'PMC_AUTHOR_MANUSCRIPT' / 'NOT_OPEN' (pmc_copy)."""
+    return pmc_copy(pmid)["licence"]
 
 
 def text_evidence(pmid, terms):
@@ -310,7 +329,7 @@ def evidence(t, cfg, comp):
           "eligibility_summary": cfg.get("eligibility_summary"),
           "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items()},
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
-                        if whole and pmc_licence(t["pmid"]) == "CC" else
+                        if whole and pmc_licence(t["pmid"]) in PROMPT_COPY else
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
@@ -612,18 +631,25 @@ def replay(slugs, ref):
             verdict, adm = gate(resp, held, cfg, r["slug"])
         else:
             resp, verdict, adm = {}, "WITHHELD_NOT_OPEN_TEXT", None
+        row_extra = {}
         if verdict != "ADMITTED" and held["text"]:
             # the trial's OWN held text, read DETERMINISTICALLY (no model): its outcome table row under the arm Ns. The
             # route for a text that may not be shown to a model (SMART: an NIH author manuscript, not CC-licensed)
             tt = table_tuple(held["text"], outcome_row_terms(cfg), (cfg.get("primary_outcome") or {}).get("timepoint"))
+            copy = pmc_copy(r["pmid"]) if tt else None
+            if tt and copy["licence"] not in OPEN_COPY:
+                # the row is read from a copy that is not legitimately open: refused, never kept
+                verdict, tt = "REFUSED:HELD_COPY_NOT_OPEN", None
+                row_extra = {"source_copy": copy}
             if tt:
                 label_, rr, span = tt
                 verdict = "ADMITTED"
                 est = ((cfg.get("primary_outcome") or {}).get("estimand") or "").upper()
                 from harness import secondary_meta as sm_
-                adm = {"kind": "TEXT_TABLE", "source": f"PMID {r['pmid']} held full text sha256 {held['sha']} "
-                                                       f"(read deterministically: g1_trial_acquire.table_tuple)",
-                       "span": span[:600], "quote": None,
+                adm = {"kind": "TEXT_TABLE", "source": f"PMID {r['pmid']} {copy['pmcid']} ({copy['licence']}) held "
+                                                       f"full text sha256 {held['sha']} (read deterministically: "
+                                                       f"g1_trial_acquire.table_tuple)",
+                       "source_copy": copy, "span": span[:600], "quote": None,
                        "row": sm_.SecondaryRow(meta_pmid="ACQUIRED", meta_doi="", location={}, source_digest="",
                                                provenance="TABLE_ROW", trial_label="", measure=est,
                                                outcome_definition=label_, **rr, effect=None, lower=None, upper=None)}
@@ -633,6 +659,7 @@ def replay(slugs, ref):
                                                                          "lower", "upper", "outcome_as_stated",
                                                                          "timepoint_as_stated", "population_as_stated",
                                                                          "scope_rule_key", "scope_span", "why")}}
+        row.update(row_extra)
         if adm and verdict != "ADMITTED":
             row["refusal_detail"] = adm                  # e.g. the randomised total a posted subpopulation falls short of
             adm = None
