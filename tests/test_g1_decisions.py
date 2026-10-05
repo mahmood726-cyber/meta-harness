@@ -113,3 +113,30 @@ def test_every_decision_is_recorded_in_the_registry_and_typed():
     ids = [d["id"] for d in gt.g1_decisions()]
     assert ids == ["D1-SWEEP-AACT-PRIMARY", "D2-ONE-TRIAL-SHARE", "D3-COMPARATOR-POOLS-NO-RCT"]
     assert all(d.get("rule") and d.get("decided") and d.get("by") and d.get("applied_in") for d in gt.g1_decisions())
+
+
+def test_D2_a_trials_stated_randomised_n_is_read_from_its_own_held_abstract():
+    S = "spironolactone-hfref-mortality"
+    assert gt.stated_randomised_n(S, "21073363") == (2737, {"field": "abstract", "pmid": "21073363",
+                                                             "text": "we randomly assigned 2737 patients"})
+    assert gt.stated_randomised_n(S, "10471456")[0] == 1663
+
+
+def test_D2_PLANT_future_negated_or_ambiguous_n_is_never_read(monkeypatch):
+    for ab in ("In total, 1060 patients will be randomized within 7 days.",          # future (protocol)
+               "Patients were not randomized 400 patients in the registry arm.",     # negated
+               "We randomly assigned 500 patients; we enrolled 620 patients.",       # two Ns: no pick
+               "We randomly assigned eligible adults to drug or placebo."):         # no N
+        monkeypatch.setattr(gt, "held_record", lambda slug, pmid, ab=ab: {"abstract": ab})
+        assert gt.stated_randomised_n("x", "1") == (None, None), ab
+
+
+def test_D2_the_share_uses_the_stated_n_when_rows_carry_no_counts():
+    # spironolactone: both rows are HRs without arm counts; the trials' own abstracts state 2737 and 1663
+    e = (_row("EMPHASIS-HF", "HR", effect=0.76, lower=0.62, upper=0.93), _row("EMPHASIS-HF", "HR", effect=0.76, lower=0.62, upper=0.93))
+    r = (_row("RALES", "HR", effect=0.70, lower=0.60, upper=0.82), _row("RALES", "RR", effect=0.71, lower=0.61, upper=0.83))
+    stated = {"EMPHASIS-HF": 2737, "RALES": 1663}
+    out = gt.same_trials_compare([e, r], "PM", participants_of=lambda o, t: (stated[o.trial_label], "stated"))
+    assert out["state"] == "ONE_COMPARABLE_TRIAL" and out["verdict"]["verdict"] == "AGREE"
+    assert round(out["participant_share"]["share"], 3) == round(2737 / 4400, 3)
+    assert gt.same_trials_compare([e, r], "PM")["verdict"]["verdict"] == "ONE_TRIAL_MINORITY_SHARE"   # no N: fail-closed

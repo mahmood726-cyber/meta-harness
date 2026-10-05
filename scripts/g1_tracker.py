@@ -249,7 +249,7 @@ def _concl(r, measure):
     return "BENEFIT" if r["ci_high"] < null else "HARM" if r["ci_low"] > null else "NULL_INCLUDED"
 
 
-def same_trials_compare(pairs, method_label):
+def same_trials_compare(pairs, method_label, participants_of=None):
     """The same-trials comparison ON THE COMPARATOR'S MEASURE (5 Oct class):
       >= 2 comparable pairs   both sides pooled by ONE method on the comparator's measure (same_trials_pool)
       exactly 1 shared trial  ONE_SHARED_TRIAL: that trial compared directly (k = 1 rule)
@@ -315,7 +315,7 @@ def same_trials_compare(pairs, method_label):
     if out.get("state") == "ONE_COMPARABLE_TRIAL":
         # D2-ONE-TRIAL-SHARE (registry/g1_decisions.json): one comparable trial carries the topic only with at least half
         # of the shared trials' participants; every other shared pair a same-conclusion measure difference
-        sh = one_trial_share(comp, md_pairs, skipped, md_ok)
+        sh = one_trial_share(comp, md_pairs, skipped, md_ok, participants_of)
         out["participant_share"] = sh
         if (out.get("verdict") or {}).get("verdict") == "AGREE" and not sh["passes"]:
             out["verdict"] = dict(out["verdict"], verdict="ONE_TRIAL_MINORITY_SHARE", why=sh["why"],
@@ -336,13 +336,18 @@ def _participants(*rows):
     return None
 
 
-def one_trial_share(comp, md_pairs, skipped, md_ok):
+def one_trial_share(comp, md_pairs, skipped, md_ok, participants_of=None):
     """D2: the comparable AGREE pair's share of ALL shared trials' participants (comparable + measure-difference +
     unestimable pairs). Fails closed on a missing count, an unestimable shared pair, or a measure difference with
     another conclusion."""
-    per = [{"trial": t.trial_label or o.trial_label, "kind": kind, "participants": _participants(o, t)}
-           for kind, ps in (("COMPARABLE", comp), ("MEASURE_DIFFERENCE", md_pairs), ("NOT_ESTIMABLE", skipped))
-           for o, t in ps]
+    per = []
+    for kind, ps in (("COMPARABLE", comp), ("MEASURE_DIFFERENCE", md_pairs), ("NOT_ESTIMABLE", skipped)):
+        for o, t in ps:
+            n, src = _participants(o, t), "row arm counts"
+            if n is None and participants_of:
+                # the trial's OWN held abstract stating its randomised N (stated_randomised_n), span recorded
+                n, src = participants_of(o, t)
+            per.append({"trial": t.trial_label or o.trial_label, "kind": kind, "participants": n, "source": src})
     agree_n = sum(p["participants"] or 0 for p in per if p["kind"] == "COMPARABLE")
     total = sum(p["participants"] or 0 for p in per)
     share = (agree_n / total) if total else None
@@ -359,6 +364,38 @@ def one_trial_share(comp, md_pairs, skipped, md_ok):
     return {"decision": "D2-ONE-TRIAL-SHARE", "agree_participants": agree_n, "shared_participants": total,
             "share": None if share is None else round(share, 4), "min": ONE_TRIAL_SHARE_MIN, "passes": why is None,
             "why": why, "per_trial": per}
+
+
+_RAND_N = re.compile(r"\b(?:we\s+)?(?:randomly\s+assigned|randomi[sz]ed|enrolled)\s+(?:a\s+total\s+of\s+)?"
+                     r"(\d{1,3}(?:,\d{3})+|\d{2,6})\s+(?:patients|participants|subjects|women|men|adults)\b", re.I)
+
+
+def stated_randomised_n(slug, pmid):
+    """(N, span) when the trial's OWN held abstract states how many people it randomised / enrolled -- verb BEFORE the
+    number ('we randomly assigned 2737 patients', 'we enrolled 1663 patients'), never negated ('not randomized') or future
+    ('will be randomized'), and exactly ONE distinct N; else (None, None). Used only where no row carries arm counts (D2)."""
+    ab = (held_record(slug, pmid) or {}).get("abstract") or ""
+    hits = []
+    for m in _RAND_N.finditer(ab):
+        pre = ab[max(0, m.start() - 40):m.start()].lower()
+        if re.search(r"\b(?:will|not|non|never|to be)\b", pre) or re.search(r"\bnot\b|\bnon-?", m.group(0).lower()):
+            continue
+        hits.append((int(m.group(1).replace(",", "")), m.group(0)))
+    if len({n for n, _ in hits}) != 1:
+        return None, None
+    return hits[0][0], {"field": "abstract", "pmid": str(pmid), "text": hits[0][1]}
+
+
+def participants_from_trial_record(slug, trials):
+    """participants_of for same_trials_compare: the pair's tracker trial (pair_trial) -> its family PMID -> the stated N."""
+    def f(o, t):
+        x = pair_trial((o, t), trials) or {}
+        pm = str(x.get("family") or "").replace("PMID ", "").strip()
+        if not pm.isdigit():
+            return None, None
+        n, sp = stated_randomised_n(slug, pm)
+        return (n, {"stated_randomised_n": sp}) if n else (None, None)
+    return f
 
 
 DECISIONS = os.path.join(ROOT, "registry", "g1_decisions.json")
@@ -2961,7 +2998,7 @@ def topic(slug, T):
                           "(registry/comparator_nct_check.json)"} for x in trials if x.get("comparator_cites_unknown_nct")],
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if is_matched(x))),
-            "same_trials": dict(same_trials_compare(pairs, method),
+            "same_trials": dict(same_trials_compare(pairs, method, participants_from_trial_record(slug, trials)),
                                 method_basis=("comparator positive control reproduced " + method) if pc.get("methods")
                                 else "comparator positive control not reproduced: PM default",
                                 excluded_named_scope_differences=pairs_excluded),
