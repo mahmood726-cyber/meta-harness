@@ -222,6 +222,15 @@ def _norm_ws(t):
     return re.sub(r"\s+", " ", (t or "").replace("\u2212", "-")).strip()
 
 
+def prompt_fulltext(pmid, ft, lic=None):
+    """The full text a MODEL PROMPT may carry for this trial (decision 5 Oct, 6): a prompt is stored in a public record,
+    so it carries the full text only when its copy is marked open (reproducible_ai.record_licence: copy_licence CC);
+    otherwise '' -- the caller sends the title + abstract only. Local regex / typed reads of a held copy are unaffected."""
+    from reproducible_ai import record_licence as _rl
+    lic = _rl.licences() if lic is None else lic
+    return ft if ft and lic.get(str(pmid)) in _rl.OPEN else ""
+
+
 def primary_value(slug, pmid, run, runs, want=None):
     """(primary dict with span, how) for one trial from ITS OWN report: regex on the abstract, then the typed full-text
     rung, then a recorded locator whose quote must be verbatim in the report and must contain every number it copies
@@ -258,6 +267,10 @@ def primary_value(slug, pmid, run, runs, want=None):
         u = k_gap.unpaywall_text(rec["doi"], os.path.join(ROOT, "outputs", "k_gap", "_upw"),
                                  os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=not run)
         ft = (u.get("text") or "")[:120000]
+    # LICENCE (5 Oct decision): the locator's prompt is stored in a public record, so it may carry the full text only when
+    # that copy is marked open (reproducible_ai.record_licence: copy_licence CC). Otherwise the locator sees the title and
+    # abstract only (the typed rungs above still read the held copy locally; nothing of it is published)
+    ft = prompt_fulltext(pmid, ft)
     text = (rec.get("title") or "") + "\n" + (rec.get("abstract") or "") + ("\n\n" + ft if ft else "")
     wanted = ("" if not want else
               "\nWANTED: the number of participants WITH the outcome and the number randomised, in EACH arm (events_t, n_t, "
@@ -270,7 +283,8 @@ def primary_value(slug, pmid, run, runs, want=None):
         rec_c = mcl.call(p, schema=LOCATE_SCHEMA, model=fp.MODEL, effort=fp.EFFORT,
                          caller={"file": "scripts/secondary_meta_build.py", "line": "primary_value",
                                  "purpose": f"secondary-tier primary verification locate {slug} PMID {pmid} (acq/k-gap lane)"},
-                         input_digests=[{"ref": f"trial report PMID {pmid} (abstract + PMC OA full text if held)",
+                         input_digests=[{"ref": f"trial report PMID {pmid} " + ("(abstract + PMC OA full text, copy marked open)"
+                                                                                if ft else "(title + abstract only)"),
                                          "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                                          "what": "held text shown whole"}],
                          timeout_s=1200)
@@ -279,7 +293,14 @@ def primary_value(slug, pmid, run, runs, want=None):
                          "prompt_sha256": hashlib.sha256(p).hexdigest()}
     if not r or r.get("state") != "RAN_OK":
         return None, "LOCATOR_NOT_RUN"
-    claim = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
+    if r.get("prompt_sha256") != hashlib.sha256(p).hexdigest():
+        # a replay uses ONLY a record made from exactly this prompt: a ledger entry for another prompt (one that carried a
+        # full text whose copy is not marked open, now quarantined) is never read in its place
+        return None, "LOCATOR_NOT_RUN_FOR_THIS_PROMPT"
+    rp_ = os.path.join(REC_DIR, r["record_id"] + ".json")
+    if not os.path.exists(rp_):
+        return None, "LOCATOR_RECORD_NOT_HELD"
+    claim = json.loads(ms.replay(ms.load_record(rp_)).decode("utf-8"))
     # the deterministic gate is harness code (secondary_meta.gate_locator_claim): one implementation, typed reasons
     val, why = sm.gate_locator_claim(claim, text, prefer="counts" if want == "counts" else None)
     if val:

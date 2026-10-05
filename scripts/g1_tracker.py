@@ -98,6 +98,29 @@ def agreement(ours, theirs):
     return "AGREE" if eq else "DISAGREE"
 
 
+def trial_report_in_place_of(theirs, primary):
+    """Decision 5 Oct (5): a comparator row that DISAGREES with the trial's own report -- verified MISMATCH, and the
+    evidence points at the comparator (SECONDARY_WRONG: the primary's numbers are in the primary's own span) -- enters the
+    same-trials comparison as the TRIAL'S OWN values, in the comparator's measure; the disagreement stays a named finding
+    (COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT). RESULT_AGREES is then judged on what follows. Any other row: unchanged."""
+    v = theirs.verification or {}
+    if theirs.state != sm.MISMATCH or not str(v.get("which_side") or "").startswith("SECONDARY_WRONG") or not primary:
+        return theirs
+    import copy
+    r = copy.copy(theirs)
+    for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"):
+        setattr(r, k, primary.get(k))
+    if primary.get("effect") is not None and (primary.get("measure") or "").upper() != (theirs.measure or "").upper():
+        return theirs                       # the report's value is another measure: never converted, row unchanged
+    r.provenance = f"TRIAL_REPORT_IN_PLACE_OF_COMPARATOR_ROW ({theirs.provenance})"
+    r.findings = list(theirs.findings or []) + [{"finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT",
+                                                 "comparator_printed": {k: getattr(theirs, k) for k in
+                                                                        ("effect", "lower", "upper", "events_t", "n_t",
+                                                                         "events_c", "n_c")},
+                                                 "detail": "compared on the trial's own values (5 Oct decision 5)"}]
+    return r
+
+
 def same_trials_pool(pairs, method_label):
     """pairs: [(our_row, their_row)] for the shared trials. Both sides pooled by ONE method; None if any side cannot."""
     if len(pairs) < 2:
@@ -1052,6 +1075,8 @@ def cite_or_demote(o, slug):
     for d in o.get("named_differences") or []:
         if d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
             sp = d.get("span") or exclusion_audit_span(slug, d.get("pmid"))
+            if d.get("protocol_spans") is not None and not protocol_spans_ok(slug, d.get("protocol_spans")):
+                sp = None                   # an adjudication's protocol words must be the registered protocol's
             if d.get("rule_id") and sp and span_is_verbatim(slug, d.get("pmid"), sp):
                 keep.append(dict(d, span=sp, span_source=f"PMID {d.get('pmid')} record {sp.get('field')} (held: "
                                                          f"cache/{slug}/records.json or outputs/k_gap/member_records.json)"))
@@ -1096,12 +1121,76 @@ def needs_seed(x):
     return not x.get("in_our_pool") and not x.get("seeded_funnel")
 
 
+def _ws(t):
+    return re.sub(r"\s+", " ", re.sub(r"\*\*|`", "", str(t or ""))).strip()
+
+
+_PROTOCOL_TEXT = {}
+
+
+def protocol_text(slug):
+    """Our REGISTERED protocol's text (protocols/<slug>.md), markdown emphasis and line breaks normalised."""
+    if slug not in _PROTOCOL_TEXT:
+        pp = os.path.join(ROOT, "protocols", f"{slug}.md")
+        _PROTOCOL_TEXT[slug] = _ws(open(pp, encoding="utf-8").read()) if os.path.exists(pp) else ""
+    return _PROTOCOL_TEXT[slug]
+
+
+def protocol_spans_ok(slug, spans):
+    """Every quoted protocol span is verbatim in the registered protocol (whitespace / emphasis normalised)."""
+    t = protocol_text(slug)
+    return bool(spans) and bool(t) and all(_ws(q) and _ws(q) in t for q in spans)
+
+
+def protocol_rule_span(slug, rule_id):
+    """The registered protocol's own bullet for an exclusion rule ('**X2** - wrong population (for example heart failure,
+    ...)'), quoted, so a named difference cites the protocol's words beside the config term (5 Oct decision 3)."""
+    t = protocol_text(slug)
+    if not t or not rule_id:
+        return None
+    m = re.search(r"(?:^|\s)-\s+" + re.escape(str(rule_id)) + r"\s+-\s+(.+?)(?=\s-\s+[A-Z][A-Z0-9\-]*\s+-\s|\s#|$)", t)
+    return {"file": f"protocols/{slug}.md", "rule_id": rule_id, "text": m.group(1).strip()[:400]} if m else None
+
+
+_ADJ = None
+
+
+def scope_adjudication(slug, x):
+    """registry/scope_adjudications.json: a trial our REGISTERED protocol's own text excludes (decisions 5 Oct 2 and 3),
+    keyed '<slug>::<tracker family>'. Named only when every protocol span is verbatim in protocols/<slug>.md AND the
+    trial span is verbatim in its held record; otherwise None (the trial stays eligible) with the failure recorded."""
+    global _ADJ
+    if _ADJ is None:
+        ap = os.path.join(ROOT, "registry", "scope_adjudications.json")
+        _ADJ = (_j(ap).get("adjudications") or {}) if os.path.exists(ap) else {}
+    a = _ADJ.get(f"{slug}::{x.get('family')}")
+    if not a:
+        return None
+    ts = a.get("trial_span") or {}
+    if not protocol_spans_ok(slug, a.get("protocol_spans")):
+        x["scope_adjudication_refused"] = "PROTOCOL_SPAN_NOT_VERBATIM_IN_REGISTERED_PROTOCOL"
+        return None
+    if not span_is_verbatim(slug, ts.get("pmid"), {"field": ts.get("field"), "text": ts.get("text")}):
+        x["scope_adjudication_refused"] = "TRIAL_SPAN_NOT_VERBATIM_IN_HELD_RECORD"
+        return None
+    return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": f"PROTOCOL_TEXT:{a.get('axis')}",
+            "protocol_rule": "protocols/" + slug + ".md: " + " | ".join(f"'{q}'" for q in a["protocol_spans"]),
+            "protocol_spans": a["protocol_spans"], "span": {"field": ts["field"], "text": ts["text"]},
+            "span_source": f"PMID {ts['pmid']} record {ts['field']} (held: cache/{slug}/records.json or "
+                           f"outputs/k_gap/member_records.json)",
+            "pmid": ts["pmid"], "decided": a.get("decision"), "registry_note": a.get("registry_note"),
+            "audit": {"class": "PROTOCOL_TEXT_ADJUDICATION", "subclass": a.get("axis")}}
+
+
 def scope_difference(x, cfg, slug=None):
     """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
     cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
     trial is an open gap (it must then stay visible as NO_ROW, never be dropped)."""
     import re as _re
     f = x.get("seeded_funnel") or {}
+    adj = scope_adjudication(slug, x) if slug else None
+    if adj:
+        return adj                          # our protocol's own text excludes it, both spans verbatim (decisions 2, 3)
     if f.get("stage") == "SCREENED_OUT":
         if not f.get("rule_id"):
             return None                     # a screen-out with no rule cited is a blocker, never a named difference
@@ -1119,6 +1208,7 @@ def scope_difference(x, cfg, slug=None):
                                            f"or outputs/k_gap/member_records.json)",
                 "audit": {"class": cls, "subclass": sub},
                 "protocol_rule": protocol_rule_for(cfg, f["rule_id"], f.get("reason")),
+                "protocol_span": protocol_rule_span(slug, f["rule_id"]),
                 "registered_eligibility": cfg.get("eligibility_summary"), "pmid": f.get("pmid")}
     rb = x.get("registry_binding") or {}
     cands = [c for c in rb.get("candidates") or [] if c.get("gate") != "OUTCOME_NOT_NAMED"]
@@ -1465,7 +1555,22 @@ def two_readers_eligible(readings):
     return {"READER_1", "READER_2"} <= {k for k, v in dec.items() if v == {"ELIGIBLE"}}
 
 
-def screen_eligibility(x, rec, pmid, readings):
+def blinding_unverifiable(slug, pmid, cfg):
+    """Decision 5 Oct (4): our protocol REQUIRES double-blind, the screen excluded the trial on design, and no held source
+    states blinding either way (exclusion audit INSUFFICIENT_RECORD:BLINDING_NOT_STATED, and the full-text pass did not
+    establish it). Fail closed: ELIGIBILITY_UNVERIFIABLE -- never counted, never named as a scope difference."""
+    if not ((cfg or {}).get("include") or {}).get("design_double_blind"):
+        return False
+    if exclusion_audit_class(slug, pmid) != ("INSUFFICIENT_RECORD", "BLINDING_NOT_STATED"):
+        return False
+    fp_ = os.path.join(OUT, "exclusion_fulltext.json")
+    for r in (_j(fp_).get("rows") or []) if os.path.exists(fp_) else []:
+        if r.get("slug") == slug and str(r.get("pmid")) == str(pmid) and r.get("class_after") not in (None, "INSUFFICIENT_RECORD"):
+            return False                    # a held full text established the fact: not this state
+    return True
+
+
+def screen_eligibility(x, rec, pmid, readings, slug=None, cfg=None):
     """Typed, per comparator trial outside our pool: what OUR screen says. rec = our screen's own decision record for the
     trial's report (None when the report never entered it); x['seeded_funnel'] = the decision when its held record was
     seeded through our unchanged build. ELIGIBLE / NOT_ELIGIBLE (rule + reason) / NOT_ASSESSED."""
@@ -1483,6 +1588,11 @@ def screen_eligibility(x, rec, pmid, readings):
         if two_readers_eligible(readings):
             return {"state": "ELIGIBLE", "basis": "TWO_READERS_JUDGE_ELIGIBLE", "screen_rule": rule,
                     "readings": readings[:6]}
+        if slug and blinding_unverifiable(slug, f.get("pmid") or pmid, cfg):
+            return {"state": "ELIGIBILITY_UNVERIFIABLE", "rule_id": rule,
+                    "why": "the protocol requires double-blind (include.design_double_blind) and no held source states "
+                           "blinding (exclusion audit BLINDING_NOT_STATED; full-text pass did not establish it)",
+                    "pmid": f.get("pmid") or pmid, "readings": readings[:6]}
         return {"state": "NOT_ELIGIBLE", "rule_id": rule,
                 "reason": (f.get("reason") or (rec or {}).get("reason") or "")[:160], "readings": readings[:6]}
     return {"state": "NOT_ASSESSED", "why": f.get("stage") or ("NO_RECORD_HELD" if not pmid else "NOT_IN_SCREEN"),
@@ -1605,7 +1715,8 @@ def topic(slug, T):
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
             if theirs and mine.get("primary"):
-                pairs.append((as_row(mine["primary"], t["label"], theirs.measure), theirs))
+                pairs.append((as_row(mine["primary"], t["label"], theirs.measure),
+                              trial_report_in_place_of(theirs, mine["primary"])))
         else:
             refusal = absent_by_id.get(str(mine["id"])) if mine else None
             # ANTI-CIRCULARITY: a row sourced FROM the comparator never gives a trial a counted route, however well it
@@ -1730,9 +1841,11 @@ def topic(slug, T):
         p = rp[id(t)]
         x["identification"] = identification_of(x, t, slug, bool(p and p in own_ids))
         x["screen_eligibility"] = screen_eligibility(x, screened.get(p) if p else None, p,
-                                                     two_reader_readings(slug, sorted(set(t.get("pmids") or []) | ({p} if p else set()))))
+                                                     two_reader_readings(slug, sorted(set(t.get("pmids") or []) | ({p} if p else set()))),
+                                                     slug=slug, cfg=cfg)
     for x in trials:
-        x["scope_difference"] = None if x["in_our_pool"] else scope_difference(x, cfg, slug)
+        x["scope_difference"] = (None if x["in_our_pool"] or (x.get("screen_eligibility") or {}).get("state")
+                                 == "ELIGIBILITY_UNVERIFIABLE" else scope_difference(x, cfg, slug))
         x["blocker"] = None if (x["in_our_pool"] or x["scope_difference"]) else blocker_class(x, slug)
     _rep0 = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     outcome_set_differences(trials, (S.get("metas") or {}).get(comp) or lane_comp_meta(comparator_rows_source), comp, rows,
