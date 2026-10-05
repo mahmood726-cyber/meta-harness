@@ -1530,6 +1530,55 @@ META_EXTRA = {
         {"fig_id": "F4", "caption_has": "for the prevention of antibiotic-associated diarrhea in children and adults",
          "instruction": "Rows: every study row of every strain subgroup, once each, with events and totals per arm "
                         "(never a subgroup subtotal). Pooled: the overall pooled row."}],
+    # corticosteroids-covid19 (5 Oct night): mortality figures the caption selector cannot take (no 'forest' in the caption,
+    # or a subgroup split) in metas that cite CAPE COVID / REMAP-CAP hydrocortisone / Metcovid / CoDEX (k-gap sweep's
+    # citation-network discovery); every downstream gate still applies (dual agreement, reconstruction, admission)
+    ("corticosteroids-covid19-mortality", "36333729"): [
+        {"fig_id": "Fig4", "caption_has": "The effect of corticosteroids on Mortality at 28 days. Studies subdivided by "
+                                         "COVID-19 status",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "35971278"): [
+        {"fig_id": "rmv2386-fig-0002", "caption_has": "Effect of corticosteroids on mortality in COVID",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled "
+                        "row for the whole figure."},
+        {"fig_id": "rmv2386-fig-0003", "caption_has": "Effect of methylprednisolone on mortality in COVID",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled "
+                        "row for the whole figure."},
+        {"fig_id": "rmv2386-fig-0004", "caption_has": "Effect of dexamethasone on mortality in COVID",
+         "instruction": "Rows: every study row, once each, with events and totals per arm. Pooled: the overall pooled "
+                        "row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "35346661"): [
+        {"fig_id": "f0020", "caption_has": "Forest plot of the short-term mortality in meta-analysis and subgroup "
+                                          "analyses of RCTs and Non-RCTs",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "37076606"): [
+        {"fig_id": "Fig3", "caption_has": "Forest plot for mortality based on corticosteroid type subgroup",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    ("corticosteroids-covid19-mortality", "34011029"): [
+        {"fig_id": "F2", "caption_has": "Forest plot of subgroup comparisons of mortality rates",
+         "instruction": "Rows: every study row of every subgroup, once each, with events and totals per arm (never a subgroup "
+                        "subtotal, never an overall row). Pooled: the overall pooled row for the whole figure."}],
+    # iv-iron (5 Oct night): the HF-hospitalisation PANEL of multi-panel figures in metas citing EFFECT-HF / FAIR-HF /
+    # AFFIRM-AHF / HEART-FID (k-gap sweep's citation network); patients-with-event panels only (never recurrent rates)
+    ("iv-iron-hfref-hosp", "36178088"): [
+        {"fig_id": "ehf214177-fig-0002", "caption_has": "(A) Hospitalization for worsening HF", "panel": "A",
+         "panel_title": "Hospitalization for worsening HF",
+         "instruction": "Transcribe ONLY panel (A) 'Hospitalization for worsening HF': its study rows (events and totals "
+                        "per arm) and panel (A)'s own pooled row. Ignore panels (B) and (C)."}],
+    ("iv-iron-hfref-hosp", "33586856"): [
+        {"fig_id": "ehf213146-fig-0002", "caption_has": "(B) number of patients who experienced heart failure "
+                                                        "hospitalizations during follow", "panel": "B",
+         "panel_title": "number of patients who experienced heart failure hospitalizations during follow-up",
+         "instruction": "Transcribe ONLY panel (B) (patients who experienced heart failure hospitalizations): its study "
+                        "rows (events and totals per arm) and panel (B)'s own pooled row. Ignore panels (A), (C), (D)."}],
+    ("iv-iron-hfref-hosp", "38643833"): [
+        {"fig_id": "fig0008", "caption_has": "B) Heart failure hospitalisation", "panel": "B",
+         "panel_title": "Heart failure hospitalisation",
+         "instruction": "Transcribe ONLY panel B) 'Heart failure hospitalisation': its study rows (events and totals per "
+                        "arm) and panel B)'s own pooled row. Ignore panel A)."}],
     ("tocilizumab-covid19-mortality", "34768455"): [
         {"fig_id": "jcm-10-04935-f004", "caption_has": "Pooled comparison of 28-day mortality according to treatment",
          "instruction": "Rows: every trial row of every comparison group, once each, with events and totals per arm. "
