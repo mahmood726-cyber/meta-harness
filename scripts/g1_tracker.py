@@ -1158,7 +1158,15 @@ def cite_or_demote(o, slug):
             o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g != x["label"]]
             o["N_eligible"] = len(o.get("trials") or []) - len(o["named_differences"])
     for d in o.get("named_differences") or []:
-        if d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
+        if d.get("rule_id") == "E2:COMPARATOR_NOT_PLACEBO":
+            # named by the comparator's OWN enumeration: kept only when RE-DERIVED here from the trial's enumeration
+            # (held source digest + span verbatim), never on the named difference's word
+            again = enumeration_scope(by_label.get(d.get("trial")) or {}, cfg)
+            if again and (again.get("span") or {}).get("text") == (d.get("span") or {}).get("text"):
+                keep.append(d)
+                continue
+            why = "SCOPE_UNCITED:E2_NOT_RE_DERIVED"
+        elif d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
             sp = d.get("span") or exclusion_audit_span(slug, d.get("pmid"))
             if d.get("rule_id") and sp and span_is_verbatim(slug, d.get("pmid"), sp):
                 keep.append(dict(d, span=sp, span_source=f"PMID {d.get('pmid')} record {sp.get('field')} (held: "
@@ -1204,11 +1212,42 @@ def needs_seed(x):
     return not x.get("in_our_pool") and not x.get("seeded_funnel")
 
 
+def enumeration_scope(x, cfg):
+    """PROTOCOL_SCOPE_DIFFERENCE named by the comparator's OWN enumeration (registry/comparator_enumerations, via
+    k_gap_table): rule E2 COMPARATOR_NOT_PLACEBO -- the comparator's own row lists the topic agent only against ACTIVE
+    drugs, while the topic protocol's comparator is placebo. Re-checked here, never trusted: the held source must still
+    have the recorded sha256 and every span line must be verbatim in it; anything else -> None (an open gap)."""
+    import hashlib
+    en = x.get("enumeration") or {}
+    if en.get("scope") != "OUT_OF_SCOPE" or en.get("rule_id") != "E2:COMPARATOR_NOT_PLACEBO" or not en.get("span"):
+        return None
+    comps = [c.lower() for c in (cfg.get("comparator_terms") or [])]
+    if not comps or any(c in en["span"].lower() for c in comps):
+        return None
+    src = os.path.join(ROOT, en.get("source") or "")
+    if not os.path.isfile(src):
+        return None
+    b = open(src, "rb").read()
+    if hashlib.sha256(b).hexdigest() != en.get("sha256"):
+        return None
+    held = b.decode("utf-8", "replace")
+    if not all(line in held for line in en["span"].split(" / ")):
+        return None
+    return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": "E2:COMPARATOR_NOT_PLACEBO",
+            "screen_reason": f"the comparator's own row holds no {'/'.join(comps)} arm (active control only)",
+            "span": {"field": f"comparator supplementary trial table, reference [{en.get('ref')}]", "text": en["span"]},
+            "span_source": f"{en.get('source')} (sha256 {str(en.get('sha256'))[:12]}); {en.get('enumerated_from')}",
+            "protocol_rule": f"topic comparator_terms {comps}", "registered_eligibility": cfg.get("eligibility_summary")}
+
+
 def scope_difference(x, cfg, slug=None):
     """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
     cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
     trial is an open gap (it must then stay visible as NO_ROW, never be dropped)."""
     import re as _re
+    en = enumeration_scope(x, cfg)
+    if en:
+        return en
     f = x.get("seeded_funnel") or {}
     if f.get("stage") == "SCREENED_OUT":
         if not f.get("rule_id"):
@@ -1557,6 +1596,13 @@ def topic(slug, T):
     for r in rows:
         by_fam.setdefault(r.family_id, []).append(r)
     comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"]
+    # ONE streaming pass over the AACT snapshot for every comparator NCT (registry_binding's per-trial ensure() is then a
+    # lookup): one pass per trial re-read the multi-GB files once per trial (denosumab, 11 trials: > 1 h on a busy disk)
+    try:
+        from kgap import aact_adapter as _aa
+        _aa.ensure(sorted({n for t in comp_rows for n in (t.get("ncts") or [])}))
+    except FileNotFoundError:
+        pass                                  # registry_binding reports SNAPSHOT_UNAVAILABLE per trial, unchanged
     other_agent = [t["label"][:60] for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
@@ -1661,7 +1707,8 @@ def topic(slug, T):
                        "secondary_single": ({k: v for k, v in ss.items() if k != "row"} if (not in_pool and ss) else None),
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
                        else "NOT_IN_OUR_POOL", "comparator_row_state": theirs.state if theirs else None,
-                       "comparator_row_reasons": list(theirs.reasons or []) if theirs else []})
+                       "comparator_row_reasons": list(theirs.reasons or []) if theirs else [],
+                       **({"enumeration": t["enumeration"]} if t.get("enumeration") else {})})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}
