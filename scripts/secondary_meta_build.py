@@ -807,6 +807,45 @@ def lane_timepoint(r, spec, held=None):
     return r
 
 
+LANE_SKIPPED = {}                     # {slug: {meta pmid: reason}} -- lane metas refused before their rows are built
+LANE_TITLES = os.path.join(ROOT, "registry", "model_proposals", "g1_lane_meta_titles.json")
+
+
+# a meta of the topic's DRUG CLASS names the class, not the drug; listed only where the class adds no other comparison
+# for the topic's trials (each row's trial is still decided by the family gate). Mixed-class topics stay drug-only.
+INTERVENTION_CLASS = {
+    "dapagliflozin-hfpef-hosp": ["SGLT2", "SGLT-2", "sodium-glucose cotransporter 2", "sodium-glucose co-transporter 2",
+                                 "sodium-glucose cotransporter-2", "sodium-glucose co-transporter-2"],
+    "empagliflozin-hfpef-hosp": ["SGLT2", "SGLT-2", "sodium-glucose cotransporter 2", "sodium-glucose co-transporter 2",
+                                 "sodium-glucose cotransporter-2", "sodium-glucose co-transporter-2"],
+    "tocilizumab-covid19-mortality": ["IL-6", "interleukin-6", "interleukin 6"],
+    "iv-iron-hfref-hosp": ["intravenous iron", "IV iron", "i.v. iron", "parenteral iron"],
+    "pcsk9-mace": ["PCSK9", "proprotein convertase subtilisin"],
+}
+_HYPHENS = dict.fromkeys(map(ord, "‐‑‒–−"), "-")
+
+
+def topic_intervention_terms(slug):
+    return list((_j(os.path.join(ROOT, "topics", slug + ".json")) or {}).get("intervention_terms") or []) +         INTERVENTION_CLASS.get(slug, [])
+
+
+def lane_intervention_refusal(terms, caption, title):
+    """INTERVENTION_NOT_THE_TOPICS unless the figure's caption or the meta's own title names one of the topic's
+    intervention terms (whole words, any case, a plural ending allowed, Unicode hyphens read as '-'). None when it does."""
+    text = ((caption or "") + " | " + (title or "")).translate(_HYPHENS)
+    for t in terms or []:
+        if re.search(r"(?<![A-Za-z0-9])" + re.escape(str(t).translate(_HYPHENS)) + r"(?:s|es)?(?![A-Za-z0-9])", text, re.I):
+            return None
+    return "INTERVENTION_NOT_THE_TOPICS"
+
+
+def lane_meta_title(pmid):
+    """The meta's own title, from the committed record of Europe PMC titles (g1_lane_meta_titles.json; written by
+    scripts/g1_forest_reader.py --titles). None when not recorded (then only the caption can name the intervention)."""
+    t = _j(LANE_TITLES) if os.path.exists(LANE_TITLES) else {}
+    return ((t.get("titles") or {}).get(str(pmid)) or {}).get("title")
+
+
 def forest_lane_metas(slug, comp, have):
     """REVIEW_REFERENCE_LIST data side (Mahmood/captain decision 5 Oct): the forest-reader lane's DUAL-MODEL reads of
     NON-comparator metas of this topic that the lane ACCEPTED (their rows reproduce the figure's own printed pool --
@@ -827,6 +866,10 @@ def forest_lane_metas(slug, comp, have):
         if acc.get("state") != "ACCEPTED" or not acc.get("methods_reproducing"):
             continue
         fig = v.get("figure") or {}
+        # a figure of ANOTHER intervention never enters this topic (35343397: IL-6 antagonists read under corticosteroids)
+        if lane_intervention_refusal(topic_intervention_terms(slug), fig.get("caption"), lane_meta_title(pmid)):
+            LANE_SKIPPED.setdefault(slug, {})[pmid] = "INTERVENTION_NOT_THE_TOPICS"
+            continue
         mrows = []
         for x in v.get("secondary_rows") or []:
             r = sm.SecondaryRow(**{k: val for k, val in x.items() if k in sm.SecondaryRow.__dataclass_fields__})
@@ -1017,6 +1060,7 @@ def build(slug, run, runs):
     have = {m for m, e in metas_out.items() if e.get("usable")}
     lrows, lmetas = forest_lane_metas(slug, comp, have)
     metas_out.update(lmetas)
+    skipped.update({m: f"LANE:{why}" for m, why in LANE_SKIPPED.get(slug, {}).items()})
     for r, lv in lrows:
         lane_timepoint(r, spec)
         r = sm.admit(r, spec, fam)
