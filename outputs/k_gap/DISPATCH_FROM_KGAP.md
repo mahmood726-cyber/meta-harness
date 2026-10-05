@@ -462,3 +462,28 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
 2. *Fixture on main.* `tests/test_codex_call_log.py` carried a real home-directory path in a fixture. It came from c82e86bd7 and **is on main**.
    - Neutralised on this lane (af2c6bfb0), so it drops out at the next consolidation.
    - main itself is untouched by this lane.
+
+### Follow-up 2 (same night): counts re-reads and call-log privacy (5b765b8be)
+
+**Counts re-reads.** The per-arm counts re-read now also runs for planned (caption-selected) forest figures, with gates unchanged.
+- 9 recorded reads.
+- In corticosteroids-cap, meta 23112872's counts attach to 4 of 8 rows. Only counts that reproduce the printed OR attach.
+- Those rows now pass the measure gate. They stop at `TIMEPOINT_NOT_STATED_BY_META`: the meta never states the mortality timepoint.
+- No count moved.
+
+**Where Tier B stands after tonight.** Under unchanged gates, Tier B is exhausted:
+- 60 acquisition calls and 3 sweeps: the open-meta pool is fully read (67 held forest reads; the remaining planned metas have no readable figure).
+- Every unmatched row is now one of:
+  - (a) no open primary source;
+  - (b) refused by a measure gate (meta RR vs topic OR/HR: 26 of 31 candidate rows);
+  - (c) refused by a timepoint gate;
+  - (d) screen-excluded (GISSI-P, design).
+- tocilizumab is served from the g1/tocilizumab lane import, so this lane's tocilizumab reads don't move the served row.
+
+**Decisions only Mahmood can make (none taken here):**
+1. **EMA EPAR text in prompts.** The licence is "reproduction authorised with acknowledgement". It is held, never shown. Allowing it would open the ODYSSEY rows (pcsk9) to the regulatory route.
+2. **Meta with no stated timepoint.** Should a meta that states no timepoint be admissible when the trial's own report states one? This is the cortico-CAP rows' only remaining refusal.
+3. **Codex client reading private files.** Codex's client reads its user-level AGENTS.md and acts on it inside harness calls:
+   - 5 Oct: it read a private workbook during a forest read (read-only sandboxes allow reads).
+   - Committed logs no longer keep tool output (fixed and planted).
+   - The calls themselves should run with user-level client instructions disabled, or in a sandbox with no access outside the work dir. That is a harness-wide setting, so it is not changed by this lane.
