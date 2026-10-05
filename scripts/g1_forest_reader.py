@@ -60,6 +60,18 @@ CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative
 # A figure named by hand when the deterministic selector cannot choose. The caption must CONTAIN `caption_has`
 # (checked against the comparator's JATS); `instruction` tells both readers which panel/subgroup to transcribe.
 TARGETS: dict = {
+    # g1/binding (5 Oct, replaced comparators). esketamine 37377288: three MADRS figures make the selector ambiguous;
+    # Fig 3 is the mean-reduction forest (the comparator's Day-28 MD result, 'Figure 3' in its own text).
+    "esketamine-trd-madrs": {"fig_id": "f3", "caption_has": "Meta-analysis of the mean reduction in Montgomery-Asberg"},
+    # melatonin 35691474 has NO PMC record: its CC BY author copy is in the UvA repository. Its SOL-by-polysomnography
+    # forest (adults with insomnia) is Figure X2 of the supplementary Word file the repository record links.
+    "melatonin-primary-insomnia-sol": {
+        "supplement": "1_s2.0_S0149763422002123_mmc1.docx",
+        "caption_has": "Figure X2: A forest plot to show the mean difference of SOL polysomnography scores",
+        "repository_record": "2026-10-05_repository_record.html", "image_index": 1,
+        "before_caption": True,
+        "instruction": "Transcribe the study rows and the RE Model row of this forest plot: mean difference of SOL "
+                       "polysomnography (minutes), melatonin vs placebo, adults with insomnia."},
     # COMBINE AF (Circulation 2022, PMC8800560, an author manuscript): its only forest plot is F1 (F3 is covariate
     # strata, F4 an HR-by-age curve the broadened caption match would otherwise pick). F1's rows may be outcomes, not
     # trials: the readers are asked to say so (row_kind), and the gate refuses non-study rows.
@@ -116,7 +128,7 @@ TARGETS: dict = {
                        "C (HFmrEF). Transcribe ONLY panel A: every study row of panel A, once each, and panel A's own "
                        "Total (95% CI) row as the pooled row. Ignore panels B and C entirely."},
     # PLoS One 2013: study rows grouped under 'Objective' and 'Subjective' subtotal rows, then 'Overall'
-    "melatonin-primary-insomnia-sol": {
+    "melatonin-primary-insomnia-sol::23691095": {   # re-keyed 5 Oct: 23691095 is no longer the comparator
         "fig_id": "pone-0063773-g001", "caption_has": "Efficacy of Melatonin in Reducing Sleep Latency",
         "instruction": "Rows: every STUDY row of every group, once each, top to bottom -- never a group subtotal row "
                        "(e.g. 'Objective', 'Subjective'); set row_kind=\"study\" when you give only study rows. Pooled: the "
@@ -127,8 +139,8 @@ TARGETS: dict = {
                                       "death due to bleeding"},
     "empagliflozin-hfpef-hosp": {"fig_id": "F2", "caption_has": "Primary composite outcome (composite of first HFH or "
                                                                 "cardiovascular death)"},
-    "esketamine-trd-madrs": {"fig_id": "f4", "caption_has": "Acute induction: MADRS change from baseline to day 28"},
-    "statins-primary-prevention-elderly": {
+    "esketamine-trd-madrs::42490943": {"fig_id": "f4", "caption_has": "Acute induction: MADRS change from baseline to day 28"},   # re-keyed 5 Oct: 42490943 is no longer the comparator
+    "statins-primary-prevention-elderly::39076238": {   # re-keyed 5 Oct: 39076238 is no longer the comparator
         "fig_id": "S3.F2", "caption_has": "Forrest plots for the primary outcomes",
         "instruction": "The figure has several primary outcomes. Transcribe ONLY the block for the composite of major "
                        "cardiovascular / vascular events (MACE / major vascular events): its study rows and its own "
@@ -144,7 +156,7 @@ TARGETS: dict = {
                        "log[Hazard Ratio] or SE. Ignore the LVEF > 40% subgroup, any overall row, and panel (B)."},
     # the main figures are network estimates (fig4: direct and indirect head-to-head results -- treatments, not trials);
     # the comparator's OWN supplement (mmc1.pdf, listed in its JATS, PMC OA bucket) prints the pairwise per-trial plot
-    "denosumab-vertebral-fracture": {"supplement": "mmc1.pdf", "page": 43,
+    "denosumab-vertebral-fracture::36852077": {"supplement": "mmc1.pdf", "page": 43,   # re-keyed 5 Oct: 36852077 is no longer the comparator
                                      "caption_has": "Denosumab Compared with Placebo on Vertebral Fracture",
                                      "instruction": "Rows: every trial row of this denosumab-versus-placebo plot, once "
                                                     "each. Pooled: the plot's overall pooled row."},
@@ -330,7 +342,7 @@ TARGETS: dict = {
         "fig_id": "fig4", "caption_has": "mortality in immunomodulators group",
         "instruction": "Rows: every trial row of the figure, once each, whatever the immunomodulator. Pooled: the "
                        "figure's overall pooled row."},
-    "dpp4-mace-t2d": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",
+    "dpp4-mace-t2d::34754403": {"fig_id": "F1", "caption_has": "A: Fatal and non-fatal myocardial infarction",   # re-keyed 5 Oct: 34754403 is no longer the comparator
                       "refuse": "NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, "
                                 "HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel"},
     "sacubitril-valsartan-hfref": {"fig_id": "ehf214298-fig-0003",
@@ -510,6 +522,33 @@ def docx_figure(pmid, t, sp, b):
     if not hits:
         return None, "TARGET_CAPTION_MISMATCH"
     i0, want, seen = hits[-1], t.get("image_index", 1), 0          # the LAST mention: a caption list may come first
+    if t.get("before_caption"):
+        # a caption printed BELOW its figure (the Elsevier appendix style: image, then 'Figure X2: ...'): the image is
+        # the nearest embedded image ABOVE the caption, with no other figure caption (lettered 'Figure X1' included)
+        # between them
+        cap_re = re.compile(r"(Supplement\w*\s+)?(e)?Fig(ure)?\.?\s*[A-Z]?\d", re.I)
+        for j in range(i0 - 1, -1, -1):
+            if txt[j] and cap_re.match(txt[j]):
+                return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
+            rids = re.findall(r'r:embed="(rId\d+)"', paras[j])
+            if rids:
+                member = "word/" + rels[rids[-1]]
+                ib = z.read(member)
+                href = f"supp_{t['supplement']}_{os.path.basename(member)}"
+                ip = os.path.join(COMP, pmid, f"{FETCH_DATE}_forest_{href}")
+                if not os.path.exists(ip):
+                    with open(ip, "wb") as fh:
+                        fh.write(ib)
+                    smeta = _j(sp + ".meta.json")
+                    _save(ip + ".meta.json", {"url": smeta.get("url"), "sha256": hashlib.sha256(ib).hexdigest(),
+                                              "bytes": len(ib), "supplement_sha256": smeta.get("sha256"),
+                                              "via": f"supplementary Word file {t['supplement']}: embedded {member}, "
+                                                     f"extracted unchanged (the image directly ABOVE the caption)"})
+                return {"fig_id": f"{t['supplement']}#{os.path.basename(member)}", "href": href,
+                        "caption": txt[i0][:300], "panel": t.get("panel"), "panel_title": t.get("panel_title"),
+                        "instruction": t.get("instruction"),
+                        "selected_by": f"TARGETS supplement Word figure above caption {t['caption_has']!r}"}, "SELECTED"
+        return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
     for j in range(i0 + 1, len(paras)):
         if j != i0 and re.match(r"(Supplement\w*\s+)?Fig(ure)?\.?\s*S?\d", txt[j]) and txt[j]:
             return None, "TARGET_IMAGE_NOT_UNDER_CAPTION"
@@ -544,13 +583,24 @@ def supplement_figure(slug, pmid, t):
     rendered at 200 dpi; the derivation (source sha256, page, method, MuPDF version) is stored beside it."""
     import fitz
     jp = jats_path(pmid)
-    root = ET.parse(jp).getroot()
-    names = {m.get(fp.XL) or "" for tag in ("media", "supplementary-material") for m in root.iter(tag)}
-    if t["supplement"] not in names:
-        return None, "TARGET_SUPPLEMENT_NOT_IN_JATS"
-    sp = held_supplement(pmid, t["supplement"])
-    if not sp:
-        return None, "SUPPLEMENT_NOT_HELD"
+    if t.get("repository_record"):
+        # no PMC record: the supplement must be HELD and its source URL must be LINKED from the comparator's held
+        # repository record (the identity check JATS <supplementary-material> gives for a PMC article)
+        sp = held_supplement(pmid, t["supplement"])
+        rp = os.path.join(COMP, pmid, t["repository_record"])
+        if not sp or not os.path.exists(rp):
+            return None, "SUPPLEMENT_NOT_HELD"
+        url = (_j(sp + ".meta.json").get("url") or "")
+        if not url or url not in open(rp, encoding="utf-8", errors="replace").read():
+            return None, "TARGET_SUPPLEMENT_NOT_LINKED_FROM_REPOSITORY_RECORD"
+    else:
+        root = ET.parse(jp).getroot()
+        names = {m.get(fp.XL) or "" for tag in ("media", "supplementary-material") for m in root.iter(tag)}
+        if t["supplement"] not in names:
+            return None, "TARGET_SUPPLEMENT_NOT_IN_JATS"
+        sp = held_supplement(pmid, t["supplement"])
+        if not sp:
+            return None, "SUPPLEMENT_NOT_HELD"
     with open(sp, "rb") as fh:
         b = fh.read()
     if t["supplement"].lower().endswith(".docx"):
@@ -589,10 +639,10 @@ def figure_for(slug, pmid, target=None):
     """(figure dict, why). A TARGETS entry is honoured only if its figure exists and its caption contains the words.
     target: an explicit entry (a further comparator figure, COMPARATOR_EXTRA) instead of the TARGETS lookup."""
     jp = jats_path(pmid)
-    if not jp:
-        return None, "NO_JATS"
     # a TARGETS entry keyed by the slug names the COMPARATOR's figure; another meta's is keyed '<slug>::<pmid>'
     t = target or TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if pmid == comparator_of(slug) else None)
+    if not jp and not (t and t.get("supplement") and t.get("repository_record")):
+        return None, "NO_JATS"
     if t and t.get("supplement"):
         return supplement_figure(slug, pmid, t)
     if t:
@@ -975,10 +1025,16 @@ def _ipd_sentence(t):
 
 
 def model_text(pmid):
-    """Where the meta states its pooling model: its OWN abstract + body (JATS), the reference list excluded."""
+    """Where the meta states its pooling model: its OWN abstract + body (JATS), the reference list excluded. A comparator
+    with NO JATS (no PMC record): the held text rendering of its own open article, as listed in its held manifest."""
     jp = jats_path(pmid)
     if not jp:
-        return ""
+        mp = os.path.join(COMP, pmid, "2026-10-05_held_manifest.json")
+        if not os.path.exists(mp):
+            return ""
+        main = [r["rendered"] for r in _j(mp).get("renderings") or [] if r["rendered"].endswith("_main.txt")]
+        txt = " ".join(open(os.path.join(ROOT, f), encoding="utf-8", errors="replace").read() for f in main)
+        return re.sub(r"\s+", " ", txt.split("References")[0] if "References" in txt else txt)
     root = ET.parse(jp).getroot()
     parts = ["".join(a.itertext()) for a in root.iter("abstract")]
     return re.sub(r"\s+", " ", " ".join(parts) + " " + held_text(pmid))
@@ -1573,10 +1629,14 @@ def items(slugs, run, pairs=None, extras=None, meta_extras=None):
                 skipped[key]["open_access"] = oa_probe(slug, pmid, run)
             continue
         pmcid = pmcid_of(pmid)
-        if not pmcid:
+        held_repo = bool(t and t.get("supplement") and t.get("repository_record"))
+        if not pmcid and not held_repo:
             skipped[key] = {"pmid": pmid, "why": "NO_PMCID", "figure": fig["fig_id"], "role": role, "slug": slug}
             continue
-        ip, meta = acquire_image(pmid, pmcid, fig["href"]) if run else cached_image(pmid, fig["href"])
+        # a repository-held supplement figure (no PMC record) was extracted from the held, linked supplement by
+        # supplement_figure(): its image is HELD beside its .meta.json (url, sha256, how it was extracted)
+        ip, meta = (cached_image(pmid, fig["href"]) if (held_repo or not run)
+                    else acquire_image(pmid, pmcid, fig["href"]))
         if not ip:
             skipped[key] = {"pmid": pmid, "why": (meta or {}).get("why", "IMAGE_NOT_HELD"), "figure": fig["fig_id"],
                             "role": role, "slug": slug}

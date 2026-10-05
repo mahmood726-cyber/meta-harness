@@ -3,8 +3,8 @@
 Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY rows: never pool inputs, never counted toward agreement with their own meta; another meta's rows feed the two-source rule.
 
 - comparators of 32 tracker topics; other metas selected by the two-source sweep: 629
-- ALL: figures read by both models 228; ACCEPTED 125, REFUSED 102 (pooled-reconstruction pass rate 125 of 228); rows proposed 1671, refused (readings disagree) 265, accepted as secondary 1029
-- comparators: figures read by both models 25; ACCEPTED 23, REFUSED 2 (pooled-reconstruction pass rate 23 of 25); rows proposed 239, refused (readings disagree) 0, accepted as secondary 239
+- ALL: figures read by both models 228; ACCEPTED 125, REFUSED 102 (pooled-reconstruction pass rate 125 of 228); rows proposed 1657, refused (readings disagree) 265, accepted as secondary 1015
+- comparators: figures read by both models 25; ACCEPTED 23, REFUSED 2 (pooled-reconstruction pass rate 23 of 25); rows proposed 225, refused (readings disagree) 0, accepted as secondary 225
 - other metas (two-source sweep): figures read by both models 203; ACCEPTED 102, REFUSED 100 (pooled-reconstruction pass rate 102 of 203); rows proposed 1432, refused (readings disagree) 265, accepted as secondary 790
 
 ## Comparators
@@ -18,11 +18,11 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | dapagliflozin-hfpef-hosp | PMID 36914068 | fig1 | **ACCEPTED** | 6 / 0 | STATED ['FE'] | 0.80 (0.74-0.86) | FE 0.7976 (0.7377-0.8624) | - |
 | denosumab-vertebral-fracture | PMID 36852077 | mmc1.pdf#p43 | **ACCEPTED** | 2 / 0 | STATED ['REML'] | 0.32 (0.26-0.41) | REML 0.3201 (0.2550-0.4017) | - |
 | empagliflozin-hfpef-hosp | PMID 37773799 | F2 | **ACCEPTED** | 6 / 0 | STATED ['DL'] | 0.80 (0.74-0.87) | DL 0.7981 (0.7360-0.8654) | - |
-| esketamine-trd-madrs | PMID 42490943 | f4 | **ACCEPTED** | 4 / 0 | STATED ['DL', 'DL+HK', 'FE', 'REML', 'REML+HK'] | -2.99 (-5.10--0.89) | DL -2.9921 (-5.0972--0.8870); DL+HK -2.9921 (-6.6035-0.6193); FE -3.2159 (-4.6809--1.7508); REML -2.9989 (-5.0763--0.9215); REML+HK -2.9989 (-6.6022-0.6044) | - |
+| esketamine-trd-madrs | PMID 37377288 | f3 | **ACCEPTED** | 3 / 0 | STATED ['FE'] | -4.09 (-5.73--2.45) | FE -4.0871 (-5.7264--2.4477) | - |
 | finerenone-ckd-t2d-renal | PMID 36742404 | f2 | **ACCEPTED** | 2 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.84 (0.77-0.92) | DL 0.8404 (0.7660-0.9219); FE 0.8404 (0.7660-0.9219); PM 0.8404 (0.7660-0.9219); REML 0.8404 (0.7660-0.9219) | - |
 | glp1-ra-mace-t2d | PMID 34526024 | Fig3 | **ACCEPTED** | 8 / 0 | STATED ['PM', 'PM+HK'] | 0.86 (0.79-0.94) | PM 0.8610 (0.7993-0.9274); PM+HK 0.8610 (0.7872-0.9417) | - |
 | iv-iron-hfref-hosp | PMID 39727669 | diseases-12-00339-f003 | **ACCEPTED** | 5 / 0 | STATED ['DL'] | 0.59 (0.40-0.88) | DL 0.5907 (0.3965-0.8800) | - |
-| melatonin-primary-insomnia-sol | PMID 23691095 | pone-0063773-g001 | **ACCEPTED** | 15 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 7.06 (4.37-9.75) | DL 9.4873 (4.5092-14.4653); FE 7.0606 (4.3765-9.7448); PM 9.6253 (4.3752-14.8754); REML 9.5779 (4.4248-14.7310) | - |
+| melatonin-primary-insomnia-sol | PMID 35691474 | 1_s2.0_S0149763422002123_mmc1.docx#image57.png | **ACCEPTED** | 2 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | -3.72 (-8.45-1.01) | DL -3.7223 (-8.4504-1.0059); FE -3.3721 (-6.7485-0.0044); PM -3.7223 (-8.4504-1.0059); REML -3.7223 (-8.4504-1.0059) | - |
 | metformin-pcos-ovulation | PMID 31845767 | CD013505-fig-0024 | **ACCEPTED** | 21 / 0 | STATED ['MH-FE'] | 1.65 (1.35-2.03) | MH-FE 1.6547 (1.3485-2.0305) | - |
 | noac-vs-warfarin-af-stroke | PMID 34985309 | F1 | **REFUSED** | 0 / 0 | NOT_RECONSTRUCTABLE [] | 0.81 (0.74-0.89) |  | ROWS_ARE_NOT_STUDIES:outcome/outcome, STATED_MODEL_NOT_RECONSTRUCTABLE, FEWER_THAN_2_AGREED_ROWS |
 | omega3-cardiovascular-events | PMID 35905212 | F2 | **ACCEPTED** | 22 / 0 | STATED ['DL', 'PM', 'REML'] | 0.94 (0.89-1.00) | DL 0.9439 (0.8909-1.0001); PM 0.9425 (0.8679-1.0237); REML 0.9439 (0.8923-0.9985) | - |
