@@ -410,9 +410,12 @@ _STOP = {"of", "for", "the", "and", "or", "with", "in", "to", "a", "due", "by"}
 
 
 def _name_words(x):
-    """Content words of an outcome name or registry title, plural and British -isation folded."""
+    """Content words of an outcome name or registry title, plural and British -isation folded, and the registry's 'HF'
+    read as 'heart failure' (AFFIRM-AHF NCT02937454 posts 'HF Hospitalisations' in participants: never named).
+    (Ported from g1/finish-line 7949e1568.)"""
     import re as _r
     w = _r.findall(r"[a-z]+", (x or "").lower().replace("hospitalis", "hospitaliz"))
+    w = [y for v in w for y in (("heart", "failure") if v == "hf" else (v,))]
     return {_r.sub(r"s$", "", v) for v in w if v not in _STOP}
 
 
@@ -442,6 +445,9 @@ def _spec_components(spec_name):
     return len([p for p in re.split(r"\s*(?:,|\bor\b|\band\b)\s*", body) if p.strip()]) or 1
 _THREE_POINT = re.compile(r"\b(?:3|three)[- ]point\b", re.I)
 _RECURRENT = re.compile(r"\brecurrent\b|\btotal (?:number of )?(?:events|hospitali[sz]ations)\b|first and subsequent", re.I)
+_DEATH = re.compile(r"\bdeaths?\b|\bmortality\b|\bdied\b|\bfatal\b", re.I)
+# a protocol outcome that is itself a set of events ('Major vascular events' includes vascular death; not flagged composite)
+_EVENTS_SPEC = re.compile(r"\bevents?\b|composite|\bMACE\b", re.I)
 
 
 def analysis_set_or_extension_differs(spec_name, title, population):
@@ -465,6 +471,12 @@ def analysis_set_or_extension_differs(spec_name, title, population):
     # 'Occurrence of Adjudicated Hospitalisation for Heart Failure (HHF) (First and Recurrent)')
     if _RECURRENT.search(t) and not _RECURRENT.search(spec_name or ""):
         return f"recurrent-event analysis: the registry outcome '{t}' counts recurrent events; the protocol's is first event"
+    # a protocol outcome without death, a registry outcome that adds it ('HF Hospitalizations and CV Death', AFFIRM-AHF):
+    # a different composite even when no 'composite' / 'or' word says so
+    from harness import extract
+    single = not extract.declared_is_composite(spec_name or "") and not _EVENTS_SPEC.search(spec_name or "")
+    if single and _DEATH.search(t) and not _DEATH.search(spec_name or ""):
+        return f"composite with death: the registry outcome '{t}' adds death to the protocol's '{spec_name}'"
     return None
 
 
@@ -479,6 +491,12 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False, anal
     from harness import extract
     t = (title or "").lower()
     named = [k for k in keywords if keyword_named(k, title)]
+    # ...or the topic's OWN outcome NAME, when every content word of it (plural / British spelling folded) is in the
+    # title: iv-iron's keywords all say 'worsening', so HEART-FID's primary 'Number of Hospitalizations for Heart
+    # Failure' (the topic's 'Heart-failure hospitalization') was never named. Corpus: 2 candidates newly named --
+    # HEART-FID, and DAPA-HF's composite, which the ESTIMAND gate below still refuses.
+    if not named and spec_name and _name_words(spec_name) and _name_words(spec_name) <= _name_words(title):
+        named = [spec_name]
     if not named:
         return {"gate": "OUTCOME_NOT_NAMED", "verdict": "REFUSED",
                 "reason": "registry title names none of the topic's outcome keywords" + (" (it is the trial's PRIMARY "
