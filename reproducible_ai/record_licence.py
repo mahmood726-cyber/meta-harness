@@ -229,6 +229,22 @@ def record_problems(record, lic=None, dlic=None, reg=None):
     not CC, and per regulatory document whose licence does not allow it (regulatory_window_problem)."""
     lic = licences() if lic is None else lic
     probs = text_block_problems(record, dlic, lic)
+    # an Unpaywall copy shown in the acquisition evidence: {"doi": ..., "text": ...} -- the DOI's licence must be CC
+    p = _prompt_text(record)
+    i = p.find("=== EVIDENCE ===")
+    if i >= 0:
+        try:
+            ev = json.loads(p[i + len("=== EVIDENCE ==="):])
+        except ValueError:
+            ev = None
+        dl = None
+        for d in _walk(ev):
+            t = d.get("text")
+            if d.get("doi") and not d.get("pmid") and isinstance(t, str) and len(t) > MIN_TEXT:
+                dl = doi_licences() if dlic is None and dl is None else (dlic if dlic is not None else dl)
+                if not str(dl.get(str(d["doi"]).lower()) or "").startswith("cc"):
+                    probs.append(f"{record.get('record_id')}: prompt carries {len(t)} chars of DOI {d['doi']} text; its "
+                                 f"Unpaywall copy is not CC-licensed ({dl.get(str(d['doi']).lower())!r})")
     for url, chars, obj in regulatory_sources(record, with_obj=True):
         pr = regulatory_window_problem(record, url, chars, obj, reg)
         if pr:

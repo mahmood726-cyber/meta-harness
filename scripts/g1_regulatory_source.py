@@ -6,10 +6,11 @@ REMDACTA; Repatha's holds FOURIER). This module only HOLDS the documents and say
 acquisition reader proposes a tuple and scripts/g1_trial_acquire.gate admits it only against the WHOLE held document.
 
 Typed source record (registry/regulatory_sources.json, keyed by url):
-  agency      FDA | EMA                         -- from the url's HOST, never from the document or a model
+  agency      FDA | EMA | NICE                  -- from the url's HOST, never from the document or a model
   licence     US_GOV_PUBLIC_DOMAIN (FDA, a US Government work)
               EMA_REUSE_WITH_ACKNOWLEDGEMENT (EMA: 'reproduction is authorised provided the source is acknowledged';
-              NOT marked open for prompts -- flagged for Mahmood; held for typed local matching only)
+              shown since 6 Oct on Mahmood's word, every window carrying EMA_ACK)
+              NICE_NOTICE_OF_RIGHTS (held for typed extraction only) unless the document's own text states OGL / CC
   doc_sha256  digest of the PDF bytes as fetched; text_sha256 of the typed text layer (pypdf; never OCR)
   state       TEXT | NO_TEXT_LAYER | NOT_PDF | FETCH_FAILED
 Discovery is by the topic's intervention agents (openFDA drugsfda application_docs typed 'Review', NDA/BLA only -- an
@@ -34,12 +35,20 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 SOURCES = os.path.join(ROOT, "registry", "regulatory_sources.json")
 IDCACHE = os.path.join(ROOT, "outputs", "k_gap", "_reg", "id_information.json")
 HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "www.fda.gov": "FDA",
-               "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA"}
-AGENCY_LICENCE = {"FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT"}
-PROMPT_OPEN = ("US_GOV_PUBLIC_DOMAIN",)          # licences a model may be shown (the prompt goes into a public record)
+               "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA", "www.nice.org.uk": "NICE", "nice.org.uk": "NICE"}
+# NICE documents (committee papers with the ERG / EAG report, final appraisal determinations, guideline evidence
+# reviews) carry '(c) NICE ... subject to Notice of rights' and reproduce company-submission material: NOT open unless the
+# document's OWN text states the Open Government Licence or a CC licence (licence_from_text, read when it is held)
+AGENCY_LICENCE = {"FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "NICE": "NICE_NOTICE_OF_RIGHTS"}
+# licences a model may be shown (the prompt goes into a public record). EMA: Mahmood 6 Oct ('European drug agency can
+# be used'); EMA's terms authorise reproduction provided the source is acknowledged, so every shown EMA window carries
+# EMA_ACK (reproducible_ai/record_licence.regulatory_window_problem refuses one without it)
+PROMPT_OPEN = ("US_GOV_PUBLIC_DOMAIN", "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "OGL", "CC")
+EMA_ACK = "Source: European Medicines Agency (EMA), reproduced with acknowledgement of the source"
 WINDOW = 1800                                    # characters either side of a naming mention shown to the reader
 MAX_SHOWN = 40000                                # per trial, across documents
 MAX_DOCS = 160
+TYPED_REACH = 6000                               # the typed reader looks as far from a naming mention as the gate does
 
 
 def agency_of(url):
@@ -51,8 +60,20 @@ def licence_of(url):
     return AGENCY_LICENCE.get(agency_of(url))
 
 
-def prompt_open(url):
-    return licence_of(url) in PROMPT_OPEN
+def licence_from_text(url, text):
+    """The held record's licence: the host's, except a NICE document whose OWN text states OGL / a CC licence."""
+    lic = licence_of(url)
+    if agency_of(url) == "NICE" and text:
+        if re.search(r"Open Government Licen[cs]e", text):
+            return "OGL"
+        if re.search(r"creativecommons\.org/licenses/|Creative Commons Attribution", text):
+            return "CC"
+    return lic
+
+
+def prompt_open(url, rec=None):
+    """By the HELD record's licence (a prompt can never declare one); the host's when no record is given."""
+    return ((rec or {}).get("licence") or licence_of(url)) in PROMPT_OPEN
 
 
 def _ws(s):
@@ -66,7 +87,8 @@ def text_sha256(text):
 # --------------------------------------------------------------------------------------------- discovery and holding
 
 def fda_review_urls(agent):
-    """drugs@FDA review documents for an INN: NDA/BLA application_docs typed 'Review' (a TOC page followed to its PDFs)."""
+    """drugs@FDA documents for an INN: NDA/BLA application_docs typed 'Review' (a TOC page followed to its PDFs) or
+    'Label' (section 14, Clinical Studies, prints the pivotal trials' results)."""
     from harness import http
     import k_gap_regulatory_probe as rp
     try:
@@ -80,7 +102,7 @@ def fda_review_urls(agent):
             continue
         for s in r.get("submissions", []):
             for dd in s.get("application_docs") or []:
-                if (dd.get("type") or "").lower() == "review" and dd.get("url"):
+                if (dd.get("type") or "").lower() in ("review", "label") and dd.get("url"):
                     subs.append((str(dd.get("date") or s.get("submission_status_date") or ""),
                                  dd["url"].replace("http://", "https://")))
     out = []
@@ -103,6 +125,50 @@ def fda_review_urls(agent):
 REVIEW_SUFFIXES = ("MedR", "StatR", "MultidisciplineR", "IntegratedR", "SumR", "CrossR", "OtherR")
 
 
+NICE = "https://www.nice.org.uk"
+NICE_UA = {"User-Agent": "meta-harness (meta-harness@example.org)"}
+MAX_NICE_GUIDANCE = 6
+
+
+def _nice_html(url):
+    from harness import http
+    try:
+        st, b = http.get_raw(url, tries=2, timeout=60)
+    except Exception:  # noqa: BLE001 - an unreachable page is nothing held, never guessed
+        return ""
+    return b.decode("utf-8", "replace") if st == 200 else ""
+
+
+def nice_guidance(agent, html=None):
+    """Published NICE guidance ids (ta / ng / cg) a NICE site search for the INN returns (in-development ids skipped)."""
+    from urllib.parse import quote
+    h = _nice_html(f"{NICE}/search?q={quote(agent)}&ndt=Guidance") if html is None else html
+    ids = re.findall(r'href="/guidance/((?:ta|ng|cg)\d+)"', h, re.I)
+    return list(dict.fromkeys(i.lower() for i in ids))[:MAX_NICE_GUIDANCE]
+
+
+def nice_docs(gid, history_html=None, evidence_html=None):
+    """A guidance's evidence documents: for a TA its committee papers (they contain the ERG / EAG report) and final
+    appraisal determination (from /history); for an NG / CG its evidence reviews (from /evidence)."""
+    out = []
+    if gid.startswith("ta"):
+        h = _nice_html(f"{NICE}/guidance/{gid}/history") if history_html is None else history_html
+        for m in re.findall(r'href="(/guidance/' + gid + r'/documents/(?:committee-papers[-\w]*|final-appraisal-'
+                            r'determination[-\w]*))"', h, re.I):
+            out.append(NICE + m)
+    else:
+        h = _nice_html(f"{NICE}/guidance/{gid}/evidence") if evidence_html is None else evidence_html
+        for m in re.findall(r'href="(/guidance/' + gid + r'/evidence/[-\w]*pdf-\d+)"', h, re.I):
+            # evidence reviews / appendices / full guideline -- never the process documents around them
+            if not re.search(r"stakeholder|consultation|equality|surveillance|comments|matrix|scope", m, re.I):
+                out.append(NICE + m)
+    return list(dict.fromkeys(out))
+
+
+def nice_urls(agent):
+    return [u for g in nice_guidance(agent) for u in nice_docs(g)]
+
+
 def topic_agents(cfg):
     a = cfg.get("intervention_agents") or cfg.get("intervention_terms") or []
     return [x for x in (list(a.keys()) if isinstance(a, dict) else a) if len(x) >= 4]
@@ -116,6 +182,7 @@ def hold_topic(slug, cfg, fetch=True):
     agents = topic_agents(cfg)
     for a in agents:
         urls += fda_review_urls(a) if fetch else []
+        urls += nice_urls(a) if fetch else []
     try:
         ema = rp._j_ema() if fetch else []
         urls += [u for p in rp.ema_products(agents, ema) for u in rp.ema_docs(p)]
@@ -124,11 +191,15 @@ def hold_topic(slug, cfg, fetch=True):
     for u in [u for u in cur if "'" in u or " " in u]:           # a TOC template's unexpanded href is no document
         del cur[u]
     held = []
+    import g1_trial_acquire as ga
     for u in list(dict.fromkeys(urls))[:MAX_DOCS]:
         if not agency_of(u):
             continue
+        if not ga.disk_ok():                       # Mahmood 6 Oct: work only while C: and F: each keep >= 5 GB free
+            print("DISK_FLOOR: stopped holding documents", slug, flush=True)
+            break
         txt, rec = rp.fetch_text(u)
-        r = {"url": u, "agency": agency_of(u), "licence": licence_of(u), "state": rec.get("state"),
+        r = {"url": u, "agency": agency_of(u), "licence": licence_from_text(u, txt), "state": rec.get("state"),
              "doc_sha256": rec.get("sha256"), "bytes": rec.get("bytes"),
              "text_sha256": text_sha256(txt) if txt else None, "text_chars": len(txt or "")}
         topics = set((cur.get(u) or {}).get("topics") or []) | {slug}
@@ -231,7 +302,7 @@ def regulatory_evidence(t, terms, slug, acronym=None):
         if not txt or not named_at(txt, names):
             continue
         held[url] = {"text": txt, "record": rec, "names": names}
-        if not prompt_open(url):
+        if not prompt_open(url, rec):
             continue
         ws = evidence_windows(txt, names, terms)
         keep = []
@@ -241,8 +312,9 @@ def regulatory_evidence(t, terms, slug, acronym=None):
             keep.append(w)
             used += len(w["text"])
         if keep:
-            shown.append({"url": url, "agency": rec["agency"], "licence": rec["licence"],
-                          "text_sha256": rec["text_sha256"], "names_searched": names, "windows": keep})
+            shown.append(dict({"url": url, "agency": rec["agency"], "licence": rec["licence"],
+                               "text_sha256": rec["text_sha256"], "names_searched": names, "windows": keep},
+                              **({"acknowledgement": EMA_ACK} if rec["agency"] == "EMA" else {})))
     return shown, held
 
 
@@ -280,3 +352,65 @@ if __name__ == "__main__":
         h = hold_topic(s, c)
         from collections import Counter
         print(s, len(h), dict(Counter((r["agency"], r["state"]) for r in h)), flush=True)
+
+
+# ------------------------------------------------------------------------------------- typed extraction (no model)
+
+_PAIR = re.compile(r"(?<![\d.])(\d{1,6})\s*/\s*(\d{1,6})\s*\(\s*(\d{1,3}(?:\.\d+)?)\s*%?\s*\)")
+
+
+def _pairs(line):
+    """e/N (p%) cells whose percent corroborates them (|100e/N - p| <= 0.15 at the printed precision)."""
+    out = []
+    for m in _PAIR.finditer(line):
+        e, n, pc = int(m.group(1)), int(m.group(2)), float(m.group(3))
+        if 0 < n and e <= n and abs(100.0 * e / n - pc) <= 0.15 + (0.5 if "." not in m.group(3) else 0):
+            out.append((e, n, m.group(0)))
+    return out
+
+
+def typed_counts(window, terms, interv_terms, comp_terms):
+    """DETERMINISTIC counts from a trial-named window of a regulatory document: the ONE line naming an outcome term with
+    exactly two corroborated e/N (p%) cells, arms ordered by the nearest preceding header line that names an intervention
+    term and a comparator term (their order on that line). Anything ambiguous -> None (the model step then runs)."""
+    from harness import lexicon
+    lines = window.splitlines()
+    tf = [lexicon.fold(t) for t in terms if t]
+    it = [lexicon.fold(t) for t in interv_terms if t]
+    ct = [lexicon.fold(t) for t in comp_terms if t]
+    cands = []
+    for i, line in enumerate(lines):
+        fl = lexicon.fold(line)
+        if not any(t in fl for t in tf):
+            continue
+        ps = _pairs(line)
+        if len(ps) != 2:
+            continue
+        order = None
+        for h in reversed(lines[max(0, i - 25): i]):
+            fh = lexicon.fold(h)
+            pi = min((fh.find(t) for t in it if t in fh), default=-1)
+            pc = min((fh.find(t) for t in ct if t in fh), default=-1)
+            if pi >= 0 and pc >= 0 and pi != pc:
+                order = "IC" if pi < pc else "CI"
+                break
+        if not order:
+            continue
+        (a, b) = ps if order == "IC" else ps[::-1]
+        cands.append(({"events_t": a[0], "n_t": a[1], "events_c": b[0], "n_c": b[1]}, line.strip()))
+    uniq = {tuple(sorted(c[0].items())) for c in cands}
+    return cands[0] if len(uniq) == 1 else None
+
+
+def regulatory_typed(held_reg, terms, interv_terms, comp_terms):
+    """Over every held document naming the trial: the typed counts, if exactly one distinct tuple results."""
+    got = []
+    for url, h in sorted((held_reg or {}).items()):
+        if url.startswith("_") or not isinstance(h, dict):
+            continue
+        for w in evidence_windows(h["text"], h["names"], terms, width=TYPED_REACH):
+            r = typed_counts(w["text"], terms, interv_terms, comp_terms)
+            if r:
+                got.append((url, h["record"], r[0], r[1]))
+    uniq = {tuple(sorted(g[2].items())) for g in got}
+    return got[0] if len(uniq) == 1 else None
