@@ -27,6 +27,20 @@ source: CoDEX, CAPE COVID, REMAP-CAP, Metcovid, FAIR-HF, EFFECT-HF -- none has p
 Correction: commit f8d674b5f's message gives SALT's registration as NCT02614040; it is **NCT02345486** (the admitted row
 records it correctly).
 
+## Increment 3 (5 Oct)
+
+- **balanced-crystalloids 2 of 5**: **SMART** matched PRIMARY from its own Table 2, read deterministically (`table_tuple`,
+  no model): 'In-hospital death before 30 days' 818/7942 vs 875/7860 (percent-corroborated, under the arm Ns). Its posted
+  AACT counts remain refused (medical-ICU subset). SPLIT, Verma, Young [17] (NCT01270854): no posted results (snapshot or
+  live), no open text.
+- **colchicine-postop-af**: Zarpelon is named once you rerun `scripts/k_gap_exclusion_fulltext.py` (regex stage, no model):
+  the stage now screens the record and uses the full text only as evidence (its methods cite another trial's 'randomized,
+  placebo-controlled study', which had re-screened it to INCLUDE), records a `fulltext` span with digest, and the tracker
+  now reads that stage. Imazio [19] (NCT00128427) and Sarzaeem: no posted results, no open text.
+- **Licence rule (new)**: a held text is shown to a model only under a Creative Commons licence (`pmc_licence`); the
+  records store their prompt. SMART's PMC text is an NIH author manuscript, so record mc-dcb6796c (in f8d674b5f) was
+  removed from the tree and its re-ask never committed; it remains in history at f8d674b5f.
+
 ## How the acquired rows are admitted (scripts/g1_trial_acquire.py → registry/g1_acquired/<slug>.json)
 
 - One **recorded** codex call per trial (reproducible_ai.model_call_live; concurrency 3), the comparator's row never shown.
