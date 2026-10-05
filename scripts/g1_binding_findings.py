@@ -257,6 +257,228 @@ def design_findings(slug):
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Rule F7 COMPARATOR_ROW_CONTRADICTS_ITS_CITATION -- the comparator's OWN trial-characteristics row (JATS table, cells read
+#   by their header names) describes a randomised / double-blind design, while the report it cites for that row is
+#   open-label or single-arm (the cited reference's own title, or the registry: AACT designs SINGLE_GROUP). Span: the
+#   row's design cell, the reference title, the designs row. Independently, F7-SCOPE: the row's own 'Primary endpoint' /
+#   design cells name an outcome or design the TOPIC excludes (no primary-outcome keyword in the endpoint cell, or a
+#   topic population_none term such as 'maintenance' / 'relapse' in the design cells) -- out of scope on EITHER reading
+#   of the row, so the contradiction need not be resolved to name the trial.
+# Rule F8 COMPARATOR_DECLARED_ARM -- the row's regimen cell names exactly ONE dose, which matches exactly one posted
+#   result group of the trial: the multi-arm ambiguity is resolved by the comparator's own declaration. The declared
+#   arm's raw contrast is computed from the trial's POSTED per-arm MEAN / SD / N (AACT outcome_measurements +
+#   outcome_counts) for every posted PRIMARY outcome of the topic; the pooled-arms contrast (Cochrane Handbook 6.5.2.10
+#   group combination) is computed too. REPRODUCED when one of them equals the comparator's printed value and CI at its
+#   printed precision; otherwise DECLARED_ARM_VALUE_NOT_REPRODUCED with every computed contrast as span.
+_ROW_RANDOMISED = re.compile(r"\b(?:double-blind|randomi[sz]ed|RW)\b", re.I)
+_OPEN = re.compile(r"\b(?:open-label|single-arm|single group|uncontrolled)\b", re.I)
+
+
+def characteristics_row(jats_text, row_label):
+    """{header: cell} of the comparator's table row whose first cell starts with the row label's stem, or None."""
+    stem = re.sub(r"\s*\(\s*\d+\s*\)\s*$", "", (row_label or "").strip())
+    clean = lambda c: re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", c)).strip()  # noqa: E731
+    import html as _html
+    for tw in re.findall(r"<table-wrap\b.*?</table-wrap>", jats_text or "", re.S):
+        th = re.search(r"<thead>(.*?)</thead>", tw, re.S)
+        if not th:
+            continue
+        head = [_html.unescape(clean(c)) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", th.group(1), re.S)]
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tw, re.S):
+            cells = [_html.unescape(clean(c)) for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+            if cells and stem and cells[0].startswith(stem) and len(cells) == len(head):
+                return dict(zip(head, cells))
+    return None
+
+
+def _col(row, *names):
+    for h, v in (row or {}).items():
+        if any(n in h.lower() for n in names):
+            return v
+    return ""
+
+
+def row_vs_citation(row, ref_title, design):
+    design_cell = _col(row, "design")
+    if not _ROW_RANDOMISED.search(design_cell):
+        return None
+    why = []
+    if _OPEN.search(ref_title or ""):
+        why.append({"cited_report_title": ref_title})
+    if design and (design.get("intervention_model") == "SINGLE_GROUP" or design.get("allocation") == "NA"):
+        why.append({"aact_designs": design})
+    return {"row_design": design_cell, "contradicted_by": why} if why else None
+
+
+def row_scope(row, cfg):
+    po = cfg.get("primary_outcome") or {}
+    endpoint = _col(row, "primary endpoint", "outcome")
+    kws = [k.lower() for k in po.get("keywords") or [] if len(k) >= 4]
+    excl = [t for t in (cfg.get("include") or {}).get("population_none") or []
+            if re.search(rf"\b{re.escape(t)}", _col(row, "design") + " " + _col(row, "population") + " " + endpoint, re.I)]
+    out = []
+    if endpoint and not any(k in endpoint.lower() for k in kws):
+        out.append({"rule": "ROW_ENDPOINT_NOT_TOPIC_OUTCOME", "endpoint_cell": endpoint, "topic_outcome": po.get("name")})
+    if excl:
+        out.append({"rule": "ROW_DESIGN_HITS_TOPIC_EXCLUSION", "terms": excl, "design_cell": _col(row, "design")})
+    return out
+
+
+def declared_dose_group(regimen_cell, group_titles):
+    """The one posted result group whose title names the row's single declared dose, or None."""
+    doses = sorted(set(re.findall(r"(\d+(?:\.\d+)?)\s*mg\b", regimen_cell or "", re.I)))
+    if len(doses) != 1:
+        return None
+    hit = [g for g, t in (group_titles or {}).items() if re.search(rf"\b{re.escape(doses[0])}\s*mg\b", t or "", re.I)]
+    return hit[0] if len(hit) == 1 else None
+
+
+def raw_md(a, c):
+    """(md, lower, upper) of arm a minus arm c from posted {mean, sd, n}; normal 95% CI."""
+    import math
+    md = a["mean"] - c["mean"]
+    se = math.sqrt(a["sd"] ** 2 / a["n"] + c["sd"] ** 2 / c["n"])
+    return round(md, 2), round(md - 1.959964 * se, 2), round(md + 1.959964 * se, 2)
+
+
+def combine_arms(arms):
+    """Cochrane Handbook 6.5.2.10: one group from several (mean, sd, n)."""
+    import math
+    n, mean, sd = arms[0]["n"], arms[0]["mean"], arms[0]["sd"]
+    for b in arms[1:]:
+        n2, m2, s2 = b["n"], b["mean"], b["sd"]
+        nn = n + n2
+        mm = (n * mean + n2 * m2) / nn
+        sd = math.sqrt(((n - 1) * sd ** 2 + (n2 - 1) * s2 ** 2 + n * n2 / nn * (mean - m2) ** 2) / (nn - 1))
+        n, mean = nn, mm
+    return {"n": n, "mean": mean, "sd": sd}
+
+
+def _printed_eq(x, printed):
+    try:
+        p = str(printed).strip().replace("−", "-")
+        dec = len(p.split(".")[1]) if "." in p else 0
+        return abs(round(float(x), dec) - float(p)) < 1e-9
+    except (TypeError, ValueError):
+        return False
+
+
+def declared_arm_finding(cr, declared, groups_by_outcome, titles):
+    """F8 over {outcome_id: {group_id: {mean, sd, n}}}; control = the group titled placebo."""
+    ctrl = [g for g, t in titles.items() if re.search(r"placebo", t or "", re.I)]
+    if not declared or len(ctrl) != 1:
+        return None
+    ctrl = ctrl[0]
+    computed = []
+    for oid, arms in groups_by_outcome.items():
+        if declared not in arms or ctrl not in arms:
+            continue
+        computed.append({"outcome_id": oid, "contrast": f"{titles[declared]} minus {titles[ctrl]}",
+                         "md_ci": raw_md(arms[declared], arms[ctrl])})
+        exp = [arms[g] for g in arms if g != ctrl]
+        if len(exp) >= 2:
+            computed.append({"outcome_id": oid, "contrast": "all experimental arms combined (Handbook 6.5.2.10) minus "
+                             + titles[ctrl], "md_ci": raw_md(combine_arms(exp), arms[ctrl])})
+    if not computed:
+        return None
+    same = [c for c in computed if all(_printed_eq(v, cr.get(k)) for v, k in zip(c["md_ci"], ("effect", "lower", "upper")))]
+    return {"verdict": "REPRODUCED" if same else "DECLARED_ARM_VALUE_NOT_REPRODUCED", "declared_group": titles[declared],
+            "computed": computed, "reproduced_by": same}
+
+
+def posted_arm_means(nct, root=AACT_DIR):
+    """{outcome_id: {group_code: {mean, sd, n}}} and {group_code: title} for PRIMARY MEAN/SD outcomes, one pass."""
+    import csv
+    want_o = {}
+    with open(os.path.join(root, "outcomes.txt"), encoding="utf-8", errors="replace", newline="") as fh:
+        for r in csv.DictReader(fh, delimiter="|", quoting=csv.QUOTE_NONE):
+            if r["nct_id"] == nct and r.get("outcome_type") == "PRIMARY" and r.get("param_type") == "MEAN" \
+                    and (r.get("dispersion_type") or "").lower() == "standard deviation":
+                want_o[r["id"]] = r.get("title")
+    vals, ns, titles = {}, {}, {}
+    with open(os.path.join(root, "outcome_measurements.txt"), encoding="utf-8", errors="replace", newline="") as fh:
+        for r in csv.DictReader(fh, delimiter="|", quoting=csv.QUOTE_NONE):
+            if r["nct_id"] == nct and r["outcome_id"] in want_o and not (r.get("category") or r.get("classification")):
+                vals[(r["outcome_id"], r["ctgov_group_code"])] = (float(r["param_value_num"]), float(r["dispersion_value_num"]))
+                titles[r["ctgov_group_code"]] = r["result_group_id"]
+    with open(os.path.join(root, "outcome_counts.txt"), encoding="utf-8", errors="replace", newline="") as fh:
+        for r in csv.DictReader(fh, delimiter="|", quoting=csv.QUOTE_NONE):
+            if r["nct_id"] == nct and r["outcome_id"] in want_o and (r.get("scope") or "").lower() == "measure":
+                ns[(r["outcome_id"], r["ctgov_group_code"])] = int(r["count"])
+    gid2code = {v: k for k, v in titles.items()}
+    names = {}
+    with open(os.path.join(root, "result_groups.txt"), encoding="utf-8", errors="replace", newline="") as fh:
+        for r in csv.DictReader(fh, delimiter="|", quoting=csv.QUOTE_NONE):
+            if r["nct_id"] == nct and r["id"] in gid2code:
+                names[gid2code[r["id"]]] = r.get("title")
+    out = {}
+    for (oid, g), (m, s) in vals.items():
+        if (oid, g) in ns:
+            out.setdefault(oid, {})[g] = {"mean": m, "sd": s, "n": ns[(oid, g)]}
+    return out, names, want_o
+
+
+def row_findings(slug):
+    """F7 / F7-SCOPE / F8 for comparator rows of trials we do not hold verified."""
+    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", slug + ".json"), encoding="utf-8"))
+    cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+    for k in ("primary_outcome", "include"):
+        if isinstance(cfg.get(k), str):
+            import ast
+            cfg[k] = ast.literal_eval(cfg[k])
+    d = os.path.join(ROOT, "cache", "comparators", str(o.get("comparator_pmid")))
+    jats = next((os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith("_kgap_jats.xml")), None) if os.path.isdir(d) else None
+    if not jats:
+        return []
+    ct = open(jats, encoding="utf-8", errors="replace").read()
+    T = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"), encoding="utf-8"))
+    tab = {(t["slug"], t["label"]): t for t in T["trials"]}
+    refs = {}
+    for r in re.finditer(r"<ref\b[^>]*>(.*?)</ref>", ct, re.S):
+        body = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", r.group(1))).strip()
+        num = re.match(r"(\d+)\s", body)
+        if num:
+            refs[num.group(1)] = body
+    rows = []
+    for x in o["trials"]:
+        if x.get("route") in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE"):
+            continue
+        row = characteristics_row(ct, x["label"])
+        if not row:
+            continue
+        refno = re.search(r"\(\s*(\d+)\s*\)\s*$", x["label"])
+        ref = refs.get(refno.group(1)) if refno else None
+        ref_title = None
+        if ref:
+            mt = re.search(r"\.\s+([^.]{15,300}?)\s*\.\s+[A-Z][A-Za-z .]+\.\s*\(", ref)
+            ref_title = mt.group(1) if mt else ref
+        ncts = sorted(set((tab.get((slug, x["label"])) or {}).get("ncts") or []))
+        src = f"comparator JATS {os.path.basename(jats)} characteristics row; reference [{refno.group(1) if refno else '?'}]"
+        for nct in ncts or [None]:
+            des = aact_design(nct) if nct else None
+            f7 = row_vs_citation(row, ref_title, des)
+            if f7:
+                rows.append({"rule": "F7", "slug": slug, "label": x["label"], "nct": nct,
+                             "verdict": "COMPARATOR_ROW_CONTRADICTS_ITS_CITATION", **f7, "span_source": src})
+            sc = row_scope(row, cfg)
+            if sc:
+                rows.append({"rule": "F7-SCOPE", "slug": slug, "label": x["label"], "nct": nct,
+                             "verdict": "OUT_OF_SCOPE_ON_THE_COMPARATORS_OWN_ROW", "reasons": sc, "span_source": src})
+            if nct and not f7 and not sc and (x.get("comparator_row") or {}).get("effect") not in (None, ""):
+                means, titles, otitles = posted_arm_means(nct)
+                dec = declared_dose_group(_col(row, "regimen", "intervention"), titles)
+                f8 = declared_arm_finding(x["comparator_row"], dec, means, titles)
+                if f8:
+                    for c in f8["computed"]:
+                        c["outcome_title"] = otitles.get(c["outcome_id"])
+                    rows.append({"rule": "F8", "slug": slug, "label": x["label"], "nct": nct, **f8,
+                                 "comparator_row": {k: x["comparator_row"].get(k) for k in ("measure", "effect", "lower", "upper")},
+                                 "regimen_cell": _col(row, "regimen", "intervention"), "sample_size_cell": _col(row, "sample size"),
+                                 "span_source": src + f"; AACT {os.path.basename(AACT_DIR)} outcome_measurements / outcome_counts"})
+    return rows
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Rule F6 SCOPE_AUDIT_DESIGN -- for every comparator study named out of scope as non-randomised (X1 / X3), the STUDY'S OWN
 #   held abstract must state a non-randomised design (cohort / observational / registry / population-based / retrospective
 #   / propensity / case-control); the sentence is the span. Plus the comparator's OWN statement of what it pooled
@@ -342,7 +564,7 @@ def topic(slug):
 def main(argv):
     os.makedirs(OUT, exist_ok=True)
     for slug in argv:
-        rows = topic(slug) + orientation_findings(slug) + design_findings(slug) + scope_audit(slug)
+        rows = topic(slug) + orientation_findings(slug) + design_findings(slug) + scope_audit(slug) + row_findings(slug)
         p = os.path.join(OUT, f"findings_{slug}.json")
         with open(p + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
             json.dump({"slug": slug, "findings": rows}, fh, indent=1, ensure_ascii=False)

@@ -1243,6 +1243,56 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
     return flipped
 
 
+def apply_secondary_bindings(o, path):
+    """SECONDARY_SINGLE from a meta's open SUPPLEMENTARY table (scripts/g1_binding_secondary.py, g1/binding lane):
+    Mahmood 3 Oct conditions, re-checked here offline from the committed file -- the meta is not the comparator (PMID or
+    DOI), its printed pooled results were reproduced from its own rows (positive_control.reproduced), the row was
+    admitted by the typed rules S3, and the trial holds no other route (NO_ROW / UNVERIFIED only). Agreement with the
+    comparator's row is COMPUTED (the comparator's numbers were never the search key)."""
+    if not os.path.exists(path):
+        return []
+    s = _j(path)
+    comp = {str(o.get("comparator_pmid")), str(o.get("comparator_doi") or "").lower()} - {"", "None", "none"}
+    if s.get("slug") != o.get("slug") or not (s.get("positive_control") or {}).get("reproduced") \
+            or {str(s.get("meta_pmid")), str(s.get("meta_doi") or "").lower()} & comp:
+        return []
+    by = {b["label"]: b for b in s.get("bindings") or [] if b.get("admitted")}
+    flipped = []
+    for x in o.get("trials") or []:
+        b = by.get(x["label"])
+        if not b or x.get("route") not in ("NO_ROW", "UNVERIFIED") or x.get("scope_difference"):
+            continue
+        v = b.get("values") or {}
+        if not all(isinstance(v.get(k), int) for k in ("events_t", "n_t", "events_c", "n_c")):
+            continue
+        cr = x.get("comparator_row") or {}
+        ours = {"measure": (cr.get("measure") or "RR").upper(), "effect": None, "lower": None, "upper": None,
+                **{k: v[k] for k in ("events_t", "n_t", "events_c", "n_c")}}
+        theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
+                                 provenance="COMPARATOR_ROW", trial_label=x["label"],
+                                 measure=(cr.get("measure") or "").upper(), outcome_definition="",
+                                 **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c",
+                                                           "n_c")}) if cr.get("measure") else None
+        x.update(route="SECONDARY_SINGLE", g1_countable=True, our_value=ours, blocker=None,
+                 basis=(f"SECONDARY_SINGLE: meta {s['meta_pmid']} supplementary table (sha256 "
+                        f"{str(s.get('supplement_sha256'))[:12]}), row '{b.get('source_row_key')}'; the meta reproduces its "
+                        f"own pooled result; queued for primary verification"),
+                 reclassified_by="g1/binding secondary supplement (scripts/g1_binding_secondary.py)",
+                 agreement_with_comparator_row=agreement(ours, theirs) if theirs else "NOT_COMPARABLE:NO_COMPARATOR_ROW")
+        flipped.append(x["label"])
+    if flipped:
+        tr = o["trials"]
+        o["routes"] = dict(Counter(x["route"] for x in tr))
+        o["k_matched"] = sum(1 for x in tr if is_matched(x))
+        o["k_matched_of_comparator_N"] = f"{o['k_matched']} of {len(tr)}"
+        o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g not in flipped]
+        o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in tr if is_matched(x)))
+        bl = Counter(x["blocker"] for x in tr if x.get("blocker") and not is_matched(x))
+        o["blockers"], o["top_blocker"] = dict(bl), (bl.most_common(1)[0][0] if bl else None)
+        o["secondary_bindings_flipped"] = flipped
+    return flipped
+
+
 def primary_counts(x):
     """Counts a trial's OWN primary states (a lane reading whose counts are printed by a primary -- TEXT or posted
     results -- not only by a meta), as (events_t, n_t, events_c, n_c), or None."""
@@ -2637,6 +2687,7 @@ def topic(slug, T):
         out["g1r_reproduction"] = g1r_from_trials(out)
     apply_confirm_bindings(out)
     apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings.json"))
+    apply_secondary_bindings(out, os.path.join(OUT, "g1_binding", f"secondary_{out.get('slug')}.json"))
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
