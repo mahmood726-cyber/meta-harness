@@ -108,10 +108,42 @@ def enumerate_topic(slug, lookup=False):
                              "figure is an image (no text layer); not assumed"}
 
 
+ENUM_DIR = os.path.join(ROOT, "registry", "comparator_enumerations")
+
+
+def write_input(res):
+    """The k_gap_table INPUT (scripts/k_gap_table.py enumeration_units): one typed unit per comparator trial -- label,
+    the comparator's reference number, the row's arm lines verbatim (span) and the CONFIRMED PMID -- with the held
+    source's path and sha256. Only identity-CONFIRMED trials are written; any other refuses the whole file."""
+    import hashlib
+    bad = [t["label"] for t in res["trials"] if t["identity"] != "CONFIRMED" or not t["pmid"]]
+    if bad:
+        raise SystemExit(f"{res['slug']}: identity not CONFIRMED for {bad}; input not written")
+    src = os.path.join(ROOT, res["source"])
+    out = {"slug": res["slug"], "comparator_pmid": res["comparator_pmid"], "status": "ENUMERATED",
+           "enumerated_from": f"the comparator's own supplementary trial table (PMID {res['comparator_pmid']}, Europe PMC "
+                              f"supplementaryFiles, typed text {res['source']}); rules E1-E3 scripts/g1_binding_enumerate.py",
+           "source": {"path": res["source"], "sha256": hashlib.sha256(open(src, "rb").read()).hexdigest()},
+           "open_question": res["open_question"],
+           "units": [{"label": t["label"], "ref": t["ref"], "pmid": t["pmid"], "identity": t["identity"],
+                      "span": t["span"], "arms": t["arms"],
+                      "scope": "IN_SCOPE" if t["scope"] == "IN_SCOPE" else "OUT_OF_SCOPE",
+                      "rule_id": None if t["scope"] == "IN_SCOPE" else "E2:COMPARATOR_NOT_PLACEBO",
+                      "reference": t["reference"]} for t in res["trials"]]}
+    os.makedirs(ENUM_DIR, exist_ok=True)
+    p = os.path.join(ENUM_DIR, res["slug"] + ".json")
+    with open(p + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(out, fh, indent=1, ensure_ascii=False)
+    os.replace(p + ".tmp", p)
+    return p
+
+
 def main(argv):
     lookup = "--lookup" in argv
     for slug in [a for a in argv if not a.startswith("--")]:
         res = enumerate_topic(slug, lookup)
+        if "--write-input" in argv:
+            print("wrote", write_input(res))
         os.makedirs(OUT, exist_ok=True)
         p = os.path.join(OUT, f"enumeration_{slug}.json")
         with open(p + ".tmp", "w", encoding="utf-8", newline="\n") as fh:

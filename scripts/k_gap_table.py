@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import glob
+import hashlib
 import io
 import json
 import os
@@ -564,6 +565,47 @@ def proposal_units(slug: str, agents: list[str], others: list[str] | None = None
     return out
 
 
+ENUM_DIR = os.path.join(ROOT, "registry", "comparator_enumerations")
+
+
+def enumeration_units(slug: str, agents: list[str]) -> list[dict]:
+    """A comparator set ENUMERATED from the comparator's own supplementary trial table (scripts/g1_binding_enumerate.py
+    --write-input): one typed unit per trial, in the schema every other source uses. The unit's identity is the
+    comparator's OWN reference-list entry (reference number -> CONFIRMED PMID by exact title + first author + year), its
+    context is the row's arm lines verbatim, and the held source's sha256 rides on every unit. The file is refused
+    whole when its source digest no longer matches the held text."""
+    p = os.path.join(ENUM_DIR, slug + ".json")
+    if not os.path.exists(p):
+        return []
+    e = _j(p)
+    src = os.path.join(ROOT, e["source"]["path"])
+    if not os.path.exists(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != e["source"]["sha256"]:
+        return []
+    agent_re = re.compile("|".join(re.escape(a) for a in agents), re.I) if agents else None
+    out = []
+    for u in e.get("units") or []:
+        toks = k_gap._label_tokens(u["label"])
+        m = _AUTH_YR.match(u["label"])
+        out.append({"table": f"supplement:{e['source']['path']}", "layout": "text", "label": u["label"],
+                    "context": u["span"], "rids": [u["ref"]],
+                    "cited": [{"pmid": u["pmid"], "basis": f"comparator_supplement_ref_{u['ref']}_{u['identity']}"}],
+                    "ncts": toks["ncts"], "acronyms": toks["acronyms"],
+                    "author": toks["author"] or (m.group(1) if m else ""), "year": toks["year"] or (m.group(2) if m else ""),
+                    "agent_hit": bool(agent_re and agent_re.search(u["span"])), "drug_match": "DRUG_MATCH",
+                    "design_stated": None, "ref": u["ref"], "source_sha256": e["source"]["sha256"],
+                    "enumeration": {"scope": u["scope"], "rule_id": u.get("rule_id"), "span": u["span"],
+                                    "ref": u["ref"], "source": e["source"]["path"], "sha256": e["source"]["sha256"],
+                                    "enumerated_from": e.get("enumerated_from")}})
+    return out
+
+
+def set_state(chosen):
+    """The comparator-set state from the source that resolved it."""
+    return {"JATS_TABLE": "TABLE_ENUMERATED", "SUPPLEMENT_ENUMERATION": "ENUMERATED",
+            "MODEL_PROPOSAL_GATED": "PROPOSAL_ENUMERATED_GATED",
+            "REFERENCE_SEED": "REFERENCE_SEED_CANDIDATES"}.get(chosen, "NOT_ENUMERABLE_OPEN")
+
+
 def self_names(acr, title, abstract) -> bool:
     """Does a record NAME ITSELF by this acronym -- in its title, or defined in parentheses in its abstract?"""
     core = k_gap.fold_dashes(re.sub(r"\s+(?:(?:19|20)\d\d|\d{1,3})$", "", (acr or "").strip()))
@@ -733,6 +775,8 @@ def pubmed_author_year(author, year, agents, offline):
 def main(argv=None):
     argv = argv or sys.argv[1:]
     offline = "--offline" in argv
+    only = {a.split("=", 1)[1] for a in argv if a.startswith("--only=")}
+    write = "--no-write" not in argv
     log = lambda m: print(m, flush=True)  # noqa: E731
     os.makedirs(OUT, exist_ok=True)
     topics = []
@@ -740,6 +784,8 @@ def main(argv=None):
         slug = os.path.basename(os.path.dirname(f))
         c = _j(f)[0]
         m = re.search(r"PMID (\d+)", c.get("citation", ""))
+        if only and slug not in only:
+            continue
         topics.append((slug, m.group(1) if m else str(c["id"]), c.get("citation", "")))
     store = k_gap.AactStore(STORE)
     store.build_maps(log=log)
@@ -758,6 +804,11 @@ def main(argv=None):
             text, ref = "", f"UNREADABLE: {exc}"
         held = {"ref": ref, **k_gap.held_text_identity(abstracts.get(cpmid, ""), text)}
         cands = [("JATS_TABLE", inc)]
+        eu = enumeration_units(slug, agents)
+        if eu:
+            cands.append(("SUPPLEMENT_ENUMERATION", {"state": "ENUMERATED", "units": eu,
+                                                     "tables_used": [eu[0]["table"]],
+                                                     "enumerated_from": eu[0]["enumeration"]["enumerated_from"]}))
         if held["state"] == "NAMED_ARTICLE":
             pu = proposal_units(slug, agents, others)
             if pu:
@@ -879,7 +930,8 @@ def main(argv=None):
                         "status": status, "family_id": fam["family_id"] if fam else "",
                         "family_eligibility": fam["eligibility"] if fam else "",
                         "declared_absent": absent, "aact": src, "comparator_scope": scope,
-                        "study": {n: tidx["study"].get(n) for n in ident["ncts"]}})
+                        "study": {n: tidx["study"].get(n) for n in ident["ncts"]},
+                        **({"enumeration": u["enumeration"]} if u.get("enumeration") else {})})
         return out
 
     def n_elig(rs):
@@ -965,17 +1017,10 @@ def main(argv=None):
         P = per[slug]
         tr = [r for r in rows if r["slug"] == slug]
         elig = [r for r in tr if r["drug"] != "OTHER_AGENT" and r["status"] != "UNRESOLVED"]
-        if P["chosen"] == "JATS_TABLE":
-            state = "TABLE_ENUMERATED"
-        elif P["chosen"] == "MODEL_PROPOSAL_GATED":
-            state = "PROPOSAL_ENUMERATED_GATED"
-        elif P["chosen"] == "REFERENCE_SEED":
-            state = "REFERENCE_SEED_CANDIDATES"
-        else:
-            state = "NOT_ENUMERABLE_OPEN"
+        state = set_state(P["chosen"])
         topics_out.append({
             "slug": slug, "comparator_pmid": cpmid, "comparator": cit[:160], "unit_source": P["unit_source"],
-            "comparator_set_state": state, "held_text": P["held"], "tables_used": P["inc"]["tables_used"],
+            "comparator_set_state": state, "enumerated_from": P["inc"].get("enumerated_from"), "held_text": P["held"], "tables_used": P["inc"]["tables_used"],
             "sources_tried": P["tried"], "link_audit": P.get("link_audit", {}),
             "our_k": P["ours"]["k"], "comparator_units": len(tr), "drug_specific_resolved": len(elig),
             "other_agent": sum(r["drug"] == "OTHER_AGENT" for r in tr),
@@ -988,6 +1033,8 @@ def main(argv=None):
                                 "closable_by": r["closable_by"]} for r in elig if r["gap_class"] != "POOLED"],
         })
     out = {"generated": DATE, "aact_snapshot": store.snap, "topics": topics_out, "trials": rows}
+    if not write:
+        return out
     with open(os.path.join(OUT, "k_gap_table.json"), "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False, default=list)
     cols = ["slug", "comparator_pmid", "unit_source", "label", "drug", "status", "gap_class", "closable_by", "pmids",
