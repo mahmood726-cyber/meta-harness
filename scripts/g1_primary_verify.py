@@ -40,18 +40,25 @@ INTERVENTION = {"tocilizumab-covid19-mortality": r"tocilizumab|interleukin[- ]6 
                                                 r"fatty acid"}
 
 
-def _title(pmid, run):
-    """PubMed/EPMC title of a PMID (recorded per PMID in the output's 'titles')."""
+def _meta(pmid, run, pubtypes):
+    """(title, pub types) of a PMID from Europe PMC (core); pub types recorded in the output's 'pubtypes'."""
     from harness import http
     if not run:
         return None
     try:
         st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-                             {"query": f"EXT_ID:{pmid} AND SRC:MED", "format": "json", "resultType": "lite"}, tries=2)
+                             {"query": f"EXT_ID:{pmid} AND SRC:MED", "format": "json", "resultType": "core"}, tries=2)
         r = (json.loads(b.decode("utf-8")).get("resultList") or {}).get("result") or []
-        return (r[0].get("title") if r else None), hashlib.sha256(b).hexdigest()
+        if not r:
+            return None
+        pubtypes[pmid] = list((r[0].get("pubTypeList") or {}).get("pubType") or [])
+        return r[0].get("title")
     except Exception:  # noqa: BLE001
         return None
+
+
+RCT_TYPE = re.compile(r"randomi[sz]ed controlled trial", re.I)
+NOT_REPORT = re.compile(r"comment|letter|erratum|correction|editorial|review|protocol", re.I)
 
 
 def nct_hits(nct, run):
@@ -68,14 +75,14 @@ def nct_hits(nct, run):
         return []
 
 
-def choose_report(slug, t, run, titles):
-    """(pmid, basis) or (None, why): the ONE report whose title names the intervention."""
+def choose_report(slug, t, run, titles, pubtypes):
+    """(pmid, basis) or (None, why): the ONE report whose title names the intervention; when several do, the ONE whose
+    publication type is a randomised controlled trial (never a comment / letter / erratum / review / protocol)."""
     pat = INTERVENTION[slug]
     cands = []
     for p in t.get("pmids") or []:
         if p not in titles:
-            got = _title(p, run)
-            titles[p] = got[0] if got else None
+            titles[p] = _meta(p, run, pubtypes)
         if titles[p] and re.search(pat, titles[p], re.I):
             cands.append(p)
     basis = "TRIAL_PMIDS_TITLE_NAMES_INTERVENTION"
@@ -87,6 +94,14 @@ def choose_report(slug, t, run, titles):
                 cands.append(p)
         basis = "EPMC_NCT_HITS_TITLE_NAMES_INTERVENTION"
     cands = list(dict.fromkeys(cands))
+    if len(cands) > 1:
+        for p in cands:
+            if p not in pubtypes:
+                _meta(p, run, pubtypes)
+        rct = [p for p in cands if any(RCT_TYPE.search(x) for x in pubtypes.get(p) or [])
+               and not any(NOT_REPORT.search(x) for x in pubtypes.get(p) or [])]
+        if len(rct) == 1:
+            return rct[0], basis + "+PUBTYPE_RCT"
     if len(cands) == 1:
         return cands[0], basis
     return None, ("REPORT_NOT_FOUND" if not cands else f"REPORT_AMBIGUOUS:{cands[:6]}")
@@ -106,9 +121,12 @@ def verify(slug, t, run, runs, titles, spec, chosen):
     out["value"] = prim
     days = sm._days(spec.get("timepoint") or "")
     if days is not None:
-        tp = smb.meta_timepoint(prim.get("span") or "")
-        if not tp or sm._days(tp) != days:
-            out["state"] = f"TIMEPOINT_NOT_IN_SPAN:{tp}"
+        # the verified span must STATE the protocol's length of time, in any explicit form ('died within 28 days',
+        # 'day 28', '28-day mortality'); another length stated ('15 days') or none -> not verified
+        span = prim.get("span") or ""
+        n = str(int(days))
+        if not re.search(rf"(?<!\d){n}[- ]?(?:days?|d)\b|\bday[- ]?{n}(?!\d)", span, re.I):
+            out["state"] = "TIMEPOINT_NOT_IN_SPAN"
             return out
     out["state"] = "PRIMARY_VERIFIED"
     return out
@@ -127,9 +145,17 @@ def main(argv):
     outp = os.path.join(ROOT, "registry", "model_proposals", f"g1_primary_verify_{slug}.json")
     prev = gfr._j(outp) if os.path.exists(outp) else {}
     titles = prev.get("titles") or {}
+    pubtypes = prev.get("pubtypes") or {}
     with gfr.RunLock(RUNS) if run else _null():
         # SEQUENTIAL first: report choice and each report's record fetch (shared files); then the jobs in parallel
-        chosen = [choose_report(slug, t, run, titles) for t in ts]
+        chosen = [choose_report(slug, t, run, titles, pubtypes) for t in ts]
+        # a report claimed by two trials is neither's own report: both become ambiguous
+        claims = {}
+        for (pm, _), t in zip(chosen, ts):
+            if pm:
+                claims.setdefault(pm, []).append(t["label"])
+        chosen = [(pm, b) if not pm or len(claims[pm]) == 1 else (None, f"REPORT_CLAIMED_BY_{len(claims[pm])}_TRIALS:{pm}")
+                  for pm, b in chosen]
         for pm, _ in chosen:
             if pm:
                 smb._trial_text(slug, pm, run)
@@ -138,6 +164,7 @@ def main(argv):
         gfr._save(RUNS, runs)
     from collections import Counter
     out = {"slug": slug, "spec": {k: spec.get(k) for k in ("estimand", "timepoint")}, "titles": titles,
+           "pubtypes": pubtypes,
            "tally": dict(Counter((r.get("state") or r.get("report_basis") or "?").split(":")[0] for r in res)),
            "trials": res}
     gfr._save(outp, out)
