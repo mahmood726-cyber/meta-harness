@@ -283,3 +283,104 @@ Recomputed from the trial's posted observed-case Day-28 means (AACT outcome 2583
 NO_ROW/UNVERIFIED only. Agreement: NOT_COMPARABLE (the tracker holds no comparator values for these trials).
 
 **Correction.** PMID 4404939 is McHardy & Schonell 1972, not "Wagner 1956" as the earlier blocked table said.
+
+## Update (5 Oct): denosumab comparator set reaches the tracker through k_gap_table (`99ed07c12`)
+
+**Your refusal was right:** the tracker reads the comparator set only from k_gap_table, which said NOT_ENUMERABLE_OPEN.
+Now:
+
+**Input.** `registry/comparator_enumerations/denosumab-vertebral-fracture.json`:
+- status **ENUMERATED**; enumerated_from = the comparator's own supplementary trial table (PMID 36852077, Europe PMC
+  supplementaryFiles, typed text `cache/comparators/36852077/2026-09-29_kgap_supplements.txt`, sha256 e2b9205a…);
+- 11 typed units: label, the comparator's reference number, CONFIRMED PMID, the row's arm lines verbatim as span,
+  scope.
+
+**k_gap_table.**
+- New candidate source SUPPLEMENT_ENUMERATION in the existing unit schema → `comparator_set_state: ENUMERATED`,
+  `enumerated_from` cited.
+- The whole file is refused if the held source digest changes.
+
+**Tracker.** Measured, offline k_gap_table for this topic + `g1_tracker.topic`:
+
+| | Before | After |
+|---|---|---|
+| Comparator N | 0 | **11** |
+| Eligible | 0 | **6** |
+| Matched | — | **1 of 11** (FREEDOM) |
+| Scope-citation violations | — | 0 |
+
+**The 5 active-controlled trials are NAMED** PROTOCOL_SCOPE_DIFFERENCE, rule **E2:COMPARATOR_NOT_PLACEBO**: Miller
+2016b, Brown 2009, Roux 2014, Recknor 2013, Kendler 2010.
+- Span: the comparator's own row (active-drug arms only).
+- Re-derived inside `cite_or_demote` (digest + verbatim span), so a tampered span is demoted.
+
+**Performance fix.** `topic()` now ensures all comparator NCTs in ONE AACT pass. registry_binding re-read the snapshot
+once per trial (> 1 h for this topic on the busy F:; 19 s once indexed).
+
+**Plant.** `tests/test_g1_denosumab_enumeration.py` was written first; 3 tests failed before the change. All 230
+g1/k_gap tests pass.
+
+**Please regenerate** k_gap_table + the tracker on merge (I did not commit either output).
+
+### denosumab: the 5 in-scope unmatched trials, fracture counts: 0 of 5 newly verified, each named
+
+| Trial | Why no open count |
+|---|---|
+| McClung 2006a (16495394, NCT00043186) | Phase 2, 8 dose arms. AACT posts BMD/marker outcomes only; abstract NOT_REPORTED; paywalled. |
+| Bone 2008 (18381571) | Abstract NOT_REPORTED; no OA copy. |
+| Seeman 2010 (20222106, NCT00293813) | Held Unpaywall text mentions vertebral fracture only as baseline exclusion/assessment (deterministic grep), so NOT_REPORTED; AACT posts XtremeCT only. |
+| Koh 2016 (27189284, PMC CC BY-NC) | 6-month double-blind phase; the held full text's AE table has no vertebral fracture by arm (deterministic grep + recorded codex: NOT_REPORTED). |
+| Nakamura 2012a (21927920) | Abstract: "No new vertebral fracture was observed on spinal radiographs in either group". Zero events stated, but no arm N (226 randomised / 212 dosed across 3 doses + placebo). INCOMPLETE; the comparator's 157/55 cannot be the source (anti-circularity). |
+
+**Open secondaries checked** (text layers): Front Pharmacol 2021 (PMC8080120), BMJ 2023 (PMC10152340 supplement
+PDF), J Clin Med 2021 (PMC8305263 supplement PDF), Front Endocrinol 2026, Med Sci Monit 2022, Front Aging 2022. They
+hold characteristics tables only; per-trial fracture counts are in forest images (forest-reader lane).
+
+## Update (5 Oct): statins-elderly, comparator 32529863 adopted (COMPARATOR_NO_PER_TRIAL_ROWS)
+
+**Decision.** Mahmood, 2026-10-05: "go with a".
+- Recorded as a ratified exception to rule C6 (per-trial rows) for 32529863 only: `registry/comparator_selection/
+  statins-primary-prevention-elderly.ratification.json`.
+- The pre-registered rule (6713b9d17) and its 26-candidate table are unchanged. `selection.json` shows both results:
+  NO_ACHIEVABLE_COMPARATOR under the rule alone, PICKED_BY_RATIFIED_EXCEPTION with it.
+
+**Type** (`…adoption.json`, `g1_tracker.apply_no_rows_comparator`).
+- k matching uses the comparator's result trial set.
+- Every per-trial comparison is **NOT_AVAILABLE_FROM_COMPARATOR**; `comparator_data_confirmation: NONE`.
+- RESULT_AGREES compares OUR pooled OR (DL), from our verified count rows for the same 7 trials, with its printed
+  OR 0.88 (0.72–1.06). Until all 7 are verified it is OUR_ROWS_INCOMPLETE (unmet).
+
+**Ledger.** `g1_denominator_ledger` kind COMPARATOR_RETIRED.
+- 39076238 is retired **COMPARATOR_POOLS_NO_RCT**, spans verbatim in its held text: "A total of 12 observational
+  studies incorporating 1,627,434 population were eligible for this analysis"; "Study design: observational study".
+- The baseline's 27 statins rows (12 observational studies + 15 QRISK fragments) leave under it. The 7 new rows carry
+  their enumeration spans.
+
+**Enumeration.** The comparator's primary-prevention result sentence cites refs 29, 35–40 (7 trials). Each ref's own
+PMID and title is the span (`registry/comparator_enumerations/…`). The typed enumeration precedes Table 1, which lists
+all 16 trials, primary and secondary.
+
+**Measured** (offline k_gap_table + topic): **comparator N 7, ENUMERATED; matched 1 of 7** (JUPITER ≥70, in our pool);
+result OUR_ROWS_INCOMPLETE (0 of 7 verified count rows).
+
+**Acquisition: 0 of 7 new verified rows.**
+- **AACT:** NCT00000542 (ALLHAT-LLT), NCT00211705 (MEGA), NCT00327418 (CARDS) post no results; the others have no NCT
+  (ISRCTN trials).
+- **Open text:** ALLHAT-LLT (Unpaywall) and JUPITER (PMC). The other 5 are abstract only.
+- **Recorded codex locate** (7 calls, concurrency 3), every result refused or not reported:
+
+| Trial | Gate result |
+|---|---|
+| PROSPER | REFUSED: "primary endpoint" 408 vs 473, no arm N, generic outcome; whole trial incl. secondary prevention |
+| HPS diabetes | REFUSED NON_NUMERIC: % reduction; 601 vs 748 events, no arm N |
+| CARDS 65–75 | REFUSED NON_NUMERIC: % only |
+| JUPITER ≥70 | REFUSED OUTCOME_NOT_NAMED: its table row "Primary end point" 75 vs 119; the topic outcome is not trial-defined, so a generic label cannot bind |
+| ASCOT-LLA older, ALLHAT-LLT older, MEGA older | NOT_REPORTED |
+
+- **Independent metas:** the open ones with per-trial rows (BMC 2026, Brugts 2009) report whole trials of all ages, or
+  single outcomes, not the older primary-prevention composite. None is usable.
+- **Records:** 5 committed (abstract-only prompts). ALLHAT-LLT (mc-bf1135de) and JUPITER (mc-e2d9b11d) are held locally
+  (non-CC-BY text) in C:\mh-tmp\binding\held_records, git-excluded.
+
+**Served notice queued for Mahmood.** `docs/reviews/statins-primary-prevention-elderly/review.json` still names
+39076238 and was NOT edited. Changing the served comparator needs his signature.

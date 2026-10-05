@@ -8,7 +8,9 @@ artefact itself (dispatch 2026-10-04: a shrinking denominator is how a match sco
 Kinds (removed): NOT_A_TRIAL (a comparator table row that names no study: a subgroup row of another study's line),
 DUPLICATE_UNIT (one trial listed in two of the comparator's tables), OTHER_AGENT (the trial's registered arms name another
 agent), RELABELLED (the same trial, now labelled by the comparator's own table), NOT_IN_COMPARATOR_TABLE (a unit the
-older reference-title enumeration listed that the comparator's own trial table does not contain). Anything else is
+older reference-title enumeration listed that the comparator's own trial table does not contain), COMPARATOR_RETIRED (a row
+of a comparator REPLACED for the topic: registry/comparator_selection/<slug>.adoption.json names the retired comparator, its
+reason code and spans verbatim in its held source). Anything else is
 UNEXPLAINED and fails --check. Spans are copied VERBATIM from the cited held file (sha256 recorded); the check re-reads
 the file and finds the span (whitespace-insensitive, as the files differ only in line breaks).
 """
@@ -40,6 +42,14 @@ def _sha(p):
 
 def _squash(t):
     return re.sub(r"\s+", "", html.unescape(t or ""))
+
+
+def _source_text(path):
+    """The comparable text of a held source: markup sources (.xml/.html) tag-stripped and unescaped; plain text as is."""
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    if path.lower().endswith((".xml", ".html", ".htm")):
+        raw = html.unescape(re.sub(r"<[^>]+>", " ", raw))
+    return raw
 
 
 def find_span(path, needle):
@@ -102,6 +112,55 @@ def chain_other_agent_span(slug, label, other_agent_units):
     return None, None
 
 
+ADOPT = os.path.join(ROOT, "registry", "comparator_selection", "{slug}.adoption.json")
+ENUM = os.path.join(ROOT, "registry", "comparator_enumerations", "{slug}.json")
+
+
+def retired_comparator(slug, cur_pmid):
+    """A COMPARATOR REPLACEMENT recorded for this topic (registry/comparator_selection/<slug>.adoption.json): the topic's
+    current comparator is the adopted one, and the old one is retired with a reason code and spans copied VERBATIM from
+    the old comparator's held source (sha256 recorded). None when there is no adoption, or it is for another comparator."""
+    p = ADOPT.format(slug=slug)
+    if not os.path.exists(p):
+        return None
+    a = _j(p)
+    if str(a.get("comparator_pmid")) != str(cur_pmid) or not a.get("retired"):
+        return None
+    r = a["retired"]
+    src = os.path.join(ROOT, (r.get("source") or {}).get("path") or "")
+    if not os.path.isfile(src) or _sha(src) != r["source"].get("sha256"):
+        return None
+    if src.lower().endswith((".xml", ".html", ".htm")):
+        hay = _squash(_source_text(src))
+        spans = [t if _squash(t) in hay else None for t in r.get("spans") or []]
+    else:
+        spans = [find_span(src, t) for t in r.get("spans") or []]
+    if not spans or not all(spans):
+        return None
+    return {"retired_pmid": r["comparator_pmid"], "reason_code": r["reason_code"], "new_pmid": a["comparator_pmid"],
+            "span": {"text": " | ".join(spans), "parts": spans, "source": os.path.relpath(src, ROOT).replace(os.sep, "/"),
+                     "source_sha256": _sha(src)}}
+
+
+def enumeration_span(slug, label):
+    """The added row's own span from the typed enumeration input (verbatim, whitespace-insensitive, in its held source)."""
+    p = ENUM.format(slug=slug)
+    if not os.path.exists(p):
+        return None
+    e = _j(p)
+    u = next((u for u in e.get("units") or [] if u.get("label") == label), None)
+    src = os.path.join(ROOT, (e.get("source") or {}).get("path") or "")
+    if not u or not os.path.isfile(src):
+        return None
+    raw = open(src, encoding="utf-8", errors="replace").read()
+    if src.lower().endswith((".xml", ".html", ".htm")):
+        raw = html.unescape(re.sub(r"<[^>]+>", " ", raw))
+    if _squash(u["span"]) not in _squash(raw):
+        return None
+    return {"text": u["span"], "ref": u.get("ref"), "pmid": u.get("pmid"),
+            "source": os.path.relpath(src, ROOT).replace(os.sep, "/"), "source_sha256": _sha(src)}
+
+
 def current_rows():
     out = {}
     for p in sorted(glob.glob(os.path.join(OUT, "g1", "*.json"))):
@@ -126,10 +185,17 @@ def build():
         old_rows = b["rows"]
         gone = [l for l in old_rows if l not in now]
         new = [l for l in now if l not in old_rows]
+        ret = retired_comparator(slug, cpmid) if gone else None
         for lab in gone:
             u = units.get((slug, lab)) or {}
             rec = {"slug": slug, "label": lab, "comparator_pmid": cpmid}
-            if lab in nat:
+            if ret:
+                rec.update(kind="COMPARATOR_RETIRED", rule_id="COMPARATOR_RETIRED:" + ret["reason_code"],
+                           retired_comparator_pmid=ret["retired_pmid"], replaced_by=ret["new_pmid"],
+                           detail=(f"a row of the retired comparator {ret['retired_pmid']} ({ret['reason_code']}); the topic's "
+                                   f"comparator is now {ret['new_pmid']} (registry/comparator_selection/{slug}.adoption.json)"),
+                           span=ret["span"])
+            elif lab in nat:
                 rec.update(kind="NOT_A_TRIAL", rule_id="K-GAP:NOT_A_TRIAL:" + nat[lab]["why"],
                            detail=f"a row of the comparator's {nat[lab]['table']} that names no study (a subgroup row "
                                   "of another study's line, with its group size)", span=span_in_sources(cpmid, lab))
@@ -183,8 +249,11 @@ def build():
         for lab in new:
             if any(r.get("now_label") == lab for r in removed if r["slug"] == slug):     # a relabel, not an addition
                 continue
+            es = enumeration_span(slug, lab)
             added.append({"slug": slug, "label": lab, "comparator_pmid": cpmid,
-                          "basis": "a row of the comparator's own trial table", "span": span_in_sources(cpmid, lab)})
+                          "basis": ("a unit of the comparator's typed enumeration (registry/comparator_enumerations)" if es
+                                    else "a row of the comparator's own trial table"),
+                          "span": es or span_in_sources(cpmid, lab)})
     n_now = sum((cur.get(s) or {}).get("N_comparator_trials") or 0 for s in base["topics"])
     out = {"baseline": {"commit": base["pinned_commit"], "N": base["N"], "fixture": os.path.relpath(BASE, ROOT).replace(os.sep, "/")},
            "current": {"N": n_now},
@@ -213,7 +282,7 @@ def problems(led):
                 bad.append(f"{r['slug']}::{r['label']}: span source missing {s['source']}")
             elif _sha(p) != s.get("source_sha256"):
                 bad.append(f"{r['slug']}::{r['label']}: span source changed {s['source']}")
-            elif _squash(s["text"]) not in _squash(open(p, encoding="utf-8", errors="replace").read()):
+            elif not all(_squash(t) in _squash(_source_text(p)) for t in (s.get("parts") or [s["text"]])):
                 bad.append(f"{r['slug']}::{r['label']}: span not in its source")
     b = led.get("baseline", {}).get("N")
     if isinstance(b, int) and b - led.get("removed_n", 0) + led.get("added_n", 0) != led.get("current", {}).get("N"):

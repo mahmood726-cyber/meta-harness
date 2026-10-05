@@ -74,10 +74,23 @@ def row_value(r):
     return {k: getattr(r, k, None) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}
 
 
+def comparator_one_sided(theirs):
+    """The comparator printed an effect with ONE bound only (a one-sided interval, e.g. EXAMINE 'HR 0.96 (<= 1.16)' in
+    31462224 Table 1): no two-sided interval exists on its side, so the row can be neither interval-compared nor pooled."""
+    return (theirs is not None and theirs.effect is not None and theirs.events_t is None
+            and (theirs.lower is None) != (theirs.upper is None))
+
+
 def agreement(ours, theirs):
     """Our pooled value vs the comparator's printed row for the same trial: AGREE / DISAGREE / NOT_COMPARABLE[:why]."""
     if not ours or not theirs:
         return "NOT_COMPARABLE:NO_COMPARATOR_ROW" if ours else "NOT_COMPARABLE"
+    if comparator_one_sided(theirs) and ours.get("effect") is not None and \
+            (ours.get("measure") or "").upper() == (theirs.measure or "").upper():
+        # a missing comparator bound is not a disagreement (5 Oct false-positive class): the POINT is compared at the
+        # comparator's precision, the interval is not comparable
+        return ("AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND" if sm._eq_printed(ours["effect"], theirs.effect)
+                else f"DISAGREE_ON_POINT:ours_{ours['effect']}_vs_printed_{theirs.effect}:COMPARATOR_ONE_SIDED_BOUND")
     # two 2x2 tables compare as counts when both sides label a COUNT-derived ratio (RR / OR): the counts carry no
     # measure. Never across an HR (a time-to-event row's counts are not its estimate's data)
     if ours.get("events_t") is not None and theirs.events_t is not None and \
@@ -250,6 +263,18 @@ def _concl(r, measure):
 
 
 def same_trials_compare(pairs, method_label, participants_of=None):
+    """same_trials_core on the pairs whose comparator row has a two-sided interval (or counts); a pair whose comparator
+    printed ONE bound only (comparator_one_sided) can be pooled by neither side and is set aside BY NAME in
+    comparator_one_sided_not_pooled -- never silently dropped."""
+    one_sided = [t_.trial_label for _, t_ in pairs if comparator_one_sided(t_)]
+    kept = [p for p in pairs if not comparator_one_sided(p[1])]
+    out = same_trials_core(kept, method_label, participants_of) if kept else {"state": "NO_SHARED_TRIAL", "k": 0}
+    if one_sided:
+        out = dict(out, comparator_one_sided_not_pooled=one_sided)
+    return out
+
+
+def same_trials_core(pairs, method_label, participants_of=None):
     """The same-trials comparison ON THE COMPARATOR'S MEASURE (5 Oct class):
       >= 2 comparable pairs   both sides pooled by ONE method on the comparator's measure (same_trials_pool)
       exactly 1 shared trial  ONE_SHARED_TRIAL: that trial compared directly (k = 1 rule)
@@ -1378,6 +1403,29 @@ CONFIRM_BLOCKING_REFUSAL = _cre.compile(r"per[- ]?protocol|completers?\b|complet
                                         r"subgroup|different composite|estimand|cluster|cross-?over|post[- ]?hoc", _cre.I)
 
 
+_EXTRA_COMPONENT = _cre.compile(r"unstable angina|revasculari[sz]ation|hospitali[sz]ation for heart failure|"
+                                r"heart failure hospitali[sz]ation", _cre.I)
+
+
+def own_tuple_establishes_estimand(slug, span):
+    """True only when an OWN-TUPLE binding's span (the trial's own posted outcome: title | description | value) POSITIVELY
+    states the topic's registered 3-point MACE composite: the shared estimand gate passes
+    (harness.extract.composite_component_mismatch == ''), no extra component is named anywhere, and every 3-point component
+    is named (cardiovascular death, myocardial infarction, stroke). Then an EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH refusal
+    written against a DIFFERENT estimate of the trial (its 4-point primary: TECOS 'MACE plus ... unstable angina') does not
+    veto it. Any other topic / span: False (the refusal stands)."""
+    from harness import extract
+    p = os.path.join(ROOT, "topics", f"{slug}.json")
+    name = (((_j(p) if os.path.exists(p) else {}).get("primary_outcome") or {}).get("name") or "")
+    if not _cre.search(r"\b3[\s-]?point|three-point", name, _cre.I) or not _cre.search(r"mace|adverse cardiovascular", name, _cre.I):
+        return False
+    s = span or ""
+    if extract.composite_component_mismatch(name, s) or _EXTRA_COMPONENT.search(s):
+        return False
+    return bool(_cre.search(r"(cardiovascular|cv)[- ](related )?(death|mortality)|death from cardiovascular", s, _cre.I)
+                and _cre.search(r"myocardial infarction|\bMI\b", s, _cre.I) and _cre.search(r"stroke", s, _cre.I))
+
+
 def confirm_blocked(x):
     """Why a comparator trial may NOT be confirmed by a primary binding, or None: out of the topic's scope (a named
     scope / estimand difference), or our own typed refusal says the comparator's value is not the trial's result for
@@ -1390,6 +1438,52 @@ def confirm_blocked(x):
     if m:
         return f"TYPED_REFUSAL_NAMES:{m.group(0).lower()}"
     return None
+
+
+def ci_at_95(v):
+    """A two-sided CI printed at level L re-expressed at 95%: SE = (g(U) - g(L)) / (2 z_{(1+L)/2}), g = log for a ratio;
+    the estimate is unchanged. None when the printed tuple is not a valid interval around the estimate."""
+    from statistics import NormalDist
+    try:
+        e, lo, hi, lvl = float(v["effect"]), float(v["lower"]), float(v["upper"]), float(v["ci_level"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    ratio = (v.get("measure") or "").upper() in sm.RATIO
+    if not (0 < lvl < 100) or not (lo < e < hi) or (ratio and lo <= 0):
+        return None
+    g, gi = (math.log, math.exp) if ratio else ((lambda x: x), (lambda x: x))
+    se = (g(hi) - g(lo)) / (2 * NormalDist().inv_cdf(0.5 + lvl / 200))
+    z95 = NormalDist().inv_cdf(0.975)
+    return gi(g(e) - z95 * se), gi(g(e) + z95 * se)
+
+
+def arms_combined_check(slug, b):
+    """An own-tuple ARMS_COMBINED binding (scripts/g1_binding_aact.py, C1-C6), RE-DERIVED here offline: every arm's
+    mean / SD / N is verbatim in the span; each arm's role is re-derived from its title (exactly one control arm, every
+    other arm names an intervention agent of the topic); the intervention arms are re-combined by the Cochrane Handbook
+    6.5.2.10 formula and must equal the binding's values. Our value is the combined two-group tuple (MD from arms)."""
+    import g1_binding_aact as _ba
+    arms, span, v = b.get("arms") or [], b.get("span") or "", b.get("values") or {}
+    cfg = _j(os.path.join(ROOT, "topics", f"{slug}.json"))
+    if (cfg.get("primary_outcome") or {}).get("estimand", "").upper() != "MD":
+        return False, "ARMS_COMBINED_NOT_AN_MD_TOPIC", None
+    agents = _ba.topic_agents(cfg)
+    for a in arms:
+        if f"MEAN {a.get('mean')} Standard Deviation {a.get('sd')} N {a.get('n')}" not in span:
+            return False, f"ARM_NOT_IN_SPAN:{a.get('code')}", None
+        if _ba.arm_role(a.get("title") or "", agents) != a.get("role") or f"{a.get('title')} [{a.get('role')}]" not in span:
+            return False, f"ARM_ROLE_NOT_REDERIVED:{a.get('code')}", None
+    if sum(a.get("role") == "control" for a in arms) != 1 or not any(a.get("role") == "intervention" for a in arms):
+        return False, "ARMS_NOT_ONE_CONTROL_PLUS_INTERVENTION", None
+    re_v = _ba.arms_values(arms)
+    if any(str(re_v[k]) != str(v.get(k)) for k in ("mean_t", "sd_t", "n_t", "mean_c", "sd_c", "n_c")):
+        return False, "ARMS_COMBINATION_NOT_REPRODUCED", None
+    ours = {"measure": "MD", "effect": None, "lower": None, "upper": None, "events_t": None, "events_c": None,
+            **{k: re_v[k] for k in ("mean_t", "sd_t", "n_t", "mean_c", "sd_c", "n_c")},
+            "arms_combined": {"k_intervention_arms": re_v["k_intervention_arms"], "rule": re_v["combination"]}}
+    return True, (f"single PRIMARY source: per-arm mean/SD/N verbatim in the trial's posted results; "
+                  f"{re_v['k_intervention_arms']} intervention arm(s) combined ({re_v['combination']})"
+                  if re_v["k_intervention_arms"] > 1 else "single PRIMARY source: per-arm mean/SD/N verbatim"), ours
 
 
 def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
@@ -1413,6 +1507,12 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
         v, span = b.get("values") or {}, b.get("span") or ""
         src = f"{'TEXT' if b.get('source_kind') == 'TEXT' else 'AACT'} {b.get('source')}"
         blocked = confirm_blocked(x)
+        if (blocked == "TYPED_REFUSAL:EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH" and b.get("own_tuple")
+                and own_tuple_establishes_estimand(o.get("slug"), b.get("span"))):
+            # the refusal concerns a DIFFERENT estimate of the trial; this own tuple's span states the registered one
+            x["estimand_refusal_superseded"] = {"refusal": x.get("absent_code"), "our_refusal": (x.get("our_refusal") or "")[:200],
+                                                "by": b.get("source"), "span": b.get("span")}
+            blocked = None
         arms = None
         if not blocked and b.get("tuple_kind") == "COUNTS" and b.get("source_kind") == "TEXT":
             # arm ownership RE-CHECKED from the committed span, never taken from the binder's own verdict
@@ -1427,7 +1527,10 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             x["confirm_binding"] = {"admitted": False, "why": blocked, "source": b.get("source"),
                                     "pmid": b.get("pmid"), "tuple_kind": b.get("tuple_kind")}
             continue
-        if b.get("tuple_kind") == "COUNTS":
+        arms_ours = None
+        if b.get("tuple_kind") == "ARMS_COMBINED":
+            ok, why, arms_ours = arms_combined_check(o.get("slug"), b)
+        elif b.get("tuple_kind") == "COUNTS":
             probe = dict(x, g1_state="ONE_SOURCE", readings=[{
                 "values": {"deaths_t": v.get("events_t"), "n_t": v.get("n_t"), "deaths_c": v.get("events_c"),
                            "n_c": v.get("n_c")},
@@ -1438,6 +1541,12 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             ok = all(str(v.get(k) or "") and str(v.get(k)) in flat for k in ("effect", "lower", "upper"))
             why = ("single PRIMARY source: effect + CI verbatim in the trial's own span" if ok
                    else "EFFECT_CI_NOT_IN_SPAN")
+            if ok and str(v.get("ci_level") or "95") != "95":
+                # a two-sided interval at a STATED level other than 95% (a regulatory table's 98% CI): the level must be
+                # printed in the span itself, and the interval is re-expressed at 95% (ci_at_95)
+                ok = f"({v['ci_level']}% CI)" in span and ci_at_95(v) is not None
+                why = (f"single source: effect + two-sided {v['ci_level']}% CI verbatim (level printed); re-expressed at 95%"
+                       if ok else "CI_LEVEL_NOT_PRINTED_IN_SPAN")
         x["confirm_binding"] = {"admitted": ok, "why": why, "source": b.get("source"), "pmid": b.get("pmid"),
                                 "source_sha256": b.get("source_sha256"), "tuple_kind": b.get("tuple_kind"),
                                 "search_key": b.get("search_key")}
@@ -1447,8 +1556,22 @@ def apply_confirm_bindings(o, path=CONFIRM_BINDINGS):
             # the trial's OWN printed counts for the topic outcome (Mahmood 3 Oct: matched = any verified typed tuple for
             # the comparator's trial): NOT searched by the comparator's numbers, so agreement is COMPUTED, never assumed
             cr = x.get("comparator_row") or {}
-            ours = {"measure": (cr.get("measure") or "").upper(), "effect": None, "lower": None, "upper": None,
-                    **{k: v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}}
+            if arms_ours:
+                ours = arms_ours
+            elif b.get("tuple_kind") == "EFFECT_CI":
+                # the trial's OWN posted effect + both CI bounds (scripts/g1_binding_aact.py): our value is that tuple
+                ours = {"measure": (v.get("measure") or cr.get("measure") or "").upper(), "effect": v.get("effect"),
+                        "lower": v.get("lower"), "upper": v.get("upper"),
+                        "events_t": None, "n_t": None, "events_c": None, "n_c": None}
+                if str(v.get("ci_level") or "95") != "95":
+                    lo95, hi95 = ci_at_95(v)
+                    ours.update(lower=f"{lo95:.4f}", upper=f"{hi95:.4f}",
+                                ci_printed={"level": v["ci_level"], "lower": v.get("lower"), "upper": v.get("upper")},
+                                ci_reexpressed=f"95% from the printed two-sided {v['ci_level']}% CI on the "
+                                               f"{'log' if ours['measure'] in sm.RATIO else 'natural'} scale")
+            else:
+                ours = {"measure": (cr.get("measure") or "").upper(), "effect": None, "lower": None, "upper": None,
+                        **{k: v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}}
             theirs = sm.SecondaryRow(meta_pmid="COMPARATOR", meta_doi="", location={}, source_digest="",
                                      provenance="COMPARATOR_ROW", trial_label=x["label"],
                                      measure=(cr.get("measure") or "").upper(), outcome_definition="",
@@ -1526,6 +1649,146 @@ def apply_secondary_bindings(o, path):
         o["blockers"], o["top_blocker"] = dict(bl), (bl.most_common(1)[0][0] if bl else None)
         o["secondary_bindings_flipped"] = flipped
     return flipped
+
+
+NO_ROWS_ADOPTION = os.path.join(ROOT, "registry", "comparator_selection", "{slug}.adoption.json")
+
+
+def _held_norm(path, text=None):
+    import html as _html
+    raw = text if text is not None else open(path, encoding="utf-8", errors="replace").read()
+    if path and path.lower().endswith((".xml", ".html", ".htm")):
+        raw = _html.unescape(re.sub(r"<[^>]+>", " ", raw))
+    return re.sub(r"\s+", " ", raw).strip()
+
+
+def no_rows_adoption(slug, comp):
+    """The ADOPTION of a COMPARATOR_NO_PER_TRIAL_ROWS comparator (Mahmood, ratified exception to selection rule C6), or
+    None. Re-checked, never trusted: same comparator PMID as the tracker's, the held source's sha256 unchanged, and the
+    pooled-result / model / measure spans verbatim in it."""
+    import hashlib
+    p = NO_ROWS_ADOPTION.format(slug=slug)
+    if not os.path.exists(p):
+        return None
+    a = _j(p)
+    if a.get("comparator_type") != "COMPARATOR_NO_PER_TRIAL_ROWS" or str(a.get("comparator_pmid")) != str(comp):
+        return None
+    pr = a.get("pooled_result") or {}
+    src = os.path.join(ROOT, (pr.get("source") or {}).get("path") or "")
+    if not os.path.isfile(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != pr["source"].get("sha256"):
+        return None
+    held = _held_norm(src)
+    if not all(_held_norm(None, s_) in held for s_ in (pr.get("spans") or {}).values()):
+        return None
+    return a
+
+
+def apply_no_rows_comparator(o):
+    """COMPARATOR_NO_PER_TRIAL_ROWS (K-AND-POOLED-RESULT): the comparator prints its trial list and a pooled result but no
+    per-trial rows. Terms (Mahmood, 5 Oct):
+      k matching        the trial list counts as usual (the comparator set came through k_gap_table)
+      per-trial         every trial's comparison is NOT_AVAILABLE_FROM_COMPARATOR; no comparator row exists
+      RESULT_AGREES     ours vs the comparator's POOLED estimate, ours pooled from OUR verified rows (counted route,
+                        integer arm counts) for the SAME trial set, on the comparator's measure with its model; only when
+                        every trial of the set has such a row -- else OUR_ROWS_INCOMPLETE (unmet)
+      confirmation      never comparator-side data confirmation (comparator_data_confirmation = NONE on every trial)."""
+    a = no_rows_adoption(o.get("slug"), o.get("comparator_pmid"))
+    if not a:
+        return None
+    pr = a["pooled_result"]
+    m = pr["measure"].upper()
+    for x in o.get("trials") or []:
+        x["comparator_row"] = None
+        x["comparator_data_confirmation"] = "NONE"
+        if is_matched(x):
+            x["agreement_with_comparator_row"] = "NOT_AVAILABLE_FROM_COMPARATOR"
+    tr = o.get("trials") or []
+    rows, missing = [], []
+    for x in tr:
+        v = x.get("our_value") or {}
+        ok = is_matched(x) and x.get("g1_countable") and all(isinstance(v.get(k), int) for k in ("events_t", "n_t", "events_c", "n_c"))
+        if ok:
+            rows.append(sm.SecondaryRow(meta_pmid="OURS", meta_doi="", location={}, source_digest="", provenance="PRIMARY",
+                                        trial_label=x["label"], measure=m, outcome_definition="",
+                                        **{k: v[k] for k in ("events_t", "n_t", "events_c", "n_c")}))
+        else:
+            missing.append(x["label"])
+    theirs = {"estimate": pr["estimate"], "ci_low": pr["ci_low"], "ci_high": pr["ci_high"]}
+    st = {"state": "OURS_POOLED_VS_COMPARATOR_POOLED_RESULT", "comparator_type": "COMPARATOR_NO_PER_TRIAL_ROWS",
+          "measure": m, "k_comparator": pr.get("k"), "k_set": len(tr), "k_ours_verified": len(rows),
+          "theirs": dict(theirs, source=pr["source"]["path"], span=pr["spans"]["result"]),
+          "method": pr.get("method_for_ours"), "per_trial": "NOT_AVAILABLE_FROM_COMPARATOR"}
+    if missing or not rows or len(rows) != (pr.get("k") or len(rows)):
+        st.update(state="OUR_ROWS_INCOMPLETE", missing=missing,
+                  verdict={"verdict": "NOT_COMPUTABLE",
+                           "why": f"our verified rows cover {len(rows)} of the comparator's {pr.get('k')} trials"})
+    else:
+        yv = [sm.row_yi_vi(r) for r in rows]
+        g = math.exp if m in sm.RATIO else (lambda z: z)
+        mu, lo, hi = (g(z) for z in sm.pool([y for y, _ in yv], [w for _, w in yv], pr.get("method_for_ours") or "DL"))
+        ours = {"estimate": round(float(mu), 4), "ci_low": round(float(lo), 4), "ci_high": round(float(hi), 4)}
+        st.update(ours=ours, verdict=result_verdict(ours, theirs, m))
+    o["same_trials"] = st
+    o["comparator_type"] = "COMPARATOR_NO_PER_TRIAL_ROWS"
+    o["comparator_adoption"] = {"file": NO_ROWS_ADOPTION.format(slug=o["slug"]).replace(ROOT + os.sep, "").replace("\\", "/"),
+                                "ratified": (a.get("selection") or {}).get("ratified_exception"),
+                                "retired": {k: (a.get("retired") or {}).get(k) for k in ("comparator_pmid", "reason_code")}}
+    o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in tr if is_matched(x)))
+    return st
+
+
+TYPED_COMPARATOR_ROWS = os.path.join(ROOT, "registry", "comparator_rows", "{slug}.json")
+
+
+def typed_comparator_rows(slug, comp):
+    """The comparator's OWN per-trial rows for the topic outcome, typed from its held text (a table or a supplement it
+    publishes), or None. Re-checked, never trusted: same comparator PMID as the tracker's, the held source's sha256
+    unchanged, every row's span verbatim in it (markup-aware, whitespace-normalised). These rows are ONLY ever the
+    comparator side of a comparison: they never become our value and never count a trial (anti-circularity)."""
+    import hashlib
+    p = TYPED_COMPARATOR_ROWS.format(slug=slug)
+    if not os.path.exists(p):
+        return None
+    d = _j(p)
+    if str(d.get("comparator_pmid")) != str(comp):
+        return None
+    src = os.path.join(ROOT, (d.get("source") or {}).get("path") or "")
+    if not os.path.isfile(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != d["source"].get("sha256"):
+        return None
+    held = _held_norm(src)
+    rows = [r for r in d.get("rows") or [] if r.get("span") and _held_norm(None, r["span"]) in held]
+    return dict(d, rows=rows) if rows and len(rows) == len(d.get("rows") or []) else None
+
+
+def apply_typed_comparator_rows(o):
+    """Per-trial agreement and the same-trials RESULT verdict on the COMPARATOR'S MEASURE, from its typed rows, for a
+    comparator whose rows no reader has produced (no comparator row held for any trial). Computed with the tracker's own
+    agreement() and same_trials_compare(); our values are untouched."""
+    d = typed_comparator_rows(o.get("slug"), o.get("comparator_pmid"))
+    if not d or any(x.get("comparator_row") for x in o.get("trials") or []):
+        return None
+    by = {r["label"]: r for r in d["rows"]}
+    pairs = []
+    for x in o.get("trials") or []:
+        r = by.get(x["label"])
+        if not r:
+            continue
+        theirs = sm.SecondaryRow(meta_pmid=str(d["comparator_pmid"]), meta_doi="", location={"kind": "typed", "id": d["source"]["path"]},
+                                 source_digest=d["source"]["sha256"], provenance="TYPED_COMPARATOR_ROW", trial_label=x["label"],
+                                 measure=r["measure"].upper(), outcome_definition=d.get("outcome") or "",
+                                 **{k: r.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+        x["comparator_row"] = {k: getattr(theirs, k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c", "measure")}
+        x["comparator_row_provenance"] = {"meta_pmid": theirs.meta_pmid, "location": theirs.location, "digest": theirs.source_digest,
+                                          "read": "TYPED_COMPARATOR_ROW", "row_label": x["label"], "span": r["span"]}
+        if is_matched(x) and x.get("our_value"):
+            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
+            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+    method = (o.get("same_trials") or {}).get("method") or "PM"
+    o["same_trials"] = dict(same_trials_compare(pairs, method) if pairs else {"state": "NO_SHARED_TRIAL"},
+                            method_basis=f"typed comparator rows ({d['source']['path']}); {method}",
+                            comparator_rows="TYPED_COMPARATOR_ROW")
+    o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in o["trials"] if is_matched(x)))
+    return o["same_trials"]
 
 
 def primary_counts(x):
@@ -1834,7 +2097,15 @@ def cite_or_demote(o, slug):
             o["open_gaps"] = [g for g in o.get("open_gaps") or [] if g != x["label"]]
             o["N_eligible"] = len(o.get("trials") or []) - len(o["named_differences"])
     for d in o.get("named_differences") or []:
-        if d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
+        if d.get("rule_id") == "E2:COMPARATOR_NOT_PLACEBO":
+            # named by the comparator's OWN enumeration: kept only when RE-DERIVED here from the trial's enumeration
+            # (held source digest + span verbatim), never on the named difference's word
+            again = enumeration_scope(by_label.get(d.get("trial")) or {}, cfg)
+            if again and (again.get("span") or {}).get("text") == (d.get("span") or {}).get("text"):
+                keep.append(d)
+                continue
+            why = "SCOPE_UNCITED:E2_NOT_RE_DERIVED"
+        elif d.get("kind") == "PROTOCOL_SCOPE_DIFFERENCE":
             sp = d.get("span") or exclusion_audit_span(slug, d.get("pmid"))
             if d.get("rule_id") and sp and span_is_verbatim(slug, d.get("pmid"), sp):
                 keep.append(dict(d, span=sp, span_source=span_source_of(slug, d.get("pmid"), sp)))
@@ -1952,11 +2223,42 @@ def needs_seed(x):
     return not x.get("in_our_pool") and not x.get("seeded_funnel")
 
 
+def enumeration_scope(x, cfg):
+    """PROTOCOL_SCOPE_DIFFERENCE named by the comparator's OWN enumeration (registry/comparator_enumerations, via
+    k_gap_table): rule E2 COMPARATOR_NOT_PLACEBO -- the comparator's own row lists the topic agent only against ACTIVE
+    drugs, while the topic protocol's comparator is placebo. Re-checked here, never trusted: the held source must still
+    have the recorded sha256 and every span line must be verbatim in it; anything else -> None (an open gap)."""
+    import hashlib
+    en = x.get("enumeration") or {}
+    if en.get("scope") != "OUT_OF_SCOPE" or en.get("rule_id") != "E2:COMPARATOR_NOT_PLACEBO" or not en.get("span"):
+        return None
+    comps = [c.lower() for c in (cfg.get("comparator_terms") or [])]
+    if not comps or any(c in en["span"].lower() for c in comps):
+        return None
+    src = os.path.join(ROOT, en.get("source") or "")
+    if not os.path.isfile(src):
+        return None
+    b = open(src, "rb").read()
+    if hashlib.sha256(b).hexdigest() != en.get("sha256"):
+        return None
+    held = b.decode("utf-8", "replace")
+    if not all(line in held for line in en["span"].split(" / ")):
+        return None
+    return {"kind": "PROTOCOL_SCOPE_DIFFERENCE", "rule_id": "E2:COMPARATOR_NOT_PLACEBO",
+            "screen_reason": f"the comparator's own row holds no {'/'.join(comps)} arm (active control only)",
+            "span": {"field": f"comparator supplementary trial table, reference [{en.get('ref')}]", "text": en["span"]},
+            "span_source": f"{en.get('source')} (sha256 {str(en.get('sha256'))[:12]}); {en.get('enumerated_from')}",
+            "protocol_rule": f"topic comparator_terms {comps}", "registered_eligibility": cfg.get("eligibility_summary")}
+
+
 def scope_difference(x, cfg, slug=None):
     """A comparator trial we do not pool, NAMED: PROTOCOL_SCOPE_DIFFERENCE (our registered screen excludes it, rule
     cited) or ESTIMAND_DIFFERENCE (its only available result is a different estimand, gate cited). None when the
     trial is an open gap (it must then stay visible as NO_ROW, never be dropped)."""
     import re as _re
+    en = enumeration_scope(x, cfg)
+    if en:
+        return en
     f = x.get("seeded_funnel") or {}
     if f.get("stage") == "SCREENED_OUT":
         if not f.get("rule_id"):
@@ -2274,6 +2576,8 @@ def lane_comparator_rows(slug, comp, ours):
     for src in (_j(sp) if os.path.exists(sp) else []):
         if src.get("format", "forest_reader_v1") != "forest_reader_v1":
             continue                      # the listing also names the lane's row identity map (not rows)
+        if src.get("slugs") and slug not in src["slugs"]:
+            continue                       # a source scoped to named topics (g1/forest-reader-binding) speaks for no other
         try:
             commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
                                     text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
@@ -2427,6 +2731,35 @@ def comparator_stated_k(comp):
             return (int(w) if w.isdigit() else _NUMW[w]), {"field": "comparator abstract", "text": m.group(0),
                                                            "source": os.path.relpath(fp, ROOT).replace(os.sep, "/")}
     return None, None
+
+
+def refresh_same_trials_after_bindings(o, pairs, method, comp):
+    """The per-trial same-trials comparison is built in topic() BEFORE the binding hooks run, so a trial that a binding
+    newly matched (route flipped to PRIMARY / SECONDARY_SINGLE, our_value set) was never in it: RESULT_AGREES was then
+    decided on a set that silently omitted the trial (esketamine TRANSFORM-1, 5 Oct). Re-run same_trials_compare on the
+    original pairs PLUS every matched trial with our value and a comparator row that is not yet a pair. A whole-pool
+    comparison (same_trials_per_trial present) is left as it is. Returns the labels added."""
+    st = o.get("same_trials") or {}
+    if "same_trials_per_trial" in o:
+        return []
+    # only trials a binding hook flipped AFTER the pairs were built: an own tuple or a secondary supplement row (a
+    # comparator-keyed confirm binding is never compared -- it agrees by construction, NOT_INDEPENDENT)
+    flipped_by = ("g1/confirm-unverified primary binding (own tuple)", "g1/binding secondary supplement")
+    add = []
+    for x in o.get("trials") or []:
+        cr = x.get("comparator_row")
+        if not (is_matched(x) and x.get("our_value") and cr) or not str(x.get("reclassified_by") or "").startswith(flipped_by):
+            continue
+        theirs = sm.SecondaryRow(meta_pmid=str(comp), meta_doi="", location={}, source_digest="", provenance="COMPARATOR_ROW",
+                                 trial_label=x["label"], measure=(cr.get("measure") or ""), outcome_definition="",
+                                 **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+        add.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+    if not add:
+        return []
+    o["same_trials"] = dict(same_trials_compare(list(pairs) + add, method), method_basis=st.get("method_basis"),
+                            comparator_rows=st.get("comparator_rows"),
+                            recomputed_after_bindings=[t.trial_label for _, t in add])
+    return [t.trial_label for _, t in add]
 
 
 def whole_pool_comparison(o, printed_k=None):
@@ -2712,6 +3045,13 @@ def topic(slug, T):
     comp_rows = [t for t in T["trials"] if t["slug"] == slug and t.get("drug") != "OTHER_AGENT"
                  and t.get("status") != "DUPLICATE_UNIT"]
     resolve_by_comparator_citation(comp_rows, S.get("comparator_pmid") or _smb_comparator(slug))
+    # ONE streaming pass over the AACT snapshot for every comparator NCT (registry_binding's per-trial ensure() is then a
+    # lookup): one pass per trial re-read the multi-GB files once per trial (denosumab, 11 trials: > 1 h on a busy disk)
+    try:
+        from kgap import aact_adapter as _aa
+        _aa.ensure(sorted({n for t in comp_rows for n in (t.get("ncts") or [])}))
+    except FileNotFoundError:
+        pass                                  # registry_binding reports SNAPSHOT_UNAVAILABLE per trial, unchanged
     other_agent = [t["label"][:60] for t in T["trials"] if t["slug"] == slug and t.get("drug") == "OTHER_AGENT"]
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
@@ -2824,7 +3164,8 @@ def topic(slug, T):
                        # read NOT_IN_OUR_POOL while its pair was in the comparison)
                        "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
                        else (agreement(row_value(vrow), theirs) if vrow is not None else "NOT_IN_OUR_POOL"), "comparator_row_state": theirs.state if theirs else None,
-                       "comparator_row_reasons": list(theirs.reasons or []) if theirs else []})
+                       "comparator_row_reasons": list(theirs.reasons or []) if theirs else [],
+                       **({"enumeration": t["enumeration"]} if t.get("enumeration") else {})})
     # comparator trials we hold NO record of: seed their held PubMed records through OUR build (in memory) once, so the
     # tracker says what our own screen/extraction does with each -- not just "identification gap"
     screened = {str(r["id"]): r for r in core["screening"]["records"]}
@@ -3048,7 +3389,12 @@ def topic(slug, T):
         out["g1r_reproduction"] = g1r_from_trials(out)
     apply_confirm_bindings(out)
     apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings.json"))
+    apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings_aact.json"))
+    apply_confirm_bindings(out, os.path.join(OUT, "g1_binding", "bindings_regulatory.json"))
     apply_secondary_bindings(out, os.path.join(OUT, "g1_binding", f"secondary_{out.get('slug')}.json"))
+    refresh_same_trials_after_bindings(out, pairs, method, comp)
+    apply_no_rows_comparator(out)          # after every binding: OUR verified rows are final before the pooled compare
+    apply_typed_comparator_rows(out)
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
