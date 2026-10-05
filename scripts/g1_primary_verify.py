@@ -103,6 +103,25 @@ def settle(results):
     return dict(ok[0], settled_by=f"VERIFIED_REPORTS_AGREE_{len(ok)}")
 
 
+def acronym_hits(acr, run):
+    """Europe PMC hits whose TITLE carries the trial's acronym (recorded in the output's 'titles')."""
+    from harness import http
+    if not run or not acr or len(acr) < 4:
+        return []
+    try:
+        st, b = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                             {"query": f'TITLE:"{acr}" AND SRC:MED', "format": "json", "resultType": "lite",
+                              "pageSize": "25"}, tries=2)
+        return [(r["pmid"], r.get("title") or "") for r in (json.loads(b.decode("utf-8")).get("resultList") or {})
+                .get("result") or [] if r.get("pmid")]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+NOT_A_TRIAL_REPORT = (r"meta-analys|systematic review|protocol|rationale|design|statistical analysis plan|review|"
+                      r"commentary|editorial|letter|correspondence")
+
+
 def choose_report(slug, t, run, titles, pubtypes):
     """(pmid, basis) or (None, why): the ONE report whose title names the intervention; when several do, the ONE whose
     publication type is a randomised controlled trial (never a comment / letter / erratum / review / protocol)."""
@@ -121,6 +140,14 @@ def choose_report(slug, t, run, titles, pubtypes):
                                                           r"design|statistical analysis plan", ti, re.I):
                 cands.append(p)
         basis = "EPMC_NCT_HITS_TITLE_NAMES_INTERVENTION"
+    if not cands:
+        # last route: the trial's acronym in a report title that names the intervention (never a review / protocol)
+        for acr in t.get("acronyms") or []:
+            for p, ti in acronym_hits(acr, run):
+                titles.setdefault(p, ti)
+                if re.search(pat, ti, re.I) and not re.search(NOT_A_TRIAL_REPORT, ti, re.I):
+                    cands.append(p)
+        basis = "EPMC_ACRONYM_TITLE_NAMES_INTERVENTION"
     cands = list(dict.fromkeys(cands))
     if len(cands) > 1:
         for p in cands:
