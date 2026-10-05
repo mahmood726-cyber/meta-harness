@@ -477,3 +477,49 @@ excludes.
 **How to attach on admission.** When REVIEW_REFERENCE_LIST admits a trial, join this file on `pmid` or `nct` (or on
 `comparator_label` for your tracker's label). The rows then reach the secondary tier with their findings intact,
 including POOL_UNCHECKABLE, the 99% interval level and resolved-value bases.
+
+## 5 Oct: admission-first — counted only by the tracker's own gate
+
+**The check.** `scripts/g1_admission_check.py` builds every accepted row EXACTLY as the secondary-tier dual hook does,
+then runs the tracker's own gates with the topic's registered spec and the build's family resolver:
+`sm.admit` (measure, outcome, timepoint, family), then `sm.consolidate`. Nothing is loosened. Results are in
+`registry/model_proposals/g1_forest_admission.json`.
+
+Caveat: `our_trials` runs here without the untracked local AACT store, so family resolution can only be weaker than
+yours. My counts are a lower bound.
+
+**The pre-filter.** It runs before any read and spends reads only on figures whose own words pass the
+measure / outcome / timepoint gates (`g1_admission_check.prefilter`). New reads:
+
+| figure | reader result | admitted |
+|---|---|---|
+| tocilizumab 34050796 Fig3 panel A (mortality, counts) | ACCEPTED (MH-RE) | 5 of 9 |
+| tocilizumab 34768455 f004 (28-day mortality, counts; its f002 was refused TIMEPOINT_30_NE_28) | ACCEPTED (FE) | 5 of 9 |
+| omega3 39238993 F1 (icosapent ethyl, primary composite, counts) | ACCEPTED (MH-RE) | 2 of 3 |
+
+The remaining refusals are all FAMILY_NOT_RESOLVED (trials not in our pool).
+
+**Admitted-by-tracker, NON-comparator rows (the new route's source):**
+
+| topic | admitted | of N |
+|---|---|---|
+| tocilizumab | 19 | 149 |
+| omega3 | 11 | 53 |
+| probiotics | 4 | 64 |
+| ticagrelor | 0 | 68 |
+| pcsk9 | 0 | 16 |
+| metformin | 0 | 17 |
+
+These counts include comparator rows: none. Admitted means the rows reach verification. TWO_SOURCE or SECONDARY_SINGLE
+is still yours to decide downstream.
+
+**Why the zeros stay zero under unchanged gates:**
+- **ticagrelor and pcsk9** — estimand HR:
+  - The pre-filter over every recorded candidate (43 and 96 metas) finds NO per-trial MACE plot printing hazard ratios
+    with a stated timepoint. The open metas print RR/OR from counts, which cannot become HR.
+  - ticagrelor's protocol timepoint ("12 months or longest") together with core `death` makes timepoint_identity read
+    only a mortality-style statement ("N-day mortality"). No MACE meta states one.
+- **metformin:** every candidate that passes the outcome words is a different intervention (acupuncture, vitamin D,
+  herbal formulas, L-carnitine, letrozole). No open meta plots metformin + clomifene vs clomifene ovulation per trial,
+  except the comparator itself.
+- **probiotics:** no unread candidate passes. The admitted 4 come from 29023420.
