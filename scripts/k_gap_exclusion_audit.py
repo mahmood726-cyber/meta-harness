@@ -429,10 +429,10 @@ def fold_rec(rec):
     return r
 
 
-def classify(rec, cfg):
+def classify(rec, cfg, decide_rec=None):
     """(class, subclass, detail) for one excluded record under its topic config. A TRUE_SCOPE_DIFFERENCE is returned
     only with detail['span'] set (the record's words establishing it); without one it is INSUFFICIENT_RECORD."""
-    cls, sub, base = _classify(rec, cfg)
+    cls, sub, base = _classify(rec, cfg, decide_rec)
     if cls == "TRUE_SCOPE_DIFFERENCE" and not (base or {}).get("span"):
         return "INSUFFICIENT_RECORD", sub.split(" (")[0].split(":")[0] + "_NO_SPAN", base
     return cls, sub, base
@@ -446,9 +446,14 @@ def _with_span(base, span):
     return dict(base, span=span)
 
 
-def _classify(rec, cfg):
+def _classify(rec, cfg, decide_rec=None):
+    # decide_rec: the record the exclusion was MADE on. The full-text stage passes the record + its full text as `rec`
+    # (evidence for the excluding fact) but the screen and its repairs must run on the record itself -- an incidental
+    # 'a randomized, placebo-controlled study' in a full text's methods (citing another trial) made the screen include
+    # Zarpelon (an open-label trial) and the item read INCONSISTENT
+    dr = decide_rec or rec
     inc = copy.deepcopy(cfg.get("include") or {})
-    base = decide(rec, inc)
+    base = decide(dr, inc)
     if base["decision"] == "include":
         # a FULL TEXT can mention 'placebo-controlled' while citing ANOTHER study (Zarpelon 27223641's sample-size
         # paragraph) and so pass the ruleset's design check; an explicit self-description of THIS study's design as open
@@ -475,20 +480,20 @@ def _classify(rec, cfg):
     rule, reason = base["rule_id"], base["reason"] or ""
     ab = rec.get("abstract") or ""
     # --- SCREENER_ERROR: a repair of a known class flips it to include
-    if decide(fold_rec(rec), inc)["decision"] == "include":
+    if decide(fold_rec(dr), inc)["decision"] == "include":
         return "SCREENER_ERROR", "COMPARATOR_WORDING", base
     if rule == "X3" and "no eligible comparator" in reason:
         # the comparator list holds only PHRASES ('placebo group', 'placebo-controlled'): an abstract that says
         # 'metformin or placebo' names the comparator but matches none. Repair: add each phrase's head term.
         heads = sorted({re.split(r"[\s-]", t.strip())[0] for t in (inc.get("comparator_any") or []) if t.strip()})
         rep = dict(inc, comparator_any=list(inc.get("comparator_any") or []) + heads)
-        if decide(rec, rep)["decision"] == "include":
+        if decide(dr, rep)["decision"] == "include":
             return "SCREENER_ERROR", "COMPARATOR_WORDING", base
     # the 'prevention' repair turns the protocol into a prevention protocol: never for a protocol that EXCLUDES prevention
     # (tranexamic-acid-pph lists 'prevent' / 'prophylaxis' in population_none; WOMAN-2 is a prophylaxis trial)
     excludes_prevention = any(re.match(r"prevent|prophyla", str(t).strip(), re.I) for t in inc.get("population_none") or [])
     if rule == "X2" and not inc.get("prevention") and not excludes_prevention:
-        if decide(rec, dict(inc, prevention=True))["decision"] == "include":
+        if decide(dr, dict(inc, prevention=True))["decision"] == "include":
             return ("SCREENER_ERROR", "CONDITION_AS_OUTCOME (population term shared with the outcome)" if condition_is_outcome(cfg)
                     else "POPULATION_ONLY_IN_ABSTRACT",
                     base)
@@ -498,7 +503,7 @@ def _classify(rec, cfg):
         # (background) vs 'randomly assigned to receive sotagliflozin or placebo' (what was randomised).
         av = _terms_rx(inc.get("intervention_any"))
         alloc = av is not None and any(av.search(s["text"]) for s in _all_spans(rec, THIS_STUDY_RANDOMISED, ("abstract",)))
-        if alloc and decide(rec, dict(inc, intervention_in_title=False))["decision"] == "include":
+        if alloc and decide(dr, dict(inc, intervention_in_title=False))["decision"] == "include":
             return "SCREENER_ERROR", "INTERVENTION_ONLY_IN_ABSTRACT", base
     # --- no repair flips it: does the record STATE the excluding fact, or simply not say?
     if not ab.strip():
