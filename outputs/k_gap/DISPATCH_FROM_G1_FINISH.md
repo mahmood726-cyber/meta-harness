@@ -41,6 +41,21 @@ records it correctly).
   records store their prompt. SMART's PMC text is an NIH author manuscript, so record mc-dcb6796c (in f8d674b5f) was
   removed from the tree and its re-ask never committed; it remains in history at f8d674b5f.
 
+## To acq/k-gap and the captain: SALT is screened IN; the pool gap is the engine's cluster-crossover gate (5 Oct)
+
+- SALT (27749094), SMART (29485925) and SPLIT (26444692) are **INCLUDED by our served screen** (docs/reviews/
+  balanced-crystalloids-vs-saline-mortality/review.json). A REVIEW_REFERENCE_LIST admission (the forest-reader lane's
+  proposed route; not on acq/k-gap) would not change them: they are already admitted.
+- They are outside the served pool because the engine refuses them: `ENGINE_CANNOT_CONSUME(design=cluster_crossover,
+  missing=design_adjusted_effect|ICC)` -- naive counts from a cluster-crossover trial overstate precision.
+- What would admit them (harness.design_variance / design_key): an ICC + cluster size from an open source
+  (ICC_DESIGN_EFFECT), or the trial's published cluster-adjusted estimate ON THE DECLARED ESTIMAND
+  (PUBLISHED_ADJUSTED_SUBSTITUTED). SMART's own Table 2 prints a mixed-model adjusted ODDS ratio for in-hospital death,
+  0.90 (0.80 to 1.01); the topic declares RR. **Decision for Mahmood**: may a trial's cluster-adjusted OR stand for the
+  declared RR (mortality ~10-11%: OR and RR differ)? Without that, or an ICC, the three stay outside the pool.
+- Local recount (this branch, page recompute): balanced-crystalloids k 2/5 (N 6), confirmed 2 (SMART, SALT via their
+  own sources); MATCHED_ARE_VERIFIED fails because no comparator trial is in the served pool.
+
 ## How the acquired rows are admitted (scripts/g1_trial_acquire.py → registry/g1_acquired/<slug>.json)
 
 - One **recorded** codex call per trial (reproducible_ai.model_call_live; concurrency 3), the comparator's row never shown.
