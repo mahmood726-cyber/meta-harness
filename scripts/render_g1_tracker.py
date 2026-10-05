@@ -112,7 +112,43 @@ def counts(trial: dict, comparator_ids: set[str]) -> tuple[bool, str]:
         if meta & comparator_ids:
             return False, f"{route} read from the comparator itself: not counted (anti-circularity)"
         return True, "one non-comparator meta row (PMID " + ", ".join(sorted(meta)) + "), queued for primary verification"
+    if route == "SWEEP_AACT_PRIMARY":
+        ok, why = aact_binding(trial)
+        return ok, why
     return False, f"{route or 'no route'}: not counted"
+
+
+def _numeric(v) -> bool:
+    try:
+        float(str(v).replace(",", ""))
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def aact_binding(trial: dict) -> tuple[bool, str]:
+    """D1-SWEEP-AACT-PRIMARY (registry/g1_decisions.json; Mahmood 2 Oct): the trial's own posted results in a versioned
+    AACT snapshot are a PRIMARY source, counted only with the recorded registry binding the sweep's gates produced --
+    NCT, registry outcome title, snapshot id + digest, the posted-N = randomised-N guard, and two-arm counts or a
+    two-sided effect with its CI. Anything missing: not counted (fail-closed)."""
+    sw = trial.get("sweep") if isinstance(trial.get("sweep"), dict) else {}
+    b = sw.get("basis") if isinstance(sw.get("basis"), dict) else {}
+    v = sw.get("value") if isinstance(sw.get("value"), dict) else {}
+    snap = b.get("snapshot") if isinstance(b.get("snapshot"), dict) else {}
+    missing = [k for k, ok in (("NCT", bool(re.fullmatch(r"NCT\d{8}", str(b.get("nct") or "")))),
+                               ("registry outcome", bool(str(b.get("outcome") or "").strip())),
+                               ("snapshot id", bool(snap.get("id"))),
+                               ("snapshot digest", bool(re.fullmatch(r"[0-9a-f]{64}", str(snap.get("digest") or "")))),
+                               ("randomised-population guard", str(b.get("guard") or "").startswith("POSTED_N_EQUALS_RANDOMISED_N")))
+               if not ok]
+    counts_ok = all(isinstance(v.get(k), int) and not isinstance(v.get(k), bool) for k in ("events_t", "n_t", "events_c", "n_c"))
+    effect_ok = all(_numeric(v.get(k)) for k in ("effect", "lower", "upper"))
+    if not (counts_ok or effect_ok):
+        missing.append("two-arm counts or a two-sided effect")
+    if missing:
+        return False, "SWEEP_AACT_PRIMARY without " + ", ".join(missing) + ": not counted (fail-closed)"
+    return True, (f"primary source: posted results, {b['nct']} '{str(b['outcome'])[:60]}' ({snap['id']}, "
+                  f"{str(snap['digest'])[:12]}; {str(b['guard']).split(' ')[0]}) [D1-SWEEP-AACT-PRIMARY]")
 
 
 def comparator_sourced(trial: dict, comparator_ids: set[str]) -> tuple[bool, str]:
@@ -302,6 +338,26 @@ def render(root: Path = ROOT) -> str:
             f"<td>{same}</td><td>{_list(rec.get('named_differences') or [], 'trial', 'kind')}</td>"
             f"<td>{_list(rec.get('comparator_findings') or [], 'finding', 'trial')}</td></tr>")
     parts.append("</table>")
+    # D3-COMPARATOR-POOLS-NO-RCT: still in the denominator, listed here with the comparator's own words
+    noatt = [(s, rec.get("g1_status") or {}) for s, rec in recs.items()
+             if (rec.get("g1_status") or {}).get("state") == "COMPARATOR_POOLS_NO_RCT"]
+    if noatt:
+        parts.append(f"<h2 id='not-attainable'>Not attainable against this comparator ({len(noatt)} of {len(recs)} "
+                     f"topics; still counted in the {len(recs)})</h2><ul>")
+        for s, g in noatt:
+            sp = g.get("span") or {}
+            parts.append(f"<li><a href='#{_e(s)}'>{_e(s)}</a>: the comparator pools no randomised trials -- "
+                         f"&ldquo;{_e(sp.get('text'))}&rdquo; ({_e(sp.get('source'))}, {_e(sp.get('field'))}). "
+                         f"{_e(g.get('flag'))} [{_e(g.get('decision'))}]</li>")
+        parts.append("</ul>")
+    dec_p = root / "registry" / "g1_decisions.json"
+    decs = (json.loads(dec_p.read_text(encoding="utf-8")).get("decisions") or []) if dec_p.is_file() else []
+    if decs:
+        parts.append("<h2 id='decisions'>Decisions applied</h2><ul>")
+        for d in decs:
+            parts.append(f"<li><strong>{_e(d.get('id'))}</strong> ({_e(d.get('decided'))}, {_e(d.get('by'))}): "
+                         f"{_e(d.get('rule'))}</li>")
+        parts.append("</ul>")
     for s, rec in recs.items():
         r = summ[s]
         parts.append(f"<h2 id='{_e(s)}'>{_e(s)} <span class='muted'>(comparator PMID "

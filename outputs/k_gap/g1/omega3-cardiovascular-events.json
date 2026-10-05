@@ -205,15 +205,16 @@
  "blockers": {
   "SCREENER_ERROR:POPULATION_VOCABULARY (recorded reader: population MET, quoted)": 1,
   "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 1,
-  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 5,
+  "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 3,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 2,
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 2,
   "EXTRACTION:ENDPOINT_UNBOUND": 1,
   "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)": 1,
   "SCREENED_OUT_UNAUDITED:X-DESIGN": 1,
   "EXTRACTION:RESULT_INCOMPATIBLE": 1,
   "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]": 1
  },
- "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+ "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
  "comparator_findings": [],
  "k_ours_total": 6,
@@ -270,6 +271,37 @@
     "pmid": "2571009",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-1e1ed8b61a3cdb8a89ee55472469d9cc"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-d2776db7b2b6620e617acae079484ac7"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design'], adjud",
+      "record_id": "mc-2fec49b8a1472b958dda4232f6da089d"
+     }
+    ]
+   },
    "scope_difference": null,
    "blocker": "SCREENER_ERROR:POPULATION_VOCABULARY (recorded reader: population MET, quoted)",
    "coverage": "COMPARATOR_SOURCED",
@@ -324,6 +356,34 @@
     "reason": "not double-blind/placebo-controlled (record: 8540453).",
     "pmid": "8540453",
     "already_in_screen": true
+   },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Eritsland 1996 [24]",
+     "context": "Eritsland 1996 [24] | Norway | 610 (317/293) | 60.0 | 86.9 | 25.3 | 19.2 | 22.3 | 6.9 | Secondary | N-3 EPA + DHA vs nil | 1.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 8540453).",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-bd22b5de9399d814e311909d3e0cb9fc"
+     }
+    ]
    },
    "scope_difference": {
     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
@@ -390,6 +450,37 @@
     "pmid": "10465168",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 10465168).",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-edaf2dcb010104f0390643b310659a5d"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-d2776db7b2b6620e617acae079484ac7"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design'], adjud",
+      "record_id": "mc-2fec49b8a1472b958dda4232f6da089d"
+     }
+    ]
+   },
    "scope_difference": null,
    "blocker": "INSUFFICIENT_RECORD:BLINDING_NOT_STATED",
    "coverage": null,
@@ -435,8 +526,17 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "11451717",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
-   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -490,6 +590,34 @@
     "pmid": "11815311",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Bemelmans 2002 [27]",
+     "context": "Bemelmans 2002 [27] | Netherlands | 266 (109/157) | 54.1 | 44.0 | NA | 49.2 | 48.5 | NA | Primary | a-linolenic acid vs omega-6 | 2.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X3",
+    "reason": "the randomised intervention is not ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-b577c227b4861ee17e13ecbadaf2bb9f"
+     }
+    ]
+   },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
     "rule_id": "X3",
@@ -538,6 +666,23 @@
     "pmid": "12571649",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-edaf2dcb010104f0390643b310659a5d"
+     }
+    ]
+   },
    "scope_difference": {
     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
     "rule_id": "G1-OUTCOME-SET",
@@ -579,6 +724,34 @@
     "pmid": "16267249",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Leaf 2005 [29]",
+     "context": "Leaf 2005 [29] | USA | 402 (200/202) | 65.5 | 83.1 | NA | 12.2 | NA | NA | Secondary | N-3 EPA + DHA vs MUFA | 1.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['population'], a",
+      "record_id": "mc-b577c227b4861ee17e13ecbadaf2bb9f"
+     }
+    ]
+   },
    "scope_difference": {
     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
     "rule_id": "G1-OUTCOME-SET",
@@ -619,6 +792,34 @@
     "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
     "pmid": "15956633",
     "already_in_screen": true
+   },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Raitt 2005 [30]",
+     "context": "Raitt 2005 [30] | USA | 200 (100/100) | 62.5 | 86.0 | NA | NA | 50.5 | 23.5 | Secondary | N-3 EPA + DHA vs MUFA | 2.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['population'], a",
+      "record_id": "mc-b577c227b4861ee17e13ecbadaf2bb9f"
+     }
+    ]
    },
    "scope_difference": {
     "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
@@ -684,6 +885,30 @@
     "pmid": "16772624",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['population'], a",
+      "record_id": "mc-edaf2dcb010104f0390643b310659a5d"
+     },
+     {
+      "task": "screening_excluded_reader2",
+      "reader": "READER_2",
+      "model_decision": "ELIGIBLE",
+      "agreement": "RULE_MODEL_DISAGREE(rule=exclude, model=ELIGIBLE, axes_not_m",
+      "record_id": "mc-8f9034269f3bce3db79c986403b78a8f"
+     }
+    ]
+   },
    "scope_difference": null,
    "blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
    "coverage": "COMPARATOR_SOURCED",
@@ -717,7 +942,7 @@
    "family": "PMID 17398308",
    "in_our_pool": false,
    "route": "UNVERIFIED",
-   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK, meta 37031750 BLOCKED_CROSSCHECK",
+   "basis": "a non-comparator meta row, not admissible as SECONDARY_SINGLE: CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK, meta 37031750 BLOCKED_CROSSCHECK, meta 39238993 BLOCKED_CROSSCHECK",
    "our_refusal": "IN SCREEN PMID 17398308: SCREENED_OUT X-DESIGN: not double-blind/placebo-controlled (record: 17398308).",
    "gap_class": "SCREEN_OR_ELIGIBILITY",
    "absent_code": null,
@@ -752,12 +977,12 @@
    },
    "g1_countable": false,
    "secondary_single": {
-    "why": "CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK, meta 37031750 BLOCKED_CROSSCHECK"
+    "why": "CONTRADICTED: meta 35187035 BLOCKED_CROSSCHECK, meta 37031750 BLOCKED_CROSSCHECK, meta 39238993 BLOCKED_CROSSCHECK"
    },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "BLOCKED_CROSSCHECK",
    "comparator_row_reasons": [
-    "CROSSCHECK_DISAGREES:['35187035', '35905212', '37031750']"
+    "CROSSCHECK_DISAGREES:['35187035', '35905212', '37031750', '39238993']"
    ],
    "seeded_funnel": {
     "stage": "SCREENED_OUT",
@@ -765,6 +990,37 @@
     "reason": "not double-blind/placebo-controlled (record: 17398308).",
     "pmid": "17398308",
     "already_in_screen": true
+   },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 17398308).",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-edaf2dcb010104f0390643b310659a5d"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-d2776db7b2b6620e617acae079484ac7"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-2fec49b8a1472b958dda4232f6da089d"
+     }
+    ]
    },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
@@ -834,6 +1090,15 @@
    "comparator_row_reasons": [
     "CROSSCHECK_DISAGREES:['35187035', '35905212']"
    ],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "18757090",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
    "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": null,
@@ -885,6 +1150,23 @@
     "reason": "the randomised intervention is not ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic",
     "pmid": "18489927",
     "already_in_screen": true
+   },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X3",
+    "reason": "the randomised intervention is not ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-1e1ed8b61a3cdb8a89ee55472469d9cc"
+     }
+    ]
    },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
@@ -970,6 +1252,34 @@
     "pmid": "21045096",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Quinn 2010 [35]",
+     "context": "Quinn 2010 [35] | USA | 402 (238/164) | 76.0 | 47.8 | 26.0 | 23.4 | NA | NA | Primary | N-3 DHA vs n-6 LA | 1.5 yr | 5"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'alzheimer'.",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['population'], a",
+      "record_id": "mc-b577c227b4861ee17e13ecbadaf2bb9f"
+     }
+    ]
+   },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
     "rule_id": "X2",
@@ -1040,6 +1350,13 @@
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "POOLED"
+   },
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -1084,8 +1401,17 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "20389249",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
-   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1157,8 +1483,17 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "TWO_SOURCE_VERIFIED",
    "comparator_row_reasons": [],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "21060071",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
-   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
+   "blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1234,6 +1569,13 @@
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
    "comparator_row_state": "TWO_SOURCE_VERIFIED",
    "comparator_row_reasons": [],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "POOLED"
+   },
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -1342,6 +1684,15 @@
    "comparator_row_reasons": [
     "CROSSCHECK_DISAGREES:['35905212', '37031750']"
    ],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "22686415",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
    "blocker": "EXTRACTION:ENDPOINT_UNBOUND",
    "coverage": null,
@@ -1395,6 +1746,41 @@
     "rule_id": "X2",
     "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
     "pmid": "23265344"
+   },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Macchia 2013 [41]",
+     "context": "Macchia 2013 [41] | Argentina | 586 (289/297) | 66.1 | 54.8 | NA | 7.6 | 91.4 | 12.9 | Secondary | N-3 EPA + DHA vs MUFA | 1.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['intervention', ",
+      "record_id": "mc-d2776db7b2b6620e617acae079484ac7"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "ELIGIBLE",
+      "agreement": "RULE_MODEL_DISAGREE(rule=exclude, model=ELIGIBLE, axes_not_m",
+      "record_id": "mc-2fec49b8a1472b958dda4232f6da089d"
+     }
+    ]
    },
    "scope_difference": null,
    "blocker": "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome)",
@@ -1471,6 +1857,15 @@
    "comparator_row_reasons": [
     "CROSSCHECK_DISAGREES:['35187035', '35905212', '37031750']"
    ],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "23656645",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
    "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
@@ -1547,6 +1942,41 @@
     "rule_id": "X2",
     "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
     "pmid": "25277614"
+   },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Nigam 2014 [43]",
+     "context": "Nigam 2014 [43] | Canada | 316 (153/163) | 61.0 | 66.8 | 29.0 | NA | 43.4 | 8.2 | Secondary | N-3 EPA + DHA vs n-6 | 1.0 yr | 3"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['population'], a",
+      "record_id": "mc-d2776db7b2b6620e617acae079484ac7"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "ELIGIBLE",
+      "agreement": "RULE_MODEL_DISAGREE(rule=exclude, model=ELIGIBLE, axes_not_m",
+      "record_id": "mc-2fec49b8a1472b958dda4232f6da089d"
+     }
+    ]
    },
    "scope_difference": null,
    "blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
@@ -1659,6 +2089,30 @@
     "pmid": "24638908",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'eye disease'.",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "ELIGIBLE",
+      "agreement": "RULE_MODEL_DISAGREE(rule=exclude, model=ELIGIBLE, axes_not_m",
+      "record_id": "mc-1e1ed8b61a3cdb8a89ee55472469d9cc"
+     },
+     {
+      "task": "screening_excluded_reader2",
+      "reader": "READER_2",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['population'], a",
+      "record_id": "mc-8f9034269f3bce3db79c986403b78a8f"
+     }
+    ]
+   },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
     "rule_id": "X2",
@@ -1726,6 +2180,23 @@
     "reason": "not double-blind/placebo-controlled (record: 25305703).",
     "pmid": "25305703",
     "already_in_screen": true
+   },
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 25305703).",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-1e1ed8b61a3cdb8a89ee55472469d9cc"
+     }
+    ]
    },
    "scope_difference": {
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
@@ -1797,6 +2268,34 @@
     "reason": "not double-blind/placebo-controlled (record: 29246960).",
     "pmid": "29246960",
     "already_in_screen": true
+   },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Alfaddagh 2017 [46]",
+     "context": "Alfaddagh 2017 [46] | USA | 240 (126/114) | 63.0 | 85.0 | 30.7 | NA | 83.3 | 28.3 | Secondary | N-3 omega-3 vs nil | 2.5 yr | 3"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X-DESIGN",
+    "reason": "not double-blind/placebo-controlled (record: 29246960).",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-b577c227b4861ee17e13ecbadaf2bb9f"
+     }
+    ]
    },
    "scope_difference": null,
    "blocker": "SCREENED_OUT_UNAUDITED:X-DESIGN",
@@ -2028,6 +2527,15 @@
    "comparator_row_reasons": [
     "CROSSCHECK_DISAGREES:['35187035', '35905212']"
    ],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "30146932",
+    "rule_id": "INCLUDE"
+   },
    "scope_difference": null,
    "blocker": "EXTRACTION:RESULT_INCOMPATIBLE",
    "coverage": null,
@@ -2165,6 +2673,48 @@
     "pmid": "30541065",
     "already_in_screen": true
    },
+   "identification": {
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "35905212",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "Table 1",
+     "layout": "row",
+     "label": "Pahor 2019 [48]",
+     "context": "Pahor 2019 [48] | USA | 289 (148/141) | 77.6 | 52.6 | 31.4 | NA | 69.2 | 23.5 | Primary | N-3 vs PUFA plus or minus losartan | 1.0 yr | 4"
+    },
+    "held_ref": "cache/comparators/35905212/2026-09-28_kgap_jats.xml",
+    "digest": "8cfb6014be780f86977f1d261c9952c9047a0b2296872f8703cd65fd3a5e0e40",
+    "proposal": null
+   },
+   "screen_eligibility": {
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart f",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-b577c227b4861ee17e13ecbadaf2bb9f"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-d2776db7b2b6620e617acae079484ac7"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-2fec49b8a1472b958dda4232f6da089d"
+     }
+    ]
+   },
    "scope_difference": null,
    "blocker": "SCREENER_ERROR:CONDITION_AS_OUTCOME (population term shared with the outcome) [full text: REGEX_ON_FULLTEXT]",
    "coverage": "COMPARATOR_SOURCED",
@@ -2242,8 +2792,15 @@
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
    "comparator_row_state": "BLOCKED_CROSSCHECK",
    "comparator_row_reasons": [
-    "CROSSCHECK_DISAGREES:['35905212', '37031750']"
+    "CROSSCHECK_DISAGREES:['35905212', '37031750', '39238993']"
    ],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "POOLED"
+   },
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -2297,6 +2854,13 @@
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "identification": {
+    "route": "OUR_SEARCH"
+   },
+   "screen_eligibility": {
+    "state": "ELIGIBLE",
+    "basis": "POOLED"
+   },
    "scope_difference": null,
    "blocker": null,
    "coverage": "INDEPENDENT"
@@ -2433,11 +2997,11 @@
  ],
  "secondary_tally": {
   "SECONDARY_UNVERIFIED": 12,
-  "BLOCKED_CROSSCHECK": 13,
+  "BLOCKED_CROSSCHECK": 15,
   "TWO_SOURCE_VERIFIED": 4,
   "PRIMARY_VERIFIED": 3,
   "MISMATCH": 6,
-  "REFUSED": 34
+  "REFUSED": 35
  },
  "secondary_skipped": {
   "28673352": "NO_OUTCOME_FOREST_FIGURE",

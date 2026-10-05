@@ -1,0 +1,38 @@
+{
+ "rule": "Typed G1 decisions. Each is applied in code, planted by a test that fails without it (tests/test_g1_decisions.py), and recorded in the tracker artefact (G1_TRACKER.json['decisions'], the topic file it changes, and the page). Made by Mahmood, or by the captain under his delegation as stated per entry.",
+ "decisions": [
+  {
+   "id": "D1-SWEEP-AACT-PRIMARY",
+   "decided": "2026-10-02",
+   "by": "Mahmood (approval relayed 2026-10-05)",
+   "rule": "A trial's own posted results in a versioned AACT snapshot count as a PRIMARY source on the page (route SWEEP_AACT_PRIMARY), only with the recorded registry binding: NCT, the registry outcome title, the snapshot id + digest, the posted-N = randomised-N guard, and two-arm counts or a two-sided effect with its CI. Anything missing is not counted (fail-closed).",
+   "applied_in": "scripts/render_g1_tracker.py:counts"
+  },
+  {
+   "id": "D2-ONE-TRIAL-SHARE",
+   "decided": "2026-10-05",
+   "by": "captain under Mahmood's delegation (dispatch 2026-10-05)",
+   "rule": "ONE_COMPARABLE_TRIAL passes RESULT_AGREES only when the directly comparable pairs that AGREE carry at least half of the shared trials' participants AND every other shared pair is a named MEASURE_DIFFERENCE with the same conclusion. A pair without a participant count, or a shared pair that is neither, fails closed. One small trial never carries a topic. Participants come from the pair's arm counts, else from the trial's OWN held abstract stating its randomised N (verb before the number, never negated or future, exactly one N; span recorded) -- g1_tracker.stated_randomised_n (corpus: 35 of 296 comparator trials with a held abstract state one).",
+   "threshold": 0.5,
+   "applied_in": "scripts/g1_tracker.py:same_trials_compare"
+  },
+  {
+   "id": "D3-COMPARATOR-POOLS-NO-RCT",
+   "decided": "2026-10-05",
+   "by": "captain under Mahmood's delegation (dispatch 2026-10-05)",
+   "rule": "A comparator that pools no RCTs cannot be matched trial-for-trial by an RCT review: the topic stays in the denominator with status COMPARATOR_POOLS_NO_RCT, a span quoted verbatim from the comparator's own held record, and is listed on the page as not attainable against this comparator. Replacing the comparator is Mahmood's decision.",
+   "applied_in": "scripts/g1_tracker.py:g1_status",
+   "topics": {
+    "statins-primary-prevention-elderly": {
+     "comparator_pmid": "39076238",
+     "span": {
+      "text": "Twelve eligible observational studies (n = 1,627,434) were enrolled.",
+      "source": "cache/comparators/39076238/2026-09-15_pubmed_efetch.xml",
+      "field": "abstract"
+     },
+     "flag": "FOR MAHMOOD: replace the comparator (an RCT meta-analysis of statins in older adults) or keep the topic as not attainable"
+    }
+   }
+  }
+ ]
+}
