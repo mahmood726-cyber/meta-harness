@@ -872,7 +872,7 @@ def agree_count(a, b):
     """Integers equal exactly; a thousands separator (comma, space, thin space) is not a digit ('10 637' = '10637')."""
     if a is None and b is None:
         return True, None
-    sa, sb = (re.sub(r"[,\s   ]", "", str(x or "")) for x in (a, b))
+    sa, sb = (re.sub(r"[,\s   ]", "", ("" if x is None else str(x))) for x in (a, b))
     return (sa == sb and sa.isdigit()), (int(sa) if sa.isdigit() else None)
 
 
