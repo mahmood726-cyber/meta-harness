@@ -208,8 +208,12 @@ def _num_tokens(q):
         prev = before[-1] if before else " "
         # a dash after a digit -- spaced or not: '0.80-1.01', '0.80 - 1.01' -- is a RANGE dash, never a minus; any other
         # leading dash is the number's sign. A leading decimal ('.85') is read as 0.85, never as 85 (codex v8-p0-fixes)
-        neg = bool(m.group(1)) and not (prev.isdigit() or prev == ".")
+        glued = m.start() > 0 and (text[m.start() - 1].isdigit() or text[m.start() - 1] == ".")
+        spaced_after_digit = bool(m.group(1)) and not glued and (prev.isdigit() or prev == ".")
+        neg = bool(m.group(1)) and not glued and not spaced_after_digit
         out.append(float(m.group(2)) * (-1 if neg else 1))
+        if spaced_after_digit:          # '1.2 -3.4': two values or a range -- ambiguous, both readings (v8-p1-fixes g1#1)
+            out.append(-out[-1])
     return out
 
 
@@ -239,11 +243,13 @@ def label_cites(lab, xml, refs):
     out = set()
     if not (lab or "").strip():
         return out
-    for m in re.finditer(re.escape(lab.strip()), t, re.I):
+    # the label as a WHOLE word: 'Lee' never matches inside 'Kleen' (codex v8-p1-fixes g1#2)
+    for m in re.finditer(r"(?<!\w)" + re.escape(lab.strip()) + r"(?!\w)", t, re.I):
         # only the citation DIRECTLY after the label (an 'et al.' / year may sit between) -- never one further on, which
         # belongs to the next named study ('Alpha [1]. Excluded: Beta [2]')
         c = re.match(r"\s*(?:et\s+al\.?,?\s*)?(?:\(?\d{4}[a-z]?\)?,?\s*)?\[([\d,\s\-–]+)\]", t[m.end():])
         for grp in ([c.group(1)] if c else []):
+            grp = re.sub(r"\s*[\-–]\s*", "-", grp)        # '[3 - 5]' is the range 3-5 (codex v8-p1-fixes g1#3)
             for part in re.split(r"[,\s]+", grp.strip()):
                 rng = re.split(r"[\-–]", part)
                 if len(rng) == 2 and rng[0].isdigit() and rng[1].isdigit():

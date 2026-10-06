@@ -302,10 +302,11 @@ def _eq(a, b):
 def _count(v):
     """A count as PRINTED: an integer, thousands separators allowed. A decimal ('100.0') is not a count -- stripping its
     non-digits made '100.0' read 1000 and confirm a denominator ten times too large (codex binding-v8-fe3ed2a7:g1#4)."""
-    t = str(v).strip().replace(",", "").replace("\u2009", "").replace(" ", "")
-    if not re.fullmatch(r"\d+", t):
+    t = str(v).strip().replace("\u2009", ",").replace("\u202f", ",")
+    # thousands grouping must be GROUPING: '1,000' is 1000; '100,5' is a decimal comma, not 1005 (codex v8-p1-fixes g1#4)
+    if not re.fullmatch(r"\d{1,3}(?:,\d{3})+|\d+", t):
         raise ValueError(f"not a count: {v!r}")
-    return int(t)
+    return int(t.replace(",", ""))
 
 
 _MEASURE = {"HR": "HR", "HAZARD RATIO": "HR", "RR": "RR", "RISK RATIO": "RR", "RELATIVE RISK": "RR", "OR": "OR",

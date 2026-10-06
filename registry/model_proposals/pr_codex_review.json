@@ -1299,5 +1299,82 @@
     "fixed_on": "v8/comparator-switches-2026-10-06"
    }
   ]
+ },
+ "v8-p1-fixes": {
+  "base": "9ff0e26ed",
+  "head": "99fba0526",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_binding_aact.py",
+     "scripts/g1_binding_enumerate.py",
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "6b3bf1483b20936e21fa951dcdf9702a87be5e83052c99bd5fbe7aa1b2b462f0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_num_tokens",
+    "severity": "P0",
+    "claim": "Stripping preceding whitespace makes consecutive negative table values look like positive range endpoints. The same changed logic appears in numbers_in_span.",
+    "failing_input": "_num_tokens('Mean difference and 95% CI: -1.2 -2.0 -0.4')",
+    "expected": "[95.0, -1.2, -2.0, -0.4]",
+    "actual": "[95.0, -1.2, 2.0, 0.4]",
+    "id": "v8-p1-fixes:g1#1",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "label_cites",
+    "severity": "P1",
+    "claim": "Labels match inside other author names, allowing another study's citation to satisfy the new binding check.",
+    "failing_input": "label_cites('Lee', '<p>Lee [1]. McLee [2].</p>', {})",
+    "expected": "{'1'}; reference 2 must not count as evidence for Lee.",
+    "actual": "{'1', '2'}; gate_enum's new check therefore does not reject reference 2.",
+    "id": "v8-p1-fixes:g1#2",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "label_cites",
+    "severity": "P1",
+    "claim": "Whitespace around a citation-range dash drops intermediate references, causing the binding check to reject a correctly cited reference.",
+    "failing_input": "label_cites('Alpha', '<p>Alpha [1 - 3].</p>', {})",
+    "expected": "{'1', '2', '3'}",
+    "actual": "{'1', '3'}; gate_enum rejects reference 2 with LABEL_CITES_ANOTHER_REFERENCE:1,3.",
+    "id": "v8-p1-fixes:g1#3",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "_count / compare",
+    "severity": "P0",
+    "claim": "Removing commas without validating thousands grouping converts a decimal-comma value into an integer and confirms the wrong count.",
+    "failing_input": "compare({'events_t': '1,5', 'n_t': '100', 'events_c': '2', 'n_c': '100'}, {'events_t': 15, 'n_t': 100, 'events_c': 2, 'n_c': 100}, [])",
+    "expected": "('NOT_COMPARABLE', 'COUNTS_NOT_INTEGERS'): '1,5' is not an integer with valid thousands separators.",
+    "actual": "('CONFIRMED', 'COUNTS'), because _count('1,5') returns 15.",
+    "id": "v8-p1-fixes:g1#4",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   }
+  ]
  }
 }

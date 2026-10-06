@@ -30,3 +30,10 @@ def test_a_different_measure_never_confirms():
     assert got[0] == "NOT_COMPARABLE"
     assert compare({"measure": "risk ratio", "point": "0.8", "lower": "0.7", "upper": "0.9"},
                    {"measure": "RR", "effect": "0.8", "lower": "0.7", "upper": "0.9"}, [])[0] == "CONFIRMED"
+
+
+def test_a_decimal_comma_is_not_a_count():
+    # codex v8-p1-fixes g1#4: '100,5' became 1005
+    got = compare({"events_t": "100,5", "n_t": "2000", "events_c": "20", "n_c": "2000"},
+                  {"events_t": 1005, "n_t": 2000, "events_c": 20, "n_c": 2000}, [])
+    assert got[0] != "CONFIRMED"

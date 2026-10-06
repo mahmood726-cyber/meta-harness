@@ -1882,9 +1882,15 @@ def numbers_in_span(obj, span, keys):
         prev = before[-1] if before else " "
         # a dash after a digit -- spaced or not: '0.80-1.01', '0.80 - 1.01' -- is a RANGE dash, never a minus; any other
         # leading dash is the number's sign. A leading decimal ('.85') is read as 0.85, never as 85 (codex v8-p0-fixes)
-        neg = bool(m.group(1)) and not (prev.isdigit() or prev == ".")
+        glued = m.start() > 0 and (text[m.start() - 1].isdigit() or text[m.start() - 1] == ".")
+        spaced_after_digit = bool(m.group(1)) and not glued and (prev.isdigit() or prev == ".")
+        neg = bool(m.group(1)) and not glued and not spaced_after_digit
         y = float(m.group(2)) * (-1 if neg else 1)
         signed.append(y)
+        if spaced_after_digit:
+            # '1.2 -3.4' is either two values or a range: AMBIGUOUS, so both readings stand (codex v8-p1-fixes g1#1: a
+            # table row of consecutive negatives was read as positive range ends); unambiguous signs are kept exact
+            signed.append(-y)
         # a token followed by '%' / 'percent' / 'per cent' / 'pct' is a PERCENTAGE, never a count (g2#2; v8-p0-fixes g1#1)
         if not re.match(r"\s*(?:%|percent\b|per\s+cent\b|pct\b)", text[m.end():], re.I):
             counts.append(y)

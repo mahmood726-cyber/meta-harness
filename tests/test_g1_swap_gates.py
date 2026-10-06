@@ -83,3 +83,15 @@ def test_one_unit_of_a_two_trial_analysis_is_not_complete():
     assert sw.enumeration_state([u1, u2], [], {}) == "ENUMERATION_K_NOT_STATED"
     assert sw.enumeration_state([u1, u2], [{"why": "x"}], {"k": 2}) == "ENUMERATION_INCOMPLETE"
     assert sw.enumeration_state([], [], {"k": 2}) == "NOT_ENUMERATED"
+
+
+def test_codex_v8_p1_fixes_round():
+    # g1#1: '1.2 -3.4' is ambiguous: a claimed -3.4 is not refused
+    assert any(abs(t + 3.4) < 1e-9 for t in sw._num_tokens("change 1.2 -3.4"))
+    assert sw._num_tokens("difference: -1.7") == [-1.7]
+    # g1#2: a label never matches inside another name
+    xml = _xml("Kleen [2] and Lee [1].")
+    assert sw.label_cites("Lee", xml, sw.jats_refs(xml)) == {"1"}
+    # g1#3: a spaced citation range keeps its middle
+    xml3 = _xml("Alpha [1 - 2].")
+    assert sw.label_cites("Alpha", xml3, sw.jats_refs(xml3)) == {"1", "2"}
